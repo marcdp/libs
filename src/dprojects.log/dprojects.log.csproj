@@ -1,0 +1,53 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <AssemblyTitle>DProjects.Log</AssemblyTitle>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <LangVersion>preview</LangVersion>
+        <AssemblyName>DProjects.Log</AssemblyName>
+        <OutputType>Library</OutputType>
+        <PackageId>DProjects.Log</PackageId>
+        <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
+        <RootNamespace />
+        <ApplicationIcon />
+        <OutputTypeEx>library</OutputTypeEx>
+        <StartupObject />
+        <Company>DProjects</Company>
+        <Description>DProjects.Log</Description>
+        <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+        <Version>3.0.0</Version>
+        <Authors>marcdp</Authors>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <Copyright>Copyright © DProjects SLU</Copyright>
+        <Nullable>enable</Nullable>
+        <PackageProjectUrl>https://www.dprojects.com/</PackageProjectUrl>
+        <PackageIcon></PackageIcon>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <Compile Remove="Writers\**" />
+      <EmbeddedResource Remove="Writers\**" />
+      <None Remove="Writers\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Remove="LogFilter.cs" />
+      <Compile Remove="LogMem.cs" />
+      <Compile Remove="LogMemFactory.cs" />
+      <Compile Remove="LogSyslog.cs" />
+      <Compile Remove="LogSyslogFactory.cs" />
+      <Compile Remove="LogWriter.cs" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="8.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\dprojects.factories.abstractions\dprojects.factories.abstractions.csproj" />
+      <ProjectReference Include="..\dprojects.fs.abstractions\dprojects.fs.abstractions.csproj" />
+      <ProjectReference Include="..\dprojects.log.abstractions\dprojects.log.abstractions.csproj" />
+    </ItemGroup>
+
+</Project>

@@ -1,0 +1,36 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <AssemblyTitle>DProjects.Streams</AssemblyTitle>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <LangVersion>preview</LangVersion>
+        <AssemblyName>DProjects.Streams</AssemblyName>
+        <OutputType>Library</OutputType>
+        <PackageId>DProjects.Streams</PackageId>
+        <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
+        <RootNamespace />
+        <ApplicationIcon />
+        <OutputTypeEx>library</OutputTypeEx>
+        <StartupObject />
+        <Company>DProjects</Company>
+        <Description>DProjects.Streams</Description>
+        <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+        <Version>3.0.0</Version>
+        <Authors>marcdp</Authors>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <Copyright>Copyright © DProjects SLU</Copyright>
+        <Nullable>enable</Nullable>
+        <PackageProjectUrl>https://www.dprojects.com/</PackageProjectUrl>
+        <PackageIcon></PackageIcon>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="8.0.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Readers\" />
+    </ItemGroup>
+
+
+</Project>

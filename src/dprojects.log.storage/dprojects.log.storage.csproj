@@ -1,0 +1,52 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <AssemblyTitle>DProjects.Log.Storage</AssemblyTitle>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <LangVersion>preview</LangVersion>
+        <AssemblyName>DProjects.Log.Storage</AssemblyName>
+        <OutputType>Library</OutputType>
+        <PackageId>DProjects.Log.Storage</PackageId>
+        <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
+        <RootNamespace />
+        <ApplicationIcon />
+        <OutputTypeEx>library</OutputTypeEx>
+        <StartupObject />
+        <Company>DProjects</Company>
+        <Description>DProjects.Log.Storage</Description>
+        <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+        <Version>3.0.0</Version>
+        <Authors>marcdp</Authors>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <Copyright>Copyright © DProjects SLU</Copyright>
+        <Nullable>enable</Nullable>
+        <PackageProjectUrl>https://www.dprojects.com/</PackageProjectUrl>
+        <PackageIcon></PackageIcon>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <Compile Remove="LogEntryReaderAuto.cs" />
+      <Compile Remove="LogEntryReaderClassic.cs" />
+      <Compile Remove="LogEntryReaderCsv.cs" />
+      <Compile Remove="LogEntryReaderDirTail.cs" />
+      <Compile Remove="LogEntryReaderFiles.cs" />
+      <Compile Remove="LogEntryReaderFilter.cs" />
+      <Compile Remove="LogEntryReaderFsFileTail.cs" />
+      <Compile Remove="LogEntryReaderJson.cs" />
+      <Compile Remove="LogEntryReaderRat.cs" />
+      <Compile Remove="LogEntryReaderRaw.cs" />
+      <Compile Remove="LogEntryReaderW3C.cs" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="8.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\dprojects.factories.abstractions\dprojects.factories.abstractions.csproj" />
+      <ProjectReference Include="..\dprojects.fs.abstractions\dprojects.fs.abstractions.csproj" />
+      <ProjectReference Include="..\dprojects.log.storage.abstractions\dprojects.log.storage.abstractions.csproj" />
+    </ItemGroup>
+
+</Project>
