@@ -37,9 +37,9 @@ namespace DProjects.Factories {
             if (url.Length > 0) {
                 var aUrl = new Uri(url);
                 if ((!string.IsNullOrEmpty(aUrl.UserInfo) && aUrl.UserInfo.IndexOf(":") == -1) || StringUtils.SeemsConnectionString(url)) {
-                    var passwordFiller = mServiceProvider.GetService<IFactoryByUrlPasswordsFiller>();
+                    var passwordFiller = mServiceProvider.GetService<IFactoryPasswordFiller>();
                     if (passwordFiller != null) {
-                        passwordFiller.Fill(ref url);
+                        passwordFiller.FillPassword(ref url);
                     }
                 }
             }

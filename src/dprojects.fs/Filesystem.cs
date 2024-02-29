@@ -20,8 +20,9 @@ namespace DProjects.Fs {
         protected Filesystem(bool isReadonly) {
             mIsReadonly = isReadonly;
         } 
-
-         
+        public virtual void Dispose() {
+        }
+                 
 
         //properties
         public bool IsReadonly => mIsReadonly;

@@ -22,7 +22,9 @@ namespace DProjects.Fs {
         //constructor
         protected FilesystemAsync(bool isReadOnly) {
             mIsReadonly = isReadOnly;
-        } 
+        }
+        public virtual void Dispose() {
+        }
 
 
         //properties

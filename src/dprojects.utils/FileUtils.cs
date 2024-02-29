@@ -91,7 +91,7 @@ namespace DProjects.Utils {
         }
         
         public static void WriteTextFile(string filePath, string fileContent, bool append = false, System.Text.Encoding? encoding = null, int bufferSize = 64 * 1024) {
-            if (encoding == null) encoding = EncodingUtils.GetDefault();
+            encoding ??= EncodingUtils.GetDefault();
             using (var fileStream = new FileStream(filePath, (append ? FileMode.Append : FileMode.OpenOrCreate), FileAccess.ReadWrite)) {
                 if (!append) fileStream.SetLength(0);
                 using (var streamWriter = new StreamWriter(fileStream, encoding, bufferSize, true)) {
@@ -100,10 +100,8 @@ namespace DProjects.Utils {
             }
         }
         public static string WriteTempFile(string fileContent, System.Text.Encoding? encoding = null, int bufferSize = 64 * 1024) {
-            string tempFile = GetTempFileName();
-            if (encoding == null) {
-                encoding = System.Text.Encoding.UTF8;
-            }
+            var tempFile = GetTempFileName();
+            encoding ??= System.Text.Encoding.UTF8;
             WriteTextFile(tempFile, fileContent, false, encoding, bufferSize);
             return tempFile;
         }
@@ -327,7 +325,7 @@ namespace DProjects.Utils {
             return Path.GetFullPath(fileName).ToLower().StartsWith(directoryName.ToLower());
         }
         public static string[] GetFileAndFolderList(string folder, string filter) {
-            List<string> result = new List<string>();
+            var result = new List<string>();
             foreach (string filename in Directory.GetFiles(folder, filter)) {
                 result.Add(filename);
             }
@@ -338,7 +336,7 @@ namespace DProjects.Utils {
             return result.ToArray();
         }
         public static string[] GetFileList(string folder, string filter, bool recursive = true) {
-            List<string> result = new List<string>();
+            var result = new List<string>();
             foreach (string filename in Directory.GetFiles(folder, filter)) {
                 result.Add(filename);
             }
@@ -350,7 +348,7 @@ namespace DProjects.Utils {
             return result.ToArray();
         }
         public static string[] GetFolderList(string folder) {
-            List<string> result = new List<string>();
+            var result = new List<string>();
             result.Add(folder);
             foreach (string folderName in Directory.GetDirectories(folder)) {
                 result.AddRange(GetFolderList(folderName));

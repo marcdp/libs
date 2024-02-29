@@ -27,8 +27,7 @@ namespace DProjects.Utils {
                     }
                 }
             } else {
-                var targetInvocationEx = exception as TargetInvocationException;
-                if (targetInvocationEx != null && targetInvocationEx.InnerException != null) {
+                if (exception is TargetInvocationException targetInvocationEx && targetInvocationEx.InnerException != null) {
                     message.AppendLine(GetMessageDetailed(targetInvocationEx.InnerException, stackTrace));
                 } else if (exception.InnerException != null) {
                     message.AppendLine(GetMessageDetailed(exception.InnerException, stackTrace));

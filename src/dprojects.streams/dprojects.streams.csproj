@@ -28,9 +28,5 @@
         <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="8.0.0" />
     </ItemGroup>
 
-    <ItemGroup>
-      <Folder Include="Readers\" />
-    </ItemGroup>
-
 
 </Project>

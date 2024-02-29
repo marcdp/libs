@@ -13,12 +13,12 @@ namespace DProjects.Fs.Extensions {
         //methods
         public static string LoadTextFile(this IFilesystemSync fs, string path, Encoding? encoding = null) {
             var buffer = fs.LoadBinaryFile(path);
-            if (encoding == null)  return EncodingUtils.GetBufferAsString(buffer);
+            if (encoding == null) encoding = EncodingUtils.DetectEncoding(buffer);
             return encoding.GetString(buffer);
         }
         public static async Task<string> LoadTextFileAsync(this IFilesystemAsync fs, string path, Encoding? encoding = null) {
             var buffer = await fs.LoadBinaryFileAsync(path);
-            if (encoding == null) return EncodingUtils.GetBufferAsString(buffer);
+            if (encoding == null) encoding = EncodingUtils.DetectEncoding(buffer);
             return encoding.GetString(buffer);
         }
 

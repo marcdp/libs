@@ -10,7 +10,7 @@ namespace DProjects.Utils {
     public static class HashUtils {
 
 
-        //md5
+        //md5        
         public static string ToHashMD5Base64(string value) {
             byte[] bytes = System.Text.Encoding.UTF8.GetBytes(value.ToCharArray());
             return Convert.ToBase64String(ToHashMD5(bytes));
@@ -88,13 +88,13 @@ namespace DProjects.Utils {
             algorithm.Dispose();
             return Convert.ToBase64String(result);
         }
-        public static string ToHashSHA256hex(byte[] value) {
+        public static string ToHashSHA256Hex(byte[] value) {
             var algorithm = SHA256.Create();
             byte[] result = algorithm.ComputeHash(value);
             algorithm.Dispose();
             return ConvertUtils.ToHexString(result);
         }
-        public static string ToHashSHA256hex(string value) {
+        public static string ToHashSHA256Hex(string value) {
             var algorithm = SHA256.Create();
             byte[] bytes = System.Text.Encoding.UTF8.GetBytes(value.ToCharArray());
             byte[] result = algorithm.ComputeHash(bytes);
@@ -134,6 +134,19 @@ namespace DProjects.Utils {
             byte[] result = algorithm.ComputeHash(bytes);
             algorithm.Dispose();
             return Convert.ToBase64String(result);
+        }
+        public static string ToHashSHA512Hex(byte[] value) {
+            var algorithm = SHA512.Create();
+            byte[] result = algorithm.ComputeHash(value);
+            algorithm.Dispose();
+            return ConvertUtils.ToHexString(result);
+        }
+        public static string ToHashSHA512Hex(string value) {
+            var algorithm = SHA512.Create();
+            byte[] bytes = System.Text.Encoding.UTF8.GetBytes(value.ToCharArray());
+            byte[] result = algorithm.ComputeHash(bytes);
+            algorithm.Dispose();
+            return ConvertUtils.ToHexString(result);
         }
         public static byte[] ToHashSHA512(string value) {
             var algorithm = SHA512.Create();

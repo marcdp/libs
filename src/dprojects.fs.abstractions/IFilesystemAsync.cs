@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 namespace DProjects.Fs {
 
 
-    public interface IFilesystemAsync :  IFilesystemInfo {
+    public interface IFilesystemAsync :  IFilesystemInfo, IDisposable {
 
 
         //methods LEVEL 0

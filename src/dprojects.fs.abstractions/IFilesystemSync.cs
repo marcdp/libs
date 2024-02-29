@@ -7,7 +7,7 @@ using System.IO;
 namespace DProjects.Fs {
 
 
-    public interface IFilesystemSync : IFilesystemInfo {
+    public interface IFilesystemSync : IFilesystemInfo, IDisposable {
 
 
         //methods LEVEL 0

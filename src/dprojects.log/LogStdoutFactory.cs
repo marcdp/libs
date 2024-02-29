@@ -12,8 +12,8 @@ namespace DProjects.Log {
 
         public ILog Create(string src) {
             var url = new Uri(src);
-            var logFormatter = logFormatterFactory.Create(UrlUtils.ParseQueryString(url.Query, "format", "json"));
-            var logLevel = UrlUtils.ParseQueryString(url.Query, "level", LogLevel.Information);
+            var logFormatter = logFormatterFactory.Create(UrlUtils.GetQueryValue(url.Query, "format", "json"));
+            var logLevel = UrlUtils.GetQueryValue(url.Query, "level", LogLevel.Information);
             return new LogStdout(logFormatter, logLevel);
         }
 

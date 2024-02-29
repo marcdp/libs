@@ -8,9 +8,9 @@ namespace DProjects.Db.Writers {
 
     [Protocol("jsonl", "")]
     [ProtocolExample("jsonl:", "")]
-    public class DBWriterJsonLinesFactory(TextWriter writer) : IFactoryByUrl<IDBWriter> {
+    public class DBWriterJsonLinesFactory : IFactoryByUrlAndArgument<IDBWriter, TextWriter> {
 
-        public IDBWriter Create(string src) {
+        public IDBWriter Create(string src, TextWriter writer) {
             var leaveOpen = false;
             var settings = UrlUtils.Deserialize<DBWriterJsonLines.Settings>(src);
             return new DBWriterJsonLines(writer, leaveOpen, settings);

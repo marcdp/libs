@@ -8,9 +8,9 @@ namespace DProjects.Db.Writers {
 
     [Protocol("html", "")]
     [ProtocolExample("html:", "")]
-    public class DBWriterHtmlFactory(TextWriter writer) : IFactoryByUrl<IDBWriter> {
+    public class DBWriterHtmlFactory : IFactoryByUrlAndArgument<IDBWriter, TextWriter> {
 
-        public IDBWriter Create(string src) {
+        public IDBWriter Create(string src, TextWriter writer) {
             var leaveOpen = false;
             var settings = UrlUtils.Deserialize<DBWriterHtml.Settings>(src);
             return new DBWriterHtml(writer, leaveOpen, settings);

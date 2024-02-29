@@ -23,16 +23,10 @@ namespace DProjects.Utils {
             return ToBase64UrlSafe(buffer, options);
         }
         public static string ToBase64UrlSafe(byte[] buffer, Base64FormattingOptions options = default) {
-            string aux = ToBase64(buffer, 0, buffer.Length);
-            if (aux.IndexOf("=") != -1) {
-                aux = aux.Substring(0, aux.IndexOf("="));
-            }
-            if (aux.IndexOf("+") != -1) {
-                aux = aux.Replace("+", "-");
-            }
-            if (aux.IndexOf("/") != -1) {
-                aux = aux.Replace("/", "_");
-            }
+            var aux = ToBase64(buffer, 0, buffer.Length, options);
+            if (aux.IndexOf("=") != -1) aux = aux.Substring(0, aux.IndexOf("="));
+            if (aux.IndexOf("+") != -1) aux = aux.Replace("+", "-");
+            if (aux.IndexOf("/") != -1) aux = aux.Replace("/", "_");
             return aux;
         }
 

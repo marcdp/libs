@@ -96,7 +96,7 @@ namespace DProjects.Fs.Extensions {
                                 } else if (compareMethod == CompareMethod.Timestamp) {
                                     fs.Touch(entrySaved.Path, srcEntry.Modified);
                                 } else if (compareMethod == CompareMethod.TimestampCache) {
-                                    timestampCache[srcEntry.Path] = HashUtils.ToHashSHA256hex(srcEntry.Modified.ToUniversalTime().Ticks + ":" + srcEntry.Length + ":" + entrySaved.Modified.ToUniversalTime().Ticks);
+                                    timestampCache[srcEntry.Path] = HashUtils.ToHashSHA256Hex(srcEntry.Modified.ToUniversalTime().Ticks + ":" + srcEntry.Length + ":" + entrySaved.Modified.ToUniversalTime().Ticks);
                                 }
                                 break;
                             } catch (TaskCanceledException) {
@@ -130,7 +130,7 @@ namespace DProjects.Fs.Extensions {
                     } else if (compareMethod == CompareMethod.TimestampCache) {
                         string? key = null;
                         if (timestampCache.TryGetValue(srcEntry.Path, out key)) {
-                            var computedKey = HashUtils.ToHashSHA256hex(srcEntry.Modified.ToUniversalTime().Ticks + ":" + srcEntry.Length + ":" + dstEntry.Modified.ToUniversalTime().Ticks);
+                            var computedKey = HashUtils.ToHashSHA256Hex(srcEntry.Modified.ToUniversalTime().Ticks + ":" + srcEntry.Length + ":" + dstEntry.Modified.ToUniversalTime().Ticks);
                             if (!key.Equals(computedKey)) {
                                 changed = true;
                             }
@@ -150,7 +150,7 @@ namespace DProjects.Fs.Extensions {
                                 } else if (compareMethod == CompareMethod.Timestamp) {
                                     fs.Touch(entrySaved.Path, srcEntry.Modified);
                                 } else if (compareMethod == CompareMethod.TimestampCache) {
-                                    timestampCache[srcEntry.Path] = HashUtils.ToHashSHA256hex(srcEntry.Modified.ToUniversalTime().Ticks + ":" + srcEntry.Length + ":" + entrySaved.Modified.ToUniversalTime().Ticks);
+                                    timestampCache[srcEntry.Path] = HashUtils.ToHashSHA256Hex(srcEntry.Modified.ToUniversalTime().Ticks + ":" + srcEntry.Length + ":" + entrySaved.Modified.ToUniversalTime().Ticks);
                                 }
                                 break;
                             } catch (TaskCanceledException) {

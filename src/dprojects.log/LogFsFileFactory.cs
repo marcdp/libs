@@ -13,11 +13,11 @@ namespace DProjects.Log {
 
         public ILog Create(string src) {
             var url = new Uri(src);
-            var truncate = UrlUtils.ParseQueryString(url.Query, "truncate", false);
-            var autoFlush = UrlUtils.ParseQueryString(url.Query, "autoFlush", false);
-            var useWriterThread = UrlUtils.ParseQueryString(url.Query, "useWriterThread", true);
-            var logFormatter = logFormatterFactory.Create(UrlUtils.ParseQueryString(url.Query, "format", "json"));
-            var level = UrlUtils.ParseQueryString(url.Query, "level", LogLevel.Information);
+            var truncate = UrlUtils.GetQueryValue(url.Query, "truncate", false);
+            var autoFlush = UrlUtils.GetQueryValue(url.Query, "autoFlush", false);
+            var useWriterThread = UrlUtils.GetQueryValue(url.Query, "useWriterThread", true);
+            var logFormatter = logFormatterFactory.Create(UrlUtils.GetQueryValue(url.Query, "format", "json"));
+            var level = UrlUtils.GetQueryValue(url.Query, "level", LogLevel.Information);
             return new LogFsFile(filesystem, url.AbsolutePath, truncate, autoFlush, useWriterThread, logFormatter, level);
         }
 

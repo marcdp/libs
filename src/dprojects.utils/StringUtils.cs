@@ -1,9 +1,12 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Globalization;
 using System.IO;
 using System.Text;
+using System.Text.RegularExpressions;
+using System.Web;
 
 
 namespace DProjects.Utils {
@@ -49,49 +52,49 @@ namespace DProjects.Utils {
                 return defaultValue;
             }
         }
-        public static T GetConnectionStringVariableBracketed<T>(string text, string variable, T defaultValue) {
-            string? value = GetConnectionStringVariableBracketed(text, variable, "");
-            if (value == null) return defaultValue!;
-            return ConvertUtils.To<T>(value);
-        }
-        public static string? GetConnectionStringVariableBracketed(string text, string variable, string defaultValue = "") {
-            if (text == null) {
-                return defaultValue;
-            }
-            string loweredText = text.ToLower() + "}";
-            int i = loweredText.IndexOf(variable.ToLower() + "={");
-            if (i > -1) {
-                i += variable.Length + 1;
-                int j = loweredText.IndexOf("}", i);
-                if (j > -1) {
-                    string res = text.Substring(i + 1, j - i - 1);
-                    if (string.IsNullOrEmpty(res)) {
-                        return defaultValue;
-                    }
-                    return res;
-                } else {
-                    return defaultValue;
-                }
-            } else {
-                return defaultValue;
-            }
-        }
-        public static string ReplaceConnectionStringVariable(string text, string variable, string newvariable) {
-            //if (text == null) return text;
-            string loweredText = text.ToLower() + ";";
-            int i = loweredText.IndexOf(variable.ToLower() + "=");
-            if (i > -1) {
-                var k = i + variable.Length + 1;
-                int j = loweredText.IndexOf(";", k);
-                if (j > -1) {
-                    return text.Substring(0, i) + newvariable + text.Substring(j);
-                } else {
-                    return text;
-                }
-            } else {
-                return text;
-            }
-        }
+        //public static T GetConnectionStringVariableBracketed<T>(string text, string variable, T defaultValue) {
+        //    string? value = GetConnectionStringVariableBracketed(text, variable, "");
+        //    if (value == null) return defaultValue!;
+        //    return ConvertUtils.To<T>(value);
+        //}
+        //public static string? GetConnectionStringVariableBracketed(string text, string variable, string defaultValue = "") {
+        //    if (text == null) {
+        //        return defaultValue;
+        //    }
+        //    string loweredText = text.ToLower() + "}";
+        //    int i = loweredText.IndexOf(variable.ToLower() + "={");
+        //    if (i > -1) {
+        //        i += variable.Length + 1;
+        //        int j = loweredText.IndexOf("}", i);
+        //        if (j > -1) {
+        //            string res = text.Substring(i + 1, j - i - 1);
+        //            if (string.IsNullOrEmpty(res)) {
+        //                return defaultValue;
+        //            }
+        //            return res;
+        //        } else {
+        //            return defaultValue;
+        //        }
+        //    } else {
+        //        return defaultValue;
+        //    }
+        //}
+        //public static string ReplaceConnectionStringVariable(string text, string variable, string newvariable) {
+        //    //if (text == null) return text;
+        //    string loweredText = text.ToLower() + ";";
+        //    int i = loweredText.IndexOf(variable.ToLower() + "=");
+        //    if (i > -1) {
+        //        var k = i + variable.Length + 1;
+        //        int j = loweredText.IndexOf(";", k);
+        //        if (j > -1) {
+        //            return text.Substring(0, i) + newvariable + text.Substring(j);
+        //        } else {
+        //            return text;
+        //        }
+        //    } else {
+        //        return text;
+        //    }
+        //}
         public static string RemoveConnectionStringVariable(string text, string variable) {
             //if (text == null) return text;
             string loweredText = text.ToLower() + ";";
@@ -100,14 +103,13 @@ namespace DProjects.Utils {
                 var k = i + variable.Length + 1;
                 int j = loweredText.IndexOf(";", k);
                 if (j > -1) {
-                    string res = text.Substring(0, i) + text.Substring(j);
-                    return res;
-                } else {
-                    return text;
+                    text = text.Substring(0, i) + text.Substring(j);
                 }
-            } else {
-                return text;
             }
+            if (text.StartsWith(";")) text = text.Substring(1);
+            if (text.EndsWith(";")) text = text.Substring(0, text.Length-1);
+            if (text.IndexOf(";;")!=-1) text = text.Replace(";;",";");
+            return text;
         }
         public static string[] GetConnectionStringVariableNames(string text, string[]? excludeVariableNames = null) {
             var aux = new List<string>();
@@ -159,21 +161,23 @@ namespace DProjects.Utils {
         public static long UnFormatSize(string text) {
             text = text.ToUpper().Trim();
             if (text.EndsWith("YB")) { //Yottabyte
-                return System.Convert.ToInt64(text.Substring(0, text.Length - 2)) * 1024 * 1024 * 1024 * 1024 * 1024 * 1024 * 1024 * 1024;
+                return System.Convert.ToInt64(decimal.Parse(text.Substring(0, text.Length - 2))) * 1024 * 1024 * 1024 * 1024 * 1024 * 1024 * 1024 * 1024;
             } else if (text.EndsWith("ZB")) { //Zettabyte
-                return System.Convert.ToInt64(text.Substring(0, text.Length - 2)) * 1024 * 1024 * 1024 * 1024 * 1024 * 1024 * 1024;
+                return System.Convert.ToInt64(decimal.Parse(text.Substring(0, text.Length - 2))) * 1024 * 1024 * 1024 * 1024 * 1024 * 1024 * 1024;
             } else if (text.EndsWith("EB")) { //exabyte
-                return System.Convert.ToInt64(text.Substring(0, text.Length - 2)) * 1024 * 1024 * 1024 * 1024 * 1024 * 1024;
+                return System.Convert.ToInt64(decimal.Parse(text.Substring(0, text.Length - 2))) * 1024 * 1024 * 1024 * 1024 * 1024 * 1024;
             } else if (text.EndsWith("PB")) { //petabyte
-                return System.Convert.ToInt64(text.Substring(0, text.Length - 2)) * 1024 * 1024 * 1024 * 1024 * 1024;
+                return System.Convert.ToInt64(decimal.Parse(text.Substring(0, text.Length - 2))) * 1024 * 1024 * 1024 * 1024 * 1024;
             } else if (text.EndsWith("TB")) { //terabyte
-                return System.Convert.ToInt64(text.Substring(0, text.Length - 2)) * 1024 * 1024 * 1024 * 1024;
+                return System.Convert.ToInt64(decimal.Parse(text.Substring(0, text.Length - 2))) * 1024 * 1024 * 1024 * 1024;
             } else if (text.EndsWith("GB")) { //megabyte
-                return System.Convert.ToInt64(text.Substring(0, text.Length - 2)) * 1024 * 1024 * 1024;
+                return System.Convert.ToInt64(decimal.Parse(text.Substring(0, text.Length - 2))) * 1024 * 1024 * 1024;
             } else if (text.EndsWith("MB")) { //megabyte
-                return System.Convert.ToInt64(text.Substring(0, text.Length - 2)) * 1024 * 1024;
+                return System.Convert.ToInt64(decimal.Parse(text.Substring(0, text.Length - 2))) * 1024 * 1024;
             } else if (text.EndsWith("KB")) { //kilobyte
-                return System.Convert.ToInt64((long.Parse(text.Substring(0, text.Length - 2))) * 1024);
+                return System.Convert.ToInt64((decimal.Parse(text.Substring(0, text.Length - 2))) * 1024);
+            } else if (text.EndsWith("BYTES")) { //kilobyte
+                return System.Convert.ToInt64((decimal.Parse(text.Substring(0, text.Length - 5))));
             } else {
                 return long.Parse(text);
             }
@@ -201,16 +205,39 @@ namespace DProjects.Utils {
                         } else if (encoding.Equals("Q")) {
                             //Q-encoding
                             var charsetEncoding = Encoding.GetEncoding(charset);
-                            return ConvertQuotedPrintableToString(aux, charsetEncoding);
+                            return DecodeQuotedPrintable(aux, charsetEncoding);
                         }
                     }
                 }
             }
             return text;
         }
+        public static string DecodeQuotedPrintable(string text, Encoding encoding) {
+            MemoryStream ms = new MemoryStream();
+            for (int i = 0; i <= text.Length - 1; i++) {
+                char c = text[i];
+                if (c == '=' && i < text.Length - 2) {
+                    string hex = text.Substring(i + 1, 2);
+                    if (hex == Environment.NewLine) {
+                        i += 2;
+                    } else {
+                        int ascii = int.Parse(hex, System.Globalization.NumberStyles.HexNumber);
+                        ms.WriteByte(Convert.ToByte(ascii));
+                        i += 2;
+                    }
+                } else if (c == ' ') {
+                    ms.WriteByte((byte)c);
+                } else {
+                    ms.WriteByte(System.Convert.ToByte(System.Text.Encoding.ASCII.GetBytes(c.ToString().ToCharArray())[0]));
+                }
+            }
+            byte[] buffer = ms.ToArray();
+            ms.Dispose();
+            return encoding.GetString(buffer);
+        }
 
         //other
-        public static string[] Split(string text, int columns) {
+        public static string[] SplitByColumns(string text, int columns) {
             var result = new List<string>();
             var i = 0;
             do {
@@ -221,8 +248,8 @@ namespace DProjects.Utils {
             } while (i < text.Length);
             return result.ToArray();
         }
-        public static string SplitAndFold(string text, int columns) {
-            var lines = Split(text, columns);
+        public static string SplitByColumnsAndFold(string text, int columns) {
+            var lines = SplitByColumns(text, columns);
             return string.Join(System.Environment.NewLine, lines);
         }
         public static string GetTextCutted(string text, int maxlength, bool addDotsIfRequired) {
@@ -246,19 +273,13 @@ namespace DProjects.Utils {
         public static string TranslateStringToXmlEntities(string text) {
             return System.Net.WebUtility.HtmlEncode(text);
         }
-        public static string ReplaceFirstOccurrence(string text, string textToSearch, string replacement) {
-            int i = text.IndexOf(textToSearch);
-            if (i != -1) {
-                text = text.Substring(0, i) + replacement + text.Substring(i + textToSearch.Length);
-            }
-            return text;
-        }
         public static string ConvertFullNameToInitials(string name) {
             if (string.IsNullOrEmpty(name)) return "";
             if (name.IndexOf(",") != -1) {
                 var aux = name.Substring(name.IndexOf(",")+1).Trim();
                 if (aux.Length > 0) aux = aux.Substring(0, 1);
                 name = aux + " " + name;
+                if (name.IndexOf(",")!=-1) name = name.Substring(0, name.IndexOf(",") + 1).Trim();
             }
             while (name.IndexOf("  ") != -1) name = name.Replace("  ", " ");
             name = name.Trim();
@@ -273,23 +294,7 @@ namespace DProjects.Utils {
                 return nameParts[0].Substring(0, 1).ToUpper() + nameParts[1].Substring(0, 1).ToUpper() + nameParts[2].Substring(0, 1).ToUpper();
             }
         }
-        public static string ReplaceASCIICharToPrettyURLPart(string s) {
-            StringBuilder result = new StringBuilder(s.Length);
-            s = ReplaceASCIICharToASCI(TranslateXmlEntitiesToString(s.ToLower()));
-            for (int i = 0; i <= s.Length - 1; i++) {
-                char c = s[i];
-                int ci = Convert.ToInt32(c);
-                if (c == ' ' || c == '-' || c == '/' || c == '\\' || c == ';' || c == ':') {
-                    result.Append("-");
-                } else if ((48 <= ci && ci <= 57) ||
-                        (65 <= ci && ci <= 90) ||
-                        (97 <= ci && ci <= 122) ||
-                        c == '_' || c == '.') {
-                    result.Append(c);
-                }
-            }
-            return result.ToString().Replace("--", "-").Replace("--", "-");
-        }
+        
         public static string ReplaceASCIICharToAlphaNumeric(string s) {
             StringBuilder result = new StringBuilder(s.Length);
             s = ReplaceASCIICharToASCI(TranslateXmlEntitiesToString(s.ToLower()));
@@ -364,14 +369,6 @@ namespace DProjects.Utils {
             s = s.Replace("Ñ", "N");
             s = s.Replace("ñ", "n");
             return s;
-        }
-        public static string ReplaceNullCharactersInString(string text) {
-            string nullChar = char.ConvertFromUtf32(0);
-            while (text.IndexOf(nullChar) != -1) {
-                int j = text.IndexOf(nullChar);
-                text = text.Substring(0, j) + " " + text.Substring(j + 1);
-            }
-            return text;
         }
         public static int GetStringIndent(string text, char c = ' ') {
             var arr = text.ToCharArray();
@@ -476,31 +473,7 @@ namespace DProjects.Utils {
                 previousCategory = currentCategory;
             }
             return builder.ToString();
-        }
-        public static string CapitalizeAndSpace(string text) {
-            //convierte cadenas del tipo holaQueTal a Hola que tal
-            string s = UnCapitalize(text);
-            return CapitalizeFirstChar(s.Replace("_", " ").Replace("  ", " "));
-        }
-        public static string CapitalizeAndSpaceMinusLower(string text, bool ignoreConsecutiveCapitalLetters = false) {
-            //convierte cadenas del tipo holaQueTal a hola-que-tal
-            string s = UnCapitalize(text, ignoreConsecutiveCapitalLetters);
-            return s.Replace("_", " ").Replace("  ", " ").Replace(" ", "-").ToLower();
-        }
-        public static string UnCapitalize(string text, bool ignoreConsecutiveCapitalLetters = false) {
-            //convierte cadenas del tipo HolaQueTalEstas a hola_que_talestas
-            var s = new StringBuilder();
-            var prevWhatUpper = false;
-            for (int i = 0; i <= text.Length - 1; i++) {
-                char c = text[i];
-                if (char.IsUpper(c) && i > 0 && !prevWhatUpper) {
-                    s.Append("_");
-                }
-                s.Append(c);
-                prevWhatUpper = (ignoreConsecutiveCapitalLetters ? char.IsUpper(c) : false);
-            }
-            return s.ToString();
-        }
+        } 
         public static string UnCapitalizeFirstChar(string text) {
             //convierte cadenas del tipo HolaQueTalEstas a hola_que_talestas
             if (text.Length > 0) {
@@ -508,28 +481,7 @@ namespace DProjects.Utils {
             }
             return text;
         }
-        public static string UnCapitalizeLiteral(string text) {
-            //convierte cadenas del tipo HolaQueTalEstas a hola_que_talestas
-            bool allCharactersAreUpperCase = true;
-            StringBuilder s = new StringBuilder();
-            char cPrev = 'a';
-            for (int i = 0; i <= text.Length - 1; i++) {
-                char c = text[i];
-                if (!char.IsUpper(c)) {
-                    allCharactersAreUpperCase = false;
-                }
-                if (char.IsUpper(c) && i > 0 && !char.IsUpper(cPrev)) {
-                    s.Append("_");
-                }
-                s.Append(c);
-                cPrev = c;
-            }
-            if (allCharactersAreUpperCase) {
-                return CapitalizeFirstChar(s.ToString().Replace("_", " "));
-            } else {
-                return CapitalizeFirstChar(s.ToString().Replace("_", " ").ToLower());
-            }
-        }
+        
         public static string CamelCase(string text) {
             //convierte cadenas del tipo hola-que-talestas a holaQueTalEstas
             if (text == null || text.Length == 0) return "";
@@ -551,6 +503,71 @@ namespace DProjects.Utils {
             }
             return result.ToString();
         }
+        public static string CamelToCapitalizeCase(string text) {
+            //convierte cadenas del tipo holaQueTal a Hola que tal
+            var ignoreConsecutiveCapitalLetters = false;
+            var s = new StringBuilder();
+            var prevWhatUpper = false;
+            for (int i = 0; i <= text.Length - 1; i++) {
+                char c = text[i];
+                if (char.IsUpper(c) && i > 0 && !prevWhatUpper) {
+                    s.Append("_");
+                }
+                s.Append(c);
+                prevWhatUpper = (ignoreConsecutiveCapitalLetters ? char.IsUpper(c) : false);
+            }
+            return CapitalizeFirstChar(s.ToString().Replace("_", " ").Replace("  ", " "));
+        }
+        public static string CamelToSnakeCase(string text, bool ignoreConsecutiveCapitalLetters = false) {
+            //convierte cadenas del tipo HolaQueTalEstas a hola_que_talestas
+            var s = new StringBuilder();
+            var prevWhatUpper = false;
+            for (int i = 0; i <= text.Length - 1; i++) {
+                char c = text[i];
+                if (char.IsUpper(c) && i > 0 && !prevWhatUpper) {
+                    s.Append("_");
+                }
+                s.Append(c);
+                prevWhatUpper = (ignoreConsecutiveCapitalLetters ? char.IsUpper(c) : false);
+            }
+            return s.ToString().ToLower();
+        }
+        public static string CamelToKebabCase(string text, bool ignoreConsecutiveCapitalLetters = false) {
+            //convierte cadenas del tipo HolaQueTalEstas a hola_que_talestas
+            var s = new StringBuilder();
+            var prevWhatUpper = false;
+            for (int i = 0; i <= text.Length - 1; i++) {
+                char c = text[i];
+                if (char.IsUpper(c) && i > 0 && !prevWhatUpper) {
+                    s.Append("-");
+                }
+                s.Append(c);
+                prevWhatUpper = (ignoreConsecutiveCapitalLetters ? char.IsUpper(c) : false);
+            }
+            return s.ToString().ToLower();
+        }
+        public static string CamelToNormalCase(string text) {
+            //convierte cadenas del tipo HolaQueTalEstas a hola que tal estas
+            bool allCharactersAreUpperCase = true;
+            StringBuilder s = new StringBuilder();
+            char cPrev = 'a';
+            for (int i = 0; i <= text.Length - 1; i++) {
+                char c = text[i];
+                if (!char.IsUpper(c)) {
+                    allCharactersAreUpperCase = false;
+                }
+                if (char.IsUpper(c) && i > 0 && !char.IsUpper(cPrev)) {
+                    s.Append("_");
+                }
+                s.Append(c);
+                cPrev = c;
+            }
+            if (allCharactersAreUpperCase) {
+                return CapitalizeFirstChar(s.ToString().Replace("_", " "));
+            } else {
+                return CapitalizeFirstChar(s.ToString().Replace("_", " ").ToLower());
+            }
+        }
         public static bool IsAllTextUppercase(string text) {
             foreach (char c in text) {
                 if (char.IsLetterOrDigit(c)) {
@@ -562,7 +579,7 @@ namespace DProjects.Utils {
             return true;
         }
         public static string GetStringRightPaddedWithSpaces(string s, int length) {
-            StringBuilder sb = new StringBuilder(s);
+            var sb = new StringBuilder(s);
             while (sb.Length < length) {
                 sb.Append(" ");
             }
@@ -570,7 +587,7 @@ namespace DProjects.Utils {
         }
         public static string Space(int number, char character = ' ') {
             if (number == 0) return "";
-            StringBuilder sb = new StringBuilder(number);
+            var sb = new StringBuilder(number);
             for (int i = 0; i < number; i++) {
                 sb.Append(character);
             }
@@ -619,47 +636,47 @@ namespace DProjects.Utils {
             var regexp = new System.Text.RegularExpressions.Regex(patternRegExp.ToString());
             return regexp.Match(text).Success;
         }
-        public static bool Like2(string text, string pattern, bool ignoreCase = false) {
-            int matched = 0;
-            while (pattern.IndexOf("**") != -1) pattern = pattern.Replace("**", "*");
-            if (ignoreCase) {
-                text = text.ToLower();
-                pattern = pattern.ToLower();
-            }
-            for (int i = 0; i < pattern.Length;) {
-                if (matched > text.Length) return false;
-                char c = pattern[i++];
-                if (c == '[')  {
-                    bool exclude = (i < pattern.Length && pattern[i] == '!');
-                    if (exclude) i++;
-                    int j = pattern.IndexOf(']', i);
-                    if (j < 0) j = text.Length;
-                    var charList = CharListToSet(pattern.Substring(i, j - i));
-                    i = j + 1;
-                    if (charList.Contains(text[matched]) == exclude) return false;
-                    matched++;
-                } else if (c == '?')  {
-                    matched++;
-                } else if (c == '#') {
-                    if (!Char.IsDigit(text[matched])) return false;
-                    matched++;
-                } else if (c == '*') {
-                    if (i < pattern.Length) {
-                        char next = pattern[i];
-                        int j = text.IndexOf(next, matched);
-                        if (j < 0) return false;
-                        matched = j;
-                    } else {
-                        matched = text.Length;
-                        break;
-                    }
-                } else  {
-                    if (matched >= text.Length || c != text[matched]) return false;
-                    matched++;
-                }
-            }
-            return (matched == text.Length);
-        }
+        //public static bool Like2(string text, string pattern, bool ignoreCase = false) {
+        //    int matched = 0;
+        //    while (pattern.IndexOf("**") != -1) pattern = pattern.Replace("**", "*");
+        //    if (ignoreCase) {
+        //        text = text.ToLower();
+        //        pattern = pattern.ToLower();
+        //    }
+        //    for (int i = 0; i < pattern.Length;) {
+        //        if (matched > text.Length) return false;
+        //        char c = pattern[i++];
+        //        if (c == '[')  {
+        //            bool exclude = (i < pattern.Length && pattern[i] == '!');
+        //            if (exclude) i++;
+        //            int j = pattern.IndexOf(']', i);
+        //            if (j < 0) j = text.Length;
+        //            var charList = CharListToSet(pattern.Substring(i, j - i));
+        //            i = j + 1;
+        //            if (charList.Contains(text[matched]) == exclude) return false;
+        //            matched++;
+        //        } else if (c == '?')  {
+        //            matched++;
+        //        } else if (c == '#') {
+        //            if (!Char.IsDigit(text[matched])) return false;
+        //            matched++;
+        //        } else if (c == '*') {
+        //            if (i < pattern.Length) {
+        //                char next = pattern[i];
+        //                int j = text.IndexOf(next, matched);
+        //                if (j < 0) return false;
+        //                matched = j;
+        //            } else {
+        //                matched = text.Length;
+        //                break;
+        //            }
+        //        } else  {
+        //            if (matched >= text.Length || c != text[matched]) return false;
+        //            matched++;
+        //        }
+        //    }
+        //    return (matched == text.Length);
+        //}
         private static HashSet<char> CharListToSet(string charList) {
             var set = new HashSet<char>();
             for (int i = 0; i < charList.Length; i++) {
@@ -691,9 +708,6 @@ namespace DProjects.Utils {
                 str = str.Remove(foundAt, oldValue.Length).Insert(foundAt, newValue);
             }
             return str;
-        }
-        public static string RTrim(string value) {
-            throw new NotImplementedException();
         }
         public static int Asc(char c) {
             return EncodingUtils.GetDefault().GetBytes(c.ToString().ToCharArray())[0];
@@ -743,108 +757,56 @@ namespace DProjects.Utils {
             }
             return Convert.ToChar((int)(charCode & 0xffff));
         }
-        public static bool IsNumeric(object expression) {
+        public static bool IsNumeric(string text) {
             double retNum;
-            return double.TryParse(Convert.ToString(expression), System.Globalization.NumberStyles.Any, System.Globalization.NumberFormatInfo.InvariantInfo, out retNum);
+            return double.TryParse(text, System.Globalization.NumberStyles.Any, System.Globalization.NumberFormatInfo.InvariantInfo, out retNum);
         }
-        public static bool IsInteger(object expression) {
-            return int.TryParse(Convert.ToString(expression), out int retNum);
+        public static bool IsInteger(string text) {
+            return int.TryParse(text, out int retNum);
         }
-        public static bool IsLong(object expression) {
-            return long.TryParse(Convert.ToString(expression), out long retNum);
+        public static bool IsLong(string text) {
+            return long.TryParse(text, out long retNum);
         }
-        public static bool IsHexadecimalInt(object expression) {
-            var aux = Convert.ToString(expression);
-            return aux.StartsWith("0x") && int.TryParse(aux.Substring(2), NumberStyles.HexNumber | NumberStyles.AllowHexSpecifier, null, out int retNum);
+        public static bool IsHexadecimalInt(string text) {
+            return text.StartsWith("0x") && int.TryParse(text.Substring(2), NumberStyles.HexNumber | NumberStyles.AllowHexSpecifier, null, out int retNum);
         }
-        public static bool IsHexadecimalLong(object expression) {
-            var aux = Convert.ToString(expression);
-            return aux.StartsWith("0x") && long.TryParse(aux.Substring(2), NumberStyles.HexNumber | NumberStyles.AllowHexSpecifier, null, out long retNum);
+        public static bool IsHexadecimalLong(string text) {
+            return text.StartsWith("0x") && long.TryParse(text.Substring(2), NumberStyles.HexNumber | NumberStyles.AllowHexSpecifier, null, out long retNum);
         }
-        public static bool IsDate(object expression) {
+        public static bool IsDate(string text) {
             DateTime retDate;
-            return System.DateTime.TryParse(Convert.ToString(expression), out retDate);
+            return System.DateTime.TryParse(Convert.ToString(text), out retDate);
         }
-        public static bool IsEmail(object? expression) {
-            if (expression == null) return false;
+        public static bool IsEmail(string text) {
+            if (text == null) return false;
+            if (text.StartsWith("@")) return false;
             string validEmailPattern = @"^(?!\.)(""([^""\r\\]|\\[""\r\\])*""|([-a-z0-9!#$%&'*+/=?^_`{|}~]|(?<!\.)\.)*)(?<!\.)@[a-z0-9][\w\.-]*[a-z0-9]\.[a-z][a-z\.]*[a-z]$";
             var regex = new System.Text.RegularExpressions.Regex(validEmailPattern, System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-            return regex.IsMatch(expression.ToString());
+            return regex.IsMatch(text.ToString());
         }
-        public static bool IsPhone(object? expression) {
-            if (expression == null) return false;
-            if (expression.ToString().Replace(" ", "").Length < 9) return false;
-            return true;
+        public static bool IsPhone(string text) {
+            if (text == null) return false;
+            return IsNumeric(text);
         }
         public static string CleanPhone(string phone, string prefix) {
             if (prefix != "") phone = prefix + phone;
-            phone = phone.Replace("(", "").Replace(")", "").Replace("-", "").Replace(" ", "").Replace("+", "").Trim();
+            phone = phone.Replace("(", "").Replace(")", "").Replace("-", "").Replace(".", "").Replace(" ", "").Replace("+", "").Trim();
             if (phone.Length > 15) phone = phone.Substring(phone.Length - 15);
             return phone;
-        }
-        public static bool IsIBAN(string bankAccount) {
-            bankAccount = bankAccount.ToUpper();
-            // IN ORDER TO COPE WITH THE REGEX BELOW
-            if (String.IsNullOrEmpty(bankAccount))
-                return false;
-            else if (bankAccount.Length < 10)
-                return false;
-            else if (System.Text.RegularExpressions.Regex.IsMatch(bankAccount, "^[A-Z0-9]")) {
-                bankAccount = bankAccount.Replace(" ", String.Empty);
-                string bank = bankAccount.Substring(4, bankAccount.Length - 4) + bankAccount.Substring(0, 4);
-                int asciiShift = 55;
-                StringBuilder sb = new StringBuilder();
-                foreach (char c in bank) {
-                    if (Char.IsLetter(c)) {
-                        int v = Asc(c) - asciiShift;
-                        sb.Append(v);
-                    } else if (int.TryParse(c.ToString(), out int v)) {
-                        sb.Append(v);
-                    } else {
-                        return false;
-                    }
-
-                }
-                string checkSumString = sb.ToString();
-                int checksum = int.Parse(checkSumString.Substring(0, 1));
-                for (int i = 1; i <= checkSumString.Length - 1; i++) {
-                    int v = int.Parse(checkSumString.Substring(i, 1));
-                    checksum *= 10;
-                    checksum += v;
-                    checksum = checksum % 97;
-                }
-                return checksum == 1;
-            }
-            return false;
-        }
-        public static bool IsToken(object? expression) {
-            if (expression == null) return false;
-            var text = (expression.ToString() ?? "").ToCharArray();
-            if (text.Length == 0) return false;
-            int index = 0;
-            foreach (var c in text) {
-                if (index == 0 && !Char.IsLetter(c)) return false;
-                if (!Char.IsLetterOrDigit(c) && c != '_') return false;
-                index++;
-            }
-            return true;
-        }
-        public static string Hex(int number) {
-            return number.ToString("X");
-        }
-        public static string Hex(long number) {
-            return number.ToString("X");
-        }
-        public static string Hex(byte number) {
-            return number.ToString("X");
-        }
-        public static string Hex(byte[] buffer) {
-            var result = new StringBuilder();
-            foreach(var b in buffer) {
-                result.Append(b.ToString("X"));
-            }
-            return result.ToString();
-        }
+        }        
+        //public static bool IsToken(object? expression) {
+        //    if (expression == null) return false;
+        //    var text = (expression.ToString() ?? "").ToCharArray();
+        //    if (text.Length == 0) return false;
+        //    int index = 0;
+        //    foreach (var c in text) {
+        //        if (index == 0 && !Char.IsLetter(c)) return false;
+        //        if (!Char.IsLetterOrDigit(c) && c != '_') return false;
+        //        index++;
+        //    }
+        //    return true;
+        //}
+        
         public static Type[] InferDataType(string? text) {
             var result = new List<Type>();
             if (text == null) return new Type[] { };
@@ -859,147 +821,52 @@ namespace DProjects.Utils {
             if (text.Length == 0 || result.Count == 0) result.Add(typeof(String));
             return result.ToArray();
         }
-        public static string ReplaceUnicodeSpacingMark(string stringToReplace) {
-            StringBuilder filenameStringBuilder = new StringBuilder();
-            // Dins unicode existeixen diferents representacions per un mateix caràcter.
-            // Dins d'aquestes representacions existeixen 2 maneres de representar els caràcters: Canónica (conserva informació) i Compatible (perd informació)
-            // Canónica representa un caràcter tal com és
-            // Compatible representa un caràcter visualment igual però internament pot ser que no ho sigui (nivell de bits)
-            // Es normalitza l'string a una representació coneguda (descomposició canónica)
-            stringToReplace = stringToReplace.Normalize(NormalizationForm.FormC);
-            if (!stringToReplace.IsNormalized(NormalizationForm.FormC)) {
-                foreach (char c in stringToReplace.ToCharArray()) {
-                    if (System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) != System.Globalization.UnicodeCategory.NonSpacingMark) {
-                        filenameStringBuilder.Append(c);
-                    }
-                }
-                return filenameStringBuilder.ToString().Normalize(NormalizationForm.FormC);
-            } else {
-                return stringToReplace;
-            }
-        }
-        public static string ReplaceASCIICharToASCIPrintable(string s, bool caseSensitive = false) {
-            if (caseSensitive) {
-                s = ReplaceASCIICharToASCICaseSensitive(s);
-            } else {
-                s = ReplaceASCIICharToASCI(s);
-            }
-            for (int i = 0; i <= s.Length - 1; i++) {
-                char c = s[i];
-                int ci = Convert.ToInt32(c);
-                bool cValid = false;
-                if ((48 <= ci && ci <= 57) ||
-                        (65 <= ci && ci <= 90) ||
-                        (97 <= ci && ci <= 122) ||
-                        c == '_') {
-                    cValid = true;
-                }
-                if (!cValid) {
-                    s = s.Replace(c, ' ');
-                }
-            }
-            return s;
-        }
-        public static bool GetStringContainsUnicodeCharsUpperThan(string s, int value) {
-            for (int i = 0; i <= s.Length - 1; i++) {
-                char c = s[i];
-                int ci = Convert.ToInt32(c);
-                if (ci >= value) {
-                    return true;
-                }
-            }
-            return false;
-        }
+        //public static string ReplaceUnicodeSpacingMark(string stringToReplace) {
+        //    var filenameStringBuilder = new StringBuilder();
+        //    // Dins unicode existeixen diferents representacions per un mateix caràcter.
+        //    // Dins d'aquestes representacions existeixen 2 maneres de representar els caràcters: Canónica (conserva informació) i Compatible (perd informació)
+        //    // Canónica representa un caràcter tal com és
+        //    // Compatible representa un caràcter visualment igual però internament pot ser que no ho sigui (nivell de bits)
+        //    // Es normalitza l'string a una representació coneguda (descomposició canónica)
+        //    stringToReplace = stringToReplace.Normalize(NormalizationForm.FormC);
+        //    if (!stringToReplace.IsNormalized(NormalizationForm.FormC)) {
+        //        foreach (char c in stringToReplace.ToCharArray()) {
+        //            if (System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) != System.Globalization.UnicodeCategory.NonSpacingMark) {
+        //                filenameStringBuilder.Append(c);
+        //            }
+        //        }
+        //        return filenameStringBuilder.ToString().Normalize(NormalizationForm.FormC);
+        //    } else {
+        //        return stringToReplace;
+        //    }
+        //}
+        //public static string ReplaceASCIICharToASCIPrintable(string s, bool caseSensitive = false) {
+        //    if (caseSensitive) {
+        //        s = ReplaceASCIICharToASCICaseSensitive(s);
+        //    } else {
+        //        s = ReplaceASCIICharToASCI(s);
+        //    }
+        //    for (int i = 0; i <= s.Length - 1; i++) {
+        //        char c = s[i];
+        //        int ci = Convert.ToInt32(c);
+        //        bool cValid = false;
+        //        if ((48 <= ci && ci <= 57) ||
+        //                (65 <= ci && ci <= 90) ||
+        //                (97 <= ci && ci <= 122) ||
+        //                c == '_') {
+        //            cValid = true;
+        //        }
+        //        if (!cValid) {
+        //            s = s.Replace(c, ' ');
+        //        }
+        //    }
+        //    return s;
+        //}
 
 
-        //quotedprintable
-        public static string ConvertStringToQuotedPrintable(string text) {
-            return ConvertStringToQuotedPrintable(text, System.Text.Encoding.UTF8);
-        }
-        public static string ConvertStringToQuotedPrintable(string text, System.Text.Encoding encoding) {
-            StringBuilder result = new StringBuilder();
-            byte[] buffer = System.Text.Encoding.UTF8.GetBytes(text);
-            for (int i = 0; i <= buffer.Length - 1; i++) {
-                byte ascii = buffer[i];
-                if (ascii == 10 || ascii == 13) {
-                    result.Append(StringUtils.Chr(ascii));
-                } else if (ascii < 32 || ascii == 61 || ascii > 126) {
-                    string encodedChar = StringUtils.Hex(ascii).ToUpper();
-                    if (encodedChar.Length == 1) {
-                        encodedChar = "0" + encodedChar;
-                    }
-                    result.Append("=" + encodedChar);
-                } else {
-                    result.Append(StringUtils.Chr(ascii));
-                }
-            }
-            return result.ToString();
-        }
-        public static string ConvertQuotedPrintableToString(string text, Encoding encoding) {
-            MemoryStream ms = new MemoryStream();
-            for (int i = 0; i <= text.Length - 1; i++) {
-                char c = text[i];
-                if (c == '=' && i < text.Length - 2) {
-                    string hex = text.Substring(i + 1, 2);
-                    if (hex == Environment.NewLine) {
-                        i += 2;
-                    } else {
-                        int ascii = int.Parse(hex, System.Globalization.NumberStyles.HexNumber);
-                        ms.WriteByte(Convert.ToByte(ascii));
-                        i += 2;
-                    }
-                } else if (c == ' ') {
-                    ms.WriteByte((byte)c);
-                } else {
-                    ms.WriteByte(System.Convert.ToByte(System.Text.Encoding.ASCII.GetBytes(c.ToString().ToCharArray())[0]));
-                }
-            }
-            byte[] buffer = ms.ToArray();
-            ms.Dispose();
-            return encoding.GetString(buffer);
-        }
+        
 
 
-        //xml attributes
-        public static NameValueCollection GetXmlAttributesAsNameValueCollection(string text) {
-            //ex: tags="aaaa,bbb" value1="asd" value2="234234"
-            var result = new StringDictionary();
-            if (text.StartsWith(" ") || text.EndsWith(" ")) text = text.Trim();
-            var queryString = new StringBuilder(text.Length);
-            var insideQuotes = false;
-            for (var i = 0; i < text.Length; i++) {
-                var c = text[i];
-                if (c == '"') {
-                    insideQuotes = !insideQuotes;
-                } else if (c == ' ' && !insideQuotes) {
-                    c = '&';
-                    queryString.Append(c);
-                } else if (c == '&' && !insideQuotes) {
-                    queryString.Append("&amp;");
-                } else {
-                    queryString.Append(c);
-                }
-            }
-            return UrlUtils.ParseQueryString(queryString.ToString());
-        }
-        public static IDictionary<string, object?> GetXmlAttributesAsDictionary(string text) {
-            //ex: tags="aaaa,bbb" value1="asd" value2="234234"
-            text = text.Trim();
-            var result = new Dictionary<string, object?>();
-            if (text.Length > 0) {
-                var aux = text.Split('"');
-                for (var i = 0; i < aux.Length; i += 2) {
-                    var key = aux[i].Trim();
-                    key = key.Substring(key.LastIndexOfAny(new char[] { ' ', '\t', '\r', '\n'}) + 1);
-                    if (key.EndsWith("=")) {
-                        key = key.Substring(0, key.Length - 1);
-                        var value = (i < aux.Length - 1 ? aux[i + 1].Trim() : "");
-                        result[key] = value;
-                    }
-                }
-            }
-            return result;
-        }
     }
 
 

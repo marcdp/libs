@@ -8,9 +8,9 @@ namespace DProjects.Db.Readers {
 
     [Protocol("jsonl", "")]
     [ProtocolExample("jsonl:", "")]
-    public class DBReaderJsonLinesFactory(TextReader reader) : IFactoryByUrl<IDBReader> {
+    public class DBReaderJsonLinesFactory : IFactoryByUrlAndArgument<IDBReader, TextReader> {
 
-        public IDBReader Create(string src) {
+        public IDBReader Create(string src, TextReader reader) {
             var leaveOpen = false;
             var settings = UrlUtils.Deserialize<DBReaderJsonLines.Settings>(src);
             return new DBReaderJsonLines(reader, leaveOpen, settings);

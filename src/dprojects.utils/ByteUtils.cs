@@ -16,7 +16,7 @@ namespace DProjects.Utils {
         }
         public static int IndexOf(byte[] array, byte[] pattern) {
             if (pattern.Length > array.Length) return -1;
-            for (int i = 0; i < array.Length - pattern.Length; i++) {
+            for (int i = 0; i <= array.Length - pattern.Length; i++) {
                 bool found = true;
                 for (int j = 0; j < pattern.Length; j++) {
                     if (array[i + j] != pattern[j]) {
@@ -31,7 +31,7 @@ namespace DProjects.Utils {
             return -1;
         }
         public static byte[] Concat(byte[] a, byte[] b) {
-            return a.Concat(b).ToArray();
+            return [.. a, .. b];
         }
 
     }

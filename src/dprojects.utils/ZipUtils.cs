@@ -26,6 +26,7 @@ namespace DProjects.Utils {
                 }
             }
         }
+        
         public static void ZipFolder(string directory, string zipFileName) {
             if (System.IO.File.Exists(zipFileName)) System.IO.File.Delete(zipFileName);
             System.IO.Compression.ZipFile.CreateFromDirectory(directory, zipFileName);

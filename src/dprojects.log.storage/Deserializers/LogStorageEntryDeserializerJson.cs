@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Text.Json;
+using static System.Net.Mime.MediaTypeNames;
+using System.Text.Json.Nodes;
 
 
 namespace DProjects.Log.Storage.Serializers {
@@ -13,6 +15,7 @@ namespace DProjects.Log.Storage.Serializers {
         //methods
         public LogEntry Deserialize(string line) {
             var logEntry = new LogEntry();
+            //var jsonObject = JsonNode.Parse(line)!.AsObject();
             var dict = JsonSerializer.Deserialize<IDictionary<string,object?>>(line)!;
             //date
             foreach (var key in new string[] { "date", "timestamp", "StartUTC", "time" }) {

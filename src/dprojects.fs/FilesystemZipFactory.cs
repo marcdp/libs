@@ -18,7 +18,7 @@ namespace DProjects.Fs {
         public IFilesystem Create(string src) {
             var (outerUrl, innerUrl) = UrlUtils.UnwrapUrl(src);
             var filesystem = fsFactory.Create(innerUrl);
-            var isReadonly = UrlUtils.ParseQueryString<bool>(new Uri(outerUrl).Query, "isReadonly");
+            var isReadonly = UrlUtils.GetQueryValue<bool>(new Uri(outerUrl).Query, "isReadonly");
             return new FilesystemZip(filesystem, "/", null, isReadonly);
         }
 

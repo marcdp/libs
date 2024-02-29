@@ -14,7 +14,7 @@ namespace DProjects.Fs {
 
         public IFilesystem Create(string src) {
             var url = new Uri(src);
-            var file = UrlUtils.ParseQueryString<bool>(url.Query, "file");
+            var file = UrlUtils.GetQueryValue<bool>(url.Query, "file");
             var path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), System.Guid.NewGuid().ToString());
             return new FilesystemTemp(path, file);
         }

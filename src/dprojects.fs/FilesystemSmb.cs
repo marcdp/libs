@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 namespace DProjects.Fs {
 
 
-    public class FilesystemSmb : FilesystemLocal, IDisposable {
+    public class FilesystemSmb : FilesystemLocal {
 
 
         //variables
@@ -44,23 +44,23 @@ namespace DProjects.Fs {
                     if (!String.IsNullOrEmpty(mUsername)) {
                         //net use \\172.1.1.12\Share /user:USER PASSWORD"
                         var arguments = "use \\\\" + mHost + "\\" + mShare + " /user:" + mUsername + " " + mPassword;
-                        var processResult = await ProcessUtils.ExecuteNativeProcessAsync("net", arguments, default);
+                        var processResult = await ProcessUtils.ExecuteProcessAsync("net", arguments, default);
                         if (processResult.ExitCode != 0) {
                             throw new Exception("Error mounting FilesystemSmb //" + mHost + "/" + mShare + " on " + mPath + ": " + processResult.Output + processResult.Error + " (code " + processResult.ExitCode + ", username: " + mUsername + ", password: " + (mPassword + "     ").Substring(0, 5) + "..." + ")");
                         }
                     }
                 } else {
                     //make dir
-                    var processResult = await ProcessUtils.ExecuteNativeProcessAsync("mkdir", "-p " + mPath, default);
+                    var processResult = await ProcessUtils.ExecuteProcessAsync("mkdir", "-p " + mPath, default);
                     if (processResult.ExitCode != 0) {
                         throw new NotImplementedException("FilesystemSmb is not implemented in this platform , return code is " + processResult.ExitCode );
                     }
                     //run
                     //mount -t cifs //192.168.1.88/shares /mnt/share -o username=USERNAME,password=PASSWD,vers=3.0
                     var arguments = "-t cifs //" + mHost + "/" + mShare + " " + mPath + " -o vers=3.0" + (!String.IsNullOrEmpty(mUsername) ? ",username=" + mUsername + ",password=" + mPassword : "");
-                    processResult = await ProcessUtils.ExecuteNativeProcessAsync("mount", arguments, default);
+                    processResult = await ProcessUtils.ExecuteProcessAsync("mount", arguments, default);
                     if (processResult.ExitCode  != 0) {
-                        processResult = await ProcessUtils.ExecuteNativeProcessAsync("rmdir", mPath, default);
+                        processResult = await ProcessUtils.ExecuteProcessAsync("rmdir", mPath, default);
                         var cmdToLog = arguments;
                         if (!string.IsNullOrEmpty(StringUtils.GetConnectionStringVariable(arguments, "password"))) {
                             cmdToLog = cmdToLog.Replace(StringUtils.GetConnectionStringVariable(arguments, "password"), "******");
@@ -70,12 +70,12 @@ namespace DProjects.Fs {
                 }
             });
         }
-        public void Dispose() {
+        public override void Dispose() {
             //unmount remote
             if (EnvironmentUtils.IsWindows()) {
             } else {
                 AsyncUtils.RunSync(async () => {
-                    await ProcessUtils.ExecuteNativeProcessAsync("umount", mPath, default);
+                    await ProcessUtils.ExecuteProcessAsync("umount", mPath, default);
                 });
             }
         }

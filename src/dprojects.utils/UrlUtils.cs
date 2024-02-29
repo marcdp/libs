@@ -81,6 +81,8 @@ namespace DProjects.Utils {
             }
             return text;
         }        
+
+        //wrap/unwrap
         public static string WrapUrl(string innerUrl, string schema, string path, NameValueCollection query) {
             var result = new StringBuilder();
             result.Append(schema);
@@ -103,32 +105,41 @@ namespace DProjects.Utils {
             var outerUrl = url.Substring(0, i) + ":" + (k==-1 ? "" : url.Substring(k+1));            
             return (outerUrl, innerUrl);
         }
+
+
+        //query
         public static NameValueCollection ParseQueryString(string query) {
             return HttpUtility.ParseQueryString(query);
         }
         public static NameValueCollection ParseQueryString(string query, Encoding encoding) {
             return HttpUtility.ParseQueryString(query, encoding);
         }
-        public static T? ParseQueryString<T>(string query, string key) {
+        public static T? GetQueryValue<T>(string query, string key) {
             var nameValueCollection = HttpUtility.ParseQueryString(query);
             var values = nameValueCollection.GetValues(key);
             if (values == null || values.Length == 0) return default;
             if (values.Length == 1) return ConvertUtils.To<T>(values[0]);
             return ConvertUtils.To<T>(values);
         }
-        public static T ParseQueryString<T>(string query, string key, T defaultValue) {
+        public static T GetQueryValue<T>(string query, string key, T defaultValue) {
             var nameValueCollection = HttpUtility.ParseQueryString(query);
             var values = nameValueCollection.GetValues(key);
             if (values == null || values.Length == 0) return defaultValue;
             if (values.Length == 1) return ConvertUtils.To<T>(values[0]);
             return ConvertUtils.To<T>(values);
         }
-
+        public static object? GetQueryValue(Type type, string query, string key, object? defaultValue = null, bool throwExceptionIfUnableToConvert = false) {
+            var nameValueCollection = HttpUtility.ParseQueryString(query);
+            var values = nameValueCollection.GetValues(key);
+            if (values == null || values.Length == 0) return defaultValue;
+            if (values.Length == 1) return ConvertUtils.To(values[0], type, throwExceptionIfUnableToConvert);
+            return ConvertUtils.To(values, type, throwExceptionIfUnableToConvert);
+        }
 
 
         //deserialize
         public class DeserializeSettings {
-            public string PropertyNameScheme { get; set; } = "";
+            public string PropertyNameScheme { get; set; } = "Scheme";
             public string PropertyNameHost { get; set; } = "Host";
             public string PropertyNamePort { get; set; } = "Port";
             public string PropertyNamePath { get; set; } = "Path";
@@ -166,24 +177,27 @@ namespace DProjects.Utils {
                     }
                 }
             }
+            if (!string.IsNullOrEmpty(uri.Scheme) && !string.IsNullOrEmpty(settings.PropertyNameScheme)) {
+                dict[settings.PropertyNameScheme] = uri.Scheme;
+            }
             if (!string.IsNullOrEmpty(uri.Host)) {
                 var host = uri.Host;
-                var port = "";
+                var port = uri.Port;
                 if (uri.Host.IndexOf(":") != -1) {
                     host = uri.Host.Split(':')[0];
-                    port = uri.Host.Split(':')[1];
+                    port = int.Parse(uri.Host.Split(':')[1]);
                 }
                 if (!string.IsNullOrEmpty(host) && !string.IsNullOrEmpty(settings.PropertyNameHost)) {
                     dict[settings.PropertyNameHost] = host;
                 }
-                if (!string.IsNullOrEmpty(port) && !string.IsNullOrEmpty(settings.PropertyNamePort)) {
-                    dict[settings.PropertyNamePort] = port;
+                if (port>0 && !string.IsNullOrEmpty(settings.PropertyNamePort)) {
+                    dict[settings.PropertyNamePort] = port.ToString();
                 }
             }
             if (!string.IsNullOrEmpty(uri.AbsolutePath) && !string.IsNullOrEmpty(settings.PropertyNamePath)) {
                 dict[settings.PropertyNamePath] = uri.AbsolutePath;
             }
-            var query = ParseQueryString(uri.Query);
+            var query = HttpUtility.ParseQueryString(uri.Query);
             foreach (var key in query.Keys) {
                 var name = key.ToString();
                 dict[name] = query.Get(name);
@@ -204,6 +218,24 @@ namespace DProjects.Utils {
             return instance;
         }
 
+        //pretty
+        public static string ToPrettyUrl(string s) {
+            StringBuilder result = new StringBuilder(s.Length);
+            s = StringUtils.ReplaceASCIICharToASCI(StringUtils.TranslateXmlEntitiesToString(s.ToLower()));
+            for (int i = 0; i <= s.Length - 1; i++) {
+                char c = s[i];
+                int ci = Convert.ToInt32(c);
+                if (c == ' ' || c == '-' || c == '/' || c == '\\' || c == ';' || c == ':') {
+                    result.Append("-");
+                } else if ((48 <= ci && ci <= 57) ||
+                        (65 <= ci && ci <= 90) ||
+                        (97 <= ci && ci <= 122) ||
+                        c == '_' || c == '.') {
+                    result.Append(c);
+                }
+            }
+            return result.ToString().Replace("--", "-").Replace("--", "-");
+        }
 
     }
 

@@ -10,7 +10,7 @@ namespace DProjects.Utils {
     public static class AsyncUtils {
 
         //variables
-        private static readonly TaskFactory mMyTaskFactory = new TaskFactory(CancellationToken.None,
+        private static readonly TaskFactory mMyTaskFactory = new(CancellationToken.None,
             TaskCreationOptions.None, TaskContinuationOptions.None, TaskScheduler.Default);
 
 
@@ -45,7 +45,7 @@ namespace DProjects.Utils {
             return result;
         }
         public static async Task<T[]> ToArrayAsync<T>(this IAsyncEnumerable<T> collection) {
-            return (await collection.ToListAsync()).ToArray();
+            return [.. (await collection.ToListAsync())];
         }
 
 

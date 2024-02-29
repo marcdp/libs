@@ -8,9 +8,9 @@ namespace DProjects.Db.Readers {
 
     [Protocol("xml", "")]
     [ProtocolExample("xml:", "")]
-    public class DBReaderXmlFactory(TextReader reader) : IFactoryByUrl<IDBReader> {
+    public class DBReaderXmlFactory : IFactoryByUrlAndArgument<IDBReader, TextReader> {
 
-        public IDBReader Create(string src) {
+        public IDBReader Create(string src, TextReader reader) {
             var leaveOpen = false;
             var settings = UrlUtils.Deserialize<DBReaderXml.Settings>(src);
             return new DBReaderXml(reader, leaveOpen, settings);

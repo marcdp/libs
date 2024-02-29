@@ -1,9 +1,13 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Data;
+using System.Drawing;
 using System.Globalization;
 using System.Reflection;
 using System.Text;
+using System.Text.Json;
+using System.Xml.Linq;
 
 namespace DProjects.Utils {
 
@@ -14,13 +18,13 @@ namespace DProjects.Utils {
         //methods
         public class ToSimpleStringSettings {
             public bool AssumeMinus1IsNull = true;
-            public int MaxLength = int.MaxValue;
+            public int MaxLength = 0;
             public string DateTimeFormat = DateTimeUtils.DATETIME_ISO8601;
             public bool DateTimeUtc;
         }
         public static string ToSimpleString(object? aObject, ToSimpleStringSettings? settings = null) {
-            string result = "";
-            if (settings == null) settings = new ToSimpleStringSettings();
+            var result = "";
+            settings ??= new ToSimpleStringSettings();
             if (aObject is null) {
                 result = "";
             } else if (aObject is bool) {
@@ -64,10 +68,13 @@ namespace DProjects.Utils {
                     aux.Append(UrlUtils.UrlEncode((key??"").ToString())).Append("=").Append(UrlUtils.UrlEncode((value??"").ToString()));
                 }
                 result = aux.ToString();
+            } else if (aObject is Color) {
+                var color = ((Color)aObject);
+                result = $"#{color.R:X2}{color.G:X2}{color.B:X2}";
             } else if (aObject != null) {
                 result = aObject.ToString() ?? "";
             }
-            if (result != null && result.Length > settings.MaxLength) {
+            if (result != null && settings.MaxLength > 0 && result.Length > settings.MaxLength) {
                 result = StringUtils.GetTextCutted(result, settings.MaxLength, true);
             }
             return result ?? "";
@@ -77,9 +84,9 @@ namespace DProjects.Utils {
                 return typeof(bool);
             } else if (typeName.Equals("bool[]", StringComparison.OrdinalIgnoreCase)) {
                 return typeof(bool[]);
-            } else if (typeName.Equals("short", StringComparison.OrdinalIgnoreCase) || typeName.Equals("in16", StringComparison.OrdinalIgnoreCase)) {
-                return typeof(int);
-            } else if (typeName.Equals("short[]", StringComparison.OrdinalIgnoreCase) || typeName.Equals("in16[]", StringComparison.OrdinalIgnoreCase)) {
+            } else if (typeName.Equals("short", StringComparison.OrdinalIgnoreCase) || typeName.Equals("int16", StringComparison.OrdinalIgnoreCase)) {
+                return typeof(short);
+            } else if (typeName.Equals("short[]", StringComparison.OrdinalIgnoreCase) || typeName.Equals("int16[]", StringComparison.OrdinalIgnoreCase)) {
                 return typeof(short[]);
             } else if (typeName.Equals("int", StringComparison.OrdinalIgnoreCase) || typeName.Equals("int32", StringComparison.OrdinalIgnoreCase)) {
                 return typeof(int);
@@ -107,22 +114,83 @@ namespace DProjects.Utils {
                 return typeof(DateTime[]);
             } else if (typeName.Equals("time", StringComparison.OrdinalIgnoreCase)) {
                 return typeof(TimeSpan);
-            } else if (typeName.Equals("time[], StringComparison.OrdinalIgnoreCase")) {
+            } else if (typeName.Equals("time[]", StringComparison.OrdinalIgnoreCase)) {
                 return typeof(TimeSpan[]);
             } else if (typeName.Equals("guid", StringComparison.OrdinalIgnoreCase)) {
                 return typeof(Guid);
-            } else if (typeName.Equals("guid[], StringComparison.OrdinalIgnoreCase")) {
+            } else if (typeName.Equals("guid[]", StringComparison.OrdinalIgnoreCase)) {
                 return typeof(Guid[]);
             } else if (typeName.Equals("byte", StringComparison.OrdinalIgnoreCase)) {
                 return typeof(Byte);
-            } else if (typeName.Equals("byte[], StringComparison.OrdinalIgnoreCase")) {
+            } else if (typeName.Equals("byte[]", StringComparison.OrdinalIgnoreCase)) {
                 return typeof(Byte[]);
+            } else if (typeName.Equals("char", StringComparison.OrdinalIgnoreCase)) {
+                return typeof(Char);
+            } else if (typeName.Equals("char[]", StringComparison.OrdinalIgnoreCase)) {
+                return typeof(Char[]);
             } else if (typeName.Equals("decimal", StringComparison.OrdinalIgnoreCase)) {
                 return typeof(decimal);
             } else if (typeName.Equals("decimal[]", StringComparison.OrdinalIgnoreCase)) {
                 return typeof(decimal[]);
             }
             return null;
+        }
+        public static string FromSimpleType(Type aType) {
+            if (aType == typeof(short)) {
+                return "short";
+            } else if (aType == typeof(short[])) {
+                return "short[]";
+            } else if (aType == typeof(int)) {
+                return "int";
+            } else if (aType == typeof(int[])) {
+                return "int[]";
+            } else if (aType == typeof(long)) {
+                return "long";
+            } else if (aType == typeof(long[])) {
+                return "long[]";
+            } else if (aType == typeof(float)) {
+                return "float";
+            } else if (aType == typeof(float[])) {
+                return "float[]";
+            } else if (aType == typeof(double)) {
+                return "double";
+            } else if (aType == typeof(double[])) {
+                return "double[]";
+            } else if (aType == typeof(decimal)) {
+                return "decimal";
+            } else if (aType == typeof(decimal[])) {
+                return "decimal[]";
+            } else if (aType == typeof(bool)) {
+                return "bool";
+            } else if (aType == typeof(bool[])) {
+                return "bool[]";
+            } else if (aType == typeof(DateTime)) {
+                return "datetime";
+            } else if (aType == typeof(DateTime[])) {
+                return "datetime[]";
+            } else if (aType == typeof(string)) {
+                return "string";
+            } else if (aType == typeof(string[])) {
+                return "string[]";
+            } else if (aType == typeof(byte)) {
+                return "byte";
+            } else if (aType == typeof(byte[])) {
+                return "byte[]";
+            } else if (aType == typeof(char)) {
+                return "char";
+            } else if (aType == typeof(char[])) {
+                return "char[]";
+            } else if (aType == typeof(TimeSpan)) {
+                return "time";
+            } else if (aType == typeof(TimeSpan[])) {
+                return "time[]";
+            } else if (aType == typeof(Guid)) {
+                return "guid";
+            } else if (aType == typeof(Guid[])) {
+                return "guid[]";
+            } else {
+                return aType.FullName + ", " + aType.GetTypeInfo().Assembly.GetName().Name;
+            }
         }
         public static string ToHexString(byte[] value) {
             if (value == null) return "";
@@ -136,12 +204,11 @@ namespace DProjects.Utils {
             }
             return hexNumbers.ToString();
         }
-        public static byte[] HexStringToByteA(string hexString) {
+        public static byte[] FromHexString(string hexString) {
             if (hexString.Length % 2 != 0) {
                 throw new ArgumentException(string.Format(CultureInfo.InvariantCulture, "The binary key cannot have an odd number of digits: {0}", hexString));
             }
-            byte[]? HexAsBytes = null;
-            HexAsBytes = new byte[(int)((double)hexString.Length / 2 - 1) + 1];
+            var HexAsBytes = new byte[(int)((double)hexString.Length / 2 - 1) + 1];
             for (int index = 0; index <= HexAsBytes.Length - 1; index++) {
                 string byteValue = hexString.Substring(index * 2, 2);
                 HexAsBytes[index] = byte.Parse(byteValue, NumberStyles.HexNumber, CultureInfo.InvariantCulture);
@@ -149,11 +216,11 @@ namespace DProjects.Utils {
             return HexAsBytes;
         }
         public static DateTime FromEpochSeconds(long epoch) {
-            DateTime d = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+            var d = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
             return d.AddSeconds(epoch);
         }
         public static DateTime FromEpochMilliSeconds(long epoch) {
-            DateTime d = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+            var d = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
             return d.AddMilliseconds(epoch);
         }
         public static long ToEpochSeconds(DateTime aDate) {
@@ -167,7 +234,7 @@ namespace DProjects.Utils {
             if (aObject is null) return false;
             if (aObject is string) {
                 string str = (aObject.ToString() ?? "").ToLower();
-                if (str.Equals("0") || str.Equals("false") || string.IsNullOrEmpty(str)) {
+                if (str.Equals("0") || str.Equals("false", StringComparison.InvariantCultureIgnoreCase) || str.Equals("N", StringComparison.InvariantCultureIgnoreCase) || string.IsNullOrEmpty(str)) {
                     result = false;
                 } else {
                     result = true;
@@ -197,19 +264,19 @@ namespace DProjects.Utils {
                 return System.Drawing.Color.Empty;
             } else if (text.StartsWith("#") & text.Length == 7) {
                 text = text.Substring(1);
-                string[] parts = new string[] { text.Substring(0, 2), text.Substring(2, 2), text.Substring(4, 2) };
+                var parts = new string[] { text.Substring(0, 2), text.Substring(2, 2), text.Substring(4, 2) };
                 return System.Drawing.Color.FromArgb(255, int.Parse(parts[0], System.Globalization.NumberStyles.HexNumber), int.Parse(parts[1], System.Globalization.NumberStyles.HexNumber), int.Parse(parts[2], System.Globalization.NumberStyles.HexNumber));
             } else if (text.StartsWith("#") & text.Length == 4) {
                 text = text.Substring(1);
-                string[] parts = new string[] { text.Substring(0, 1), text.Substring(1, 1), text.Substring(2, 1) };
-                return System.Drawing.Color.FromArgb(255, int.Parse(parts[0], System.Globalization.NumberStyles.HexNumber), int.Parse(parts[1], System.Globalization.NumberStyles.HexNumber), int.Parse(parts[2], System.Globalization.NumberStyles.HexNumber));
+                var parts = new string[] { text.Substring(0, 1), text.Substring(1, 1), text.Substring(2, 1) };
+                return System.Drawing.Color.FromArgb(255, int.Parse(parts[0], System.Globalization.NumberStyles.HexNumber) * 16, int.Parse(parts[1], System.Globalization.NumberStyles.HexNumber) * 16, int.Parse(parts[2], System.Globalization.NumberStyles.HexNumber) * 16);
             } else if (text.StartsWith("#") & text.Length == 9) {
                 text = text.Substring(1);
-                string[] parts = new string[] { text.Substring(0, 2), text.Substring(2, 2), text.Substring(4, 2), text.Substring(6, 2) };
-                return System.Drawing.Color.FromArgb(int.Parse(parts[0], System.Globalization.NumberStyles.HexNumber), int.Parse(parts[1], System.Globalization.NumberStyles.HexNumber), int.Parse(parts[2], System.Globalization.NumberStyles.HexNumber), int.Parse(parts[3], System.Globalization.NumberStyles.HexNumber));
+                var parts = new string[] { text.Substring(0, 2), text.Substring(2, 2), text.Substring(4, 2), text.Substring(6, 2) };
+                return System.Drawing.Color.FromArgb(int.Parse(parts[0], System.Globalization.NumberStyles.HexNumber), int.Parse(parts[1], System.Globalization.NumberStyles.HexNumber) * 16, int.Parse(parts[2], System.Globalization.NumberStyles.HexNumber) * 16, int.Parse(parts[3], System.Globalization.NumberStyles.HexNumber) * 16);
             } else if (text.StartsWith("rgb")) {
                 text = text.Substring(3).Replace("(", "").Replace(")", "");
-                string[] textParts = text.Split(',');
+                var textParts = text.Split(',');
                 if (textParts.Length == 3) {
                     int.TryParse(textParts[0], out int r);
                     int.TryParse(textParts[1], out int g);
@@ -272,7 +339,7 @@ namespace DProjects.Utils {
             return ToStringA(text, separator, false);
         }
         public static string[] ToStringA(string text, char separator, bool trimValues) {
-            List<string> result = new List<string>();
+            var result = new List<string>();
             if (text != null && text.Length > 0) {
                 int index1 = 0;
                 int index2 = text.IndexOf(separator);
@@ -290,14 +357,14 @@ namespace DProjects.Utils {
                     result.Add(part);
                 }
             }
-            return result.ToArray();
+            return [.. result];
         }
         public static string[] ToStringA(object? aObject) {
             if (aObject == null) {
                 return [];
             }
             if (aObject is string) {
-                return new string[] { aObject.ToString() ?? "" };
+                return [aObject.ToString() ?? ""];
             }
             if (aObject is string[]) {
                 return ((string[])aObject);
@@ -329,39 +396,39 @@ namespace DProjects.Utils {
                 }
                 return result;
             }
-            return new string[] { aObject.ToString() ?? "" };
+            return [aObject.ToString() ?? ""];
         }
-        public static object[] ToObjectA(object? aObject) {
-            var result = new List<object>();
-            if (aObject == null) {
-                return [];
-            } else if (aObject is object[]) {
-                result.AddRange((object[])aObject);
-            } else if (aObject is System.Array) {
-                foreach (object? o in ((System.Array)aObject)) {
-                    if (o != null) result.Add(o);
-                }
-            } else {
-                throw new NotImplementedException("ConvertUtils.ToObjectA not implemented: " + aObject.GetType().FullName);
-            }
-            return result.ToArray();
-        }
-        public static object?[] ToObjectA(object?[] source, Type type) {
-            var result = (object?[])Array.CreateInstance(type, source.Length);
-            for (var i = 0; i < source.Length; i++) {
-                result[i] = source[i];
-            }
-            return result;
-        }
-        public static object? ToEnum(object? aObject, Type type) {
-            if (aObject == null) {
-                return null;
-            } else if (int.TryParse((aObject).ToString(), out int aux)) {
-                return Convert.ToInt32(aObject);
-            } else {
-                return System.Enum.Parse(type, aObject.ToString() ?? "", true);
-            }
-        }
+        //public static object[] ToObjectA(object? aObject) {
+        //    var result = new List<object>();
+        //    if (aObject == null) {
+        //        return [];
+        //    } else if (aObject is object[]) {
+        //        result.AddRange((object[])aObject);
+        //    } else if (aObject is System.Array) {
+        //        foreach (object? o in ((System.Array)aObject)) {
+        //            if (o != null) result.Add(o);
+        //        }
+        //    } else {
+        //        throw new NotImplementedException("ConvertUtils.ToObjectA not implemented: " + aObject.GetType().FullName);
+        //    }
+        //    return result.ToArray();
+        //}
+        //public static object?[] ToObjectA(object?[] source, Type type) {
+        //    var result = (object?[])Array.CreateInstance(type, source.Length);
+        //    for (var i = 0; i < source.Length; i++) {
+        //        result[i] = source[i];
+        //    }
+        //    return result;
+        //}
+        //public static object? ToEnum(object? aObject, Type type) {
+        //    if (aObject == null) {
+        //        return null;
+        //    } else if (int.TryParse((aObject).ToString(), out int aux)) {
+        //        return Convert.ToInt32(aObject);
+        //    } else {
+        //        return System.Enum.Parse(type, aObject.ToString() ?? "", true);
+        //    }
+        //}
         public static T To<T>(object? aObject) {
             var type = typeof(T);
             var result = To(aObject, type, true);
@@ -372,7 +439,6 @@ namespace DProjects.Utils {
             } else if (aObject.GetType() != type && !aObject.GetType().GetTypeInfo().IsSubclassOf(type)) {             
                 if (type == typeof(DateTime) || type == typeof(DateTime?)) {
                     if (aObject is string && (aObject).ToString() == "") {
-                        //aObject = System.Convert.ToDateTime(null); 
                         aObject = default(DateTime);
                     } else if (aObject is string && "now".Equals(aObject.ToString(), StringComparison.CurrentCultureIgnoreCase)) {
                         aObject = DateTime.Now;
@@ -383,11 +449,7 @@ namespace DProjects.Utils {
                         try {
                             aObject = Convert.ToDateTime(aObject);
                         } catch (System.FormatException) {
-                            try {
-                                aObject = DateTimeUtils.TextToRelativeAtDateTime(DateTime.Now, (string)aObject);
-                            } catch (Exception) {
-                                aObject = DateTimeUtils.Parse((string)aObject);
-                            }
+                            aObject = DateTimeUtils.Parse((string)aObject);
                         }
                     } else {
                         aObject = Convert.ToDateTime(aObject);
@@ -427,9 +489,9 @@ namespace DProjects.Utils {
                 } else if (type == typeof(bool) || type == typeof(bool?)) {
                     if (aObject == null) {
                         aObject = false;
-                    } else if ("1".Equals(aObject) || "true".Equals(aObject) || "yes".Equals(aObject)) {
+                    } else if ("1".Equals(aObject) || string.Equals("true", aObject.ToString(), StringComparison.OrdinalIgnoreCase) || string.Equals("yes", aObject.ToString(), StringComparison.OrdinalIgnoreCase) || string.Equals("y", aObject.ToString(), StringComparison.OrdinalIgnoreCase)) {
                         aObject = true;
-                    } else if ("0".Equals(aObject) || "false".Equals(aObject) || "no".Equals(aObject)) {
+                    } else if ("0".Equals(aObject) || string.Equals("false", aObject.ToString(), StringComparison.OrdinalIgnoreCase) || string.Equals("no", aObject.ToString(), StringComparison.OrdinalIgnoreCase) || string.Equals("n", aObject.ToString(), StringComparison.OrdinalIgnoreCase)) {
                         aObject = false;
                     } else {
                         aObject = Convert.ToBoolean(aObject);
@@ -461,54 +523,7 @@ namespace DProjects.Utils {
                     if (aObject == null) {
                         aObject = null;
                     } else if (aObject is Type) {
-                        var aType = (Type)aObject;
-                        if (aType == typeof(short)) {
-                            aObject = "short";
-                        } else if (aType == typeof(short[])) {
-                            aObject = "short[]";
-                        } else if (aType == typeof(int)) {
-                            aObject = "int";
-                        } else if (aType == typeof(int[])) {
-                            aObject = "int[]";
-                        } else if (aType == typeof(long)) {
-                            aObject = "long";
-                        } else if (aType == typeof(long[])) {
-                            aObject = "long[]";
-                        } else if (aType == typeof(float)) {
-                            aObject = "float";
-                        } else if (aType == typeof(float[])) {
-                            aObject = "float[]";
-                        } else if (aType == typeof(double)) {
-                            aObject = "double";
-                        } else if (aType == typeof(double[])) {
-                            aObject = "double[]";
-                        } else if (aType == typeof(decimal)) {
-                            aObject = "decimal";
-                        } else if (aType == typeof(decimal[])) {
-                            aObject = "decimal[]";
-                        } else if (aType == typeof(bool)) {
-                            aObject = "bool";
-                        } else if (aType == typeof(bool[])) {
-                            aObject = "bool[]";
-                        } else if (aType == typeof(DateTime)) {
-                            aObject = "datetime";
-                        } else if (aType == typeof(DateTime[])) {
-                            aObject = "datetime[]";
-                        } else if (aType == typeof(string)) {
-                            aObject = "string";
-                        } else if (aType == typeof(string[])) {
-                            aObject = "string[]";
-                        } else if (aType == typeof(byte)) {
-                            aObject = "byte";
-                        } else if (aType == typeof(byte[])) { 
-                            aObject = "byte[]";
-                        } else if (aType == typeof(Guid)) {
-                            aObject = "guid";
-                        } else if (aType == typeof(Guid[])) {
-                            aObject = "guid[]";
-                        } else {
-                            aObject = aType.FullName + ", " + aType.GetTypeInfo().Assembly.GetName().Name;
-                        }
+                        aObject = FromSimpleType((Type)aObject);
                     } else if (aObject is DateTime) {
                         aObject = ((DateTime)aObject).ToString(DateTimeUtils.DATETIME_ISO8601);
                     } else if (aObject is bool) {
@@ -544,7 +559,7 @@ namespace DProjects.Utils {
                     if (aObject == null) {
                         aObject = null;
                     } else if (aObject is Array) {
-                        List<string> o = new List<string>();
+                        var o = new List<string>();
                         foreach (object? oo in ((Array)aObject)) {
                             if (oo != null) o.Add(oo.ToString() ?? "");
                         }
@@ -573,7 +588,7 @@ namespace DProjects.Utils {
                     }
                 } else if (type == typeof(int[])) {
                     if (aObject is Array) {
-                        List<int> o = new List<int>();
+                        var o = new List<int>();
                         foreach (object? oo in ((Array)aObject)) {
                             if (oo != null) o.Add(Convert.ToInt32(oo));
                         }
@@ -617,7 +632,7 @@ namespace DProjects.Utils {
                 } else if (type.GetTypeInfo().IsEnum) {
                     if (aObject == null) {
                         aObject = null;
-                    } else if (int.TryParse(aObject.ToString(), out int aux)) {
+                    } else if (int.TryParse(aObject.ToString(), out _)) {
                         aObject = Convert.ToInt32(aObject);
                     } else {
                         aObject = Enum.Parse(type, aObject.ToString() ?? "", true);
@@ -728,9 +743,7 @@ namespace DProjects.Utils {
                     } else {
                         var typeName = aObject.ToString() ?? "";
                         aObject = ToSimpleType(typeName);
-                        if (aObject == null) { 
-                            aObject = Type.GetType(typeName);
-                        }
+                        aObject ??= Type.GetType(typeName);
                         if (aObject == null && throwExceptionIfUnableToConvert) {
                             throw new ArgumentException("Unable to find type '" + typeName + "'");
                         }
@@ -763,12 +776,10 @@ namespace DProjects.Utils {
                     if (type.IsArray && elementType != null && elementType.IsEnum) {
                         if (aObject == null) {
                             aObject = null;
-                        } else if (int.TryParse(aObject.ToString(), out int aux)) {
+                        } else if (int.TryParse(aObject.ToString(), out _)) {
                             var value = Convert.ToInt32(aObject);
                             var arr = (Array?)Activator.CreateInstance(type, 1);
-                            if (arr != null) {
-                                arr.SetValue(value, 0);
-                            }
+                            arr?.SetValue(value, 0);
                             aObject = arr;
                         } else if (aObject.ToString().Length == 0) {
                             aObject = (Array?)Activator.CreateInstance(type, 0);

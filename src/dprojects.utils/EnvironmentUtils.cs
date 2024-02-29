@@ -31,8 +31,6 @@ namespace DProjects.Utils {
                 return null;
             }
         }
-
-
         public static bool IsWindows() {
             return RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
         }
@@ -43,7 +41,7 @@ namespace DProjects.Utils {
             return RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
         }
         public static string[] GetOsPlatformNames() {
-            return new string[] { "windows", "linux", "osx" };
+            return ["windows", "linux", "osx"];
         }
         public static string GetOsPlatformName() {
             if (IsWindows()) return "windows";
@@ -55,21 +53,7 @@ namespace DProjects.Utils {
             return System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription.IndexOf("Framework") != -1;
         }
 
-        public static void LoadEnvFile(string filePath) {
-            if (!File.Exists(filePath)) return;
-            foreach (var line in File.ReadAllLines(filePath)) {
-                if (line.IndexOf("=") != -1) {
-                    var name = line.Substring(0, line.IndexOf("="));
-                    var value = line.Substring(line.IndexOf("=")+1);
-                    if (System.Environment.GetEnvironmentVariable(name) == null) {
-                        System.Environment.SetEnvironmentVariable(name, value);
-                    }
-                }
-            }
-        }
-
     }
-
 
 }
 

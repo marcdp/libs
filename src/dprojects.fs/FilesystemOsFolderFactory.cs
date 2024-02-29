@@ -18,7 +18,7 @@ namespace DProjects.Fs {
 
         public IFilesystem Create(string src) {
             var url = new Uri(src);
-            var isReadonly = UrlUtils.ParseQueryString<bool>(url.Query, "isReadonly");
+            var isReadonly = UrlUtils.GetQueryValue<bool>(url.Query, "isReadonly");
             System.Environment.SpecialFolder specialFolder;            
             if (!System.Enum.TryParse(url.Host, true, out specialFolder)) throw new NotImplementedException("Unable to create filesystem: invalid os special folder: " + url.Host);
             var absolutePath = System.IO.Path.Combine(System.Environment.GetFolderPath(specialFolder), UrlUtils.UrlDecode(url.AbsolutePath).Substring(1).Replace('/', System.IO.Path.DirectorySeparatorChar));

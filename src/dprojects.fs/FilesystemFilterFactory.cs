@@ -2,7 +2,9 @@
 using DProjects.Factories;
 using DProjects.Factories.Attributes;
 using DProjects.Utils;
+using System.Collections;
 using System.Collections.Generic;
+using System.Web;
 
 namespace DProjects.Fs {
 
@@ -25,7 +27,7 @@ namespace DProjects.Fs {
             if (bangPath.Length == 0) bangPath = "/";
             bangPath = UrlUtils.UrlDecode(bangPath);
             var filters = new List<FilesystemFilter.Filter>();
-            var parameters = UrlUtils.ParseQueryString(bangQuery);
+            var parameters = HttpUtility.ParseQueryString(bangQuery);
             foreach (var key in parameters.AllKeys) {
                 if (key != null) {
                     foreach (var value in parameters.GetValues(key)) {

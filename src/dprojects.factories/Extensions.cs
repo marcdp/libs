@@ -7,40 +7,78 @@ namespace DProjects.Factories {
     public static class Extensions {
 
         // Add 
-        public static IServiceCollection AddFactoryByUrl<T>(this IServiceCollection services, Action<FactoryByUrlConfiguration<T>> configuration) where T : class {
-            var config = new FactoryByUrlConfiguration<T>();
+        public static IServiceCollection AddFactoryByUrl<TType>(this IServiceCollection services, Action<FactoryByUrlConfiguration<TType>> configuration) where TType : class {
+            var config = new FactoryByUrlConfiguration<TType>();
             configuration.Invoke(config);
             config.Protocols.Sort();
             config.Aliases.Sort();
             //add factory instance
-            services.AddTransient(typeof(IFactoryByUrl<T>), (services) => {
-                return new FactoryByUrl<T>(config, services);
+            services.AddTransient(typeof(IFactoryByUrl<TType>), (services) => {
+                return new FactoryByUrl<TType>(config, services);
             });
-            services.AddTransient(typeof(FactoryByUrl<T>), (services) => {
-                return services.GetRequiredService<IFactoryByUrl<T>>();
+            services.AddTransient(typeof(FactoryByUrl<TType>), (services) => {
+                return services.GetRequiredService<IFactoryByUrl<TType>>();
             });
             //add alias
             foreach (var alias in config.Aliases) {
                 if (alias.Lifetime == ServiceLifetime.Scoped) {
-                    services.AddKeyedScoped<T>(alias.Name, (services, key) => {
-                        var factory = services.GetRequiredService<IFactoryByUrl<T>>();
+                    services.AddKeyedScoped<TType>(alias.Name, (services, key) => {
+                        var factory = services.GetRequiredService<IFactoryByUrl<TType>>();
                         return factory.Create(key?.ToString() ?? "");
                     });
                 } else if (alias.Lifetime == ServiceLifetime.Transient) {
-                    services.AddKeyedTransient<T>(alias.Name, (services, key) => {
-                        var factory = services.GetRequiredService<IFactoryByUrl<T>>();
+                    services.AddKeyedTransient<TType>(alias.Name, (services, key) => {
+                        var factory = services.GetRequiredService<IFactoryByUrl<TType>>();
                         return factory.Create(key?.ToString() ?? "");
                     });
                 } else if (alias.Lifetime == ServiceLifetime.Singleton) {
-                    services.AddKeyedSingleton<T>(alias.Name, (services, key) => {
-                        var factory = services.GetRequiredService<IFactoryByUrl<T>>();
+                    services.AddKeyedSingleton<TType>(alias.Name, (services, key) => {
+                        var factory = services.GetRequiredService<IFactoryByUrl<TType>>();
                         return factory.Create(key?.ToString() ?? "");
                     });
                 }
             }
             //protocols
             foreach (var protocol in config.Protocols) {
-                services.AddKeyedTransient(typeof(IFactoryByUrl<T>), protocol.Name, protocol.Factory);
+                services.AddKeyedTransient(typeof(IFactoryByUrl<TType>), protocol.Name, protocol.Factory);
+            }
+            //return
+            return services;
+        }
+        public static IServiceCollection AddFactoryByUrl<TType, TArgument>(this IServiceCollection services, Action<FactoryByUrlAndArgumentConfiguration<TType, TArgument>> configuration) where TType : class {
+            var config = new FactoryByUrlAndArgumentConfiguration<TType, TArgument>();
+            configuration.Invoke(config);
+            config.Protocols.Sort();
+            config.Aliases.Sort();
+            //add factory instance
+            services.AddTransient(typeof(IFactoryByUrlAndArgument<TType, TArgument>), (services) => {
+                return new FactoryByUrlAndArgument<TType, TArgument>(config, services);
+            });
+            services.AddTransient(typeof(FactoryByUrlAndArgument<TType, TArgument>), (services) => {
+                return services.GetRequiredService<IFactoryByUrlAndArgument<TType, TArgument>>();
+            });
+            //add alias
+            foreach (var alias in config.Aliases) {
+                if (alias.Lifetime == ServiceLifetime.Scoped) {
+                    services.AddKeyedScoped<TType>(alias.Name, (services, key) => {
+                        var factory = services.GetRequiredService<IFactoryByUrl<TType>>();
+                        return factory.Create(key?.ToString() ?? "");
+                    });
+                } else if (alias.Lifetime == ServiceLifetime.Transient) {
+                    services.AddKeyedTransient<TType>(alias.Name, (services, key) => {
+                        var factory = services.GetRequiredService<IFactoryByUrl<TType>>();
+                        return factory.Create(key?.ToString() ?? "");
+                    });
+                } else if (alias.Lifetime == ServiceLifetime.Singleton) {
+                    services.AddKeyedSingleton<TType>(alias.Name, (services, key) => {
+                        var factory = services.GetRequiredService<IFactoryByUrl<TType>>();
+                        return factory.Create(key?.ToString() ?? "");
+                    });
+                }
+            }
+            //protocols
+            foreach (var protocol in config.Protocols) {
+                services.AddKeyedTransient(typeof(IFactoryByUrlAndArgument<TType,TArgument>), protocol.Name, protocol.Factory);
             }
             //return
             return services;

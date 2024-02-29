@@ -52,51 +52,51 @@ namespace DProjects.Utils {
             }
         }
 
-        // read HttpHeaders
-        public static HttpUtils.HttpHeaders ReadHttpHeaders(Stream stream, Encoding? encoding = null) {
-            if (encoding == null) encoding = EncodingUtils.GetDefault();
-            var result = new HttpUtils.HttpHeaders();
-            var prevName = "";
-            do {
-                var line = ReadLine(stream, encoding);
-                if (line == null || line.Length == 0) break;
-                if (line.StartsWith(" ") || line.StartsWith("\t")) {
-                    var value = line.Trim();
-                    result[prevName] += value;
-                } else {
-                    var i = line.IndexOf(":");
-                    if (i != -1) {
-                        var name = line.Substring(0, i);
-                        var value = line.Substring(i + 1).Trim();
-                        result.Add(name, value);
-                        prevName = name;
-                    }
-                }
-            } while (true);
-            return result;
-        }
-        public static async Task<HttpUtils.HttpHeaders> ReadHttpHeadersAsync(Stream stream, Encoding? encoding = null, CancellationToken cancellationToken = default) {
-            if (encoding == null) encoding = EncodingUtils.GetDefault();
-            var result = new HttpUtils.HttpHeaders();
-            var prevName = "";
-            do {
-                var line = await ReadLineAsync(stream, encoding, cancellationToken);
-                if (line == null || line.Length == 0) break;
-                if (line.StartsWith(" ") || line.StartsWith("\t")) {
-                    var value = line.Trim();
-                    result[prevName] += value;
-                } else {
-                    var i = line.IndexOf(":");
-                    if (i != -1) {
-                        var name = line.Substring(0, i);
-                        var value = line.Substring(i + 1).Trim();
-                        result.Add(name, value);
-                        prevName = name;
-                    }
-                }
-            } while (true);
-            return result;
-        }
+        //// read HttpHeaders
+        //public static HttpUtils.HttpHeaders ReadHttpHeaders(Stream stream, Encoding? encoding = null) {
+        //    if (encoding == null) encoding = EncodingUtils.GetDefault();
+        //    var result = new HttpUtils.HttpHeaders();
+        //    var prevName = "";
+        //    do {
+        //        var line = ReadLine(stream, encoding);
+        //        if (line == null || line.Length == 0) break;
+        //        if (line.StartsWith(" ") || line.StartsWith("\t")) {
+        //            var value = line.Trim();
+        //            result[prevName] += value;
+        //        } else {
+        //            var i = line.IndexOf(":");
+        //            if (i != -1) {
+        //                var name = line.Substring(0, i);
+        //                var value = line.Substring(i + 1).Trim();
+        //                result.Add(name, value);
+        //                prevName = name;
+        //            }
+        //        }
+        //    } while (true);
+        //    return result;
+        //}
+        //public static async Task<HttpUtils.HttpHeaders> ReadHttpHeadersAsync(Stream stream, Encoding? encoding = null, CancellationToken cancellationToken = default) {
+        //    if (encoding == null) encoding = EncodingUtils.GetDefault();
+        //    var result = new HttpUtils.HttpHeaders();
+        //    var prevName = "";
+        //    do {
+        //        var line = await ReadLineAsync(stream, encoding, cancellationToken);
+        //        if (line == null || line.Length == 0) break;
+        //        if (line.StartsWith(" ") || line.StartsWith("\t")) {
+        //            var value = line.Trim();
+        //            result[prevName] += value;
+        //        } else {
+        //            var i = line.IndexOf(":");
+        //            if (i != -1) {
+        //                var name = line.Substring(0, i);
+        //                var value = line.Substring(i + 1).Trim();
+        //                result.Add(name, value);
+        //                prevName = name;
+        //            }
+        //        }
+        //    } while (true);
+        //    return result;
+        //}
 
         // read bytes
         public static byte[] ReadBytes(Stream stream) {
@@ -464,37 +464,37 @@ namespace DProjects.Utils {
             } while (!((bytesToCopy == 0 && iRead == 0) || (bytesToCopy != 0 && bytesToCopy == nRead)));
             return nRead;
         }
-        public static long Copy(Stream inputStream, Stream outputStream, byte[] boundary, long maxBytesToCopy = 0) {
-            long nRead = 0;
-            var buffer = new MemoryStream(boundary.Length);
-            do {
-                int i = inputStream.ReadByte();
-                if (i == -1) break;
-                byte b = (byte)i;
-                if (boundary[buffer.Length] == b) {
-                    buffer.WriteByte(b);
-                    if (buffer.Length == boundary.Length) {
-                        break;
-                    }
-                    continue;
-                }
-                if (buffer.Length > 0) {
-                    var subBuffer = buffer.ToArray();
-                    var subBytesToCopy = subBuffer.Length;
-                    for (var k = 0; k < subBuffer.Length; k++) {
-                        outputStream.WriteByte(subBuffer[k]);
-                        nRead++;
-                        if (maxBytesToCopy != 0 && nRead == maxBytesToCopy) break;
-                    }
-                    buffer.SetLength(0);
-                }
-                outputStream.WriteByte(b);
-                nRead++;
-                if (maxBytesToCopy != 0 && nRead == maxBytesToCopy) break;
-            } while (true);
-            //return
-            return nRead;
-        }
+        //public static long Copy(Stream inputStream, Stream outputStream, byte[] boundary, long maxBytesToCopy = 0) {
+        //    long nRead = 0;
+        //    var buffer = new MemoryStream(boundary.Length);
+        //    do {
+        //        int i = inputStream.ReadByte();
+        //        if (i == -1) break;
+        //        byte b = (byte)i;
+        //        if (boundary[buffer.Length] == b) {
+        //            buffer.WriteByte(b);
+        //            if (buffer.Length == boundary.Length) {
+        //                break;
+        //            }
+        //            continue;
+        //        }
+        //        if (buffer.Length > 0) {
+        //            var subBuffer = buffer.ToArray();
+        //            var subBytesToCopy = subBuffer.Length;
+        //            for (var k = 0; k < subBuffer.Length; k++) {
+        //                outputStream.WriteByte(subBuffer[k]);
+        //                nRead++;
+        //                if (maxBytesToCopy != 0 && nRead == maxBytesToCopy) break;
+        //            }
+        //            buffer.SetLength(0);
+        //        }
+        //        outputStream.WriteByte(b);
+        //        nRead++;
+        //        if (maxBytesToCopy != 0 && nRead == maxBytesToCopy) break;
+        //    } while (true);
+        //    //return
+        //    return nRead;
+        //}
 
 
 

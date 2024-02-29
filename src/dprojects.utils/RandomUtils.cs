@@ -105,7 +105,7 @@ namespace DProjects.Utils {
             return randomBytes;
         }
         public static string GenerateRandomKeyHex(int length) {
-            return StringUtils.Hex(GenerateRandomKey(length));
+            return HexUtils.Hex(GenerateRandomKey(length));
         }
         public static string GenerateRandomKeyBase64(int length) {
             return Convert.ToBase64String(GenerateRandomKey(length));

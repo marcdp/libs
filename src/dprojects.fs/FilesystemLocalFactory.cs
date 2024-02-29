@@ -14,9 +14,9 @@ namespace DProjects.Fs {
 
         public IFilesystem Create(string src) {
             var url = new Uri(src);
-            var isReadonly = UrlUtils.ParseQueryString<bool>(url.Query, "isReadonly");
-            var create = UrlUtils.ParseQueryString<bool>(url.Query, "create");
-            var file = UrlUtils.ParseQueryString<bool>(url.Query, "file");
+            var isReadonly = UrlUtils.GetQueryValue<bool>(url.Query, "isReadonly");
+            var create = UrlUtils.GetQueryValue<bool>(url.Query, "create");
+            var file = UrlUtils.GetQueryValue<bool>(url.Query, "file");
             var absolutePath = UrlUtils.UrlDecode(url.AbsolutePath);
             if (url.Host == "") {
                 if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {

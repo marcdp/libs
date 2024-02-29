@@ -29,11 +29,20 @@ namespace DProjects.Utils {
         public static EncodingInfo[] GetEncodings() {
             return Encoding.GetEncodings();
         }
-        public static string GetBufferAsString(byte[] buffer) {
-            var encoding = GetBufferTextEncoding(buffer, out int bomLength);
-            return encoding.GetString(buffer, bomLength, buffer.Length - bomLength);
+        public static bool GetStringContainsUnicodeCharsUpperThan(string s, int value) {
+            for (int i = 0; i <= s.Length - 1; i++) {
+                char c = s[i];
+                int ci = Convert.ToInt32(c);
+                if (ci >= value) {
+                    return true;
+                }
+            }
+            return false;
         }
-        public static Encoding GetBufferTextEncoding(byte[] buffer, out int bomLength, Encoding? enc = null) {
+        public static Encoding DetectEncoding(byte[] buffer) {
+            return DetectEncoding(buffer, out _);
+        }
+        public static Encoding DetectEncoding(byte[] buffer, out int bomLength, Encoding? enc = null) {
             if (enc == null) {
                 enc = EncodingUtils.GetDefault();
                 if (EnvironmentUtils.IsWindows()) enc = Encoding.GetEncoding(EncodingUtils.ENCODING_WINDOWS_1252);
@@ -42,7 +51,7 @@ namespace DProjects.Utils {
                 bomLength = 3;
                 enc = Encoding.UTF8;
             } else if (buffer.Length >= 4 && buffer[0] == 0 && buffer[1] == 0 && buffer[2] == 0xFE && buffer[3] == 0xFF) { // 00 00 FE FF =  	UTF-32, big-endian
-                bomLength = 0;
+                bomLength = 4;
                 return Encoding.GetEncoding("utf-32BE");
             } else if (buffer.Length >= 4 && buffer[0] == 0xFF && buffer[1] == 0xFE && buffer[2] == 0x0 && buffer[3] == 0x0) { //FF FE 00 00 = UTF-32, little-endian
                 bomLength = 4;

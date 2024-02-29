@@ -22,6 +22,8 @@ namespace DProjects.Fs {
             mFilesystem = filesystem;
             mSuffix = suffix;
         }
+        public virtual void Dispose() {
+        }
 
 
         //properties

@@ -14,24 +14,25 @@ namespace DProjects.Utils {
 
         //Hmac
         public static string CreateHmac(NetworkCredential credentials, string method, string path, string query, string contentType, DateTime dateHeader, DateTime dateHeaderToUse) {
-            string dateHeaderStr = (dateHeaderToUse != default) ? (dateHeaderToUse.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ")) : (dateHeader.ToUniversalTime().ToString("r"));
-            string login = credentials.UserName;
-            string password = credentials.Password;
+            var dateHeaderStr = (dateHeaderToUse != default) ? (dateHeaderToUse.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ")) : (dateHeader.ToUniversalTime().ToString("r"));
+            var login = credentials.UserName;
+            var password = credentials.Password;
             if (contentType.IndexOf(";") != -1) {
                 contentType = contentType.Substring(0, contentType.IndexOf(";"));
             }
-            string unsignedData = method.ToLower() + CharUtils.CHAR_LF +
+            var unsignedData = method.ToLower() + CharUtils.CHAR_LF +
                 path + CharUtils.CHAR_LF + 
                 ((query.StartsWith("?")) ? (query.Substring(1)) : query) + CharUtils.CHAR_LF +
                 contentType.ToLower() + CharUtils.CHAR_LF +
                 dateHeaderStr + CharUtils.CHAR_LF;
-            byte[] unsignedDataBuffer = System.Text.Encoding.UTF8.GetBytes(unsignedData);
-            var hmacSha = new System.Security.Cryptography.HMACSHA256();
-            hmacSha.Key = System.Text.Encoding.UTF8.GetBytes(password);
+            var unsignedDataBuffer = System.Text.Encoding.UTF8.GetBytes(unsignedData);
+            var hmacSha = new System.Security.Cryptography.HMACSHA256 {
+                Key = System.Text.Encoding.UTF8.GetBytes(password)
+            };
             byte[] signedDataBufer = hmacSha.ComputeHash(unsignedDataBuffer);
-            string signedData = Base64Utils.ToBase64(signedDataBufer);
-            string authorization = login + ":" + signedData;
-            string authorizationBase64 = Base64Utils.ToBase64(System.Text.Encoding.UTF8.GetBytes(authorization));
+            var signedData = Base64Utils.ToBase64(signedDataBufer);
+            var authorization = login + ":" + signedData;
+            var authorizationBase64 = Base64Utils.ToBase64(System.Text.Encoding.UTF8.GetBytes(authorization));
             return "hmac " + authorizationBase64;
         }
     }

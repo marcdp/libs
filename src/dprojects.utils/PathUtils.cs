@@ -18,7 +18,17 @@ namespace DProjects.Utils {
             //get path name
             string result = "";
             if ((path.Equals("") || path.Equals("/")) && name.StartsWith("/")) {
-                return name;
+                result = name;
+                while (result.IndexOf("/./") != -1) {
+                    result = result.Replace("/./", "/");
+                }
+                while (result.EndsWith("/.") && result.Length > 2) {
+                    result = result.Substring(0, result.Length - 2);
+                }
+                if (result.EndsWith("/.") && result.Length == 2) {
+                    result = "/";
+                }
+                return result;
             } else if (name.Equals("/")) {
                 name = "";
             }
@@ -33,7 +43,7 @@ namespace DProjects.Utils {
             }
             result = path + name;
             if (result.IndexOf("..") != -1) {
-                List<string> tokens = new List<string>(result.Split('/'));
+                var tokens = new List<string>(result.Split('/'));
                 int i = 0;
                 while (i < tokens.Count) {
                     string token = tokens[i];
@@ -57,7 +67,10 @@ namespace DProjects.Utils {
                     result = "/";
                 }
             }
-            if (result.EndsWith("/.") && result.Length > 2) {
+            while (result.IndexOf("/./") != -1) {
+                result = result.Replace("/./","/");
+            }
+            while (result.EndsWith("/.") && result.Length > 2) {
                 result = result.Substring(0, result.Length - 2);
             }
             if (result.EndsWith("/.") && result.Length == 2) {
@@ -77,12 +90,20 @@ namespace DProjects.Utils {
         public static string Normalize(string path) {
             return Combine(path, "");
         }
+        public static string NormalizeIfRequired(string path) {
+            if (path.IndexOf("/.") != -1) {
+                return Combine(path, "");
+            }
+            return path;
+        }
         public static string Uncombine(string prefix, string path) {
             //get path unprefixed
             if (prefix != "/") {
-                path = path.Substring(prefix.Length);
-                if (path == "") {
-                    path = "/";
+                if (path.StartsWith(prefix)) {
+                    path = path.Substring(prefix.Length);
+                    if (path == "") {
+                        path = "/";
+                    }
                 }
             }
             return path;
@@ -93,6 +114,7 @@ namespace DProjects.Utils {
         }
         public static string GetPathParent(string path) {
             //get parent path of a path
+            path = NormalizeIfRequired(path);
             int i = path.LastIndexOf("/");
             if (i == -1) {
                 return "";
@@ -116,6 +138,7 @@ namespace DProjects.Utils {
         }
         public static string GetPathExtension(string path) {
             //get path extension
+            path = NormalizeIfRequired(path);
             int i = path.LastIndexOf(".");
             if (i == -1) {
                 return "";
@@ -126,9 +149,8 @@ namespace DProjects.Utils {
         }
         public static string GetPathName(string path) {
             //get path name
-            if (path.LastIndexOf("/") == -1) {
-                return path;
-            }
+            path = NormalizeIfRequired(path);
+            if (path.LastIndexOf("/") == -1) return path;
             string name = path.Substring(path.LastIndexOf("/") + 1);
             return name;
         }
@@ -143,6 +165,7 @@ namespace DProjects.Utils {
         }
         public static string GetPathFirstName(string path) {
             //get path first name
+            path = NormalizeIfRequired(path);
             if (path.StartsWith("/")) {
                 path = path.Substring(1);
             }
@@ -153,6 +176,7 @@ namespace DProjects.Utils {
         }
         public static int GetPathPartsCount(string path) {
             //get path count
+            path = NormalizeIfRequired(path);
             int result = 0;
             if (path == "/") {
                 result = 0;
@@ -162,7 +186,8 @@ namespace DProjects.Utils {
             return result;
         }
         public static string GetPathCuttedByLevel(string path, int level) {
-            StringBuilder aux = new StringBuilder(path.Length);
+            path = NormalizeIfRequired(path);
+            var aux = new StringBuilder(path.Length);
             int counter = 0;
             foreach (string pathPart in path.Split('/')) {
                 if (counter == 1) {
@@ -178,7 +203,8 @@ namespace DProjects.Utils {
             return aux.ToString();
         }
         public static string GetPathCuttedFromLevel(string path, int level) {
-            StringBuilder aux = new StringBuilder(path.Length);
+            path = NormalizeIfRequired(path);
+            var aux = new StringBuilder(path.Length);
             int counter = 0;
             foreach (string pathPart in path.Split('/')) {
                 if (counter > level) {
@@ -187,6 +213,7 @@ namespace DProjects.Utils {
                 }
                 counter++;
             }
+            if (aux.Length == 0) aux.Append("/");
             return aux.ToString();
         }
         public static string GetPathInvalidCharsReplaced(string path) {
@@ -201,7 +228,7 @@ namespace DProjects.Utils {
             return path;
         }
         public static string GetPathInvalidCharsReplacedStrong(string path) {
-            char[] invalidChars = new char[] { '\\', '/', ':', '*', '?', '<', '>', '|', ',', '\"' };
+            char[] invalidChars = new char[] { '\\',  ':', '*', '?', '<', '>', '|', '\"', ',', '/' };
             if (path.IndexOfAny(invalidChars) != -1) {
                 foreach (char aChar in invalidChars) {
                     if (path.IndexOf(aChar) != -1) {
@@ -239,7 +266,7 @@ namespace DProjects.Utils {
             int i = 0; 
             foreach (char c in path) {
                 if (c < ' ' || System.Array.IndexOf(PathUtils.PATH_INVALID_CHARS, c) != -1) {
-                    throw new Exception("Invalid character \'0x" + Convert.ToInt32(c).ToString("x") + "\' in path \'" + path + "\', position " + i);
+                    throw new ArgumentNullException("Invalid character \'0x" + Convert.ToInt32(c).ToString("x") + "\' in path \'" + path + "\', position " + i);
                 }
                 i++;
             }
@@ -264,6 +291,8 @@ namespace DProjects.Utils {
         }
         public static int ComparePath(string pathA, string pathB) {
             int result = 0;
+            pathA = NormalizeIfRequired(pathA);
+            pathB = NormalizeIfRequired(pathB);
             var parentPathA = PathUtils.GetPathParent(pathA);
             var parentPathB = PathUtils.GetPathParent(pathB);
             if (parentPathA.Equals(parentPathB, StringComparison.Ordinal)) {

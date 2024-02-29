@@ -3,7 +3,7 @@ namespace DProjects.Utils {
     public static class CSharpUtils {
 
         //constants
-        public readonly static string[] CSHARP_KEYWORDS = {
+        public readonly static string[] RESERVED_KEYWORDS = [
             "abstract", "as", "base", "bool", "break", "byte", "case", "catch", "char", "checked", "class", "const", "continue",
             "decimal", "default", "delegate", "do", "double", "else", "enum", "event", "explicit", "extern", "false", "finally",
             "fixed", "float", "for", "foreach", "goto", "if", "implicit", "in", "int", "interface", "internal", "is", "lock",
@@ -11,10 +11,14 @@ namespace DProjects.Utils {
             "readonly", "ref", "return", "sbyte", "sealed", "short", "sizeof", "stackalloc", "static", "string", "struct", "switch",
             "this", "throw", "true", "try", "typeof", "uint", "ulong", "unchecked", "unsafe", "ushort", "using", "virtual", "void",
             "volatile", "while"
-        };
+        ];
+        public readonly static string[] CONTEXTUAL_KEYWORDS = [
+            "add","and","alias","ascending","args","async","await","by","descending","dynamic","equals","file","from","get","global",
+            "group","init","into","join","let","managed ","nameof","nint","not","notnull","nuint","on","or","orderby","partial",
+            "record","remove","required","scoped","select","set","unmanaged","value","var","when","where","where","with","yield"
+        ];
 
     }
-
 
 }
 

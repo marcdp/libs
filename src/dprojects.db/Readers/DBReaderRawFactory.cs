@@ -9,9 +9,9 @@ namespace DProjects.Db.Readers {
     [Protocol("raw", "")]
     [ProtocolExample("raw:", "")]
     [ProtocolExample("raw:?columnSeparator=.", "")]
-    public class DBReaderRawFactory(TextReader reader) : IFactoryByUrl<IDBReader> {
+    public class DBReaderRawFactory : IFactoryByUrlAndArgument<IDBReader, TextReader> {
 
-        public IDBReader Create(string src) {
+        public IDBReader Create(string src, TextReader reader) {
             var leaveOpen = false;
             var settings = UrlUtils.Deserialize<DBReaderRaw.Settings>(src);
             return new DBReaderRaw(reader, leaveOpen, settings);

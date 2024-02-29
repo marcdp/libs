@@ -41,23 +41,7 @@ namespace DProjects.Utils {
             if (propertyInfo == null) throw new Exception("Property \'" + propertyName + "\' not exists in object " + aObject.ToString());
             if (args == null) args = new object[] { };
             return propertyInfo.GetValue(aObject, args);
-        }
-        public static object? GetObjectPropertyValueTryingDefaultProperty(object aObject, string propertyName, object[]? args = null) {
-            Type type = aObject.GetType();
-            PropertyInfo? propertyInfo = type.GetProperty(propertyName, (BindingFlags)(BindingFlags.GetProperty | BindingFlags.Public | BindingFlags.Default | BindingFlags.Instance | BindingFlags.IgnoreCase));
-            if (propertyInfo == null) {
-                foreach (MemberInfo objMemberInfo in type.GetDefaultMembers()) {
-                    if (objMemberInfo is PropertyInfo) {
-                        propertyInfo = (PropertyInfo)objMemberInfo;
-                        args = new string[] { propertyName };
-                        break;
-                    }
-                }
-            }
-            if (propertyInfo == null) throw new Exception("Unablet to get property: not found: " + propertyName + ", " + aObject.ToString());
-            args ??= new object[] { };
-            return propertyInfo.GetValue(aObject, args);
-        }
+        }        
         public static void SetObjectPropertyValue(object aObject, string propertyName, object value) {
             Type type = aObject.GetType();
             PropertyInfo? propertyInfo = type.GetProperty(propertyName, (BindingFlags)(BindingFlags.SetProperty | BindingFlags.Public | BindingFlags.Default | BindingFlags.Instance | BindingFlags.IgnoreCase));
