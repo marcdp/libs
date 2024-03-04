@@ -48,6 +48,9 @@ namespace DProjects.Streams {
                 bytesRead += Read(buffer, offset + bytesRead, count - bytesRead);
                 mPosition += bytesRead;
             }
+            if (bytesRead < count) {
+                bytesRead += Read(buffer, offset + bytesRead, count - bytesRead);
+            }
             return bytesRead;
         }
 
@@ -63,6 +66,9 @@ namespace DProjects.Streams {
                 }
                 bytesRead += await ReadAsync(buffer, offset + bytesRead, count - bytesRead, cancellationToken);
                 mPosition += bytesRead;
+            }
+            if (bytesRead < count) {
+                bytesRead += await ReadAsync(buffer, offset + bytesRead, count - bytesRead, cancellationToken);
             }
             return bytesRead;
         }

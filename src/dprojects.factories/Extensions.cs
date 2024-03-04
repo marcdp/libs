@@ -45,7 +45,7 @@ namespace DProjects.Factories {
             //return
             return services;
         }
-        public static IServiceCollection AddFactoryByUrl<TType, TArgument>(this IServiceCollection services, Action<FactoryByUrlAndArgumentConfiguration<TType, TArgument>> configuration) where TType : class {
+        public static IServiceCollection AddFactoryByUrlAndArgument<TType, TArgument>(this IServiceCollection services, Action<FactoryByUrlAndArgumentConfiguration<TType, TArgument>> configuration) where TType : class {
             var config = new FactoryByUrlAndArgumentConfiguration<TType, TArgument>();
             configuration.Invoke(config);
             config.Protocols.Sort();

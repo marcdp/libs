@@ -22,7 +22,8 @@ namespace DProjects.Text.Yaml.YamlConverters {
         }
         public void WriteYaml(IEmitter emitter, object? value, Type type) {
             var bytes = (byte[])value!;
-            emitter.Emit(new YamlDotNet.Core.Events.Scalar(StringUtils.SplitByColumnsAndFold("!!base64 " + Convert.ToBase64String(bytes), 76)));
+            var aux = StringUtils.SplitByColumnsAndFold("!!base64 " + Convert.ToBase64String(bytes), 76);
+            emitter.Emit(new YamlDotNet.Core.Events.Scalar(aux));
         }
     }
 

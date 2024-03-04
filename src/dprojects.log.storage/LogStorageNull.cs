@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -17,7 +19,7 @@ namespace DProjects.Log.Storage {
             throw new System.NotImplementedException();
         }
 
-        public Task<ILogStorageEntryReader> QueryAsync(LogStorageQuery query, CancellationToken cancellationToken) {
+        public IAsyncEnumerable<LogEntry> QueryAsync(LogStorageQuery query, CancellationToken cancellationToken) {
             throw new System.NotImplementedException();
         }
 
@@ -25,10 +27,9 @@ namespace DProjects.Log.Storage {
             throw new System.NotImplementedException();
         }
 
-        public Task<ILogStorageEntryReader> TailAsync(int lines, bool follow, CancellationToken cancellationToken) {
+        public IAsyncEnumerable<LogEntry> TailAsync(int lines, bool follow, CancellationToken cancellationToken) {
             throw new System.NotImplementedException();
         }
-
     }
 }
 

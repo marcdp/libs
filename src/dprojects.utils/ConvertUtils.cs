@@ -564,6 +564,12 @@ namespace DProjects.Utils {
                             if (oo != null) o.Add(oo.ToString() ?? "");
                         }
                         aObject = o.ToArray();
+                    } else if (aObject is List<object>) {
+                        var o = new List<string>();
+                        foreach (object? oo in ((List<object>)aObject)) {
+                            if (oo != null) o.Add(oo.ToString() ?? "");
+                        }
+                        aObject = o.ToArray();
                     } else if (aObject is string) {
                         var aux = (string)aObject;
                         if (aux.Length == 0) {
@@ -603,6 +609,26 @@ namespace DProjects.Utils {
                             if (int.TryParse(str, out int number)) {
                                 result.Add(number);
                             }
+                        }
+                        aObject = result.ToArray();
+                    }
+                } else if (type == typeof(bool[])) {
+                    if (aObject is Array) {
+                        var o = new List<bool>();
+                        foreach (object? oo in ((Array)aObject)) {
+                            if (oo != null) o.Add(Convert.ToBoolean(oo));
+                        }
+                        aObject = o.ToArray();
+                    } else if (aObject is int) {
+                        aObject = new bool[] { Convert.ToBoolean(aObject) };
+                    } else if (aObject is long) {
+                        aObject = new bool[] { Convert.ToBoolean(aObject) };
+                    } else if (aObject is bool) {
+                        aObject = new bool[] { Convert.ToBoolean(aObject) };
+                    } else if (aObject is string) {
+                        var result = new List<bool>();
+                        foreach (var str in ((string)aObject).Split(',')) {
+                            if (str.Length>0) result.Add(Convert.ToBoolean(str));
                         }
                         aObject = result.ToArray();
                     }

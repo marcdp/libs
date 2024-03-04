@@ -23,7 +23,6 @@ namespace DProjects.Text.Json {
         }
         public object? Deserialize(string json, Type returnType) {
             var options = new JsonSerializerOptions();
-            options.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
             //options.Converters.Add(new JsonConverters.DBTableJsonConverter());
             options.Converters.Add(new JsonConverters.TypeJsonConverter());
             //options.Converters.Add(new JsonConverters.VOConverter());
@@ -34,6 +33,7 @@ namespace DProjects.Text.Json {
             if (settings.UseDateTimeLaxConverter) options.Converters.Add(new JsonConverters.DateTimeLaxConverter());
             options.AllowTrailingCommas = settings.AllowTrailingCommas;
             options.IncludeFields = settings.IncludeFields;
+            options.PropertyNamingPolicy = settings.NamingPolicy;
             if (returnType == typeof(JsonDocument)) {
                 return JsonDocument.Parse(json);
             //} else if (returnType == typeof(object[])) {

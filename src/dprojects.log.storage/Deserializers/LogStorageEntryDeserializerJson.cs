@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Text.Json;
 using static System.Net.Mime.MediaTypeNames;
 using System.Text.Json.Nodes;
+using System.Linq;
+using DProjects.Utils;
 
 
 namespace DProjects.Log.Storage.Serializers {
@@ -15,8 +17,8 @@ namespace DProjects.Log.Storage.Serializers {
         //methods
         public LogEntry Deserialize(string line) {
             var logEntry = new LogEntry();
-            //var jsonObject = JsonNode.Parse(line)!.AsObject();
-            var dict = JsonSerializer.Deserialize<IDictionary<string,object?>>(line)!;
+            var jsonDeserializer = new DProjects.Text.Json.JsonDeserializer(new());
+            var dict = jsonDeserializer.Deserialize<IDictionary<string, object?>>(line);
             //date
             foreach (var key in new string[] { "date", "timestamp", "StartUTC", "time" }) {
                 if (dict.TryGetValue(key, out object? value) && value != null && value.GetType() == typeof(DateTime)) {
@@ -52,12 +54,7 @@ namespace DProjects.Log.Storage.Serializers {
             //tags
             foreach (var key in new string[] { "tags" }) {
                 if (dict.TryGetValue(key, out object? value)) {
-                    if (value == null) {
-                    } else if (value.GetType() == typeof(string[])) {
-                        logEntry.Tags = (string[])value;
-                    } else {
-                        logEntry.Tags = new string[] { value.ToString() };
-                    }
+                    logEntry.Tags = ConvertUtils.To<string[]>(value);                   
                     dict.Remove(key);
                     break;
                 }

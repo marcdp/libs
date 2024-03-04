@@ -633,8 +633,9 @@ namespace DProjects.Utils {
                 }
             }
             patternRegExp.Append("\\z"); //end of text
-            var regexp = new System.Text.RegularExpressions.Regex(patternRegExp.ToString());
-            return regexp.Match(text).Success;
+            var patternRegExpString = patternRegExp.ToString();
+            var regExp = new System.Text.RegularExpressions.Regex(patternRegExpString);
+            return regExp.Match(text).Success;
         }
         //public static bool Like2(string text, string pattern, bool ignoreCase = false) {
         //    int matched = 0;

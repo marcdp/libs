@@ -1,0 +1,128 @@
+using Xunit;
+using DProjects.Factories;
+using DProjects.Factories.Attributes;
+using Microsoft.Extensions.DependencyInjection;
+using System;
+
+namespace DProjects.Factories.Tests
+{
+    public class FactoryByUrlAndArgumentTests : Base {
+
+        //inner classes
+        public interface ISomething {
+            string GetName();
+            string GetPassword();
+        }
+        //something1
+        public class Something1 : ISomething {
+            public string GetName() => "1";
+            public string GetPassword() => "";
+        }
+        [Protocol("something1", "")]
+        public class Something1Factory : IFactoryByUrlAndArgument<ISomething, string> {
+            public ISomething Create(string url, string aux) {
+                return new Something1();
+            }
+        }
+        //something2
+        public class Something2 : ISomething {
+            public string GetName() => "2";
+            public string GetPassword() => "";
+        }
+        [Protocol("something2", "")]
+        public class Something2Factory : IFactoryByUrlAndArgument<ISomething, string> {
+            public ISomething Create(string url, string aux) {
+                return new Something2();
+            }
+        }
+        //dir
+        public class SomethingDir : ISomething {
+            public string GetName() => "dir";
+            public string GetPassword() => "";
+        }
+        [Protocol("dir", "")]
+        public class SomethingDirFactory : IFactoryByUrlAndArgument<ISomething, string> {
+            public ISomething Create(string url, string aux) {
+                return new SomethingDir();
+            }
+        }
+        //passwored
+        public class SomethingPasswored(string pass) : ISomething {
+            public string GetName() => "password";
+            public string GetPassword() => pass;
+        }
+        [Protocol("passwored", "")]
+        public class SomethingPassworedFactory : IFactoryByUrlAndArgument<ISomething, string> {
+            public ISomething Create(string url, string aux) {
+                var aUrl = new System.Uri(url);
+                return new SomethingPasswored(aUrl.UserInfo.Split(":")[1]);
+            }
+        }
+        //default
+        public class SomethingDefault : ISomething {
+            public string GetName() => "default";
+            public string GetPassword() => "";
+        }
+        //password filler
+        public class FactoryPasswordFiller : IFactoryPasswordFiller {
+            public bool FillPassword(ref string url) {
+                if (url.IndexOf("passwored://user@") != -1) {
+                    url = url.Replace("passwored://user@", "passwored://user:1234@");
+                    return true;
+                };
+                return false;
+            }
+        }
+
+
+        //tests
+        [Theory()]
+        [InlineData("something1:", "1")]
+        [InlineData("something2:", "2")]
+        [InlineData("/my-path", "dir")]
+        public void Create_ShouldPrependDirToUrl_WhenUrlStartsWithSlash(string url, string expected) {
+            var instance = mFactoryByUrlAndArgument.Create(url, "");
+            var result = instance.GetName();
+            Assert.Equal(expected, result);
+        }
+
+        [Theory()]
+        [InlineData("111", "1")]
+        [InlineData("222", "2")]
+        [InlineData("333", "dir")]
+        public void Create_ShouldReplaceUrlWithAliasValue_WhenUrlMatchesAlias(string url, string expected) {
+            var instance = mFactoryByUrlAndArgument.Create(url, "");
+            var result = instance.GetName();
+            Assert.Equal(expected, result);
+        }
+
+        [Theory()]
+        [InlineData("something1", "1")]
+        [InlineData("something2", "2")]
+        public void Create_ShouldAppendColonToUrl_WhenUrlDoesNotContainColon(string url, string expected) {
+            var instance = mFactoryByUrlAndArgument.Create(url, "");
+            var result = instance.GetName();
+            Assert.Equal(expected, result);
+        }
+
+        [Theory()]
+        [InlineData("passwored://user@host/path", "1234")]
+        public void Create_ShouldFillPassword_WhenUrlContainsUserInfoButNoPassword(string url, string expected) {
+            var instance = mFactoryByUrlAndArgument.Create(url, "");
+            var result = instance.GetPassword();
+            Assert.Equal(expected, result);
+        }
+
+        [Fact]
+        public void Create_ShouldReturnDefaultInstance_WhenUrlIsEmpty() {
+            var instance = mFactoryByUrlAndArgument.Create("", "");
+            var result = instance.GetName();
+            Assert.Equal("default", result);
+        }
+
+        [Fact]
+        public void Create_ShouldThrowArgumentException_WhenSchemeNotFoundInProtocols() {
+            Assert.Throws<ArgumentException>(() => mFactoryByUrlAndArgument.Create("unknown://test", ""));
+        }
+    }
+}

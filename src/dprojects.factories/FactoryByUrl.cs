@@ -30,9 +30,10 @@ namespace DProjects.Factories {
             if (url.StartsWith("/")) url = "dir://" + url;
             //aliases
             url = mConfiguration.Aliases.Where(x => x.Name.Equals(url)).Select(x => x.Value).DefaultIfEmpty(url).FirstOrDefault();
+            if (url.StartsWith("/")) url = "dir://" + url;
             //add dots if required
             if (url.Length > 0 && url.IndexOf(":") == -1) url += ":";
-            //fill userinfo password
+            //fill userInfo password
             var scheme = (url.Length > 0 ? url.Substring(0, url.IndexOf(':')) : "");
             if (url.Length > 0) {
                 var aUrl = new Uri(url);

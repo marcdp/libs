@@ -18,7 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\dprojects.utils\dprojects.utils.csproj" />
+    <ProjectReference Include="..\..\src\dprojects.text.json\dprojects.text.json.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,5 +1,6 @@
 ﻿using DProjects.Utils;
 using System.Collections.Specialized;
+using System.Linq;
 using System.Reflection;
 
 namespace DProjects.Text.Xml {
@@ -28,6 +29,8 @@ namespace DProjects.Text.Xml {
 
         //methods
         public string ProcessName(string name) {
+            if (name.StartsWith("<>")) name = name.Substring("<>".Length);
+            if (name.IndexOf("`")!=-1) name = name.Substring(0, name.IndexOf("`"));
             foreach (var unprefix in Unprefixes) {
                 if (name.StartsWith(unprefix) && name.Length > unprefix.Length) {
                     name = name.Substring(unprefix.Length);

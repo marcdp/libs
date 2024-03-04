@@ -209,7 +209,9 @@ namespace DProjects.Utils {
                 if (!excluded) {
                     var pInfo = instance.GetType().GetProperty(pair.Key, BindingFlags.IgnoreCase | BindingFlags.Instance | BindingFlags.Public);
                     if (pInfo == null) {
-                        if (settings.ThrowExceptionIfPropertyNotFound) throw new Exception("Unable to deserialize: property not found: " + pair.Key);
+                        if (settings.ThrowExceptionIfPropertyNotFound && !settings.PropertyNameScheme.Equals(pair.Key)) {
+                            throw new Exception("Unable to deserialize: property not found: " + pair.Key);
+                        }
                     } else {
                         pInfo.SetValue(instance, ConvertUtils.To(pair.Value, pInfo.PropertyType, false), new object[] { });
                     }

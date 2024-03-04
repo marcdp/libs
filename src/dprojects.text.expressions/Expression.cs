@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Net.Http.Headers;
 
 namespace DProjects.Text.Expressions {
 
@@ -48,7 +49,7 @@ namespace DProjects.Text.Expressions {
         }.ToDictionary(op => op.symbol);
 
         //global functions
-        private static class Globals {
+        private static class GlobalMethods {
             public static double Sin(double a) {
                 return Math.Sin(a);
             }
@@ -87,9 +88,18 @@ namespace DProjects.Text.Expressions {
                 if (a is null) return false;
                 return a.IndexOf(b) != -1;
             }
+            public static object Call(object instance, string method, params object?[] parameters) {
+                var type = instance.GetType();
+                var methodInfo = type.GetMethod(method);
+                var parameterInfos = methodInfo.GetParameters();
+                for (var i = 0; i < parameterInfos.Length; i++) {
+                    parameters[i] = ConvertUtils.To(parameters[i], parameterInfos[i].ParameterType, true);
+                }
+                return methodInfo.Invoke(instance, parameters);
+            }
         }
 
-        //vaiables
+        //variables
         private string mExpression; 
         private object?[] mArguments;
         private MyTokenizer.Token[] mTokens;
@@ -182,9 +192,19 @@ namespace DProjects.Text.Expressions {
                 } else if (token.Type == CALL) {
                     //call
                     var argCount = int.Parse(stack.Pop()!.ToString());
-                    var methodInfo = typeof(Globals).GetMethod(token.Value!.Trim(), System.Reflection.BindingFlags.IgnoreCase | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+                    var methodName = token.Value!.Trim();
+                    var methodInfo = typeof(GlobalMethods).GetMethod(methodName, System.Reflection.BindingFlags.IgnoreCase | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
                     if (methodInfo == null) throw new ArgumentException("Unable to evaluate expression: method not found: " + token.Value);
                     var methodParams = methodInfo.GetParameters();
+                    if (methodName.Equals("Call", StringComparison.OrdinalIgnoreCase)) {
+                        var callArguments = new List<object?>();
+                        for (var i = 0; i < argCount - 2; i++) {
+                            callArguments.Add(stack.Pop());
+                        }
+                        callArguments.Reverse();
+                        stack.Push(callArguments.ToArray());
+                        argCount = 3;
+                    }
                     if (methodParams.Length != argCount) throw new ArgumentException("Unable to evaluate expression: parameter count mismatch: " + token.Value);
                     var methodParamsValues = new List<object?>();
                     var argsConverted = new List<object>();

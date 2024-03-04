@@ -28,8 +28,8 @@ namespace DProjects.Fs {
         public FilesystemMounter(bool isReadonly = false) : base(isReadonly) {
             mMountPoints = new List<MountPoint>();
         }
-        public void Dispose() {
-            for (int i = mMountPoints.Count - 1; i >= 0; i--) {
+        public override void Dispose() {
+            for ( int i = mMountPoints.Count - 1; i >= 0; i--) {
                 var mountPoint = mMountPoints[i];
                 mMountPoints.RemoveAt(i);
                 if (mountPoint.Owned) {

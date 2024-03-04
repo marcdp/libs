@@ -84,21 +84,26 @@ namespace DProjects.Streams {
         //async 
         public async Task<int> ReadByteAsync(CancellationToken cancellationToken) {
             if (mQueue.Count == 0) {
-                var readedTotal = 0;
+                var readTotal = 0;
                 mBuffer[0] = 0;
                 mBuffer[1] = 0;
                 mBuffer[2] = 0;
                 do {
-                    int readed = await mStream.ReadAsync(mBuffer, readedTotal, 3 - readedTotal);
-                    if (readed == 0) break;
-                    readedTotal += readed;
-                } while (readedTotal != 3);
-                if (readedTotal == 0) return -1;
+                    int read = await mStream.ReadAsync(mBuffer, readTotal, 3 - readTotal);
+                    if (read == 0) break;
+                    readTotal += read;
+                } while (readTotal != 3);
+                if (readTotal == 0) return -1;
 
                 int b1 = mBuffer[0];
                 int b2 = mBuffer[1];
                 int b3 = mBuffer[2];
-
+                if (readTotal == 1) {
+                    b2 = -1;
+                    b3 = -1;
+                } else if (readTotal == 2) {
+                    b3 = -1;
+                }
                 mQueue.Enqueue(CODES[(mBuffer[0] & 0xFC) >> 2]);
                 mQueue.Enqueue(CODES[((mBuffer[0] & 0x03) << 4) | ((mBuffer[1] & 0xF0) >> 4)]);
                 if (b2 != -1) {

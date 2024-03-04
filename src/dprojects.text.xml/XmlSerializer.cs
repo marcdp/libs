@@ -59,10 +59,10 @@ namespace DProjects.Text.Xml {
         }
         public void Serialize(XmlWriter xmlWriter, object instance) {
             xmlWriter.WriteStartDocument();
-            SerializeInstanceRecursive(xmlWriter, instance);
+            SerializeInstanceRecursive(xmlWriter, instance, null, false);
             xmlWriter.WriteEndDocument();
         }
-        private void SerializeInstanceRecursive(XmlWriter xmlWriter, object instance, string? nodeName = null) {
+        private void SerializeInstanceRecursive(XmlWriter xmlWriter, object instance, string? nodeName, bool isArrayElement) {
             var type = instance.GetType();
             if (nodeName != null) {
                 xmlWriter.WriteStartElement(nodeName);
@@ -99,7 +99,7 @@ namespace DProjects.Text.Xml {
                     if (key == null) continue;
                     if (!key.Equals(settings.ContentPropertyName)) {
                         var attributeName = (string)key;
-                        var attributeValue = SerializeAttributeValue(vo[attributeName]);
+                        var attributeValue = SerializeAttributeValue(vo[attributeName], true);
                         if (attributeValue != null) xmlWriter.WriteAttributeString(attributeName, attributeValue);
                     }
                 }
@@ -114,7 +114,7 @@ namespace DProjects.Text.Xml {
                 foreach (var key in nameValueCollection.Keys) {
                     if (key == null) continue;
                     var attributeName = (string)key;
-                    var attributeValue = SerializeAttributeValue(nameValueCollection[attributeName]);
+                    var attributeValue = SerializeAttributeValue(nameValueCollection[attributeName], true);
                     if (attributeValue != null) xmlWriter.WriteAttributeString(attributeName, attributeValue);
                 }
             } else if (instance is NameValueCollection) {
@@ -122,7 +122,7 @@ namespace DProjects.Text.Xml {
                 foreach (var key in nameValueCollection.Keys) {
                     if (key == null) continue;
                     var attributeName = (string)key;
-                    var attributeValue = SerializeAttributeValue(nameValueCollection[attributeName]);
+                    var attributeValue = SerializeAttributeValue(nameValueCollection[attributeName], false);
                     if (attributeValue != null) xmlWriter.WriteAttributeString(attributeName, attributeValue);
                 }
             } else if (instance is StringDictionary) {
@@ -130,7 +130,7 @@ namespace DProjects.Text.Xml {
                 foreach (var key in stringDictionary.Keys) {
                     if (key == null) continue;
                     var attributeName = (string)key;
-                    var attributeValue = SerializeAttributeValue(stringDictionary[attributeName]);
+                    var attributeValue = SerializeAttributeValue(stringDictionary[attributeName], true);
                     if (attributeValue != null) xmlWriter.WriteAttributeString(attributeName, attributeValue);
                 }
             } else {
@@ -143,24 +143,28 @@ namespace DProjects.Text.Xml {
                     } else if (propertyInfo.Name.Equals(settings.ContentPropertyName)) {
                     } else if (propertyInfo.PropertyType.IsValueType || propertyInfo.PropertyType.IsEnum || propertyInfo.PropertyType == typeof(string) || propertyInfo.PropertyType == typeof(DateTime) || propertyInfo.PropertyType == typeof(Type) || propertyInfo.PropertyType == typeof(object)) {
                         var value = propertyInfo.GetValue(instance);
-                        var attributeValue = SerializeAttributeValue(value);
+                        var attributeValue = SerializeAttributeValue(value, false);
                         if (attributeValue != null) xmlWriter.WriteAttributeString(attributeName, attributeValue);
                         propertyInfos.Remove(propertyInfo);
                     } else if (propertyInfo.PropertyType.IsArray) {
                         var elementType = propertyInfo.PropertyType.GetElementType();
                         if (elementType != null) {
-                            if (elementType.IsValueType || elementType.IsEnum || elementType == typeof(string) || elementType == typeof(DateTime) || elementType == typeof(Type) || elementType == typeof(object)) {
+                                if (elementType.IsValueType || elementType.IsEnum || elementType == typeof(string) || elementType == typeof(DateTime) || elementType == typeof(Type) || elementType == typeof(object)) {
                                 var value = propertyInfo.GetValue(instance);
                                 if (value != null) {
+                                    var enumrable = (IEnumerable)value;
                                     var aux = new StringBuilder();
                                     foreach (var valueItem in (IEnumerable)value) {
-                                        var attributeItem = SerializeAttributeValue(valueItem);
+                                        var attributeItem = SerializeAttributeValue(valueItem, true);
                                         if (attributeItem != null) {
                                             if (aux.Length > 0) aux.Append(",");
                                             aux.Append(attributeItem);
                                         }
                                     }
-                                    xmlWriter.WriteAttributeString(attributeName, aux.ToString());
+                                    if (settings.AvoidEmptyArrays && aux.Length == 0) {
+                                    } else {
+                                        xmlWriter.WriteAttributeString(attributeName, aux.ToString());
+                                    }
                                 }
                                 propertyInfos.Remove(propertyInfo);
                             }
@@ -180,7 +184,7 @@ namespace DProjects.Text.Xml {
                             } else {
                                 xmlWriter.WriteStartElement(settings.ProcessName(propertyInfo.Name));
                                 foreach (var item in valueArr) {
-                                    if (item != null) SerializeInstanceRecursive(xmlWriter, item);
+                                    if (item != null) SerializeInstanceRecursive(xmlWriter, item, null, true);
                                 }
                                 xmlWriter.WriteEndElement();
                             }
@@ -195,7 +199,7 @@ namespace DProjects.Text.Xml {
                             } else {
                                 xmlWriter.WriteStartElement(settings.ProcessName(propertyInfo.Name));
                                 foreach (var item in valueArr) {
-                                    if (item != null) SerializeInstanceRecursive(xmlWriter, item);
+                                    if (item != null) SerializeInstanceRecursive(xmlWriter, item, null, true);
                                 }
                                 xmlWriter.WriteEndElement();
                             }
@@ -212,12 +216,12 @@ namespace DProjects.Text.Xml {
                                 } else if (subPropertyInfo.PropertyType.IsValueType || propertyInfo.PropertyType.IsEnum || propertyInfo.PropertyType == typeof(string) || propertyInfo.PropertyType == typeof(DateTime) || propertyInfo.PropertyType == typeof(Type)) {
                                     var subValue = subPropertyInfo.GetValue(value);
                                     var attributeSubName = settings.ProcessName(subPropertyInfo.Name);
-                                    var attributeSubValue = SerializeAttributeValue(subValue);
+                                    var attributeSubValue = SerializeAttributeValue(subValue, true);
                                     if (attributeSubValue != null) xmlWriter.WriteAttributeString(attributeSubName, attributeSubValue);
                                 }
                             }
                             foreach (var item in (IList)value) {
-                                if (item != null) SerializeInstanceRecursive(xmlWriter, item);
+                                if (item != null) SerializeInstanceRecursive(xmlWriter, item, null, true);
                             }
                             xmlWriter.WriteEndElement();
                         }
@@ -227,7 +231,7 @@ namespace DProjects.Text.Xml {
                         //object
                         var value = propertyInfo.GetValue(instance);
                         if (value != null) {
-                            SerializeInstanceRecursive(xmlWriter, value, settings.ProcessName(propertyInfo.Name));
+                            SerializeInstanceRecursive(xmlWriter, value, settings.ProcessName(propertyInfo.Name), false);
                         }
                         propertyInfos.Remove(propertyInfo);
                     }
@@ -236,7 +240,7 @@ namespace DProjects.Text.Xml {
                 foreach (var propertyInfo in propertyInfos) {
                     if (propertyInfo.Name.Equals(settings.ContentPropertyName)) {
                         var value = propertyInfo.GetValue(instance);
-                        var textValue = SerializeAttributeValue(value);
+                        var textValue = SerializeAttributeValue(value, false);
                         if (textValue != null) {
                             xmlWriter.WriteStartElement("content");
                             if (textValue.IndexOf("<") != -1) {
@@ -254,27 +258,27 @@ namespace DProjects.Text.Xml {
 
 
         //private methods
-        private string? SerializeAttributeValue(object? value) {
+        private string? SerializeAttributeValue(object? value, bool allowAvoids) {
             if (value == null) {
                 return null;
-            } else if (value is string && settings.AvoidEmptyStrings && ((string)value).Length == 0) {
+            } else if (value is string && settings.AvoidEmptyStrings && ((string)value).Length == 0 && !allowAvoids) {
                 return null;
-            } else if (value is bool && settings.AvoidFalseBooleans && !((bool)value)) {
+            } else if (value is bool && settings.AvoidFalseBooleans && !((bool)value) && !allowAvoids) {
                 return null;
-            } else if (value is short && settings.AvoidZeroNumbers && ((short)value) == 0) {
+            } else if (value is short && settings.AvoidZeroNumbers && ((short)value) == 0 && !allowAvoids) {
                 return null;
-            } else if (value is int && settings.AvoidZeroNumbers && ((int)value) == 0) {
+            } else if (value is int && settings.AvoidZeroNumbers && ((int)value) == 0 && !allowAvoids) {
                 return null;
-            } else if (value is long && settings.AvoidZeroNumbers && ((long)value) == 0) {
+            } else if (value is long && settings.AvoidZeroNumbers && ((long)value) == 0 && !allowAvoids) {
                 return null;
-            } else if (value is float && settings.AvoidZeroNumbers && ((float)value) == 0.0) {
+            } else if (value is float && settings.AvoidZeroNumbers && ((float)value) == 0.0 && !allowAvoids) {
                 return null;
-            } else if (value is double && settings.AvoidZeroNumbers && ((double)value) == 0.0) {
+            } else if (value is double && settings.AvoidZeroNumbers && ((double)value) == 0.0 && !allowAvoids) {
                 return null;
-            } else if (value is decimal && settings.AvoidZeroNumbers && ((decimal)value) == 0.0m) {
+            } else if (value is decimal && settings.AvoidZeroNumbers && ((decimal)value) == 0.0m && !allowAvoids) {
                 return null;
             } else if (value is Enum) {
-                if (settings.AvoidDefaultEnumValues) {
+                if (settings.AvoidDefaultEnumValues && !allowAvoids) {
                     var aux = value.ToString()!;
                     var names = System.Enum.GetNames(value.GetType());
                     if (names[0].Equals(aux)) return null;

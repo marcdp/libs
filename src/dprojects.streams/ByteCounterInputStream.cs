@@ -68,9 +68,11 @@ namespace DProjects.Streams {
         }
         public override void Write(byte[] buffer, int offset, int count) {
             mStream.Write(buffer, offset, count);
+            mCount += count;
         }
         public override async Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) {
             await mStream.WriteAsync(buffer, offset, count, cancellationToken);
+            mCount += count;
         }
 
 

@@ -12,7 +12,7 @@ namespace DProjects.Log {
         //properties
         public DateTime? From { get; set; }
         public DateTime? To { get; set; }
-        public LogLevel LogLevel { get; set; } = LogLevel.Information;
+        public LogLevel Level { get; set; } = LogLevel.Information;
         public string? Message { get; set; }
         public string? Tag { get; set; }
         public string? Source { get; set; }
@@ -22,7 +22,7 @@ namespace DProjects.Log {
         public bool Check(LogEntry logEntry) {
             if (From.HasValue && From != default(DateTime) && logEntry.Date < From) return false;
             if (To.HasValue && To != default(DateTime) && logEntry.Date > To) return false;
-            if (logEntry.Level < LogLevel) return false;
+            if (logEntry.Level < Level) return false;
             if (Message != null && logEntry.Message.IndexOf(Message)==-1) return false;
             if (!string.IsNullOrEmpty(Tag) && (logEntry.Tags == null || System.Array.IndexOf(logEntry.Tags, Tag)==-1)) return false;
             if (!string.IsNullOrEmpty(Source) && (logEntry.Source == null || !logEntry.Source.Equals(Source))) return false;
