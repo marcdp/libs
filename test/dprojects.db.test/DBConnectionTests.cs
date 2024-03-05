@@ -1,5 +1,7 @@
+using DProjects.Db.Schema;
 using DProjects.Factories;
 using Microsoft.Extensions.DependencyInjection;
+using Xunit.Sdk;
 
 namespace DProjects.Db.Tests {
 
@@ -11,7 +13,7 @@ namespace DProjects.Db.Tests {
 
         //constructor
         public DBConnectionTests(string connectionString) {
-            // ... initialize your test data here ...
+            //register connection factory
             var services = new ServiceCollection();
             services.AddFactoryByUrl<IDBConnection>(cfg => {
                 cfg.AddFactoriesFromAssembly(typeof(T).Assembly);    
@@ -23,82 +25,70 @@ namespace DProjects.Db.Tests {
 
         //tests
         [Fact]
-        public void Open_ShouldOpenConnection() {
+        public async Task Open_ShouldOpenConnection() {
             // Open
-            mDBConnection.Open();             
+            await mDBConnection.OpenAsync();             
             Assert.Equal(System.Data.ConnectionState.Open, mDBConnection.Connection.State);
             // Close
             mDBConnection.Close();
             Assert.Equal(System.Data.ConnectionState.Closed, mDBConnection.Connection.State);
         }
+        [Theory]
+        [InlineData("SELECT ?", new object?[] { 1 }, "SELECT 1")]
+        [InlineData("SELECT ?, ?, ?", new object?[] { 1, 2, 3 }, "SELECT 1, 2, 3")]
+        [InlineData("SELECT * WHERE a=?", new object?[] { "hello'" }, "SELECT * WHERE a='hello'''")]
+        [InlineData("SELECT * WHERE a=?", new object?[] { "hello''" }, "SELECT * WHERE a='hello'''''")]
+        [InlineData("SELECT * WHERE a=?", new object?[] { "hello''a" }, "SELECT * WHERE a='hello''''a'")]
+        public void ParseStatement(string sql, object[] parameters, string expected) {
+            Assert.Equal(expected, mDBConnection.ParseStatement(sql, parameters));
+        }
+        [Fact]
+        public void Exec_ShouldOpenConnection() {
+            mDBConnection.ExecuteScalar<object>(mDBConnection.GetSqlSelectTest());
+        }
+        [Fact]
+        public async Task ExecuteNonQuery_InTransaction() {
+            var tableName = "test";
+            //drop table
+            if (mDBConnection.ExistsTable(tableName)) {
+                await mDBConnection.ExecuteNonQueryAsync(mDBConnection.GetSqlDropTable(tableName));
+            }
+            //create table
+            var dbSchemaTable = new DBSchemaTable();
+            dbSchemaTable.Name = tableName;
+            dbSchemaTable.Columns.Add(new DBSchemaColumn() { Name = "id", DataType = DBSchemaDataType.Int });
+            dbSchemaTable.Columns.Add(new DBSchemaColumn() { Name = "name", DataType = DBSchemaDataType.Varchar, Size = 100 });
+            dbSchemaTable.PrimaryKey = new DBSchemaPrimaryKey() {
+                Name = "pk_" + tableName,
+                Columns = ["id"]
+            };
+            await mDBConnection.ExecuteNonQueryAsync(mDBConnection.GetSqlCreateTable(dbSchemaTable));
+            //insert ok 
+            await mDBConnection.ExecuteNonQueryAsync("INSERT INTO " + mDBConnection.GetSqlQualifierBegin() + tableName + mDBConnection.GetSqlQualifierEnd() + " values (?,?)", [1, "hello"]);
+            Assert.Equal(1, mDBConnection.ExecuteScalar<int>("SELECT max(id) FROM " + tableName));
+            //insert error
+            mDBConnection.BeginTrans();
+            try {
+                await mDBConnection.ExecuteNonQueryAsync("INSERT INTO " + mDBConnection.GetSqlQualifierBegin() + tableName  + mDBConnection.GetSqlQualifierEnd() + " values (?,?)", [2, "byte"]);
+                throw new Exception();
+            } catch (Exception ex) {
+                mDBConnection.RollBackTrans();
+            }
+            Assert.Equal(1, mDBConnection.ExecuteScalar<int>("SELECT max(id) FROM " + tableName));
+            //insert N rows
+            for(var i = 2; i<100; i++) {
+                await mDBConnection.ExecuteNonQueryAsync("INSERT INTO " + mDBConnection.GetSqlQualifierBegin() + tableName  + mDBConnection.GetSqlQualifierEnd() + " values (?,?)", [i, "hello"]);
+            }
+            //select top
+            var offset = 10;
+            var length = 5;
+            var dbTable = await mDBConnection.ExecuteTableAsync("SELECT * FROM " + mDBConnection.GetSqlQualifierBegin() + tableName + mDBConnection.GetSqlQualifierEnd() + " ORDER BY id " + mDBConnection.GetSqlSelectOffsetLimit(offset, length));
+            Assert.Equal(length, dbTable.Rows.Count);
+            Assert.Equal(offset + 1, dbTable.Rows[0].Get<int>("id", 0));
+            Assert.Equal(offset + length, dbTable.Rows[length - 1].Get<int>("id", 0));
+            //drop table
+            await mDBConnection.ExecuteNonQueryAsync(mDBConnection.GetSqlDropTable(tableName));
+        }
 
-        //[Fact]
-        //public void Close_ShouldCloseConnection()
-        //{
-        //     // ... setup your mocks and test data here ...
-
-        //    // Act
-        //    dbConnection.Close();
-
-        //    // Assert
-        //    // ... assert that the connection is closed ...
-        //}
-
-        //[Fact]
-        //public void ExecuteNonQuery_ShouldReturnExpectedResult()
-        //{
-        //    // Arrange
-        //    var dbConnection = new DBConnection();
-        //    // ... setup your mocks and test data here ...
-
-        //    // Act
-        //    var result = dbConnection.ExecuteNonQuery("SQL command");
-
-        //    // Assert
-        //    // ... assert that the result is as expected ...
-        //}
-
-        //[Fact]
-        //public void ExecuteScalar_ShouldReturnExpectedResult()
-        //{
-        //    // Arrange
-        //    var dbConnection = new DBConnection();
-        //    // ... setup your mocks and test data here ...
-
-        //    // Act
-        //    var result = dbConnection.ExecuteScalar<int>("SQL command");
-
-        //    // Assert
-        //    // ... assert that the result is as expected ...
-        //}
-
-        //[Fact]
-        //public void ExecuteReader_ShouldReturnExpectedResult()
-        //{
-        //    // Arrange
-        //    var dbConnection = new DBConnection();
-        //    // ... setup your mocks and test data here ...
-
-        //    // Act
-        //    var result = dbConnection.ExecuteReader("SQL command");
-
-        //    // Assert
-        //    // ... assert that the result is as expected ...
-        //}
-
-        //[Fact]
-        //public void BeginTransAndCommitTrans_ShouldStartAndCommitTransaction()
-        //{
-        //    // Arrange
-        //    var dbConnection = new DBConnection();
-        //    // ... setup your mocks and test data here ...
-
-        //    // Act
-        //    dbConnection.BeginTrans();
-        //    dbConnection.CommitTrans();
-
-        //    // Assert
-        //    // ... assert that the transaction was started and committed ...
-        //}
     }
 }

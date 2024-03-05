@@ -718,7 +718,7 @@ namespace DProjects.Db {
             return "SELECT 1";
         }
         public virtual string GetSqlSelectTest() {
-            return "SELECT @@IDENTITY";
+            return "SELECT 1";
         }
         public virtual string GetSqlSelectAutoincrement() {
             return "SELECT @@IDENTITY";
