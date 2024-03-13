@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 namespace DProjects.Streams {
 
 
-    public class ConcatenatedInputStream : InputStream {
+    public class CatInputStream : InputStream {
 
 
         //variables
@@ -18,7 +18,7 @@ namespace DProjects.Streams {
 
 
         //constructor
-        public ConcatenatedInputStream(IEnumerable<Stream> streams, bool leaveOpen = false) {
+        public CatInputStream(IEnumerable<Stream> streams, bool leaveOpen = false) {
             mStreams = new Queue<Stream>(streams);
             mLeaveOpen = leaveOpen;
 

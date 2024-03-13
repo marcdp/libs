@@ -15,7 +15,7 @@ namespace DProjects.Factories {
             if (!typeof(IFactoryByUrl<T>).IsAssignableFrom(type)) throw new ArgumentException("Unable to register factory type. Type does not implements IFactoryByUrl<T>: " + type.FullName);
             var protocol = new FactoryByUrlProtocol<T>(type);
             Protocols.Add(protocol);
-        }
+        } 
         public void AddFactory<TFactory>() where TFactory : IFactoryByUrl<T> {
             AddFactory(typeof(TFactory));
         }
@@ -27,8 +27,8 @@ namespace DProjects.Factories {
                 AddFactory(type);
             }
         }
-        public void AddAlias(string alias, string url, ServiceLifetime lifeTime = ServiceLifetime.Scoped) {
-            Aliases.Add(new FactoryByUrlAlias(alias, url, lifeTime));            
+        public void AddAlias(string alias, string url, ServiceLifetime lifeTime = ServiceLifetime.Scoped, string description = "") {
+            Aliases.Add(new FactoryByUrlAlias(alias, description, url, lifeTime));            
         }
     }
 

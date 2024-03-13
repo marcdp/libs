@@ -1,0 +1,41 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <AssemblyTitle>DProjects.Crypto.Abstractions</AssemblyTitle>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <LangVersion>preview</LangVersion>
+        <AssemblyName>DProjects.Crypto.Abstractions</AssemblyName>
+        <OutputType>Library</OutputType>
+        <PackageId>DProjects.Crypto.Abstractions</PackageId>
+        <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
+        <RootNamespace />
+        <ApplicationIcon />
+        <OutputTypeEx>library</OutputTypeEx>
+        <StartupObject />
+        <Company>DProjects</Company>
+        <Description>DProjects.Crypto.Abstractions</Description>
+        <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+        <Version>3.0.0</Version>
+        <Authors>marcdp</Authors>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <Copyright>Copyright © DProjects SLU</Copyright>
+        <Nullable>enable</Nullable>
+        <PackageProjectUrl>https://www.dprojects.com/</PackageProjectUrl>
+        <PackageIcon></PackageIcon>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
+        <PackageReference Include="Microsoft.AspNetCore.Cryptography.KeyDerivation" Version="8.0.2" />
+        <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="8.0.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\dprojects.crypto.abstractions\dprojects.crypto.abstractions.csproj" />
+      <ProjectReference Include="..\dprojects.factories.abstractions\dprojects.factories.abstractions.csproj" />
+      <ProjectReference Include="..\dprojects.streams\dprojects.streams.csproj" />
+      <ProjectReference Include="..\dprojects.utils\dprojects.utils.csproj" />
+    </ItemGroup>
+ 
+
+</Project>

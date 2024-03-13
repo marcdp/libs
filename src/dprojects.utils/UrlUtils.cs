@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Web;
@@ -220,6 +221,89 @@ namespace DProjects.Utils {
             return instance;
         }
 
+
+        //serialize
+        public enum PasswordMode {
+            None,
+            InUserInfo,
+            InQuery
+        }
+
+        public class SerializeSettings {
+            public string PropertyNameScheme { get; set; } = "";
+            public string PropertyNameHost { get; set; } = "Host";
+            public string PropertyNamePort { get; set; } = "Port";
+            public string PropertyNamePath { get; set; } = "Path";
+            public string PropertyNameUser { get; set; } = "User";
+            public string PropertyNamePassword { get; set; } = "Password";
+            public PasswordMode PasswordMode { get; set; } = PasswordMode.None;
+            public string[] Excluded { get; set; } = [];
+            public SerializeSettings() {
+            }
+        }
+
+
+        //methods
+        public static string Serialize(string schema, object? instance, SerializeSettings? settings = null) {
+            var sw = new StringWriter();
+            Serialize(schema, instance, sw, settings);
+            return sw.ToString();
+        }
+        public static void Serialize(string schema, object? instance, TextWriter writer, SerializeSettings? settings = null) {
+            if (settings == null) settings = new SerializeSettings();
+            writer.Write(schema + ":");
+            if (instance != null) {
+                var newInstance = Activator.CreateInstance(instance.GetType());
+                var properties = instance.GetType().GetProperties();
+                var host = "";
+                int port = 0;
+                var user = "";
+                var password = "";
+                var path = "";
+                var query = new StringBuilder();
+                foreach (var pInfo in properties) {
+                    if (settings.Excluded.Contains<string>(pInfo.Name)) {
+                    } else if (pInfo.Name.Equals(settings.PropertyNameHost, StringComparison.OrdinalIgnoreCase)) {
+                        host = ConvertUtils.To<string>(pInfo.GetValue(instance));
+                    } else if (pInfo.Name.Equals(settings.PropertyNamePort, StringComparison.OrdinalIgnoreCase)) {
+                        port = ConvertUtils.To<int>(pInfo.GetValue(instance));
+                    } else if (pInfo.Name.Equals(settings.PropertyNameUser, StringComparison.OrdinalIgnoreCase)) {
+                        user = ConvertUtils.To<string>(pInfo.GetValue(instance));
+                    } else if (pInfo.Name.Equals(settings.PropertyNamePassword, StringComparison.OrdinalIgnoreCase)) {
+                        password = ConvertUtils.To<string>(pInfo.GetValue(instance));
+                    } else if (pInfo.Name.Equals(settings.PropertyNamePath, StringComparison.OrdinalIgnoreCase)) {
+                        path = ConvertUtils.To<string>(pInfo.GetValue(instance));
+                    } else {
+                        var pValue = ConvertUtils.To<string>(pInfo.GetValue(instance));
+                        var pValueDefault = ConvertUtils.To<string>(pInfo.GetValue(newInstance));
+                        if (pValue != null && pValue != pValueDefault) {
+                            query.Append(query.Length == 0 ? "?" : "&");
+                            query.Append(StringUtils.UnCapitalizeFirstChar(pInfo.Name));
+                            query.Append("=");
+                            query.Append(UrlUtils.UrlEncode(pValue));
+                        }
+                    }
+                }
+                if (!string.IsNullOrEmpty(host) || port != 0 || !string.IsNullOrEmpty(user) || (!string.IsNullOrEmpty(password) && settings.PasswordMode != PasswordMode.None)) {
+                    writer.Write("//");
+                    if (settings.PasswordMode == PasswordMode.InUserInfo) {
+                        if (!string.IsNullOrEmpty(user) || !string.IsNullOrEmpty(password)) {
+                            writer.Write(UrlUtils.UrlEncode(user) + ":" + UrlUtils.UrlEncode(password) + "@");
+                        }
+                    } else {
+                        if (!string.IsNullOrEmpty(user)) {
+                            writer.Write(UrlUtils.UrlEncode(user) + "@");
+                        }
+                    }
+                    writer.Write(host);
+                    if (port != 0) {
+                        writer.Write(":" + port);
+                    }
+                }
+                writer.Write(path);
+                writer.Write(query.ToString());
+            }
+        }
         //pretty
         public static string ToPrettyUrl(string s) {
             StringBuilder result = new StringBuilder(s.Length);

@@ -534,6 +534,8 @@ namespace DProjects.Utils {
                         aObject = ((double)aObject).ToString("0.0", CultureInfo.InvariantCulture);
                     } else if (aObject is float) {
                         aObject = ((float)aObject).ToString("0.0", CultureInfo.InvariantCulture);
+                    } else if (aObject is byte[]) {
+                        aObject = Convert.ToBase64String((byte[])aObject);
                     } else if (aObject.GetType().IsArray) {
                         var sb = new StringBuilder();
                         foreach (var o in (Array)aObject) {

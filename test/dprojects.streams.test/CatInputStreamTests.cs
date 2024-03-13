@@ -6,7 +6,7 @@ using DProjects.Streams;
 
 namespace DProjects.Streams.Tests
 {
-    public class ConcatenatedInputStreamTests
+    public class CatInputStreamTests
     {
         [Fact()]
         public void ReadTest()
@@ -17,7 +17,7 @@ namespace DProjects.Streams.Tests
 
             using (var ms1 = new MemoryStream(Encoding.UTF8.GetBytes(input1)))
             using (var ms2 = new MemoryStream(Encoding.UTF8.GetBytes(input2)))
-            using (var concatenated = new ConcatenatedInputStream(new List<Stream> { ms1, ms2 }))
+            using (var concatenated = new CatInputStream(new List<Stream> { ms1, ms2 }))
             {
                 var buffer = new byte[1024];
                 var bytesRead = concatenated.Read(buffer, 0, buffer.Length);
@@ -36,7 +36,7 @@ namespace DProjects.Streams.Tests
 
             using (var ms1 = new MemoryStream(Encoding.UTF8.GetBytes(input1)))
             using (var ms2 = new MemoryStream(Encoding.UTF8.GetBytes(input2)))
-            using (var concatenated = new ConcatenatedInputStream(new List<Stream> { ms1, ms2 }))
+            using (var concatenated = new CatInputStream(new List<Stream> { ms1, ms2 }))
             {
                 var buffer = new byte[1024];
                 var bytesRead = await concatenated.ReadAsync(buffer, 0, buffer.Length);

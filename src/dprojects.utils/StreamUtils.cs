@@ -4,6 +4,7 @@ using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -28,7 +29,7 @@ namespace DProjects.Utils {
         // read text Lines
         public static string[] ReadTextLines(Stream stream, Encoding? encoding = null) {
             if (encoding == null) encoding = EncodingUtils.GetDefault();
-            using (var streamReader = new StreamReader(stream, encoding, false, 4 * 1024, true)) {
+            using (var streamReader = new StreamReader(stream, encoding, false, 1 * 1024, true)) {
                 var result = new List<string>();
                 do {
                     var line = streamReader.ReadLine();
@@ -40,7 +41,7 @@ namespace DProjects.Utils {
         }
         public static async Task<string[]> ReadTextLinesAsync(Stream stream, Encoding? encoding = null, CancellationToken cancellationToken = default) {
             if (encoding == null) encoding = EncodingUtils.GetDefault();
-            using (var streamReader = new StreamReader(stream, encoding, false, 4 * 1024, true)) {
+            using (var streamReader = new StreamReader(stream, encoding, false, 1 * 1024, true)) {
                 var result = new List<string>();
                 do {
                     string? line = await streamReader.ReadLineAsync();
@@ -99,29 +100,63 @@ namespace DProjects.Utils {
         //}
 
         // read bytes
-        public static byte[] ReadBytes(Stream stream) {
-            var memoryStream = new MemoryStream();
-            int nRead;
-            var buffer = new byte[4 * 1024];
-            do {
-                nRead = stream.Read(buffer, 0, buffer.Length);
-                if (nRead > 0) memoryStream.Write(buffer, 0, nRead);
-            } while (nRead > 0);
-            byte[] result = memoryStream.ToArray();
-            memoryStream.Dispose();
-            return result;
-        }
-        public static async Task<byte[]> ReadBytesAsync(Stream stream, CancellationToken cancellationToken) {
-            var memoryStream = new MemoryStream();
-            int nRead;
-            var buffer = new byte[4 * 1024];
-            do {
-                nRead = await stream.ReadAsync(buffer, 0, buffer.Length, cancellationToken);
-                if (nRead > 0) {
-                    memoryStream.Write(buffer, 0, nRead);
+        public static byte[] ReadBytes(Stream stream, int length = -1) {            
+            if (length == 0) {
+                return new byte[] { };
+            } else if (length != -1) {
+                var buffer = new byte[length];
+                var offset = 0;
+                do {
+                    var nRead = stream.Read(buffer, offset, length - offset);
+                    if (nRead == 0) break;
+                    offset += nRead;
+                } while (offset < length);
+                if (offset < length) {
+                    var result = new byte[offset];
+                    Array.Copy(buffer, result, offset);
+                    return result;
                 }
-            } while (nRead > 0);
-            return memoryStream.ToArray();
+                return buffer;
+            } else {
+                var nRead = 0;
+                var ms = new MemoryStream();
+                var buffer = new byte[1024];
+                do {
+                    nRead = stream.Read(buffer, 0, buffer.Length);
+                    if (nRead > 0) ms.Write(buffer, 0, nRead);
+                } while (nRead > 0);
+                return ms.ToArray();
+            }
+        }
+        public static async Task<byte[]> ReadBytesAsync(Stream stream, CancellationToken cancellationToken, int length = -1) {
+            if (length == 0) {
+                return [];
+            } else if (length != -1) {
+                var buffer = new byte[length];
+                var offset = 0;
+                do {
+                    var nRead = await stream.ReadAsync(buffer, offset, length - offset, cancellationToken);
+                    if (nRead == 0) break;
+                    offset += nRead;
+                } while (offset < length);
+                if (offset < length) {
+                    var result = new byte[offset];
+                    Array.Copy(buffer, result, offset);
+                    return result;
+                }
+                return buffer;
+            } else {
+                var memoryStream = new MemoryStream();
+                var nRead = 0;
+                var buffer = new byte[1 * 1024];
+                do {
+                    nRead = await stream.ReadAsync(buffer, 0, buffer.Length, cancellationToken);
+                    if (nRead > 0) {
+                        memoryStream.Write(buffer, 0, nRead);
+                    }
+                } while (nRead > 0);
+                return memoryStream.ToArray();
+            }
         }
         //public static byte[] ReadBytes(Stream stream, int length) {
         //    int nRead = 0;
@@ -234,20 +269,21 @@ namespace DProjects.Utils {
         //}
 
         //read line
-        public static string? ReadLine(Stream stream, Encoding encoding) {
-            if (encoding == null) encoding = EncodingUtils.GetDefault();
+        public static string? ReadLine(Stream stream, Encoding encoding, char newline = '\n', int maxlength = 0) {
+            encoding ??= EncodingUtils.GetDefault();
             var memoryStream = new MemoryStream();
-            int nRead = 0;
-            int b = 0;
+            var nRead = 0;
+            var b = 0;
             do {
                 b = stream.ReadByte();
                 if (b != 0 && b != -1) {
                     nRead++;
                 }
-                if (b != 0 && b != -1 && b != 13 && b != '\n') {
+                if (b != 0 && b != -1 && b != 13 && b != newline) {
                     memoryStream.WriteByte(Convert.ToByte(b));
                 }
-            } while (b != 0 && b != '\n' && b != -1);
+                if (maxlength != 0 && nRead == maxlength) break;
+            } while (b != 0 && b != newline && b != -1);
             if (nRead == 0) return null;
             return encoding.GetString(memoryStream.ToArray());
         }         
@@ -274,20 +310,21 @@ namespace DProjects.Utils {
         //    }
         //    return encoding.GetString(memoryStream.ToArray());
         //}
-        public static async Task<string?> ReadLineAsync(Stream stream, Encoding encoding, CancellationToken cancellationToken) {
+        public static async Task<string?> ReadLineAsync(Stream stream, Encoding encoding, CancellationToken cancellationToken, char newline = '\n', int maxlength = 0) {
             if (encoding == null) encoding = EncodingUtils.GetDefault();
             var memoryStream = new MemoryStream();
-            int nRead = 0;            
+            var nRead = 0;            
             var buffer = new byte[1];
             do {
                 var i = await stream.ReadAsync(buffer, 0, 1, cancellationToken);
                 if (i == 0) break;
                 var b = buffer[0];
                 nRead += i;
-                if (b != 13 && b != '\n') {
+                if (b != 13 && b != newline) {
                     memoryStream.WriteByte(Convert.ToByte(b));
                 }
-                if (b == '\n') break;
+                if (b == newline) break;
+                if (maxlength != 0 && nRead == maxlength) break;
             } while (true);
             if (nRead == 0) return null;
             return encoding.GetString(memoryStream.ToArray());

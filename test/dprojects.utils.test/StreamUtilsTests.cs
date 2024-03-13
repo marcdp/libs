@@ -43,6 +43,14 @@ namespace DProjects.Utils.Tests {
             Assert.Equal(buffer, StreamUtils.ReadBytes(new MemoryStream(buffer)));
             Assert.Equal(buffer, AsyncUtils.RunSync(() => StreamUtils.ReadBytesAsync(new MemoryStream(buffer), default)));
         }
+        [Theory()]
+        [InlineData("hello world", "utf-8", 4, "hell")]
+        [InlineData("hello world", "utf-8", 1024, "hello world")]
+        public void ReadByteswithLengthTest(string text, string encodingName, int length, string expected) {
+            var encoding = Encoding.GetEncoding(encodingName);
+            Assert.Equal(encoding.GetBytes(expected), StreamUtils.ReadBytes(new MemoryStream(encoding.GetBytes(text)), length));
+            Assert.Equal(encoding.GetBytes(expected), AsyncUtils.RunSync(() => StreamUtils.ReadBytesAsync(new MemoryStream(encoding.GetBytes(text)), default, length)));
+        }
 
         //Fill buffer
         [Theory()]
@@ -78,6 +86,18 @@ namespace DProjects.Utils.Tests {
             foreach (var line in lines) {
                 Assert.Equal(line, AsyncUtils.RunSync(() => StreamUtils.ReadLineAsync(ms, encoding, default)));
             }
+        }
+        [Theory()]
+        [InlineData("hello world\nline second", "utf-8", "hello", ' ', 0)]
+        [InlineData("hello world\nline second", "utf-8", "hel", '\n', 3)]
+        [InlineData("hello world\nline second", "utf-8", "hel", ' ', 3)]
+        public void ReadLineWithDelimiterTest(string text, string encodingName, string expected, char newline, int maxlength) {
+            var encoding = Encoding.GetEncoding(encodingName);
+            var buffer = encoding.GetBytes(text);
+            var ms = new MemoryStream(buffer);
+            Assert.Equal(expected, StreamUtils.ReadLine(ms, encoding, newline, maxlength));
+            ms = new MemoryStream(buffer);
+            Assert.Equal(expected, AsyncUtils.RunSync(() => StreamUtils.ReadLineAsync(ms, encoding, default, newline, maxlength)));
         }
 
 

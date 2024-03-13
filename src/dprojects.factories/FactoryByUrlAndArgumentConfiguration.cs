@@ -27,8 +27,8 @@ namespace DProjects.Factories {
                 AddFactory(type);
             }
         }
-        public void AddAlias(string alias, string url, ServiceLifetime lifeTime = ServiceLifetime.Scoped) {
-            Aliases.Add(new FactoryByUrlAlias(alias, url, lifeTime));            
+        public void AddAlias(string alias, string url, ServiceLifetime lifeTime = ServiceLifetime.Scoped, string description = "") {
+            Aliases.Add(new FactoryByUrlAlias(alias, description, url, lifeTime));            
         }
     }
 
