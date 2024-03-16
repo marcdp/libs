@@ -43,5 +43,8 @@ namespace DProjects.Factories {
         public int CompareTo(FactoryByUrlProtocol<T> other) {
             return Name.CompareTo(other.Name);
         }
+        public override string ToString() {
+            return Name + ":";
+        }
     }
 }

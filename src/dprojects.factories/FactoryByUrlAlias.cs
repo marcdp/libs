@@ -5,16 +5,21 @@ namespace DProjects.Factories {
 
     public class FactoryByUrlAlias(string name, string description, string value, ServiceLifetime lifeTime) : IComparable<FactoryByUrlAlias>  {
 
+        //props
         public string Name { get; set; } = name;
         public string Description { get; set; } = description;
         public string Value { get; set; } = value;
         public ServiceLifetime Lifetime { get; set; } = lifeTime;
 
+
+        //methods
         public int CompareTo(FactoryByUrlAlias other) {
             return Name.CompareTo(other.Name);
         }
+        public override string ToString() {
+            return Name;
+        }
     }
-
 
 
 }

@@ -7,9 +7,11 @@ namespace DProjects.Factories {
 
 
     public class FactoryByUrlAndArgumentConfiguration<TType,TArgument>() where TType : class {
+
         //vars
         internal List<FactoryByUrlAlias> Aliases = new();
         internal List<FactoryByUrlAndArgumentProtocol<TType, TArgument>> Protocols = new();
+
         //methods
         public void AddFactory(Type type) {
             if (!typeof(IFactoryByUrlAndArgument<TType, TArgument>).IsAssignableFrom(type)) throw new ArgumentException("Unable to register factory type. Type does not implements IFactoryByUrlAndProtocol<TType,TArgument>: " + type.FullName);

@@ -11,9 +11,9 @@ namespace DProjects.Factories.Attributes {
         //props
         public string Name { get; }
         public string Description { get; }
-        
+
         //constructor
-        public ProtocolAttribute(string name, string description) { 
+        public ProtocolAttribute(string name, string description = "") { 
             Name = name;
             Description = description;
         }

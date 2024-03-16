@@ -4,12 +4,16 @@ using System.Reflection;
 
 namespace DProjects.Factories {
 
-    public static class Extensions {
+    public static partial class Extensions {
 
         // Add 
         public static IServiceCollection AddFactoryByUrl<TType>(this IServiceCollection services, Action<FactoryByUrlConfiguration<TType>> configuration) where TType : class {
+            //config
             var config = new FactoryByUrlConfiguration<TType>();
             configuration.Invoke(config);
+            //add dependency-injection factory (ex: dependency-injection:keyed-service1, dependency-injection:keyed-service2, ...)
+            config.AddFactory<DependencyInjectionFactory<TType>>();   
+            //sort
             config.Protocols.Sort();
             config.Aliases.Sort();
             //add factory instance
@@ -46,8 +50,10 @@ namespace DProjects.Factories {
             return services;
         }
         public static IServiceCollection AddFactoryByUrlAndArgument<TType, TArgument>(this IServiceCollection services, Action<FactoryByUrlAndArgumentConfiguration<TType, TArgument>> configuration) where TType : class {
+            //config
             var config = new FactoryByUrlAndArgumentConfiguration<TType, TArgument>();
             configuration.Invoke(config);
+            //sort
             config.Protocols.Sort();
             config.Aliases.Sort();
             //add factory instance

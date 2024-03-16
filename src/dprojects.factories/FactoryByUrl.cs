@@ -49,11 +49,13 @@ namespace DProjects.Factories {
                 var defaultInstance = mServiceProvider.GetService<TType>();
                 if (defaultInstance != null) return defaultInstance;
             }
-            //create
+            //create instance
             var protocol = mConfiguration.Protocols.Where(x => x.Name.Equals(scheme)).FirstOrDefault();
-            if (protocol == null) throw new  ArgumentException("Unable to create instance of type, protocol not found: schema: " + scheme + ", protocol: " + typeof(TType).FullName);
-            var subFactory = mServiceProvider.GetRequiredKeyedService<IFactoryByUrl<TType>>(protocol.Name);
-            return subFactory.Create(url);
+            if (protocol == null) {
+                throw new ArgumentException("Unable to create instance of type, protocol not found: schema: " + scheme + ", protocol: " + typeof(TType).FullName);
+            }
+            var factory = mServiceProvider.GetRequiredKeyedService<IFactoryByUrl<TType>>(protocol.Name);
+            return factory.Create(url);
         }
 
 
