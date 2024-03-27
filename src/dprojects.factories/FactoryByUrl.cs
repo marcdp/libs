@@ -27,10 +27,10 @@ namespace DProjects.Factories {
         //methods
         public TType Create(string url) {
             //validations
-            if (url.StartsWith("/")) url = "dir://" + url;
+            //if (url.StartsWith("/")) url = "fs-dir://" + url;
             //aliases
             url = mConfiguration.Aliases.Where(x => x.Name.Equals(url)).Select(x => x.Value).DefaultIfEmpty(url).FirstOrDefault();
-            if (url.StartsWith("/")) url = "dir://" + url;
+            //if (url.StartsWith("/")) url = "fs-dir://" + url;
             //add dots if required
             if (url.Length > 0 && url.IndexOf(":") == -1) url += ":";
             //fill userInfo password

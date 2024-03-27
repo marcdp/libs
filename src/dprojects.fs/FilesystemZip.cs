@@ -68,7 +68,7 @@ namespace DProjects.Fs {
                 mEntries.Add(ZipEntryToEntry(zipEntry));
             }
         }
-        public void Dispose() {
+        public override void Dispose() {
             mZipArchive.Dispose();
         }
 

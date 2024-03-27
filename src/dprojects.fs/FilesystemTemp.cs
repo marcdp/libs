@@ -14,7 +14,7 @@ namespace DProjects.Fs {
         public FilesystemTemp(string path, bool file) : base(path, false, true, file) {
             mFile = file;
         }
-        public void Dispose() {
+        public override void Dispose() {
             FileUtils.Delete(mPath);
         }
 
