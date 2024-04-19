@@ -18,7 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\dprojects.datatypes\dprojects.datatypes.csproj" />
+    <ProjectReference Include="..\..\src\DProjects.Datatypes\DProjects.Datatypes.csproj" />
   </ItemGroup>
 
   <ItemGroup>

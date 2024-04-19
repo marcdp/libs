@@ -18,8 +18,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\dprojects.db\dprojects.db.csproj" />
-    <ProjectReference Include="..\..\src\dprojects.factories\dprojects.factories.csproj" />
+    <ProjectReference Include="..\..\src\DProjects.Db\DProjects.Db.csproj" />
+    <ProjectReference Include="..\..\src\DProjects.Factories\DProjects.Factories.csproj" />
   </ItemGroup>
 
   <ItemGroup>

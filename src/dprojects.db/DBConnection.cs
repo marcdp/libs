@@ -9,6 +9,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using DProjects.Log;
 
 namespace DProjects.Db {
 
@@ -696,6 +697,309 @@ namespace DProjects.Db {
             } else {
                 return aFullTypeName.Replace("[]", "()");
             }
+        }
+
+        //schema
+        public void ApplySchemaChanges(DBSchemaDatabase dbSchema, bool applyChanges, ILogClient logClient) {
+            var dbSchemaOld = GetSchema();
+            var qb = GetSqlQualifierBegin();
+            var qe = GetSqlQualifierEnd();
+            var separator = GetSqlSeparator();
+            //tables
+            foreach (var dbSchemaTable in dbSchema.Tables) {
+                var dbSchemaTableOld = dbSchemaOld.GetTable(dbSchemaTable.Name);
+                if (dbSchemaTableOld == null) {
+                    //new table
+                    var sql = GetSqlCreateTable(dbSchemaTable, true, true);
+                    logClient.Info(sql.ToString() + separator);
+                    if (applyChanges) {
+                        ExecuteNonQuery(sql.ToString());
+                        //add
+                        var aux = new List<DBSchemaTable>(dbSchemaOld.Tables);
+                        aux.Add(GetTableSchema(dbSchemaTable.Name));
+                        dbSchemaOld.Tables.Clear();
+                        dbSchemaOld.Tables.AddRange(aux.ToArray());
+                    }
+                } else {
+                    //modify table
+                    var modified = false;
+                    foreach (var dbSchemaColumn in dbSchemaTable.Columns) {
+                        var dbSchemaColumnOld = dbSchemaTableOld.GetColumn(dbSchemaColumn.Name);
+                        if (dbSchemaColumnOld == null) {
+                            //create
+                            var sql = GetSqlCreateColumn(dbSchemaTable.Name, dbSchemaColumn);
+                            logClient.Info(sql + separator);
+                            if (applyChanges) ExecuteNonQuery(sql);
+                            modified = true;
+                        } else if (dbSchemaColumnOld.DataType != dbSchemaColumn.DataType || dbSchemaColumnOld.Size != dbSchemaColumn.Size || dbSchemaColumnOld.Precision != dbSchemaColumn.Precision || dbSchemaColumnOld.Scale != dbSchemaColumn.Scale || dbSchemaColumnOld.Default != dbSchemaColumn.Default || dbSchemaColumnOld.Null != dbSchemaColumn.Null) {
+                            //change
+                            if (dbSchemaColumnOld.Default != null && dbSchemaColumnOld.Default != dbSchemaColumn.Default) {
+                                var sqlDrop = GetSqlDropDefault(dbSchemaTable.Name, dbSchemaColumn.Name);
+                                logClient.Info(sqlDrop + separator);
+                                if (applyChanges) ExecuteNonQuery(sqlDrop);
+                            }
+                            var sql = GetSqlAlterColumn(dbSchemaTable.Name, dbSchemaColumn);
+                            logClient.Info(sql + separator);
+                            if (applyChanges) ExecuteNonQuery(sql);
+                            if (dbSchemaColumn.Default != null && dbSchemaColumnOld.Default != dbSchemaColumn.Default) {
+                                var sqlDrop = GetSqlCreateDefault(dbSchemaTable.Name, dbSchemaColumn.Name, dbSchemaColumn.Default);
+                                logClient.Info(sqlDrop + separator);
+                                if (applyChanges) ExecuteNonQuery(sqlDrop);
+                            }
+                            modified = true;
+                        }
+                    }
+                    //add
+                    if (modified) {
+                        for (var i = 0; i < dbSchemaOld.Tables.Count; i++) {
+                            if (dbSchemaOld.Tables[i].Name == dbSchemaTable.Name) dbSchemaOld.Tables[i] = GetTableSchema(dbSchemaTable.Name);
+                        }
+                    }
+                }
+            }
+            //primary keys
+            foreach (var dbSchemaTable in dbSchema.Tables) {
+                if (dbSchemaTable.PrimaryKey != null) {
+                    var dbSchemaTableOld = dbSchemaOld.GetTable(dbSchemaTable.Name);
+                    var dbSchemaPrimaryKeyOld = (dbSchemaTableOld != null ? dbSchemaTableOld.PrimaryKey : null);
+                    if (dbSchemaTableOld == null || dbSchemaPrimaryKeyOld == null || !dbSchemaPrimaryKeyOld.GetHash().Equals(dbSchemaTable.PrimaryKey.GetHash())) {
+                        if (dbSchemaPrimaryKeyOld != null && !dbSchemaPrimaryKeyOld.GetHash().Equals(dbSchemaTable.PrimaryKey.GetHash())) {
+                            var sqlDrop = GetSqlDropPrimaryKey(dbSchemaTable.Name, dbSchemaPrimaryKeyOld.Name);
+                            logClient.Info(sqlDrop + separator);
+                            if (applyChanges) ExecuteNonQuery(sqlDrop);
+                        }
+                        var sql = GetSqlCreatePrimaryKey(dbSchemaTable.Name, dbSchemaTable.PrimaryKey);
+                        logClient.Info(sql + separator);
+                        if (applyChanges) ExecuteNonQuery(sql);
+                    }
+                }
+            }
+            //creates indexes
+            foreach (var dbSchemaTable in dbSchema.Tables) {
+                var dbSchemaTableOld = dbSchemaOld.GetTable(dbSchemaTable.Name);
+                foreach (var dbSchemaIndex in dbSchemaTable.Indexes) {
+                    var dbSchemaIndexOld = (dbSchemaTableOld != null ? dbSchemaTableOld.GetIndex(dbSchemaIndex.Name) : null);
+                    if (dbSchemaIndexOld == null || !dbSchemaIndexOld.GetHash().Equals(dbSchemaIndex.GetHash())) {
+                        if (dbSchemaIndexOld != null) {
+                            var sqlDrop = GetSqlDropIndex(dbSchemaTable.Name, dbSchemaIndex.Name);
+                            logClient.Info(sqlDrop + separator);
+                            if (applyChanges) ExecuteNonQuery(sqlDrop);
+                        }
+                        var sql = GetSqlCreateIndex(dbSchemaTable.Name, dbSchemaIndex);
+                        logClient.Info(sql + separator);
+                        if (applyChanges) ExecuteNonQuery(sql);
+                    }
+                }
+            }
+            //foreign keys
+            foreach (var dbSchemaTable in dbSchema.Tables) {
+                var dbSchemaTableOld = dbSchemaOld.GetTable(dbSchemaTable.Name);
+                foreach (var dbSchemaForeignKey in dbSchemaTable.ForeignKeys) {
+                    var dbSchemaForeignKeyOld = (dbSchemaTableOld != null ? dbSchemaTableOld.GetForeignKey(dbSchemaForeignKey.Name) : null);
+                    if (dbSchemaForeignKeyOld == null || !dbSchemaForeignKeyOld.GetHash().Equals(dbSchemaForeignKey.GetHash())) {
+                        if (dbSchemaForeignKeyOld != null) {
+                            var sqlDrop = GetSqlDropForeignKey(dbSchemaTable.Name, dbSchemaForeignKey.Name);
+                            logClient.Info(sqlDrop + separator);
+                            if (applyChanges) ExecuteNonQuery(sqlDrop);
+                        }
+                        var sql = GetSqlCreateForeignKey(dbSchemaTable.Name, dbSchemaForeignKey);
+                        logClient.Info(sql + separator);
+                        if (applyChanges) ExecuteNonQuery(sql);
+                    }
+                }
+            }
+            //views
+            foreach (var dbSchemaView in dbSchema.Views) {
+                var dbSchemaViewExisting = dbSchemaOld.GetView(dbSchemaView.Name);
+                if (dbSchemaViewExisting == null || !dbSchemaViewExisting.Content.Trim().Equals(dbSchemaView.Content.Trim())) {
+                    if (dbSchemaViewExisting != null) {
+                        var sqlDrop = GetSqlDropView(dbSchemaViewExisting.Name);
+                        logClient.Info(sqlDrop + separator);
+                        if (applyChanges) ExecuteNonQuery(sqlDrop);
+                    }
+                    var sql = GetSqlCreateView(dbSchemaView);
+                    logClient.Info(sql + separator);
+                    if (applyChanges) ExecuteNonQuery(sql);
+                }
+            }
+            //sequences
+            foreach (var dbSchemaSequence in dbSchema.Sequences) {
+                var dbSchemaSequenceOld = dbSchemaOld.GetSequence(dbSchemaSequence.Name);
+                if (dbSchemaSequenceOld == null) {
+                    var sql = GetSqlCreateSequence(dbSchemaSequence);
+                    logClient.Info(sql + separator);
+                    if (applyChanges) ExecuteNonQuery(sql);
+                } else if (dbSchemaSequenceOld.IncrementBy != dbSchemaSequence.IncrementBy) {
+                    var sql = GetSqlAlterSequenceIncrement(dbSchemaSequence);
+                    logClient.Info(sql + separator);
+                    if (applyChanges) ExecuteNonQuery(sql);
+                }
+            }
+            //procedures
+            foreach (var dbSchemaProcedure in dbSchema.Procedures) {
+                var dbSchemaProcedureOld = dbSchemaOld.GetProcedure(dbSchemaProcedure.Name);
+                if (dbSchemaProcedureOld == null || !dbSchemaProcedureOld.Content.Trim().Equals(dbSchemaProcedure.Content.Trim())) {
+                    if (dbSchemaProcedureOld != null) {
+                        var sqlDrop = GetSqlDropProcedure(dbSchemaProcedureOld.Name);
+                        logClient.Info(sqlDrop + separator);
+                        if (applyChanges) ExecuteNonQuery(sqlDrop);
+                    }
+                    var sql = GetSqlCreateProcedure(dbSchemaProcedure);
+                    logClient.Info(sql + separator);
+                    if (applyChanges) ExecuteNonQuery(sql);
+                }
+            }
+            //remove invalid tables
+            foreach (var dbSchemaTable in dbSchemaOld.Tables) {
+                if (dbSchema.GetTable(dbSchemaTable.Name) == null) {
+                    var sql = GetSqlDropTable(dbSchemaTable.Name);
+                    logClient.Info(sql + separator);
+                    if (applyChanges) ExecuteNonQuery(sql);
+                }
+            }
+            //remove invalid table columns
+            foreach (var dbSchemaTable in dbSchema.Tables) {
+                var dbSchemaTableOld = dbSchemaOld.GetTable(dbSchemaTable.Name);
+                if (dbSchemaTableOld != null) {
+                    foreach (var dbSchemaColumnOld in dbSchemaTableOld.Columns) {
+                        if (dbSchemaTable.GetColumn(dbSchemaColumnOld.Name) == null) {
+                            if (dbSchemaColumnOld.Default != null) {
+                                var sqlDrop = GetSqlDropDefault(dbSchemaTable.Name, dbSchemaColumnOld.Name);
+                                logClient.Info(sqlDrop + separator);
+                                if (applyChanges) ExecuteNonQuery(sqlDrop);
+                            }
+                            var sql = GetSqlDropColumn(dbSchemaTable.Name, dbSchemaColumnOld.Name);
+                            logClient.Info(sql + separator);
+                            if (applyChanges) ExecuteNonQuery(sql);
+                        }
+                    }
+                }
+            }
+            //remove invalid table foreign keys
+            foreach (var dbSchemaTable in dbSchema.Tables) {
+                var dbSchemaTableOld = dbSchemaOld.GetTable(dbSchemaTable.Name);
+                if (dbSchemaTableOld != null) {
+                    foreach (var dbSchemaForeignKeyOld in dbSchemaTableOld.ForeignKeys) {
+                        if (dbSchemaTable.GetForeignKey(dbSchemaForeignKeyOld.Name) == null) {
+                            var sql = GetSqlDropForeignKey(dbSchemaTable.Name, dbSchemaForeignKeyOld.Name);
+                            logClient.Info(sql + separator);
+                            if (applyChanges) ExecuteNonQuery(sql);
+                        }
+                    }
+                }
+            }
+            //remove invalid table indexes
+            foreach (var dbSchemaTable in dbSchema.Tables) {
+                var dbSchemaTableOld = dbSchemaOld.GetTable(dbSchemaTable.Name);
+                if (dbSchemaTableOld != null) {
+                    foreach (var dbSchemaIndexOld in dbSchemaTableOld.Indexes) {
+                        if (dbSchemaTable.GetIndex(dbSchemaIndexOld.Name) == null) {
+                            if (dbSchemaTable.PrimaryKey == null || string.Join(",", dbSchemaIndexOld.Columns) != string.Join(",", dbSchemaTable.PrimaryKey.Columns)) {
+                                var sql = GetSqlDropIndex(dbSchemaTable.Name, dbSchemaIndexOld.Name);
+                                logClient.Info(sql + separator);
+                                if (applyChanges) ExecuteNonQuery(sql);
+                            }
+                        }
+                    }
+                }
+            }
+            //remove invalid views
+            foreach (var dbSchemaView in dbSchemaOld.Views) {
+                if (dbSchema.GetView(dbSchemaView.Name) == null) {
+                    var sql = GetSqlDropView(dbSchemaView.Name);
+                    logClient.Info(sql + separator);
+                    if (applyChanges) ExecuteNonQuery(sql);
+                }
+            }
+            //remove invalid sequences
+            foreach (var dbSchemaSequence in dbSchemaOld.Sequences) {
+                if (dbSchema.GetSequence(dbSchemaSequence.Name) == null) {
+                    var sql = GetSqlDropSequence(dbSchemaSequence.Name);
+                    logClient.Info(sql + separator);
+                    if (applyChanges) ExecuteNonQuery(sql);
+                }
+            }
+            //remove invalid procedures
+            foreach (var dbSchemaProcedure in dbSchemaOld.Procedures) {
+                if (dbSchema.GetProcedure(dbSchemaProcedure.Name) == null) {
+                    var sql = GetSqlDropProcedure(dbSchemaProcedure.Name);
+                    logClient.Info(sql + separator);
+                    if (applyChanges) ExecuteNonQuery(sql);
+                }
+            }
+            //scripts
+            foreach (var dbSchemaScript in dbSchema.Scripts) {
+                if (applyChanges) {
+                    var sql = dbSchemaScript.Content;
+                    logClient.Info(sql.ToString() + separator);
+                    if (applyChanges) ExecuteNonQuery(sql.ToString());
+                }
+            }
+            //records
+            foreach (var dbSchemaTable in dbSchema.Tables) {
+                foreach (var dBSchemaRecord in dbSchemaTable.Records) {
+                    if (dbSchemaTable.PrimaryKey is null) throw new Exception("Unable to insert record: primary key not found: " + dbSchemaTable.Name);
+                    //check if row exists
+                    var sSql = new StringBuilder();
+                    var oArgs = new List<object?>();
+                    sSql.Append("SELECT COUNT(*) FROM " + dbSchemaTable.Name + " WHERE ");
+                    var index = 0;
+                    foreach (var key in dBSchemaRecord.Keys) {
+                        if (key != null && System.Array.IndexOf(dbSchemaTable.PrimaryKey.Columns, key) != -1) {
+                            var dbSchemaColumn = dbSchemaTable.GetColumn(key.ToString() ?? "");
+                            if (dbSchemaColumn == null) throw new Exception("Unable to insert record: column not found: " + dbSchemaTable.Name + "." + key.ToString());
+                            sSql.Append((index > 0 ? " AND " : "") + dbSchemaColumn.Name + "=?");
+                            var value = ConvertUtils.To(dBSchemaRecord[key.ToString()], dbSchemaColumn.GetNetDataType(), true);
+                            oArgs.Add(value);
+                            index++;
+                        }
+                    }
+                    if (index == 0) {
+                        //search for unique index
+                        foreach (var dbSchemaIndex in dbSchemaTable.Indexes) {
+                            if (dbSchemaIndex.Unique) {
+                                foreach (var columnName in dbSchemaIndex.Columns) {
+                                    var dbSchemaColumn = dbSchemaTable.GetColumn(columnName);
+                                    if (dbSchemaColumn == null) throw new Exception("Unable to insert record: column not found: " + dbSchemaTable.Name + "." + columnName);
+                                    sSql.Append((index > 0 ? " AND " : "") + dbSchemaColumn.Name + "=?");
+                                    var value = ConvertUtils.To(dBSchemaRecord[columnName], dbSchemaColumn.GetNetDataType(), true);
+                                    oArgs.Add(value);
+                                    index++;
+                                }
+                                break;
+                            }
+                        }
+                        if (index == 0) throw new Exception("Unable to insert record: unique index not found: " + dbSchemaTable.Name);
+                    }
+                    var count = ExecuteScalar<int>(sSql.ToString(), oArgs.ToArray()!);
+                    if (count == 0) {
+                        //insert
+                        sSql = new StringBuilder();
+                        oArgs = new List<object?>();
+                        sSql.Append("INSERT INTO " + dbSchemaTable.Name + " (");
+                        index = 0;
+                        foreach (var key in dBSchemaRecord.Keys) {
+                            if (key != null) sSql.Append((index++ > 0 ? "," : "") + key.ToString());
+                        }
+                        sSql.Append(") VALUES (");
+                        index = 0;
+                        foreach (var key in dBSchemaRecord.Keys) {
+                            if (key != null) {
+                                var dbSchemaColumn = dbSchemaTable.GetColumn(key.ToString() ?? "");
+                                if (dbSchemaColumn == null) throw new Exception("Unable to insert record: column not found: " + dbSchemaTable.Name + "." + key.ToString());
+                                sSql.Append((index > 0 ? "," : "") + "?");
+                                var value = ConvertUtils.To(dBSchemaRecord[key.ToString()], dbSchemaColumn.GetNetDataType(), true);
+                                oArgs.Add(value);
+                                index++;
+                            }
+                        }
+                        sSql.Append(")");
+                        logClient.Info(ParseStatement(sSql.ToString(), oArgs.ToArray()) + separator);
+                        if (applyChanges) ExecuteNonQuery(sSql.ToString(), oArgs.ToArray());
+                    }
+                }
+            }
+
         }
         #endregion
 

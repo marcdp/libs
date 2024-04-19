@@ -18,9 +18,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\dprojects.factories\dprojects.factories.csproj" />
-    <ProjectReference Include="..\..\src\dprojects.log.storage\dprojects.log.storage.csproj" />
-    <ProjectReference Include="..\..\src\dprojects.log\dprojects.log.csproj" />
+    <ProjectReference Include="..\..\src\DProjects.Factories\DProjects.Factories.csproj" />
+    <ProjectReference Include="..\..\src\DProjects.Log.storage\DProjects.Log.storage.csproj" />
+    <ProjectReference Include="..\..\src\DProjects.Log\DProjects.Log.csproj" />
   </ItemGroup>
 
   <ItemGroup>

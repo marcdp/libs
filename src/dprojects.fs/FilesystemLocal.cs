@@ -19,6 +19,9 @@ namespace DProjects.Fs {
         //constructor
         public FilesystemLocal(string path, bool isReadonly, bool create, bool file) : base(isReadonly) {
             if (string.IsNullOrEmpty(path)) throw new ArgumentException();
+            if (path.StartsWith("file://")) {
+                path = new Uri(path).LocalPath;
+            }
             mPath = System.IO.Path.GetFullPath(new DirectoryInfo(path).FullName.Replace('\\', System.IO.Path.DirectorySeparatorChar));
             if (create) {
                 if (!Directory.Exists(mPath) && !File.Exists(mPath)) {

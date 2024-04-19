@@ -31,10 +31,10 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\dprojects.crypto.abstractions\dprojects.crypto.abstractions.csproj" />
-      <ProjectReference Include="..\dprojects.factories.abstractions\dprojects.factories.abstractions.csproj" />
-      <ProjectReference Include="..\dprojects.streams\dprojects.streams.csproj" />
-      <ProjectReference Include="..\dprojects.utils\dprojects.utils.csproj" />
+      <ProjectReference Include="..\DProjects.Crypto.Abstractions\DProjects.Crypto.Abstractions.csproj" />
+      <ProjectReference Include="..\DProjects.Factories.Abstractions\DProjects.Factories.Abstractions.csproj" />
+      <ProjectReference Include="..\DProjects.Streams\DProjects.Streams.csproj" />
+      <ProjectReference Include="..\DProjects.Utils\DProjects.Utils.csproj" />
     </ItemGroup>
  
 

@@ -254,7 +254,21 @@ namespace DProjects.Utils {
             }
             return (!avoidPrefixAndCode ? prefix + code + separator : "") + "Unknow";
         }
-        
+        public static string GetHttpHeadersString(NameValueCollection headers) {
+            if (headers == null || headers.Count == 0) {
+                return string.Empty;
+            }
+            var sb = new StringBuilder();
+            foreach (string key in headers.AllKeys) {
+                string[] values = headers.GetValues(key);
+                foreach (string value in values) {
+                    sb.AppendLine($"{key}: {value}");
+                }
+            }
+            sb.AppendLine();
+            return sb.ToString();
+        }
+
     }
 
 }

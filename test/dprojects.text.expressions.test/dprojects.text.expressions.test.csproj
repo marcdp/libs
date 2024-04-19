@@ -18,7 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\dprojects.text.expressions\dprojects.text.expressions.csproj" />
+    <ProjectReference Include="..\..\src\DProjects.Text.Expressions\DProjects.Text.Expressions.csproj" />
   </ItemGroup>
 
   <ItemGroup>

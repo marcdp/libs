@@ -25,7 +25,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\dprojects.utils\dprojects.utils.csproj" />
+      <ProjectReference Include="..\DProjects.Utils\DProjects.Utils.csproj" />
     </ItemGroup>
 
 </Project>

@@ -25,9 +25,9 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\dprojects.datatypes\dprojects.datatypes.csproj" />
-      <ProjectReference Include="..\dprojects.serialization.abstractions\dprojects.serialization.abstractions.csproj" />
-      <ProjectReference Include="..\dprojects.utils\dprojects.utils.csproj" />
+      <ProjectReference Include="..\DProjects.Datatypes\DProjects.Datatypes.csproj" />
+      <ProjectReference Include="..\DProjects.Serialization.Abstractions\DProjects.Serialization.Abstractions.csproj" />
+      <ProjectReference Include="..\DProjects.Utils\DProjects.Utils.csproj" />
     </ItemGroup>
 
 </Project>

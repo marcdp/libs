@@ -18,7 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\dprojects.text.readers\dprojects.text.readers.csproj" />
+    <ProjectReference Include="..\..\src\DProjects.Text.Readers\DProjects.Text.Readers.csproj" />
   </ItemGroup>
 
   <ItemGroup>

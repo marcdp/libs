@@ -1,19 +1,19 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <AssemblyTitle>DProjects.Vault</AssemblyTitle>
+        <AssemblyTitle>DProjects.Auth</AssemblyTitle>
         <TargetFramework>netstandard2.0</TargetFramework>
         <LangVersion>preview</LangVersion>
-        <AssemblyName>DProjects.Vault</AssemblyName>
+        <AssemblyName>DProjects.Auth</AssemblyName>
         <OutputType>Library</OutputType>
-        <PackageId>DProjects.Vault</PackageId>
+        <PackageId>DProjects.Auth</PackageId>
         <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
         <RootNamespace />
         <ApplicationIcon />
         <OutputTypeEx>library</OutputTypeEx>
         <StartupObject />
         <Company>DProjects</Company>
-        <Description>DProjects.Vault</Description>
+        <Description>DProjects.Auth</Description>
         <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
         <Version>3.0.0</Version>
         <Authors>marcdp</Authors>
@@ -26,12 +26,14 @@
 
     <ItemGroup>
         <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="8.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Configuration" Version="8.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="8.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="8.0.1" />
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\dprojects.factories.abstractions\dprojects.factories.abstractions.csproj" />
-      <ProjectReference Include="..\dprojects.fs.abstractions\dprojects.fs.abstractions.csproj" />
-      <ProjectReference Include="..\dprojects.vault.abstractions\dprojects.vault.abstractions.csproj" />
+      <ProjectReference Include="..\DProjects.Factories.Abstractions\DProjects.Factories.Abstractions.csproj" />
+      <ProjectReference Include="..\DProjects.Auth.Abstractions\DProjects.Auth.Abstractions.csproj" />
     </ItemGroup>
  
 

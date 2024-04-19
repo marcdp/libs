@@ -30,10 +30,10 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\dprojects.factories.abstractions\dprojects.factories.abstractions.csproj" />
-        <ProjectReference Include="..\dprojects.fs.abstractions\dprojects.fs.abstractions.csproj" />
-        <ProjectReference Include="..\dprojects.streams\dprojects.streams.csproj" />
-        <ProjectReference Include="..\dprojects.utils\dprojects.utils.csproj" />
+        <ProjectReference Include="..\DProjects.Factories.Abstractions\DProjects.Factories.Abstractions.csproj" />
+        <ProjectReference Include="..\DProjects.Fs.Abstractions\DProjects.Fs.Abstractions.csproj" />
+        <ProjectReference Include="..\DProjects.Streams\DProjects.Streams.csproj" />
+        <ProjectReference Include="..\DProjects.Utils\DProjects.Utils.csproj" />
     </ItemGroup>
 
 </Project>

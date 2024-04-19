@@ -30,8 +30,8 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\dprojects.factories.abstractions\dprojects.factories.abstractions.csproj" />
-      <ProjectReference Include="..\dprojects.utils\dprojects.utils.csproj" />
+      <ProjectReference Include="..\DProjects.Factories.Abstractions\DProjects.Factories.Abstractions.csproj" />
+      <ProjectReference Include="..\DProjects.Utils\DProjects.Utils.csproj" />
     </ItemGroup>
 
 </Project>

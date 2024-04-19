@@ -11,87 +11,93 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{977F788C-3
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{09BF5EC8-12F7-4DC6-8E1D-55F20C578E72}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dprojects.fs.abstractions", "src\dprojects.fs.abstractions\dprojects.fs.abstractions.csproj", "{19E44DED-1950-4C29-90D0-28D78F56AAC0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Fs.Abstractions", "src\DProjects.Fs.Abstractions\DProjects.fs.Abstractions.csproj", "{19E44DED-1950-4C29-90D0-28D78F56AAC0}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dprojects.utils", "src\dprojects.utils\dprojects.utils.csproj", "{2DC1B051-7A96-460E-8B9C-5CEE877889C3}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Utils", "src\DProjects.Utils\DProjects.Utils.csproj", "{2DC1B051-7A96-460E-8B9C-5CEE877889C3}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dprojects.log.abstractions", "src\dprojects.log.abstractions\dprojects.log.abstractions.csproj", "{2424C0FB-48F3-4D95-BD1F-C495879E0862}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Log.Abstractions", "src\DProjects.Log.Abstractions\DProjects.Log.Abstractions.csproj", "{2424C0FB-48F3-4D95-BD1F-C495879E0862}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dprojects.log", "src\dprojects.log\dprojects.log.csproj", "{E9875361-FAC6-464A-B868-C9378E0EA777}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Log", "src\DProjects.Log\DProjects.Log.csproj", "{E9875361-FAC6-464A-B868-C9378E0EA777}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dprojects.fs", "src\dprojects.fs\dprojects.fs.csproj", "{6D007D71-83BB-4F02-A149-27C811D6820A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Fs", "src\DProjects.Fs\DProjects.Fs.csproj", "{6D007D71-83BB-4F02-A149-27C811D6820A}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dprojects.factories.abstractions", "src\dprojects.factories.abstractions\dprojects.factories.abstractions.csproj", "{7B27838B-45C4-4A1F-B0D5-3B0C7CB81867}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Factories.Abstractions", "src\DProjects.Factories.Abstractions\DProjects.Factories.Abstractions.csproj", "{7B27838B-45C4-4A1F-B0D5-3B0C7CB81867}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dprojects.streams", "src\dprojects.streams\dprojects.streams.csproj", "{B4531B7F-1CFC-42A9-A819-6D2FD6D0CAFD}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Streams", "src\DProjects.Streams\DProjects.Streams.csproj", "{B4531B7F-1CFC-42A9-A819-6D2FD6D0CAFD}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dprojects.fs.test", "test\dprojects.fs.test\dprojects.fs.test.csproj", "{551F87A4-DDB0-4F99-AECF-57FA0836356F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Fs.test", "test\DProjects.Fs.Test\DProjects.Fs.Test.csproj", "{551F87A4-DDB0-4F99-AECF-57FA0836356F}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dprojects.utils.test", "test\dprojects.utils.test\dprojects.utils.test.csproj", "{F47D9164-2D05-4751-9E51-7218C7FB5891}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Utils.test", "test\DProjects.Utils.Test\DProjects.Utils.Test.csproj", "{F47D9164-2D05-4751-9E51-7218C7FB5891}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dprojects.streams.test", "test\dprojects.streams.test\dprojects.streams.test.csproj", "{D72D8995-C390-4B1C-B23F-417A0817B607}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Streams.test", "test\DProjects.Streams.Test\DProjects.Streams.Test.csproj", "{D72D8995-C390-4B1C-B23F-417A0817B607}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dprojects.log.test", "test\dprojects.log.test\dprojects.log.test.csproj", "{6855EC09-68F8-4BE0-8EB7-25B905FD8C4D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Log.test", "test\DProjects.Log.Test\DProjects.Log.Test.csproj", "{6855EC09-68F8-4BE0-8EB7-25B905FD8C4D}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dprojects.factories.test", "test\dprojects.factories.test\dprojects.factories.test.csproj", "{31889E91-7132-46D4-8EAE-0CDEE42F6CA3}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Factories.test", "test\DProjects.Factories.Test\DProjects.Factories.Test.csproj", "{31889E91-7132-46D4-8EAE-0CDEE42F6CA3}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dprojects.factories", "src\dprojects.factories\dprojects.factories.csproj", "{BCBE5803-1576-4FB2-9A4A-ED54165DBE82}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Factories", "src\DProjects.Factories\DProjects.Factories.csproj", "{BCBE5803-1576-4FB2-9A4A-ED54165DBE82}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dprojects.db.abstractions", "src\dprojects.db.abstractions\dprojects.db.abstractions.csproj", "{9BEC3A0B-BE50-4608-81EB-124D35477159}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Db.Abstractions", "src\DProjects.Db.Abstractions\DProjects.Db.Abstractions.csproj", "{9BEC3A0B-BE50-4608-81EB-124D35477159}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dprojects.db", "src\dprojects.db\dprojects.db.csproj", "{EE7C135E-EE04-46CB-BBFF-6A48B469EFBF}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Db", "src\DProjects.Db\DProjects.Db.csproj", "{EE7C135E-EE04-46CB-BBFF-6A48B469EFBF}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dprojects.text.readers", "src\dprojects.text.readers\dprojects.text.readers.csproj", "{D8993C13-D79C-4985-AFDE-B3E4171B0589}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Text.Readers", "src\DProjects.Text.Readers\DProjects.Text.Readers.csproj", "{D8993C13-D79C-4985-AFDE-B3E4171B0589}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dprojects.db.test", "test\dprojects.db.test\dprojects.db.test.csproj", "{F4B8154B-9C9C-4F8C-92DC-A987FCA626F2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Db.Test", "test\DProjects.Db.Test\DProjects.Db.Test.csproj", "{F4B8154B-9C9C-4F8C-92DC-A987FCA626F2}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dprojects.datatypes", "src\dprojects.datatypes\dprojects.datatypes.csproj", "{7B194BE8-6578-4A3C-A293-DAAA5FFC681A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Datatypes", "src\DProjects.Datatypes\DProjects.Datatypes.csproj", "{7B194BE8-6578-4A3C-A293-DAAA5FFC681A}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dprojects.log.storage", "src\dprojects.log.storage\dprojects.log.storage.csproj", "{56E35A2C-FD4A-4F47-A342-67BBD452A231}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Log.Storage", "src\DProjects.Log.Storage\DProjects.Log.Storage.csproj", "{56E35A2C-FD4A-4F47-A342-67BBD452A231}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Sample1", "samples\Sample1\Sample1.csproj", "{C837CC9E-7271-4F18-B67C-F997FC75BD72}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dprojects.log.storage.abstractions", "src\dprojects.log.storage.abstractions\dprojects.log.storage.abstractions.csproj", "{129E32D7-313E-45F2-96DE-04568A195D28}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Log.Storage.Abstractions", "src\DProjects.Log.Storage.Abstractions\DProjects.Log.Storage.Abstractions.csproj", "{129E32D7-313E-45F2-96DE-04568A195D28}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dprojects.serialization.abstractions", "src\dprojects.serialization.abstractions\dprojects.serialization.abstractions.csproj", "{DF53785F-06FB-4790-8CD7-EE11D625F18C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Serialization.Abstractions", "src\DProjects.Serialization.Abstractions\DProjects.Serialization.Abstractions.csproj", "{DF53785F-06FB-4790-8CD7-EE11D625F18C}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dprojects.text.xml", "src\dprojects.text.xml\dprojects.text.xml.csproj", "{882215F1-F566-40DE-88BC-6E98CB1B17C6}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Text.Xml", "src\DProjects.Text.Xml\DProjects.Text.Xml.csproj", "{882215F1-F566-40DE-88BC-6E98CB1B17C6}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dprojects.text.yaml", "src\dprojects.text.yaml\dprojects.text.yaml.csproj", "{9AFAC4A8-CA1B-4B2B-B509-2B0902BD1F72}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Text.Yaml", "src\DProjects.Text.Yaml\DProjects.Text.Yaml.csproj", "{9AFAC4A8-CA1B-4B2B-B509-2B0902BD1F72}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dprojects.text.json", "src\dprojects.text.json\dprojects.text.json.csproj", "{46C22FCF-901C-4B16-850B-FC0EA4256FDA}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Text.Json", "src\DProjects.Text.Json\DProjects.Text.Json.csproj", "{46C22FCF-901C-4B16-850B-FC0EA4256FDA}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dprojects.text.expressions", "src\dprojects.text.expressions\dprojects.text.expressions.csproj", "{80FE5C5D-CC5E-47B2-B26E-0AACE8C548B8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Text.Expressions", "src\DProjects.Text.expressions\DProjects.Text.Expressions.csproj", "{80FE5C5D-CC5E-47B2-B26E-0AACE8C548B8}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dprojects.datatypes.test", "test\dprojects.datatypes.test\dprojects.datatypes.test.csproj", "{86F6F64D-AE27-4DE3-BB70-958376EEDBBA}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Datatypes.Test", "test\DProjects.Datatypes.Test\DProjects.Datatypes.Test.csproj", "{86F6F64D-AE27-4DE3-BB70-958376EEDBBA}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dprojects.log.storage.test", "test\dprojects.log.storage.test\dprojects.log.storage.test.csproj", "{6F2E1E76-39B4-48CA-8F7E-284E3EC331A4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Log.Storage.Test", "test\DProjects.Log.Storage.Test\DProjects.Log.Storage.Test.csproj", "{6F2E1E76-39B4-48CA-8F7E-284E3EC331A4}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dprojects.text.json.test", "test\dprojects.text.json.test\dprojects.text.json.test.csproj", "{516842B7-7F2C-4FCD-8D4D-58C8AC864BE5}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Text.Json.Test", "test\DProjects.Text.Json.Test\DProjects.Text.Json.Test.csproj", "{516842B7-7F2C-4FCD-8D4D-58C8AC864BE5}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dprojects.text.xml.test", "test\dprojects.text.xml.test\dprojects.text.xml.test.csproj", "{9A8EB0F5-34D4-423B-9AED-95CB227545A0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Text.Xml.Test", "test\DProjects.Text.Xml.Test\DProjects.Text.Xml.Test.csproj", "{9A8EB0F5-34D4-423B-9AED-95CB227545A0}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dprojects.text.yaml.test", "test\dprojects.text.yaml.test\dprojects.text.yaml.test.csproj", "{7B4AFEFA-E5E8-4FB8-9D77-FD617B60387B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Text.Yaml.Test", "test\DProjects.Text.Yaml.Test\DProjects.Text.Yaml.Test.csproj", "{7B4AFEFA-E5E8-4FB8-9D77-FD617B60387B}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dprojects.text.readers.test", "test\dprojects.text.readers.test\dprojects.text.readers.test.csproj", "{2AC82761-0B26-4534-81D1-64257FBB2122}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Text.Readers.Test", "test\DProjects.Text.Readers.Test\DProjects.Text.Readers.Test.csproj", "{2AC82761-0B26-4534-81D1-64257FBB2122}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dprojects.text.expressions.test", "test\dprojects.text.expressions.test\dprojects.text.expressions.test.csproj", "{AA4B60A0-5FD6-4CBE-AA7E-C5F9CCCC5C8D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Text.Expressions.Test", "test\DProjects.Text.Expressions.Test\DProjects.Text.Expressions.Test.csproj", "{AA4B60A0-5FD6-4CBE-AA7E-C5F9CCCC5C8D}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dprojects.db.sqlserver", "src\dprojects.db.sqlserver\dprojects.db.sqlserver.csproj", "{512ED950-617B-4DEB-9FCA-EF6CB7401B34}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Db.Sqlserver", "src\DProjects.Db.Sqlserver\DProjects.Db.Sqlserver.csproj", "{512ED950-617B-4DEB-9FCA-EF6CB7401B34}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dprojects.db.sqlserver.test", "test\dprojects.db.sqlserver.test\dprojects.db.sqlserver.test.csproj", "{4235F4B9-5CBA-4E50-AA7F-BEBD344E23DA}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Db.Sqlserver.Test", "test\DProjects.Db.Sqlserver.Test\DProjects.Db.Sqlserver.Test.csproj", "{4235F4B9-5CBA-4E50-AA7F-BEBD344E23DA}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dprojects.vault.abstractions", "src\dprojects.vault.abstractions\dprojects.vault.abstractions.csproj", "{4A06A0F7-883B-4BED-91B6-2278D7A4319B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Crypto.Abstractions", "src\DProjects.Crypto.Abstractions\DProjects.Crypto.Abstractions.csproj", "{16C1B54B-D518-4007-8471-59A3DC1C369E}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dprojects.vault", "src\dprojects.vault\dprojects.vault.csproj", "{737B85C4-6BB9-43B1-8E07-C1E617F6EE4A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Crypto", "src\DProjects.Crypto\DProjects.Crypto.csproj", "{DBEEFDFE-EF14-42F1-97DD-CCD4BBD523A6}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dprojects.crypto.abstractions", "src\dprojects.crypto.abstractions\dprojects.crypto.abstractions.csproj", "{16C1B54B-D518-4007-8471-59A3DC1C369E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Crypto.Test", "test\DProjects.Crypto.Test\DProjects.Crypto.Test.csproj", "{7E84927C-CC8E-4795-9858-D797A9B78E43}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dprojects.crypto", "src\dprojects.crypto\dprojects.crypto.csproj", "{DBEEFDFE-EF14-42F1-97DD-CCD4BBD523A6}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Auth.Abstractions", "src\DProjects.Auth.Abstractions\DProjects.Auth.Abstractions.csproj", "{836A5B17-6B43-4D8F-BF4D-48F38345C3A6}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dprojects.crypto.test", "test\dprojects.crypto.test\dprojects.crypto.test.csproj", "{7E84927C-CC8E-4795-9858-D797A9B78E43}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Auth", "src\DProjects.Auth\DProjects.Auth.csproj", "{28471D24-42C9-4D93-A0A0-FEE61A21CC8B}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dprojects.vault.test", "test\dprojects.vault.test\dprojects.vault.test.csproj", "{D3D29B01-57B5-4F8A-BBD5-CF37EEF6179C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Secrets.Abstractions", "src\DProjects.Secrets.Abstractions\DProjects.Secrets.Abstractions.csproj", "{B9C850C5-BBDA-40FF-854A-6C40C1FBFC05}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Secrets", "src\DProjects.Secrets\DProjects.Secrets.csproj", "{51579B99-012E-41EB-B1C0-8E4098A30353}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Cache.Abstractions", "src\DProjects.Cache.Abstractions\DProjects.Cache.Abstractions.csproj", "{CCB86E30-2B6F-4FA7-A30D-459B1BA795B8}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Cache", "src\DProjects.Cache\DProjects.Cache.csproj", "{E939CADE-5602-4264-9E47-2C9EACD323E9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -239,14 +245,6 @@ Global
 		{4235F4B9-5CBA-4E50-AA7F-BEBD344E23DA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4235F4B9-5CBA-4E50-AA7F-BEBD344E23DA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4235F4B9-5CBA-4E50-AA7F-BEBD344E23DA}.Release|Any CPU.Build.0 = Release|Any CPU
-		{4A06A0F7-883B-4BED-91B6-2278D7A4319B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{4A06A0F7-883B-4BED-91B6-2278D7A4319B}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{4A06A0F7-883B-4BED-91B6-2278D7A4319B}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{4A06A0F7-883B-4BED-91B6-2278D7A4319B}.Release|Any CPU.Build.0 = Release|Any CPU
-		{737B85C4-6BB9-43B1-8E07-C1E617F6EE4A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{737B85C4-6BB9-43B1-8E07-C1E617F6EE4A}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{737B85C4-6BB9-43B1-8E07-C1E617F6EE4A}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{737B85C4-6BB9-43B1-8E07-C1E617F6EE4A}.Release|Any CPU.Build.0 = Release|Any CPU
 		{16C1B54B-D518-4007-8471-59A3DC1C369E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{16C1B54B-D518-4007-8471-59A3DC1C369E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{16C1B54B-D518-4007-8471-59A3DC1C369E}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -259,10 +257,30 @@ Global
 		{7E84927C-CC8E-4795-9858-D797A9B78E43}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7E84927C-CC8E-4795-9858-D797A9B78E43}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7E84927C-CC8E-4795-9858-D797A9B78E43}.Release|Any CPU.Build.0 = Release|Any CPU
-		{D3D29B01-57B5-4F8A-BBD5-CF37EEF6179C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{D3D29B01-57B5-4F8A-BBD5-CF37EEF6179C}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{D3D29B01-57B5-4F8A-BBD5-CF37EEF6179C}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{D3D29B01-57B5-4F8A-BBD5-CF37EEF6179C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{836A5B17-6B43-4D8F-BF4D-48F38345C3A6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{836A5B17-6B43-4D8F-BF4D-48F38345C3A6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{836A5B17-6B43-4D8F-BF4D-48F38345C3A6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{836A5B17-6B43-4D8F-BF4D-48F38345C3A6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{28471D24-42C9-4D93-A0A0-FEE61A21CC8B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{28471D24-42C9-4D93-A0A0-FEE61A21CC8B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{28471D24-42C9-4D93-A0A0-FEE61A21CC8B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{28471D24-42C9-4D93-A0A0-FEE61A21CC8B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B9C850C5-BBDA-40FF-854A-6C40C1FBFC05}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B9C850C5-BBDA-40FF-854A-6C40C1FBFC05}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B9C850C5-BBDA-40FF-854A-6C40C1FBFC05}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B9C850C5-BBDA-40FF-854A-6C40C1FBFC05}.Release|Any CPU.Build.0 = Release|Any CPU
+		{51579B99-012E-41EB-B1C0-8E4098A30353}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{51579B99-012E-41EB-B1C0-8E4098A30353}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{51579B99-012E-41EB-B1C0-8E4098A30353}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{51579B99-012E-41EB-B1C0-8E4098A30353}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CCB86E30-2B6F-4FA7-A30D-459B1BA795B8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CCB86E30-2B6F-4FA7-A30D-459B1BA795B8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CCB86E30-2B6F-4FA7-A30D-459B1BA795B8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CCB86E30-2B6F-4FA7-A30D-459B1BA795B8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E939CADE-5602-4264-9E47-2C9EACD323E9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E939CADE-5602-4264-9E47-2C9EACD323E9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E939CADE-5602-4264-9E47-2C9EACD323E9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E939CADE-5602-4264-9E47-2C9EACD323E9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -303,12 +321,15 @@ Global
 		{AA4B60A0-5FD6-4CBE-AA7E-C5F9CCCC5C8D} = {977F788C-34C7-438C-AB3E-566C8687F3B2}
 		{512ED950-617B-4DEB-9FCA-EF6CB7401B34} = {3892F25A-3EAF-4987-964A-47712DC53F67}
 		{4235F4B9-5CBA-4E50-AA7F-BEBD344E23DA} = {977F788C-34C7-438C-AB3E-566C8687F3B2}
-		{4A06A0F7-883B-4BED-91B6-2278D7A4319B} = {3892F25A-3EAF-4987-964A-47712DC53F67}
-		{737B85C4-6BB9-43B1-8E07-C1E617F6EE4A} = {3892F25A-3EAF-4987-964A-47712DC53F67}
 		{16C1B54B-D518-4007-8471-59A3DC1C369E} = {3892F25A-3EAF-4987-964A-47712DC53F67}
 		{DBEEFDFE-EF14-42F1-97DD-CCD4BBD523A6} = {3892F25A-3EAF-4987-964A-47712DC53F67}
 		{7E84927C-CC8E-4795-9858-D797A9B78E43} = {977F788C-34C7-438C-AB3E-566C8687F3B2}
-		{D3D29B01-57B5-4F8A-BBD5-CF37EEF6179C} = {977F788C-34C7-438C-AB3E-566C8687F3B2}
+		{836A5B17-6B43-4D8F-BF4D-48F38345C3A6} = {3892F25A-3EAF-4987-964A-47712DC53F67}
+		{28471D24-42C9-4D93-A0A0-FEE61A21CC8B} = {3892F25A-3EAF-4987-964A-47712DC53F67}
+		{B9C850C5-BBDA-40FF-854A-6C40C1FBFC05} = {3892F25A-3EAF-4987-964A-47712DC53F67}
+		{51579B99-012E-41EB-B1C0-8E4098A30353} = {3892F25A-3EAF-4987-964A-47712DC53F67}
+		{CCB86E30-2B6F-4FA7-A30D-459B1BA795B8} = {3892F25A-3EAF-4987-964A-47712DC53F67}
+		{E939CADE-5602-4264-9E47-2C9EACD323E9} = {3892F25A-3EAF-4987-964A-47712DC53F67}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {E92CEFFE-87DE-445D-AA8E-52601E4D0790}

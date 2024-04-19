@@ -45,9 +45,9 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\dprojects.factories.abstractions\dprojects.factories.abstractions.csproj" />
-      <ProjectReference Include="..\dprojects.fs.abstractions\dprojects.fs.abstractions.csproj" />
-      <ProjectReference Include="..\dprojects.log.abstractions\dprojects.log.abstractions.csproj" />
+      <ProjectReference Include="..\DProjects.Factories.Abstractions\DProjects.Factories.Abstractions.csproj" />
+      <ProjectReference Include="..\DProjects.Fs.Abstractions\DProjects.Fs.Abstractions.csproj" />
+      <ProjectReference Include="..\DProjects.Log.Abstractions\DProjects.Log.Abstractions.csproj" />
     </ItemGroup>
 
 </Project>

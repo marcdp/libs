@@ -1,4 +1,6 @@
 using DProjects.Db.Schema;
+using DProjects.Log;
+
 using System;
 using System.Data.Common;
 using System.Threading;
@@ -45,6 +47,7 @@ namespace DProjects.Db {
         //DDL Schema
         DBSchemaDatabase GetSchema();
         DBSchemaDatabase GetSchema(string[] tableNames, string[] viewNames, string[] sequenceNames, string[] procedureNames);
+        void ApplySchemaChanges(DBSchemaDatabase dbSchema, bool applyChanges, ILogClient logClient);
         //DDL Table
         string[] GetTableNames();
         bool ExistsTable(string table);

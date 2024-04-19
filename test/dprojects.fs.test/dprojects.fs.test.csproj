@@ -18,9 +18,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\dprojects.factories\dprojects.factories.csproj" />
-    <ProjectReference Include="..\..\src\dprojects.fs.abstractions\dprojects.fs.abstractions.csproj" />
-    <ProjectReference Include="..\..\src\dprojects.fs\dprojects.fs.csproj" />
+    <ProjectReference Include="..\..\src\DProjects.Factories\DProjects.Factories.csproj" />
+    <ProjectReference Include="..\..\src\DProjects.Fs.Abstractions\DProjects.Fs.Abstractions.csproj" />
+    <ProjectReference Include="..\..\src\DProjects.Fs\DProjects.Fs.csproj" />
   </ItemGroup>
 
   <ItemGroup>
