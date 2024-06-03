@@ -1,6 +1,5 @@
 using System;
-using System.Collections.Specialized;
-using System.Text;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -13,46 +12,76 @@ namespace DProjects.Cache {
 
     public class BlobCacheFsDir(IFilesystem filesystem, string path, ILogger<IFilesystem> logger) : IBlobCache {
 
+
         // constants
-        private const string FILE_EXTENSION = ".entry";
+        private const string FILE_EXTENSION = ".blob";
+
 
         // ctor
         public void Dispose() {
         }
 
+
         // methods
-        public async Task SetAsync(BlobCacheEntry entry, CancellationToken cancellationToken = default) {
-            //if (value == null) throw new ArgumentNullException();
-            //if (timeSpan == null) throw new ArgumentNullException();
-            //if (timeSpan.TotalSeconds < 0) throw new ArgumentException();
+        public async Task SetAsync(BlobCacheEntry entry, Stream stream, CancellationToken cancellationToken = default) {
+            //set blob
             var keyEncoded = UrlUtils.UrlEncode(entry.Key);
-            var tempPath = PathUtils.Combine(path, System.Guid.NewGuid().ToString() + ".tmp");
-            // write to temp file
-            using (var tempStream = await filesystem.LoadWriteStreamAsync(tempPath)) {
-                entry.Headers[HttpUtils.HEADER_DATE] = DateTime.Now.ToUniversalTime().ToString(DateTimeUtils.DATETIME_ISO8601).Replace('.', ':');
-                //if not found!! ---> headers.Add(HttpUtils.HEADER_EXPIRES, DateTime.Now.Add(timeSpan).ToUniversalTime().ToString(ConstantsUtils.DATETIME_ISO8601).Replace('.', ':'));
-                // headers
-                var headers = HttpUtils.GetHttpHeadersString(entry.Headers);
-                var headersBuffer = System.Text.Encoding.UTF8.GetBytes(headers);
-                tempStream.Write(headersBuffer, 0, headersBuffer.Length);
-                // content
-                await entry.Stream.CopyToAsync(tempStream);
+            var tempPath = PathUtils.Combine(path, keyEncoded + ".tmp");
+            // create temp file to compute length
+            var tempEntry = await filesystem.SaveFileAsync(tempPath, stream);
+            // write to temp2 file
+            var tempPath2 = PathUtils.Combine(path, keyEncoded + ".tmp.2");
+            using (var tempStream2 = await filesystem.LoadWriteStreamAsync(tempPath2)) {
+                // set length
+                entry.Headers.Set(HttpUtils.HEADER_CONTENT_LENGTH, tempEntry.Length.ToString());
+                // set date header
+                entry.Headers.Set(HttpUtils.HEADER_DATE, DateTime.Now.ToUniversalTime().ToString(DateTimeUtils.DATETIME_ISO8601).Replace('.', ':'));
+                // set expires header
+                if (!entry.Headers.Contains(HttpUtils.HEADER_EXPIRES)) {
+                    var timeSpan = TimeSpan.FromHours(1);
+                    entry.Headers.Set(HttpUtils.HEADER_EXPIRES, DateTime.Now.Add(timeSpan).ToUniversalTime().ToString(DateTimeUtils.DATETIME_ISO8601).Replace('.', ':'));
+                }
+                // write headers
+                await HeadersUtils.WriteHttpHeadersAsync(entry.Headers, tempStream2, cancellationToken: cancellationToken);
+                // write content
+                using (var tempStream = await filesystem.LoadReadStreamAsync(tempPath)) {
+                    await tempStream.CopyToAsync(tempStream2);
+                }
             }
+            await filesystem.DeleteFileAsync(tempPath, cancellationToken);
             // move file to final path
             var itemPath = PathUtils.Combine(path, keyEncoded + FILE_EXTENSION);
             if (await filesystem.ExistsFileAsync(itemPath)) await filesystem.DeleteFileAsync(itemPath, cancellationToken);
-            await filesystem.MoveAsync(tempPath, itemPath, new MoveSettings(), logger, cancellationToken);
+            await filesystem.MoveAsync(tempPath2, itemPath, new MoveSettings(), logger, cancellationToken);
         }
-        public Task<BlobCacheEntry?> GetAsync(string key, CancellationToken cancellationToken = default) {
-            return Task.FromResult<BlobCacheEntry?>(null);
+        public async Task<bool> GetAsync(string key, Func<BlobCacheEntry, Stream, Task> action, CancellationToken cancellationToken = default) {
+            //get blob
+            var keyEncoded = UrlUtils.UrlEncode(key);
+            var itemPath = PathUtils.Combine(path, keyEncoded + FILE_EXTENSION);
+            var entry = await filesystem.GetEntryAsync(itemPath);
+            var returned = false;
+            if (entry != null) {
+                var expired = false;
+                using (var stream = await filesystem.LoadReadStreamAsync(itemPath)) {
+                    var blobCacheEntry = new BlobCacheEntry(key, await HeadersUtils.ReadHttpHeadersAsync(stream, cancellationToken: cancellationToken));
+                    if (blobCacheEntry.Expires < DateTime.Now) {
+                        expired = true;
+                    } else {
+                        await action.Invoke(blobCacheEntry, stream);
+                        returned = true;
+                    }
+                };
+                if (expired) await RemoveAsync(key);
+            }
+            return returned;
         }
-        public Task RefreshAsync(string key, CancellationToken cancellationToken = default) {
-            throw new NotImplementedException();
+        public Task RemoveAsync(string key, CancellationToken cancellationToken = default) {
+            //remove blob
+            var keyEncoded = UrlUtils.UrlEncode(key);
+            var itemPath = PathUtils.Combine(path, keyEncoded + FILE_EXTENSION);
+            return filesystem.DeleteFileAsync(itemPath, cancellationToken);
         }
-        public Task RemoveAsync(string pattern, CancellationToken cancellationToken = default) {
-            throw new NotImplementedException();
-        }
-         
+
     }
 
 }

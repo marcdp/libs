@@ -24,7 +24,7 @@ namespace DProjects.Log.Storage.Serializers {
                 if (parts[0].Equals("Information")) logType = LogLevel.Information;
                 if (parts[0].Equals("Warning")) logType = LogLevel.Warning;
                 if (parts[0].Equals("Error")) logType = LogLevel.Error;
-                if (parts[0].Equals("Critical") || parts[0].Equals("Severe")) logType = LogLevel.Critical;
+                if (parts[0].Equals("Fatal") || parts[0].Equals("Severe")) logType = LogLevel.Fatal;
                 var aDate = DateTimeUtils.Parse(parts[1], true).ToUniversalTime();
                 string message = parts[3].Replace("\\r", CharUtils.CHAR_CR.ToString()).Replace("\\n", CharUtils.CHAR_LF.ToString()).Replace("\\u007C", "|").Replace("\\\\", "\\");
                 var fields = new Dictionary<string, object?>();
@@ -33,7 +33,7 @@ namespace DProjects.Log.Storage.Serializers {
                 string hostname = (parts.Length > 5 ? (parts[5]) : "");
                 if (!String.IsNullOrEmpty(hostname)) source += "," + hostname;
                 string user = (parts.Length > 6 ? (parts[6]) : "");
-                return new LogEntry(logType, message, fields, null, source, user, aDate);
+                return new LogEntry(logType, message, fields, null, source, user, null, aDate);
             } catch (Exception e) {
                 throw new Exception("Unable to pase log line: " + e.Message + ": " + line, e);
             }

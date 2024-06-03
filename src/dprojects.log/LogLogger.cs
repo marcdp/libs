@@ -31,7 +31,7 @@ namespace DProjects.Log {
                 logLevelNative = LogLevelNative.Warning;
             } else if (logEntry.Level == LogLevel.Error) {
                 logLevelNative = LogLevelNative.Error;
-            } else if (logEntry.Level == LogLevel.Critical) {
+            } else if (logEntry.Level == LogLevel.Fatal) {
                 logLevelNative = LogLevelNative.Critical;
             }
             //message

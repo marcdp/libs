@@ -25,7 +25,7 @@ namespace DProjects.Log.Serializers {
                 result.Append("warn");
             } else if (logEntry.Level == LogLevel.Error) {
                 result.Append("error");
-            } else if (logEntry.Level == LogLevel.Critical) {
+            } else if (logEntry.Level == LogLevel.Fatal) {
                 result.Append("critical");
             }
             if (logEntry.Tags != null) {

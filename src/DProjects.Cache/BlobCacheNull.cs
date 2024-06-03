@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -14,18 +15,17 @@ namespace DProjects.Cache {
         }
 
         // methods
-        public Task SetAsync(BlobCacheEntry entry, CancellationToken cancellationToken = default) {
+        public Task SetAsync(BlobCacheEntry entry, Stream stream, CancellationToken cancellationToken = default) {
             return Task.CompletedTask;
         }
-        public Task<BlobCacheEntry?> GetAsync(string key, CancellationToken cancellationToken = default) {
-            return Task.FromResult<BlobCacheEntry?>(null);
+        public Task<bool> GetAsync(string key, Func<BlobCacheEntry, Stream, Task> func, CancellationToken cancellationToken = default) {
+            throw new NotImplementedException();
         }
-        public Task RefreshAsync(string key, CancellationToken cancellationToken = default) {
+        public Task RemoveAsync(string key, CancellationToken cancellationToken = default) {
             return Task.CompletedTask;
         }
-        public Task RemoveAsync(string pattern, CancellationToken cancellationToken = default) {
-            return Task.CompletedTask;
-        }
+
+        
     }
 
 }

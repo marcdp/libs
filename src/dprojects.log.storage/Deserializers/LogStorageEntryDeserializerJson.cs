@@ -41,8 +41,8 @@ namespace DProjects.Log.Storage.Serializers {
                         logEntry.Level = LogLevel.Warning;
                     } else if ("error".Equals((string)value, StringComparison.OrdinalIgnoreCase) || "err".Equals((string)value, StringComparison.OrdinalIgnoreCase)) {
                         logEntry.Level = LogLevel.Error;
-                    } else if ("critical".Equals((string)value, StringComparison.OrdinalIgnoreCase) || "severe".Equals((string)value, StringComparison.OrdinalIgnoreCase) || "sev".Equals((string)value, StringComparison.OrdinalIgnoreCase)) {
-                        logEntry.Level = LogLevel.Critical;
+                    } else if ("datal".Equals((string)value, StringComparison.OrdinalIgnoreCase) || "severe".Equals((string)value, StringComparison.OrdinalIgnoreCase) || "sev".Equals((string)value, StringComparison.OrdinalIgnoreCase)) {
+                        logEntry.Level = LogLevel.Fatal;
                     } else {
                         logEntry.Level = LogLevel.Custom;
                         dict["type_custom"] = value;

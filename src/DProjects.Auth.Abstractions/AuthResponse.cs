@@ -17,14 +17,14 @@ namespace DProjects.Auth {
     }
 
 
-    public class AuthResponse(AuthStatus status, string statusDescription, AuthField[] fields, Identity? identity) {
+    public class AuthResponse(AuthStatus status, string statusDescription, AuthField[] fields, AuthUser? user) {
 
         
         //props
         public AuthStatus Status { get; } = status;
         public string StatusDescription { get; } = statusDescription;
         public AuthField[] Fields { get; } = fields;
-        public Identity? Identity { get; } = identity;
+        public AuthUser? User { get; } = user;
 
         //methods
         public static AuthResponse DataRequired(AuthField[] fields) {
@@ -33,8 +33,8 @@ namespace DProjects.Auth {
         public static AuthResponse Failure(AuthField[]? fields = null) {
             return new AuthResponse(AuthStatus.Failure, "Wrong credentials", fields ?? [], null);
         }
-        public static AuthResponse Success(Identity identity, AuthField[]? fields = null) {
-            return new AuthResponse(AuthStatus.Success, "", fields ?? [], identity);
+        public static AuthResponse Success(AuthUser user, AuthField[]? fields = null) {
+            return new AuthResponse(AuthStatus.Success, "", fields ?? [], user);
         }
     }
 

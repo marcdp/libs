@@ -1,23 +1,12 @@
 using System;
-using System.Collections.Specialized;
 using System.Text;
-using System.Web;
 
 namespace DProjects.Utils {
 
 
     public static class HttpUtils {
 
-
-        //class
-        public class HttpHeaders : NameValueCollection {
-            public T Get<T>(string name, T defaultValue) {
-                var value = this.Get(name);
-                if (value == null) return defaultValue;
-                return ConvertUtils.To<T>(value);
-            }
-        }
-
+         
         //ports
         public const int PORT_HTTP = 80;
         public const int PORT_HTTPS = 443;
@@ -253,20 +242,6 @@ namespace DProjects.Utils {
                 return (!avoidPrefixAndCode ? prefix + code + separator : "") + "HTTP Version Not Supported";
             }
             return (!avoidPrefixAndCode ? prefix + code + separator : "") + "Unknow";
-        }
-        public static string GetHttpHeadersString(NameValueCollection headers) {
-            if (headers == null || headers.Count == 0) {
-                return string.Empty;
-            }
-            var sb = new StringBuilder();
-            foreach (string key in headers.AllKeys) {
-                string[] values = headers.GetValues(key);
-                foreach (string value in values) {
-                    sb.AppendLine($"{key}: {value}");
-                }
-            }
-            sb.AppendLine();
-            return sb.ToString();
         }
 
     }

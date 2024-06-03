@@ -37,6 +37,7 @@ namespace DProjects.Log {
         public string? Prefix { get; set; }
         public string? User { get; set; }
         public string? Source { get; set; }
+        public string? Resource { get; set; }
         public string[]? Tags { get; set; }
         public Dictionary<string, object?>? Fields { get; set; }
 
@@ -62,9 +63,9 @@ namespace DProjects.Log {
             mLogger.LogError(message, args);
             if (Writed != null) Writed?.Invoke(this, CreateLogEntry(LogLevel.Error, message, args));
         }
-        public void Critical(string message, params object?[] args) {
+        public void Fatal(string message, params object?[] args) {
             mLogger.LogCritical(message, args);
-            if (Writed != null) Writed?.Invoke(this, CreateLogEntry(LogLevel.Critical, message, args));
+            if (Writed != null) Writed?.Invoke(this, CreateLogEntry(LogLevel.Fatal, message, args));
         }
 
         //private 
@@ -98,7 +99,7 @@ namespace DProjects.Log {
                 fields["messageOriginal"] = message;
                 message = sb.ToString();
             }
-            return new LogEntry(logType, Prefix + message, fields, Tags, Source, User, now);
+            return new LogEntry(logType, Prefix + message, fields, Tags, Source, User, Resource, now);
         }
 
     }

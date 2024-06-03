@@ -14,7 +14,7 @@ namespace DProjects.Log.Storage.Serializers {
 
         //methods
         public LogEntry Deserialize(string line) {
-            return new LogEntry(LogLevel.Information, line, null, null, null, null, DateTime.Now);
+            return new LogEntry(LogLevel.Information, line, null, null, null, null, null, DateTime.Now);
         }
     }
 

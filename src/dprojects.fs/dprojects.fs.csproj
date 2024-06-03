@@ -22,11 +22,12 @@
         <Nullable>enable</Nullable>
         <PackageProjectUrl>https://www.dprojects.com/</PackageProjectUrl>
         <PackageIcon></PackageIcon>
+        <CLSCompliant>true</CLSCompliant>
     </PropertyGroup>
 
     <ItemGroup>
         <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="8.0.0" />
-        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.1" />
     </ItemGroup>
 
     <ItemGroup>

@@ -7,6 +7,9 @@ namespace DProjects.Log {
     //interface
     public interface ILogClient {
 
+        //events
+        event EventHandler<LogEntry> Writed;
+
         //properties
         string? Prefix { get; set; }
         string? User { get; set; }
@@ -19,7 +22,7 @@ namespace DProjects.Log {
         void Info(string message, params object?[] args);
         void Warning(string message, params object?[] args);
         void Error(string message, params object?[] args);
-        void Critical(string message, params object?[] args);
+        void Fatal(string message, params object?[] args);
 
     }
 

@@ -22,6 +22,7 @@
         <Nullable>enable</Nullable>
         <PackageProjectUrl>https://www.dprojects.com/</PackageProjectUrl>
         <PackageIcon></PackageIcon>
+        <CLSCompliant>true</CLSCompliant>
     </PropertyGroup>
 
     <ItemGroup>

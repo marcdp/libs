@@ -58,7 +58,7 @@ namespace DProjects.Log.Provider {
             } else if (logLevel == LogLevelNative.Error) {
                 return (mLog.Level <= LogLevel.Error);
             } else if (logLevel == LogLevelNative.Critical) {
-                return (mLog.Level <= LogLevel.Critical);
+                return (mLog.Level <= LogLevel.Fatal);
             }
             return false;
         }
@@ -81,7 +81,7 @@ namespace DProjects.Log.Provider {
                 base.Error(message);
             } else if (logLevel == LogLevelNative.Critical) {
                 var message = formatter(state, exception);
-                base.Critical(message);
+                base.Fatal(message);
             }
         }
 

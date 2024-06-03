@@ -58,31 +58,31 @@ namespace DProjects.Log {
         public LogLevel Level => mLevel;
 
         //methods
-        public void Trace(string message, IDictionary<string, object?>? fields = null, string[]? tags = null, string? source = null, string? user = null) {
-            Write(new LogEntry(LogLevel.Trace, message, fields, tags, source, user));
+        public void Trace(string message, IDictionary<string, object?>? fields = null, string[]? tags = null, string? source = null, string? user = null, string? resource = null) {
+            Write(new LogEntry(LogLevel.Trace, message, fields, tags, source, user, resource));
         }
-        public void Debug(string message, IDictionary<string, object?>? fields = null, string[]? tags = null, string? source = null, string? user = null) {
-            Write(new LogEntry(LogLevel.Debug, message, fields, tags, source, user));
+        public void Debug(string message, IDictionary<string, object?>? fields = null, string[]? tags = null, string? source = null, string? user = null, string? resource = null) {
+            Write(new LogEntry(LogLevel.Debug, message, fields, tags, source, user, resource));
         }
-        public void Info(string message, IDictionary<string, object?>? fields = null, string[]? tags = null, string? source = null, string? user = null) {
-            Write(new LogEntry(LogLevel.Information, message, fields, tags, source, user));
+        public void Info(string message, IDictionary<string, object?>? fields = null, string[]? tags = null, string? source = null, string? user = null, string? resource = null) {
+            Write(new LogEntry(LogLevel.Information, message, fields, tags, source, user, resource));
         }
-        public void Warning(string message, IDictionary<string, object?>? fields = null, string[]? tags = null, string? source = null, string? user = null) {
-            Write(new LogEntry(LogLevel.Warning, message, fields, tags, source, user));
+        public void Warning(string message, IDictionary<string, object?>? fields = null, string[]? tags = null, string? source = null, string? user = null, string? resource = null) {
+            Write(new LogEntry(LogLevel.Warning, message, fields, tags, source, user, resource));
         }
-        public void Error(string message, IDictionary<string, object?>? fields = null, string[]? tags = null, string? source = null, string? user = null, Exception? exception = null) {
+        public void Error(string message, IDictionary<string, object?>? fields = null, string[]? tags = null, string? source = null, string? user = null, string? resource = null, Exception? exception = null) {
             if (exception != null) {
                 if (fields == null) fields = new Dictionary<string, object?>();
                 fields["exception"] = ExceptionUtils.GetMessageDetailed(exception);
             }
-            Write(new LogEntry(LogLevel.Error, message, fields, tags, source, user));
+            Write(new LogEntry(LogLevel.Error, message, fields, tags, source, user, resource));
         }
-        public void Critical(string message, IDictionary<string, object?>? fields = null, string[]? tags = null, string? source = null, string? user = null, Exception? exception = null) {
+        public void Fatal(string message, IDictionary<string, object?>? fields = null, string[]? tags = null, string? source = null, string? user = null, string? resource = null, Exception? exception = null) {
             if (exception != null) {
                 if (fields == null) fields = new Dictionary<string, object?>();
                 fields["exception"] = ExceptionUtils.GetMessageDetailed(exception);
             }
-            Write(new LogEntry(LogLevel.Critical, message, fields, tags, source, user));
+            Write(new LogEntry(LogLevel.Fatal, message, fields, tags, source, user, resource));
         }
         public void Write(LogEntry logEntry) {
             if (mLevel > logEntry.Level) return;

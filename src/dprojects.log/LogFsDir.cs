@@ -15,7 +15,7 @@ namespace DProjects.Log {
         private readonly IFilesystem mFilesystem;
         private readonly string mPath;
         private readonly string mSuffix;
-        private readonly ILogEntrySerializer mLogFormatter;
+        private readonly ILogEntrySerializer mLogEntrySerializer;
         private readonly string mDateTimePattern;
 
         private string? mFileName;
@@ -23,12 +23,12 @@ namespace DProjects.Log {
 
 
         //constructor
-        public LogFsDir(IFilesystem filesystem, string path, string suffix, bool autoFlush, bool useWriterThread, ILogEntrySerializer logFormatter, string dateTimePattern = "yyyy-MM-dd", LogLevel level = LogLevel.Information) : base(autoFlush, useWriterThread, level) {
+        public LogFsDir(IFilesystem filesystem, string path, string suffix, bool autoFlush, bool useWriterThread, ILogEntrySerializer logEntrySerializer, string dateTimePattern = "yyyy-MM-dd", LogLevel level = LogLevel.Information) : base(autoFlush, useWriterThread, level) {
             mFilesystem = filesystem;
             mPath = path;
             mSuffix = suffix;
             mDateTimePattern = dateTimePattern;
-            mLogFormatter = logFormatter;
+            mLogEntrySerializer = logEntrySerializer;
             if (!mFilesystem.ExistsDirectory(mPath)) {
                 mFilesystem.CreateDirectory(mPath);
             }
@@ -62,7 +62,8 @@ namespace DProjects.Log {
                 mWriter = new StreamWriter(mFilesystem.LoadWriteStream(newFileName, new() { Truncate = false, Append = true }), new UTF8Encoding(false));
                 mFileName = newFileName;
             }
-            mWriter.Write(logEntry);
+            var line = mLogEntrySerializer.Serialize(logEntry);
+            mWriter.WriteLine(line);
             if (mAutoFlush) mWriter.Flush();
         }
 

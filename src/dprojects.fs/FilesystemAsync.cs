@@ -57,7 +57,7 @@ namespace DProjects.Fs {
         public Stream LoadWriteStream(string path, LoadWriteStreamSettings? settings = null) {
             return AsyncUtils.RunSync(async () => await LoadWriteStreamAsync(path, settings));
         }
-        public async virtual Task<Stream> LoadWriteStreamAsync(string path, LoadWriteStreamSettings? settings = null) {
+        public virtual Task<Stream> LoadWriteStreamAsync(string path, LoadWriteStreamSettings? settings = null) {
             PathUtils.Validate(path);
             if (IsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
             //settings ??= new LoadWriteStreamSettings();

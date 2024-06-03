@@ -16,9 +16,10 @@ namespace DProjects.Log.Serializers {
         //private 
         public string Serialize(LogEntry entry) {
             var dict = new Dictionary<string, object?>();
-            dict["date"] = entry.Date.ToUniversalTime().ToString(DateTimeUtils.DATETIME_ISO8601_MS7);
+            dict["timestamp"] = entry.Date.ToUniversalTime().ToString(DateTimeUtils.DATETIME_ISO8601_MS7);
             dict["level"] = entry.Level.ToString();
             dict["message"] = entry.Message;
+            dict["resource"] = entry.Resource;
             if (!string.IsNullOrEmpty(entry.Source)) dict["source"] = entry.Source;
             if (!string.IsNullOrEmpty(entry.User)) dict["user"] = entry.User;
             if (entry.Tags != null && entry.Tags.Length > 0) dict["tags"] = entry.Tags ?? [];

@@ -11,7 +11,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{977F788C-3
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{09BF5EC8-12F7-4DC6-8E1D-55F20C578E72}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Fs.Abstractions", "src\DProjects.Fs.Abstractions\DProjects.fs.Abstractions.csproj", "{19E44DED-1950-4C29-90D0-28D78F56AAC0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Fs.Abstractions", "src\DProjects.Fs.Abstractions\DProjects.Fs.Abstractions.csproj", "{19E44DED-1950-4C29-90D0-28D78F56AAC0}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Utils", "src\DProjects.Utils\DProjects.Utils.csproj", "{2DC1B051-7A96-460E-8B9C-5CEE877889C3}"
 EndProject
@@ -25,15 +25,15 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Factories.Abstrac
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Streams", "src\DProjects.Streams\DProjects.Streams.csproj", "{B4531B7F-1CFC-42A9-A819-6D2FD6D0CAFD}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Fs.test", "test\DProjects.Fs.Test\DProjects.Fs.Test.csproj", "{551F87A4-DDB0-4F99-AECF-57FA0836356F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Fs.Test", "test\DProjects.Fs.Test\DProjects.Fs.Test.csproj", "{551F87A4-DDB0-4F99-AECF-57FA0836356F}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Utils.test", "test\DProjects.Utils.Test\DProjects.Utils.Test.csproj", "{F47D9164-2D05-4751-9E51-7218C7FB5891}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Utils.Test", "test\DProjects.Utils.Test\DProjects.Utils.Test.csproj", "{F47D9164-2D05-4751-9E51-7218C7FB5891}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Streams.test", "test\DProjects.Streams.Test\DProjects.Streams.Test.csproj", "{D72D8995-C390-4B1C-B23F-417A0817B607}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Streams.Test", "test\DProjects.Streams.Test\DProjects.Streams.Test.csproj", "{D72D8995-C390-4B1C-B23F-417A0817B607}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Log.test", "test\DProjects.Log.Test\DProjects.Log.Test.csproj", "{6855EC09-68F8-4BE0-8EB7-25B905FD8C4D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Log.Test", "test\DProjects.Log.Test\DProjects.Log.Test.csproj", "{6855EC09-68F8-4BE0-8EB7-25B905FD8C4D}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Factories.test", "test\DProjects.Factories.Test\DProjects.Factories.Test.csproj", "{31889E91-7132-46D4-8EAE-0CDEE42F6CA3}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Factories.Test", "test\DProjects.Factories.Test\DProjects.Factories.Test.csproj", "{31889E91-7132-46D4-8EAE-0CDEE42F6CA3}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Factories", "src\DProjects.Factories\DProjects.Factories.csproj", "{BCBE5803-1576-4FB2-9A4A-ED54165DBE82}"
 EndProject
@@ -98,6 +98,12 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Cache.Abstractions", "src\DProjects.Cache.Abstractions\DProjects.Cache.Abstractions.csproj", "{CCB86E30-2B6F-4FA7-A30D-459B1BA795B8}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Cache", "src\DProjects.Cache\DProjects.Cache.csproj", "{E939CADE-5602-4264-9E47-2C9EACD323E9}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Secrets.Test", "test\DProjects.Secrets.Test\DProjects.Secrets.Test.csproj", "{55C97CBA-D98D-47D2-BFB2-EB99731C5DFC}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Cache.Test", "test\DProjects.Cache.Test\DProjects.Cache.Test.csproj", "{4FAB124D-6D03-401B-8D57-FC32868BFB55}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Auth.Test", "test\DProjects.Auth.Test\DProjects.Auth.Test.csproj", "{67AA6199-A8D2-4CAC-B8D9-6490A184E7E3}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -281,6 +287,18 @@ Global
 		{E939CADE-5602-4264-9E47-2C9EACD323E9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E939CADE-5602-4264-9E47-2C9EACD323E9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E939CADE-5602-4264-9E47-2C9EACD323E9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{55C97CBA-D98D-47D2-BFB2-EB99731C5DFC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{55C97CBA-D98D-47D2-BFB2-EB99731C5DFC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{55C97CBA-D98D-47D2-BFB2-EB99731C5DFC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{55C97CBA-D98D-47D2-BFB2-EB99731C5DFC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4FAB124D-6D03-401B-8D57-FC32868BFB55}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4FAB124D-6D03-401B-8D57-FC32868BFB55}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4FAB124D-6D03-401B-8D57-FC32868BFB55}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4FAB124D-6D03-401B-8D57-FC32868BFB55}.Release|Any CPU.Build.0 = Release|Any CPU
+		{67AA6199-A8D2-4CAC-B8D9-6490A184E7E3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{67AA6199-A8D2-4CAC-B8D9-6490A184E7E3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{67AA6199-A8D2-4CAC-B8D9-6490A184E7E3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{67AA6199-A8D2-4CAC-B8D9-6490A184E7E3}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -330,6 +348,9 @@ Global
 		{51579B99-012E-41EB-B1C0-8E4098A30353} = {3892F25A-3EAF-4987-964A-47712DC53F67}
 		{CCB86E30-2B6F-4FA7-A30D-459B1BA795B8} = {3892F25A-3EAF-4987-964A-47712DC53F67}
 		{E939CADE-5602-4264-9E47-2C9EACD323E9} = {3892F25A-3EAF-4987-964A-47712DC53F67}
+		{55C97CBA-D98D-47D2-BFB2-EB99731C5DFC} = {977F788C-34C7-438C-AB3E-566C8687F3B2}
+		{4FAB124D-6D03-401B-8D57-FC32868BFB55} = {977F788C-34C7-438C-AB3E-566C8687F3B2}
+		{67AA6199-A8D2-4CAC-B8D9-6490A184E7E3} = {977F788C-34C7-438C-AB3E-566C8687F3B2}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {E92CEFFE-87DE-445D-AA8E-52601E4D0790}

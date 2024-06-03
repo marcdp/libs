@@ -35,12 +35,9 @@ namespace DProjects.Log.Storage.Serializers {
                 } else if (tags.Contains("error")) {
                     logLevel = LogLevel.Error;
                     tags.Remove("error");
-                } else if (tags.Contains("critical")) {
-                    logLevel = LogLevel.Critical;
+                } else if (tags.Contains("fatal")) {
+                    logLevel = LogLevel.Fatal;
                     tags.Remove("critical");
-                } else if (tags.Contains("severe")) {
-                    logLevel = LogLevel.Critical;
-                    tags.Remove("severe");
                 }
                 var message = line.Substring(i + 2);
                 var source = "";
@@ -65,7 +62,7 @@ namespace DProjects.Log.Storage.Serializers {
                     message = message.Substring(0, j);
                 }
                 message = message.Replace("\\u007C", "|").Replace("\\n", CharUtils.CHAR_LF.ToString()).Replace("\\r", CharUtils.CHAR_CR.ToString()).Replace("\\\\", "\\").TrimEnd();
-                return new LogEntry(logLevel, message, fields, tags.ToArray(), source, user, aDate);
+                return new LogEntry(logLevel, message, fields, tags.ToArray(), source, user, null, aDate);
             } catch (Exception e) {
                 throw new Exception("Unable to parse log line: " + e.Message + ": " + line, e);
             }

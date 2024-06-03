@@ -2,7 +2,7 @@
 
     <PropertyGroup>
         <AssemblyTitle>DProjects.Cache</AssemblyTitle>
-        <TargetFramework>netstandard2.0</TargetFramework>
+        <TargetFramework>net8.0</TargetFramework>
         <LangVersion>preview</LangVersion>
         <AssemblyName>DProjects.Cache</AssemblyName>
         <OutputType>Library</OutputType>

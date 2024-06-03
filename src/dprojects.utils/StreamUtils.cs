@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -51,53 +52,7 @@ namespace DProjects.Utils {
                 } while (true);
                 return result.ToArray();
             }
-        }
-
-        //// read HttpHeaders
-        //public static HttpUtils.HttpHeaders ReadHttpHeaders(Stream stream, Encoding? encoding = null) {
-        //    if (encoding == null) encoding = EncodingUtils.GetDefault();
-        //    var result = new HttpUtils.HttpHeaders();
-        //    var prevName = "";
-        //    do {
-        //        var line = ReadLine(stream, encoding);
-        //        if (line == null || line.Length == 0) break;
-        //        if (line.StartsWith(" ") || line.StartsWith("\t")) {
-        //            var value = line.Trim();
-        //            result[prevName] += value;
-        //        } else {
-        //            var i = line.IndexOf(":");
-        //            if (i != -1) {
-        //                var name = line.Substring(0, i);
-        //                var value = line.Substring(i + 1).Trim();
-        //                result.Add(name, value);
-        //                prevName = name;
-        //            }
-        //        }
-        //    } while (true);
-        //    return result;
-        //}
-        //public static async Task<HttpUtils.HttpHeaders> ReadHttpHeadersAsync(Stream stream, Encoding? encoding = null, CancellationToken cancellationToken = default) {
-        //    if (encoding == null) encoding = EncodingUtils.GetDefault();
-        //    var result = new HttpUtils.HttpHeaders();
-        //    var prevName = "";
-        //    do {
-        //        var line = await ReadLineAsync(stream, encoding, cancellationToken);
-        //        if (line == null || line.Length == 0) break;
-        //        if (line.StartsWith(" ") || line.StartsWith("\t")) {
-        //            var value = line.Trim();
-        //            result[prevName] += value;
-        //        } else {
-        //            var i = line.IndexOf(":");
-        //            if (i != -1) {
-        //                var name = line.Substring(0, i);
-        //                var value = line.Substring(i + 1).Trim();
-        //                result.Add(name, value);
-        //                prevName = name;
-        //            }
-        //        }
-        //    } while (true);
-        //    return result;
-        //}
+        } 
 
         // read bytes
         public static byte[] ReadBytes(Stream stream, int length = -1) {            
