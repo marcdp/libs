@@ -11,16 +11,16 @@ namespace DProjects.Log.Storage.Tests {
         //tests
         [Theory()]
         [InlineData("json:", """
-            {"date":"2020-01-01T00:00:00.000Z","level":"Information","message":"prefix1This is a message: 1, 2, False, True, hello","source":"source","user":"username1","tags":["tag1","tag2"],"a1":1,"a2":2,"a3":false,"a4":true,"a5":"hello","messageOriginal":"This is a message: {a1}, {a2}, {a3}, {a4}, {a5}"}
-            {"date":"2020-01-01T00:00:00.000Z","level":"Warning","message":"prefix1This is a message: 1, 2, False, True, hello","source":"source","user":"username1","tags":["tag1","tag2"],"a1":1,"a2":2,"a3":false,"a4":true,"a5":"hello","messageOriginal":"This is a message: {a1}, {a2}, {a3}, {a4}, {a5}"}
-            {"date":"2020-01-01T00:00:00.000Z","level":"Error","message":"prefix1This is a message: 1, 2, False, True, hello","source":"source","user":"username1","tags":["tag1","tag2"],"a1":1,"a2":2,"a3":false,"a4":true,"a5":"hello","messageOriginal":"This is a message: {a1}, {a2}, {a3}, {a4}, {a5}"}
-            {"date":"2020-01-01T00:00:00.000Z","level":"Critical","message":"prefix1This is a message: 1, 2, False, True, hello","source":"source","user":"username1","tags":["tag1","tag2"],"a1":1,"a2":2,"a3":false,"a4":true,"a5":"hello","messageOriginal":"This is a message: {a1}, {a2}, {a3}, {a4}, {a5}"}
+            {"timestamp":"2020-01-01T00:00:00.0000000Z","level":"Information","message":"prefix1This is a message: 1, 2, False, True, hello","source":"source","user":"username1","tags":["tag1","tag2"],"fields":{"a1":1,"a2":2,"a3":false,"a4":true,"a5":"hello","messageOriginal":"This is a message: {a1}, {a2}, {a3}, {a4}, {a5}"}}
+            {"timestamp":"2020-01-01T00:00:00.0000000Z","level":"Warning","message":"prefix1This is a message: 1, 2, False, True, hello","source":"source","user":"username1","tags":["tag1","tag2"],"fields":{"a1":1,"a2":2,"a3":false,"a4":true,"a5":"hello","messageOriginal":"This is a message: {a1}, {a2}, {a3}, {a4}, {a5}"}}
+            {"timestamp":"2020-01-01T00:00:00.0000000Z","level":"Error","message":"prefix1This is a message: 1, 2, False, True, hello","source":"source","user":"username1","tags":["tag1","tag2"],"fields":{"a1":1,"a2":2,"a3":false,"a4":true,"a5":"hello","messageOriginal":"This is a message: {a1}, {a2}, {a3}, {a4}, {a5}"}}
+            {"timestamp":"2020-01-01T00:00:00.0000000Z","level":"Fatal","message":"prefix1This is a message: 1, 2, False, True, hello","source":"source","user":"username1","tags":["tag1","tag2"],"fields":{"a1":1,"a2":2,"a3":false,"a4":true,"a5":"hello","messageOriginal":"This is a message: {a1}, {a2}, {a3}, {a4}, {a5}"}}
             """)]
         [InlineData("rat:", """
             2020-01-01T00:00:00.000Z [info|tag1|tag2] prefix1This is a message: 1, 2, False, True, hello | source: source | user: username1 | a1: 1 | a2: 2 | a3: False | a4: True | a5: hello | messageOriginal: This is a message: {a1}, {a2}, {a3}, {a4}, {a5}
             2020-01-01T00:00:00.000Z [warn|tag1|tag2] prefix1This is a message: 1, 2, False, True, hello | source: source | user: username1 | a1: 1 | a2: 2 | a3: False | a4: True | a5: hello | messageOriginal: This is a message: {a1}, {a2}, {a3}, {a4}, {a5}
             2020-01-01T00:00:00.000Z [error|tag1|tag2] prefix1This is a message: 1, 2, False, True, hello | source: source | user: username1 | a1: 1 | a2: 2 | a3: False | a4: True | a5: hello | messageOriginal: This is a message: {a1}, {a2}, {a3}, {a4}, {a5}
-            2020-01-01T00:00:00.000Z [critical|tag1|tag2] prefix1This is a message: 1, 2, False, True, hello | source: source | user: username1 | a1: 1 | a2: 2 | a3: False | a4: True | a5: hello | messageOriginal: This is a message: {a1}, {a2}, {a3}, {a4}, {a5}
+            2020-01-01T00:00:00.000Z [fatal|tag1|tag2] prefix1This is a message: 1, 2, False, True, hello | source: source | user: username1 | a1: 1 | a2: 2 | a3: False | a4: True | a5: hello | messageOriginal: This is a message: {a1}, {a2}, {a3}, {a4}, {a5}
             """)]
         [InlineData("raw:", """
             prefix1This is a message: 1, 2, False, True, hello

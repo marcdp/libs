@@ -153,7 +153,7 @@ namespace DProjects.Fs {
         public override bool Exists(string path) {
             return GetEntry(path) != null;
         }
-        public override Stream LoadReadStream(string path, LoadReadStreamSettings? settings = null) {
+        public override Stream LoadReadStream(string path, LoadReadStreamSettings settings) {
             PathUtils.Validate(path);
             mReaderWriterLock.EnterReadLock();
             try {
@@ -173,8 +173,8 @@ namespace DProjects.Fs {
                 mReaderWriterLock.ExitReadLock();
             }
         }
-        public override Stream LoadWriteStream(string path, LoadWriteStreamSettings? settings = null) {
-            if (mIsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
+        public override Stream LoadWriteStream(string path, LoadWriteStreamSettings settings) {
+            if (IsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
             PathUtils.Validate(path);
             if (!ExistsDirectory(PathUtils.GetPathParent(path))) throw new Exception("Unable to modify filesystem: parent path not found");
             var memoryStream = new MemoryStream();
@@ -203,8 +203,8 @@ namespace DProjects.Fs {
 
 
         //methods LEVEL 2
-        public override Entry SaveFile(string path, Stream stream, SaveFileSettings? settings = null) {
-            if (mIsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
+        public override Entry SaveFile(string path, Stream stream, SaveFileSettings settings) {
+            if (IsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
             if (!ExistsDirectory(PathUtils.GetPathParent(path))) throw new Exception("Unable to modify filesystem: parent path not found");
             MyEntry? entry = null;
             byte[] content = StreamUtils.ReadBytes(stream);
@@ -245,7 +245,7 @@ namespace DProjects.Fs {
             return entry;
         }
         public override Entry CreateDirectory(string path) {
-            if (mIsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
+            if (IsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
             PathUtils.Validate(path);
             MyEntry? entry = null;
             mReaderWriterLock.EnterUpgradeableReadLock();
@@ -276,7 +276,7 @@ namespace DProjects.Fs {
             return entry;
         }
         public override void Delete(string path) {
-            if (mIsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
+            if (IsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
             PathUtils.Validate(path);
             if (path == "/") {
                 return;
@@ -301,7 +301,7 @@ namespace DProjects.Fs {
             }
         }
         public override void Touch(string path, DateTime aDate) {
-            if (mIsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
+            if (IsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
             PathUtils.Validate(path);
             MyEntry? entry = null;
             mReaderWriterLock.EnterUpgradeableReadLock();
@@ -333,7 +333,7 @@ namespace DProjects.Fs {
             }
         }
         public override void SetMetadata(string path, IDictionary<string, string> metadata) {
-            if (mIsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
+            if (IsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
             PathUtils.Validate(path);
             mReaderWriterLock.EnterWriteLock();
             try {

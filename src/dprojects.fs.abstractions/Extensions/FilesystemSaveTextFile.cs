@@ -1,5 +1,6 @@
 
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace DProjects.Fs.Extensions {
@@ -11,12 +12,12 @@ namespace DProjects.Fs.Extensions {
         //methods
         public static Entry SaveTextFile(this IFilesystemSync fs, string path, string text, System.Text.Encoding encoding) {
             using (var memoryStream = new MemoryStream(encoding.GetBytes(text))) {
-                return fs.SaveFile(path, memoryStream);
+                return fs.SaveFile(path, memoryStream, new());
             }
         }
-        public static async Task<Entry> SaveTextFileAsync(this IFilesystemAsync fs, string path, string text, System.Text.Encoding encoding) {
+        public static async Task<Entry> SaveTextFileAsync(this IFilesystemAsync fs, string path, string text, System.Text.Encoding encoding, CancellationToken cancellationToken) {
             using (var memoryStream = new MemoryStream(encoding.GetBytes(text))) {
-                return await fs.SaveFileAsync(path, memoryStream);
+                return await fs.SaveFileAsync(path, memoryStream, new(), cancellationToken);
             }
         }
 

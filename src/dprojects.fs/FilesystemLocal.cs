@@ -2,9 +2,10 @@ using DProjects.Streams;
 using DProjects.Utils;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.IO;
-using System.Threading.Tasks;
+using System.Threading;
 
 namespace DProjects.Fs {
 
@@ -17,13 +18,13 @@ namespace DProjects.Fs {
 
 
         //constructor
-        public FilesystemLocal(string path, bool isReadonly, bool create, bool file) : base(isReadonly) {
+        public FilesystemLocal(string path, bool isReadonly, bool init, bool file) : base(isReadonly) {
             if (string.IsNullOrEmpty(path)) throw new ArgumentException();
             if (path.StartsWith("file://")) {
                 path = new Uri(path).LocalPath;
             }
             mPath = System.IO.Path.GetFullPath(new DirectoryInfo(path).FullName.Replace('\\', System.IO.Path.DirectorySeparatorChar));
-            if (create) {
+            if (init) {
                 if (!Directory.Exists(mPath) && !File.Exists(mPath)) {
                     if (file) {
                         FileUtils.WriteFile(path, []);
@@ -98,7 +99,7 @@ namespace DProjects.Fs {
             var fullPath = GetNativePath(path);
             return File.Exists(fullPath) || Directory.Exists(fullPath);
         }        
-        public override Stream LoadReadStream(string path, LoadReadStreamSettings? settings = null) {
+        public override Stream LoadReadStream(string path, LoadReadStreamSettings settings) {
             var fullPath = GetNativePath(path);
             if (Directory.Exists(fullPath)) {
                 throw new Exception("Unable to load read stream: directory: " + mPath);
@@ -113,8 +114,8 @@ namespace DProjects.Fs {
             }
             return result;
         }
-        public override Stream LoadWriteStream(string path, LoadWriteStreamSettings? settings = null) {
-            if (mIsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
+        public override Stream LoadWriteStream(string path, LoadWriteStreamSettings settings) {
+            if (IsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
             PathUtils.Validate(path);
             settings ??= new LoadWriteStreamSettings();
             string fullPath = GetNativePath(path);
@@ -131,8 +132,8 @@ namespace DProjects.Fs {
 
 
         //methods LEVEL 2
-        public override Entry SaveFile(string path, Stream stream, SaveFileSettings? settings = null) {
-            if (mIsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
+        public override Entry SaveFile(string path, Stream stream, SaveFileSettings settings) {
+            if (IsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
             PathUtils.Validate(path);
             string fullPath = GetNativePath(path);
             var append = (settings != null && settings.Append);
@@ -140,19 +141,19 @@ namespace DProjects.Fs {
             var entry = GetEntry(path);
             if (entry == null) throw new NullReferenceException();
             return entry;
-        }
-        public override async Task<Entry> SaveFileAsync(string path, Stream stream, SaveFileSettings? settings = null) {
-            if (mIsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
+        } 
+        public override async Task<Entry> SaveFileAsync(string path, Stream stream, SaveFileSettings? settings, CancellationToken cancellationToken) {
+            if (IsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
             PathUtils.Validate(path);
             string fullPath = GetNativePath(path);
             var append = (settings != null && settings.Append);
             await FileUtils.WriteFileAsync(fullPath, stream, append: append);
-            var entry = await GetEntryAsync(path);
+            var entry = await GetEntryAsync(path, cancellationToken);
             if (entry == null) throw new NullReferenceException();
             return entry;
         }
         public override Entry CreateDirectory(string path) {
-            if (mIsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
+            if (IsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
             PathUtils.Validate(path);
             var fullPath = GetNativePath(path);
             if (!Directory.Exists(fullPath)) {
@@ -163,7 +164,7 @@ namespace DProjects.Fs {
             return entry;
         }
         public override void Delete(string path) {
-            if (mIsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
+            if (IsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
             var fullPath = GetNativePath(path);
             if (File.Exists(fullPath)) {
                 FileUtils.DeleteFile(fullPath);
@@ -172,7 +173,7 @@ namespace DProjects.Fs {
             }
         }
         public override void Touch(string path, DateTime aDate) {
-            if (mIsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
+            if (IsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
             var fullPath = GetNativePath(path);
             if (File.Exists(fullPath)) {
                 File.SetLastWriteTimeUtc(fullPath, aDate);
@@ -182,7 +183,7 @@ namespace DProjects.Fs {
 
         //methods LEVEL 3
         public override void Copy(string source, string destination, CopySettings settings, ILogger<IFilesystem> logger) {
-            if (mIsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
+            if (IsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
             string sourceFullPath = GetNativePath(source);
             string destinationFullPath = GetNativePath(destination);
             if (Directory.Exists(sourceFullPath)) {
@@ -212,7 +213,7 @@ namespace DProjects.Fs {
             }
         }
         public override void Move(string source, string destination, MoveSettings settings, ILogger<IFilesystem> logger) {
-            if (mIsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
+            if (IsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
             string fullSourcePath = GetNativePath(source);
             string fullDestinationPath = GetNativePath(destination);
             if (File.Exists(fullSourcePath)) {
@@ -279,7 +280,7 @@ namespace DProjects.Fs {
             string path = fsi.FullName.Substring(GetNativePath("").Length);
             if (path.IndexOf('\\') != -1) path = path.Replace('\\', '/');
             int flags = 0;
-            if (mIsReadonly || fsi.Attributes.HasFlag(FileAttributes.ReadOnly)) flags += (int)Flags.Readonly;
+            if (IsReadonly || fsi.Attributes.HasFlag(FileAttributes.ReadOnly)) flags += (int)Flags.Readonly;
             if (fsi.Attributes.HasFlag(FileAttributes.Hidden)) flags += (int)Flags.Hidden;
             if (fsi is DirectoryInfo) {
                 return new Entry(path, EntryType.Directory, fsi.CreationTime, fsi.LastWriteTime, 0, "", flags);

@@ -601,7 +601,7 @@ namespace DProjects.Utils {
             }
             return sb.ToString();
         }
-        public static bool Like(string text, string pattern, bool ignoreCase = false) {
+        public static bool Like(string text, string? pattern, bool ignoreCase = false) {
             if (pattern == null) return true;
             if (pattern.Length == 0) return false;
             while (pattern.IndexOf("**") != -1) pattern = pattern.Replace("**", "*");
@@ -758,12 +758,21 @@ namespace DProjects.Utils {
             }
             return Convert.ToChar((int)(charCode & 0xffff));
         }
+        public static bool IsNumeric(object text) {
+            return IsNumeric(text.ToString());
+        }
         public static bool IsNumeric(string text) {
             double retNum;
             return double.TryParse(text, System.Globalization.NumberStyles.Any, System.Globalization.NumberFormatInfo.InvariantInfo, out retNum);
         }
+        public static bool IsInteger(object text) {
+            return int.TryParse(text.ToString(), out int retNum);
+        }
         public static bool IsInteger(string text) {
             return int.TryParse(text, out int retNum);
+        }
+        public static bool IsLong(object text) {
+            return long.TryParse(text.ToString(), out long retNum);
         }
         public static bool IsLong(string text) {
             return long.TryParse(text, out long retNum);

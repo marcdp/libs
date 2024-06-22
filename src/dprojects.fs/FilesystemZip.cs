@@ -15,25 +15,6 @@ namespace DProjects.Fs {
     public class FilesystemZip : FilesystemSync, IDisposable {
 
 
-        ////builder
-        //public class Builder {
-        //    public IFilesystem Filesystem { get; set; }
-        //    public string Path { get; set; }
-        //    public bool IsReadOnly  { get; set; }
-        //    public Encoding Encoding { get; set; }
-        //    public Builder(IFilesystem filesystem, string path) {
-        //        Filesystem = filesystem;
-        //        Path = path;
-        //        IsReadOnly = false;
-        //        EncodingUtils.RegisterDefaultProvider();
-        //        Encoding = Encoding.GetEncoding("IBM437");
-        //    }
-        //    public FilesystemZip Build() {
-        //        return new FilesystemZip(Filesystem, Path, Encoding, IsReadOnly);
-        //    }
-        //}
-
-
         //variables
         protected IFilesystem mFilesystem;
         protected string mPath;
@@ -52,17 +33,17 @@ namespace DProjects.Fs {
             mEntries = new List<Entry>();
             mReaderWriterLock = new ReaderWriterLockSlim();
             if (!mFilesystem.Exists(mPath)) {
-                if (mIsReadonly) {
+                if (IsReadonly) {
                     throw new Exception("Unable to open zip file for reading: path not found");
                 } else {
-                    var zipArchive = new ZipArchive(mFilesystem.LoadWriteStream(mPath), ZipArchiveMode.Create, false, mEncoding);
+                    var zipArchive = new ZipArchive(mFilesystem.LoadWriteStream(mPath, new()), ZipArchiveMode.Create, false, mEncoding);
                     zipArchive.Dispose();
                 }
             }
-            if (mIsReadonly) {
-                mZipArchive = new ZipArchive(mFilesystem.LoadWriteStream(mPath), ZipArchiveMode.Read, false, mEncoding);
+            if (IsReadonly) {
+                mZipArchive = new ZipArchive(mFilesystem.LoadWriteStream(mPath, new()), ZipArchiveMode.Read, false, mEncoding);
             } else {
-                mZipArchive = new ZipArchive(mFilesystem.LoadWriteStream(mPath), ZipArchiveMode.Update, false, mEncoding);
+                mZipArchive = new ZipArchive(mFilesystem.LoadWriteStream(mPath, new()), ZipArchiveMode.Update, false, mEncoding);
             }
             foreach (var zipEntry in mZipArchive.Entries) {
                 mEntries.Add(ZipEntryToEntry(zipEntry));
@@ -136,7 +117,7 @@ namespace DProjects.Fs {
                 mReaderWriterLock.ExitReadLock();
             }
         }
-        public override Stream LoadReadStream(string path, LoadReadStreamSettings? settings = null) {
+        public override Stream LoadReadStream(string path, LoadReadStreamSettings settings) {
             mReaderWriterLock.EnterReadLock();
             try {
                 var zipPath = path.Substring(1);
@@ -151,7 +132,7 @@ namespace DProjects.Fs {
                 mReaderWriterLock.ExitReadLock();
             }
         }
-        public override Stream LoadWriteStream(string path, LoadWriteStreamSettings? settings = null) {
+        public override Stream LoadWriteStream(string path, LoadWriteStreamSettings settings) {
             mReaderWriterLock.EnterWriteLock();
             try {
                 var zipPath = path.Substring(1);
@@ -161,7 +142,6 @@ namespace DProjects.Fs {
                     var entry = ZipEntryToEntry(zipEntry);
                     mEntries.Add(entry);
                 }
-                settings ??= new LoadWriteStreamSettings();
                 var zipEntryStream = zipEntry.Open();
                 if (settings.Append) zipEntryStream.Seek(0, SeekOrigin.End);
                 if (settings.Truncate) zipEntryStream.SetLength(0);
@@ -191,12 +171,12 @@ namespace DProjects.Fs {
 
 
         //methods LEVEL 2
-        public override Entry SaveFile(string path, Stream stream, SaveFileSettings? settings = null) {
-            if (mIsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
+        public override Entry SaveFile(string path, Stream stream, SaveFileSettings settings) {
+            if (IsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
             PathUtils.Validate(path);
             if (!ExistsDirectory(PathUtils.GetPathParent(path))) throw new Exception("Unable to save file: parent directory not found");
             var append = (settings != null && settings.Append);
-            using (var zipEntryStream = LoadWriteStream(path)) {
+            using (var zipEntryStream = LoadWriteStream(path, new())) {
                 if (append) {
                     zipEntryStream.Seek(0, SeekOrigin.End);
                 } else {
@@ -207,7 +187,7 @@ namespace DProjects.Fs {
             return GetEntry(path)!;
         } 
         public override Entry CreateDirectory(string path) {
-            if (mIsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
+            if (IsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
             PathUtils.Validate(path);
             if (!ExistsDirectory(PathUtils.GetPathParent(path))) CreateDirectory(PathUtils.GetPathParent(path));
             //create
@@ -230,7 +210,7 @@ namespace DProjects.Fs {
             }
         }
         public override void Delete(string path) {
-            if (mIsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
+            if (IsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
             PathUtils.Validate(path);
             //delete
             mReaderWriterLock.EnterWriteLock();
@@ -255,7 +235,7 @@ namespace DProjects.Fs {
             }
         }
         public override void Touch(string path, DateTime aDate) {
-            if (mIsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
+            if (IsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
             PathUtils.Validate(path);
             //touch
             mReaderWriterLock.EnterWriteLock();

@@ -147,6 +147,7 @@ namespace DProjects.Streams {
                     for (var k = i; k < offset + length - 1; k++) buffer[k] = buffer[k + 1];
                     buffer[offset + length - 1] = 0;
                     readedTotal--;
+                    i--;
                 }
             }
             if (readedTotal != length) {

@@ -17,7 +17,7 @@ namespace DProjects.Factories.Tests {
                 cfg.AddFactoriesFromAssembly(typeof(FactoryByUrlTests).Assembly);
                 cfg.AddAlias("111", "something1");
                 cfg.AddAlias("222", "something2");
-                cfg.AddAlias("333", "/");
+                cfg.AddAlias("333", "dir");
             });
             services.AddSingleton<FactoryByUrlTests.ISomething>(new FactoryByUrlTests.SomethingDefault());
             //factory by url  and argument
@@ -25,7 +25,7 @@ namespace DProjects.Factories.Tests {
                 cfg.AddFactoriesFromAssembly(typeof(FactoryByUrlAndArgumentTests).Assembly);
                 cfg.AddAlias("111", "something1");
                 cfg.AddAlias("222", "something2");
-                cfg.AddAlias("333", "/");
+                cfg.AddAlias("333", "dir");
             });
             services.AddSingleton<FactoryByUrlAndArgumentTests.ISomething>(new FactoryByUrlAndArgumentTests.SomethingDefault());
             //password

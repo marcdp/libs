@@ -11,12 +11,12 @@ namespace DProjects.Fs.Extensions {
 
         //methods
         public static byte[] LoadBinaryFile(this IFilesystemSync fs, string path) {
-            using (var stream = fs.LoadReadStream(path)) {
+            using (var stream = fs.LoadReadStream(path, new())) {
                 return StreamUtils.ReadBytes(stream);
             }
         }
-        public async static Task<byte[]> LoadBinaryFileAsync(this IFilesystemAsync fs, string path, LoadReadStreamSettings? settings =null, CancellationToken cancellationToken = default) {
-            using (var stream = await fs.LoadReadStreamAsync(path, settings)) {
+        public async static Task<byte[]> LoadBinaryFileAsync(this IFilesystemAsync fs, string path, LoadReadStreamSettings settings, CancellationToken cancellationToken = default) {
+            using (var stream = await fs.LoadReadStreamAsync(path, settings, cancellationToken)) {
                 return await StreamUtils.ReadBytesAsync(stream, cancellationToken);
             }
         }

@@ -12,7 +12,8 @@ namespace DProjects.Factories {
             var config = new FactoryByUrlConfiguration<TType>();
             configuration.Invoke(config);
             //add dependency-injection factory (ex: dependency-injection:keyed-service1, dependency-injection:keyed-service2, ...)
-            config.AddFactory<DependencyInjectionFactory<TType>>();   
+            // Meaby we should activate generic injection : ????
+            //config.AddFactory<DependencyInjectionFactory<TType>>();   
             //sort
             config.Protocols.Sort();
             config.Aliases.Sort();

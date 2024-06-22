@@ -11,6 +11,7 @@ namespace DProjects.Utils {
         private const int STD_OUTPUT_HANDLE = -11;
         private const int STD_INPUT_HANDLE = -10;
         private const uint ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x0004;
+        private const uint ENABLE_LINE_INPUT = 0x0002;        
         private const uint DISABLE_NEWLINE_AUTO_RETURN = 0x0008;
         private const uint ENABLE_VIRTUAL_TERMINAL_INPUT = 0x0200;
 
@@ -45,7 +46,6 @@ namespace DProjects.Utils {
         //methods
         public static bool EnableVirtualTerminalOutputProcessing() {
             if (!EnvironmentUtils.IsWindows()) return false;
-
             var iStdOut = GetStdHandle(STD_OUTPUT_HANDLE);
             if (!GetConsoleMode(iStdOut, out uint outConsoleMode)) return false;
             outConsoleMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING; // | DISABLE_NEWLINE_AUTO_RETURN;
@@ -61,6 +61,14 @@ namespace DProjects.Utils {
             inConsoleMode |= ENABLE_VIRTUAL_TERMINAL_INPUT;
             if (!SetConsoleMode(iStdIn, inConsoleMode)) return false;
 
+            return true;
+        }
+        public static bool DisableLineInput() {
+            if (!EnvironmentUtils.IsWindows()) return false;
+            var iStdIn = GetStdHandle(STD_INPUT_HANDLE);
+            if (!GetConsoleMode(iStdIn, out uint inConsoleMode)) return false;
+            inConsoleMode &= ~(ENABLE_LINE_INPUT);
+            if (!SetConsoleMode(iStdIn, inConsoleMode)) return false;
             return true;
         }
         public static bool IsUserAnAdministrator() {

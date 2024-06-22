@@ -17,6 +17,8 @@ namespace DProjects.Fs.Extensions {
         public static async Task SyncBidirectionalAsync(this IFilesystemAsync fs, string source, string destination, SyncSettings syncSettings, ILogger<IFilesystem> logger, CancellationToken cancellationToken) {
             if (syncSettings.SourceExcludes == null) syncSettings.SourceExcludes = [];
             if (syncSettings.DestinationExcludes == null) syncSettings.DestinationExcludes = [];
+            //check cancellationToken
+            cancellationToken.ThrowIfCancellationRequested();
             //status
             var status = new Status();
             await foreach (var entry in fs.GetEntriesAsync(source, GetModes.Descendants)) {
@@ -44,7 +46,7 @@ namespace DProjects.Fs.Extensions {
             //prev status
             string statusIndexPath = PathUtils.Combine(syncSettings.StatusPath, "index.db");
             Status? prevStatus = null;
-            if (await fs.ExistsFileAsync(statusIndexPath)) {
+            if (await fs.ExistsFileAsync(statusIndexPath, cancellationToken)) {
                 prevStatus = new Status(new StringReader(await fs.LoadTextFileAsync(statusIndexPath)));
             }
             //process
@@ -103,11 +105,14 @@ namespace DProjects.Fs.Extensions {
                 }
             }
             //save status
-            await fs.SaveTextFileAsync(statusIndexPath, status.Serialize(), Encoding.UTF8);
+            await fs.SaveTextFileAsync(statusIndexPath, status.Serialize(), Encoding.UTF8, cancellationToken);
         }
         private static async Task<bool> DeleteEntryAsync(IFilesystemAsync fs, Entry entry, List<string> processedPaths, SyncSettings syncSettings, ILogger<IFilesystem> logger, Status status, CancellationToken cancellationToken) {
             for (var trie = 0; trie < syncSettings.Tries; trie++) {
+                //log
                 logger.LogInformation("delete {path}", entry.Path);
+                //check cancellationToken
+                cancellationToken.ThrowIfCancellationRequested();
                 try {
                     if (entry.IsDirectory()) {
                         await fs.DeleteDirectoryAsync(entry.Path, cancellationToken);
@@ -137,14 +142,17 @@ namespace DProjects.Fs.Extensions {
         }
         private static async Task<bool> CopyEntryAsync(IFilesystemAsync fs, Entry source, string destination, List<string> processedPaths, SyncSettings syncSettings, ILogger<IFilesystem> logger, Status status, CancellationToken cancellationToken) {
             for (var trie = 0; trie < syncSettings.Tries; trie++) {
+                //log
                 logger.LogInformation("copy {from} to {to}", source.Path, destination);
+                //check cancellationToken
+                cancellationToken.ThrowIfCancellationRequested();
                 try {
                     if (source.IsDirectory()) {
                         var entry = await fs.CreateDirectoryAsync(destination, cancellationToken);
                         status.Modify(entry.Path, entry);
                     } else {
-                        using (var stream = await fs.LoadReadStreamAsync(source.Path)) {
-                            var entry = await fs.SaveFileAsync(destination, stream);
+                        using (var stream = await fs.LoadReadStreamAsync(source.Path, new(), cancellationToken)) {
+                            var entry = await fs.SaveFileAsync(destination, stream, new(), cancellationToken);
                             status.Modify(entry.Path, entry);
                         }
                     }

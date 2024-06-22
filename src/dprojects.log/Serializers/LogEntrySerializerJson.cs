@@ -2,6 +2,7 @@ using DProjects.Utils;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Threading.Tasks;
 
@@ -19,11 +20,12 @@ namespace DProjects.Log.Serializers {
             dict["timestamp"] = entry.Date.ToUniversalTime().ToString(DateTimeUtils.DATETIME_ISO8601_MS7);
             dict["level"] = entry.Level.ToString();
             dict["message"] = entry.Message;
-            dict["resource"] = entry.Resource;
+            if (!string.IsNullOrEmpty(entry.Resource)) dict["resource"] = entry.Resource;
             if (!string.IsNullOrEmpty(entry.Source)) dict["source"] = entry.Source;
             if (!string.IsNullOrEmpty(entry.User)) dict["user"] = entry.User;
             if (entry.Tags != null && entry.Tags.Length > 0) dict["tags"] = entry.Tags ?? [];
             if (entry.Fields != null && entry.Fields.Count > 0) {
+                var dictFields = new Dictionary<string, object?>();
                 foreach (var pair in entry.Fields) {
                     if (pair.Value is Exception) {
                         var ex = (Exception)pair.Value;
@@ -36,11 +38,12 @@ namespace DProjects.Log.Serializers {
                             innerExDict["stackTrace"] = ex.InnerException.StackTrace;
                             exDict["innerException"] = innerExDict;
                         }
-                        dict[pair.Key] = exDict;
+                        dictFields[pair.Key] = exDict;
                     } else {
-                        dict[pair.Key] = pair.Value;
+                        dictFields[pair.Key] = pair.Value;
                     }
                 }
+                dict["fields"] = dictFields;
             }
             return JsonSerializer.Serialize(dict);
         }

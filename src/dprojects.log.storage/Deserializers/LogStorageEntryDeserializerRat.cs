@@ -37,7 +37,7 @@ namespace DProjects.Log.Storage.Serializers {
                     tags.Remove("error");
                 } else if (tags.Contains("fatal")) {
                     logLevel = LogLevel.Fatal;
-                    tags.Remove("critical");
+                    tags.Remove("fatal");
                 }
                 var message = line.Substring(i + 2);
                 var source = "";

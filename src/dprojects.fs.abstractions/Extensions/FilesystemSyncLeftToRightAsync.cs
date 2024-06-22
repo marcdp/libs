@@ -28,16 +28,18 @@ namespace DProjects.Fs.Extensions {
                 //CompareMethod.TimestampCache
                 var timestampCache = new Dictionary<string, string>();
                 var timestampCachePath = PathUtils.Combine(syncSettings.StatusPath, "index.db");
-                if (await fs.ExistsFileAsync(timestampCachePath)) {
+                if (await fs.ExistsFileAsync(timestampCachePath, cancellationToken)) {
                     timestampCache = JsonSerializer.Deserialize<Dictionary<string, string>>(await fs.LoadTextFileAsync(timestampCachePath));
                 }
                 await SyncLeftToRightRecursiveAsync(fs, source, destination, syncSettings, logger, CompareMethod.TimestampCache, timestampCache ?? new Dictionary<string, string>(), cancellationToken);
-                await fs.SaveTextFileAsync(timestampCachePath, JsonSerializer.Serialize(timestampCache), System.Text.Encoding.UTF8);
+                await fs.SaveTextFileAsync(timestampCachePath, JsonSerializer.Serialize(timestampCache), System.Text.Encoding.UTF8, cancellationToken);
             }
         }
         private static async Task SyncLeftToRightRecursiveAsync(IFilesystemAsync fs, string source, string destination, SyncSettings syncSettings, ILogger<IFilesystem> logger, CompareMethod compareMethod, Dictionary<string, string> timestampCache, CancellationToken cancellationToken) {
             if (syncSettings.SourceExcludes == null) syncSettings.SourceExcludes = [];
             if (syncSettings.DestinationExcludes == null) syncSettings.DestinationExcludes = [];
+            //check cancellationToken
+            cancellationToken.ThrowIfCancellationRequested();
             //get entries
             var srcEntries = new List<Entry>(fs.GetEntriesAsync(source).ToEnumerable());
             var dstEntries = new List<Entry>(fs.GetEntriesAsync(destination).ToEnumerable());
@@ -58,7 +60,7 @@ namespace DProjects.Fs.Extensions {
                     srcEntries.RemoveAt(i);
                 }
             }
-            //dest
+            //dst
             var dstEntriesCache = new Dictionary<string, Entry>(dstEntries.Count);
             foreach (var dstEntry in dstEntries) {
                 dstEntriesCache.Add(dstEntry.Name, dstEntry);
@@ -90,8 +92,8 @@ namespace DProjects.Fs.Extensions {
                             logger.LogInformation("creating {path} ...", PathUtils.Combine(destination, srcEntry.Path.Substring(source.Length)));
                             try {
                                 Entry? entrySaved = null;
-                                using (var stream = await fs.LoadReadStreamAsync(srcEntry.Path)) {
-                                    entrySaved = await fs.SaveFileAsync(PathUtils.Combine(destination, srcEntry.Path.Substring(source.Length)), stream);
+                                using (var stream = await fs.LoadReadStreamAsync(srcEntry.Path, new(), cancellationToken)) {
+                                    entrySaved = await fs.SaveFileAsync(PathUtils.Combine(destination, srcEntry.Path.Substring(source.Length)), stream, new(), cancellationToken);
                                 }
                                 if (entrySaved == null) {
                                 } else if (compareMethod == CompareMethod.Timestamp) {
@@ -144,8 +146,8 @@ namespace DProjects.Fs.Extensions {
                             logger.LogInformation("updating {path} ...", PathUtils.Combine(destination, srcEntry.Path.Substring(source.Length)));
                             try {
                                 Entry? entrySaved = null;
-                                using (var stream = await fs.LoadReadStreamAsync(srcEntry.Path)) {
-                                    entrySaved = await fs.SaveFileAsync(PathUtils.Combine(destination, srcEntry.Path.Substring(source.Length)), stream);
+                                using (var stream = await fs.LoadReadStreamAsync(srcEntry.Path, new(), cancellationToken)) {
+                                    entrySaved = await fs.SaveFileAsync(PathUtils.Combine(destination, srcEntry.Path.Substring(source.Length)), stream, new(), cancellationToken);
                                 }
                                 if (entrySaved == null) {
                                 } else if (compareMethod == CompareMethod.Timestamp) {

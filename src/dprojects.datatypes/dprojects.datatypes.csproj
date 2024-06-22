@@ -24,5 +24,9 @@
         <PackageIcon></PackageIcon>
     </PropertyGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\DProjects.Utils\DProjects.Utils.csproj" />
+    </ItemGroup>
+
 
 </Project>

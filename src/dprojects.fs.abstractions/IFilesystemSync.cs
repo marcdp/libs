@@ -14,15 +14,15 @@ namespace DProjects.Fs {
         Entry? GetEntry(string path);
         IEnumerable<Entry> GetEntries(string path, GetModes mode = GetModes.All, string? pattern = null);
         bool Exists(string path);
-        Stream LoadReadStream(string path, LoadReadStreamSettings? settings = null);
-        Stream LoadWriteStream(string path, LoadWriteStreamSettings? settings = null);
+        Stream LoadReadStream(string path, LoadReadStreamSettings settings);
+        Stream LoadWriteStream(string path, LoadWriteStreamSettings settings);
 
         //methods LEVEL 1
         bool ExistsDirectory(string path);
         bool ExistsFile(string path);
 
         //methods LEVEL 2
-        Entry SaveFile(string path, Stream stream, SaveFileSettings? settings = null);
+        Entry SaveFile(string path, Stream stream, SaveFileSettings settings);
         Entry CreateDirectory(string path);
         void Delete(string path);
         void Touch(string path, DateTime aDate);
@@ -39,7 +39,6 @@ namespace DProjects.Fs {
         IDictionary<string, string> GetMetadata(string path);
         void SetMetadata(string path, IDictionary<string, string> metadata);
         bool Supports(string path, Features feature);
-
 
     }
 

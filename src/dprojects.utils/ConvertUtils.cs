@@ -1,3 +1,4 @@
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -434,7 +435,7 @@ namespace DProjects.Utils {
             var result = To(aObject, type, true);
             return (T)result!;
         }
-        public static object? To(object? aObject, Type type, bool throwExceptionIfUnableToConvert) {
+        public static object? To(object? aObject, Type type, bool throwExceptionIfUnableToConvert, Func<Type, string, object>? getService = null) {
             if (aObject == null) {
             } else if (aObject.GetType() != type && !aObject.GetType().GetTypeInfo().IsSubclassOf(type)) {             
                 if (type == typeof(DateTime) || type == typeof(DateTime?)) {
@@ -824,19 +825,14 @@ namespace DProjects.Utils {
                         }
                     } else {
                         if (throwExceptionIfUnableToConvert) {
-                            //if (aObject == null) {
-                            //    aObject = null;
-                            //} else if (aObject is string && services != null) {
-                            //    var str = (string)aObject;
-                            //    if (str.Length == 0) {
-                            //        aObject = services.GetRequiredService(type);
-                            //    } else {
-                            //        aObject = services.GetRequiredKeyedService(type, str);
-                            //    }
-                            //} else {
-                            //    throw new ArgumentException("Unable to convert object from type '" + aObject.GetType().Name + "' to type '" + type.Name + "'.");
-                            //}
-                            throw new ArgumentException("Unable to convert object from type '" + aObject.GetType().Name + "' to type '" + type.Name + "'.");
+                            if (aObject == null) {
+                                aObject = null;
+                            } else if (aObject is string && getService != null) {
+                                var str = (string)aObject;
+                                aObject = getService(type, str);
+                            } else {
+                                throw new ArgumentException("Unable to convert object from type '" + aObject.GetType().Name + "' to type '" + type.Name + "'.");
+                            }
                         }
                     }
                 }

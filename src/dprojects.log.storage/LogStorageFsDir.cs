@@ -62,7 +62,7 @@ namespace DProjects.Log.Storage {
             var paths = new List<string>();
             await foreach (var entry in mFilesystem.GetEntriesAsync(mPath, (mRecursive ? GetModes.Descendants : GetModes.Files), "*" + mFileExtension)) {
                 if (entry.IsFile()) {
-                    using (var textReader = new StreamReader(await mFilesystem.LoadReadStreamAsync(entry.Path), mEncoding)) {
+                    using (var textReader = new StreamReader(await mFilesystem.LoadReadStreamAsync(entry.Path, new(), cancellationToken), mEncoding)) {
                         do {
                             var line = await textReader.ReadLineAsync();
                             if (line == null) break;

@@ -62,7 +62,7 @@ namespace DProjects.Fs.Extensions {
                         textWriter.Write(",\"value\":");
                         textWriter.Write("\"");
                         var buffer = new byte[60];
-                        using (var stream = fs.LoadReadStream(entry.Path)) {
+                        using (var stream = fs.LoadReadStream(entry.Path, new())) {
                             do {
                                 var j = stream.Read(buffer, 0, buffer.Length);
                                 if (j == 0) break;

@@ -28,7 +28,7 @@ namespace DProjects.Streams {
 
         //methods
         public override void Flush() {
-            throw new NotImplementedException();
+            //throw new NotImplementedException();
         }
         public override void SetLength(long value) {
             throw new NotImplementedException();

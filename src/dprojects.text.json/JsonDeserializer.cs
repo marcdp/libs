@@ -8,10 +8,17 @@ using System.Text.Json;
 namespace DProjects.Text.Json {
 
 
-    public class JsonDeserializer(JsonDeserializerSettings settings) : DProjects.Serialization.IDeserializer  {
+    public class JsonDeserializer : DProjects.Serialization.IDeserializer  {
+
+        //vars
+        private JsonDeserializerSettings mSettings;
+
+        //Ctor
+        public JsonDeserializer(JsonDeserializerSettings? settings = null) {
+            mSettings = settings ?? new();
+        }
 
         //methods
-
         public T Deserialize<T>(Stream stream, Encoding encoding) {
             return (T)Deserialize<T>(new StreamReader(stream, encoding))!;
         }
@@ -25,15 +32,15 @@ namespace DProjects.Text.Json {
             var options = new JsonSerializerOptions();
             //options.Converters.Add(new JsonConverters.DBTableJsonConverter());
             options.Converters.Add(new JsonConverters.TypeJsonConverter());
-            //options.Converters.Add(new JsonConverters.VOConverter());
+            options.Converters.Add(new JsonConverters.VOConverter());
             options.Converters.Add(new JsonConverters.CultureInfoConverter());
-            options.PropertyNameCaseInsensitive = settings.PropertyNameCaseInsensitive;
-            if (settings.UseIntLaxConverter) options.Converters.Add(new JsonConverters.IntLaxConverter());
-            if (settings.UseBooleanLaxConverter) options.Converters.Add(new JsonConverters.BooleanLaxConverter());
-            if (settings.UseDateTimeLaxConverter) options.Converters.Add(new JsonConverters.DateTimeLaxConverter());
-            options.AllowTrailingCommas = settings.AllowTrailingCommas;
-            options.IncludeFields = settings.IncludeFields;
-            options.PropertyNamingPolicy = settings.NamingPolicy;
+            options.PropertyNameCaseInsensitive = mSettings.PropertyNameCaseInsensitive;
+            if (mSettings.UseIntLaxConverter) options.Converters.Add(new JsonConverters.IntLaxConverter());
+            if (mSettings.UseBooleanLaxConverter) options.Converters.Add(new JsonConverters.BooleanLaxConverter());
+            if (mSettings.UseDateTimeLaxConverter) options.Converters.Add(new JsonConverters.DateTimeLaxConverter());
+            options.AllowTrailingCommas = mSettings.AllowTrailingCommas;
+            options.IncludeFields = mSettings.IncludeFields;
+            options.PropertyNamingPolicy = mSettings.NamingPolicy;
             if (returnType == typeof(JsonDocument)) {
                 return JsonDocument.Parse(json);
             //} else if (returnType == typeof(object[])) {
@@ -79,11 +86,11 @@ namespace DProjects.Text.Json {
                 var value = jsonElement.GetString();
                 if (value == null) {
                     return null;
-                } else if (settings.UseBooleanLaxConverter && (value.Equals("true") || value.Equals("yes") || value.Equals("1"))) {
+                } else if (mSettings.UseBooleanLaxConverter && (value.Equals("true") || value.Equals("yes") || value.Equals("1"))) {
                     return true;
-                } else if (settings.UseBooleanLaxConverter && (value.Equals("false") || value.Equals("no") || value.Equals("0"))) {
+                } else if (mSettings.UseBooleanLaxConverter && (value.Equals("false") || value.Equals("no") || value.Equals("0"))) {
                     return false;
-                } else if (settings.UseDateTimeLaxConverter && DateTimeUtils.TryParse(value, out DateTime valueDateTime)) {
+                } else if (mSettings.UseDateTimeLaxConverter && DateTimeUtils.TryParse(value, out DateTime valueDateTime)) {
                     return valueDateTime;
                 } else {
                     return value;

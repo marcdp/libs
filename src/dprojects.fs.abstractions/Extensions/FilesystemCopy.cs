@@ -28,10 +28,10 @@ namespace DProjects.Fs.Extensions {
                     filesystem.SetMetadata(destination, metadata);
                 }
                 if (settings.Recursive) {
-                    foreach (Entry entryChildsource in filesystem.GetEntries(source)) {
-                        string childPath = PathUtils.Combine(destination, entryChildsource.Name);
+                    foreach (Entry entryChildSource in filesystem.GetEntries(source)) {
+                        string childPath = PathUtils.Combine(destination, entryChildSource.Name);
                         try {
-                            filesystem.CopyRecursive(entryChildsource.Path, childPath, settings, logger);
+                            filesystem.CopyRecursive(entryChildSource.Path, childPath, settings, logger);
                         } catch (TaskCanceledException) {
                             throw;
                         } catch (Exception ex) {
@@ -76,8 +76,8 @@ namespace DProjects.Fs.Extensions {
                     if (filesystem.Supports(source.Path, Features.Metadata) && filesystem.Supports(destination, Features.Metadata)) {
                         metadata = filesystem.GetMetadata(source.Path);
                     }
-                    using (var stream = filesystem.LoadReadStream(source.Path)) {
-                        filesystem.SaveFile(destination, stream);
+                    using (var stream = filesystem.LoadReadStream(source.Path, new())) {
+                        filesystem.SaveFile(destination, stream, new());
                     }
                     if (metadata != null && metadata.Count > 0) {
                         filesystem.SetMetadata(destination, metadata);
@@ -99,7 +99,10 @@ namespace DProjects.Fs.Extensions {
 
         //methods
         public static async Task CopyRecursiveAsync(this IFilesystemAsync filesystem, string source, string destination, CopySettings settings, ILogger<IFilesystem> logger, CancellationToken cancellationToken) {
-            var entrySource = await filesystem.GetEntryAsync(source);
+            var entrySource = await filesystem.GetEntryAsync(source, cancellationToken);
+            //check cancellationToken
+            cancellationToken.ThrowIfCancellationRequested();
+            //action
             if (entrySource == null) {
                 throw new Exception("Unable to copy: not found " + source);
             } else if (entrySource.IsDirectory()) {
@@ -107,7 +110,7 @@ namespace DProjects.Fs.Extensions {
                 if (await filesystem.SupportsAsync(source, Features.Metadata, cancellationToken) && await filesystem.SupportsAsync(destination, Features.Metadata, cancellationToken)) {
                     metadata = await filesystem.GetMetadataAsync(source, cancellationToken);
                 }
-                if (!await filesystem.ExistsDirectoryAsync(destination)) {
+                if (!await filesystem.ExistsDirectoryAsync(destination, cancellationToken)) {
                     logger.LogInformation("Copy {from} to {to}", entrySource.Path, destination);
                     await filesystem.CreateDirectoryAsync(destination, cancellationToken);
                 }
@@ -115,10 +118,10 @@ namespace DProjects.Fs.Extensions {
                     await filesystem.SetMetadataAsync(destination, metadata, cancellationToken);
                 }
                 if (settings.Recursive) {
-                    await foreach (Entry entryChildsource in filesystem.GetEntriesAsync(source)) {
-                        string childPath = PathUtils.Combine(destination, entryChildsource.Name);
+                    await foreach (Entry entryChildSource in filesystem.GetEntriesAsync(source)) {
+                        string childPath = PathUtils.Combine(destination, entryChildSource.Name);
                         try {
-                            await filesystem.CopyRecursiveAsync(entryChildsource.Path, childPath, settings, logger, cancellationToken);
+                            await filesystem.CopyRecursiveAsync(entryChildSource.Path, childPath, settings, logger, cancellationToken);
                         } catch (TaskCanceledException) {
                             throw;
                         } catch (Exception ex) {
@@ -133,7 +136,7 @@ namespace DProjects.Fs.Extensions {
                     logger.LogInformation("Omitting directory {path}", destination);
                 }
             } else {
-                var entryDestination = await filesystem.GetEntryAsync(destination);
+                var entryDestination = await filesystem.GetEntryAsync(destination, cancellationToken);
                 if (entryDestination == null) {
                     await CopyFileRecursiveAsync(filesystem, entrySource, destination, settings, logger, cancellationToken);
                 } else if (!entryDestination.IsDirectory()) {
@@ -142,7 +145,7 @@ namespace DProjects.Fs.Extensions {
                     }
                 } else if (entryDestination.IsDirectory()) {
                     string destinationInDirectory = PathUtils.Combine(destination, PathUtils.GetPathName(source));
-                    var entryDestinationInDirectory = await filesystem.GetEntryAsync(destinationInDirectory);
+                    var entryDestinationInDirectory = await filesystem.GetEntryAsync(destinationInDirectory, cancellationToken);
                     if (entryDestinationInDirectory == null) {
                         await CopyFileRecursiveAsync(filesystem, entrySource, destinationInDirectory, settings, logger, cancellationToken);
                     } else if (!entryDestination.IsDirectory()) {
@@ -158,13 +161,14 @@ namespace DProjects.Fs.Extensions {
         private static async Task CopyFileRecursiveAsync(this IFilesystemAsync filesystem, Entry source, string destination, CopySettings settings, ILogger<IFilesystem> logger, CancellationToken cancellationToken) {
             for (int trie = 0; trie <= settings.Tries - 1; trie++) {
                 logger.LogInformation("Copy {from} to {to}", source.Path, destination);
+                cancellationToken.ThrowIfCancellationRequested();
                 try {
                     IDictionary<string, string>? metadata = null;
                     if (await filesystem.SupportsAsync(source.Path, Features.Metadata, cancellationToken) && await filesystem.SupportsAsync(destination, Features.Metadata, cancellationToken)) {
                         metadata = await filesystem.GetMetadataAsync(source.Path, cancellationToken);
                     }
-                    using (var stream = await filesystem.LoadReadStreamAsync(source.Path)) {
-                        await filesystem.SaveFileAsync(destination, stream);
+                    using (var stream = await filesystem.LoadReadStreamAsync(source.Path, new(), cancellationToken)) {
+                        await filesystem.SaveFileAsync(destination, stream, new(), cancellationToken);
                     }
                     if (metadata != null && metadata.Count > 0) {
                         await filesystem.SetMetadataAsync(destination, metadata, cancellationToken);

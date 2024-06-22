@@ -48,7 +48,7 @@ namespace DProjects.Fs.Extensions {
                     } else {
                         xmlWriter.WriteAttributeString("encoding", "base64");
                         var buffer = new byte[60];
-                        using (var stream = fs.LoadReadStream(entry.Path)) {
+                        using (var stream = fs.LoadReadStream(entry.Path, new())) {
                             do {
                                 var i = stream.Read(buffer, 0, buffer.Length);
                                 if (i == 0) break;

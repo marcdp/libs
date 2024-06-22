@@ -6,7 +6,7 @@ namespace DProjects.Fs {
 
 
         //properties
-        bool IsReadonly { get; }
+        bool IsReadonly { get; set; }
         string Url { get; }
 
     }

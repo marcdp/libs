@@ -58,11 +58,11 @@ namespace DProjects.Fs {
             }
             return entry;
         }
-        public override async Task<Entry?> GetEntryAsync(string path) {
+        public override async Task<Entry?> GetEntryAsync(string path, CancellationToken cancellationToken) {
             //get entry
             var mountPoint = GetMountPoint(ref path);
             if (mountPoint == null) return null;
-            var entry = await mountPoint.Filesystem.GetEntryAsync(PathUtils.Combine(mountPoint.Prefix, path));
+            var entry = await mountPoint.Filesystem.GetEntryAsync(PathUtils.Combine(mountPoint.Prefix, path), cancellationToken);
             if (entry != null) {
                 entry = PrefixPathEntry(mountPoint, entry);
             }
@@ -126,7 +126,7 @@ namespace DProjects.Fs {
                     break;
                 } else if (PathUtils.GetPathParent(mountPoint.Path).Equals(path)) {
                     // root mounts points to list
-                    var entry = await mountPoint.Filesystem.GetEntryAsync(PathUtils.Combine("/", mountPoint.Prefix));
+                    var entry = await mountPoint.Filesystem.GetEntryAsync(PathUtils.Combine("/", mountPoint.Prefix), default);
                     if (entry != null) {
                         entry = PrefixPathEntry(mountPoint, entry);
                         if (mode == GetModes.All ||
@@ -165,30 +165,30 @@ namespace DProjects.Fs {
             if (mountPoint == null) throw new Exception("Mount point not found: " + path);
             return mountPoint.Filesystem.Exists(PathUtils.Combine(mountPoint.Prefix, path));
         }
-        public override async Task<bool> ExistsAsync(string path) {
+        public override async Task<bool> ExistsAsync(string path, CancellationToken cancellationToken) {
             var mountPoint = GetMountPoint(ref path);
             if (mountPoint == null) throw new Exception("Mount point not found: " + path);
-            return await mountPoint.Filesystem.ExistsAsync(PathUtils.Combine(mountPoint.Prefix, path));
+            return await mountPoint.Filesystem.ExistsAsync(PathUtils.Combine(mountPoint.Prefix, path), cancellationToken);
         }
-        public override System.IO.Stream LoadReadStream(string path, LoadReadStreamSettings? settings = null) {
+        public override System.IO.Stream LoadReadStream(string path, LoadReadStreamSettings settings) {
             var mountPoint = GetMountPoint(ref path);
             if (mountPoint == null) throw new Exception("Mount point not found: " + path);
             return mountPoint.Filesystem.LoadReadStream(PathUtils.Combine(mountPoint.Prefix, path), settings);
         }
-        public override async Task<Stream> LoadReadStreamAsync(string path, LoadReadStreamSettings? settings = null) {
+        public override async Task<Stream> LoadReadStreamAsync(string path, LoadReadStreamSettings settings, CancellationToken cancellationToken ) {
             var mountPoint = GetMountPoint(ref path);
             if (mountPoint == null) throw new Exception("Mount point not found: " + path);
-            return await mountPoint.Filesystem.LoadReadStreamAsync(PathUtils.Combine(mountPoint.Prefix, path), settings);
+            return await mountPoint.Filesystem.LoadReadStreamAsync(PathUtils.Combine(mountPoint.Prefix, path), settings, cancellationToken);
         }
-        public override System.IO.Stream LoadWriteStream(string path, LoadWriteStreamSettings? settings = null) {
+        public override System.IO.Stream LoadWriteStream(string path, LoadWriteStreamSettings settings) {
             var mountPoint = GetMountPoint(ref path);
             if (mountPoint == null) throw new Exception("Mount point not found: " + path);
             return mountPoint.Filesystem.LoadWriteStream(PathUtils.Combine(mountPoint.Prefix, path), settings);
         }
-        public override async Task<Stream> LoadWriteStreamAsync(string path, LoadWriteStreamSettings? settings = null) {
+        public override async Task<Stream> LoadWriteStreamAsync(string path, LoadWriteStreamSettings settings, CancellationToken cancellationToken) {
             var mountPoint = GetMountPoint(ref path);
             if (mountPoint == null) throw new Exception("Mount point not found: " + path);
-            return await mountPoint.Filesystem.LoadWriteStreamAsync(PathUtils.Combine(mountPoint.Prefix, path), settings);
+            return await mountPoint.Filesystem.LoadWriteStreamAsync(PathUtils.Combine(mountPoint.Prefix, path), settings, cancellationToken);
         }
 
         //methods LEVEL 1
@@ -197,32 +197,32 @@ namespace DProjects.Fs {
             if (mountPoint == null) throw new Exception("Mount point not found: " + path);
             return mountPoint.Filesystem.ExistsDirectory(PathUtils.Combine(mountPoint.Prefix, path));
         }
-        public override async Task<bool> ExistsDirectoryAsync(string path) {
+        public override async Task<bool> ExistsDirectoryAsync(string path, CancellationToken cancellationToken) {
             var mountPoint = GetMountPoint(ref path);
             if (mountPoint == null) throw new Exception("Mount point not found: " + path);
-            return await mountPoint.Filesystem.ExistsDirectoryAsync(PathUtils.Combine(mountPoint.Prefix, path));
+            return await mountPoint.Filesystem.ExistsDirectoryAsync(PathUtils.Combine(mountPoint.Prefix, path), cancellationToken);
         }
         public override bool ExistsFile(string path) {
             var mountPoint = GetMountPoint(ref path);
             if (mountPoint == null) throw new Exception("Mount point not found: " + path);
             return mountPoint.Filesystem.ExistsFile(PathUtils.Combine(mountPoint.Prefix, path));
         }
-        public override async Task<bool> ExistsFileAsync(string path) {
+        public override async Task<bool> ExistsFileAsync(string path, CancellationToken cancellationToken) {
             var mountPoint = GetMountPoint(ref path);
             if (mountPoint == null) throw new Exception("Mount point not found: " + path);
-            return await mountPoint.Filesystem.ExistsFileAsync(PathUtils.Combine(mountPoint.Prefix, path));
+            return await mountPoint.Filesystem.ExistsFileAsync(PathUtils.Combine(mountPoint.Prefix, path), cancellationToken);
         }
-        public override Entry SaveFile(string path, Stream stream, SaveFileSettings? settings = null) {
+        public override Entry SaveFile(string path, Stream stream, SaveFileSettings settings) {
             var mountPoint = GetMountPoint(ref path);
             if (mountPoint == null) throw new Exception("Mount point not found: " + path);
             var entry = mountPoint.Filesystem.SaveFile(PathUtils.Combine(mountPoint.Prefix, path), stream, settings);
             if (entry == null) throw new NullReferenceException();
             return PrefixPathEntry(mountPoint, entry);
         }
-        public override async Task<Entry> SaveFileAsync(string path, Stream stream, SaveFileSettings? settings = null) {
+        public override async Task<Entry> SaveFileAsync(string path, Stream stream, SaveFileSettings settings, CancellationToken cancellationToken = default) {
             var mountPoint = GetMountPoint(ref path);
             if (mountPoint == null) throw new Exception("Mount point not found: " + path);
-            var entry = await mountPoint.Filesystem.SaveFileAsync(PathUtils.Combine(mountPoint.Prefix, path), stream, settings);
+            var entry = await mountPoint.Filesystem.SaveFileAsync(PathUtils.Combine(mountPoint.Prefix, path), stream, settings, cancellationToken);
             if (entry == null) throw new NullReferenceException();
             return PrefixPathEntry(mountPoint, entry);
         }

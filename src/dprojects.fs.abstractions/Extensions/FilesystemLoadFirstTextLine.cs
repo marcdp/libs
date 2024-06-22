@@ -1,6 +1,7 @@
 
 using System.Text;
 using System.Threading.Tasks;
+using System.Threading;
 
 namespace DProjects.Fs.Extensions {
 
@@ -14,8 +15,8 @@ namespace DProjects.Fs.Extensions {
                 return stream.ReadLine();
             }
         }
-        public static async Task<string> LoadFirstTextLineAsync(this IFilesystemAsync fs, string path, Encoding encoding, int maxLength = 1024) {
-            using (var stream = new System.IO.StreamReader(await fs.LoadReadStreamAsync(path, new LoadReadStreamSettings() { Offset = 0, Length = maxLength }), encoding)) {
+        public static async Task<string> LoadFirstTextLineAsync(this IFilesystemAsync fs, string path, Encoding encoding, int maxLength = 1024, CancellationToken cancellationToken = default) {
+            using (var stream = new System.IO.StreamReader(await fs.LoadReadStreamAsync(path, new LoadReadStreamSettings() { Offset = 0, Length = maxLength }, cancellationToken), encoding)) {
                 return await stream.ReadLineAsync();
             }
         }

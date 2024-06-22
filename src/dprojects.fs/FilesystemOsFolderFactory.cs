@@ -8,7 +8,7 @@ using System.Runtime.InteropServices;
 namespace DProjects.Fs {
 
     [Protocol("os-folder", "")]
-    [ProtocolUsage("os-folder:OS_FOLDER")]
+    [ProtocolUsage("os-folder://OS_FOLDER")]
     [ProtocolExample("os-folder://Desktop", "")]
     [ProtocolExample("os-folder://Desktop/my-folder?isReadonly=true", "")]
     [ProtocolExample("os-folder://MyDocuments", "")]

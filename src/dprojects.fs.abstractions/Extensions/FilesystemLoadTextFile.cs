@@ -2,6 +2,7 @@
 using DProjects.Utils;
 using System.IO;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace DProjects.Fs.Extensions {
@@ -16,8 +17,8 @@ namespace DProjects.Fs.Extensions {
             if (encoding == null) encoding = EncodingUtils.DetectEncoding(buffer);
             return encoding.GetString(buffer);
         }
-        public static async Task<string> LoadTextFileAsync(this IFilesystemAsync fs, string path, Encoding? encoding = null) {
-            var buffer = await fs.LoadBinaryFileAsync(path);
+        public static async Task<string> LoadTextFileAsync(this IFilesystemAsync fs, string path, Encoding? encoding = null, CancellationToken cancellationToken = default) {
+            var buffer = await fs.LoadBinaryFileAsync(path, new(), cancellationToken);
             if (encoding == null) encoding = EncodingUtils.DetectEncoding(buffer);
             return encoding.GetString(buffer);
         }

@@ -28,10 +28,10 @@ namespace DProjects.Cache {
             var keyEncoded = UrlUtils.UrlEncode(entry.Key);
             var tempPath = PathUtils.Combine(path, keyEncoded + ".tmp");
             // create temp file to compute length
-            var tempEntry = await filesystem.SaveFileAsync(tempPath, stream);
+            var tempEntry = await filesystem.SaveFileAsync(tempPath, stream, new(), cancellationToken);
             // write to temp2 file
             var tempPath2 = PathUtils.Combine(path, keyEncoded + ".tmp.2");
-            using (var tempStream2 = await filesystem.LoadWriteStreamAsync(tempPath2)) {
+            using (var tempStream2 = await filesystem.LoadWriteStreamAsync(tempPath2, new(), cancellationToken)) {
                 // set length
                 entry.Headers.Set(HttpUtils.HEADER_CONTENT_LENGTH, tempEntry.Length.ToString());
                 // set date header
@@ -44,14 +44,14 @@ namespace DProjects.Cache {
                 // write headers
                 await HeadersUtils.WriteHttpHeadersAsync(entry.Headers, tempStream2, cancellationToken: cancellationToken);
                 // write content
-                using (var tempStream = await filesystem.LoadReadStreamAsync(tempPath)) {
+                using (var tempStream = await filesystem.LoadReadStreamAsync(tempPath, new(), cancellationToken)) {
                     await tempStream.CopyToAsync(tempStream2);
                 }
             }
             await filesystem.DeleteFileAsync(tempPath, cancellationToken);
             // move file to final path
             var itemPath = PathUtils.Combine(path, keyEncoded + FILE_EXTENSION);
-            if (await filesystem.ExistsFileAsync(itemPath)) await filesystem.DeleteFileAsync(itemPath, cancellationToken);
+            if (await filesystem.ExistsFileAsync(itemPath, cancellationToken)) await filesystem.DeleteFileAsync(itemPath, cancellationToken);
             await filesystem.MoveAsync(tempPath2, itemPath, new MoveSettings(), logger, cancellationToken);
         }
         public async Task<bool> GetAsync(string key, Func<BlobCacheEntry, Stream, Task> action, CancellationToken cancellationToken = default) {
@@ -62,7 +62,7 @@ namespace DProjects.Cache {
             var returned = false;
             if (entry != null) {
                 var expired = false;
-                using (var stream = await filesystem.LoadReadStreamAsync(itemPath)) {
+                using (var stream = await filesystem.LoadReadStreamAsync(itemPath, new(), cancellationToken)) {
                     var blobCacheEntry = new BlobCacheEntry(key, await HeadersUtils.ReadHttpHeadersAsync(stream, cancellationToken: cancellationToken));
                     if (blobCacheEntry.Expires < DateTime.Now) {
                         expired = true;

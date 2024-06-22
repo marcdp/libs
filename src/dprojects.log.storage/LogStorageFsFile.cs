@@ -40,7 +40,7 @@ namespace DProjects.Log.Storage {
             return Task.FromResult(result);
         }
         public async IAsyncEnumerable<LogEntry> QueryAsync(LogStorageQuery query, [EnumeratorCancellation] CancellationToken cancellationToken) {
-            using (var textReader = new StreamReader(await mFilesystem.LoadReadStreamAsync(mPath), mEncoding)) {
+            using (var textReader = new StreamReader(await mFilesystem.LoadReadStreamAsync(mPath, new(), cancellationToken), mEncoding)) {
                 do {
                     var line = await textReader.ReadLineAsync();
                     if (line == null) break;

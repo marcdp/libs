@@ -46,6 +46,7 @@
     <ItemGroup>
       <ProjectReference Include="..\DProjects.Factories.Abstractions\DProjects.Factories.Abstractions.csproj" />
       <ProjectReference Include="..\DProjects.Fs.Abstractions\DProjects.Fs.Abstractions.csproj" />
+      <ProjectReference Include="..\DProjects.Log.Abstractions\DProjects.Log.Abstractions.csproj" />
       <ProjectReference Include="..\DProjects.Log.storage.Abstractions\DProjects.Log.storage.Abstractions.csproj" />
       <ProjectReference Include="..\DProjects.Text.Json\DProjects.Text.Json.csproj" />
     </ItemGroup>

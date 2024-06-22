@@ -26,21 +26,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <Compile Remove="Writers\**" />
-      <EmbeddedResource Remove="Writers\**" />
-      <None Remove="Writers\**" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <Compile Remove="LogFilter.cs" />
-      <Compile Remove="LogMem.cs" />
-      <Compile Remove="LogMemFactory.cs" />
-      <Compile Remove="LogSyslog.cs" />
-      <Compile Remove="LogSyslogFactory.cs" />
-      <Compile Remove="LogWriter.cs" />
-    </ItemGroup>
-
-    <ItemGroup>
         <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="8.0.0" />
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.1" />
     </ItemGroup>

@@ -15,29 +15,28 @@ namespace DProjects.Fs {
 
 
         //variables
-        protected bool mIsReadonly;
         protected bool mIsStarted;
 
 
         //constructor
         protected FilesystemAsync(bool isReadOnly) {
-            mIsReadonly = isReadOnly;
+            IsReadonly = isReadOnly;
         }
         public virtual void Dispose() {
         }
 
 
         //properties
-        public bool IsReadonly => mIsReadonly;
+        public bool IsReadonly { get; set; }
         public bool IsStarted => mIsStarted;
         public abstract string Url { get; }
 
 
         //methods LEVEL 0
         public Entry? GetEntry(string path) {
-            return AsyncUtils.RunSync(async () => await GetEntryAsync(path));
+            return AsyncUtils.RunSync(async () => await GetEntryAsync(path, default));
         }
-        public abstract Task<Entry?> GetEntryAsync(string path);
+        public abstract Task<Entry?> GetEntryAsync(string path, CancellationToken cancellationToken);
         public virtual IEnumerable<Entry> GetEntries(string path, GetModes mode = GetModes.All, string? pattern = null) {
             var iAsyncEnumerator = GetEntriesAsync(path, mode, pattern);
             var enumerable = iAsyncEnumerator.ToEnumerable();
@@ -47,78 +46,52 @@ namespace DProjects.Fs {
         }
         public abstract IAsyncEnumerable<Entry> GetEntriesAsync(string path, GetModes mode = GetModes.All, string? pattern = null);
         public bool Exists(string path) {
-            return AsyncUtils.RunSync(async () => await ExistsAsync(path));
+            return AsyncUtils.RunSync(async () => await ExistsAsync(path, default));
         }
-        public abstract Task<bool> ExistsAsync(string path);
-        public Stream LoadReadStream(string path, LoadReadStreamSettings? settings = null) {
-            return AsyncUtils.RunSync(async () => await LoadReadStreamAsync(path, settings));
+        public abstract Task<bool> ExistsAsync(string path, CancellationToken cancellationToken);
+        public Stream LoadReadStream(string path, LoadReadStreamSettings settings) {
+            return AsyncUtils.RunSync(async () => await LoadReadStreamAsync(path, settings, new()));
         }
-        public abstract Task<Stream> LoadReadStreamAsync(string path, LoadReadStreamSettings? settings = null);
-        public Stream LoadWriteStream(string path, LoadWriteStreamSettings? settings = null) {
-            return AsyncUtils.RunSync(async () => await LoadWriteStreamAsync(path, settings));
+        public abstract Task<Stream> LoadReadStreamAsync(string path, LoadReadStreamSettings settings, CancellationToken cancellationToken);
+        public Stream LoadWriteStream(string path, LoadWriteStreamSettings settings) {
+            return AsyncUtils.RunSync(async () => await LoadWriteStreamAsync(path, settings, default));
         }
-        public virtual Task<Stream> LoadWriteStreamAsync(string path, LoadWriteStreamSettings? settings = null) {
+        public virtual Task<Stream> LoadWriteStreamAsync(string path, LoadWriteStreamSettings settings, CancellationToken cancellationToken) {
             PathUtils.Validate(path);
             if (IsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
-            //settings ??= new LoadWriteStreamSettings();
-            //Exception? exception = null;
-            //var pipeStream = new PipeStream(64 * 1024);
-            //var thread = new Thread(() => {
-            //    try {
-            //        this.SaveFile(path, pipeStream, new() {
-            //            Append = settings.Append
-            //        });
-            //    } catch (Exception e) {
-            //        exception = e;
-            //    }
-            //});
-            //var disposableOutputStream = new DisposableStream(pipeStream, () => {
-            //    thread.Join();
-            //    if (exception != null) throw exception;
-            //});            
-            ////var thread = new Thread(() => {
-            ////    try {
-            ////        this.SaveFile(path, pipeStream, new() { 
-            ////            Append = settings.Append 
-            ////        });
-            ////    } catch (Exception e) {
-            ////        exception = e;
-            ////    }
-            ////});
-            //thread.IsBackground = true;
-            //thread.Start();
-            ////disposableOutputStream.Disposed += (e) => {
-            ////    thread.Join();
-            ////    if (exception != null) throw exception;
-            ////};
-            //return await Task.FromResult(disposableOutputStream);
-            throw new NotImplementedException();
+            settings ??= new LoadWriteStreamSettings();
+            int bufferSize = 8 * 1024;
+            if (settings.Truncate) this.SaveBinaryFile(path, []);
+            if (settings.Append && !Exists(path)) this.SaveBinaryFile(path, []);
+            var result = new SpongeOutputStream(bufferSize, async (stream) => {
+                await this.SaveFileAsync(path, stream, new() { Append = settings.Append }, cancellationToken);
+            });
+            return Task.FromResult<Stream>(result);
         }
-
 
 
         //method1 LEVEL 1
         public bool ExistsFile(string path) {
-            return AsyncUtils.RunSync(async () => await ExistsFileAsync(path));
+            return AsyncUtils.RunSync(async () => await ExistsFileAsync(path, default));
         }
-        public virtual async Task<bool> ExistsFileAsync(string path) {
-            var entry = await GetEntryAsync(path);
+        public virtual async Task<bool> ExistsFileAsync(string path, CancellationToken cancellationToken) {
+            var entry = await GetEntryAsync(path, cancellationToken);
             return ((entry == null || !entry.IsFile()) ? false : true);
         }
         public bool ExistsDirectory(string path) {
-            return AsyncUtils.RunSync(async () => await ExistsDirectoryAsync(path));
+            return AsyncUtils.RunSync(async () => await ExistsDirectoryAsync(path, default));
         }
-        public virtual async Task<bool> ExistsDirectoryAsync(string path) {
-            var entry = await GetEntryAsync(path);
+        public virtual async Task<bool> ExistsDirectoryAsync(string path, CancellationToken cancellationToken) {
+            var entry = await GetEntryAsync(path, cancellationToken);
             return ((entry == null || !entry.IsDirectory()) ? false : true);
         }
 
 
         //methods LEVEL 2
-        public Entry SaveFile(string path, Stream stream, SaveFileSettings? settings = null) {
-            return AsyncUtils.RunSync(async () => await SaveFileAsync(path, stream, settings));
+        public Entry SaveFile(string path, Stream stream, SaveFileSettings settings) {
+            return AsyncUtils.RunSync(async () => await SaveFileAsync(path, stream, settings, default));
         }
-        public abstract Task<Entry> SaveFileAsync(string path, Stream stream, SaveFileSettings? settings = null);
+        public abstract Task<Entry> SaveFileAsync(string path, Stream stream, SaveFileSettings settings, CancellationToken cancellationToken);
         public Entry CreateDirectory(string path) {
             return AsyncUtils.RunSync(async () => await CreateDirectoryAsync(path, default));
         }
@@ -140,7 +113,7 @@ namespace DProjects.Fs {
             AsyncUtils.RunSync(async () => await DeleteFileAsync(path, default));
         }
         public virtual async Task DeleteFileAsync(string path, CancellationToken cancellationToken) {
-            if (await ExistsFileAsync(path)) {
+            if (await ExistsFileAsync(path, cancellationToken)) {
                 await DeleteAsync(path, cancellationToken);
             }
         }    
@@ -148,7 +121,7 @@ namespace DProjects.Fs {
             AsyncUtils.RunSync(async () => await DeleteDirectoryAsync(path, default));
         }
         public virtual async Task DeleteDirectoryAsync(string path, CancellationToken cancellationToken) {
-            if (await ExistsDirectoryAsync(path)) {
+            if (await ExistsDirectoryAsync(path, cancellationToken)) {
                 await DeleteAsync(path, cancellationToken);
             }
         }
@@ -163,7 +136,7 @@ namespace DProjects.Fs {
         }
         public virtual async Task MoveAsync(string source, string destination, MoveSettings settings, ILogger<IFilesystem> logger, CancellationToken cancellationToken) {
             if (IsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
-            var entry = await GetEntryAsync(source);
+            var entry = await GetEntryAsync(source, cancellationToken);
             if (entry == null) {
                 throw new Exception("Unable to move: not found " + source);
             } else if (entry.IsDirectory()) {

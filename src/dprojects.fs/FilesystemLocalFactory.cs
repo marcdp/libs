@@ -15,7 +15,7 @@ namespace DProjects.Fs {
         public IFilesystem Create(string src) {
             var url = new Uri(src);
             var isReadonly = UrlUtils.GetQueryValue<bool>(url.Query, "isReadonly");
-            var create = UrlUtils.GetQueryValue<bool>(url.Query, "create");
+            var init = UrlUtils.GetQueryValue<bool>(url.Query, "init");
             var file = UrlUtils.GetQueryValue<bool>(url.Query, "file");
             var absolutePath = UrlUtils.UrlDecode(url.AbsolutePath);
             if (url.Host == "") {
@@ -33,12 +33,12 @@ namespace DProjects.Fs {
                     if (!System.IO.Path.IsPathRooted(aux)) {
                         aux = System.IO.Path.GetFullPath(System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), aux));
                     }
-                    return new FilesystemLocal(aux, isReadonly, create, file);
+                    return new FilesystemLocal(aux, isReadonly, init, file);
                 } else {
-                    return new FilesystemLocal(absolutePath, isReadonly, create, file);
+                    return new FilesystemLocal(absolutePath, isReadonly, init, file);
                 }
             } else {
-                return new FilesystemLocal("\\\\" + url.Host + absolutePath.Replace("/", "\\"), isReadonly, create, file);
+                return new FilesystemLocal("\\\\" + url.Host + absolutePath.Replace("/", "\\"), isReadonly, init, file);
             }
         }
 

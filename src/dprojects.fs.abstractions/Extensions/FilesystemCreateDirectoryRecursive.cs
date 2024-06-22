@@ -16,7 +16,7 @@ namespace DProjects.Fs.Extensions {
             }
         }
         public async static Task CreateDirectoryRecursiveAsync(this IFilesystemAsync fs, string path, CancellationToken cancellationToken) {
-            if (path.Length > 1 && ! await fs.ExistsDirectoryAsync(path)) {
+            if (path.Length > 1 && ! await fs.ExistsDirectoryAsync(path, cancellationToken)) {
                 await fs.CreateDirectoryRecursiveAsync(PathUtils.GetPathParent(path), cancellationToken);
                 await fs.CreateDirectoryAsync(path, cancellationToken);
             }

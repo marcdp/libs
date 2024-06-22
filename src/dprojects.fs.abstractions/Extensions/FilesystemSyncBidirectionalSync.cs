@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace DProjects.Fs.Extensions {
@@ -142,8 +143,8 @@ namespace DProjects.Fs.Extensions {
                         var entry = fs.CreateDirectory(destination);
                         status.Modify(entry.Path, entry);
                     } else {
-                        using (var stream = fs.LoadReadStream(source.Path)) {
-                            var entry = fs.SaveFile(destination, stream);
+                        using (var stream = fs.LoadReadStream(source.Path, new())) {
+                            var entry = fs.SaveFile(destination, stream, new());
                             status.Modify(entry.Path, entry);
                         }
                     }

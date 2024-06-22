@@ -57,7 +57,7 @@ namespace DProjects.Fs.Extensions {
                     srcEntries.RemoveAt(i);
                 }
             }
-            //dest
+            //dst
             var dstEntriesCache = new Dictionary<string, Entry>(dstEntries.Count);
             foreach (var dstEntry in dstEntries) {
                 dstEntriesCache.Add(dstEntry.Name, dstEntry);
@@ -89,8 +89,8 @@ namespace DProjects.Fs.Extensions {
                             logger.LogInformation("creating {path} ...", PathUtils.Combine(destination, srcEntry.Path.Substring(source.Length)));
                             try {
                                 Entry? entrySaved = null;
-                                using (var stream = fs.LoadReadStream(srcEntry.Path)) {
-                                    entrySaved = fs.SaveFile(PathUtils.Combine(destination, srcEntry.Path.Substring(source.Length)), stream);
+                                using (var stream = fs.LoadReadStream(srcEntry.Path, new())) {
+                                    entrySaved = fs.SaveFile(PathUtils.Combine(destination, srcEntry.Path.Substring(source.Length)), stream, new());
                                 }
                                 if (entrySaved == null) {
                                 } else if (compareMethod == CompareMethod.Timestamp) {
@@ -143,8 +143,8 @@ namespace DProjects.Fs.Extensions {
                             logger.LogInformation("updating {path} ...", PathUtils.Combine(destination, srcEntry.Path.Substring(source.Length)));
                             try {
                                 Entry? entrySaved = null;
-                                using (var stream = fs.LoadReadStream(srcEntry.Path)) {
-                                    entrySaved = fs.SaveFile(PathUtils.Combine(destination, srcEntry.Path.Substring(source.Length)), stream);
+                                using (var stream = fs.LoadReadStream(srcEntry.Path, new())) {
+                                    entrySaved = fs.SaveFile(PathUtils.Combine(destination, srcEntry.Path.Substring(source.Length)), stream, new());
                                 }
                                 if (entrySaved == null) {
                                 } else if (compareMethod == CompareMethod.Timestamp) {

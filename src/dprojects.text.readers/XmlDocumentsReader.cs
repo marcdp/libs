@@ -32,7 +32,7 @@ namespace DProjects.Text.Readers {
                 }
                 return false;
             }
-            public override async Task<bool> ReadAsync() {
+            public override Task<bool> ReadAsync() {
                 if (!mEof && base.Read()) {
                     if (NodeType == XmlNodeType.Element) {
                         mDeep++;
@@ -41,9 +41,9 @@ namespace DProjects.Text.Readers {
                             mEof = true;
                         }
                     }
-                    return true;
+                    return Task.FromResult(true);
                 }
-                return false;
+                return Task.FromResult(false);
             }
         }
 
@@ -76,14 +76,14 @@ namespace DProjects.Text.Readers {
             mMyXmlReader = new MyXmlReader(remainder);
             return xmlDocument;
         }
-        public async Task<XmlDocument?> ReadAsync(CancellationToken cancellationToken) {
-            if (mEof) return null;
+        public Task<XmlDocument?> ReadAsync(CancellationToken cancellationToken) {
+            if (mEof) return Task.FromResult<XmlDocument?>(null);
             var xmlDocument = new XmlDocument();
             xmlDocument.Load(mMyXmlReader);
             var remainder = mMyXmlReader.GetRemainder();
             if (remainder.Peek() == -1) mEof = true;
             mMyXmlReader = new MyXmlReader(remainder);
-            return xmlDocument;
+            return Task.FromResult<XmlDocument?>(xmlDocument);
         }
     }
 

@@ -21,22 +21,7 @@ namespace DProjects.Fs {
         public class Filter {
             public FilterType Type { get; set; } = FilterType.Exclude;
             public string Value { get; set; } = "";
-        }
-        //public class Builder {
-        //    public IFilesystem Filesystem { get; set; }
-        //    public Filter[] Filters { get; set; }
-        //    public StringComparison StringComparison { get; set; }
-        //    public Builder(IFilesystem filesystem) : this(filesystem, new Filter[] { }){
-        //    }
-        //    public Builder(IFilesystem filesystem, Filter[] filters) {
-        //        Filesystem = filesystem;
-        //        Filters = filters;
-        //        StringComparison = StringComparison.Ordinal;
-        //    }
-        //    public FilesystemFilter Build() {
-        //        return new FilesystemFilter(Filesystem, Filters, StringComparison);
-        //    }
-        //}
+        } 
 
 
         //variables
@@ -57,7 +42,10 @@ namespace DProjects.Fs {
 
 
         //properties
-        public bool IsReadonly => mFilesystem.IsReadonly;
+        public bool IsReadonly {
+            get => mFilesystem.IsReadonly;
+            set => mFilesystem.IsReadonly = value; 
+        }
         public bool IsStarted => mIsStarted;
         public string Url {
             get {
@@ -79,9 +67,9 @@ namespace DProjects.Fs {
             if (!path.Equals("/") && IsExcluded(path)) return null;
             return mFilesystem.GetEntry(path);
         }
-        public async Task<Entry?> GetEntryAsync(string path) {
+        public async Task<Entry?> GetEntryAsync(string path, CancellationToken cancellationToken) {
             if (!path.Equals("/") && IsExcluded(path)) return null;
-            return await mFilesystem.GetEntryAsync(path);
+            return await mFilesystem.GetEntryAsync(path, cancellationToken);
         }
         public IEnumerable<Entry> GetEntries(string path, GetModes mode = GetModes.All, string? pattern = null) {
             if (!path.Equals("/") && IsExcluded(path)) yield break;
@@ -101,25 +89,25 @@ namespace DProjects.Fs {
             if (!path.Equals("/") && IsExcluded(path)) return false;
             return mFilesystem.Exists(path);
         }
-        public async Task<bool> ExistsAsync(string path) {
+        public async Task<bool> ExistsAsync(string path, CancellationToken cancellationToken) {
             if (!path.Equals("/") && IsExcluded(path)) return false;
-            return await mFilesystem.ExistsAsync(path);
+            return await mFilesystem.ExistsAsync(path, cancellationToken);
         }
-        public Stream LoadReadStream(string path, LoadReadStreamSettings? settings = null) {
+        public Stream LoadReadStream(string path, LoadReadStreamSettings settings) {
             if (IsExcluded(path)) throw new Exception("Unable to load read stream: path not found: " + path);
             return mFilesystem.LoadReadStream(path, settings);
         }
-        public async Task<Stream> LoadReadStreamAsync(string path, LoadReadStreamSettings? settings = null) {
+        public async Task<Stream> LoadReadStreamAsync(string path, LoadReadStreamSettings settings, CancellationToken cancellationToken) {
             if (IsExcluded(path)) throw new Exception("Unable to load read stream: path not found: " + path);
-            return await mFilesystem.LoadReadStreamAsync(path, settings);
+            return await mFilesystem.LoadReadStreamAsync(path, settings, cancellationToken);
         }
-        public Stream LoadWriteStream(string path, LoadWriteStreamSettings? settings = null) {
+        public Stream LoadWriteStream(string path, LoadWriteStreamSettings settings) {
             if (IsExcluded(path)) throw new Exception("Unable to load write stream: path not found: " + path);
             return mFilesystem.LoadWriteStream(path, settings);
         }
-        public async Task<Stream> LoadWriteStreamAsync(string path, LoadWriteStreamSettings? settings = null) {
+        public async Task<Stream> LoadWriteStreamAsync(string path, LoadWriteStreamSettings settings, CancellationToken cancellationToken) {
             if (IsExcluded(path)) throw new Exception("Unable to load write stream: path not found: " + path);
-            return await mFilesystem.LoadWriteStreamAsync(path, settings);
+            return await mFilesystem.LoadWriteStreamAsync(path, settings, cancellationToken);
         }
 
         //methods LEVEL 1
@@ -127,27 +115,27 @@ namespace DProjects.Fs {
             if (!path.Equals("/") && IsExcluded(path)) return false;
             return mFilesystem.ExistsDirectory(path);
         }
-        public async Task<bool> ExistsDirectoryAsync(string path) {
+        public async Task<bool> ExistsDirectoryAsync(string path, CancellationToken cancellationToken) {
             if (!path.Equals("/") && IsExcluded(path)) return false;
-            return await mFilesystem.ExistsDirectoryAsync(path);
+            return await mFilesystem.ExistsDirectoryAsync(path, cancellationToken);
         }
         public bool ExistsFile(string path) {
             if (IsExcluded(path)) return false;
             return mFilesystem.ExistsFile(path);
         }
-        public async Task<bool> ExistsFileAsync(string path) {
+        public async Task<bool> ExistsFileAsync(string path, CancellationToken cancellationToken) {
             if (IsExcluded(path)) return false;
-            return await mFilesystem.ExistsFileAsync(path);
+            return await mFilesystem.ExistsFileAsync(path, cancellationToken);
         }
 
         //methods LEVEL 2
-        public Entry SaveFile(string path, Stream stream, SaveFileSettings? settings = null) {
+        public Entry SaveFile(string path, Stream stream, SaveFileSettings settings) {
             if (IsExcluded(path)) throw new Exception("Unable to save file: path not found: " + path);
             return mFilesystem.SaveFile(path, stream, settings);
         }
-        public async Task<Entry> SaveFileAsync(string path, Stream stream, SaveFileSettings? settings = null) {
+        public async Task<Entry> SaveFileAsync(string path, Stream stream, SaveFileSettings settings, CancellationToken cancellationToken = default) {
             if (IsExcluded(path)) throw new Exception("Unable to save file: path not found: " + path);
-            return await mFilesystem.SaveFileAsync(path, stream, settings);
+            return await mFilesystem.SaveFileAsync(path, stream, settings, cancellationToken);
         }
         public Entry CreateDirectory(string path) {
             if (IsExcluded(path)) throw new Exception("Unable to create directory: path not found: " + path);

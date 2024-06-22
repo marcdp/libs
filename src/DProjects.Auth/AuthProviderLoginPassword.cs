@@ -20,8 +20,9 @@ namespace DProjects.Auth {
                 var login = request.Headers[HEADER_LOGIN];
                 var password = request.Headers[HEADER_PASSWORD];
                 if (login.Equals("demo") && password.Equals("1234")) {
-                    var identity = new Identity("demo", AUTH_TYPE, true, new string[] { "admin" }, new Dictionary<string, string>());
-                    return AuthResponse.Success(identity);
+                    //var identity = new AuthUser("demo", AUTH_TYPE, true, new string[] { "admin" }, new Dictionary<string, string>());
+                    //return AuthResponse.Success(identity);
+                    throw new NotImplementedException();
                 }
                 return AuthResponse.Failure();
             }

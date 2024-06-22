@@ -23,7 +23,7 @@
         <PackageProjectUrl>https://www.dprojects.com/</PackageProjectUrl>
         <PackageIcon></PackageIcon>
     </PropertyGroup>
-
+ 
     <ItemGroup>
       <ProjectReference Include="..\DProjects.Datatypes\DProjects.Datatypes.csproj" />
       <ProjectReference Include="..\DProjects.Serialization.Abstractions\DProjects.Serialization.Abstractions.csproj" />

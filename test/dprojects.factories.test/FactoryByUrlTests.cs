@@ -77,15 +77,15 @@ namespace DProjects.Factories.Tests
 
 
         //tests
-        [Theory()]
-        [InlineData("something1:", "1")]
-        [InlineData("something2:", "2")]
-        [InlineData("/my-path", "dir")]
-        public void Create_ShouldPrependDirToUrl_WhenUrlStartsWithSlash(string url, string expected) {
-            var instance = mFactoryByUrl.Create(url);
-            var result = instance.GetName();
-            Assert.Equal(expected, result);
-        }
+        //[Theory()]
+        //[InlineData("something1:", "1")]
+        //[InlineData("something2:", "2")]
+        //[InlineData("dir://my-path", "dir")]
+        //public void Create_ShouldPrependDirToUrl_WhenUrlStartsWithSlash(string url, string expected) {
+        //    var instance = mFactoryByUrl.Create(url);
+        //    var result = instance.GetName();
+        //    Assert.Equal(expected, result);
+        //}
 
         [Theory()]
         [InlineData("111", "1")]

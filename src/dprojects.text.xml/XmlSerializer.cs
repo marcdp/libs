@@ -67,44 +67,41 @@ namespace DProjects.Text.Xml {
             if (nodeName != null) {
                 xmlWriter.WriteStartElement(nodeName);
             } else {
-                //if (instance is VO) { 
-                //    xmlWriter.WriteStartElement("vo");
-                //} else {
-                //    var typeName = settings.ProcessName(instance.GetType().Name);
-                //    xmlWriter.WriteStartElement(typeName);
-                //}
-                var typeName = settings.ProcessName(instance.GetType().Name);
-                xmlWriter.WriteStartElement(typeName);
+                if (instance is VO) {
+                    xmlWriter.WriteStartElement("vo");
+                } else {
+                    var typeName = settings.ProcessName(instance.GetType().Name);
+                    xmlWriter.WriteStartElement(typeName);
+                }                
             }
-            //if (instance is VO) {
-            //    var vo = (VO)instance;
-            //    foreach (var key in vo.Keys) {
-            //        if (key == null) continue;
-            //        if (!key.Equals(settings.ContentPropertyName)) {
-            //            var attributeName = (string)key;
-            //            var attributeValue = SerializeAttributeValue(vo[attributeName], settings);
-            //            if (attributeValue != null) xmlWriter.WriteAttributeString(attributeName, attributeValue);
-            //        }
-            //    }
-            //    foreach (var key in vo.Keys) {
-            //        if (key.Equals(settings.ContentPropertyName)) {
-            //            var content = vo[key];
-            //            if (content != null) xmlWriter.WriteString(content.ToString());
-            //        }
-            //    }
-            //} else 
-            if (instance is IDictionary<string, object?>) {
-                var vo = (IDictionary<string, object?>)instance;
+            if (instance is VO) {
+                var vo = (VO)instance;
                 foreach (var key in vo.Keys) {
                     if (key == null) continue;
-                    if (!key.Equals(settings.ContentPropertyName)) {
+                    if (!key.Equals(settings.ContentPropertyName, StringComparison.OrdinalIgnoreCase)) {
                         var attributeName = (string)key;
                         var attributeValue = SerializeAttributeValue(vo[attributeName], true);
                         if (attributeValue != null) xmlWriter.WriteAttributeString(attributeName, attributeValue);
                     }
                 }
                 foreach (var key in vo.Keys) {
-                    if (key.Equals(settings.ContentPropertyName)) {
+                    if (key.Equals(settings.ContentPropertyName, StringComparison.OrdinalIgnoreCase)) {
+                        var content = vo[key];
+                        if (content != null) xmlWriter.WriteString(content.ToString());
+                    }
+                }
+            } else if (instance is IDictionary<string, object?>) {
+                var vo = (IDictionary<string, object?>)instance;
+                foreach (var key in vo.Keys) {
+                    if (key == null) continue;
+                    if (!key.Equals(settings.ContentPropertyName, StringComparison.OrdinalIgnoreCase)) {
+                        var attributeName = (string)key;
+                        var attributeValue = SerializeAttributeValue(vo[attributeName], true);
+                        if (attributeValue != null) xmlWriter.WriteAttributeString(attributeName, attributeValue);
+                    }
+                }
+                foreach (var key in vo.Keys) {
+                    if (key.Equals(settings.ContentPropertyName, StringComparison.OrdinalIgnoreCase)) {
                         var content = vo[key];
                         if (content != null) xmlWriter.WriteString(content.ToString());
                     }
@@ -140,7 +137,7 @@ namespace DProjects.Text.Xml {
                 foreach (var propertyInfo in propertyInfos.ToArray()) {
                     var attributeName = settings.ProcessName(propertyInfo.Name);
                     if (!settings.IsSerializable(instance, propertyInfo)) {
-                    } else if (propertyInfo.Name.Equals(settings.ContentPropertyName)) {
+                    } else if (propertyInfo.Name.Equals(settings.ContentPropertyName, StringComparison.OrdinalIgnoreCase)) {
                     } else if (propertyInfo.PropertyType.IsValueType || propertyInfo.PropertyType.IsEnum || propertyInfo.PropertyType == typeof(string) || propertyInfo.PropertyType == typeof(DateTime) || propertyInfo.PropertyType == typeof(Type) || propertyInfo.PropertyType == typeof(object)) {
                         var value = propertyInfo.GetValue(instance);
                         var attributeValue = SerializeAttributeValue(value, false);
@@ -174,7 +171,7 @@ namespace DProjects.Text.Xml {
                 //arrays
                 foreach (var propertyInfo in propertyInfos.ToArray()) {
                     if (!settings.IsSerializable(instance, propertyInfo)) {
-                    } else if (propertyInfo.Name.Equals(settings.ContentPropertyName)) {
+                    } else if (propertyInfo.Name.Equals(settings.ContentPropertyName, StringComparison.OrdinalIgnoreCase)) {
                     } else if (propertyInfo.PropertyType.IsArray) {
                         //array
                         var value = propertyInfo.GetValue(instance);
@@ -238,7 +235,7 @@ namespace DProjects.Text.Xml {
                 }
                 //text
                 foreach (var propertyInfo in propertyInfos) {
-                    if (propertyInfo.Name.Equals(settings.ContentPropertyName)) {
+                    if (propertyInfo.Name.Equals(settings.ContentPropertyName, StringComparison.OrdinalIgnoreCase)) {
                         var value = propertyInfo.GetValue(instance);
                         var textValue = SerializeAttributeValue(value, false);
                         if (textValue != null) {

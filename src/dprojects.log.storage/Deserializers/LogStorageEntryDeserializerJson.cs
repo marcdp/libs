@@ -1,9 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Text.Json;
-using static System.Net.Mime.MediaTypeNames;
-using System.Text.Json.Nodes;
-using System.Linq;
 using DProjects.Utils;
 
 
@@ -17,7 +13,10 @@ namespace DProjects.Log.Storage.Serializers {
         //methods
         public LogEntry Deserialize(string line) {
             var logEntry = new LogEntry();
-            var jsonDeserializer = new DProjects.Text.Json.JsonDeserializer(new());
+            var jsonDeserializer = new DProjects.Text.Json.JsonDeserializer(new() {
+                UseDateTimeLaxConverter = true,
+            });
+            //var entry = jsonDeserializer.Deserialize<LogEntry>(line);
             var dict = jsonDeserializer.Deserialize<IDictionary<string, object?>>(line);
             //date
             foreach (var key in new string[] { "date", "timestamp", "StartUTC", "time" }) {
@@ -41,7 +40,7 @@ namespace DProjects.Log.Storage.Serializers {
                         logEntry.Level = LogLevel.Warning;
                     } else if ("error".Equals((string)value, StringComparison.OrdinalIgnoreCase) || "err".Equals((string)value, StringComparison.OrdinalIgnoreCase)) {
                         logEntry.Level = LogLevel.Error;
-                    } else if ("datal".Equals((string)value, StringComparison.OrdinalIgnoreCase) || "severe".Equals((string)value, StringComparison.OrdinalIgnoreCase) || "sev".Equals((string)value, StringComparison.OrdinalIgnoreCase)) {
+                    } else if ("fatal".Equals((string)value, StringComparison.OrdinalIgnoreCase) || "severe".Equals((string)value, StringComparison.OrdinalIgnoreCase) || "sev".Equals((string)value, StringComparison.OrdinalIgnoreCase)) {
                         logEntry.Level = LogLevel.Fatal;
                     } else {
                         logEntry.Level = LogLevel.Custom;
@@ -93,7 +92,13 @@ namespace DProjects.Log.Storage.Serializers {
                 }
             }
             //fields
-            logEntry.Fields = dict;
+            if (dict.TryGetValue("fields", out object? fields)) {
+                if (fields == null) {
+                } else {
+                    logEntry.Fields = (IDictionary<string, object?>)fields;
+                }
+                dict.Remove("fields");
+            }
             //return
             return logEntry;
         }

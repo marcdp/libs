@@ -12,20 +12,20 @@ namespace DProjects.Fs {
 
 
         //methods LEVEL 0
-        Task<Entry?> GetEntryAsync(string path);
+        Task<Entry?> GetEntryAsync(string path, CancellationToken cancellationToken);
         IAsyncEnumerable<Entry> GetEntriesAsync(string path, GetModes mode = GetModes.All, string? pattern = null);
-        Task<bool> ExistsAsync(string path);
-        Task<Stream> LoadReadStreamAsync(string path, LoadReadStreamSettings? settings = null);
-        Task<Stream> LoadWriteStreamAsync(string path, LoadWriteStreamSettings? settings = null);
+        Task<bool> ExistsAsync(string path, CancellationToken cancellationToken);
+        Task<Stream> LoadReadStreamAsync(string path, LoadReadStreamSettings settings, CancellationToken cancellationToken);
+        Task<Stream> LoadWriteStreamAsync(string path, LoadWriteStreamSettings settings, CancellationToken cancellationToken);
 
 
         //methods LEVEL 1
-        Task<bool> ExistsDirectoryAsync(string path);
-        Task<bool> ExistsFileAsync(string path);
+        Task<bool> ExistsDirectoryAsync(string path, CancellationToken cancellationToken);
+        Task<bool> ExistsFileAsync(string path, CancellationToken cancellationToken);
 
 
         //methods LEVEL 2
-        Task<Entry> SaveFileAsync(string path, Stream stream, SaveFileSettings? settings = null);
+        Task<Entry> SaveFileAsync(string path, Stream stream, SaveFileSettings settings, CancellationToken cancellationToken);
         Task<Entry> CreateDirectoryAsync(string path, CancellationToken cancellationToken);
         Task DeleteAsync(string path, CancellationToken cancellationToken);
         Task TouchAsync(string path, DateTime aDate, CancellationToken cancellationToken);

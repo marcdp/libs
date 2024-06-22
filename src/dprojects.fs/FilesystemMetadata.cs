@@ -27,7 +27,10 @@ namespace DProjects.Fs {
 
 
         //properties
-        public bool IsReadonly => mFilesystem.IsReadonly;
+        public bool IsReadonly {
+            get => mFilesystem.IsReadonly;
+            set => mFilesystem.IsReadonly = value;
+        }
         public string Url => "metadata:" + mFilesystem.Url;
 
 
@@ -36,9 +39,9 @@ namespace DProjects.Fs {
             if (path.EndsWith(mSuffix)) return null;
             return mFilesystem.GetEntry(path);
         }
-        public async Task<Entry?> GetEntryAsync(string path) {
+        public async Task<Entry?> GetEntryAsync(string path, CancellationToken cancellationToken) {
             if (path.EndsWith(mSuffix)) return null;
-            return await mFilesystem.GetEntryAsync(path);
+            return await mFilesystem.GetEntryAsync(path, cancellationToken);
         }
         public IEnumerable<Entry> GetEntries(string path, GetModes mode = GetModes.All, string? pattern = null) {
             if (path.EndsWith(mSuffix)) throw new Exception("Unable to get entries: path not found: " + path);
@@ -62,25 +65,25 @@ namespace DProjects.Fs {
             if (path.EndsWith(mSuffix)) return false;
             return mFilesystem.Exists(path);
         }
-        public async Task<bool> ExistsAsync(string path) {
+        public async Task<bool> ExistsAsync(string path, CancellationToken cancellationToken) {
             if (path.EndsWith(mSuffix)) return false;
-            return await mFilesystem.ExistsAsync(path);
+            return await mFilesystem.ExistsAsync(path, cancellationToken);
         }
-        public Stream LoadReadStream(string path, LoadReadStreamSettings? settings = null) {
+        public Stream LoadReadStream(string path, LoadReadStreamSettings settings) {
             if (path.EndsWith(mSuffix)) throw new Exception("Unable to load read stream: path not found: " + path);
             return mFilesystem.LoadReadStream(path, settings);
         }
-        public async Task<Stream> LoadReadStreamAsync(string path, LoadReadStreamSettings? settings = null) {
+        public async Task<Stream> LoadReadStreamAsync(string path, LoadReadStreamSettings settings, CancellationToken cancellationToken) {
             if (path.EndsWith(mSuffix)) throw new Exception("Unable to load read stream: path not found: " + path);
-            return await mFilesystem.LoadReadStreamAsync(path, settings);
+            return await mFilesystem.LoadReadStreamAsync(path, settings, cancellationToken);
         }
-        public Stream LoadWriteStream(string path, LoadWriteStreamSettings? settings = null) {
+        public Stream LoadWriteStream(string path, LoadWriteStreamSettings settings) {
             if (path.EndsWith(mSuffix)) throw new Exception("Unable to load write stream: path not found: " + path);
             return mFilesystem.LoadWriteStream(path, settings);
         }
-        public async Task<Stream> LoadWriteStreamAsync(string path, LoadWriteStreamSettings? settings = null) {
+        public async Task<Stream> LoadWriteStreamAsync(string path, LoadWriteStreamSettings settings, CancellationToken cancellationToken) {
             if (path.EndsWith(mSuffix)) throw new Exception("Unable to load write stream: path not found: " + path);
-            return await mFilesystem.LoadWriteStreamAsync(path, settings);
+            return await mFilesystem.LoadWriteStreamAsync(path, settings, cancellationToken);
         }
 
 
@@ -89,27 +92,27 @@ namespace DProjects.Fs {
             if (path.EndsWith(mSuffix)) return false;
             return mFilesystem.ExistsDirectory(path);
         }
-        public async Task<bool> ExistsDirectoryAsync(string path) {
+        public async Task<bool> ExistsDirectoryAsync(string path, CancellationToken cancellationToken) {
             if (path.EndsWith(mSuffix)) return false;
-            return await mFilesystem.ExistsDirectoryAsync(path);
+            return await mFilesystem.ExistsDirectoryAsync(path, cancellationToken);
         }
         public bool ExistsFile(string path) {
             if (path.EndsWith(mSuffix)) return false;
             return mFilesystem.ExistsFile(path);
         }
-        public async Task<bool> ExistsFileAsync(string path) {
+        public async Task<bool> ExistsFileAsync(string path, CancellationToken cancellationToken) {
             if (path.EndsWith(mSuffix)) return false;
-            return await mFilesystem.ExistsFileAsync(path);
+            return await mFilesystem.ExistsFileAsync(path, cancellationToken);
         }
 
 
         //methds LEVEL 2
-        public Entry SaveFile(string path, Stream stream, SaveFileSettings? settings = null) {
+        public Entry SaveFile(string path, Stream stream, SaveFileSettings settings) {
             if (path.EndsWith(mSuffix)) throw new Exception("Unable to save file: path invalid: " + path);
             return mFilesystem.SaveFile(path, stream, settings);
         }
-        public async Task<Entry> SaveFileAsync(string path, Stream stream, SaveFileSettings? settings = null) {
-            return await mFilesystem.SaveFileAsync(path, stream, settings);
+        public async Task<Entry> SaveFileAsync(string path, Stream stream, SaveFileSettings settings, CancellationToken cancellationToken) {
+            return await mFilesystem.SaveFileAsync(path, stream, settings, cancellationToken);
         }
         public Entry CreateDirectory(string path) {
             if (path.EndsWith(mSuffix)) throw new Exception("Unable to create directory: path invalid: " + path);
@@ -127,7 +130,7 @@ namespace DProjects.Fs {
         public async Task DeleteAsync(string path, CancellationToken cancellationToken) {
             if (path.EndsWith(mSuffix)) throw new Exception("Unable to delete directory: path not found: " + path);
             await mFilesystem.DeleteAsync(path, cancellationToken);
-            if (await mFilesystem.ExistsFileAsync(path + mSuffix)) await mFilesystem.DeleteFileAsync(path + mSuffix, cancellationToken);
+            if (await mFilesystem.ExistsFileAsync(path + mSuffix, cancellationToken)) await mFilesystem.DeleteFileAsync(path + mSuffix, cancellationToken);
         }
         public void Touch(string path, DateTime aDate) {
             if (path.EndsWith(mSuffix)) throw new Exception("Unable to touch directory: path not found: " + path);
@@ -170,7 +173,7 @@ namespace DProjects.Fs {
             if (source.EndsWith(mSuffix)) throw new Exception("Unable to copy: path not found: " + source);
             if (destination.EndsWith(mSuffix)) throw new Exception("Unable to copy: path not found: " + destination);
             await mFilesystem.CopyAsync(source, destination, settings, logger, cancellationToken);
-            if (await mFilesystem.ExistsFileAsync(source + mSuffix)) await mFilesystem.CopyAsync(source + mSuffix, destination + mSuffix, settings, logger, cancellationToken);
+            if (await mFilesystem.ExistsFileAsync(source + mSuffix, cancellationToken)) await mFilesystem.CopyAsync(source + mSuffix, destination + mSuffix, settings, logger, cancellationToken);
         }
         public void Move(string source, string destination, MoveSettings settings, ILogger<IFilesystem> logger) {
             if (source.EndsWith(mSuffix)) throw new Exception("Unable to move: path not found: " + source);
