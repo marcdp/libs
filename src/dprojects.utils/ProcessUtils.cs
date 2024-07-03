@@ -133,7 +133,16 @@ namespace DProjects.Utils {
                 }
             }
             return result;
-        } 
+        }
+        public static void ShellExecute(string command, string verb = "open") {
+            var startInfo = new System.Diagnostics.ProcessStartInfo(command);
+            startInfo.UseShellExecute = true;
+            System.Diagnostics.Process.Start(startInfo);
+        }
+        public static void Kill(int pid) {
+            var process = System.Diagnostics.Process.GetProcessById(pid);
+            process.Kill();
+        }
     }
 
 }

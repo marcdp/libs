@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
+using System.Threading;
 
 namespace DProjects.Db.Writers {
 
@@ -65,11 +66,11 @@ namespace DProjects.Db.Writers {
 
 
         //async methods
-        public async Task WriteAsync(DBRow row) {
+        public async Task WriteAsync(DBRow row, CancellationToken cancellationToken) {
             await WriteAsync(row.Values);
         }
-        public async Task WriteAsync(IDictionary<string, object?> row) {
-            await WriteAsync(new DBRow(mTable, row).Values);
+        public async Task WriteAsync(IDictionary<string, object?> row, CancellationToken cancellationToken) {
+            await WriteAsync(new DBRow(mTable, row).Values, default);
         }
         public async Task WriteAsync(params object?[] values) {
             await mWriter.WriteAsync((mCount++ > 0 ? "|" : "") + GetRow(values));

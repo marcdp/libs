@@ -98,8 +98,21 @@ namespace DProjects.Db.Readers {
         public bool Read(object?[] values) {
             throw new NotImplementedException();
         }
-        public Task<DBRow?> ReadAsync(CancellationToken cancellationToken = default) {
-            throw new NotImplementedException();
+        public async Task<DBRow?> ReadAsync(CancellationToken cancellationToken = default) {
+            string? line = null;
+            do {
+                line = (line == null ? await mReader.ReadLineAsync() : line + "\n" + await mReader.ReadLineAsync());
+                if (line == null) return null;
+            } while (line.Length < mLineLength);
+            List<string> values = new List<string>();
+            int i = 0;
+            foreach (int colWidth in mColWidths) {
+                string value = line.Substring(i, colWidth);
+                value = value.Trim();
+                i += colWidth + 2;
+                values.Add(value);
+            }
+            return new DBRow(mTable, values.ToArray());
         }
         public Task<bool> ReadAsync(object?[] values, CancellationToken cancellationToken = default) {
             throw new NotImplementedException();

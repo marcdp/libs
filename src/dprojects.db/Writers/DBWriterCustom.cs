@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
+using System.Threading;
 
 namespace DProjects.Db.Writers {
 
@@ -67,10 +68,10 @@ namespace DProjects.Db.Writers {
         }
 
         //async methods
-        public async Task WriteAsync(DBRow row) {
+        public async Task WriteAsync(DBRow row, CancellationToken cancellationToken) {
             await mWriter.WriteLineAsync(mWriteDelegate(row));
         }
-        public async Task WriteAsync(IDictionary<string, object?> row) {
+        public async Task WriteAsync(IDictionary<string, object?> row, CancellationToken cancellationToken) {
             await mWriter.WriteLineAsync(mWriteDelegate(new DBRow(mTable, row)));
         }
         public async Task WriteAsync(params object?[] values) {

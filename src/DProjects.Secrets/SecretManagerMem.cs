@@ -30,8 +30,7 @@ namespace DProjects.Secrets {
             }
             return Task.FromResult(!mSealed);
         }
-        public Task Seal(string? password, CancellationToken cancellationToken) {
-            mPassword = password ?? mPassword;
+        public Task Seal(CancellationToken cancellationToken) {
             mSealed = true;
             return Task.CompletedTask;
         }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Threading;
 
 namespace DProjects.Db {
 
@@ -18,8 +19,8 @@ namespace DProjects.Db {
 
         //async methods
         Task WriteAsync(params object?[] values);
-        Task WriteAsync(DBRow row);
-        Task WriteAsync(IDictionary<string, object?> row);
+        Task WriteAsync(DBRow row, CancellationToken cancellationToken);
+        Task WriteAsync(IDictionary<string, object?> row, CancellationToken cancellationToken);
         Task FlushAsync();
 
     }

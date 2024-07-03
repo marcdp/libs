@@ -54,11 +54,11 @@ namespace DProjects.Cache {
             if (await filesystem.ExistsFileAsync(itemPath, cancellationToken)) await filesystem.DeleteFileAsync(itemPath, cancellationToken);
             await filesystem.MoveAsync(tempPath2, itemPath, new MoveSettings(), logger, cancellationToken);
         }
-        public async Task<bool> GetAsync(string key, Func<BlobCacheEntry, Stream, Task> action, CancellationToken cancellationToken = default) {
+        public async Task<bool> GetAsync(string key, Func<BlobCacheEntry, Stream, Task> action, CancellationToken cancellationToken) {
             //get blob
             var keyEncoded = UrlUtils.UrlEncode(key);
             var itemPath = PathUtils.Combine(path, keyEncoded + FILE_EXTENSION);
-            var entry = await filesystem.GetEntryAsync(itemPath);
+            var entry = await filesystem.GetEntryAsync(itemPath, cancellationToken);
             var returned = false;
             if (entry != null) {
                 var expired = false;

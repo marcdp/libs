@@ -33,7 +33,7 @@ namespace DProjects.Secrets {
         public Task<bool> Unseal(string pass, CancellationToken cancellationToken) {
             return Task.FromResult(false);
         }
-        public Task Seal(string? password, CancellationToken cancellationToken) {
+        public Task Seal(CancellationToken cancellationToken) {
             return Task.CompletedTask;
         }
 

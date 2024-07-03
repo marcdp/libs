@@ -64,19 +64,19 @@ namespace DProjects.Fs.Test {
             }
         }
         protected async Task CreateFilesystemStructureAsync() {
-            if (await mFilesystem.ExistsDirectoryAsync(mPathPrefix)) {
+            if (await mFilesystem.ExistsDirectoryAsync(mPathPrefix, default)) {
                 await mFilesystem.DeleteDirectoryAsync(mPathPrefix, default);
             }
             await mFilesystem.CreateDirectoryAsync(mPathPrefix, default);
             mFolders = 5;
             mFilesPerFolder = 3;
             for (int j = 0; j <= mFilesPerFolder - 1; j++) {
-                await mFilesystem.SaveTextFileAsync(PathUtils.Combine("/test", "file" + j + ".txt"), mFileContent, System.Text.Encoding.UTF8);
+                await mFilesystem.SaveTextFileAsync(PathUtils.Combine("/test", "file" + j + ".txt"), mFileContent, System.Text.Encoding.UTF8, default);
             }
             for (int i = 0; i <= mFolders - 1; i++) {
                 await mFilesystem.CreateDirectoryAsync(PathUtils.Combine(mPathPrefix, "folder" + i), default);
                 for (int j = 0; j <= mFilesPerFolder - 1; j++) {
-                    await mFilesystem.SaveTextFileAsync(PathUtils.Combine("/test", "folder" + i, "file" + j + ".txt"), mFileContent, System.Text.Encoding.UTF8);
+                    await mFilesystem.SaveTextFileAsync(PathUtils.Combine("/test", "folder" + i, "file" + j + ".txt"), mFileContent, System.Text.Encoding.UTF8, default);
                 }
             }
         }
@@ -225,7 +225,7 @@ namespace DProjects.Fs.Test {
             if (!mFilesystem.IsReadonly) {
                 await CreateFilesystemStructureAsync();
                 //check /test
-                var entry = await mFilesystem.GetEntryAsync(mPathPrefix);
+                var entry = await mFilesystem.GetEntryAsync(mPathPrefix, default);
                 Assert.NotNull(entry);
                 Assert.Equal(entry.Path, mPathPrefix);
                 Assert.Equal(0, entry.Length);
@@ -233,7 +233,7 @@ namespace DProjects.Fs.Test {
                 Assert.Empty(entry.Etag);
                 Assert.Equal(entry.Name, PathUtils.GetPathName(mPathPrefix));
                 //check /test/folder1
-                entry = await mFilesystem.GetEntryAsync(PathUtils.Combine(mPathPrefix, "folder0"));
+                entry = await mFilesystem.GetEntryAsync(PathUtils.Combine(mPathPrefix, "folder0"), default);
                 Assert.NotNull(entry);
                 Assert.Equal(entry.Path, PathUtils.Combine(mPathPrefix, "folder0"));
                 Assert.Equal(0, entry.Length);
@@ -241,7 +241,7 @@ namespace DProjects.Fs.Test {
                 Assert.Empty(entry.Etag);
                 Assert.Equal("folder0", entry.Name);
                 //check /test/file0
-                entry = await mFilesystem.GetEntryAsync(PathUtils.Combine(mPathPrefix, "file0.txt"));
+                entry = await mFilesystem.GetEntryAsync(PathUtils.Combine(mPathPrefix, "file0.txt"), default);
                 Assert.NotNull(entry);
                 Assert.Equal(entry.Path, PathUtils.Combine(mPathPrefix, "file0.txt"));
                 Assert.Equal(entry.Length, System.Text.Encoding.UTF8.GetBytes(mFileContent).Length);
@@ -249,7 +249,7 @@ namespace DProjects.Fs.Test {
                 Assert.NotEmpty(entry.Etag);
                 Assert.Equal("file0.txt", entry.Name);
                 //check /test/folder0/file0
-                entry = await mFilesystem.GetEntryAsync(PathUtils.Combine(mPathPrefix, "folder0", "file0.txt"));
+                entry = await mFilesystem.GetEntryAsync(PathUtils.Combine(mPathPrefix, "folder0", "file0.txt"), default);
                 Assert.NotNull(entry);
                 Assert.Equal(entry.Path, PathUtils.Combine(PathUtils.Combine(mPathPrefix, "folder0"), "file0.txt"));
                 Assert.Equal(entry.Length, System.Text.Encoding.UTF8.GetBytes(mFileContent).Length);
@@ -257,14 +257,14 @@ namespace DProjects.Fs.Test {
                 Assert.NotEmpty(entry.Etag);
                 Assert.Equal("file0.txt", entry.Name);
                 //check get unexistent file /test/xxxxx
-                entry = await mFilesystem.GetEntryAsync(PathUtils.Combine(mPathPrefix, System.Guid.NewGuid().ToString()));
+                entry = await mFilesystem.GetEntryAsync(PathUtils.Combine(mPathPrefix, System.Guid.NewGuid().ToString()), default);
                 Assert.Null(entry);
                 //check get unexistent file /test/folder0/xxxxx
-                entry = await mFilesystem.GetEntryAsync(PathUtils.Combine(mPathPrefix, "folder0", Guid.NewGuid().ToString()));
+                entry = await mFilesystem.GetEntryAsync(PathUtils.Combine(mPathPrefix, "folder0", Guid.NewGuid().ToString()), default);
                 Assert.Null(entry);
             }
             //get root entry
-            var objRootEntry = await mFilesystem.GetEntryAsync("/");
+            var objRootEntry = await mFilesystem.GetEntryAsync("/", default);
             Assert.NotNull(objRootEntry);
             Assert.Equal("/", objRootEntry.Path);
             Assert.Equal(0, objRootEntry.Length);
@@ -308,33 +308,33 @@ namespace DProjects.Fs.Test {
             if (!mFilesystem.IsReadonly) {
                 await CreateFilesystemStructureAsync();
                 //check exists /test
-                Assert.True(await mFilesystem.ExistsAsync(mPathPrefix));
-                Assert.True(await mFilesystem.ExistsAsync(PathUtils.Combine(mPathPrefix, "folder0")));
-                Assert.True(await mFilesystem.ExistsAsync(PathUtils.Combine(mPathPrefix, "folder0", "file0.txt")));
+                Assert.True(await mFilesystem.ExistsAsync(mPathPrefix, default));
+                Assert.True(await mFilesystem.ExistsAsync(PathUtils.Combine(mPathPrefix, "folder0"), default));
+                Assert.True(await mFilesystem.ExistsAsync(PathUtils.Combine(mPathPrefix, "folder0", "file0.txt"), default));
                 //exists
-                Assert.True(await mFilesystem.ExistsDirectoryAsync(mPathPrefix));
-                Assert.False(await mFilesystem.ExistsFileAsync(mPathPrefix));
-                Assert.True(await mFilesystem.ExistsDirectoryAsync(PathUtils.Combine(mPathPrefix, "folder0")));
-                Assert.False(await mFilesystem.ExistsFileAsync(PathUtils.Combine(mPathPrefix, "folder0")));
-                Assert.True(await mFilesystem.ExistsFileAsync(PathUtils.Combine(mPathPrefix, "folder0", "file0.txt")));
-                Assert.False(await mFilesystem.ExistsDirectoryAsync(PathUtils.Combine(mPathPrefix, "folder0", "file0.txt")));
+                Assert.True(await mFilesystem.ExistsDirectoryAsync(mPathPrefix, default));
+                Assert.False(await mFilesystem.ExistsFileAsync(mPathPrefix, default));
+                Assert.True(await mFilesystem.ExistsDirectoryAsync(PathUtils.Combine(mPathPrefix, "folder0"), default));
+                Assert.False(await mFilesystem.ExistsFileAsync(PathUtils.Combine(mPathPrefix, "folder0"), default));
+                Assert.True(await mFilesystem.ExistsFileAsync(PathUtils.Combine(mPathPrefix, "folder0", "file0.txt"), default));
+                Assert.False(await mFilesystem.ExistsDirectoryAsync(PathUtils.Combine(mPathPrefix, "folder0", "file0.txt"), default));
                 //check unexists /test
-                Assert.False(await mFilesystem.ExistsAsync(PathUtils.Combine(mPathPrefix, Guid.NewGuid().ToString())));
-                Assert.False(await mFilesystem.ExistsAsync(PathUtils.Combine(mPathPrefix, "folder0", Guid.NewGuid().ToString())));
-                Assert.False(await mFilesystem.ExistsAsync(PathUtils.Combine(mPathPrefix, "folder0", "file0.txt", Guid.NewGuid().ToString())));
-                Assert.False(await mFilesystem.ExistsAsync(PathUtils.Combine(mPathPrefix, Guid.NewGuid().ToString(), "folder0")));
-                Assert.False(await mFilesystem.ExistsAsync(PathUtils.Combine(mPathPrefix, Guid.NewGuid().ToString(), "file0.txt")));
+                Assert.False(await mFilesystem.ExistsAsync(PathUtils.Combine(mPathPrefix, Guid.NewGuid().ToString()), default));
+                Assert.False(await mFilesystem.ExistsAsync(PathUtils.Combine(mPathPrefix, "folder0", Guid.NewGuid().ToString()), default));
+                Assert.False(await mFilesystem.ExistsAsync(PathUtils.Combine(mPathPrefix, "folder0", "file0.txt", Guid.NewGuid().ToString()), default));
+                Assert.False(await mFilesystem.ExistsAsync(PathUtils.Combine(mPathPrefix, Guid.NewGuid().ToString(), "folder0"), default));
+                Assert.False(await mFilesystem.ExistsAsync(PathUtils.Combine(mPathPrefix, Guid.NewGuid().ToString(), "file0.txt"), default));
                 //cre
                 await mFilesystem.CreateDirectoryAsync(PathUtils.Combine(mPathPrefix, "/a"), default);
                 await mFilesystem.CreateDirectoryAsync(PathUtils.Combine(mPathPrefix, "/a/b"), default);
                 await mFilesystem.CreateDirectoryAsync(PathUtils.Combine(mPathPrefix, "/a/b/c"), default);
-                Assert.True(await mFilesystem.ExistsAsync(PathUtils.Combine(mPathPrefix, "/a")));
-                Assert.True(await mFilesystem.ExistsAsync(PathUtils.Combine(mPathPrefix, "/a/b")));
-                Assert.True(await mFilesystem.ExistsAsync(PathUtils.Combine(mPathPrefix, "/a/b/c")));
+                Assert.True(await mFilesystem.ExistsAsync(PathUtils.Combine(mPathPrefix, "/a"), default));
+                Assert.True(await mFilesystem.ExistsAsync(PathUtils.Combine(mPathPrefix, "/a/b"), default));
+                Assert.True(await mFilesystem.ExistsAsync(PathUtils.Combine(mPathPrefix, "/a/b/c"), default));
             }
             //check root
-            Assert.True(await mFilesystem.ExistsAsync("/"));
-            Assert.False(await mFilesystem.ExistsFileAsync("/" + Guid.NewGuid().ToString()));
+            Assert.True(await mFilesystem.ExistsAsync("/", default));
+            Assert.False(await mFilesystem.ExistsFileAsync("/" + Guid.NewGuid().ToString(), default));
         }
         [Fact()]
         public virtual void LoadReadStream() {
@@ -353,7 +353,7 @@ namespace DProjects.Fs.Test {
                 } catch (Exception) {
                 }
                 //check loadstream /test/file0.txt
-                using (Stream objReadStream = mFilesystem.LoadReadStream(PathUtils.Combine(mPathPrefix, "file0.txt"))) {
+                using (Stream objReadStream = mFilesystem.LoadReadStream(PathUtils.Combine(mPathPrefix, "file0.txt"), new())) {
                     string aux = StreamUtils.ReadText(objReadStream, System.Text.Encoding.UTF8);
                     Assert.Equal(aux, mFileContent);
                 }
@@ -378,7 +378,7 @@ namespace DProjects.Fs.Test {
                 }
             } else {
                 foreach (Entry objChild in mFilesystem.GetEntries("/", GetModes.Files)) {
-                    using (Stream objReadStream = mFilesystem.LoadReadStream(objChild.Path)) {
+                    using (Stream objReadStream = mFilesystem.LoadReadStream(objChild.Path, new())) {
                         StreamUtils.Consume(objReadStream);
                     }
                     break;
@@ -389,7 +389,7 @@ namespace DProjects.Fs.Test {
         public virtual async Task LoadReadStreamAsync() {
             //load read stream from root folder (should raise exception)
             try {
-                await mFilesystem.LoadBinaryFileAsync("/");
+                await mFilesystem.LoadBinaryFileAsync("/", new(), default);
                 Assert.True(false);
             } catch (Exception) {
             }
@@ -397,37 +397,37 @@ namespace DProjects.Fs.Test {
                 await CreateFilesystemStructureAsync();
                 //load stream from folder (should raise exception)
                 try {
-                    await mFilesystem.LoadBinaryFileAsync(mPathPrefix);
+                    await mFilesystem.LoadBinaryFileAsync(mPathPrefix, new(), default);
                     Assert.True(false);
                 } catch (Exception) {
                 }
                 //check loadstream /test/file0.txt
-                using (var readStream = await mFilesystem.LoadReadStreamAsync(PathUtils.Combine(mPathPrefix, "file0.txt"))) {
+                using (var readStream = await mFilesystem.LoadReadStreamAsync(PathUtils.Combine(mPathPrefix, "file0.txt"), new(), default)) {
                     string aux = await StreamUtils.ReadTextAsync(readStream, System.Text.Encoding.UTF8);
                     Assert.Equal(aux, mFileContent);
                 }
 
                 //load stream from unexistent file (should raise exception)
                 try {
-                    await mFilesystem.LoadBinaryFileAsync(PathUtils.Combine(mPathPrefix, Guid.NewGuid().ToString()));
+                    await mFilesystem.LoadBinaryFileAsync(PathUtils.Combine(mPathPrefix, Guid.NewGuid().ToString()), new(), default);
                     Assert.True(false);
                 } catch (Exception) {
                 }
                 //load partial file
-                await mFilesystem.SaveTextFileAsync(PathUtils.Combine(mPathPrefix, "file0.txt"), "hola que tal estas.", System.Text.Encoding.ASCII);
-                using (var stream = await mFilesystem.LoadReadStreamAsync(PathUtils.Combine(mPathPrefix, "file0.txt"), new LoadReadStreamSettings() { Offset = 5, Length = -1 })) {
+                await mFilesystem.SaveTextFileAsync(PathUtils.Combine(mPathPrefix, "file0.txt"), "hola que tal estas.", System.Text.Encoding.ASCII, default);
+                using (var stream = await mFilesystem.LoadReadStreamAsync(PathUtils.Combine(mPathPrefix, "file0.txt"), new LoadReadStreamSettings() { Offset = 5, Length = -1 }, default)) {
                     byte[] bytes = await StreamUtils.ReadBytesAsync(stream, default);
                     var aux = System.Text.Encoding.ASCII.GetString(bytes);
                     Assert.Equal("que tal estas.", aux);
                 }
-                using (var stream = await mFilesystem.LoadReadStreamAsync(PathUtils.Combine(mPathPrefix, "file0.txt"), new LoadReadStreamSettings() { Offset = 5, Length = 3 })) {
+                using (var stream = await mFilesystem.LoadReadStreamAsync(PathUtils.Combine(mPathPrefix, "file0.txt"), new LoadReadStreamSettings() { Offset = 5, Length = 3 }, default)) {
                     byte[] bytes = await StreamUtils.ReadBytesAsync(stream, default);
                     var aux = System.Text.Encoding.ASCII.GetString(bytes);
                     Assert.Equal("que", aux);
                 }
             } else {
                 foreach (Entry objChild in mFilesystem.GetEntries("/", GetModes.Files)) {
-                    using (var stream = await mFilesystem.LoadReadStreamAsync(objChild.Path)) {
+                    using (var stream = await mFilesystem.LoadReadStreamAsync(objChild.Path, new(), default)) {
                         await StreamUtils.ConsumeAsync(stream);
                     }
                     break;
@@ -446,7 +446,7 @@ namespace DProjects.Fs.Test {
                     text.Append("hòla marcus" + System.Guid.NewGuid().ToString());
                 }
                 byte[] buffer = System.Text.Encoding.UTF8.GetBytes(text.ToString());
-                using (var stream = mFilesystem.LoadWriteStream(PathUtils.Combine(mPathPrefix, key))) {
+                using (var stream = mFilesystem.LoadWriteStream(PathUtils.Combine(mPathPrefix, key), new())) {
                     stream.Write(buffer, 0, buffer.Length);
                 }
                 Assert.True(mFilesystem.ExistsFile(PathUtils.Combine(mPathPrefix, key)));
@@ -497,11 +497,11 @@ namespace DProjects.Fs.Test {
                     text.Append("hòla marcus" + System.Guid.NewGuid().ToString());
                 }
                 byte[] buffer = System.Text.Encoding.UTF8.GetBytes(text.ToString());
-                using (var stream = await mFilesystem.LoadWriteStreamAsync(PathUtils.Combine(mPathPrefix, key))) {
+                using (var stream = await mFilesystem.LoadWriteStreamAsync(PathUtils.Combine(mPathPrefix, key), new(), default)) {
                     await stream.WriteAsync(buffer, 0, buffer.Length);
                 }
-                Assert.True(await mFilesystem.ExistsFileAsync(PathUtils.Combine(mPathPrefix, key)));
-                Assert.Equal(buffer.Length, (await mFilesystem.GetEntryAsync(PathUtils.Combine(mPathPrefix, key))).Length);
+                Assert.True(await mFilesystem.ExistsFileAsync(PathUtils.Combine(mPathPrefix, key), default));
+                Assert.Equal(buffer.Length, (await mFilesystem.GetEntryAsync(PathUtils.Combine(mPathPrefix, key), default))!.Length);
 
                 var aux = await mFilesystem.LoadTextFileAsync(PathUtils.Combine(mPathPrefix, key));
                 Assert.Equal(text.ToString(), aux);
@@ -509,7 +509,7 @@ namespace DProjects.Fs.Test {
                 //append
                 var appendBuffer = System.Text.Encoding.UTF8.GetBytes("hello");
                 text.Append("hello");
-                using (Stream objStream = await mFilesystem.LoadWriteStreamAsync(PathUtils.Combine(mPathPrefix, key), new() { Append = true })) {
+                using (Stream objStream = await mFilesystem.LoadWriteStreamAsync(PathUtils.Combine(mPathPrefix, key), new() { Append = true }, default)) {
                     await objStream.WriteAsync(appendBuffer, 0, appendBuffer.Length);
                 }
                 aux = await mFilesystem.LoadTextFileAsync(PathUtils.Combine(mPathPrefix, key));
@@ -523,14 +523,14 @@ namespace DProjects.Fs.Test {
                 Assert.Equal(System.Text.Encoding.UTF8.GetString(appendBuffer), aux);
 
                 //append should create file if not exists
-                using (var stream = await mFilesystem.LoadWriteStreamAsync(PathUtils.Combine(mPathPrefix, key) + "A", new() { Append = true })) {
+                using (var stream = await mFilesystem.LoadWriteStreamAsync(PathUtils.Combine(mPathPrefix, key) + "A", new() { Append = true }, default)) {
                     await stream.WriteAsync(appendBuffer, 0, appendBuffer.Length);
                 }
                 Assert.Equal(System.Text.Encoding.UTF8.GetString(appendBuffer), await mFilesystem.LoadTextFileAsync(PathUtils.Combine(mPathPrefix, key) + "A"));
 
                 //truncate should create file if not exists
                 appendBuffer[0] = 12;
-                using (var stream = await mFilesystem.LoadWriteStreamAsync(PathUtils.Combine(mPathPrefix, key) + "A", new() { Truncate = true })) {
+                using (var stream = await mFilesystem.LoadWriteStreamAsync(PathUtils.Combine(mPathPrefix, key) + "A", new() { Truncate = true }, default)) {
                     await stream.WriteAsync(appendBuffer, 0, appendBuffer.Length);
                 }
                 Assert.Equal(System.Text.Encoding.UTF8.GetString(appendBuffer), await mFilesystem.LoadTextFileAsync(PathUtils.Combine(mPathPrefix, key) + "A"));
@@ -595,16 +595,16 @@ namespace DProjects.Fs.Test {
                 Assert.Equal("", entry.Etag);
                 Assert.Equal(entry.Path, PathUtils.Combine(mPathPrefix, key));
                 Assert.True(entry.IsDirectory());
-                Assert.True(await mFilesystem.ExistsDirectoryAsync(PathUtils.Combine(mPathPrefix, key)));
+                Assert.True(await mFilesystem.ExistsDirectoryAsync(PathUtils.Combine(mPathPrefix, key), default));
                 await mFilesystem.DeleteDirectoryAsync(PathUtils.Combine(mPathPrefix, key), default);
-                Assert.False(await mFilesystem.ExistsDirectoryAsync(PathUtils.Combine(mPathPrefix, key)));
+                Assert.False(await mFilesystem.ExistsDirectoryAsync(PathUtils.Combine(mPathPrefix, key), default));
                 //create directory with invalid parent, should create folder
                 await mFilesystem.CreateDirectoryAsync(PathUtils.Combine(mPathPrefix, key, key, key), default);
-                Assert.True(await mFilesystem.ExistsDirectoryAsync(PathUtils.Combine(mPathPrefix, key, key, key)));
-                Assert.True(await mFilesystem.ExistsDirectoryAsync(PathUtils.Combine(mPathPrefix, key, key)));
-                Assert.True(await mFilesystem.ExistsDirectoryAsync(PathUtils.Combine(mPathPrefix, key)));
+                Assert.True(await mFilesystem.ExistsDirectoryAsync(PathUtils.Combine(mPathPrefix, key, key, key), default));
+                Assert.True(await mFilesystem.ExistsDirectoryAsync(PathUtils.Combine(mPathPrefix, key, key), default));
+                Assert.True(await mFilesystem.ExistsDirectoryAsync(PathUtils.Combine(mPathPrefix, key), default));
                 await mFilesystem.DeleteDirectoryAsync(PathUtils.Combine(mPathPrefix, key, key, key), default);
-                Assert.False(await mFilesystem.ExistsDirectoryAsync(PathUtils.Combine(mPathPrefix, key, key, key)));
+                Assert.False(await mFilesystem.ExistsDirectoryAsync(PathUtils.Combine(mPathPrefix, key, key, key), default));
                 //invalid characters in name should return exception
                 foreach (char invalidCharacter in PathUtils.PATH_INVALID_CHARS) {
                     await Assert.ThrowsAnyAsync<Exception>(async () => {
@@ -618,7 +618,7 @@ namespace DProjects.Fs.Test {
             if (!mFilesystem.IsReadonly) {
                 //save file
                 mFilesystem.CreateDirectory(mPathPrefix);
-                Entry entry = mFilesystem.SaveFile(PathUtils.Combine(mPathPrefix, "file1.bin"), new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")));
+                Entry entry = mFilesystem.SaveFile(PathUtils.Combine(mPathPrefix, "file1.bin"), new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")), new());
                 Assert.NotNull(entry);
                 Assert.Equal(entry.Path, PathUtils.Combine(mPathPrefix, "file1.bin"));
                 Assert.Equal(5, entry.Length);
@@ -628,7 +628,7 @@ namespace DProjects.Fs.Test {
                 mFilesystem.DeleteFile(PathUtils.Combine(mPathPrefix, "file1.bin"));
                 //dates
                 var now = DateTime.Now;
-                var entry1 = mFilesystem.SaveFile(PathUtils.Combine(mPathPrefix, "file1.bin"), new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")));
+                var entry1 = mFilesystem.SaveFile(PathUtils.Combine(mPathPrefix, "file1.bin"), new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")), new());
                 var entry2 = mFilesystem.GetEntry(PathUtils.Combine(mPathPrefix, "file1.bin"));
                 Assert.Equal(entry1.Modified, entry2.Modified);
                 Assert.Equal(entry1.Modified, entry1.Modified);
@@ -641,43 +641,43 @@ namespace DProjects.Fs.Test {
                 var random = new System.Random();
                 for (var i = 0; i < length; i++) bigMs.WriteByte((byte)random.Next(0,255));
                 bigMs.Seek(0, SeekOrigin.Begin);
-                var entryBig = mFilesystem.SaveFile(PathUtils.Combine(mPathPrefix, "file1.bin"), bigMs);
+                var entryBig = mFilesystem.SaveFile(PathUtils.Combine(mPathPrefix, "file1.bin"), bigMs, new());
                 Assert.Equal(bigMs.Length, entryBig.Length);
                 using (var md5 = MD5.Create()) {
                     bigMs.Seek(0, SeekOrigin.Begin);
                     var hash1 = BitConverter.ToString(md5.ComputeHash(bigMs)).ToLower().Replace("-", "");
-                    using(var bigStreamReaded = mFilesystem.LoadReadStream(PathUtils.Combine(mPathPrefix, "file1.bin"))) {
+                    using(var bigStreamReaded = mFilesystem.LoadReadStream(PathUtils.Combine(mPathPrefix, "file1.bin"), new())) {
                         var hash2 = BitConverter.ToString(md5.ComputeHash(bigStreamReaded)).ToLower().Replace("-", "");
                         Assert.Equal(hash1, hash2);
                     }
                 }
                 mFilesystem.DeleteFile(PathUtils.Combine(mPathPrefix, "file1.bin"));               
                 //save file over unexistent file should create it
-                mFilesystem.SaveFile(PathUtils.Combine(mPathPrefix, "file1.bin"), new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")));
+                mFilesystem.SaveFile(PathUtils.Combine(mPathPrefix, "file1.bin"), new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")), new());
                 text = System.Text.Encoding.UTF8.GetString(mFilesystem.LoadBinaryFile(PathUtils.Combine(mPathPrefix, "file1.bin")));
                 Assert.Equal("hola1", text);
                 mFilesystem.DeleteFile(PathUtils.Combine(mPathPrefix, "file1.bin"));
                 //save file over unexistent directory should fail
                 //mFilesystem.CreateDirectory(PathUtils.Combine(mPathPrefix, "unexistent"));
                 Assert.ThrowsAny<Exception>(() => {
-                    mFilesystem.SaveFile(PathUtils.Combine(mPathPrefix, "unexistent", "file1.bin"), new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")));
+                    mFilesystem.SaveFile(PathUtils.Combine(mPathPrefix, "unexistent", "file1.bin"), new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")), new());
                 });
                 //text file
-                entry = mFilesystem.SaveFile(PathUtils.Combine(mPathPrefix, "file1.bin.txt"), new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")));
+                entry = mFilesystem.SaveFile(PathUtils.Combine(mPathPrefix, "file1.bin.txt"), new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")), new());
                 Assert.NotNull(entry);
                 Assert.Equal(entry.Path, PathUtils.Combine(mPathPrefix, "file1.bin.txt"));
                 Assert.Equal(5, entry.Length);
                 //non ascii chars in name
                 foreach (char nonAsciiChar in new char[] { 'à', 'Ñ', 'ç', Char.ConvertFromUtf32(0x4EB0).ToCharArray()[0] }) {
                     string p = PathUtils.Combine(mPathPrefix, "fileeee" + nonAsciiChar + ".txt");
-                    entry = mFilesystem.SaveFile(p, new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")));
+                    entry = mFilesystem.SaveFile(p, new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")), new());
                     Assert.True(mFilesystem.Exists(p));
                     Assert.Equal("hola1", mFilesystem.LoadTextFile(p));
                 }
                 //especial ascii chars in name
                 foreach (string test in new String[] { "+", "&", "@", "=", ";", ",", "%", "#", "Ñ", "'", "(", ")", "[", "]", "`", "{", "}", "~", "%20" }) {
                     string p = PathUtils.Combine(mPathPrefix, "fileeee" + test + ".txt");
-                    entry = mFilesystem.SaveFile(p, new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")));
+                    entry = mFilesystem.SaveFile(p, new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")), new());
                     Assert.True(mFilesystem.Exists(p));
                     Assert.Equal("hola1", mFilesystem.LoadTextFile(p));
                     var bFound = false;
@@ -692,7 +692,7 @@ namespace DProjects.Fs.Test {
                 //invalid characters in name should return exception
                 foreach (char invalidCharacter in PathUtils.PATH_INVALID_CHARS) {
                     Assert.ThrowsAny<Exception>(() => {
-                        entry = mFilesystem.SaveFile(PathUtils.Combine(mPathPrefix, "fileeab" + invalidCharacter + ".txt"), new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")));
+                        entry = mFilesystem.SaveFile(PathUtils.Combine(mPathPrefix, "fileeab" + invalidCharacter + ".txt"), new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")), new());
                     });
                 }
             }
@@ -702,18 +702,18 @@ namespace DProjects.Fs.Test {
             if (!mFilesystem.IsReadonly) {
                 //save file
                 await mFilesystem.CreateDirectoryAsync(mPathPrefix, default);
-                Entry entry = await mFilesystem.SaveFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")));
+                Entry entry = await mFilesystem.SaveFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")), new(), default);
                 Assert.NotNull(entry);
                 Assert.Equal(entry.Path, PathUtils.Combine(mPathPrefix, "file1.bin"));
                 Assert.Equal(5, entry.Length);
-                byte[] buffer = await mFilesystem.LoadBinaryFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"));
+                byte[] buffer = await mFilesystem.LoadBinaryFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), new(), default);
                 string text = System.Text.Encoding.UTF8.GetString(buffer);
                 Assert.Equal("hola1", text);
                 await mFilesystem.DeleteFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), default);
                 //dates
                 var now = DateTime.Now;
-                var entry1 = await mFilesystem.SaveFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")));
-                var entry2 = await mFilesystem.GetEntryAsync(PathUtils.Combine(mPathPrefix, "file1.bin"));
+                var entry1 = await mFilesystem.SaveFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")), new(), default);
+                var entry2 = await mFilesystem.GetEntryAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), default);
                 Assert.Equal(entry1.Modified, entry2.Modified);
                 Assert.Equal(entry1.Modified, entry1.Modified);
                 Assert.Equal(entry2.Modified, entry2.Modified);
@@ -725,44 +725,44 @@ namespace DProjects.Fs.Test {
                 var random = new System.Random();
                 for (var i = 0; i < length; i++) bigMs.WriteByte((byte)random.Next(0, 255));
                 bigMs.Seek(0, SeekOrigin.Begin);
-                var entryBig = await mFilesystem.SaveFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), bigMs);
+                var entryBig = await mFilesystem.SaveFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), bigMs, new(), default);
                 Assert.Equal(bigMs.Length, entryBig.Length);
                 using (var md5 = MD5.Create()) {
                     bigMs.Seek(0, SeekOrigin.Begin);
                     var hash1 = BitConverter.ToString(md5.ComputeHash(bigMs)).ToLower().Replace("-", "");
-                    using (var bigStreamReaded = await mFilesystem.LoadReadStreamAsync(PathUtils.Combine(mPathPrefix, "file1.bin"))) {
+                    using (var bigStreamReaded = await mFilesystem.LoadReadStreamAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), new(), default)) {
                         var hash2 = BitConverter.ToString(md5.ComputeHash(bigStreamReaded)).ToLower().Replace("-", "");
                         Assert.Equal(hash1, hash2);
                     }
                 }
                 await mFilesystem.DeleteFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), default);
                 //save file over unexistent file should create it
-                await mFilesystem.SaveFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")));
+                await mFilesystem.SaveFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")), new(), default);
                 text = System.Text.Encoding.UTF8.GetString(mFilesystem.LoadBinaryFile(PathUtils.Combine(mPathPrefix, "file1.bin")));
                 Assert.Equal("hola1", text);
                 await mFilesystem.DeleteFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), default);
                 //save file over unexistent directory should fail
                 //mFilesystem.CreateDirectory(PathUtils.Combine(mPathPrefix, "unexistent"));
                 await Assert.ThrowsAnyAsync<Exception>(async () => {
-                    await mFilesystem.SaveFileAsync(PathUtils.Combine(mPathPrefix, "unexistent", "file1.bin"), new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")));
+                    await mFilesystem.SaveFileAsync(PathUtils.Combine(mPathPrefix, "unexistent", "file1.bin"), new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")), new(), default);
                 });
                 //text file
-                entry = await mFilesystem.SaveFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin.txt"), new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")));
+                entry = await mFilesystem.SaveFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin.txt"), new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")), new(), default);
                 Assert.NotNull(entry);
                 Assert.Equal(entry.Path, PathUtils.Combine(mPathPrefix, "file1.bin.txt"));
                 Assert.Equal(5, entry.Length);
                 //non ascii chars in name
                 foreach (char nonAsciiChar in new char[] { 'à', 'Ñ', 'ç', Char.ConvertFromUtf32(0x4EB0).ToCharArray()[0] }) {
                     string p = PathUtils.Combine(mPathPrefix, "fileeee" + nonAsciiChar + ".txt");
-                    entry = await mFilesystem.SaveFileAsync(p, new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")));
-                    Assert.True(await mFilesystem.ExistsAsync(p));
+                    entry = await mFilesystem.SaveFileAsync(p, new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")), new(), default);
+                    Assert.True(await mFilesystem.ExistsAsync(p, default));
                     Assert.Equal("hola1", await mFilesystem.LoadTextFileAsync(p));
                 }
                 //especial ascii chars in name
                 foreach (string test in new String[] { "+", "&", "@", "=", ";", ",", "%", "#", "Ñ", "'", "(", ")", "[", "]", "`", "{", "}", "~", "%20" }) {
                     string p = PathUtils.Combine(mPathPrefix, "fileeee" + test + ".txt");
-                    entry = await mFilesystem.SaveFileAsync(p, new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")));
-                    Assert.True(await mFilesystem.ExistsAsync(p));
+                    entry = await mFilesystem.SaveFileAsync(p, new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")), new(), default);
+                    Assert.True(await mFilesystem.ExistsAsync(p, default));
                     Assert.Equal("hola1", await mFilesystem.LoadTextFileAsync(p));
                     var bFound = false;
                     var subentries = new List<Entry>(mFilesystem.GetEntries(PathUtils.GetPathParent(p)));
@@ -776,7 +776,7 @@ namespace DProjects.Fs.Test {
                 //invalid characters in name should return exception
                 foreach (char invalidCharacter in PathUtils.PATH_INVALID_CHARS) {
                     await Assert.ThrowsAnyAsync<Exception>(async() => {
-                        entry = await mFilesystem.SaveFileAsync(PathUtils.Combine(mPathPrefix, "fileeab" + invalidCharacter + ".txt"), new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")));
+                        entry = await mFilesystem.SaveFileAsync(PathUtils.Combine(mPathPrefix, "fileeab" + invalidCharacter + ".txt"), new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")), new(), default);
                     });
                 }
             }
@@ -786,7 +786,7 @@ namespace DProjects.Fs.Test {
             if (!mFilesystem.IsReadonly) {
                 //append file
                 mFilesystem.CreateDirectory(mPathPrefix);
-                mFilesystem.SaveFile(PathUtils.Combine(mPathPrefix, "file1.bin"), new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")));
+                mFilesystem.SaveFile(PathUtils.Combine(mPathPrefix, "file1.bin"), new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")), new());
                 Entry entry = mFilesystem.AppendFile(PathUtils.Combine(mPathPrefix, "file1.bin"), new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola2")));
                 Assert.NotNull(entry);
                 Assert.Equal(entry.Path, PathUtils.Combine(mPathPrefix, "file1.bin"));
@@ -807,18 +807,18 @@ namespace DProjects.Fs.Test {
             if (!mFilesystem.IsReadonly) {
                 //append file
                 await mFilesystem.CreateDirectoryAsync(mPathPrefix, default);
-                await mFilesystem.SaveFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")));
-                Entry entry = await mFilesystem.AppendFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola2")));
+                await mFilesystem.SaveFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")), new(), default);
+                Entry entry = await mFilesystem.AppendFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola2")), default);
                 Assert.NotNull(entry);
                 Assert.Equal(entry.Path, PathUtils.Combine(mPathPrefix, "file1.bin"));
                 Assert.Equal(10, entry.Length);
-                byte[] buffer = await mFilesystem.LoadBinaryFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"));
+                byte[] buffer = await mFilesystem.LoadBinaryFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), new(), default);
                 string text = System.Text.Encoding.UTF8.GetString(buffer);
                 Assert.Equal("hola1hola2", text);
                 await mFilesystem.DeleteFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), default);
                 //append file over unexistent file should create it
-                await mFilesystem.AppendFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")));
-                text = System.Text.Encoding.UTF8.GetString(await mFilesystem.LoadBinaryFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin")));
+                await mFilesystem.AppendFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")), default);
+                text = System.Text.Encoding.UTF8.GetString(await mFilesystem.LoadBinaryFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), new(), default));
                 Assert.Equal("hola1", text);
                 await mFilesystem.DeleteFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), default);
             }
@@ -916,30 +916,30 @@ namespace DProjects.Fs.Test {
                 settings.Recursive = false;
                 settings.Overwrite = true;
                 await mFilesystem.CreateDirectoryAsync(PathUtils.Combine(mPathPrefix, "1111"), default);
-                await mFilesystem.SaveTextFileAsync(PathUtils.Combine(mPathPrefix, "1111", "file0.txt2"), "hola que ase", System.Text.Encoding.UTF8);
+                await mFilesystem.SaveTextFileAsync(PathUtils.Combine(mPathPrefix, "1111", "file0.txt2"), "hola que ase", System.Text.Encoding.UTF8, default);
                 await mFilesystem.CreateDirectoryAsync(PathUtils.Combine(mPathPrefix, "2222"), default);
                 await mFilesystem.CopyAsync(PathUtils.Combine(mPathPrefix, "1111"), PathUtils.Combine(mPathPrefix, "2222"), settings, mLogger, default);
-                Assert.False(await mFilesystem.ExistsFileAsync(PathUtils.Combine(mPathPrefix, "2222", "file0.txt2")));
+                Assert.False(await mFilesystem.ExistsFileAsync(PathUtils.Combine(mPathPrefix, "2222", "file0.txt2"), default));
                 //copy directory
                 settings = new CopySettings();
                 settings.Recursive = true;
                 settings.Overwrite = true;
                 await mFilesystem.CreateDirectoryAsync(PathUtils.Combine(mPathPrefix, "1111"), default);
-                await mFilesystem.SaveTextFileAsync(PathUtils.Combine(mPathPrefix, "1111", "file0.txt2"), "hola que ase", System.Text.Encoding.UTF8);
+                await mFilesystem.SaveTextFileAsync(PathUtils.Combine(mPathPrefix, "1111", "file0.txt2"), "hola que ase", System.Text.Encoding.UTF8, default);
                 await mFilesystem.CreateDirectoryAsync(PathUtils.Combine(mPathPrefix, "2222"), default);
                 await mFilesystem.CopyAsync(PathUtils.Combine(mPathPrefix, "1111"), PathUtils.Combine(mPathPrefix, "2222"), settings, mLogger, default);
-                Assert.True(await mFilesystem.ExistsFileAsync(PathUtils.Combine(mPathPrefix, "2222", "file0.txt2")));
+                Assert.True(await mFilesystem.ExistsFileAsync(PathUtils.Combine(mPathPrefix, "2222", "file0.txt2"), default));
                 //copy file over folder
                 settings = new CopySettings();
                 settings.Recursive = false;
                 settings.Overwrite = true;
                 await mFilesystem.CreateDirectoryAsync(PathUtils.Combine(mPathPrefix, "1111"), default);
-                await mFilesystem.SaveTextFileAsync(PathUtils.Combine(mPathPrefix, "1111", "file0.txt2"), "hola que ase", System.Text.Encoding.UTF8);
+                await mFilesystem.SaveTextFileAsync(PathUtils.Combine(mPathPrefix, "1111", "file0.txt2"), "hola que ase", System.Text.Encoding.UTF8, default);
                 await mFilesystem.CreateDirectoryAsync(PathUtils.Combine(mPathPrefix, "3333"), default);
                 await mFilesystem.CopyAsync(PathUtils.Combine(mPathPrefix, "1111", "file0.txt2"), PathUtils.Combine(mPathPrefix, "3333"), settings, mLogger, default);
-                Assert.True(await mFilesystem.ExistsFileAsync(PathUtils.Combine(mPathPrefix, "3333", "file0.txt2")));
+                Assert.True(await mFilesystem.ExistsFileAsync(PathUtils.Combine(mPathPrefix, "3333", "file0.txt2"), default));
                 //copy folder
-                if (await mFilesystem.ExistsDirectoryAsync(mPathPrefix + "2")) {
+                if (await mFilesystem.ExistsDirectoryAsync(mPathPrefix + "2", default)) {
                     await mFilesystem.DeleteDirectoryAsync(mPathPrefix + "2", default);
                 }
                 await mFilesystem.CreateDirectoryAsync(mPathPrefix + "2", default);
@@ -947,10 +947,10 @@ namespace DProjects.Fs.Test {
                 settings.Recursive = true;
                 settings.Overwrite = true;
                 mFilesystem.Copy(mPathPrefix, mPathPrefix + "2", settings, mLogger);
-                Assert.True(await mFilesystem.ExistsDirectoryAsync(mPathPrefix + "2"));
-                Assert.True(await mFilesystem.ExistsFileAsync(PathUtils.Combine(mPathPrefix + "2", "folder0", "file0.txt")));
+                Assert.True(await mFilesystem.ExistsDirectoryAsync(mPathPrefix + "2", default));
+                Assert.True(await mFilesystem.ExistsFileAsync(PathUtils.Combine(mPathPrefix + "2", "folder0", "file0.txt"), default));
                 await mFilesystem.DeleteDirectoryAsync(mPathPrefix + "2", default);
-                Assert.False(await mFilesystem.ExistsDirectoryAsync(mPathPrefix + "2"));
+                Assert.False(await mFilesystem.ExistsDirectoryAsync(mPathPrefix + "2", default));
                 //copy unexistent folder should raise exception
                 settings = new CopySettings();
                 settings.Recursive = true;
@@ -969,7 +969,7 @@ namespace DProjects.Fs.Test {
                 settings = new CopySettings();
                 settings.Recursive = true;
                 settings.Overwrite = true;
-                DateTime lastWriteTime1 = (await mFilesystem.SaveTextFileAsync(PathUtils.Combine(mPathPrefix, "file0.txt2"), "hola que ase", System.Text.Encoding.UTF8)).Modified;
+                DateTime lastWriteTime1 = (await mFilesystem.SaveTextFileAsync(PathUtils.Combine(mPathPrefix, "file0.txt2"), "hola que ase", System.Text.Encoding.UTF8, default)).Modified;
                 System.Threading.Thread.Sleep(2100);
                 await mFilesystem.CopyAsync(PathUtils.Combine(mPathPrefix, "file0.txt"), PathUtils.Combine(mPathPrefix, "file0.txt2"), settings, mLogger, default);
                 DateTime lastWriteTime2 = System.Convert.ToDateTime(mFilesystem.GetEntry(PathUtils.Combine(mPathPrefix, "file0.txt2"))!.Modified);
@@ -978,12 +978,12 @@ namespace DProjects.Fs.Test {
                 settings = new CopySettings();
                 settings.Recursive = true;
                 settings.Overwrite = false;
-                await mFilesystem.SaveTextFileAsync(PathUtils.Combine(mPathPrefix, "file0.txt"), "hola que ase", System.Text.Encoding.UTF8);
-                await mFilesystem.SaveTextFileAsync(PathUtils.Combine(mPathPrefix, "file0.txt2"), "hola que ase", System.Text.Encoding.UTF8);
-                string lastWriteTime1str = (await mFilesystem.GetEntryAsync(PathUtils.Combine(mPathPrefix, "file0.txt2")))!.Modified.ToString("r");
+                await mFilesystem.SaveTextFileAsync(PathUtils.Combine(mPathPrefix, "file0.txt"), "hola que ase", System.Text.Encoding.UTF8, default);
+                await mFilesystem.SaveTextFileAsync(PathUtils.Combine(mPathPrefix, "file0.txt2"), "hola que ase", System.Text.Encoding.UTF8, default);
+                string lastWriteTime1str = (await mFilesystem.GetEntryAsync(PathUtils.Combine(mPathPrefix, "file0.txt2"), default))!.Modified.ToString("r");
                 System.Threading.Thread.Sleep(2100);
                 await mFilesystem.CopyAsync(PathUtils.Combine(mPathPrefix, "file0.txt"), PathUtils.Combine(mPathPrefix, "file0.txt2"), settings, mLogger, default);
-                string lastWriteTime2str = (await mFilesystem.GetEntryAsync(PathUtils.Combine(mPathPrefix, "file0.txt2")))!.Modified.ToString("r");
+                string lastWriteTime2str = (await mFilesystem.GetEntryAsync(PathUtils.Combine(mPathPrefix, "file0.txt2"), default))!.Modified.ToString("r");
                 Assert.Equal(lastWriteTime1str, lastWriteTime2str);
 
             }
@@ -1021,15 +1021,15 @@ namespace DProjects.Fs.Test {
                 }
                 //move folder
                 await mFilesystem.MoveAsync(mPathPrefix, mPathPrefix + "2", new DProjects.Fs.MoveSettings(), mLogger, default);
-                Assert.False(await mFilesystem.ExistsDirectoryAsync(mPathPrefix));
-                Assert.True(await mFilesystem.ExistsDirectoryAsync(mPathPrefix + "2"));
+                Assert.False(await mFilesystem.ExistsDirectoryAsync(mPathPrefix, default));
+                Assert.True(await mFilesystem.ExistsDirectoryAsync(mPathPrefix + "2", default));
                 //test
                 string text = await mFilesystem.LoadTextFileAsync(PathUtils.Combine(mPathPrefix + "2", "file0.txt"));
                 Assert.Equal(mFileContent, text);
                 //move file
                 mFilesystem.Move(PathUtils.Combine(mPathPrefix + "2", "file0.txt"), PathUtils.Combine(mPathPrefix + "2", "file0.txt2"), new DProjects.Fs.MoveSettings(), mLogger);
-                Assert.False(await mFilesystem.ExistsFileAsync(PathUtils.Combine(mPathPrefix + "2", "file0.txt")));
-                Assert.True(await mFilesystem.ExistsFileAsync(PathUtils.Combine(mPathPrefix + "2", "file0.txt2")));
+                Assert.False(await mFilesystem.ExistsFileAsync(PathUtils.Combine(mPathPrefix + "2", "file0.txt"), default));
+                Assert.True(await mFilesystem.ExistsFileAsync(PathUtils.Combine(mPathPrefix + "2", "file0.txt2"), default));
                 text = await mFilesystem.LoadTextFileAsync(PathUtils.Combine(mPathPrefix + "2", "file0.txt2"));
                 Assert.Equal(mFileContent, text);
                 //remove
@@ -1160,7 +1160,7 @@ namespace DProjects.Fs.Test {
                     metadata.Add("-var2", "helloworld2");
                     metadata.Add("-var3", "helloworld3");
 
-                    await mFilesystem.SaveTextFileAsync(p, "1234", System.Text.Encoding.UTF8);
+                    await mFilesystem.SaveTextFileAsync(p, "1234", System.Text.Encoding.UTF8, default);
                     await mFilesystem.SetMetadataAsync(p, metadata, default);
                     var metadata2 = mFilesystem.GetMetadata(p);
 
@@ -1210,7 +1210,7 @@ namespace DProjects.Fs.Test {
                     var p2 = PathUtils.Combine(mPathPrefix, "p2.txt");
                     var metadata1 = new Dictionary<string, string>();
                     metadata1.Add("var1", "1234");
-                    await mFilesystem.SaveTextFileAsync(p1, "1234", System.Text.Encoding.UTF8);
+                    await mFilesystem.SaveTextFileAsync(p1, "1234", System.Text.Encoding.UTF8, default);
                     await mFilesystem.SetMetadataAsync(p1, metadata, default);
                     mFilesystem.Copy(p1, p2, new CopySettings(), mLogger);
                     var metadata1copied = await mFilesystem.GetMetadataAsync(p2, default);
@@ -1238,7 +1238,7 @@ namespace DProjects.Fs.Test {
                     var pp2 = PathUtils.Combine(mPathPrefix, "pp2.txt");
                     var metadata11 = new Dictionary<string, string>();
                     metadata11.Add("var1", "1234");
-                    await mFilesystem.SaveTextFileAsync(pp1, "1234", System.Text.Encoding.UTF8);
+                    await mFilesystem.SaveTextFileAsync(pp1, "1234", System.Text.Encoding.UTF8, default);
                     await mFilesystem.SetMetadataAsync(pp1, metadata, default);
                     await mFilesystem.MoveAsync(pp1, pp2, new MoveSettings(), mLogger, default);
                     var metadata11moved = await mFilesystem.GetMetadataAsync(p2, default);

@@ -4,6 +4,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
+using System.Threading;
 using System.Xml;
 
 namespace DProjects.Db.Writers {
@@ -97,11 +98,11 @@ namespace DProjects.Db.Writers {
         }
 
         //async methods
-        public async Task WriteAsync(DBRow row) {
+        public async Task WriteAsync(DBRow row, CancellationToken cancellationToken) {
             await WriteAsync(row.Values);
         }
-        public async Task WriteAsync(IDictionary<string, object?> row) {
-            await WriteAsync(new DBRow(mTable, row).Values);
+        public async Task WriteAsync(IDictionary<string, object?> row, CancellationToken cancellationToken) {
+            await WriteAsync(new DBRow(mTable, row).Values, default);
         }
         public async Task WriteAsync(params object?[] values) {
             var xmlWriterSettings = new XmlWriterSettings();
