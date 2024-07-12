@@ -635,7 +635,8 @@ namespace DProjects.Utils {
             patternRegExp.Append("\\z"); //end of text
             var patternRegExpString = patternRegExp.ToString();
             var regExp = new System.Text.RegularExpressions.Regex(patternRegExpString);
-            return regExp.Match(text).Success;
+            var result = regExp.Match(text).Success;
+            return result;
         }
         //public static bool Like2(string text, string pattern, bool ignoreCase = false) {
         //    int matched = 0;
@@ -803,7 +804,42 @@ namespace DProjects.Utils {
             phone = phone.Replace("(", "").Replace(")", "").Replace("-", "").Replace(".", "").Replace(" ", "").Replace("+", "").Trim();
             if (phone.Length > 15) phone = phone.Substring(phone.Length - 15);
             return phone;
-        }        
+        }
+        public static bool IsIBAN(string bankAccount) {
+            bankAccount = bankAccount.ToUpper();
+            // IN ORDER TO COPE WITH THE REGEX BELOW
+            if (String.IsNullOrEmpty(bankAccount))
+                return false;
+            else if (bankAccount.Length < 10)
+                return false;
+            else if (System.Text.RegularExpressions.Regex.IsMatch(bankAccount, "^[A-Z0-9]")) {
+                bankAccount = bankAccount.Replace(" ", String.Empty);
+                string bank = bankAccount.Substring(4, bankAccount.Length - 4) + bankAccount.Substring(0, 4);
+                int asciiShift = 55;
+                StringBuilder sb = new StringBuilder();
+                foreach (char c in bank) {
+                    if (Char.IsLetter(c)) {
+                        int v = Asc(c) - asciiShift;
+                        sb.Append(v);
+                    } else if (int.TryParse(c.ToString(), out int v)) {
+                        sb.Append(v);
+                    } else {
+                        return false;
+                    }
+
+                }
+                string checkSumString = sb.ToString();
+                int checksum = int.Parse(checkSumString.Substring(0, 1));
+                for (int i = 1; i <= checkSumString.Length - 1; i++) {
+                    int v = int.Parse(checkSumString.Substring(i, 1));
+                    checksum *= 10;
+                    checksum += v;
+                    checksum = checksum % 97;
+                }
+                return checksum == 1;
+            }
+            return false;
+        }
         //public static bool IsToken(object? expression) {
         //    if (expression == null) return false;
         //    var text = (expression.ToString() ?? "").ToCharArray();
@@ -816,7 +852,7 @@ namespace DProjects.Utils {
         //    }
         //    return true;
         //}
-        
+
         public static Type[] InferDataType(string? text) {
             var result = new List<Type>();
             if (text == null) return new Type[] { };

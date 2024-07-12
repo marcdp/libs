@@ -9,18 +9,28 @@ namespace DProjects.Secrets {
 
     [Protocol("json", "")]
     [ProtocolUsage("json:FILESYSTEM")]
-    [ProtocolExample("json:file:///path/to/secrets.json", "")]
-    [ProtocolExample("json:fs-file:/path/to/secrets.json", "")]
+    [ProtocolExample("json:file:///path/to/secrets.json.aes?init=true", "")]
+    [ProtocolExample("json:file:///d!/secrets.json.aes?init=true", "")]
+    [ProtocolExample("json:mem:!/secrets.json.aes?init=true", "")]
+    
     public class SecretManagerJsonFactory(IFactoryByUrl<IFilesystem> fsFactory) : IFactoryByUrl<ISecretManager> {
         public ISecretManager Create(string src) {
             var url = new System.Uri(src);
             var (outerUrl, innerUrl) = UrlUtils.UnwrapUrl(src);
+
             var aOuterUrl = new Uri(outerUrl);
             var aInnerUrl = new Uri(innerUrl);
-            var filesystem = fsFactory.Create(innerUrl);
-            return new SecretManagerJson(filesystem, aOuterUrl.AbsolutePath);
-        }
+            var init = UrlUtils.GetQueryValue<bool>(url.Query, "init");
 
+            var filesystem = fsFactory.Create(innerUrl);
+            return new SecretManagerJson(filesystem, aOuterUrl.AbsolutePath, init);
+        }
     }
+
+
+
+
+
+
 
 }

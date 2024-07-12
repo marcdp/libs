@@ -208,7 +208,8 @@ namespace DProjects.Db.Writers {
             }
             if (result != null && result.IndexOf('\n') != -1) {
                 if (mSettings.NewLineMode == NewLineModes.Default) {
-                    result = result.Replace("\r\n", "\n"); //use \n always
+                    //result = result.Replace("\r\n", "\n"); //use \n always
+                    result = result.Replace("\n", "\\n").Replace("\r", "\\r");
                 } else if (mSettings.NewLineMode == NewLineModes.Remove) {
                     result = result.Replace("\r\n", " ").Replace("\n", " ");
                 }

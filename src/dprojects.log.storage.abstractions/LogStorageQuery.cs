@@ -2,7 +2,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace DProjects.Log {
+namespace DProjects.Log.Storage {
 
     public class LogStorageQuery {
 

@@ -1,4 +1,6 @@
 using DProjects.Fs;
+using DProjects.Utils;
+
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -54,8 +56,41 @@ namespace DProjects.Log.Storage {
         public Task RemoveBeforeAsync(int days, CancellationToken cancellationToken) {
             throw new NotImplementedException();
         }
-        public IAsyncEnumerable<LogEntry> TailAsync(int lines, bool follow, CancellationToken cancellationToken) {
-            throw new NotImplementedException();
+        public async IAsyncEnumerable<LogEntry> TailAsync(int lines, bool follow, [EnumeratorCancellation]CancellationToken cancellationToken) {
+            var listOfLines = new List<string>();
+            var skip = 64 * 1024;
+            var delayBetweenChecks = 500;
+            //fill buffer
+            var entry = await mFilesystem.GetEntryAsync(mPath, cancellationToken);
+            if (entry == null) throw new Exception("Unable to tail log file: path not found: " + mPath);
+            var offset = Math.Max(0, entry.Length - skip);
+            using (var readStream = await mFilesystem.LoadReadStreamAsync(mPath, new() {  Offset = offset }, cancellationToken)) {
+                do {
+                    var line = await StreamUtils.ReadLineAsync(readStream, mEncoding, cancellationToken);
+                    if (line == null) {
+                        break;
+                    }
+                    listOfLines.Add(line);
+                    if (listOfLines.Count > lines) {
+                        listOfLines.RemoveAt(0);
+                    }
+                } while (true);
+                //return
+                foreach (var line in listOfLines) {
+                    yield return mDeserializer.Deserialize(line);
+                }
+                //follow
+                if (follow) {
+                    do {
+                        var line = await StreamUtils.ReadLineAsync(readStream, mEncoding, cancellationToken);
+                        if (line == null) {
+                            await Task.Delay(delayBetweenChecks, cancellationToken);
+                        } else {
+                            yield return mDeserializer.Deserialize(line);
+                        }
+                    } while (true);
+                }
+            }
         }
     }
 

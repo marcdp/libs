@@ -26,15 +26,17 @@ namespace DProjects.Secrets {
         //fields
         private readonly IFilesystem mFilesystem;
         private readonly string mPath;
+        private bool mInit;
         private readonly object mLock = new();
         private string? mPassword;
         private Storage? mStorage;
 
 
         //constructor
-        public SecretManagerJson(IFilesystem filesystem, string path) {
+        public SecretManagerJson(IFilesystem filesystem, string path, bool init) {
             mFilesystem = filesystem;
             mPath = string.IsNullOrEmpty(path) ? "/" : path;
+            mInit = init;
         }
 
 
@@ -105,6 +107,11 @@ namespace DProjects.Secrets {
         //private methods
         private async Task<Storage> Load(string password, CancellationToken cancellationToken) {
             if (mStorage == null) {
+                //create file if not exists
+                if (mInit && !await mFilesystem.ExistsAsync(mPath, cancellationToken)) {
+                    mStorage = new Storage();
+                    await Save(password, cancellationToken);
+                }
                 //read file
                 var aes = await mFilesystem.LoadTextFileAsync(mPath);
                 var json = "";

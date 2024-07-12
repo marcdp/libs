@@ -8,12 +8,14 @@ using DProjects.Text.Yaml;
 namespace DProjects.Db.Writers {
 
 
-    public class DBWriterYaml : IDBWriter {
+    public class DBWriterYfm : IDBWriter {
 
 
         //inner classes
         public class Settings : YamlSerializerSettings {
             public Settings() {
+                FrontMatter = true;
+                ContentPropertyNames = new string[] { "content" };
             }
         }
 
@@ -23,26 +25,17 @@ namespace DProjects.Db.Writers {
         private bool mLeaveOpen;
         private DBTable mTable;
         private Settings mSettings;
-        private bool mFrontMatter;
 
 
         //constructor
-        public DBWriterYaml(TextWriter writer, bool leaveOpen, Settings settings) {
+        public DBWriterYfm(TextWriter writer, bool leaveOpen, Settings settings) {
             mWriter = writer;
             mLeaveOpen = leaveOpen;
             mTable = new DBTable();
-            mSettings = settings;
-            mFrontMatter = settings.FrontMatter;
-            settings.FrontMatter = false;
-            if (mFrontMatter) {
-                mWriter.WriteLine("---");
-            }
+            mSettings = settings;            
         }
-        public DBWriterYaml(TextWriter writer, bool leaveOpen) : this(writer, leaveOpen, new Settings()) { }
+        public DBWriterYfm(TextWriter writer, bool leaveOpen) : this(writer, leaveOpen, new Settings()) { }
         public void Dispose() {
-            if (mFrontMatter) {
-                mWriter.WriteLine("---");
-            }
             if (!mLeaveOpen) {
                 mWriter.Dispose();
             }
@@ -94,7 +87,7 @@ namespace DProjects.Db.Writers {
             foreach (var column in mTable.Columns) {
                 dict[column.Name] = values[index++];
             }
-            var result = new DProjects.Text.Yaml.YamlSerializer(mSettings).Serialize(new object[] { dict });
+            var result = new DProjects.Text.Yaml.YamlSerializer(mSettings).Serialize(dict);
             return result;
         }
     }

@@ -8,7 +8,6 @@ namespace DProjects.Log {
 
     [Protocol("fs-dir", "")]
     [ProtocolUsage("fs-dir://PATH-TO-FILE?format=FORMAT")]
-    [ProtocolExample("fs-file:///var/log/folder.log?autoFlush=true&useWriterThread=true&logFormatter=rat&level=debug&dateTimePattern=YYYYMMDD", "")]
     public class LogFsDirFactory(IFilesystem filesystem, IFactoryByUrl<ILogEntrySerializer> logFormatterFactory) : IFactoryByUrl<ILog> {
 
         public ILog Create(string src) {

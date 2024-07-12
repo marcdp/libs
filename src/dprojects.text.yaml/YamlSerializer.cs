@@ -61,42 +61,55 @@ namespace DProjects.Text.Yaml {
                 if (settings.IgnorePropertyNames.Length > 0 || settings.ContentPropertyNames.Length > 0) {
                     var ignoredPropertyNames = new List<string>();
                     ignoredPropertyNames.AddRange(settings.IgnorePropertyNames);
-                    ignoredPropertyNames.AddRange(settings.ContentPropertyNames);
-                    serializerBuilder = serializerBuilder.WithTypeInspector(inspector => new MyTypeInspectorIgnoreProperties(inspector, ignoredPropertyNames.ToArray(), value));
+                    if (settings.FrontMatter) ignoredPropertyNames.AddRange(settings.ContentPropertyNames); 
+                    serializerBuilder = serializerBuilder.WithTypeInspector(inspector => 
+                        new MyTypeInspectorIgnoreProperties(inspector, ignoredPropertyNames.ToArray(), value)
+                    );
+                    serializerBuilder = serializerBuilder.WithTypeConverter(new YamlConverters.DictionaryStringObjectConverter(ignoredPropertyNames.ToArray()));
                 }
                 //build
                 var serializer = serializerBuilder.Build();
                 //serialize
-                if (settings.FrontMatter) {
-                    writer.WriteLine("---");
-                    serializer.Serialize(writer, value);
-                    writer.WriteLine("---");
-                } else {
-                    serializer.Serialize(writer, value);
-                }
+                if (settings.FrontMatter) writer.WriteLine("---");
+                serializer.Serialize(writer, value);
+                if (settings.FrontMatter) writer.WriteLine("---");
                 //content nodes
                 if (settings.FrontMatter && settings.ContentPropertyNames.Length > 0) {
                     int index = 0;
-                    foreach (var propertyName in settings.ContentPropertyNames) {
-                        var propertyInfo = value.GetType().GetProperty(propertyName, BindingFlags.IgnoreCase | BindingFlags.Instance | BindingFlags.Public);
-                        if (propertyInfo != null) {
-                            var propertyValue = propertyInfo.GetValue(value, null);
-                            if (index++ > 0) {
-                                writer.WriteLine("---" + propertyName);
+                    var contentValues = new Dictionary<string, object?>();
+                    //get content values
+                    if (value is IDictionary<string, object?> dict) {
+                        foreach (var propertyName in settings.ContentPropertyNames) {
+                            if (dict.TryGetValue(propertyName, out var propertyValue)) {
+                                contentValues.Add(propertyName, propertyValue);
                             }
-                            if (propertyValue is string) {
-                                writer.Write(propertyValue);
-                            } else if (propertyValue is byte[]) {
-                                if (settings.BinaryMode == BinaryModes.Default) {
-                                    serializer.Serialize(writer, propertyValue);
-                                } else if (settings.BinaryMode == BinaryModes.Default) {
-                                    writer.Write("!!binary " + Convert.ToBase64String((byte[])propertyValue));
-                                } else {
-                                    writer.Write(StringUtils.SplitByColumnsAndFold(Convert.ToBase64String((byte[])propertyValue), 76));
-                                }
+                        }
+                    } else {
+                        foreach (var propertyName in settings.ContentPropertyNames) {
+                            var propertyInfo = value.GetType().GetProperty(propertyName, BindingFlags.IgnoreCase | BindingFlags.Instance | BindingFlags.Public);
+                            if (propertyInfo != null) {
+                                var propertyValue = propertyInfo.GetValue(value, null);
+                                contentValues.Add(propertyName, propertyValue);
+                            }
+                        }
+                    }
+                    //render                        
+                    foreach (var contentValue in contentValues) {
+                        if (index++ > 0) {
+                            writer.WriteLine("---" + contentValue.Key);
+                        }
+                        if (contentValue.Value is string) {
+                            writer.WriteLine(contentValue.Value);
+                        } else if (contentValue.Value is byte[]) {
+                            if (settings.BinaryMode == BinaryModes.Default) {
+                                serializer.Serialize(writer, contentValue.Value);
+                            } else if (settings.BinaryMode == BinaryModes.Default) {
+                                writer.Write("!!binary " + Convert.ToBase64String((byte[])contentValue.Value));
                             } else {
-                                serializer.Serialize(writer, propertyValue);
+                                writer.Write(StringUtils.SplitByColumnsAndFold(Convert.ToBase64String((byte[])contentValue.Value), 76));
                             }
+                        } else {
+                            serializer.Serialize(writer, contentValue.Value);
                         }
                     }
                 }

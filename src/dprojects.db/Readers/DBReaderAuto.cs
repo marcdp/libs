@@ -98,6 +98,8 @@ namespace DProjects.Db.Readers {
                 return new DBReaderCsv(mLineReader, false, new());
             } else if (line.StartsWith("[")) {
                 return new DBReaderJson(mLineReader, false, new());
+            } else if (line.Equals("---")) {
+                return new DBReaderYaml(mLineReader, false, new());
             } else {
                 return new DBReaderPlain(mLineReader, false, new());
             }

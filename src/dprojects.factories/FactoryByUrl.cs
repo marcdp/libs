@@ -17,10 +17,11 @@ namespace DProjects.Factories {
         //constructor
         public FactoryByUrl(FactoryByUrlConfiguration<TType> configuration, IServiceProvider serviceProvider) {
             mConfiguration = configuration;
-            mServiceProvider = serviceProvider; 
+            mServiceProvider = serviceProvider;
         }
 
         //props
+        public FactoryByUrlConfiguration<TType> Configuration => mConfiguration;  
         public IReadOnlyList<FactoryByUrlProtocol<TType>> Protocols => mConfiguration.Protocols;
         public IReadOnlyList<FactoryByUrlAlias> Aliases => mConfiguration.Aliases;
 
