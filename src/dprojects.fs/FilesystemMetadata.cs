@@ -6,6 +6,7 @@ using System.IO;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Runtime.CompilerServices;
 
 namespace DProjects.Fs {
 
@@ -52,9 +53,9 @@ namespace DProjects.Fs {
                 }
             }
         }
-        public async IAsyncEnumerable<Entry> GetEntriesAsync(string path, GetModes mode = GetModes.All, string? pattern = null) {
+        public async IAsyncEnumerable<Entry> GetEntriesAsync(string path, GetModes mode = GetModes.All, string? pattern = null, [EnumeratorCancellation] CancellationToken cancellationToken = default) {
             if (path.EndsWith(mSuffix)) throw new Exception("Unable to get entries: path not found: " + path);
-            await foreach (var entry in mFilesystem.GetEntriesAsync(path, mode, pattern)) {
+            await foreach (var entry in mFilesystem.GetEntriesAsync(path, mode, pattern, cancellationToken)) {
                 if (entry.Name.EndsWith(mSuffix)) {
                 } else {
                     yield return entry;

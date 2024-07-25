@@ -13,6 +13,7 @@ namespace DProjects.Factories {
 
         //vars
         internal List<FactoryByUrlAlias> Aliases { get; } = new();
+        internal List<FactoryByUrlHandler<T>> Handlers { get; } = new();
         internal List<FactoryByUrlProtocol<T>> Protocols { get; } = new();
 
         //methods
@@ -34,8 +35,11 @@ namespace DProjects.Factories {
         }
         public void AddAlias(string alias, string url, ServiceLifetime lifeTime = ServiceLifetime.Scoped, string description = "") {
             Aliases.Add(new FactoryByUrlAlias(alias, description, url, lifeTime));            
-        } 
-        
+        }
+        public void AddHandler(string alias, Func<IServiceProvider, object?, T> handler, ServiceLifetime lifeTime = ServiceLifetime.Scoped, string description = "") {
+            Handlers.Add(new FactoryByUrlHandler<T>(alias, description, handler, lifeTime));
+        }
+
     }
 
 

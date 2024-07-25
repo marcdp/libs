@@ -32,7 +32,7 @@ namespace DProjects.Fs {
         public abstract Entry? GetEntry(string path);
         public abstract Task<Entry?> GetEntryAsync(string path, CancellationToken cancellationToken);
         public abstract IEnumerable<Entry> GetEntries(string path, GetModes mode = GetModes.All, string? pattern = null);
-        public abstract IAsyncEnumerable<Entry> GetEntriesAsync(string path, GetModes mode = GetModes.All, string? pattern = null);
+        public abstract IAsyncEnumerable<Entry> GetEntriesAsync(string path, GetModes mode = GetModes.All, string? pattern = null, CancellationToken cancellationToken = default);
         public virtual bool Exists(string path) {
             return GetEntry(path) != null;
         }

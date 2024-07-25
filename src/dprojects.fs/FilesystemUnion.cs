@@ -5,6 +5,8 @@ using System.IO;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Runtime.CompilerServices;
+
 
 namespace DProjects.Fs {
 
@@ -71,12 +73,12 @@ namespace DProjects.Fs {
                 yield return entry;
             }
         }
-        public override async IAsyncEnumerable<Entry> GetEntriesAsync(string path, GetModes mode = GetModes.All, string? pattern = null) {
+        public override async IAsyncEnumerable<Entry> GetEntriesAsync(string path, GetModes mode = GetModes.All, string? pattern = null, [EnumeratorCancellation] CancellationToken cancellationToken = default) {
             var filesystems = mFilesystems;
             var entries = new List<Entry>();
             foreach (var fs in filesystems) {
                 if (fs.ExistsDirectory(path)) {
-                    await foreach (var entry in fs.GetEntriesAsync(path, mode, pattern)) {
+                    await foreach (var entry in fs.GetEntriesAsync(path, mode, pattern, cancellationToken)) {
                         entries.Add(entry);
                     }
                 }

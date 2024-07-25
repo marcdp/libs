@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Runtime.CompilerServices;
 
 namespace DProjects.Utils {
 
@@ -50,9 +51,10 @@ namespace DProjects.Utils {
 
 
         //utils
-        public static async IAsyncEnumerable<T> ToAsyncEnumerable<T>(this IEnumerable<T> enumerable) {
+        public static async IAsyncEnumerable<T> ToAsyncEnumerable<T>(this IEnumerable<T> enumerable, [EnumeratorCancellation] CancellationToken cancellationToken = default) {
             foreach (var item in enumerable) {
                 yield return await Task.FromResult(item);
+                cancellationToken.ThrowIfCancellationRequested();
             }
         }
         public static IEnumerable<T> ToEnumerable<T>(this IAsyncEnumerable<T> iAsyncEnumerable) {

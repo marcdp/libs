@@ -55,8 +55,11 @@ namespace DProjects.Db.Readers {
                         }
                         mFirstDBRow = new DBRow(mTable, values.ToArray());
                     }
+                    return;
                 }
             }
+            throw new Exception("Front matter separator expected");
+
         }
         public DBReaderYfm(TextReader reader, bool leaveOpen) : this(reader, leaveOpen, new Settings()) {
         }

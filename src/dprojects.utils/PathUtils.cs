@@ -96,10 +96,10 @@ namespace DProjects.Utils {
             }
             return path;
         }
-        public static string Uncombine(string prefix, string path) {
+        public static string Uncombine(string prefix, string path, StringComparison stringComparison = StringComparison.CurrentCulture) {
             //get path unprefixed
             if (prefix != "/") {
-                if (path.StartsWith(prefix)) {
+                if (path.StartsWith(prefix, stringComparison)) {
                     path = path.Substring(prefix.Length);
                     if (path == "") {
                         path = "/";

@@ -6,6 +6,7 @@ using System.IO;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Runtime.CompilerServices;
 
 namespace DProjects.Fs {
 
@@ -22,11 +23,13 @@ namespace DProjects.Fs {
 
         //variables
         private List<MountPoint> mMountPoints;
+        private StringComparison mStringComparison;
 
 
         //constructor
         public FilesystemMounter(bool isReadonly = false) : base(isReadonly) {
             mMountPoints = new List<MountPoint>();
+            mStringComparison = StringComparison.CurrentCultureIgnoreCase;
         }
         public override void Dispose() {
             for ( int i = mMountPoints.Count - 1; i >= 0; i--) {
@@ -74,11 +77,11 @@ namespace DProjects.Fs {
             var additionalDirectories = new Stack<Entry>();
             for (int i = mMountPoints.Count - 1; i >= 0; i--) {
                 var mountPoint = mMountPoints[i];
-                if (path.StartsWith(mountPoint.Path)) {
+                if (path.StartsWith(mountPoint.Path, mStringComparison)) {
                     //root mountpoint
                     targetMountPoint = mountPoint;
                     break;
-                } else if (PathUtils.GetPathParent(mountPoint.Path).Equals(path)) {
+                } else if (PathUtils.GetPathParent(mountPoint.Path).Equals(path, mStringComparison)) {
                     // root mounts points to list
                     var entry = mountPoint.Filesystem.GetEntry(PathUtils.Combine("/", mountPoint.Prefix));
                     if (entry != null) {
@@ -99,10 +102,10 @@ namespace DProjects.Fs {
                 throw new NotImplementedException("Unhandled mount point for: " + path);
             }
             //list
-            var targetPath = PathUtils.Uncombine(targetMountPoint.Path, path);
+            var targetPath = PathUtils.Uncombine(targetMountPoint.Path, path, mStringComparison);
             if (targetMountPoint.Prefix.Length > 0) {
                 targetPath = PathUtils.Combine(targetMountPoint.Prefix, targetPath);
-            }
+            } 
             foreach (var entry in targetMountPoint.Filesystem.GetEntries(targetPath, mode, pattern)) {
                 var newEntry = PrefixPathEntry(targetMountPoint, entry);
                 while (additionalDirectories.Count > 0 && PathUtils.ComparePath(additionalDirectories.Peek().Path, newEntry.Path) < 0) {
@@ -114,19 +117,19 @@ namespace DProjects.Fs {
                 yield return additionalDirectories.Pop();
             }
         }
-        public override async IAsyncEnumerable<Entry> GetEntriesAsync(string path, GetModes mode = GetModes.All, string? pattern = null) {
+        public override async IAsyncEnumerable<Entry> GetEntriesAsync(string path, GetModes mode = GetModes.All, string? pattern = null, [EnumeratorCancellation] CancellationToken cancellationToken = default) {
             //get target mount points
             MountPoint? targetMountPoint = null;
             var additionalDirectories = new Stack<Entry>();
             for (int i = mMountPoints.Count - 1; i >= 0; i--) {
                 var mountPoint = mMountPoints[i];
-                if (path.StartsWith(mountPoint.Path)) {
+                if (path.StartsWith(mountPoint.Path, mStringComparison)) {
                     //root mountpoint
                     targetMountPoint = mountPoint;
                     break;
                 } else if (PathUtils.GetPathParent(mountPoint.Path).Equals(path)) {
                     // root mounts points to list
-                    var entry = await mountPoint.Filesystem.GetEntryAsync(PathUtils.Combine("/", mountPoint.Prefix), default);
+                    var entry = await mountPoint.Filesystem.GetEntryAsync(PathUtils.Combine("/", mountPoint.Prefix), cancellationToken);
                     if (entry != null) {
                         entry = PrefixPathEntry(mountPoint, entry);
                         if (mode == GetModes.All ||
@@ -145,11 +148,11 @@ namespace DProjects.Fs {
                 throw new NotImplementedException("Unhandled mount point for: " + path);
             }
             //list
-            var targetPath = PathUtils.Uncombine(targetMountPoint.Path, path);
+            var targetPath = PathUtils.Uncombine(targetMountPoint.Path, path, mStringComparison);
             if (targetMountPoint.Prefix.Length > 0) {
                 targetPath = PathUtils.Combine(targetMountPoint.Prefix, targetPath);
             }
-            await foreach (var entry in targetMountPoint.Filesystem.GetEntriesAsync(targetPath, mode, pattern)) {
+            await foreach (var entry in targetMountPoint.Filesystem.GetEntriesAsync(targetPath, mode, pattern, cancellationToken)) {
                 var newEntry = PrefixPathEntry(targetMountPoint, entry);
                 while (additionalDirectories.Count > 0 && PathUtils.ComparePath(additionalDirectories.Peek().Path, newEntry.Path) < 0) {
                     yield return additionalDirectories.Pop();
@@ -371,7 +374,7 @@ namespace DProjects.Fs {
             var mountPoint = GetMountPoint(ref path);
             if (mountPoint == null) throw new Exception("Mount point not found: " + path);
             var watcher = mountPoint.Filesystem.CreateWatcher(PathUtils.Combine(mountPoint.Prefix, path), filter, excludes, recursive);
-            watcher.WithPath(PathUtils.Uncombine(mountPoint.Prefix, PathUtils.Combine(mountPoint.Path, watcher.Path)));
+            watcher.WithPath(PathUtils.Uncombine(mountPoint.Prefix, PathUtils.Combine(mountPoint.Path, watcher.Path), mStringComparison));
             return watcher;
         }
         public override IDictionary<string, string> GetMetadata(string path) {
@@ -419,7 +422,7 @@ namespace DProjects.Fs {
                     ((FilesystemMounter)objMountPoint.Filesystem).Mount(path, filesystem, takeOwnership);
                     return;
                 } else if ((path.StartsWith(objMountPoint.Path + "/") || objMountPoint.Path == "/") && objMountPoint.Filesystem is FilesystemMounter) {
-                    path = PathUtils.Uncombine(objMountPoint.Path, path);
+                    path = PathUtils.Uncombine(objMountPoint.Path, path, mStringComparison);
                     ((FilesystemMounter)objMountPoint.Filesystem).Mount(path, filesystem, takeOwnership);
                     return;
                 }
@@ -446,7 +449,7 @@ namespace DProjects.Fs {
                     mMountPoints.Remove(mountPoint);
                     return true;
                 } else if ((path.StartsWith(mountPoint.Path + "/") || mountPoint.Path == "/") && mountPoint.Filesystem is FilesystemMounter) {
-                    path = PathUtils.Uncombine(mountPoint.Path, path);
+                    path = PathUtils.Uncombine(mountPoint.Path, path, mStringComparison);
                     return ((FilesystemMounter)mountPoint.Filesystem).Unmount(path);
                 }
             }
@@ -465,11 +468,11 @@ namespace DProjects.Fs {
         public MountPoint? GetMountPoint(ref string path) {
             for (int i = mMountPoints.Count - 1; i >= 0; i--) {
                 var mountPoint = mMountPoints[i];
-                if (mountPoint.Path == path) {
+                if (mountPoint.Path.Equals(path, mStringComparison)) {
                     path = "/";
                     return mountPoint;
-                } else if (path.StartsWith(mountPoint.Path + "/") || mountPoint.Path == "/") {
-                    path = PathUtils.Uncombine(mountPoint.Path, path);
+                } else if (path.StartsWith(mountPoint.Path + "/", mStringComparison) || mountPoint.Path == "/") {
+                    path = PathUtils.Uncombine(mountPoint.Path, path, mStringComparison);
                     return mountPoint;
                 }
             }
@@ -478,10 +481,10 @@ namespace DProjects.Fs {
         public bool IsMountPoint(string path) {
             for (int i = mMountPoints.Count - 1; i >= 0; i--) {
                 MountPoint mountPoint = mMountPoints[i];
-                if (mountPoint.Path == path) {
+                if (mountPoint.Path.Equals(path, mStringComparison)) {
                     return true;
                 } else if (mountPoint.Filesystem is FilesystemMounter) {
-                    if ((path.StartsWith(mountPoint.Path + "/") || mountPoint.Path == "/") && ((FilesystemMounter)mountPoint.Filesystem).IsMountPoint(PathUtils.Uncombine(mountPoint.Path, path))) {
+                    if ((path.StartsWith(mountPoint.Path + "/", mStringComparison) || mountPoint.Path == "/") && ((FilesystemMounter)mountPoint.Filesystem).IsMountPoint(PathUtils.Uncombine(mountPoint.Path, path, mStringComparison))) {
                         return true;
                     }
                 }
@@ -494,10 +497,10 @@ namespace DProjects.Fs {
             if (mountPoint == null) {
                 result = null;
             } else if (mountPoint.Filesystem is FilesystemLocal) {
-                FilesystemLocal objFilesystemLocal = (FilesystemLocal)mountPoint.Filesystem;
+                var objFilesystemLocal = (FilesystemLocal)mountPoint.Filesystem;
                 result = objFilesystemLocal.GetNativePath(path);
             } else if (mountPoint.Filesystem is FilesystemMounter) {
-                FilesystemMounter objFilesystemMounter = (FilesystemMounter)mountPoint.Filesystem;
+                var objFilesystemMounter = (FilesystemMounter)mountPoint.Filesystem;
                 result = objFilesystemMounter.GetNativeMountPath(path);
             } else {
                 result = null;
@@ -505,7 +508,7 @@ namespace DProjects.Fs {
             return result;
         }
         private Entry PrefixPathEntry(MountPoint objMountPoint, Entry entry, bool forceReadonly = false) {
-            string newPath = PathUtils.Uncombine(objMountPoint.Prefix, PathUtils.Combine(objMountPoint.Path, entry.Path));
+            string newPath = PathUtils.Uncombine(objMountPoint.Prefix, PathUtils.Combine(objMountPoint.Path, entry.Path), mStringComparison);
             return entry.WithPath(newPath);
         }
         public MountPoint[] GetMountPoints() {

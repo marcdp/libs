@@ -13,7 +13,7 @@ namespace DProjects.Fs {
 
         //methods LEVEL 0
         Task<Entry?> GetEntryAsync(string path, CancellationToken cancellationToken);
-        IAsyncEnumerable<Entry> GetEntriesAsync(string path, GetModes mode = GetModes.All, string? pattern = null);
+        IAsyncEnumerable<Entry> GetEntriesAsync(string path, GetModes mode = GetModes.All, string? pattern = null, CancellationToken cancellationToken = default);
         Task<bool> ExistsAsync(string path, CancellationToken cancellationToken);
         Task<Stream> LoadReadStreamAsync(string path, LoadReadStreamSettings settings, CancellationToken cancellationToken);
         Task<Stream> LoadWriteStreamAsync(string path, LoadWriteStreamSettings settings, CancellationToken cancellationToken);

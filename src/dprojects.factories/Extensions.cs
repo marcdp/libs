@@ -43,6 +43,22 @@ namespace DProjects.Factories {
                     });
                 }
             }
+            // add handlers
+            foreach (var handler in config.Handlers) {
+                if (handler.Lifetime == ServiceLifetime.Scoped) {
+                    services.AddKeyedScoped<TType>(handler.Name, (services, key) => {
+                        return handler.Handler(services, key);
+                    });
+                } else if (handler.Lifetime == ServiceLifetime.Transient) {
+                    services.AddKeyedTransient<TType>(handler.Name, (services, key) => {
+                        return handler.Handler(services, key);
+                    });
+                } else if (handler.Lifetime == ServiceLifetime.Singleton) {
+                    services.AddKeyedSingleton<TType>(handler.Name, (services, key) => {
+                        return handler.Handler(services, key);
+                    });
+                }
+            }
             //protocols
             foreach (var protocol in config.Protocols) {
                 services.AddKeyedTransient(typeof(IFactoryByUrl<TType>), protocol.Name, protocol.Factory);

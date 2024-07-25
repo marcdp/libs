@@ -15,12 +15,11 @@ namespace DProjects.Secrets {
     
     public class SecretManagerJsonFactory(IFactoryByUrl<IFilesystem> fsFactory) : IFactoryByUrl<ISecretManager> {
         public ISecretManager Create(string src) {
-            var url = new System.Uri(src);
             var (outerUrl, innerUrl) = UrlUtils.UnwrapUrl(src);
 
             var aOuterUrl = new Uri(outerUrl);
             var aInnerUrl = new Uri(innerUrl);
-            var init = UrlUtils.GetQueryValue<bool>(url.Query, "init");
+            var init = UrlUtils.GetQueryValue<bool>(aInnerUrl.Query, "init");
 
             var filesystem = fsFactory.Create(innerUrl);
             return new SecretManagerJson(filesystem, aOuterUrl.AbsolutePath, init);

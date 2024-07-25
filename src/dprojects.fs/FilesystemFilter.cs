@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-
+using System.Runtime.CompilerServices;
 
 namespace DProjects.Fs {
 
@@ -78,9 +78,9 @@ namespace DProjects.Fs {
                 yield return entry;
             }
         }
-        public async IAsyncEnumerable<Entry> GetEntriesAsync(string path, GetModes mode = GetModes.All, string? pattern = null) {
+        public async IAsyncEnumerable<Entry> GetEntriesAsync(string path, GetModes mode = GetModes.All, string? pattern = null, [EnumeratorCancellation] CancellationToken cancellationToken = default) {
             if (!path.Equals("/") && IsExcluded(path)) yield break;
-            await foreach (var entry in mFilesystem.GetEntriesAsync(path, mode, pattern)) {
+            await foreach (var entry in mFilesystem.GetEntriesAsync(path, mode, pattern, cancellationToken)) {
                 if (IsExcluded(entry.Path)) continue;
                 yield return entry;
             }

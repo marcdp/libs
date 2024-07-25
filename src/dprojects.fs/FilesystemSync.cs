@@ -7,6 +7,7 @@ using DProjects.Fs.Extensions;
 using DProjects.Streams;
 using DProjects.Utils;
 using Microsoft.Extensions.Logging;
+using System.Runtime.CompilerServices;
 
 namespace DProjects.Fs {
 
@@ -33,8 +34,8 @@ namespace DProjects.Fs {
             return await Task.FromResult(GetEntry(path));
         }
         public abstract IEnumerable<Entry> GetEntries(string path, GetModes mode = GetModes.All, string? pattern = null);
-        public IAsyncEnumerable<Entry> GetEntriesAsync(string path, GetModes mode = GetModes.All, string? pattern = null) {
-            return GetEntries(path, mode, pattern).ToAsyncEnumerable();
+        public IAsyncEnumerable<Entry> GetEntriesAsync(string path, GetModes mode = GetModes.All, string? pattern = null, CancellationToken cancellationToken = default) {
+            return GetEntries(path, mode, pattern).ToAsyncEnumerable(cancellationToken);
         }
         public virtual bool Exists(string path) {
             return GetEntry(path) != null;

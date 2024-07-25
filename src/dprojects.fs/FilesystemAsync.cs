@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 
+
 namespace DProjects.Fs {
 
 
@@ -44,7 +45,7 @@ namespace DProjects.Fs {
                 yield return entry;
             }
         }
-        public abstract IAsyncEnumerable<Entry> GetEntriesAsync(string path, GetModes mode = GetModes.All, string? pattern = null);
+        public abstract IAsyncEnumerable<Entry> GetEntriesAsync(string path, GetModes mode = GetModes.All, string? pattern = null, CancellationToken cancellationToken = default);
         public bool Exists(string path) {
             return AsyncUtils.RunSync(async () => await ExistsAsync(path, default));
         }

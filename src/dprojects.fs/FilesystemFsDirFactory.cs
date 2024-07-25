@@ -17,8 +17,10 @@ namespace DProjects.Fs {
     public class FilesystemFsDirFactory(IFilesystem fs) : IFactoryByUrl<IFilesystem> {
         public IFilesystem Create(string src) {
             var url = new System.Uri(src);
+            var init = UrlUtils.GetQueryValue<bool>(url.Query, "init");
             var fsMounter = new FilesystemMounter(true);
             fsMounter.Mount("/", fs, true, url.AbsolutePath);
+            if (init) fsMounter.CreateDirectory("/");
             return fsMounter;
         }
 

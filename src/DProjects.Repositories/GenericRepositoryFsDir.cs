@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using DProjects.Fs;
 using DProjects.Fs.Extensions;
 using DProjects.Utils;
+using System.Runtime.CompilerServices;
 
 namespace DProjects.Repositories {
 
@@ -31,6 +32,7 @@ namespace DProjects.Repositories {
             this.mFilesystem = filesystem;
             this.mPath = path;
             this.mFormat = format;
+            if (!mFilesystem.ExistsDirectory(mPath)) mFilesystem.CreateDirectory(mPath);
         }
 
 
@@ -54,7 +56,7 @@ namespace DProjects.Repositories {
             return result;
         }
 
-        public async IAsyncEnumerable<TEntity> ListAsync(string pattern, CancellationToken cancellationToken) {
+        public async IAsyncEnumerable<TEntity> ListAsync(string pattern, [EnumeratorCancellation] CancellationToken cancellationToken) {
             await foreach (var entry in mFilesystem.GetEntriesAsync(mPath, DProjects.Fs.GetModes.Files, pattern + "." + mFormat.ToString().ToLower())) {
                 var text = await mFilesystem.LoadTextFileAsync(entry.Path, System.Text.Encoding.UTF8, cancellationToken);
                 var result = Deserialize(text);
