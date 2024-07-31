@@ -10,7 +10,9 @@ namespace DProjects.Crypto {
     [ProtocolExample("aes:?encoding=base64&cipher=ECB&ivLength=32", "")]
     public class CryptoSymmetricEncryptCaesarFactory : IFactoryByUrl<ICryptoSymmetricEncrypt> {
         public ICryptoSymmetricEncrypt Create(string src) {
-            return new CryptoSymmetricEncryptCaesar(UrlUtils.Deserialize<CryptoSymmetricEncryptCaesar.Options>(src));
+            return new CryptoSymmetricEncryptCaesar(UrlUtils.Deserialize<CryptoSymmetricEncryptCaesar.Options>(src, new() {
+                ThrowExceptionIfPropertyNotFound = false
+            }));
         }
     }
 

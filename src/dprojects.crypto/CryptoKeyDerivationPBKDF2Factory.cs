@@ -7,7 +7,9 @@ namespace DProjects.Crypto {
     [ProtocolExample("pbkdf2://?[iterations=XX][&keyLength=32]", "")]
     public class CryptoKeyDerivationPBKDF2Factory : IFactoryByUrl<ICryptoKeyDerivation> {
         public ICryptoKeyDerivation Create(string src) {
-            return new CryptoKeyDerivationPBKDF2(UrlUtils.Deserialize<CryptoKeyDerivationPBKDF2.Options>(src));
+            return new CryptoKeyDerivationPBKDF2(UrlUtils.Deserialize<CryptoKeyDerivationPBKDF2.Options>(src, new() {
+                 ThrowExceptionIfPropertyNotFound = false 
+            }));
         }
     }
 

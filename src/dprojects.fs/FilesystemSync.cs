@@ -205,7 +205,7 @@ namespace DProjects.Fs {
         public virtual Watcher CreateWatcher(string path, string filter, string[] excludes, bool recursive) {
             throw new NotImplementedException();
         }
-        public async Task<Watcher> CreateWatcherAsync(string path, string filter, string[] excludes, bool recursive) {
+        public async Task<Watcher> CreateWatcherAsync(string path, string filter, string[] excludes, bool recursive, CancellationToken cancellationToken) {
             return await Task.FromResult(CreateWatcher(path, filter, excludes, recursive));
         }
         public virtual IDictionary<string, string> GetMetadata(string path) {

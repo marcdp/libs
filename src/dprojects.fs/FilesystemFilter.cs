@@ -217,9 +217,9 @@ namespace DProjects.Fs {
             if (IsExcluded(path)) throw new Exception("Unable to Create watcher: path not found: " + path);
             return mFilesystem.CreateWatcher(path, filter, excludes, recursive);
         }
-        public async Task<Watcher> CreateWatcherAsync(string path, string filter, string[] excludes, bool recursive) {
+        public async Task<Watcher> CreateWatcherAsync(string path, string filter, string[] excludes, bool recursive, CancellationToken cancellationToken) {
             if (IsExcluded(path)) throw new Exception("Unable to Create watcher: path not found: " + path);
-            return await mFilesystem.CreateWatcherAsync(path, filter, excludes, recursive);
+            return await mFilesystem.CreateWatcherAsync(path, filter, excludes, recursive, cancellationToken);
         }
         public IDictionary<string, string> GetMetadata(string path) {
             if (IsExcluded(path)) throw new Exception("Unable to get metadata: path not found: " + path);

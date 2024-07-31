@@ -16,7 +16,9 @@ namespace DProjects.Crypto {
     [ProtocolExample("aes:?encoding=base64&cipher=ECB&ivLength=32", "")]
     public class CryptoSymmetricDecryptAESFactory : IFactoryByUrl<ICryptoSymmetricDecrypt> {
         public ICryptoSymmetricDecrypt Create(string src) {
-            return new CryptoSymmetricDecryptAES(UrlUtils.Deserialize<CryptoSymmetricDecryptAES.Options>(src));
+            return new CryptoSymmetricDecryptAES(UrlUtils.Deserialize<CryptoSymmetricDecryptAES.Options>(src, new() {
+                ThrowExceptionIfPropertyNotFound = false
+            }));
         }
     }
 

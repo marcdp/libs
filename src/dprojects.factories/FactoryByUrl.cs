@@ -7,18 +7,26 @@ using System.Linq;
 namespace DProjects.Factories {
 
 
-    public class FactoryByUrl<TType> : IFactoryByUrl<TType> where TType : class {
+    public class FactoryByUrl<TType> : IDisposable, IFactoryByUrl<TType> where TType : class {
 
 
         //variables
         private IServiceProvider mServiceProvider;
         private FactoryByUrlConfiguration<TType> mConfiguration; 
+        private List<IDisposable> mDisposables;
 
         //constructor
         public FactoryByUrl(FactoryByUrlConfiguration<TType> configuration, IServiceProvider serviceProvider) {
             mConfiguration = configuration;
             mServiceProvider = serviceProvider;
+            mDisposables = new();
         }
+        public void Dispose() {
+            foreach (var disposable in mDisposables) { 
+                disposable.Dispose(); 
+            }
+        }
+
 
         //props
         public FactoryByUrlConfiguration<TType> Configuration => mConfiguration;  
@@ -56,7 +64,11 @@ namespace DProjects.Factories {
                 throw new ArgumentException("Unable to create instance of type, protocol not found: schema: " + scheme + ", protocol: " + typeof(TType).FullName);
             }
             var factory = mServiceProvider.GetRequiredKeyedService<IFactoryByUrl<TType>>(protocol.Name);
-            return factory.Create(url);
+            var instance = factory.Create(url);
+            //register IDisposable instance
+            if (instance is IDisposable instanceDisposable) mDisposables.Add(instanceDisposable);
+            //return instance
+            return instance;
         }
 
 

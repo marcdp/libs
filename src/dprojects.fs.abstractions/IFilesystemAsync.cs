@@ -39,7 +39,7 @@ namespace DProjects.Fs {
         Task SyncAsync(string path, string destination, SyncSettings settings, ILogger<IFilesystem> logger, CancellationToken cancellationToken);
 
         //methods LEVEL 4        
-        Task<Watcher> CreateWatcherAsync(string path, string filter, string[] excludes, bool recursive);
+        Task<Watcher> CreateWatcherAsync(string path, string filter, string[] excludes, bool recursive, CancellationToken cancellationToken);
         Task<IDictionary<string, string>> GetMetadataAsync(string path, CancellationToken cancellationToken);
         Task SetMetadataAsync(string path, IDictionary<string, string> metadata, CancellationToken cancellationToken);
         Task<bool> SupportsAsync(string path, Features feature, CancellationToken cancellationToken);

@@ -8,7 +8,9 @@ namespace DProjects.Crypto {
     [ProtocolUsage("bcrypt:")]
     public class CryptoHashBCRYPTFactory : IFactoryByUrl<ICryptoHash> {
         public ICryptoHash Create(string src) {
-            return new CryptoHashBCRYPT(UrlUtils.Deserialize<CryptoHashBCRYPT.Options>(src));
+            return new CryptoHashBCRYPT(UrlUtils.Deserialize<CryptoHashBCRYPT.Options>(src, new() {
+                ThrowExceptionIfPropertyNotFound = false
+            }));
         }
     }
 

@@ -3,6 +3,8 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace DProjects.Crypto {
 
@@ -30,10 +32,20 @@ namespace DProjects.Crypto {
                 return algorithm.ComputeHash(data);
             }
         }
+        public Task<byte[]> ToHashAsync(Stream data, CancellationToken cancellationToken) {
+            using (var algorithm = MD5.Create()) {
+                return Task.FromResult(algorithm.ComputeHash(data));
+            }
+        }
         public bool Verify(Stream data, byte[] hash) {
             var hashComputed = ToHash(data);
             return hashComputed.SequenceEqual<byte>(hash);
         }
+        public Task<bool> VerifyAsync(Stream data, byte[] hash, CancellationToken cancellationToken) {
+            var hashComputed = ToHash(data);
+            return Task.FromResult(hashComputed.SequenceEqual<byte>(hash));
+        }
+
 
     }
 

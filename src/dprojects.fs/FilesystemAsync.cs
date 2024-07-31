@@ -172,9 +172,9 @@ namespace DProjects.Fs {
 
         //method LEVEL 4
         public Watcher CreateWatcher(string path, string filter, string[] excludes, bool recursive) {  
-            return AsyncUtils.RunSync(async () => await CreateWatcherAsync(path, filter, excludes, recursive));
+            return AsyncUtils.RunSync(async () => await CreateWatcherAsync(path, filter, excludes, recursive, default));
         }
-        public virtual Task<Watcher> CreateWatcherAsync(string path, string filter, string[] excludes, bool recursive) {
+        public virtual Task<Watcher> CreateWatcherAsync(string path, string filter, string[] excludes, bool recursive, CancellationToken cancellationToken) {
             throw new NotImplementedException();
         }
         public IDictionary<string, string> GetMetadata(string path) {

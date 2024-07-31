@@ -497,18 +497,22 @@ namespace DProjects.Fs {
             if (mountPoint == null) {
                 result = null;
             } else if (mountPoint.Filesystem is FilesystemLocal) {
-                var objFilesystemLocal = (FilesystemLocal)mountPoint.Filesystem;
-                result = objFilesystemLocal.GetNativePath(path);
+                var filesystemLocal = (FilesystemLocal)mountPoint.Filesystem;
+                result = filesystemLocal.GetNativePath(path, mountPoint.Prefix);
             } else if (mountPoint.Filesystem is FilesystemMounter) {
-                var objFilesystemMounter = (FilesystemMounter)mountPoint.Filesystem;
-                result = objFilesystemMounter.GetNativeMountPath(path);
+                var filesystemMounter = (FilesystemMounter)mountPoint.Filesystem;
+                result = filesystemMounter.GetNativeMountPath(path);
             } else {
                 result = null;
             }
             return result;
         }
-        private Entry PrefixPathEntry(MountPoint objMountPoint, Entry entry, bool forceReadonly = false) {
-            string newPath = PathUtils.Uncombine(objMountPoint.Prefix, PathUtils.Combine(objMountPoint.Path, entry.Path), mStringComparison);
+        private Entry PrefixPathEntry(MountPoint mountPoint, Entry entry, bool forceReadonly = false) {
+            if (!string.IsNullOrEmpty(mountPoint.Prefix)) {
+                int kk = 13;
+            }
+            string newPath = PathUtils.Combine(mountPoint.Path, PathUtils.Uncombine(mountPoint.Prefix, entry.Path, mStringComparison));
+            //string newPath = PathUtils.Uncombine(mountPoint.Prefix, PathUtils.Combine(mountPoint.Path, entry.Path), mStringComparison);
             return entry.WithPath(newPath);
         }
         public MountPoint[] GetMountPoints() {

@@ -19,9 +19,9 @@ namespace DProjects.Fs {
             var result = new FilesystemMounter(isReadonly);
             var query = HttpUtility.ParseQueryString(url.Query);
             foreach (var path in query.AllKeys) {
-                if (path != null) {
+                if (path != null && path.StartsWith("/")) {
                     var subUrl = query[path];
-                    var prefix = "";
+                    var prefix = query["prefix" + path] ?? "";
                     var subFs = fsFactory.Create(subUrl);
                     result.Mount(path, subFs, true, prefix);
                 }

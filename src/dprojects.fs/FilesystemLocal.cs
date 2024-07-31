@@ -291,14 +291,14 @@ namespace DProjects.Fs {
             }
             throw new NullReferenceException();
         }
-        public string GetNativePath(string path) {
+        public string GetNativePath(string path, string prefix = "") {
             if (path.IndexOf("/") != -1) {
                 path = path.Replace('/', System.IO.Path.DirectorySeparatorChar);
             }
             while (path.StartsWith("\\") || path.StartsWith("/")) {
                 path = path.Substring(1);
             }
-            path = (path.Length == 0 ? mPath : System.IO.Path.Combine(mPath, path));
+            path = (path.Length == 0 ? mPath : System.IO.Path.Combine(mPath, (prefix.StartsWith("/") ? prefix.Substring(1) : ""), path));
             if (!FileUtils.GetFileIsDescendantFromDirectory(path, mPath)) path = mPath;
             return path;
         }
