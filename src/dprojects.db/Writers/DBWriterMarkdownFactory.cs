@@ -8,7 +8,7 @@ namespace DProjects.Db.Writers {
 
     [Protocol("markdown", "")]
     [ProtocolExample("markdown:", "")]
-    public class DBWriterMarkdownFactory : IFactoryByUrlAndArgument<IDBWriter, TextWriter> {
+    public class DBWriterMarkdownFactory : IFactoryByUrl<IDBWriter, TextWriter> {
 
         public IDBWriter Create(string src, TextWriter writer) {
             var leaveOpen = false;

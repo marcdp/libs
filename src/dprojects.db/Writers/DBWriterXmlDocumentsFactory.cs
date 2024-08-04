@@ -8,7 +8,7 @@ namespace DProjects.Db.Writers {
 
     [Protocol("xmld", "")]
     [ProtocolExample("xmld:", "")]
-    public class DBWriterXmlDocumentsFactory : IFactoryByUrlAndArgument<IDBWriter, TextWriter> {
+    public class DBWriterXmlDocumentsFactory : IFactoryByUrl<IDBWriter, TextWriter> {
 
         public IDBWriter Create(string src, TextWriter writer) {
             var leaveOpen = false;

@@ -8,7 +8,7 @@ namespace DProjects.Db.Writers {
 
     [Protocol("yfm", "")]
     [ProtocolExample("yfm:", "")]
-    public class DBWriterYfmFactory : IFactoryByUrlAndArgument<IDBWriter, TextWriter> {
+    public class DBWriterYfmFactory : IFactoryByUrl<IDBWriter, TextWriter> {
 
         public IDBWriter Create(string src, TextWriter writer) {
             var leaveOpen = false;

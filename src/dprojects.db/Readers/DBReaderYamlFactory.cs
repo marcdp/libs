@@ -8,7 +8,7 @@ namespace DProjects.Db.Readers {
 
     [Protocol("yaml", "")]
     [ProtocolExample("yaml:", "")]
-    public class DBReaderYamlFactory : IFactoryByUrlAndArgument<IDBReader, TextReader> {
+    public class DBReaderYamlFactory : IFactoryByUrl<IDBReader, TextReader> {
 
         public IDBReader Create(string src, TextReader reader) {
             var leaveOpen = false;

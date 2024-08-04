@@ -8,7 +8,7 @@ namespace DProjects.Db.Writers {
 
     [Protocol("xml", "")]
     [ProtocolExample("xml:?dateTimeFormat=&indent=false&omitXmlDeclaration=true&indentChars=...", "")]
-    public class DBWriterXmlFactory : IFactoryByUrlAndArgument<IDBWriter, TextWriter> {
+    public class DBWriterXmlFactory : IFactoryByUrl<IDBWriter, TextWriter> {
 
         public IDBWriter Create(string src, TextWriter writer) {
             var leaveOpen = false;

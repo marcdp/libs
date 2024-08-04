@@ -8,7 +8,7 @@ namespace DProjects.Db.Readers {
 
     [Protocol("json", "")]
     [ProtocolExample("json:", "")]
-    public class DBReaderJsonFactory : IFactoryByUrlAndArgument<IDBReader, TextReader> {
+    public class DBReaderJsonFactory : IFactoryByUrl<IDBReader, TextReader> {
 
         public IDBReader Create(string src, TextReader reader) {
             var leaveOpen = false;

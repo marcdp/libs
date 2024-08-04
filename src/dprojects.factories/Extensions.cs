@@ -66,19 +66,22 @@ namespace DProjects.Factories {
             //return
             return services;
         }
-        public static IServiceCollection AddFactoryByUrlAndArgument<TType, TArgument>(this IServiceCollection services, Action<FactoryByUrlAndArgumentConfiguration<TType, TArgument>> configuration) where TType : class {
+        public static IServiceCollection AddFactoryByUrl<TType, TArgument>(this IServiceCollection services, Action<FactoryByUrlConfiguration<TType, TArgument>> configuration) where TType : class where TArgument : class  {
             //config
-            var config = new FactoryByUrlAndArgumentConfiguration<TType, TArgument>();
+            var config = new FactoryByUrlConfiguration<TType, TArgument>();
             configuration.Invoke(config);
+            //add dependency-injection factory (ex: dependency-injection:keyed-service1, dependency-injection:keyed-service2, ...)
+            // Meaby we should activate generic injection : ????
+            //config.AddFactory<DependencyInjectionFactory<TType>>();   
             //sort
             config.Protocols.Sort();
             config.Aliases.Sort();
             //add factory instance
-            services.AddTransient(typeof(IFactoryByUrlAndArgument<TType, TArgument>), (services) => {
-                return new FactoryByUrlAndArgument<TType, TArgument>(config, services);
+            services.AddTransient(typeof(IFactoryByUrl<TType, TArgument>), (services) => {
+                return new FactoryByUrl<TType, TArgument>(config, services);
             });
-            services.AddTransient(typeof(FactoryByUrlAndArgument<TType, TArgument>), (services) => {
-                return services.GetRequiredService<IFactoryByUrlAndArgument<TType, TArgument>>();
+            services.AddTransient(typeof(FactoryByUrl<TType, TArgument>), (services) => {
+                return services.GetRequiredService<IFactoryByUrl<TType, TArgument>>();
             });
             //add alias
             foreach (var alias in config.Aliases) {
@@ -99,9 +102,25 @@ namespace DProjects.Factories {
                     });
                 }
             }
+            // add handlers
+            foreach (var handler in config.Handlers) {
+                if (handler.Lifetime == ServiceLifetime.Scoped) {
+                    services.AddKeyedScoped<TType>(handler.Name, (services, key) => {
+                        return handler.Handler(services, key);
+                    });
+                } else if (handler.Lifetime == ServiceLifetime.Transient) {
+                    services.AddKeyedTransient<TType>(handler.Name, (services, key) => {
+                        return handler.Handler(services, key);
+                    });
+                } else if (handler.Lifetime == ServiceLifetime.Singleton) {
+                    services.AddKeyedSingleton<TType>(handler.Name, (services, key) => {
+                        return handler.Handler(services, key);
+                    });
+                }
+            }
             //protocols
             foreach (var protocol in config.Protocols) {
-                services.AddKeyedTransient(typeof(IFactoryByUrlAndArgument<TType,TArgument>), protocol.Name, protocol.Factory);
+                services.AddKeyedTransient(typeof(IFactoryByUrl<TType, TArgument>), protocol.Name, protocol.Factory);
             }
             //return
             return services;

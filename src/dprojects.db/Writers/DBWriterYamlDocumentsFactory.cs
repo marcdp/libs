@@ -8,7 +8,7 @@ namespace DProjects.Db.Writers {
 
     [Protocol("yamld", "")]
     [ProtocolExample("yamld:", "")]
-    public class DBWriterYamlDocumentsFactory : IFactoryByUrlAndArgument<IDBWriter, TextWriter> {
+    public class DBWriterYamlDocumentsFactory : IFactoryByUrl<IDBWriter, TextWriter> {
 
         public IDBWriter Create(string src, TextWriter writer) {
             var leaveOpen = false;

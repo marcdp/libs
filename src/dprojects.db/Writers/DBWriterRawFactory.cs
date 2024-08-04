@@ -7,8 +7,8 @@ using System.IO;
 namespace DProjects.Db.Writers {
 
     [Protocol("raw", "")]
-    [ProtocolExample("raw:", "")]
-    public class DBWriterRawFactory : IFactoryByUrlAndArgument<IDBWriter, TextWriter> {
+    [ProtocolExample("raw:", "")] 
+    public class DBWriterRawFactory : IFactoryByUrl<IDBWriter, TextWriter> {
 
         public IDBWriter Create(string src, TextWriter writer) {
             var leaveOpen = false;

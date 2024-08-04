@@ -9,7 +9,7 @@ namespace DProjects.Db.Readers {
     [Protocol("xmld", "")]
     [ProtocolExample("xmld:", "")]
     [ProtocolExample("xmld:?inferDataTypes=false", "")]
-    public class DBReaderXmlDocumentsFactory : IFactoryByUrlAndArgument<IDBReader, TextReader> {
+    public class DBReaderXmlDocumentsFactory : IFactoryByUrl<IDBReader, TextReader> {
 
         public IDBReader Create(string src, TextReader reader) {
             var leaveOpen = false;

@@ -7,7 +7,7 @@ namespace DProjects.Factories {
 
 
     // class
-    public class FactoryByUrlProtocol<T> : IComparable<FactoryByUrlProtocol<T>> {
+    public class FactoryByUrlProtocol<TType> : IComparable<FactoryByUrlProtocol<TType>> where TType  : class {
 
         //variables
         public string Name { get; }
@@ -40,7 +40,48 @@ namespace DProjects.Factories {
         }
 
         //methods
-        public int CompareTo(FactoryByUrlProtocol<T> other) {
+        public int CompareTo(FactoryByUrlProtocol<TType> other) {
+            return Name.CompareTo(other.Name);
+        }
+        public override string ToString() {
+            return Name + ":";
+        }
+    }
+
+    public class FactoryByUrlProtocol<TType, TArgument> : IComparable<FactoryByUrlProtocol<TType, TArgument>> where TType : class where TArgument : class {
+
+        //variables
+        public string Name { get; }
+        public string Description { get; }
+        public string Usage { get; }
+        public string[] Examples { get; }
+        public Type Factory { get; }
+
+
+        //constructor
+        public FactoryByUrlProtocol(Type factory, string name, string description, string usage, string[] examples) {
+            Name = name;
+            Description = description;
+            Usage = usage;
+            Examples = examples;
+            Factory = factory;
+        }
+        public FactoryByUrlProtocol(Type factory) {
+            var protocolAttribute = factory.GetCustomAttribute<ProtocolAttribute>();
+            Name = protocolAttribute.Name;
+            Description = protocolAttribute.Description;
+            var protocolUsageAttribute = factory.GetCustomAttribute<ProtocolUsageAttribute>();
+            Usage = protocolUsageAttribute?.Usage ?? "";
+            var examples = new List<string>();
+            foreach (var protocolExampleAttribute in factory.GetCustomAttributes<ProtocolExampleAttribute>()) {
+                examples.Add(protocolExampleAttribute.Example);
+            }
+            Examples = examples.ToArray();
+            Factory = factory;
+        }
+
+        //methods
+        public int CompareTo(FactoryByUrlProtocol<TType, TArgument> other) {
             return Name.CompareTo(other.Name);
         }
         public override string ToString() {

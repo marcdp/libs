@@ -9,7 +9,7 @@ namespace DProjects.Db.Writers {
     [Protocol("csv", "")]
     [ProtocolExample("csv:", "")]
     [ProtocolExample("csv:?delimiter=;&lineTerminator=&quoteChar='&doubleQuote=false&header=true&skipInitialRows=10&skipInitialSpace=true&nullSequence=\\\\N&comment=#&ignoreComments=true&ignoreEmptyLines=false&InferDataTypes=false&escapeChar=", "")]
-    public class DBWriterCsvFactory : IFactoryByUrlAndArgument<IDBWriter, TextWriter> {
+    public class DBWriterCsvFactory : IFactoryByUrl<IDBWriter, TextWriter> {
 
         public IDBWriter Create(string src, TextWriter writer) {
             var leaveOpen = false;

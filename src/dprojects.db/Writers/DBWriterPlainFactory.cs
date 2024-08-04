@@ -8,7 +8,7 @@ namespace DProjects.Db.Writers {
 
     [Protocol("plain", "")]
     [ProtocolExample("plain:", "")]
-    public class DBWriterPlainFactory : IFactoryByUrlAndArgument<IDBWriter, TextWriter> {
+    public class DBWriterPlainFactory : IFactoryByUrl<IDBWriter, TextWriter> {
 
         public IDBWriter Create(string src, TextWriter writer) {
             var leaveOpen = false;

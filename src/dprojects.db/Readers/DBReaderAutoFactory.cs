@@ -8,7 +8,7 @@ namespace DProjects.Db.Readers {
 
     [Protocol("auto", "")]
     [ProtocolExample("auto:", "")]
-    public class DBReaderAutoFactory : IFactoryByUrlAndArgument<IDBReader, TextReader> {
+    public class DBReaderAutoFactory : IFactoryByUrl<IDBReader, TextReader> {
 
         public IDBReader Create(string src, TextReader reader) {
             var leaveOpen = false;

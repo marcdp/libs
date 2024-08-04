@@ -8,7 +8,7 @@ namespace DProjects.Db.Writers {
 
     [Protocol("json", "")]
     [ProtocolExample("json:", "")]
-    public class DBWriterJsonFactory : IFactoryByUrlAndArgument<IDBWriter, TextWriter> {
+    public class DBWriterJsonFactory : IFactoryByUrl<IDBWriter, TextWriter> {
 
         public IDBWriter Create(string src, TextWriter writer) {
             var leaveOpen = false;

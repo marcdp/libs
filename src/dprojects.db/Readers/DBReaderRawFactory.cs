@@ -9,7 +9,7 @@ namespace DProjects.Db.Readers {
     [Protocol("raw", "")]
     [ProtocolExample("raw:", "")]
     [ProtocolExample("raw:?columnSeparator=.", "")]
-    public class DBReaderRawFactory : IFactoryByUrlAndArgument<IDBReader, TextReader> {
+    public class DBReaderRawFactory : IFactoryByUrl<IDBReader, TextReader> {
 
         public IDBReader Create(string src, TextReader reader) {
             var leaveOpen = false;

@@ -8,7 +8,7 @@ namespace DProjects.Db.Readers {
 
     [Protocol("yfm", "")]
     [ProtocolExample("yfm:", "")]
-    public class DBReaderYfmFactory : IFactoryByUrlAndArgument<IDBReader, TextReader> {
+    public class DBReaderYfmFactory : IFactoryByUrl<IDBReader, TextReader> {
 
         public IDBReader Create(string src, TextReader reader) {
             var leaveOpen = false;

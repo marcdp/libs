@@ -9,7 +9,7 @@ namespace DProjects.Db.Readers {
     [Protocol("plain", "")]
     [ProtocolExample("plain:", "")]
     [ProtocolExample("plain:", "")]
-    public class DBReaderPlainFactory : IFactoryByUrlAndArgument<IDBReader, TextReader> {
+    public class DBReaderPlainFactory : IFactoryByUrl<IDBReader, TextReader> {
 
         public IDBReader Create(string src, TextReader reader) {
             var leaveOpen = false;
