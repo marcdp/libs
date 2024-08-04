@@ -26,20 +26,23 @@ namespace DProjects.Secrets {
             Values = new();
             Values[DEFAULT_VALUE_NAME] = value;
             CreatedAt = DateTime.Now;
+            Tags = [];
         }
-        public Secret(string name, string description, Dictionary<string, string> values) {
+        public Secret(string name, string description, Dictionary<string, string> values, string[] tags) {
             Name = name;
             Description = description;
             Values = values;
             CreatedAt = DateTime.Now;
+            Tags = tags;
         }
-        public Secret(string name, string description, DateTime createdAt, DateTime? modifiedAt, DateTime? expiresAt, Dictionary<string, string> values) {
+        public Secret(string name, string description, DateTime createdAt, DateTime? modifiedAt, DateTime? expiresAt, Dictionary<string, string> values, string[] tags) {
             Name = name;
             Description = description;
             CreatedAt = createdAt;
             ModifiedAt = modifiedAt;
             ExpiresAt = expiresAt;
             Values = values;
+            Tags = tags;
         }
 
 
@@ -50,6 +53,7 @@ namespace DProjects.Secrets {
         public DateTime? ModifiedAt { get; set; }
         public DateTime? ExpiresAt { get; set; }
         public Dictionary<string,string> Values { get; set; }
+        public string[] Tags{ get; set; }
 
 
 

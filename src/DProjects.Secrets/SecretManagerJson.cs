@@ -52,6 +52,10 @@ namespace DProjects.Secrets {
             mStorage = null;
             return Task.CompletedTask;
         }
+        public async Task Seal(string password, CancellationToken cancellationToken) {
+            await Save(password, cancellationToken);
+            mStorage = null;
+        }
 
 
         //methods

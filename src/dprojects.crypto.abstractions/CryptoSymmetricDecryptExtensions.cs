@@ -4,6 +4,8 @@ using System;
 using System.IO;
 using System.Text;
 using System.Xml;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace DProjects.Crypto {
 
@@ -15,9 +17,17 @@ namespace DProjects.Crypto {
         public static void Decrypt(this ICryptoSymmetricDecrypt cryptoSimmetricDecrypt, Stream input, Stream output, string password) {
             cryptoSimmetricDecrypt.Decrypt(input, output, (version) => password);
         }
+        public static async Task DecryptAsync(this ICryptoSymmetricDecrypt cryptoSimmetricDecrypt, Stream input, Stream output, string password) {
+            await cryptoSimmetricDecrypt.DecryptAsync(input, output, (version) => password);
+        }
         public static void Decrypt(this ICryptoSymmetricDecrypt cryptoSimmetricDecrypt, Stream input, Stream output, Func<string,string> passwordProvider) {
             using (var cryptoStream = cryptoSimmetricDecrypt.GetStream(input, passwordProvider)) {
                 StreamUtils.Copy(cryptoStream, output);
+            }
+        }
+        public static async Task DecryptAsync(this ICryptoSymmetricDecrypt cryptoSimmetricDecrypt, Stream input, Stream output, Func<string, string> passwordProvider) {
+            using (var cryptoStream = cryptoSimmetricDecrypt.GetStream(input, passwordProvider)) {
+                await StreamUtils.CopyAsync(cryptoStream, output);
             }
         }
         public static byte[] Decrypt(this ICryptoSymmetricDecrypt cryptoSimmetricDecrypt, byte[] input, string password) {

@@ -11,6 +11,7 @@ namespace DProjects.Secrets {
         Task<bool> Unseal(string password, CancellationToken cancellationToken);
         Task<bool> IsSealed(CancellationToken cancellationToken);
         Task Seal(CancellationToken cancellationToken);
+        Task Seal(string password, CancellationToken cancellationToken);
 
         //methods
         Task<Secret[]> ListAsync(string? pattern, CancellationToken cancellationToken);

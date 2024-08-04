@@ -36,6 +36,9 @@ namespace DProjects.Secrets {
         public Task Seal(CancellationToken cancellationToken) {
             return Task.CompletedTask;
         }
+        public Task Seal(string password, CancellationToken cancellationToken) {
+            return Task.CompletedTask;
+        }
 
         //methods
         public async Task<Secret[]> ListAsync(string? pattern, CancellationToken cancellationToken) {

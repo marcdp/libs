@@ -9,8 +9,9 @@ using System.Web;
 namespace DProjects.Fs {
 
     [Protocol("xml", "")]
-    [ProtocolUsage("xml:INNER_URL")]
+    [ProtocolUsage("xml:FSURL")]
     [ProtocolExample("xml:file:///path/to/file.xml", "")]
+    [ProtocolExample("xml:fs:///path/to/file.xml", "")]
     public class FilesystemXmlFactory(IFactoryByUrl<IFilesystem> fsFactory) : IFactoryByUrl<IFilesystem> {
 
         public IFilesystem Create(string src) {

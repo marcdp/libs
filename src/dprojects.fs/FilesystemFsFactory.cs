@@ -11,15 +11,15 @@ using System.Web;
 
 namespace DProjects.Fs {
 
-    [Protocol("fs-dir", "")]
-    [ProtocolUsage("fs-dir:///PATH")]
-    [ProtocolExample("fs-dir:///path/to/dir", "")]
-    public class FilesystemFsDirFactory(IFilesystem fs) : IFactoryByUrl<IFilesystem> {
+    [Protocol("fs", "")]
+    [ProtocolUsage("fs:///PATH")]
+    [ProtocolExample("fs:///path/to/dir", "")]
+    public class FilesystemFsFactory(IFilesystem fs) : IFactoryByUrl<IFilesystem> {
         public IFilesystem Create(string src) {
             var url = new System.Uri(src);
             var init = UrlUtils.GetQueryValue<bool>(url.Query, "init");
             var fsMounter = new FilesystemMounter(true);
-            fsMounter.Mount("/", fs, true, url.AbsolutePath);
+            fsMounter.Mount("/", fs, false, url.AbsolutePath);
             if (init) fsMounter.CreateDirectory("/");
             return fsMounter;
         }

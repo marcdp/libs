@@ -1,5 +1,8 @@
 using System.Xml;
 
+using DProjects.Serialization;
+using DProjects.Text.Xml;
+
 namespace DProjects.Db.Schema {
 
     public class DBSchemaDatabase {
@@ -37,18 +40,20 @@ namespace DProjects.Db.Schema {
             foreach (var aux in Sequences) if (aux.Name.Equals(name, System.StringComparison.CurrentCultureIgnoreCase)) return aux;
             return null;
         }
-        //public XmlDocument ToXmlDocument() {
-        //    var settings = new XmlSerializer.Settings {
-        //        Unprefixes = new string[] { "DBSchema" }
-        //    };
-        //    return XmlSerializer.SerializeToXmlDocument(this, settings);
-        //}
-        //public static DBSchemaDatabase FromXmlDocument(XmlDocument xmlDocument) {
-        //    var settings = new XmlDeserializer.Settings {
-        //        TypePrefix = "DBSchema"
-        //    };
-        //    return XmlDeserializer.Deserialize<DBSchemaDatabase>(xmlDocument, settings);
-        //}
+        public XmlDocument ToXmlDocument() {
+            var settings = new XmlSerializerSettings {
+                Unprefixes = new string[] { "DBSchema" }
+            };
+            var serializer = new XmlSerializer(settings);
+            return serializer.SerializeToXmlDocument(this);
+        }
+        public static DBSchemaDatabase FromXmlDocument(XmlDocument xmlDocument) {
+            var settings = new XmlDeserializerSettings {
+                TypePrefix = "DBSchema"
+            };
+            var deserializer = new XmlDeserializer(settings);
+            return deserializer.Deserialize<DBSchemaDatabase>(xmlDocument);
+        }
 
     }
 

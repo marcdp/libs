@@ -8,22 +8,27 @@ namespace DProjects.Auth {
     public class AuthRequest {
 
 
-        //ctor
-        public AuthRequest() {
-            Headers = new Dictionary<string, string>();
-        } 
-
-
         //props
-        public IDictionary<string, string> Headers { get; }
+        public Dictionary<string, string> Headers { get; } = new();
 
 
-        ////methods
-        //public static AuthRequest FromHttpBasic(string login, string password) {
-        //    return new AuthRequest(new Dictionary<string, string> {
-        //        [Utils.HttpUtils.HEADER_AUTHORIZATION] =  "Basic " + Base64Utils.ToBase64(login + ":" + password)
-        //    });
-        //}
+        //methods
+        public T GetHeader<T>(string name, T defaultValue) {
+           if (Headers.TryGetValue(name, out var value)) {
+                return ConvertUtils.To<T>(value);
+            }
+            return defaultValue;
+        }
+        public void SetHeader(string name, object value) {
+            Headers[name] = value.ToString();
+        }
+
+        //static methods
+        public static AuthRequest FromHttpBasic(string login, string password) {
+            var request = new AuthRequest();
+            request.Headers[DProjects.Utils.HttpUtils.HEADER_AUTHORIZATION] = "Basic " + DProjects.Utils.Base64Utils.ToBase64(DProjects.Utils.UrlUtils.UrlEncode(login) + ":" + DProjects.Utils.UrlUtils.UrlEncode(password));
+            return request;
+        }
     }
 
 }

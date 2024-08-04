@@ -24,6 +24,7 @@ namespace DProjects.Fs {
         //variables
         private List<MountPoint> mMountPoints;
         private StringComparison mStringComparison;
+        private int mId;
 
 
         //constructor
@@ -45,7 +46,15 @@ namespace DProjects.Fs {
         //properties
         public override string Url {
             get {
-                return "mounter:";
+                //var result = new StringBuilder();
+                //foreach (var mountPoint in mMountPoints) {
+                //    result.Append((result.Length > 0 ? "&" : "?"));
+                //    result.Append(mountPoint.Path);
+                //    result.Append("=");
+                //    result.Append(mountPoint.Filesystem.Url);
+                //}
+                //return "mounter:" + result.ToString();
+                return "mounter://";
             }
         } 
 

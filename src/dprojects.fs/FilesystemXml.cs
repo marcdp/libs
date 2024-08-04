@@ -77,7 +77,7 @@ namespace DProjects.Fs {
         }
         public override IEnumerable<Entry> GetEntries(string path, GetModes mode = GetModes.All, string? pattern = null) {
             var xmlNode = GetXmlNodeByPath(path);
-            if (xmlNode == null) throw new Exception("Unable to load read stream \'" + path + "\': file not found");
+            if (xmlNode == null) throw new Exception("Unable to load read stream: file not found: " + path);
             var entries = new List<Entry>();
             foreach (XmlElement xmlChildNode in xmlNode.ChildNodes) {
                 if (xmlChildNode.Name.Equals("dir") || xmlChildNode.Name.Equals("file")) entries.Add(ToEntry(xmlChildNode, path));
@@ -101,21 +101,36 @@ namespace DProjects.Fs {
         }
         public override Stream LoadReadStream(string path, LoadReadStreamSettings settings) {
             var xmlNode = GetXmlNodeByPath(path);
-            if (xmlNode == null) throw new Exception("Unable to load read stream \'" + path + "\': file not found");
-            if (xmlNode.Name.Equals("dir")) throw new Exception("Unable to load read stream \'" + path + "\': directory");
-            var xmlNodeContent = (XmlElement) xmlNode.SelectSingleNode("content");
-            var encoding = xmlNodeContent.GetAttribute("encoding");
-            Stream? result = null;
-            if (String.IsNullOrEmpty(encoding)) {
-                result = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(xmlNodeContent.InnerText));
-            } else if (encoding.Equals("base64")) {
-                result = new MemoryStream(Base64Utils.FromBase64(xmlNodeContent.InnerText));
-            } else {
-                throw new Exception("Unable to load read stream: " + path + ", invalid encoding: " + encoding);
+            if (xmlNode == null) throw new Exception("Unable to load read stream: file not found: " + path);
+            if (xmlNode.Name.Equals("dir")) throw new Exception("Unable to load read stream: directory: " + path);
+            var ms = new MemoryStream();
+            foreach(XmlElement xmlNodeContent in xmlNode.SelectNodes("content")) {
+                var encoding = xmlNodeContent.GetAttribute("encoding");
+                if (String.IsNullOrEmpty(encoding)) {
+                    var buffer = System.Text.Encoding.UTF8.GetBytes(xmlNodeContent.InnerText);
+                    ms.Write(buffer, 0, buffer.Length);
+                } else if (encoding.Equals("base64")) {
+                    var buffer = Base64Utils.FromBase64(xmlNodeContent.InnerText);
+                    ms.Write(buffer, 0, buffer.Length);
+                } else {
+                    throw new Exception("Unable to load read stream: invalid encoding: " + encoding + ", " + path);
+                }
+
             }
+            ms.Position = 0;
+            //var xmlNodeContent = (XmlElement) xmlNode.SelectSingleNode("content");
+            //var encoding = xmlNodeContent.GetAttribute("encoding");
+            //if (String.IsNullOrEmpty(encoding)) {
+            //    result = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(xmlNodeContent.InnerText));
+            //} else if (encoding.Equals("base64")) {
+            //    result = new MemoryStream(Base64Utils.FromBase64(xmlNodeContent.InnerText));
+            //} else {
+            //    throw new Exception("Unable to load read stream: invalid encoding: " + encoding + ", " + path);
+            //}
+            Stream? result = ms;
             if (settings != null && (settings.Offset != 0 || settings.Length != -1)) {
-                result = new PartialInputStream(result, settings.Offset, settings.Length);
-            }
+                result = new PartialInputStream(ms, settings.Offset, settings.Length);
+            } 
             return result;
         }
 
@@ -140,20 +155,30 @@ namespace DProjects.Fs {
             var modified = DateTime.Now;
             xmlNode.SetAttribute("modified", modified.ToString(DateTimeUtils.DATETIME_ISO8601_MS));
             xmlNode.SetAttribute("etag", HashUtils.ToHashSHA1Hex(content.Length + "-" + modified.ToUniversalTime().ToString("YYYY-MM-dd-HH-mm-ss")).ToLower());
-            var xmlNodeContent = (XmlElement?) xmlNode.SelectSingleNode("content");
-            if (xmlNodeContent == null) {
-                xmlNodeContent = mDocument.CreateElement("content");
-                xmlNode.AppendChild(xmlNodeContent);
-            }
-            if (append) {
-                var current = StreamUtils.ReadBytes(LoadReadStream(path, new()));
-                xmlNodeContent.InnerText = Base64Utils.ToBase64(ByteUtils.Concat(current, content));
-                xmlNode.SetAttribute("length", (current.Length + content.Length).ToString());
-            } else {
-                xmlNode.SetAttribute("length", content.Length.ToString());
-                xmlNodeContent.InnerText = Base64Utils.ToBase64(content);
-            }
+            if (!append) {
+                while (xmlNode.LastChild != null && xmlNode.LastChild.Name.Equals("content")) {
+                    xmlNode.RemoveChild(xmlNode.LastChild);
+                }
+            } 
+            var xmlNodeContent = mDocument.CreateElement("content");
+            xmlNode.AppendChild(xmlNodeContent);
+            xmlNode.SetAttribute("length", content.Length.ToString());
+            xmlNodeContent.InnerText = Base64Utils.ToBase64(content);
             xmlNodeContent.SetAttribute("encoding", "base64");
+            //var xmlNodeContent = (XmlElement?) xmlNode.SelectSingleNode("content");
+            //if (xmlNodeContent == null) {
+            //    xmlNodeContent = mDocument.CreateElement("content");
+            //    xmlNode.AppendChild(xmlNodeContent);
+            //}
+            //if (append) {
+            //    var current = StreamUtils.ReadBytes(LoadReadStream(path, new()));
+            //    xmlNodeContent.InnerText = Base64Utils.ToBase64(ByteUtils.Concat(current, content));
+            //    xmlNode.SetAttribute("length", (current.Length + content.Length).ToString());
+            //} else {
+            //    xmlNode.SetAttribute("length", content.Length.ToString());
+            //    xmlNodeContent.InnerText = Base64Utils.ToBase64(content);
+            //}
+            //xmlNodeContent.SetAttribute("encoding", "base64");
             mDirty = true;
             if (mAutoFlush) Persist();            
             return GetEntry(path)!;
@@ -281,6 +306,9 @@ namespace DProjects.Fs {
             return XmlUtils.LoadXml(xml);
         }
         private void Persist() {
+            AsyncUtils.RunSync(() => PersistAsync(CancellationToken.None));
+        }
+        private async Task PersistAsync(CancellationToken cancellationToken) {
             var xmlWriterSettings = new XmlWriterSettings();
             xmlWriterSettings.Encoding = new UTF8Encoding(false);
             xmlWriterSettings.Indent = mIndent;
@@ -289,11 +317,10 @@ namespace DProjects.Fs {
             toXmlSettings.Base64Content = true;
             using (var tmpStream = new MemoryStream()) {
                 using (var xmlWriter = System.Xml.XmlWriter.Create(tmpStream, xmlWriterSettings)) {
-                    this.ToXml("/", xmlWriter, toXmlSettings);
+                    await this.ToXmlAsync("/", xmlWriter, toXmlSettings, cancellationToken);
                 }
                 var buffer = tmpStream.ToArray();
                 if (mGzip) buffer = GzipUtils.Gzip(buffer);
-                
                 if (mPassword != null) {
                     var options = new DProjects.Crypto.CryptoSymmetricEncryptAES.Options() {
                         Fold = 76
@@ -302,7 +329,7 @@ namespace DProjects.Fs {
                         buffer = crypto.Encrypt(buffer, mPassword);
                     }
                 }
-                mFilesystem.SaveBinaryFile(mPath, buffer);
+                await mFilesystem.SaveBinaryFileAsync(mPath, buffer, cancellationToken);
             }
             mDirty = false;
         }

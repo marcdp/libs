@@ -10,6 +10,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using DProjects.Log;
+using Microsoft.Extensions.Logging;
 
 namespace DProjects.Db {
 
@@ -700,7 +701,7 @@ namespace DProjects.Db {
         }
 
         //schema
-        public void ApplySchemaChanges(DBSchemaDatabase dbSchema, bool applyChanges, ILogClient logClient) {
+        public void ApplySchemaChanges(DBSchemaDatabase dbSchema, bool applyChanges, ILogger<IDBConnection> logger) {
             var dbSchemaOld = GetSchema();
             var qb = GetSqlQualifierBegin();
             var qe = GetSqlQualifierEnd();
@@ -711,7 +712,7 @@ namespace DProjects.Db {
                 if (dbSchemaTableOld == null) {
                     //new table
                     var sql = GetSqlCreateTable(dbSchemaTable, true, true);
-                    logClient.Info(sql.ToString() + separator);
+                    logger.LogInformation(sql.ToString() + separator);
                     if (applyChanges) {
                         ExecuteNonQuery(sql.ToString());
                         //add
@@ -728,22 +729,22 @@ namespace DProjects.Db {
                         if (dbSchemaColumnOld == null) {
                             //create
                             var sql = GetSqlCreateColumn(dbSchemaTable.Name, dbSchemaColumn);
-                            logClient.Info(sql + separator);
+                            logger.LogInformation(sql + separator);
                             if (applyChanges) ExecuteNonQuery(sql);
                             modified = true;
                         } else if (dbSchemaColumnOld.DataType != dbSchemaColumn.DataType || dbSchemaColumnOld.Size != dbSchemaColumn.Size || dbSchemaColumnOld.Precision != dbSchemaColumn.Precision || dbSchemaColumnOld.Scale != dbSchemaColumn.Scale || dbSchemaColumnOld.Default != dbSchemaColumn.Default || dbSchemaColumnOld.Null != dbSchemaColumn.Null) {
                             //change
                             if (dbSchemaColumnOld.Default != null && dbSchemaColumnOld.Default != dbSchemaColumn.Default) {
                                 var sqlDrop = GetSqlDropDefault(dbSchemaTable.Name, dbSchemaColumn.Name);
-                                logClient.Info(sqlDrop + separator);
+                                logger.LogInformation(sqlDrop + separator);
                                 if (applyChanges) ExecuteNonQuery(sqlDrop);
                             }
                             var sql = GetSqlAlterColumn(dbSchemaTable.Name, dbSchemaColumn);
-                            logClient.Info(sql + separator);
+                            logger.LogInformation(sql + separator);
                             if (applyChanges) ExecuteNonQuery(sql);
                             if (dbSchemaColumn.Default != null && dbSchemaColumnOld.Default != dbSchemaColumn.Default) {
                                 var sqlDrop = GetSqlCreateDefault(dbSchemaTable.Name, dbSchemaColumn.Name, dbSchemaColumn.Default);
-                                logClient.Info(sqlDrop + separator);
+                                logger.LogInformation(sqlDrop + separator);
                                 if (applyChanges) ExecuteNonQuery(sqlDrop);
                             }
                             modified = true;
@@ -765,11 +766,11 @@ namespace DProjects.Db {
                     if (dbSchemaTableOld == null || dbSchemaPrimaryKeyOld == null || !dbSchemaPrimaryKeyOld.GetHash().Equals(dbSchemaTable.PrimaryKey.GetHash())) {
                         if (dbSchemaPrimaryKeyOld != null && !dbSchemaPrimaryKeyOld.GetHash().Equals(dbSchemaTable.PrimaryKey.GetHash())) {
                             var sqlDrop = GetSqlDropPrimaryKey(dbSchemaTable.Name, dbSchemaPrimaryKeyOld.Name);
-                            logClient.Info(sqlDrop + separator);
+                            logger.LogInformation(sqlDrop + separator);
                             if (applyChanges) ExecuteNonQuery(sqlDrop);
                         }
                         var sql = GetSqlCreatePrimaryKey(dbSchemaTable.Name, dbSchemaTable.PrimaryKey);
-                        logClient.Info(sql + separator);
+                        logger.LogInformation(sql + separator);
                         if (applyChanges) ExecuteNonQuery(sql);
                     }
                 }
@@ -782,11 +783,11 @@ namespace DProjects.Db {
                     if (dbSchemaIndexOld == null || !dbSchemaIndexOld.GetHash().Equals(dbSchemaIndex.GetHash())) {
                         if (dbSchemaIndexOld != null) {
                             var sqlDrop = GetSqlDropIndex(dbSchemaTable.Name, dbSchemaIndex.Name);
-                            logClient.Info(sqlDrop + separator);
+                            logger.LogInformation(sqlDrop + separator);
                             if (applyChanges) ExecuteNonQuery(sqlDrop);
                         }
                         var sql = GetSqlCreateIndex(dbSchemaTable.Name, dbSchemaIndex);
-                        logClient.Info(sql + separator);
+                        logger.LogInformation(sql + separator);
                         if (applyChanges) ExecuteNonQuery(sql);
                     }
                 }
@@ -799,11 +800,11 @@ namespace DProjects.Db {
                     if (dbSchemaForeignKeyOld == null || !dbSchemaForeignKeyOld.GetHash().Equals(dbSchemaForeignKey.GetHash())) {
                         if (dbSchemaForeignKeyOld != null) {
                             var sqlDrop = GetSqlDropForeignKey(dbSchemaTable.Name, dbSchemaForeignKey.Name);
-                            logClient.Info(sqlDrop + separator);
+                            logger.LogInformation(sqlDrop + separator);
                             if (applyChanges) ExecuteNonQuery(sqlDrop);
                         }
                         var sql = GetSqlCreateForeignKey(dbSchemaTable.Name, dbSchemaForeignKey);
-                        logClient.Info(sql + separator);
+                        logger.LogInformation(sql + separator);
                         if (applyChanges) ExecuteNonQuery(sql);
                     }
                 }
@@ -814,11 +815,11 @@ namespace DProjects.Db {
                 if (dbSchemaViewExisting == null || !dbSchemaViewExisting.Content.Trim().Equals(dbSchemaView.Content.Trim())) {
                     if (dbSchemaViewExisting != null) {
                         var sqlDrop = GetSqlDropView(dbSchemaViewExisting.Name);
-                        logClient.Info(sqlDrop + separator);
+                        logger.LogInformation(sqlDrop + separator);
                         if (applyChanges) ExecuteNonQuery(sqlDrop);
                     }
                     var sql = GetSqlCreateView(dbSchemaView);
-                    logClient.Info(sql + separator);
+                    logger.LogInformation(sql + separator);
                     if (applyChanges) ExecuteNonQuery(sql);
                 }
             }
@@ -827,11 +828,11 @@ namespace DProjects.Db {
                 var dbSchemaSequenceOld = dbSchemaOld.GetSequence(dbSchemaSequence.Name);
                 if (dbSchemaSequenceOld == null) {
                     var sql = GetSqlCreateSequence(dbSchemaSequence);
-                    logClient.Info(sql + separator);
+                    logger.LogInformation(sql + separator);
                     if (applyChanges) ExecuteNonQuery(sql);
                 } else if (dbSchemaSequenceOld.IncrementBy != dbSchemaSequence.IncrementBy) {
                     var sql = GetSqlAlterSequenceIncrement(dbSchemaSequence);
-                    logClient.Info(sql + separator);
+                    logger.LogInformation(sql + separator);
                     if (applyChanges) ExecuteNonQuery(sql);
                 }
             }
@@ -841,11 +842,11 @@ namespace DProjects.Db {
                 if (dbSchemaProcedureOld == null || !dbSchemaProcedureOld.Content.Trim().Equals(dbSchemaProcedure.Content.Trim())) {
                     if (dbSchemaProcedureOld != null) {
                         var sqlDrop = GetSqlDropProcedure(dbSchemaProcedureOld.Name);
-                        logClient.Info(sqlDrop + separator);
+                        logger.LogInformation(sqlDrop + separator);
                         if (applyChanges) ExecuteNonQuery(sqlDrop);
                     }
                     var sql = GetSqlCreateProcedure(dbSchemaProcedure);
-                    logClient.Info(sql + separator);
+                    logger.LogInformation(sql + separator);
                     if (applyChanges) ExecuteNonQuery(sql);
                 }
             }
@@ -853,7 +854,7 @@ namespace DProjects.Db {
             foreach (var dbSchemaTable in dbSchemaOld.Tables) {
                 if (dbSchema.GetTable(dbSchemaTable.Name) == null) {
                     var sql = GetSqlDropTable(dbSchemaTable.Name);
-                    logClient.Info(sql + separator);
+                    logger.LogInformation(sql + separator);
                     if (applyChanges) ExecuteNonQuery(sql);
                 }
             }
@@ -865,11 +866,11 @@ namespace DProjects.Db {
                         if (dbSchemaTable.GetColumn(dbSchemaColumnOld.Name) == null) {
                             if (dbSchemaColumnOld.Default != null) {
                                 var sqlDrop = GetSqlDropDefault(dbSchemaTable.Name, dbSchemaColumnOld.Name);
-                                logClient.Info(sqlDrop + separator);
+                                logger.LogInformation(sqlDrop + separator);
                                 if (applyChanges) ExecuteNonQuery(sqlDrop);
                             }
                             var sql = GetSqlDropColumn(dbSchemaTable.Name, dbSchemaColumnOld.Name);
-                            logClient.Info(sql + separator);
+                            logger.LogInformation(sql + separator);
                             if (applyChanges) ExecuteNonQuery(sql);
                         }
                     }
@@ -882,7 +883,7 @@ namespace DProjects.Db {
                     foreach (var dbSchemaForeignKeyOld in dbSchemaTableOld.ForeignKeys) {
                         if (dbSchemaTable.GetForeignKey(dbSchemaForeignKeyOld.Name) == null) {
                             var sql = GetSqlDropForeignKey(dbSchemaTable.Name, dbSchemaForeignKeyOld.Name);
-                            logClient.Info(sql + separator);
+                            logger.LogInformation(sql + separator);
                             if (applyChanges) ExecuteNonQuery(sql);
                         }
                     }
@@ -896,7 +897,7 @@ namespace DProjects.Db {
                         if (dbSchemaTable.GetIndex(dbSchemaIndexOld.Name) == null) {
                             if (dbSchemaTable.PrimaryKey == null || string.Join(",", dbSchemaIndexOld.Columns) != string.Join(",", dbSchemaTable.PrimaryKey.Columns)) {
                                 var sql = GetSqlDropIndex(dbSchemaTable.Name, dbSchemaIndexOld.Name);
-                                logClient.Info(sql + separator);
+                                logger.LogInformation(sql + separator);
                                 if (applyChanges) ExecuteNonQuery(sql);
                             }
                         }
@@ -907,7 +908,7 @@ namespace DProjects.Db {
             foreach (var dbSchemaView in dbSchemaOld.Views) {
                 if (dbSchema.GetView(dbSchemaView.Name) == null) {
                     var sql = GetSqlDropView(dbSchemaView.Name);
-                    logClient.Info(sql + separator);
+                    logger.LogInformation(sql + separator);
                     if (applyChanges) ExecuteNonQuery(sql);
                 }
             }
@@ -915,7 +916,7 @@ namespace DProjects.Db {
             foreach (var dbSchemaSequence in dbSchemaOld.Sequences) {
                 if (dbSchema.GetSequence(dbSchemaSequence.Name) == null) {
                     var sql = GetSqlDropSequence(dbSchemaSequence.Name);
-                    logClient.Info(sql + separator);
+                    logger.LogInformation(sql + separator);
                     if (applyChanges) ExecuteNonQuery(sql);
                 }
             }
@@ -923,7 +924,7 @@ namespace DProjects.Db {
             foreach (var dbSchemaProcedure in dbSchemaOld.Procedures) {
                 if (dbSchema.GetProcedure(dbSchemaProcedure.Name) == null) {
                     var sql = GetSqlDropProcedure(dbSchemaProcedure.Name);
-                    logClient.Info(sql + separator);
+                    logger.LogInformation(sql + separator);
                     if (applyChanges) ExecuteNonQuery(sql);
                 }
             }
@@ -931,7 +932,7 @@ namespace DProjects.Db {
             foreach (var dbSchemaScript in dbSchema.Scripts) {
                 if (applyChanges) {
                     var sql = dbSchemaScript.Content;
-                    logClient.Info(sql.ToString() + separator);
+                    logger.LogInformation(sql.ToString() + separator);
                     if (applyChanges) ExecuteNonQuery(sql.ToString());
                 }
             }
@@ -994,7 +995,7 @@ namespace DProjects.Db {
                             }
                         }
                         sSql.Append(")");
-                        logClient.Info(ParseStatement(sSql.ToString(), oArgs.ToArray()) + separator);
+                        logger.LogInformation(ParseStatement(sSql.ToString(), oArgs.ToArray()) + separator);
                         if (applyChanges) ExecuteNonQuery(sSql.ToString(), oArgs.ToArray());
                     }
                 }
