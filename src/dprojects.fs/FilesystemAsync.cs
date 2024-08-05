@@ -60,12 +60,13 @@ namespace DProjects.Fs {
         public virtual Task<Stream> LoadWriteStreamAsync(string path, LoadWriteStreamSettings settings, CancellationToken cancellationToken) {
             PathUtils.Validate(path);
             if (IsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
-            settings ??= new LoadWriteStreamSettings();
             int bufferSize = 8 * 1024;
             if (settings.Truncate) this.SaveBinaryFile(path, []);
             if (settings.Append && !Exists(path)) this.SaveBinaryFile(path, []);
-            var result = new SpongeOutputStream(bufferSize, async (stream) => {
-                await this.SaveFileAsync(path, stream, new() { Append = settings.Append }, cancellationToken);
+            var result = new SpongeOutputStream(bufferSize, (stream) => {
+                AsyncUtils.RunSync(async () => {
+                    await this.SaveFileAsync(path, stream, new() { Append = settings.Append }, cancellationToken);
+                });                
             });
             return Task.FromResult<Stream>(result);
         }

@@ -142,7 +142,7 @@ namespace DProjects.Fs {
             if (entry == null) throw new NullReferenceException();
             return entry;
         } 
-        public override async Task<Entry> SaveFileAsync(string path, Stream stream, SaveFileSettings? settings, CancellationToken cancellationToken) {
+        public override async Task<Entry> SaveFileAsync(string path, Stream stream, SaveFileSettings settings, CancellationToken cancellationToken) {
             if (IsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
             PathUtils.Validate(path);
             string fullPath = GetNativePath(path);

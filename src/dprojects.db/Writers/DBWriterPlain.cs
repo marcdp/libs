@@ -40,6 +40,7 @@ namespace DProjects.Db.Writers {
         private int mMaxColumnLength;
         private Settings mSettings;
         private bool mTableWrited;
+        private bool mDisposed;
 
 
         //constructor
@@ -54,20 +55,26 @@ namespace DProjects.Db.Writers {
         public DBWriterPlain(TextWriter writer, bool leaveOpen) : this(writer, leaveOpen, new Settings()) {
         }
         public void Dispose() {
-            WriteTable();
-            mWriter.Flush();
-            if (!mLeaveOpen) {
-                mWriter.Dispose();
+            if (!mDisposed) {
+                WriteTable();
+                mWriter.Flush();
+                if (!mLeaveOpen) {
+                    mWriter.Dispose();
+                }
             }
+            mDisposed = true;
         }
         public async ValueTask DisposeAsync() {
-            await WriteTableAsync();
-            await mWriter.FlushAsync();
-            if (!mLeaveOpen) {
-                mWriter.Dispose();
+            if (!mDisposed) {
+                await WriteTableAsync();
+                await mWriter.FlushAsync();
+                if (!mLeaveOpen) {
+                    mWriter.Dispose();
+                }
             }
+            mDisposed = true;
         }
-
+        
 
         //properties
         public DBColumns Columns => mTable.Columns;

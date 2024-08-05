@@ -24,6 +24,11 @@ namespace DProjects.Fs {
         public static EntryDTO FromEntry(Entry entry) {
             return new(entry.Path, entry.EntryType, entry.Created, entry.Modified, entry.Length, entry.Etag, entry.Flags);
         }
+        public static EntryDTO FromJson(string json) {
+            return JsonSerializer.Deserialize<EntryDTO>(json, new JsonSerializerOptions() {
+                PropertyNameCaseInsensitive = true,
+            })!;
+        }
         public string ToJson(string? path = null, bool writePath = true, bool writeName = false, bool noEndElement = false) {
             var result = new StringBuilder();
             if (path == null) path = Path;
@@ -33,7 +38,7 @@ namespace DProjects.Fs {
             result.Append(result.Length > 1 ? "," : "").Append("\"length\":").Append(Length);
             result.Append(",\"created\":\"").Append(Created.ToUniversalTime().ToString(DateTimeUtils.DATETIME_ISO8601_MS)).Append("\"");
             result.Append(",\"modified\":\"").Append(Modified.ToUniversalTime().ToString(DateTimeUtils.DATETIME_ISO8601_MS)).Append("\"");
-            result.Append(",\"type\":\"").Append(Type == EntryType.Directory ? "dir" : "file").Append("\"");
+            result.Append(",\"type\":\"").Append(Type == EntryType.Directory ? "directory" : "file").Append("\"");
             result.Append(",\"etag\":").Append(JsonSerializer.Serialize(Etag));
             result.Append(",\"flags\":").Append(Flags);
             if (!noEndElement) result.Append("}");

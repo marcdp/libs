@@ -7,12 +7,11 @@ using System.Threading;
 namespace DProjects.Streams {
 
 
-    public class SpongeOutputStream : OutputStream {
+    public class SpongeOutputStream : OutputStream, IDisposable {
 
 
         //variables
-        private Action<Stream>? mHandlerSync;
-        private Func<Stream, Task>? mHandlerAsync;
+        private Action<Stream>? mHandler;
         private MemoryStream mMemoryStream;
         private string? mTempFileName;
         private FileStream? mTempFileStream;
@@ -21,33 +20,52 @@ namespace DProjects.Streams {
         //ctr
         public SpongeOutputStream(int bufferSize, Action<Stream> handler) {
             mMemoryStream = new MemoryStream(bufferSize);
-            mHandlerSync = handler;
-        }
-        public SpongeOutputStream(int bufferSize, Func<Stream, Task> handler) {
-            mMemoryStream = new MemoryStream(bufferSize);
-            mHandlerAsync = handler;
+            mHandler = handler;
         }
         public SpongeOutputStream(int bufferSize, Stream output) {
             mMemoryStream = new MemoryStream(bufferSize);
             mOutputStream = output;
         }
+
+
+        private static readonly TaskFactory mMyTaskFactory = new(CancellationToken.None,
+            TaskCreationOptions.None, TaskContinuationOptions.None, TaskScheduler.Default);
+        public static TResult RunSync<TResult>(Func<Task<TResult>> func) {
+            var cultureUi = System.Globalization.CultureInfo.CurrentUICulture;
+            var culture = System.Globalization.CultureInfo.CurrentCulture;
+            return mMyTaskFactory.StartNew(() => {
+                Thread.CurrentThread.CurrentCulture = culture;
+                Thread.CurrentThread.CurrentUICulture = cultureUi;
+                return func();
+            }).Unwrap().GetAwaiter().GetResult();
+        }
+        public static void RunSync(Func<Task> func) {
+            var cultureUi = System.Globalization.CultureInfo.CurrentUICulture;
+            var culture = System.Globalization.CultureInfo.CurrentCulture;
+            mMyTaskFactory.StartNew(() => {
+                Thread.CurrentThread.CurrentCulture = culture;
+                Thread.CurrentThread.CurrentUICulture = cultureUi;
+                return func();
+            }).Unwrap().GetAwaiter().GetResult();
+        }
+
         protected override void Dispose(bool disposing) {
-            if (mHandlerSync != null) {
+            if (mHandler != null) {
                 if (mTempFileStream != null) {
                     using var stream = mTempFileStream;
                     stream.Seek(0, SeekOrigin.Begin);
-                    mHandlerSync(stream);
+                    mHandler(stream);
                     stream.Dispose();
                 } else {
                     using var stream = mMemoryStream;
                     stream.Seek(0, SeekOrigin.Begin);
-                    mHandlerSync(stream);
+                    mHandler(stream);
                 }
                 if (mTempFileName != null) {
                     File.Delete(mTempFileName);
                 }
-                mHandlerSync = null;
-            } else if (mOutputStream!= null) {
+                mHandler = null;
+            } else if (mOutputStream != null) {
                 if (mTempFileStream != null) {
                     using var stream = mTempFileStream;
                     stream.Seek(0, SeekOrigin.Begin);
@@ -64,39 +82,39 @@ namespace DProjects.Streams {
                 mOutputStream = null;
             }
         }
-        public async ValueTask DisposeAsync() {
-            if (mHandlerAsync != null) {
-                if (mTempFileStream != null) {
-                    using var stream = mTempFileStream;
-                    stream.Seek(0, SeekOrigin.Begin);
-                    await mHandlerAsync(stream);
-                    stream.Dispose();
-                } else {
-                    using var stream = mMemoryStream;
-                    stream.Seek(0, SeekOrigin.Begin);
-                    await mHandlerAsync(stream);
-                }
-                if (mTempFileName != null) {
-                    File.Delete(mTempFileName);
-                }
-                mHandlerAsync = null;
-            } else if (mOutputStream!= null) {
-                if (mTempFileStream != null) {
-                    using var stream = mTempFileStream;
-                    stream.Seek(0, SeekOrigin.Begin);
-                    await stream.CopyToAsync(mOutputStream);
-                    stream.Dispose();
-                } else {
-                    using var stream = mMemoryStream;
-                    stream.Seek(0, SeekOrigin.Begin);
-                    await stream.CopyToAsync(mOutputStream);
-                }
-                if (mTempFileName != null) {
-                    File.Delete(mTempFileName);
-                }
-                mOutputStream = null;
-            }
-        }
+        //public async ValueTask DisposeAsync() {
+        //    if (mHandlerAsync != null) {
+        //        if (mTempFileStream != null) {
+        //            using var stream = mTempFileStream;
+        //            stream.Seek(0, SeekOrigin.Begin);
+        //            await mHandlerAsync(stream);
+        //            stream.Dispose();
+        //        } else {
+        //            using var stream = mMemoryStream;
+        //            stream.Seek(0, SeekOrigin.Begin);
+        //            await mHandlerAsync(stream);
+        //        }
+        //        if (mTempFileName != null) {
+        //            File.Delete(mTempFileName);
+        //        }
+        //        mHandlerAsync = null;
+        //    } else if (mOutputStream!= null) {
+        //        if (mTempFileStream != null) {
+        //            using var stream = mTempFileStream;
+        //            stream.Seek(0, SeekOrigin.Begin);
+        //            await stream.CopyToAsync(mOutputStream);
+        //            stream.Dispose();
+        //        } else {
+        //            using var stream = mMemoryStream;
+        //            stream.Seek(0, SeekOrigin.Begin);
+        //            await stream.CopyToAsync(mOutputStream);
+        //        }
+        //        if (mTempFileName != null) {
+        //            File.Delete(mTempFileName);
+        //        }
+        //        mOutputStream = null;
+        //    }
+        //}
 
 
         //methods

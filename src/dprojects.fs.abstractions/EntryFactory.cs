@@ -14,7 +14,7 @@ namespace DProjects.Fs {
 
         //methods
         public static Entry? FromJson(string json, string? pathPrefix = null, string? pathBase = null) {
-            var entryDTO = JsonSerializer.Deserialize<EntryDTO>(json);
+            var entryDTO = EntryDTO.FromJson(json);
             if (entryDTO == null) return default;
             return entryDTO.ToEntry(pathPrefix, pathBase);
         }
