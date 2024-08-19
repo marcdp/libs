@@ -36,12 +36,14 @@ namespace DProjects.Streams.Tests {
 
         [Fact()]
         public async void ReadAsyncTest() {
-            using (var ms = new MemoryStream(Encoding.UTF8.GetBytes("Hello")))
+            var aux = Encoding.UTF8.GetBytes("Hello");
+            using (var ms = new MemoryStream(aux))
             using (var stream = new Base64EncoderInputStream(ms, 0)) {
                 var buffer = new byte[8];
                 var result = await stream.ReadAsync(buffer, 0, buffer.Length, default);
+                //await stream.ReadExactlyAsync(buffer, default);
                 Assert.Equal(8, result);
-                Assert.Equal("SGVsbG8=", Encoding.UTF8.GetString(buffer, 0, result));
+                Assert.Equal("SGVsbG8=", Encoding.UTF8.GetString(buffer, 0, buffer.Length));
             }
         }
 

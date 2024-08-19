@@ -5,15 +5,10 @@ using System.Net;
 namespace DProjects.Utils {
 
 
-    public static class AuthUtils {
-
-        //base64
-        public static string CreateBasic(NetworkCredential credentials) {
-            return "Basic " + Base64Utils.ToBase64(credentials.UserName + ":" + credentials.Password);
-        }
-
+    public static class AuthHttpHmacUtils {
+         
         //Hmac
-        public static string CreateHmac(NetworkCredential credentials, string method, string path, string query, string contentType, DateTime dateHeader, DateTime dateHeaderToUse) {
+        public static string CreateHeader(NetworkCredential credentials, string method, string path, string query, string contentType, DateTime dateHeader, DateTime dateHeaderToUse) {
             var dateHeaderStr = (dateHeaderToUse != default) ? (dateHeaderToUse.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ")) : (dateHeader.ToUniversalTime().ToString("r"));
             var login = credentials.UserName;
             var password = credentials.Password;
@@ -35,6 +30,7 @@ namespace DProjects.Utils {
             var authorizationBase64 = Base64Utils.ToBase64(System.Text.Encoding.UTF8.GetBytes(authorization));
             return "hmac " + authorizationBase64;
         }
+        
     }
 
 

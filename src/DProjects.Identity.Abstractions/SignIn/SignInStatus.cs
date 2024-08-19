@@ -1,7 +1,7 @@
-﻿namespace DProjects.Auth {
+﻿namespace DProjects.Identity.SignIn {
 
     //enum
-    public enum AuthStatus {
+    public enum SignInStatus {
         DataRequired,
         Failure,
         Success

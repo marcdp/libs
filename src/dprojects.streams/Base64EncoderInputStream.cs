@@ -90,7 +90,7 @@ namespace DProjects.Streams {
                 mBuffer[2] = 0;
                 do {
                     int read = await mStream.ReadAsync(mBuffer, readTotal, 3 - readTotal, cancellationToken);
-                    if (read == 0) return -1;
+                    if (read == 0) break;
                     readTotal += read;
                 } while (readTotal != 3);
                 if (readTotal == 0) return -1;

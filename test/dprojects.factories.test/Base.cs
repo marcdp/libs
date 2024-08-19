@@ -6,7 +6,7 @@ namespace DProjects.Factories.Tests {
 
         //vars
         protected readonly IFactoryByUrl<DProjects.Factories.Tests.FactoryByUrlTests.ISomething> mFactoryByUrl;
-        protected readonly IFactoryByUrlAndArgument<DProjects.Factories.Tests.FactoryByUrlAndArgumentTests.ISomething, string> mFactoryByUrlAndArgument;
+        protected readonly IFactoryByUrl<DProjects.Factories.Tests.FactoryByUrlAndArgumentTests.ISomething, string> mFactoryByUrlAndArgument;
 
         //constructor
         public Base() {
@@ -21,7 +21,7 @@ namespace DProjects.Factories.Tests {
             });
             services.AddSingleton<FactoryByUrlTests.ISomething>(new FactoryByUrlTests.SomethingDefault());
             //factory by url  and argument
-            services.AddFactoryByUrlAndArgument<FactoryByUrlAndArgumentTests.ISomething, string>(cfg => {
+            services.AddFactoryByUrl<FactoryByUrlAndArgumentTests.ISomething, string>(cfg => {
                 cfg.AddFactoriesFromAssembly(typeof(FactoryByUrlAndArgumentTests).Assembly);
                 cfg.AddAlias("111", "something1");
                 cfg.AddAlias("222", "something2");
@@ -34,7 +34,7 @@ namespace DProjects.Factories.Tests {
             var provider = services.BuildServiceProvider();
             //get
             mFactoryByUrl = provider.GetRequiredService<IFactoryByUrl<FactoryByUrlTests.ISomething>>();
-            mFactoryByUrlAndArgument = provider.GetRequiredService<IFactoryByUrlAndArgument<FactoryByUrlAndArgumentTests.ISomething, string>>();
+            mFactoryByUrlAndArgument = provider.GetRequiredService<IFactoryByUrl<FactoryByUrlAndArgumentTests.ISomething, string>>();
         }
     }
 

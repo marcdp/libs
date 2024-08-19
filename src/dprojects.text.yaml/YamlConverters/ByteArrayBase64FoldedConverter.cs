@@ -20,10 +20,19 @@ namespace DProjects.Text.Yaml.YamlConverters {
             parser.MoveNext();
             return bytes;
         }
+
+        public object? ReadYaml(IParser parser, Type type, ObjectDeserializer rootDeserializer) {
+            throw new NotImplementedException();
+        }
+
         public void WriteYaml(IEmitter emitter, object? value, Type type) {
             var bytes = (byte[])value!;
             var aux = StringUtils.SplitByColumnsAndFold("!!base64 " + Convert.ToBase64String(bytes), 76);
             emitter.Emit(new YamlDotNet.Core.Events.Scalar(aux));
+        }
+
+        public void WriteYaml(IEmitter emitter, object? value, Type type, ObjectSerializer serializer) {
+            throw new NotImplementedException();
         }
     }
 

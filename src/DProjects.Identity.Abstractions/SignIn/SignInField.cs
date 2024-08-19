@@ -1,11 +1,11 @@
 ﻿
-namespace DProjects.Auth {
+namespace DProjects.Identity.SignIn {
 
-    public class AuthField(string name, string label, AuthFieldType type) { 
+    public class SignInField(string name, string label, SignInFieldType type) { 
 
         public string Name { get;  } = name;
         public string Label { get; } = label;
-        public AuthFieldType Type { get; } = type;
+        public SignInFieldType Type { get; } = type;
         public string Description { get; set; } = "";
         public string PlaceHolder { get; set; } = "";
         public bool Required { get; set; } = false;

@@ -162,7 +162,14 @@ namespace DProjects.Fs {
             } 
             var xmlNodeContent = mDocument.CreateElement("content");
             xmlNode.AppendChild(xmlNodeContent);
-            xmlNode.SetAttribute("length", content.Length.ToString());
+            if (!append) {
+                xmlNode.SetAttribute("length", content.Length.ToString());
+            } else {
+                var aux = xmlNode.GetAttribute("length");
+                var contentLength = (long)0;
+                if (!string.IsNullOrEmpty(aux)) contentLength = long.Parse(aux);
+                xmlNode.SetAttribute("length", (contentLength + content.Length).ToString());
+            }
             xmlNodeContent.InnerText = Base64Utils.ToBase64(content);
             xmlNodeContent.SetAttribute("encoding", "base64");
             //var xmlNodeContent = (XmlElement?) xmlNode.SelectSingleNode("content");

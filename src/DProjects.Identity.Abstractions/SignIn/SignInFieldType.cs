@@ -1,6 +1,7 @@
 ﻿
-namespace DProjects.Auth {
-    public enum AuthFieldType {
+namespace DProjects.Identity.SignIn {
+
+    public enum SignInFieldType {
         Title,
         Paragraph,
         Text,

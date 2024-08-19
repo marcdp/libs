@@ -312,17 +312,13 @@ namespace DProjects.Utils {
         }
         public static double ToDouble(object? aObject) {
             if (aObject is null) return 0.0;
-            if (aObject is string && aObject.Equals("")) {
-                return 0;
-            }
-            return System.Convert.ToDouble(aObject);
+            if (aObject is string && aObject.Equals("")) return 0;
+            return double.Parse(aObject.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture);
         }
         public static decimal ToDecimal(object? aObject) {
             if (aObject is null) return 0.0m;
-            if (aObject is string && aObject.Equals("")) {
-                return 0;
-            }
-            return System.Convert.ToDecimal(aObject);
+            if (aObject is string && aObject.Equals("")) return 0;
+            return decimal.Parse(aObject.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture);
         }
         public static string ToString(object? aObject) {
             if (aObject is null) return "";
@@ -331,10 +327,8 @@ namespace DProjects.Utils {
         }
         public static float ToSingle(object? aObject) {
             if (aObject is null) return (float)0.0;
-            if (aObject is string && aObject.Equals("")) {
-                return 0;
-            }
-            return System.Convert.ToSingle(aObject);
+            if (aObject is string && aObject.Equals("")) return 0;
+            return Single.Parse(aObject.ToString(), NumberStyles.Any, CultureInfo.InvariantCulture);
         }
         public static string[] ToStringA(string text, char separator) {
             return ToStringA(text, separator, false);

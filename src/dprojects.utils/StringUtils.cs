@@ -161,23 +161,23 @@ namespace DProjects.Utils {
         public static long UnFormatSize(string text) {
             text = text.ToUpper().Trim();
             if (text.EndsWith("YB")) { //Yottabyte
-                return System.Convert.ToInt64(decimal.Parse(text.Substring(0, text.Length - 2))) * 1024 * 1024 * 1024 * 1024 * 1024 * 1024 * 1024 * 1024;
+                return System.Convert.ToInt64(decimal.Parse(text.Substring(0, text.Length - 2), NumberStyles.Any, CultureInfo.InvariantCulture) * 1024 * 1024 * 1024 * 1024 * 1024 * 1024 * 1024 * 1024);
             } else if (text.EndsWith("ZB")) { //Zettabyte
-                return System.Convert.ToInt64(decimal.Parse(text.Substring(0, text.Length - 2))) * 1024 * 1024 * 1024 * 1024 * 1024 * 1024 * 1024;
+                return System.Convert.ToInt64(decimal.Parse(text.Substring(0, text.Length - 2), NumberStyles.Any, CultureInfo.InvariantCulture) * 1024 * 1024 * 1024 * 1024 * 1024 * 1024 * 1024);
             } else if (text.EndsWith("EB")) { //exabyte
-                return System.Convert.ToInt64(decimal.Parse(text.Substring(0, text.Length - 2))) * 1024 * 1024 * 1024 * 1024 * 1024 * 1024;
+                return System.Convert.ToInt64(decimal.Parse(text.Substring(0, text.Length - 2), NumberStyles.Any, CultureInfo.InvariantCulture) * 1024 * 1024 * 1024 * 1024 * 1024 * 1024);
             } else if (text.EndsWith("PB")) { //petabyte
-                return System.Convert.ToInt64(decimal.Parse(text.Substring(0, text.Length - 2))) * 1024 * 1024 * 1024 * 1024 * 1024;
+                return System.Convert.ToInt64(decimal.Parse(text.Substring(0, text.Length - 2), NumberStyles.Any, CultureInfo.InvariantCulture) * 1024 * 1024 * 1024 * 1024 * 1024);
             } else if (text.EndsWith("TB")) { //terabyte
-                return System.Convert.ToInt64(decimal.Parse(text.Substring(0, text.Length - 2))) * 1024 * 1024 * 1024 * 1024;
+                return System.Convert.ToInt64(decimal.Parse(text.Substring(0, text.Length - 2), NumberStyles.Any, CultureInfo.InvariantCulture) * 1024 * 1024 * 1024 * 1024);
             } else if (text.EndsWith("GB")) { //megabyte
-                return System.Convert.ToInt64(decimal.Parse(text.Substring(0, text.Length - 2))) * 1024 * 1024 * 1024;
+                return System.Convert.ToInt64(decimal.Parse(text.Substring(0, text.Length - 2), NumberStyles.Any, CultureInfo.InvariantCulture) * 1024 * 1024 * 1024);
             } else if (text.EndsWith("MB")) { //megabyte
-                return System.Convert.ToInt64(decimal.Parse(text.Substring(0, text.Length - 2))) * 1024 * 1024;
+                return System.Convert.ToInt64(decimal.Parse(text.Substring(0, text.Length - 2), NumberStyles.Any, CultureInfo.InvariantCulture) * 1024 * 1024);
             } else if (text.EndsWith("KB")) { //kilobyte
-                return System.Convert.ToInt64((decimal.Parse(text.Substring(0, text.Length - 2))) * 1024);
+                return System.Convert.ToInt64((decimal.Parse(text.Substring(0, text.Length - 2), NumberStyles.Any, CultureInfo.InvariantCulture) * 1024));
             } else if (text.EndsWith("BYTES")) { //kilobyte
-                return System.Convert.ToInt64((decimal.Parse(text.Substring(0, text.Length - 5))));
+                return System.Convert.ToInt64((decimal.Parse(text.Substring(0, text.Length - 5), NumberStyles.Any, CultureInfo.InvariantCulture)));
             } else {
                 return long.Parse(text);
             }

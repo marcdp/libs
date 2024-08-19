@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -14,6 +14,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="Microsoft.AspNetCore.TestHost" Version="8.0.8" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.10.0" />
     <PackageReference Include="xunit" Version="2.9.0" />
@@ -24,7 +25,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\DProjects.Text.Expressions\DProjects.Text.Expressions.csproj" />
+    <ProjectReference Include="..\..\src\DProjects.Factories\DProjects.Factories.csproj" />
+    <ProjectReference Include="..\..\src\DProjects.Fs.Abstractions\DProjects.Fs.Abstractions.csproj" />
+    <ProjectReference Include="..\..\src\DProjects.Fs.Http\DProjects.Fs.Http.csproj" />
+    <ProjectReference Include="..\DProjects.Fs.Test\DProjects.Fs.Test.csproj" />
   </ItemGroup>
 
   <ItemGroup>

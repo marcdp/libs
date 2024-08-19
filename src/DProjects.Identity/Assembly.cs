@@ -1,6 +1,6 @@
 using DProjects.Factories;
 
-namespace DProjects.Auth {
+namespace DProjects.Identity {
 
     public class Assembly : IAssembly {
         public static System.Reflection.Assembly Instance = typeof(Assembly).Assembly;

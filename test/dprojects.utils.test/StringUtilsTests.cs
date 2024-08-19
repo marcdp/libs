@@ -62,9 +62,9 @@ namespace DProjects.Utils.Tests {
         [InlineData(123, true, false, true, true, "1KB", 1024)]
         [InlineData(2*1024, true, false, true, false, "2 KB", 2048)]
         [InlineData(2 * 1024 * 1024, true, false, true, false, "2.0 MB", 2097152)]
-        [InlineData(2.45 * 1024 * 1024, true, false, true, false, "2.4 MB", 2097152)]
+        [InlineData(2.45 * 1024 * 1024, true, false, true, false, "2.4 MB", 2516582)]
         [InlineData(1 * 1024 * 1024 * 1024, true, false, true, false, "1.0 GB", 1073741824)]
-        [InlineData(1.2 * 1024 * 1024 * 1024, true, false, true, false, "1.2 GB", 1073741824)]
+        [InlineData(1.2 * 1024 * 1024 * 1024, true, false, true, false, "1.2 GB", 1288490189)]
         public void FormatSizeTest(long value, bool minimum1KB, bool returnEmptyFor0Bytes, bool useDotAsDecimalSeparator, bool useNoSpaces, string result, long unformattedBytes) {
             Assert.Equal(result, StringUtils.FormatSize(value, minimum1KB, returnEmptyFor0Bytes,useDotAsDecimalSeparator, useNoSpaces ));
             Assert.Equal(unformattedBytes, StringUtils.UnFormatSize(result));

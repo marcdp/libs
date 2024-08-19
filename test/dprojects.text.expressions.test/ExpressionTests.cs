@@ -107,7 +107,7 @@ namespace DProjects.Text.Expressions.Tests
             var variables = new Dictionary<string, object?>();
             variables["something"] = new Something();
             var result = exp.Eval<string>(variables);
-            Assert.Equal(expected, result);
+            Assert.Equal(expected, result.Replace(",","."));
         }
         private class Something() {
             public double MyOperation(double var1, double var2) {

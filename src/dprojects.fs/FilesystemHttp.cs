@@ -19,7 +19,7 @@ namespace DProjects.Fs.Http {
     public class FilesystemHttp : FilesystemAsync {
 
          
-        //header names
+        //constants
         public const string MIMETYPE_FS_ENTRY = "application/vnd.dprojects.fs.entry+json";
         public const string MIMETYPE_FS_ENTRIES = "application/vnd.dprojects.fs.entries+json";
         public const string MIMETYPE_FS_METADATA = "application/vnd.dprojects.fs.metadata+json";
@@ -33,6 +33,30 @@ namespace DProjects.Fs.Http {
         public const string HEADER_FS_PATH_PREFIX = "X-DPROJECTS-FS-PATH-PREFIX";
         public const string HEADER_FS_IF_ENTRY_FILE = "X-DPROJECTS-IF-ENTRY-TYPE";
 
+        //Request
+        public class PatchRequest {
+            public IDictionary<string, string>? Metadata { get; set; }
+            public DateTime? Modified { get; set; }
+        }
+        public class CopyRequest {
+            public string Source { get; set; } = "";
+            public bool IgnoreErrors { get; set; }
+            public bool Overwrite { get; set; }
+            public bool Recursive { get; set; }
+            public int Tries { get; set; } = 1;
+        }
+        public class MoveRequest {
+            public string Source { get; set; } = "";
+            public bool IgnoreErrors { get; set; }
+        }
+        public class SyncRequest {
+            public string Source { get; set; } = "";
+            public string[] DestinationExcludes { get; set; } = [];
+            public string[] SourceExcludes { get; set; } = [];
+            public bool IgnoreErrors { get; set; }
+            public int Tries { get; set; } = 1;
+            public SyncModes Mode { get; set; }
+        }
 
         //variables
         private readonly Uri mUrl;
@@ -294,71 +318,63 @@ namespace DProjects.Fs.Http {
                 }
             }
         }
-        public override Task CopyAsync(string source, string destination, CopySettings settings, ILogger<IFilesystem> logger, CancellationToken cancellationToken) { 
-            throw new NotImplementedException();
-
-            //PathUtils.Validate(source);
-            //PathUtils.Validate(destination);
-            //var httpRequest = CreateHttpRequest(HttpMethod.Put, destination, "");
-            //var data = new Dictionary<string, object>();
-            //data["source"] = PathUtils.Combine(mUrl.AbsolutePath, source);
-            //data["ignoreErrors"] = settings.IgnoreErrors;
-            //data["overwrite"] = settings.Overwrite;
-            //data["recursive"] = settings.Recursive;
-            //data["tries"] = settings.Tries;
-            //httpRequest.Content = new StringContent(JsonSerializer.Serialize(data), System.Text.Encoding.UTF8, MIMETYPE_FS_COPY);
-            //SignRequest(httpRequest);
-            //using (var httpResponse = await mHttpClient.SendAsync(httpRequest, cancellationToken)) {
-            //    if (httpResponse.StatusCode == System.Net.HttpStatusCode.MethodNotAllowed) {
-            //        throw new Exception("Unable to modify filesystem: filesystem is readonly");
-            //    } else if (httpResponse.StatusCode != System.Net.HttpStatusCode.OK && httpResponse.StatusCode != System.Net.HttpStatusCode.Created) {
-            //        throw new Exception("Unable to copy: " + httpResponse.StatusCode);
-            //    }
-            //}
+        public override async Task CopyAsync(string source, string destination, CopySettings settings, ILogger<IFilesystem> logger, CancellationToken cancellationToken) {
+            PathUtils.Validate(source);
+            PathUtils.Validate(destination);
+            var httpRequest = CreateHttpRequest(HttpMethod.Put, destination, "");
+            var copyRequest = new CopyRequest();
+            copyRequest.Source = PathUtils.Combine(mUrl.AbsolutePath, source);
+            copyRequest.IgnoreErrors = settings.IgnoreErrors;
+            copyRequest.Overwrite = settings.Overwrite;
+            copyRequest.Recursive = settings.Recursive;
+            copyRequest.Tries = settings.Tries;
+            httpRequest.Content = new StringContent(JsonSerializer.Serialize(copyRequest), System.Text.Encoding.UTF8, MIMETYPE_FS_COPY);
+            SignRequest(httpRequest);
+            using (var httpResponse = await mHttpClient.SendAsync(httpRequest, cancellationToken)) {
+                if (httpResponse.StatusCode == System.Net.HttpStatusCode.MethodNotAllowed) {
+                    throw new Exception("Unable to modify filesystem: filesystem is readonly");
+                } else if (httpResponse.StatusCode != System.Net.HttpStatusCode.OK && httpResponse.StatusCode != System.Net.HttpStatusCode.Created) {
+                    throw new Exception("Unable to copy: " + httpResponse.StatusCode);
+                }
+            }
         }
-        public override Task MoveAsync(string source, string destination, MoveSettings settings, ILogger<IFilesystem> logger, CancellationToken cancellationToken) {
-            throw new NotImplementedException();
-
-            //PathUtils.Validate(source);
-            //PathUtils.Validate(destination);
-            //var httpRequest = CreateHttpRequest(HttpMethod.Put, destination, "");
-            //var data = new Dictionary<string, object>();
-            //data["source"] = PathUtils.Combine(mUrl.AbsolutePath, source);
-            //data["ignoreErrors"] = settings.IgnoreErrors;
-            //httpRequest.Content = new StringContent(JsonSerializer.Serialize(data), System.Text.Encoding.UTF8, MIMETYPE_FS_MOVE);
-            //SignRequest(httpRequest);
-            //using (var httpResponse = await mHttpClient.SendAsync(httpRequest, cancellationToken)) {
-            //    if (httpResponse.StatusCode == System.Net.HttpStatusCode.MethodNotAllowed) {
-            //        throw new Exception("Unable to modify filesystem: filesystem is readonly");
-            //    } else if (httpResponse.StatusCode != System.Net.HttpStatusCode.OK && httpResponse.StatusCode != System.Net.HttpStatusCode.Created) {
-            //        throw new Exception("Unable to move: " + httpResponse.StatusCode);
-            //    }
-            //}
+        public override async Task MoveAsync(string source, string destination, MoveSettings settings, ILogger<IFilesystem> logger, CancellationToken cancellationToken) {
+            PathUtils.Validate(source);
+            PathUtils.Validate(destination);
+            var httpRequest = CreateHttpRequest(HttpMethod.Put, destination, "");
+            var moveRequest = new MoveRequest();
+            moveRequest.Source = PathUtils.Combine(mUrl.AbsolutePath, source);
+            moveRequest.IgnoreErrors = settings.IgnoreErrors;
+            httpRequest.Content = new StringContent(JsonSerializer.Serialize(moveRequest), System.Text.Encoding.UTF8, MIMETYPE_FS_MOVE);
+            SignRequest(httpRequest);
+            using (var httpResponse = await mHttpClient.SendAsync(httpRequest, cancellationToken)) {
+                if (httpResponse.StatusCode == System.Net.HttpStatusCode.MethodNotAllowed) {
+                    throw new Exception("Unable to modify filesystem: filesystem is readonly");
+                } else if (httpResponse.StatusCode != System.Net.HttpStatusCode.OK && httpResponse.StatusCode != System.Net.HttpStatusCode.Created) {
+                    throw new Exception("Unable to move: " + httpResponse.StatusCode);
+                }
+            }
         }
-        public override Task SyncAsync(string source, string destination, SyncSettings syncSettings, ILogger<IFilesystem> logger, CancellationToken cancellationToken) {
-            throw new NotImplementedException();
-
-            //PathUtils.Validate(source);
-            //PathUtils.Validate(destination);
-            //var httpRequest = CreateHttpRequest(HttpMethod.Put, destination, "");
-            //var data = new Dictionary<string, object>();
-            //data["source"] = PathUtils.Combine(mUrl.AbsolutePath, source);
-            ////data["cache"] = syncSettings.Cache;
-            //data["destinationExcludes"] = syncSettings.DestinationExcludes;
-            //data["excludes"] = syncSettings.SourceExcludes;
-            //data["ignoreErrors"] = syncSettings.IgnoreErrors;
-            ////data["log"] = syncSettings.Log;
-            //data["mode"] = syncSettings.Mode;
-            //data["tries"] = syncSettings.Tries;
-            //httpRequest.Content = new StringContent(JsonSerializer.Serialize(data), System.Text.Encoding.UTF8, MIMETYPE_FS_SYNC);
-            //SignRequest(httpRequest);
-            //using (var httpResponse = await mHttpClient.SendAsync(httpRequest, cancellationToken)) {
-            //    if (httpResponse.StatusCode == System.Net.HttpStatusCode.MethodNotAllowed) {
-            //        throw new Exception("Unable to modify filesystem: filesystem is readonly");
-            //    } else if (httpResponse.StatusCode != System.Net.HttpStatusCode.OK && httpResponse.StatusCode != System.Net.HttpStatusCode.Created) {
-            //        throw new Exception("Unable to sync: " + httpResponse.StatusCode);
-            //    }
-            //}
+        public override async Task SyncAsync(string source, string destination, SyncSettings syncSettings, ILogger<IFilesystem> logger, CancellationToken cancellationToken) {
+            PathUtils.Validate(source);
+            PathUtils.Validate(destination);
+            var httpRequest = CreateHttpRequest(HttpMethod.Put, destination, "");
+            var syncRequest = new SyncRequest();
+            syncRequest.Source = PathUtils.Combine(mUrl.AbsolutePath, source);
+            syncRequest.DestinationExcludes = syncSettings.DestinationExcludes;
+            syncRequest.SourceExcludes = syncSettings.SourceExcludes;
+            syncRequest.IgnoreErrors = syncSettings.IgnoreErrors;
+            syncRequest.Mode = syncSettings.Mode;
+            syncRequest.Tries = syncSettings.Tries;
+            httpRequest.Content = new StringContent(JsonSerializer.Serialize(syncRequest), System.Text.Encoding.UTF8, MIMETYPE_FS_SYNC);
+            SignRequest(httpRequest);
+            using (var httpResponse = await mHttpClient.SendAsync(httpRequest, cancellationToken)) {
+                if (httpResponse.StatusCode == System.Net.HttpStatusCode.MethodNotAllowed) {
+                    throw new Exception("Unable to modify filesystem: filesystem is readonly");
+                } else if (httpResponse.StatusCode != System.Net.HttpStatusCode.OK && httpResponse.StatusCode != System.Net.HttpStatusCode.Created) {
+                    throw new Exception("Unable to sync: " + httpResponse.StatusCode);
+                }
+            }
         }
 
 
@@ -367,57 +383,52 @@ namespace DProjects.Fs.Http {
             throw new NotImplementedException();
         }
         public override async Task<IDictionary<string, string>> GetMetadataAsync(string path, CancellationToken cancellationToken) {
-            //PathUtils.Validate(path);
-            //var httpRequest = CreateHttpRequest(HttpMethod.Get, path, "");
-            //httpRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue(MIMETYPE_FS_METADATA));
-            //SignRequest(httpRequest);
-            //using (var httpResponse = await mHttpClient.SendAsync(httpRequest, cancellationToken)) {
-            //    var json = await httpResponse.Content.ReadAsStringAsync();
-            //    if (httpResponse.StatusCode == System.Net.HttpStatusCode.NotFound) {
-            //        throw new Exception("Unable to get metadata: " + httpResponse.StatusCode);
-            //    } else if (httpResponse.StatusCode != System.Net.HttpStatusCode.OK) {
-            //        throw new Exception("Unable to get metadata: " + httpResponse.StatusCode);
-            //    }
-            //    return JsonDeserializer.Deserialize<IDictionary<string, string>>(json);
-            //}
-            throw new NotImplementedException();
+            PathUtils.Validate(path);
+            var httpRequest = CreateHttpRequest(HttpMethod.Get, path, "");
+            httpRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue(MIMETYPE_FS_METADATA));
+            SignRequest(httpRequest);
+            using (var httpResponse = await mHttpClient.SendAsync(httpRequest, cancellationToken)) {
+                var json = await httpResponse.Content.ReadAsStringAsync();
+                if (httpResponse.StatusCode == System.Net.HttpStatusCode.NotFound) {
+                    throw new Exception("Unable to get metadata: " + httpResponse.StatusCode);
+                } else if (httpResponse.StatusCode != System.Net.HttpStatusCode.OK) {
+                    throw new Exception("Unable to get metadata: " + httpResponse.StatusCode);
+                }
+                return System.Text.Json.JsonSerializer.Deserialize<IDictionary<string, string>>(json)!;
+            }
 
         }
         public override async Task SetMetadataAsync(string path, IDictionary<string, string> metadata, CancellationToken cancellationToken) {
-            throw new NotImplementedException();
-
-            //PathUtils.Validate(path);
-            //var httpRequest = CreateHttpRequest(new HttpMethod("PATCH"), path, "");
-            //var data = new Dictionary<string, object?>();
-            //data.Add("metadata", metadata);
-            //httpRequest.Content = new StringContent(JsonSerializer.Serialize(data), System.Text.Encoding.UTF8, MIMETYPE_FS_ENTRY);
-            //httpRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue(MIMETYPE_FS_ENTRY));
-            //SignRequest(httpRequest);
-            //using (var httpResponse = await mHttpClient.SendAsync(httpRequest, cancellationToken)) {
-            //    if (httpResponse.StatusCode == System.Net.HttpStatusCode.MethodNotAllowed) {
-            //        throw new Exception("Unable to modify filesystem: filesystem is readonly");
-            //    } else if (httpResponse.StatusCode == System.Net.HttpStatusCode.NotFound) {
-            //        throw new Exception("Not found");
-            //    } else if (httpResponse.StatusCode != System.Net.HttpStatusCode.OK) {
-            //        throw new Exception("Unable to set metadata: " + httpResponse.StatusCode);
-            //    }
-            //}
+            PathUtils.Validate(path);
+            var httpRequest = CreateHttpRequest(new HttpMethod("PATCH"), path, "");
+            var patchRequest = new PatchRequest();
+            patchRequest.Metadata = metadata;
+            httpRequest.Content = new StringContent(JsonSerializer.Serialize(patchRequest), System.Text.Encoding.UTF8, MIMETYPE_FS_ENTRY);
+            httpRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue(MIMETYPE_FS_ENTRY));
+            SignRequest(httpRequest);
+            using (var httpResponse = await mHttpClient.SendAsync(httpRequest, cancellationToken)) {
+                if (httpResponse.StatusCode == System.Net.HttpStatusCode.MethodNotAllowed) {
+                    throw new Exception("Unable to modify filesystem: filesystem is readonly");
+                } else if (httpResponse.StatusCode == System.Net.HttpStatusCode.NotFound) {
+                    throw new Exception("Not found");
+                } else if (httpResponse.StatusCode != System.Net.HttpStatusCode.OK) {
+                    throw new Exception("Unable to set metadata: " + httpResponse.StatusCode);
+                }
+            }
         }
         public override async Task<bool> SupportsAsync(string path, Features feature, CancellationToken cancellationToken) {
-            throw new NotImplementedException();
-
-            //var httpRequest = CreateHttpRequest(HttpMethod.Get, path, "feature=" + feature.ToString());
-            //httpRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue(MIMETYPE_FS_SUPPORTS));
-            //SignRequest(httpRequest);
-            //using (var httpResponse = await mHttpClient.SendAsync(httpRequest, cancellationToken)) {
-            //    var json = await httpResponse.Content.ReadAsStringAsync();
-            //    if (httpResponse.StatusCode == System.Net.HttpStatusCode.NotFound) {
-            //        throw new Exception("Unable to get entry: " + httpResponse.StatusCode);
-            //    } else if (httpResponse.StatusCode != System.Net.HttpStatusCode.OK) {
-            //        throw new Exception("Unable to get entry: " + httpResponse.StatusCode);
-            //    }
-            //    return JsonDeserializer.Deserialize<bool>(json);
-            //}
+            var httpRequest = CreateHttpRequest(HttpMethod.Get, path, "feature=" + feature.ToString());
+            httpRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue(MIMETYPE_FS_SUPPORTS));
+            SignRequest(httpRequest);
+            using (var httpResponse = await mHttpClient.SendAsync(httpRequest, cancellationToken)) {
+                var json = await httpResponse.Content.ReadAsStringAsync();
+                if (httpResponse.StatusCode == System.Net.HttpStatusCode.NotFound) {
+                    throw new Exception("Unable to get entry: " + httpResponse.StatusCode);
+                } else if (httpResponse.StatusCode != System.Net.HttpStatusCode.OK) {
+                    throw new Exception("Unable to get entry: " + httpResponse.StatusCode);
+                }
+                return System.Text.Json.JsonSerializer.Deserialize<bool>(json);
+            }
         }
 
 
@@ -434,36 +445,36 @@ namespace DProjects.Fs.Http {
             }
             return "";
         }
-        private void SignRequest(HttpRequestMessage httpRequest) {            
-            //if (!string.IsNullOrEmpty(mUrl.UserInfo)) {
-            //    var userInfo = mUrl.UserInfo + (mUrl.UserInfo.IndexOf(":") == -1 ? ":" : "");
-            //    var login = userInfo.Split(':')[0];
-            //    var password = UrlUtils.UrlDecode(userInfo.Split(':')[1]);
-            //    var credentials = new NetworkCredential(login, password);
-            //    var path = httpRequest.RequestUri.OriginalString;
-            //    var query = "";
-            //    if (path.IndexOf("?") != -1) {
-            //        query = path.Substring(path.IndexOf("?"));
-            //        path = path.Substring(0, path.IndexOf("?"));
-            //    }
-            //    var queryDecoded = UrlUtils.UrlDecode(query);
-            //    var contentType = "";
-            //    if (httpRequest.Content != null && httpRequest.Content.Headers.ContentType != null) {
-            //        contentType = httpRequest.Content.Headers.ContentType.ToString();
-            //    }
-            //    DateTime dateToUse = DateTime.Now;
-            //    var value = DProjects.Core.Utils.AuthUtils.CreateHmac(
-            //        credentials,
-            //        httpRequest.Method.Method,
-            //        path,
-            //        queryDecoded,
-            //        contentType,
-            //        dateToUse,
-            //        default(DateTime)
-            //    );
-            //    httpRequest.Headers.Add(HttpUtils.HEADER_AUTHORIZATION, value);
-            //    httpRequest.Headers.Add(HttpUtils.HEADER_DATE, dateToUse.ToUniversalTime().ToString("r"));
-            //}
+        private void SignRequest(HttpRequestMessage httpRequest) {
+            if (!string.IsNullOrEmpty(mUrl.UserInfo)) {
+                var userInfo = mUrl.UserInfo + (mUrl.UserInfo.IndexOf(":") == -1 ? ":" : "");
+                var login = userInfo.Split(':')[0];
+                var password = UrlUtils.UrlDecode(userInfo.Split(':')[1]);
+                var credentials = new NetworkCredential(login, password);
+                var path = httpRequest.RequestUri.OriginalString;
+                var query = "";
+                if (path.IndexOf("?") != -1) {
+                    query = path.Substring(path.IndexOf("?"));
+                    path = path.Substring(0, path.IndexOf("?"));
+                }
+                var queryDecoded = UrlUtils.UrlDecode(query);
+                var contentType = "";
+                if (httpRequest.Content != null && httpRequest.Content.Headers.ContentType != null) {
+                    contentType = httpRequest.Content.Headers.ContentType.ToString();
+                }
+                DateTime dateToUse = DateTime.Now;
+                var value = DProjects.Utils.AuthHttpHmacUtils.CreateHeader(
+                    credentials,
+                    httpRequest.Method.Method,
+                    path,
+                    queryDecoded,
+                    contentType,
+                    dateToUse,
+                    default(DateTime)
+                );
+                httpRequest.Headers.Add(HttpUtils.HEADER_AUTHORIZATION, value);
+                httpRequest.Headers.Add(HttpUtils.HEADER_DATE, dateToUse.ToUniversalTime().ToString("r"));
+            }
         }
 
     }

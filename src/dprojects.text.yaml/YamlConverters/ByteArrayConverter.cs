@@ -19,9 +19,18 @@ namespace DProjects.Text.Yaml.YamlConverters {
             parser.MoveNext();
             return bytes;
         }
+
+        public object? ReadYaml(IParser parser, Type type, ObjectDeserializer rootDeserializer) {
+            throw new NotImplementedException();
+        }
+
         public void WriteYaml(IEmitter emitter, object? value, Type type) {
             var bytes = (byte[])value!;
             emitter.Emit(new YamlDotNet.Core.Events.Scalar(null, "tag:yaml.org,2002:binary", Convert.ToBase64String(bytes), ScalarStyle.Plain, false, false));
+        }
+
+        public void WriteYaml(IEmitter emitter, object? value, Type type, ObjectSerializer serializer) {
+            throw new NotImplementedException();
         }
     }
 

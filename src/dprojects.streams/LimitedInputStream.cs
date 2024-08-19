@@ -36,10 +36,10 @@ namespace DProjects.Streams {
 
 
         //methods
-        public override bool CanRead { get { return mStream.CanRead; } }
-        public override bool CanSeek { get { return mStream.CanSeek; } }
-        public override bool CanWrite { get { return mStream.CanWrite; } }
-        public override long Position { get { return mStream.Position; } set { mStream.Position = value; } }
+        //public override bool CanRead { get { return mStream.CanRead; } }
+        //public override bool CanSeek { get { return false; } }
+        //public override bool CanWrite { get { return false; } }
+        //public override long Position { get { return mStream.Position; } set { mStream.Position = value; } }
         public override long Length { get { return Math.Min( mStream.Length, mMaxBytes); } }
         public long BytesRead => mBytesRead;
 

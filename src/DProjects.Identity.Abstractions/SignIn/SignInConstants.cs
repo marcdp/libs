@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using System.Security.Claims;
 
-namespace DProjects.Auth {
+namespace DProjects.Identity.SignIn {
 
-    public class AuthConstants {
+    public class SignInConstants {
 
         //vars
         public const string HEADER_LOGIN = "login";

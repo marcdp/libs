@@ -19,7 +19,7 @@ namespace DProjects.Factories.Tests
             public string GetPassword() => "";
         }
         [Protocol("something1", "")]
-        public class Something1Factory : IFactoryByUrlAndArgument<ISomething, string> {
+        public class Something1Factory : IFactoryByUrl<ISomething, string> {
             public ISomething Create(string url, string aux) {
                 return new Something1();
             }
@@ -30,7 +30,7 @@ namespace DProjects.Factories.Tests
             public string GetPassword() => "";
         }
         [Protocol("something2", "")]
-        public class Something2Factory : IFactoryByUrlAndArgument<ISomething, string> {
+        public class Something2Factory : IFactoryByUrl<ISomething, string> {
             public ISomething Create(string url, string aux) {
                 return new Something2();
             }
@@ -41,7 +41,7 @@ namespace DProjects.Factories.Tests
             public string GetPassword() => "";
         }
         [Protocol("dir", "")]
-        public class SomethingDirFactory : IFactoryByUrlAndArgument<ISomething, string> {
+        public class SomethingDirFactory : IFactoryByUrl<ISomething, string> {
             public ISomething Create(string url, string aux) {
                 return new SomethingDir();
             }
@@ -52,7 +52,7 @@ namespace DProjects.Factories.Tests
             public string GetPassword() => pass;
         }
         [Protocol("passwored", "")]
-        public class SomethingPassworedFactory : IFactoryByUrlAndArgument<ISomething, string> {
+        public class SomethingPassworedFactory : IFactoryByUrl<ISomething, string> {
             public ISomething Create(string url, string aux) {
                 var aUrl = new System.Uri(url);
                 return new SomethingPasswored(aUrl.UserInfo.Split(":")[1]);
@@ -76,16 +76,6 @@ namespace DProjects.Factories.Tests
 
 
         //tests
-        [Theory()]
-        [InlineData("something1:", "1")]
-        [InlineData("something2:", "2")]
-        [InlineData("/my-path", "dir")]
-        public void Create_ShouldPrependDirToUrl_WhenUrlStartsWithSlash(string url, string expected) {
-            var instance = mFactoryByUrlAndArgument.Create(url, "");
-            var result = instance.GetName();
-            Assert.Equal(expected, result);
-        }
-
         [Theory()]
         [InlineData("111", "1")]
         [InlineData("222", "2")]

@@ -127,6 +127,15 @@ namespace DProjects.Text.Yaml {
                 mIgnorePropertyNames = ignorePropertyNames;
                 mRoot = root;
             }
+
+            public override string GetEnumName(Type enumType, string name) {
+                throw new NotImplementedException();
+            }
+
+            public override string GetEnumValue(object enumValue) {
+                throw new NotImplementedException();
+            }
+
             public override IEnumerable<IPropertyDescriptor> GetProperties(Type type, object? container) {
                 var props = mInnerTypeDescriptor.GetProperties(type, container);
                 if (mRoot == container) {

@@ -17,6 +17,11 @@ namespace DProjects.Text.Yaml.YamlConverters {
         public object ReadYaml(IParser parser, Type type) {
             throw new NotImplementedException();
         }
+
+        public object? ReadYaml(IParser parser, Type type, ObjectDeserializer rootDeserializer) {
+            throw new NotImplementedException();
+        }
+
         public void WriteYaml(IEmitter emitter, object? value, Type type) {
             if (value is Dictionary<string,object?> dictionary) {
                 emitter.Emit(new MappingStart());
@@ -28,6 +33,11 @@ namespace DProjects.Text.Yaml.YamlConverters {
                 emitter.Emit(new MappingEnd());
             }
         }
+
+        public void WriteYaml(IEmitter emitter, object? value, Type type, ObjectSerializer serializer) {
+            throw new NotImplementedException();
+        }
+
         private void WriteValue(IEmitter emitter, object? value) {
             if (value == null) {
                 emitter.Emit(new Scalar("null"));
