@@ -18,7 +18,14 @@ namespace DProjects.Fs.Http {
 
     public class FilesystemHttp : FilesystemAsync {
 
-         
+        //Modes
+        public enum AuthSchemes {
+            None,
+            Basic,
+            Hmac,
+            ApiKey
+        }
+
         //constants
         public const string MIMETYPE_FS_ENTRY = "application/vnd.dprojects.fs.entry+json";
         public const string MIMETYPE_FS_ENTRIES = "application/vnd.dprojects.fs.entries+json";
@@ -62,11 +69,13 @@ namespace DProjects.Fs.Http {
         private readonly Uri mUrl;
         private readonly HttpClient mHttpClient;
         private readonly int mMaxFileUploadSize;
+        private readonly AuthSchemes mAuthScheme;
 
         //constructor
-        public FilesystemHttp(Uri url, int maxFileUploadSize, bool isReadOnly) : base(isReadOnly) {
+        public FilesystemHttp(Uri url, int maxFileUploadSize, AuthSchemes authScheme, bool isReadOnly) : base(isReadOnly) {
             mUrl = url;
             mMaxFileUploadSize = maxFileUploadSize;
+            mAuthScheme = authScheme;
             if (mUrl.AbsolutePath.Length > 1 && mUrl.AbsolutePath.EndsWith("/")) throw new Exception("Url should not end with /");
             var httpClientHandler = new HttpClientHandler();
             mHttpClient = new HttpClient(httpClientHandler);
@@ -446,34 +455,53 @@ namespace DProjects.Fs.Http {
             return "";
         }
         private void SignRequest(HttpRequestMessage httpRequest) {
-            if (!string.IsNullOrEmpty(mUrl.UserInfo)) {
-                var userInfo = mUrl.UserInfo + (mUrl.UserInfo.IndexOf(":") == -1 ? ":" : "");
-                var login = userInfo.Split(':')[0];
-                var password = UrlUtils.UrlDecode(userInfo.Split(':')[1]);
-                var credentials = new NetworkCredential(login, password);
-                var path = httpRequest.RequestUri.OriginalString;
-                var query = "";
-                if (path.IndexOf("?") != -1) {
-                    query = path.Substring(path.IndexOf("?"));
-                    path = path.Substring(0, path.IndexOf("?"));
+            if (mAuthScheme == AuthSchemes.None) {
+            } else if (mAuthScheme == AuthSchemes.Basic) {
+                if (!string.IsNullOrEmpty(mUrl.UserInfo)) {
+                    var userInfo = mUrl.UserInfo + (mUrl.UserInfo.IndexOf(":") == -1 ? ":" : "");
+                    var login = userInfo.Split(':')[0];
+                    var password = UrlUtils.UrlDecode(userInfo.Split(':')[1]);
+                    var credentials = new NetworkCredential(login, password);
+                    var value = DProjects.Utils.AuthHttpBasicUtils.CreateHeader(credentials);
+                    httpRequest.Headers.Add(HttpUtils.HEADER_AUTHORIZATION, value);
                 }
-                var queryDecoded = UrlUtils.UrlDecode(query);
-                var contentType = "";
-                if (httpRequest.Content != null && httpRequest.Content.Headers.ContentType != null) {
-                    contentType = httpRequest.Content.Headers.ContentType.ToString();
+            } else if (mAuthScheme == AuthSchemes.Hmac) {
+                if (!string.IsNullOrEmpty(mUrl.UserInfo)) {
+                    var userInfo = mUrl.UserInfo + (mUrl.UserInfo.IndexOf(":") == -1 ? ":" : "");
+                    var login = userInfo.Split(':')[0];
+                    var password = UrlUtils.UrlDecode(userInfo.Split(':')[1]);
+                    var key = Convert.FromBase64String(password);
+                    var credentials = new NetworkCredential(login, password);
+                    var path = httpRequest.RequestUri.OriginalString;
+                    var query = "";
+                    if (path.IndexOf("?") != -1) {
+                        query = path.Substring(path.IndexOf("?"));
+                        path = path.Substring(0, path.IndexOf("?"));
+                    }
+                    var queryDecoded = UrlUtils.UrlDecode(query);
+                    var contentType = "";
+                    if (httpRequest.Content != null && httpRequest.Content.Headers.ContentType != null) {
+                        contentType = httpRequest.Content.Headers.ContentType.ToString();
+                    }
+                    DateTime dateToUse = DateTime.Now;
+                    var value = DProjects.Utils.AuthHttpHmacUtils.CreateHeader(
+                        login,
+                        key,
+                        httpRequest.Method.Method,
+                        path,
+                        queryDecoded,
+                        contentType,
+                        dateToUse,
+                        default(DateTime)
+                    );
+                    httpRequest.Headers.Add(HttpUtils.HEADER_AUTHORIZATION, value);
+                    httpRequest.Headers.Add(HttpUtils.HEADER_DATE, dateToUse.ToUniversalTime().ToString("r"));
                 }
-                DateTime dateToUse = DateTime.Now;
-                var value = DProjects.Utils.AuthHttpHmacUtils.CreateHeader(
-                    credentials,
-                    httpRequest.Method.Method,
-                    path,
-                    queryDecoded,
-                    contentType,
-                    dateToUse,
-                    default(DateTime)
-                );
-                httpRequest.Headers.Add(HttpUtils.HEADER_AUTHORIZATION, value);
-                httpRequest.Headers.Add(HttpUtils.HEADER_DATE, dateToUse.ToUniversalTime().ToString("r"));
+            } else if (mAuthScheme == AuthSchemes.ApiKey) {
+                if (!string.IsNullOrEmpty(mUrl.UserInfo)) {
+                    var value = "ApiKey " + mUrl.UserInfo;
+                    httpRequest.Headers.Add(HttpUtils.HEADER_AUTHORIZATION, value);
+                }
             }
         }
 

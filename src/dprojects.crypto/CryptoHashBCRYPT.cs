@@ -21,6 +21,9 @@ namespace DProjects.Crypto {
         public void Dispose() { 
         }
 
+        //props
+        public string Url => "bcrypt:";
+
         //methods
         public byte[] ToHash(Stream data) {
             var text = System.Text.Encoding.UTF8.GetString(StreamUtils.ReadBytes(data));  
@@ -29,6 +32,9 @@ namespace DProjects.Crypto {
         }
         public string ToHash(string text) {
             return BCrypt.Net.BCrypt.HashPassword(text); 
+        }
+        public string ToHashText(string input) {
+            return BCrypt.Net.BCrypt.HashPassword(input);
         }
         public string ToHash(string text, string salt) {
             return BCrypt.Net.BCrypt.HashPassword(text, salt);
@@ -40,12 +46,13 @@ namespace DProjects.Crypto {
         }
 
         //methosd verify
-        public bool Verify(string text, string hash) {
+        public bool VerifyText(string text, string hash) {
             return BCrypt.Net.BCrypt.Verify(text, hash);
         }
         public bool Verify(Stream data, byte[] hash) {
             var text = System.Text.Encoding.UTF8.GetString(StreamUtils.ReadBytes(data));
-            return BCrypt.Net.BCrypt.Verify(text, System.Text.Encoding.UTF8.GetString(hash));
+            var hashAsText = System.Text.Encoding.UTF8.GetString(hash);
+            return BCrypt.Net.BCrypt.Verify(text, hashAsText);
         }
         public async Task<bool> VerifyAsync(Stream data, byte[] hash, CancellationToken cancellationToken) {
             var text = System.Text.Encoding.UTF8.GetString(await StreamUtils.ReadBytesAsync(data, cancellationToken: cancellationToken));

@@ -77,7 +77,8 @@ namespace DProjects.Fs.Http {
             try {
                 var cancellationToken = context.RequestAborted;
                 var method = context.Request.Method;
-                var path = BuildPath(context.Request.Path.Value.Substring(mOptions.Prefix.Length));
+                var p = context.Request.Path.Value.Substring(mOptions.Prefix.Length);
+                var path = BuildPath(p);
                 context.Response.Headers.Append(FilesystemHttp.HEADER_FS_PATH_PREFIX, mOptions.Prefix);
                 var accept = context.Request.Headers[HttpUtils.HEADER_ACCEPT];
                 var ranges = context.Request.Headers[HttpUtils.HEADER_RANGE];
@@ -389,12 +390,14 @@ namespace DProjects.Fs.Http {
         private string BuildPath(string path) {
             var aux = path;
             if (aux.Length == 0) aux = "/";
-            aux = PathUtils.Combine(mOptions.Path, aux);
+            //aux = PathUtils.Combine(mOptions.Path, aux);
+            aux = PathUtils.Uncombine(mOptions.Path, aux);
             return aux;
         }
         private string UnbuildPath(string path) {
-            var aux = mOptions.Path;
-            return PathUtils.Uncombine(aux, path);
+            //var aux = mOptions.Path;
+            //return PathUtils.Uncombine(aux, path);
+            return path;
         }
          
 

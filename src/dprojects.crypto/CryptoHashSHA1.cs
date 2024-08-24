@@ -24,17 +24,27 @@ namespace DProjects.Crypto {
         public void Dispose() { 
         }
 
+        //props
+        public string Url => "sha1:";
 
-        //methods
+        //tohash
         public byte[] ToHash(Stream data) {
             using (var algorithm = SHA1.Create()) {
                 return algorithm.ComputeHash(data);
             }
         }
+        public string ToHashText(string input) {
+            return HexUtils.Hex(ToHash(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(input))));
+        }
         public Task<byte[]> ToHashAsync(Stream data, CancellationToken cancellationToken) {
             using (var algorithm = SHA1.Create()) {
                 return Task.FromResult(algorithm.ComputeHash(data));
             }
+        }
+
+        //verify
+        public bool VerifyText(string text, string hash) {
+            return ToHashText(text).Equals(hash);
         }
         public bool Verify(Stream data, byte[] hash) {
             var hashComputed = ToHash(data);

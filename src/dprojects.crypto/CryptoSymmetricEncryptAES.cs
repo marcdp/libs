@@ -9,11 +9,6 @@ using System.Security.Cryptography;
 namespace DProjects.Crypto {
 
 
-    [Protocol("aes", "")]
-    [ProtocolUsage("")]
-    [ProtocolExample("aes:?fold=76", "")]
-    [ProtocolExample("aes:?encoding=binary", "")]
-    [ProtocolExample("aes:?encoding=base64&cipher=ECB&ivLength=32", "")]
     public class CryptoSymmetricEncryptAES : ICryptoSymmetricEncrypt {
 
         //enums

@@ -8,8 +8,6 @@ using System.Security.Cryptography;
 namespace DProjects.Crypto {
 
 
-    [Protocol("caesar", "")]
-    [ProtocolExample("caesar:", "")]
     public class CryptoSymmetricEncryptCaesar : ICryptoSymmetricEncrypt {
 
         //options

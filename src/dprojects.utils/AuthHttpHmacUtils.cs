@@ -8,10 +8,8 @@ namespace DProjects.Utils {
     public static class AuthHttpHmacUtils {
          
         //Hmac
-        public static string CreateHeader(NetworkCredential credentials, string method, string path, string query, string contentType, DateTime dateHeader, DateTime dateHeaderToUse) {
+        public static string CreateHeader(string login, byte[] key, string method, string path, string query, string contentType, DateTime dateHeader, DateTime dateHeaderToUse) {
             var dateHeaderStr = (dateHeaderToUse != default) ? (dateHeaderToUse.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffZ")) : (dateHeader.ToUniversalTime().ToString("r"));
-            var login = credentials.UserName;
-            var password = credentials.Password;
             if (contentType.IndexOf(";") != -1) {
                 contentType = contentType.Substring(0, contentType.IndexOf(";"));
             }
@@ -22,7 +20,7 @@ namespace DProjects.Utils {
                 dateHeaderStr + CharUtils.CHAR_LF;
             var unsignedDataBuffer = System.Text.Encoding.UTF8.GetBytes(unsignedData);
             var hmacSha = new System.Security.Cryptography.HMACSHA256 {
-                Key = System.Text.Encoding.UTF8.GetBytes(password)
+                Key = key
             };
             byte[] signedDataBufer = hmacSha.ComputeHash(unsignedDataBuffer);
             var signedData = Base64Utils.ToBase64(signedDataBufer);
