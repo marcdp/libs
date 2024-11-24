@@ -1,17 +1,22 @@
 ﻿
 using System;
+using System.IO;
 
 using DProjects.Utils;
 
 namespace DProjects.Cache {
 
-    public class BlobCacheEntry {
+    public class BlobCacheEntry : IDisposable {
 
 
         //ctor
-        public BlobCacheEntry(string key, HeadersUtils.Headers? headers = null) {
+        public BlobCacheEntry(string key, Stream stream, HeadersUtils.Headers? headers = null) {
             Key = key;
             Headers = headers ?? new HeadersUtils.Headers();
+            Stream = stream;
+        }
+        public void Dispose() {
+            Stream.Dispose(); 
         }
 
 
@@ -42,6 +47,7 @@ namespace DProjects.Cache {
             get => Headers.Get<DateTime?>(HttpUtils.HEADER_DATE, null);
             set => Headers.Set(HttpUtils.HEADER_DATE, value);
         }
+        public Stream Stream{ get; }
 
     }
 

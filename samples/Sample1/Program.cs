@@ -28,6 +28,10 @@ namespace Sample1 {
                 //cfg.Url = "stdout:?format=rat";
             });
 
+            hostAppBuilder.Services.AddFactoryByUrl<DProjects.Queues.IQueue>(cfg => {
+                cfg.AddFactoriesFromAssembly<DProjects.Queues.Assembly>();
+            });
+
             // Build Host
             var host = hostAppBuilder.Build();
             

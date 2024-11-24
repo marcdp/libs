@@ -25,6 +25,7 @@ namespace DProjects.Log {
 
 
         //props
+        public LogLevel Level => mLog.Level;
         public string? Prefix { get; set; }
         public string? User { get; set; }
         public string? Source { get; set; }
@@ -61,6 +62,10 @@ namespace DProjects.Log {
         }
         public void Fatal(string message, params object?[] args) {
             var logEntry = CreateLogEntry(LogLevel.Fatal, message, args);
+            mLog.Write(logEntry);
+            Writed?.Invoke(this, logEntry);
+        }
+        public void Write(LogEntry logEntry) {
             mLog.Write(logEntry);
             Writed?.Invoke(this, logEntry);
         }

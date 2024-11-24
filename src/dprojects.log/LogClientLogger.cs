@@ -21,6 +21,7 @@ namespace DProjects.Log {
         //variables
         protected ILogger mLogger;
 
+
         //events
         public event EventHandler<LogEntry>? Writed;
 
@@ -40,6 +41,7 @@ namespace DProjects.Log {
         public string? Resource { get; set; }
         public string[]? Tags { get; set; }
         public Dictionary<string, object?>? Fields { get; set; }
+        public LogLevel Level { get; } = LogLevel.Information;
 
 
         //methods
@@ -67,6 +69,10 @@ namespace DProjects.Log {
             mLogger.LogCritical(message, args);
             if (Writed != null) Writed?.Invoke(this, CreateLogEntry(LogLevel.Fatal, message, args));
         }
+        public void Write(LogEntry logEntry) {
+            throw new NotImplementedException();
+        }
+
 
         //private 
         private LogEntry CreateLogEntry(LogLevel logType, string message, params object?[] args) {

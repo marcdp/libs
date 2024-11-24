@@ -11,6 +11,7 @@ namespace DProjects.Log {
         event EventHandler<LogEntry> Writed;
 
         //properties
+        LogLevel Level { get; }
         string? Prefix { get; set; }
         string? User { get; set; }
         string? Source { get; set; }
@@ -23,6 +24,7 @@ namespace DProjects.Log {
         void Warning(string message, params object?[] args);
         void Error(string message, params object?[] args);
         void Fatal(string message, params object?[] args);
+        void Write(LogEntry logEntry);
 
     }
 

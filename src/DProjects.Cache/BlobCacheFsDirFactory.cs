@@ -12,7 +12,7 @@ namespace DProjects.Cache {
     [ProtocolExample("fs-dir:/path/to/dir", "")]
     public class BlobCacheFsDirFactory(IFilesystem filesystem, ILogger<IFilesystem> logger) : IFactoryByUrl<IBlobCache> {
         public IBlobCache Create(string src) {
-            var url = new System.Uri(src);
+            var url = new System.Uri(src);  
             return new BlobCacheFsDir(filesystem, url.AbsolutePath, logger);
         }
 

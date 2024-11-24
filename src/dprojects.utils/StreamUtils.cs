@@ -342,47 +342,47 @@ namespace DProjects.Utils {
             if (dispose) stream.Dispose();
             return nRead;
         }
-        //public static long Consume(Stream stream, long numberOfBytesToRead) {
-        //    long nRead = 0;
-        //    if (stream.ReadByte() != -1) {
-        //        nRead++;
-        //        var buffer = new byte[1024];
-        //        do {
-        //            long pendingBytesToRead = System.Convert.ToInt64(numberOfBytesToRead - nRead);
-        //            long numberOfBytesToReadInThiStep = pendingBytesToRead;
-        //            if (numberOfBytesToReadInThiStep > buffer.Length) {
-        //                numberOfBytesToReadInThiStep = buffer.Length;
-        //            }
-        //            int i = stream.Read(buffer, 0, (int)numberOfBytesToReadInThiStep);
-        //            if (i == 0) break;
-        //            nRead += i;
-        //        } while (nRead < numberOfBytesToRead);
-        //    }
-        //    return nRead;
-        //}
-        //public static async Task<long> ConsumeAsync(Stream stream, long numberOfBytesToRead) {
-        //    long nRead = 0;
-        //    if (stream.ReadByte() != -1) {
-        //        nRead++;
-        //        byte[] buffer = new byte[1024];
-        //        do {
-        //            long pendingBytesToRead = System.Convert.ToInt64(numberOfBytesToRead - nRead);
-        //            long numberOfBytesToReadInThiStep = pendingBytesToRead;
-        //            if (numberOfBytesToReadInThiStep > buffer.Length) {
-        //                numberOfBytesToReadInThiStep = buffer.Length;
-        //            }
-        //            int i = await stream.ReadAsync(buffer, 0, (int)numberOfBytesToReadInThiStep);
-        //            if (i == 0) break;
-        //            nRead += i;
-        //        } while (nRead < numberOfBytesToRead);
-        //    }
-        //    return nRead;
-        //}
+        public static long Consume(Stream stream, long numberOfBytesToRead) {
+            long nRead = 0;
+            if (stream.ReadByte() != -1) {
+                nRead++;
+                var buffer = new byte[1024];
+                do {
+                    long pendingBytesToRead = System.Convert.ToInt64(numberOfBytesToRead - nRead);
+                    long numberOfBytesToReadInThiStep = pendingBytesToRead;
+                    if (numberOfBytesToReadInThiStep > buffer.Length) {
+                        numberOfBytesToReadInThiStep = buffer.Length;
+                    }
+                    int i = stream.Read(buffer, 0, (int)numberOfBytesToReadInThiStep);
+                    if (i == 0) break;
+                    nRead += i;
+                } while (nRead < numberOfBytesToRead);
+            }
+            return nRead;
+        }
+        public static async Task<long> ConsumeAsync(Stream stream, long numberOfBytesToRead) {
+            long nRead = 0;
+            if (stream.ReadByte() != -1) {
+                nRead++;
+                byte[] buffer = new byte[1024];
+                do {
+                    long pendingBytesToRead = System.Convert.ToInt64(numberOfBytesToRead - nRead);
+                    long numberOfBytesToReadInThiStep = pendingBytesToRead;
+                    if (numberOfBytesToReadInThiStep > buffer.Length) {
+                        numberOfBytesToReadInThiStep = buffer.Length;
+                    }
+                    int i = await stream.ReadAsync(buffer, 0, (int)numberOfBytesToReadInThiStep);
+                    if (i == 0) break;
+                    nRead += i;
+                } while (nRead < numberOfBytesToRead);
+            }
+            return nRead;
+        }
         //public static long Consume(Stream stream, byte[] delimiterToken) {
         //    return Copy(stream, new NullOutputStream(), delimiterToken);
         //}
 
-        //to Partial stream
+        ////to Partial stream
         //public static Stream ToPartialStream(Stream stream, long offset, long length) {
         //    if (stream.CanSeek) {
         //        stream.Seek(offset, SeekOrigin.Begin);

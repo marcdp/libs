@@ -1,0 +1,42 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <AssemblyTitle>DProjects.Queues</AssemblyTitle>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <LangVersion>preview</LangVersion>
+        <AssemblyName>DProjects.Cache</AssemblyName>
+        <OutputType>Library</OutputType>
+        <PackageId>DProjects.Queues</PackageId>
+        <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
+        <RootNamespace />
+        <ApplicationIcon />
+        <OutputTypeEx>library</OutputTypeEx>
+        <StartupObject />
+        <Company>DProjects</Company>
+        <Description>DProjects.Queues</Description>
+        <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+        <Version>3.0.0</Version>
+        <Authors>marcdp</Authors>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <Copyright>Copyright © DProjects SLU</Copyright>
+        <Nullable>enable</Nullable>
+        <PackageProjectUrl>https://www.dprojects.com/</PackageProjectUrl>
+        <PackageIcon></PackageIcon>
+    </PropertyGroup>
+  
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="9.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="9.0.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\DProjects.Factories.Abstractions\DProjects.Factories.Abstractions.csproj" />
+      <ProjectReference Include="..\DProjects.Fs.Abstractions\DProjects.Fs.Abstractions.csproj" />
+      <ProjectReference Include="..\DProjects.Queues.Abstractions\DProjects.Queues.Abstractions.csproj" />
+      <ProjectReference Include="..\DProjects.Streams\DProjects.Streams.csproj" />
+    </ItemGroup>
+ 
+
+</Project>

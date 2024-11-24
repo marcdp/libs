@@ -38,9 +38,12 @@ namespace DProjects.Text.Json {
             if (mSettings.UseIntLaxConverter) options.Converters.Add(new JsonConverters.IntLaxConverter());
             if (mSettings.UseBooleanLaxConverter) options.Converters.Add(new JsonConverters.BooleanLaxConverter());
             if (mSettings.UseDateTimeLaxConverter) options.Converters.Add(new JsonConverters.DateTimeLaxConverter());
+            if (mSettings.UseDictionaryStringObjectConverter) options.Converters.Add(new JsonConverters.DictionaryStringObjectConverter());
             options.AllowTrailingCommas = mSettings.AllowTrailingCommas;
             options.IncludeFields = mSettings.IncludeFields;
             options.PropertyNamingPolicy = mSettings.NamingPolicy;
+
+
             if (returnType == typeof(JsonDocument)) {
                 return JsonDocument.Parse(json);
             //} else if (returnType == typeof(object[])) {

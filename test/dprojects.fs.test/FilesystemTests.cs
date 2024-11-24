@@ -7,6 +7,7 @@ using System.Text;
 using Microsoft.Extensions.Logging;
 using DProjects.Factories;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
 
 namespace DProjects.Fs.Test {
 
@@ -26,15 +27,28 @@ namespace DProjects.Fs.Test {
 
 
         //constructor
-        public FilesystemTests(string url) {
+        public FilesystemTests(string url, System.Reflection.Assembly? assembly = null) {
 
             var services = new ServiceCollection();
             services.AddFactoryByUrl<IFilesystem>(cfg => {
                 cfg.AddFactoriesFromAssembly<DProjects.Fs.Assembly>();
+                if (assembly != null) {
+                    cfg.AddFactoriesFromAssembly(assembly);
+                }
             });
             var serviceProvider = services.BuildServiceProvider();
             mFilesystemFactoryByUrl = serviceProvider.GetService<FactoryByUrl<IFilesystem>>()!;
 
+            //use secrets
+            if (url.StartsWith("user-secret:")) {
+                var key = url.Substring(url.IndexOf(":") + 1);
+                var builder = new ConfigurationBuilder().AddUserSecrets<FilesystemTests>();
+                var config = builder.Build();
+                var secretProvider = config.Providers.First();
+                secretProvider.TryGet(key, out url);
+            }
+
+            //fs
             mFilesystem = mFilesystemFactoryByUrl.Create(url);
             mLogger = new Microsoft.Extensions.Logging.Abstractions.NullLogger<IFilesystem>();
             mPathPrefix = "/test";
