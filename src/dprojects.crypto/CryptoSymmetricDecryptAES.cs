@@ -99,9 +99,10 @@ namespace DProjects.Crypto {
                 aes.IV = iv;
                 //cryptoStream
                 var decryptor = aes.CreateDecryptor();
+                //var kkk = StreamUtils.ReadBytes(msb);
                 var cryptoStream = new CryptoStream(new LeaveOpenInputStream(msb), decryptor, CryptoStreamMode.Read);
                 //skip firt SaltLength * 1.5 bytes (salt encoded in base64)
-                StreamUtils.ReadBytes(cryptoStream, (int)(optionsToUse.SaltLength * 1.5));
+                var aux = StreamUtils.ReadBytes(cryptoStream, (int)(optionsToUse.SaltLength * 1.5));
                 //return
                 return cryptoStream;
             } else if (optionsToUse.Encoding == Encoding.Binary) {

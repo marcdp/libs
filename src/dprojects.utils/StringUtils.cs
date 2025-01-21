@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
@@ -24,6 +25,93 @@ namespace DProjects.Utils {
         }
 
         //connectionString
+        public static NameValueCollection GetConnectionStringNameValueCollection(string text) {
+            var result = new NameValueCollection();
+            if (string.IsNullOrEmpty(text))
+                return result;
+
+            int i = 0;
+
+            while (i < text.Length) {
+                // Parse the key
+                int keyStart = i;
+                while (i < text.Length && text[i] != '=')
+                    i++;
+
+                if (i == text.Length)
+                    throw new FormatException("Invalid connection string format: missing '=' for a key.");
+
+                string key = text.Substring(keyStart, i - keyStart).Trim();
+                i++; // Skip '='
+
+                // Parse the value
+                string value;
+                if (i < text.Length && text[i] == '"') {
+                    i++; // Skip opening quote
+                    int valueStart = i;
+
+                    while (i < text.Length && text[i] != '"')
+                        i++;
+
+                    if (i == text.Length)
+                        throw new FormatException("Invalid connection string format: unmatched quote in value.");
+
+                    value = text.Substring(valueStart, i - valueStart);
+                    i++; // Skip closing quote
+                } else {
+                    int valueStart = i;
+
+                    while (i < text.Length && text[i] != ';')
+                        i++;
+
+                    value = text.Substring(valueStart, i - valueStart).Trim();
+                }
+
+                result.Add(key, value);
+
+                // Skip the delimiter ';'
+                if (i < text.Length && text[i] == ';')
+                    i++;
+            }
+
+            return result;
+        }
+        //public static NameValueCollection GetConnectionStringNameValueCollection(string text) {
+        //    var result = new NameValueCollection();
+        //    int start = 0;
+        //    while (start < text.Length) {
+        //        int equalsIndex = text.IndexOf('=', start);
+        //        if (equalsIndex == -1) throw new FormatException("Invalid connection string format: missing '=' character.");
+        //        string key = text.Substring(start, equalsIndex - start).Trim();
+        //        int valueStart = equalsIndex + 1;
+        //        string value;
+        //        if (valueStart < text.Length && text[valueStart] == '"') {
+        //            // Value is quoted
+        //            int endQuoteIndex = text.IndexOf('"', valueStart + 1);
+        //            if (endQuoteIndex == -1)
+        //                throw new FormatException("Invalid connection string format: missing closing quote.");
+
+        //            value = text.Substring(valueStart + 1, endQuoteIndex - valueStart - 1);
+        //            start = endQuoteIndex + 1;
+        //        } else {
+        //            // Value is unquoted
+        //            int semiColonIndex = text.IndexOf(';', valueStart);
+        //            if (semiColonIndex == -1) {
+        //                value = text.Substring(valueStart).Trim();
+        //                start = text.Length;
+        //            } else {
+        //                value = text.Substring(valueStart, semiColonIndex - valueStart).Trim();
+        //                start = semiColonIndex + 1;
+        //            }
+        //        }
+        //        result.Add(key, value);
+        //        // Skip trailing semicolon
+        //        if (start < text.Length && text[start] == ';') {
+        //            start++;
+        //        }
+        //    }
+        //    return result;
+        //}
         public static T GetConnectionStringVariable<T>(string text, string variable, T defaultValue) {
             string? value = GetConnectionStringVariable(text, variable, null!);
             if (value == null) return defaultValue!;
@@ -33,6 +121,14 @@ namespace DProjects.Utils {
             return GetConnectionStringVariable(text, variable, null!);
         }
         public static string GetConnectionStringVariable(string text, string variable, string defaultValue = "") {
+            if (text == null) return defaultValue;
+            var values = GetConnectionStringNameValueCollection(text);
+            if (values.AllKeys.Contains(variable)) {
+                return values[variable];
+            }
+            return defaultValue;
+        }
+        public static string GetConnectionStringVariableOld(string text, string variable, string defaultValue = "") {
             if (text == null) return defaultValue;
             string loweredText = text.ToLower() + ";";
             int i = loweredText.IndexOf(variable.ToLower() + "=");
@@ -52,77 +148,32 @@ namespace DProjects.Utils {
                 return defaultValue;
             }
         }
-        //public static T GetConnectionStringVariableBracketed<T>(string text, string variable, T defaultValue) {
-        //    string? value = GetConnectionStringVariableBracketed(text, variable, "");
-        //    if (value == null) return defaultValue!;
-        //    return ConvertUtils.To<T>(value);
-        //}
-        //public static string? GetConnectionStringVariableBracketed(string text, string variable, string defaultValue = "") {
-        //    if (text == null) {
-        //        return defaultValue;
-        //    }
-        //    string loweredText = text.ToLower() + "}";
-        //    int i = loweredText.IndexOf(variable.ToLower() + "={");
-        //    if (i > -1) {
-        //        i += variable.Length + 1;
-        //        int j = loweredText.IndexOf("}", i);
-        //        if (j > -1) {
-        //            string res = text.Substring(i + 1, j - i - 1);
-        //            if (string.IsNullOrEmpty(res)) {
-        //                return defaultValue;
-        //            }
-        //            return res;
-        //        } else {
-        //            return defaultValue;
-        //        }
-        //    } else {
-        //        return defaultValue;
-        //    }
-        //}
-        //public static string ReplaceConnectionStringVariable(string text, string variable, string newvariable) {
-        //    //if (text == null) return text;
-        //    string loweredText = text.ToLower() + ";";
-        //    int i = loweredText.IndexOf(variable.ToLower() + "=");
-        //    if (i > -1) {
-        //        var k = i + variable.Length + 1;
-        //        int j = loweredText.IndexOf(";", k);
-        //        if (j > -1) {
-        //            return text.Substring(0, i) + newvariable + text.Substring(j);
-        //        } else {
-        //            return text;
-        //        }
-        //    } else {
-        //        return text;
-        //    }
-        //}
         public static string RemoveConnectionStringVariable(string text, string variable) {
-            //if (text == null) return text;
-            string loweredText = text.ToLower() + ";";
-            int i = loweredText.IndexOf(variable.ToLower() + "=");
-            if (i > -1) {
-                var k = i + variable.Length + 1;
-                int j = loweredText.IndexOf(";", k);
-                if (j > -1) {
-                    text = text.Substring(0, i) + text.Substring(j);
-                }
+            var values = GetConnectionStringNameValueCollection(text);
+            var result = new StringBuilder();
+            values.Remove(variable);
+            foreach (string key in values.Keys) {
+                var value = values[key];
+                if (result.Length > 0) result.Append(";");
+                result.Append(key);
+                result.Append("=");
+                if (value.IndexOf(";") != -1) result.Append('"');
+                result.Append(value);
+                if (value.IndexOf(";") != -1) result.Append('"');
             }
-            if (text.StartsWith(";")) text = text.Substring(1);
-            if (text.EndsWith(";")) text = text.Substring(0, text.Length-1);
-            if (text.IndexOf(";;")!=-1) text = text.Replace(";;",";");
-            return text;
+            return result.ToString();
         }
         public static string[] GetConnectionStringVariableNames(string text, string[]? excludeVariableNames = null) {
             var aux = new List<string>();
             if (excludeVariableNames == null) excludeVariableNames = [];
-            foreach (var part in text.Split(';')) {
-                if (part.IndexOf("=") != -1) {
-                    var variableName = part.Substring(0, part.IndexOf("="));
-                    if (System.Array.IndexOf(excludeVariableNames, variableName) == -1) {
-                        aux.Add(variableName);
-                    }
+            var result = new List<string>();
+            var values = GetConnectionStringNameValueCollection(text);
+            foreach(string key in values.Keys) {
+                if (System.Array.IndexOf(excludeVariableNames, key) == -1) {
+                    result.Add(key);
                 }
             }
-            return aux.ToArray();
+            return result.ToArray();
         }
         public static bool SeemsConnectionString(string text) {
             if (text.IndexOf(";")!=-1 && text.IndexOf("=") != -1) {

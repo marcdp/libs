@@ -73,7 +73,7 @@ namespace DProjects.Cache {
             var contentLength = headers.Get<int>("Content-Length", 0);
             var limitedStream = new DProjects.Streams.LimitedInputStream(stream, contentLength);
             var blobCacheEntry = new BlobCacheEntry(key, limitedStream, headers);
-            if (blobCacheEntry.Expires < DateTime.Now) {
+            if (blobCacheEntry.Expires < DateTime.Now || blobCacheEntry.Expires is null) {
                 stream.Dispose();
                 await RemoveAsync(key, cancellationToken);
                 return null;

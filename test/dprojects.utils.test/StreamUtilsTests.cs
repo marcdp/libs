@@ -116,7 +116,7 @@ namespace DProjects.Utils.Tests {
             Assert.Equal(-1, ms.ReadByte());
 
             ms = new MemoryStream(buffer);
-            AsyncUtils.RunSync(() => StreamUtils.ConsumeAsync (ms, default));
+            AsyncUtils.RunSync(async () => await StreamUtils.ConsumeAsync (ms, default));
             Assert.Equal(-1, ms.ReadByte());
         }
 

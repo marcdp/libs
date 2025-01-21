@@ -34,7 +34,7 @@ namespace DProjects.Fs.Aws {
 
 
         //constructor
-        public FilesystemS3(string bucket, string region, string accessKeyId, string secretAccesKey, string basePath, bool autoGzip, bool autoCache, bool isReadOnly, long uploadPartSize) : base(isReadOnly) {
+        public FilesystemS3(string bucket, string region, string accessKeyId, string secretAccesKey, string basePath, bool autoGzip, bool autoCache, bool isReadOnly, HttpClientHandler? httpClientHandler = null) : base(isReadOnly) {
             mBucket = bucket;
             mRegion= region;
             mAccessKeyId = accessKeyId;
@@ -43,10 +43,10 @@ namespace DProjects.Fs.Aws {
             mBasePath = (basePath.EndsWith("/") ? basePath.Substring(0, basePath.Length - 1) : basePath);
             mAutoGzip = autoGzip;
             mAutoCache = autoCache;
-            mUploadPartSize = uploadPartSize;
+            mUploadPartSize = 50 * 1024 * 1024;
             mStartDate = DateTime.Now;
             //http client
-            mHttpClient = new HttpClient(new HttpClientHandler());
+            mHttpClient = new HttpClient(httpClientHandler ?? new HttpClientHandler());
             mHttpClient.BaseAddress = new Uri("https://" + bucket + ".s3" + (!string.IsNullOrEmpty(region) ? "-" + region : "") + ".amazonaws.com");
             mHttpClient.Timeout = TimeSpan.FromDays(1);
         }

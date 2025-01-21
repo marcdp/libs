@@ -14,7 +14,7 @@ namespace DProjects.Utils {
 
         //class
         public class Headers : IEnumerable<KeyValuePair<string,string>>   {
-            private IDictionary<string, string> mItems = new Dictionary<string, string>();
+            private IDictionary<string, string> mItems = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             public bool Contains(string name) {
                 return mItems.ContainsKey(name);
             }
@@ -46,8 +46,24 @@ namespace DProjects.Utils {
 
 
         // HttpHeaders
+        public static Headers ReadHttpHeaders(Stream stream, Encoding? encoding = null) {
+            //if (encoding == null) encoding = EncodingUtils.GetDefault();
+            if (encoding == null) encoding = new UTF8Encoding(false);
+            var result = new Headers();
+            do {
+                var line = StreamUtils.ReadLine(stream, encoding);
+                if (line == null || line.Length == 0) break;
+                var i = line.IndexOf(":");
+                if (i != -1) {
+                    var name = line.Substring(0, i);
+                    var value = line.Substring(i + 1).Trim();
+                    result.Set(name, value);
+                }
+            } while (true);
+            return result;
+        }
         public static async Task<Headers> ReadHttpHeadersAsync(Stream stream, Encoding? encoding = null, CancellationToken cancellationToken = default) {
-            if (encoding == null) encoding = EncodingUtils.GetDefault();
+            if (encoding == null) encoding = new UTF8Encoding(false);
             var result = new Headers();
             do {
                 var line = await StreamUtils.ReadLineAsync(stream, encoding, cancellationToken);
@@ -62,7 +78,7 @@ namespace DProjects.Utils {
             return result;
         }
         public static async Task WriteHttpHeadersAsync(Headers headers, Stream stream, Encoding? encoding = null, CancellationToken cancellationToken = default) {
-            if (encoding == null) encoding = EncodingUtils.GetDefault();
+            if (encoding == null) encoding = new UTF8Encoding(false);
             using (var streamWriter = new StreamWriter(stream, encoding, 1024, true)) {
                 foreach (var header in headers) {
                     var name = header.Key;

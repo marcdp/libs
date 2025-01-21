@@ -81,57 +81,57 @@ namespace DProjects.Utils {
         }
 
 
-        ////child nodes
-        //public static XmlNode SetXmlChildNode(XmlNode xmlNode, string childNodeName, object value) {
-        //    XmlNode? xmlChildNode = GetXmlChildNode(xmlNode, childNodeName);
-        //    if (xmlChildNode == null) {
-        //        xmlChildNode = xmlNode.OwnerDocument.CreateElement(childNodeName);
-        //        xmlNode.AppendChild(xmlChildNode);
-        //    }
-        //    xmlChildNode.InnerText = ConvertUtils.To<string>(value);
-        //    return xmlChildNode;
-        //}
-        //public static XmlNode? GetXmlChildNode(XmlNode xmlNode, string childNodeName) {
-        //    foreach (XmlNode? aux in xmlNode.ChildNodes) {
-        //        if (aux == null) break;
-        //        if (aux.Name.Equals(childNodeName)) return aux;
-        //    }
-        //    return null;
-        //}
-        //public static T GetXmlChildNodeAs<T>(XmlNode xmlNode, string childNodeName, T defaultValue) {
-        //    XmlNode? xmlChildNode = GetXmlChildNode(xmlNode, childNodeName);
-        //    if (xmlChildNode != null) {
-        //        return ConvertUtils.To<T>(xmlChildNode.InnerText);
-        //    } else {
-        //        return defaultValue;
-        //    }
-        //}
+        //child nodes
+        public static XmlNode SetXmlChildNode(XmlNode xmlNode, string childNodeName, object value) {
+            XmlNode? xmlChildNode = GetXmlChildNode(xmlNode, childNodeName);
+            if (xmlChildNode == null) {
+                xmlChildNode = xmlNode.OwnerDocument.CreateElement(childNodeName);
+                xmlNode.AppendChild(xmlChildNode);
+            }
+            xmlChildNode.InnerText = ConvertUtils.To<string>(value);
+            return xmlChildNode;
+        }
+        public static XmlNode? GetXmlChildNode(XmlNode xmlNode, string childNodeName) {
+            foreach (XmlNode? aux in xmlNode.ChildNodes) {
+                if (aux == null) break;
+                if (aux.Name.Equals(childNodeName)) return aux;
+            }
+            return null;
+        }
+        public static T GetXmlChildNodeAs<T>(XmlNode xmlNode, string childNodeName, T defaultValue) {
+            XmlNode? xmlChildNode = GetXmlChildNode(xmlNode, childNodeName);
+            if (xmlChildNode != null) {
+                return ConvertUtils.To<T>(xmlChildNode.InnerText);
+            } else {
+                return defaultValue;
+            }
+        }
 
 
-        ////attributes
-        //public static void SetXmlAttribute(XmlNode xmlNode, string attributeName, object value) {
-        //    XmlAttribute? xmlAttribute = xmlNode.Attributes[attributeName];
-        //    if (xmlAttribute == null) {
-        //        xmlAttribute = xmlNode.OwnerDocument.CreateAttribute(attributeName);
-        //        xmlNode.Attributes.Append(xmlAttribute);
-        //    }
-        //    xmlAttribute.Value = ConvertUtils.To<string>(value);
-        //}
-        //public static void SetXmlAttribute(XmlNode xmlNode, string attributeName, object value, string namespaceUri) {
-        //    XmlAttribute? xmlAttribute = xmlNode.Attributes[attributeName, namespaceUri];
-        //    if (xmlAttribute == null) {
-        //        xmlAttribute = xmlNode.OwnerDocument.CreateAttribute(attributeName, namespaceUri);
-        //        xmlNode.Attributes.Append(xmlAttribute);
-        //    }
-        //    xmlAttribute.Value = ConvertUtils.To<string>(value);
-        //}
-        //public static T GetXmlAttributeAs<T>(XmlNode? xmlNode, string attributeName, T defaultValue) {
-        //    if (xmlNode == null || xmlNode.Attributes.GetNamedItem(attributeName) == null) {
-        //        return defaultValue;
-        //    } else {
-        //        return ConvertUtils.To<T>(xmlNode.Attributes.GetNamedItem(attributeName).Value);
-        //    }
-        //}
+        //attributes
+        public static void SetXmlAttribute(XmlNode xmlNode, string attributeName, object value) {
+            XmlAttribute? xmlAttribute = xmlNode.Attributes[attributeName];
+            if (xmlAttribute == null) {
+                xmlAttribute = xmlNode.OwnerDocument.CreateAttribute(attributeName);
+                xmlNode.Attributes.Append(xmlAttribute);
+            }
+            xmlAttribute.Value = ConvertUtils.To<string>(value);
+        }
+        public static void SetXmlAttribute(XmlNode xmlNode, string attributeName, object value, string namespaceUri) {
+            XmlAttribute? xmlAttribute = xmlNode.Attributes[attributeName, namespaceUri];
+            if (xmlAttribute == null) {
+                xmlAttribute = xmlNode.OwnerDocument.CreateAttribute(attributeName, namespaceUri);
+                xmlNode.Attributes.Append(xmlAttribute);
+            }
+            xmlAttribute.Value = ConvertUtils.To<string>(value);
+        }
+        public static T GetXmlAttributeAs<T>(XmlNode? xmlNode, string attributeName, T defaultValue) {
+            if (xmlNode == null || xmlNode.Attributes.GetNamedItem(attributeName) == null) {
+                return defaultValue;
+            } else {
+                return ConvertUtils.To<T>(xmlNode.Attributes.GetNamedItem(attributeName).Value);
+            }
+        }
 
 
         //scan for variables like ..${var1}... in attributes value

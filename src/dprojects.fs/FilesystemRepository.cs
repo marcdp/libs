@@ -1,12 +1,16 @@
 using DProjects.Streams;
 using DProjects.Utils;
+
+using Microsoft.Extensions.Logging;
+
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace DProjects.Fs.Aws {
+namespace DProjects.Fs {
 
 
     public class FilesystemRepository : FilesystemAsync {
@@ -14,11 +18,11 @@ namespace DProjects.Fs.Aws {
 
         //interface
         public interface Repository {
-            Task<Entry?> GetByIdAsync(string id);
-            IAsyncEnumerable<Entry> GetByPatternAsync(string? pattern);
+            Task<Entry?> GetByIdAsync(string id, CancellationToken cancellationToken);
+            IAsyncEnumerable<Entry> GetByPatternAsync(string? pattern, CancellationToken cancellationToken);
             IFilesystem CreateFilesystem(string id, bool isReadonly);
         }
-        public interface RepositoryWritable {
+        public interface RepositoryWritable { 
             Task<Entry> AddAsync(string id, CancellationToken cancellationToken);
             Task RemoveAsync(string id, CancellationToken cancellationToken);
         }
@@ -62,41 +66,41 @@ namespace DProjects.Fs.Aws {
 
 
         //methods LEVEL 0
-        public override async Task<Entry?> GetEntryAsync(string path) {
+        public override async Task<Entry?> GetEntryAsync(string path, CancellationToken cancellationToken) {
             if (path.Equals("/")) {
                 return mRoot;
             } else if (PathUtils.GetPathParent(path).Equals("/")) {
-                return await mRepository.GetByIdAsync(PathUtils.GetPathName(path));
+                return await mRepository.GetByIdAsync(PathUtils.GetPathName(path), cancellationToken);
             } else {
                 var name = PathUtils.GetPathName(PathUtils.GetPathCuttedByLevel(path, 1));
                 var subPath = PathUtils.Combine("/", PathUtils.GetPathCuttedFromLevel(path, 1));
                 var fs = mRepository.CreateFilesystem(name, IsReadonly);
-                var entry = await fs.GetEntryAsync(subPath);
+                var entry = await fs.GetEntryAsync(subPath, cancellationToken);
                 if (entry != null) return entry.WithPath(PathUtils.Combine("/", name, entry.Path));
                 return null;
             }
         }        
-        public override async IAsyncEnumerable<Entry> GetEntriesAsync(string path, GetModes mode = GetModes.All, string? pattern = null) {
+        public override async IAsyncEnumerable<Entry> GetEntriesAsync(string path, GetModes mode = GetModes.All, string? pattern = null, [EnumeratorCancellation] CancellationToken cancellationToken = default) {
             if (path.Equals("/")) {
                 if (mode == GetModes.All) {
-                    await foreach (var entry in mRepository.GetByPatternAsync(pattern)) {
+                    await foreach (var entry in mRepository.GetByPatternAsync(pattern, cancellationToken)) {
                         yield return entry;
                     }
                 } else if (mode == GetModes.Files) {
-                    await foreach (var entry in mRepository.GetByPatternAsync(pattern)) {
+                    await foreach (var entry in mRepository.GetByPatternAsync(pattern, cancellationToken)) {
                         if (entry.IsFile()) yield return entry;
                     }
                 } else if (mode == GetModes.Directories) {
-                    await foreach (var entry in mRepository.GetByPatternAsync(pattern)) {
+                    await foreach (var entry in mRepository.GetByPatternAsync(pattern, cancellationToken)) {
                         if (entry.IsDirectory()) yield return entry;
                     }
                 } else if (mode == GetModes.Descendants) {
-                    await foreach (var entry in mRepository.GetByPatternAsync(null)) {
+                    await foreach (var entry in mRepository.GetByPatternAsync(null, cancellationToken)) {
                         if (pattern == null || StringUtils.Like(entry.Name, pattern)) {
                             yield return entry;
                         }
                         if (entry.IsDirectory()) {
-                            await foreach (var subEntry in GetEntriesAsync(entry.Path, mode, pattern)) {
+                            await foreach (var subEntry in GetEntriesAsync(entry.Path, mode, pattern, cancellationToken)) {
                                 yield return subEntry;
                             }
                         }
@@ -111,10 +115,10 @@ namespace DProjects.Fs.Aws {
                 }
             }
         }
-        public override async Task<bool> ExistsAsync(string path) {
-            return await GetEntryAsync(path) != null;
+        public override async Task<bool> ExistsAsync(string path, CancellationToken cancellationToken) {
+            return await GetEntryAsync(path, cancellationToken) != null;
         }
-        public override async Task<Stream> LoadReadStreamAsync(string path, LoadReadStreamSettings? settings = null) {
+        public override async Task<Stream> LoadReadStreamAsync(string path, LoadReadStreamSettings? settings, CancellationToken cancellationToken = default) {
             if (path.Equals("/")) {
                 throw new NotImplementedException("Unable to load read stream: directory: " + path);
             } else if (PathUtils.GetPathParent(path).Equals("/")) {
@@ -123,10 +127,10 @@ namespace DProjects.Fs.Aws {
                 var name = PathUtils.GetPathName(PathUtils.GetPathCuttedByLevel(path, 1));
                 var subPath = PathUtils.Combine("/", PathUtils.GetPathCuttedFromLevel(path, 1));
                 var fs = mRepository.CreateFilesystem(name, IsReadonly);
-                return await fs.LoadReadStreamAsync(subPath, settings);
+                return await fs.LoadReadStreamAsync(subPath, settings, cancellationToken);
             }
         }
-        public override async Task<Stream> LoadWriteStreamAsync(string path, LoadWriteStreamSettings? settings = null) {
+        public override async Task<Stream> LoadWriteStreamAsync(string path, LoadWriteStreamSettings? settings, CancellationToken cancellationToken = default) {
             if (path.Equals("/")) {
                 throw new NotImplementedException("Unable to load write stream: directory: " + path);
             } else if (PathUtils.GetPathParent(path).Equals("/")) {
@@ -135,7 +139,7 @@ namespace DProjects.Fs.Aws {
                 var name = PathUtils.GetPathName(PathUtils.GetPathCuttedByLevel(path, 1));
                 var subPath = PathUtils.Combine("/", PathUtils.GetPathCuttedFromLevel(path, 1));
                 var fs = mRepository.CreateFilesystem(name, IsReadonly);
-                return await fs.LoadWriteStreamAsync(subPath, settings);
+                return await fs.LoadWriteStreamAsync(subPath, settings, cancellationToken);
             }
         }
 
@@ -143,21 +147,21 @@ namespace DProjects.Fs.Aws {
         //method1 LEVEL 1
 
         //methods LEVEL 2
-        public override async Task<Entry> SaveFileAsync(string path, Stream stream, SaveFileSettings? settings = null) {
+        public override async Task<Entry> SaveFileAsync(string path, Stream stream, SaveFileSettings? settings, CancellationToken cancellationToken = default) {
             if (path.Equals("/")) {
-                throw new NotImplementedException("Unable to save file: " + path);
+                throw new NotImplementedException("Unable to save file: " + path);  
             } else if (PathUtils.GetPathParent(path).Equals("/")) {
                 throw new NotImplementedException("Unable to save file: " + path);
             } else {
                 var name = PathUtils.GetPathName(PathUtils.GetPathCuttedByLevel(path, 1));
                 var subPath = PathUtils.Combine("/", PathUtils.GetPathCuttedFromLevel(path, 1));
                 var fs = mRepository.CreateFilesystem(name, IsReadonly);
-                var entry = await fs.SaveFileAsync(subPath, stream, settings);
+                var entry = await fs.SaveFileAsync(subPath, stream, settings, cancellationToken);
                 return entry.WithPath(PathUtils.Combine("/", name, entry.Path));
             }
         }
         public override async Task<Entry> CreateDirectoryAsync(string path, CancellationToken cancellationToken) {
-            if (path.Equals("/")) {
+            if (path.Equals("/")) {  
                 throw new NotImplementedException("Unable to create directory: " + path);
             } else if (PathUtils.GetPathParent(path).Equals("/")) {
                 if (mRepository is RepositoryWritable) {
@@ -234,7 +238,7 @@ namespace DProjects.Fs.Aws {
                 await fs.DeleteDirectoryAsync(subPath, cancellationToken);
             }
         }
-        public override async Task CopyAsync(string source, string destination, CopySettings settings, CancellationToken cancellationToken) {
+        public override async Task CopyAsync(string source, string destination, CopySettings settings, ILogger<IFilesystem> logger, CancellationToken cancellationToken) {
             if (source.Equals("/")) {
                 throw new NotImplementedException("Unable to move: " + source);
             } else if (PathUtils.GetPathParent(source).Equals("/")) {
@@ -250,13 +254,13 @@ namespace DProjects.Fs.Aws {
                 var subPathB = PathUtils.Combine("/", PathUtils.GetPathCuttedFromLevel(destination, 1));
                 if (nameA.Equals(nameB)) {
                     var fs = mRepository.CreateFilesystem(nameA, IsReadonly);
-                    await fs.CopyAsync(subPathA, subPathB, settings, cancellationToken);
+                    await fs.CopyAsync(subPathA, subPathB, settings, logger, cancellationToken);
                 } else {
-                    await base.CopyAsync(source, destination, settings, cancellationToken);
+                    await base.CopyAsync(source, destination, settings, logger, cancellationToken);
                 }
             }
         }
-        public override async Task MoveAsync(string source, string destination, MoveSettings settings, CancellationToken cancellationToken) {
+        public override async Task MoveAsync(string source, string destination, MoveSettings settings, ILogger<IFilesystem> logger, CancellationToken cancellationToken) {
             if (source.Equals("/")) {
                 throw new NotImplementedException("Unable to move: " + source);
             } else if (PathUtils.GetPathParent(source).Equals("/")) {
@@ -273,9 +277,9 @@ namespace DProjects.Fs.Aws {
                 var subPathB = PathUtils.Combine("/", PathUtils.GetPathCuttedFromLevel(destination, 1));
                 if (nameA.Equals(nameB)) {
                     var fs = mRepository.CreateFilesystem(nameA, IsReadonly);
-                    await fs.MoveAsync(subPathA, subPathB, settings, cancellationToken);
+                    await fs.MoveAsync(subPathA, subPathB, settings, logger, cancellationToken);
                 } else {
-                    await base.MoveAsync(source, destination, settings, cancellationToken);
+                    await base.MoveAsync(source, destination, settings, logger, cancellationToken);
                 }
             }
         }

@@ -31,6 +31,8 @@ namespace DProjects.Utils.Tests {
         [Theory()]
         [InlineData("VAR1=123;VAR2=234", "VAR1", "123")]
         [InlineData("VAR1=123;VAR2=234", "VAR2", "234")]
+        [InlineData("VAR1=123;VAR2 WITH SPACES=234", "VAR2 WITH SPACES", "234")]
+        [InlineData("VAR1=\"123;456\";VAR2=234", "VAR1", "123;456")]
         public void GetConnectionStringVariableTest(string connectionString, string variable, string value) {
             Assert.Equal(value, StringUtils.GetConnectionStringVariable(connectionString, variable));
         }
@@ -38,11 +40,13 @@ namespace DProjects.Utils.Tests {
         [InlineData("VAR1=123;VAR2=234", "VAR1", "VAR2=234")]
         [InlineData("VAR1=123;VAR2=234", "VAR2", "VAR1=123")]
         [InlineData("VAR0=...;VAR1=123;VAR2=234", "VAR1", "VAR0=...;VAR2=234")]
+        [InlineData("VAR1=\"123;456\";VAR2=\"234;56\"", "VAR1", "VAR2=\"234;56\"")]
         public void RemoveConnectionStringVariableTest(string connectionString, string variable, string result) {
             Assert.Equal(result, StringUtils.RemoveConnectionStringVariable(connectionString, variable));
         }
         [Theory()]
         [InlineData("VAR1=123;VAR2=234", new string[] { "VAR1", "VAR2"})]
+        [InlineData("VAR1=\"123;456;VAR3=123\";VAR2=234", new string[] { "VAR1", "VAR2" })]
         public void GetConnectionStringVariableNamesTest(string connectionString, string[] result) {
             Assert.Equal(result, StringUtils.GetConnectionStringVariableNames(connectionString));
         }

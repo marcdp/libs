@@ -21,14 +21,12 @@ namespace DProjects.Fs.Aws {
             var bucket = aux[0];
             var region = aux[1].Substring(3);
             var basePath = url.AbsolutePath;
-            var isReadonly = false;
+            var isReadonly = UrlUtils.GetQueryValue<bool>(url.Query, "isReadonly");
             var autoGzip = false;
             var autoCache = false;
             autoGzip = UrlUtils.GetQueryValue<bool>(url.Query, "autoGzip", true);
             autoCache = UrlUtils.GetQueryValue<bool>(url.Query, "autoCache", true);
-            var uploadPartSize = 50 * 1024 * 1024;
-
-            return new FilesystemS3(bucket, region, accessKeyId, secretAccesKey, basePath, autoGzip, autoCache, isReadonly, uploadPartSize);
+            return new FilesystemS3(bucket, region, accessKeyId, secretAccesKey, basePath, autoGzip, autoCache, isReadonly);
         }
 
     }

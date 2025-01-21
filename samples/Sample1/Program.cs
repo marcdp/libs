@@ -11,6 +11,7 @@ namespace Sample1 {
 
         static async Task Main(string[] args) {
 
+
             // Create HostAppBuilder
             var hostAppBuilder = Host.CreateApplicationBuilder(args);
             hostAppBuilder.Logging.ClearProviders();

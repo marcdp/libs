@@ -350,7 +350,9 @@ namespace DProjects.Utils {
                 do {
                     long pendingBytesToRead = System.Convert.ToInt64(numberOfBytesToRead - nRead);
                     long numberOfBytesToReadInThiStep = pendingBytesToRead;
-                    if (numberOfBytesToReadInThiStep > buffer.Length) {
+                    if (numberOfBytesToReadInThiStep == -1) {
+                        numberOfBytesToReadInThiStep = buffer.Length;
+                    } else if (numberOfBytesToReadInThiStep > buffer.Length) {
                         numberOfBytesToReadInThiStep = buffer.Length;
                     }
                     int i = stream.Read(buffer, 0, (int)numberOfBytesToReadInThiStep);
@@ -368,7 +370,9 @@ namespace DProjects.Utils {
                 do {
                     long pendingBytesToRead = System.Convert.ToInt64(numberOfBytesToRead - nRead);
                     long numberOfBytesToReadInThiStep = pendingBytesToRead;
-                    if (numberOfBytesToReadInThiStep > buffer.Length) {
+                    if (numberOfBytesToReadInThiStep == -1 ) {
+                        numberOfBytesToReadInThiStep = buffer.Length;
+                    } else if (numberOfBytesToReadInThiStep > buffer.Length) {
                         numberOfBytesToReadInThiStep = buffer.Length;
                     }
                     int i = await stream.ReadAsync(buffer, 0, (int)numberOfBytesToReadInThiStep);
