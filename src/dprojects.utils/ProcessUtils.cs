@@ -63,6 +63,25 @@ namespace DProjects.Utils {
         //        return await tcs.Task;
         //    }
         //}
+        public static int ExecuteProcess(string filename, string workingfolder, string args, ref string strOutput, ref string strError, bool avoidOpenWindow = true) {
+            int exitCode = 0;
+            var process = default(System.Diagnostics.Process);
+            var psi = new System.Diagnostics.ProcessStartInfo();
+            psi.FileName = filename;
+            psi.CreateNoWindow = avoidOpenWindow;
+            psi.UseShellExecute = false;
+            psi.WorkingDirectory = workingfolder;
+            psi.Arguments = args;
+            psi.RedirectStandardError = true;
+            psi.RedirectStandardOutput = true;
+            process = System.Diagnostics.Process.Start(psi);
+            process.WaitForExit();
+            exitCode = process.ExitCode;
+            strOutput = process.StandardOutput.ReadToEnd();
+            strError = process.StandardError.ReadToEnd();
+            process.Dispose();
+            return exitCode;
+        }
         public static async Task<ProcessResult> ExecuteProcessAsync(string fileName, string arguments, CancellationToken cancellationToken) {
             var result = new ProcessResult();
             using (var process = new Process()) {

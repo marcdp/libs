@@ -48,9 +48,9 @@ namespace DProjects.Fs.Aws {
             //http client
             mHttpClient = new HttpClient(httpClientHandler ?? new HttpClientHandler());
             mHttpClient.BaseAddress = new Uri("https://" + bucket + ".s3" + (!string.IsNullOrEmpty(region) ? "-" + region : "") + ".amazonaws.com");
-            mHttpClient.Timeout = TimeSpan.FromDays(1);
+            mHttpClient.Timeout = TimeSpan.FromHours(1);
         }
-        public override void Dispose() {
+        public override void Dispose() {  
             mHttpClient.Dispose();
             base.Dispose();
         }

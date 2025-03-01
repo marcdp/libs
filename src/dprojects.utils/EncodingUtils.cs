@@ -166,6 +166,10 @@ namespace DProjects.Utils {
             }
             return enc;
         }
+        public static string GetBufferAsString(byte[] buffer) {
+            var encoding = DetectEncoding(buffer, out int bomLength);
+            return encoding.GetString(buffer, bomLength, buffer.Length - bomLength);
+        }
     }
 
 }

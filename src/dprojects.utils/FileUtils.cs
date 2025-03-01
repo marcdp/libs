@@ -8,6 +8,8 @@ namespace DProjects.Utils {
 
     public static class FileUtils {
 
+        //constants
+        public const int FILESYSTEM_MAX_PATH = 260;
 
         //temp
         public static string GetTempPath() {

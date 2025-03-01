@@ -76,6 +76,22 @@ namespace DProjects.Utils {
 
             return result;
         }
+        public static string ReplaceConnectionStringVariable(string text, string variable, string newvariable) {
+            //if (text == null) return text;
+            string loweredText = text.ToLower() + ";";
+            int i = loweredText.IndexOf(variable.ToLower() + "=");
+            if (i > -1) {
+                var k = i + variable.Length + 1;
+                int j = loweredText.IndexOf(";", k);
+                if (j > -1) {
+                    return text.Substring(0, i) + newvariable + text.Substring(j);
+                } else {
+                    return text;
+                }
+            } else {
+                return text;
+            }
+        }
         //public static NameValueCollection GetConnectionStringNameValueCollection(string text) {
         //    var result = new NameValueCollection();
         //    int start = 0;
@@ -476,6 +492,25 @@ namespace DProjects.Utils {
                 }
             }
             return s;
+        }
+        public static string CapitalizeAndSpace(string text) {
+            //convierte cadenas del tipo holaQueTal a Hola que tal
+            string s = UnCapitalize(text);
+            return CapitalizeFirstChar(s.Replace("_", " ").Replace("  ", " "));
+        }
+        public static string UnCapitalize(string text, bool ignoreConsecutiveCapitalLetters = false) {
+            //convierte cadenas del tipo HolaQueTalEstas a hola_que_talestas
+            var s = new StringBuilder();
+            var prevWhatUpper = false;
+            for (int i = 0; i <= text.Length - 1; i++) {
+                char c = text[i];
+                if (char.IsUpper(c) && i > 0 && !prevWhatUpper) {
+                    s.Append("_");
+                }
+                s.Append(c);
+                prevWhatUpper = (ignoreConsecutiveCapitalLetters ? char.IsUpper(c) : false);
+            }
+            return s.ToString();
         }
         public static string KebabCase(string name) {
             return SnakeCase(name).Replace("_", "-");
@@ -918,6 +953,25 @@ namespace DProjects.Utils {
             if (text.Length == 0 || result.Count == 0) result.Add(typeof(String));
             return result.ToArray();
         }
+        public static string ReplaceUnicodeSpacingMark(string stringToReplace) {
+            StringBuilder filenameStringBuilder = new StringBuilder();
+            // Dins unicode existeixen diferents representacions per un mateix caràcter.
+            // Dins d'aquestes representacions existeixen 2 maneres de representar els caràcters: Canónica (conserva informació) i Compatible (perd informació)
+            // Canónica representa un caràcter tal com és
+            // Compatible representa un caràcter visualment igual però internament pot ser que no ho sigui (nivell de bits)
+            // Es normalitza l'string a una representació coneguda (descomposició canónica)
+            stringToReplace = stringToReplace.Normalize(NormalizationForm.FormC);
+            if (!stringToReplace.IsNormalized(NormalizationForm.FormC)) {
+                foreach (char c in stringToReplace.ToCharArray()) {
+                    if (System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) != System.Globalization.UnicodeCategory.NonSpacingMark) {
+                        filenameStringBuilder.Append(c);
+                    }
+                }
+                return filenameStringBuilder.ToString().Normalize(NormalizationForm.FormC);
+            } else {
+                return stringToReplace;
+            }
+        }
         //public static string ReplaceUnicodeSpacingMark(string stringToReplace) {
         //    var filenameStringBuilder = new StringBuilder();
         //    // Dins unicode existeixen diferents representacions per un mateix caràcter.
@@ -961,7 +1015,7 @@ namespace DProjects.Utils {
         //}
 
 
-        
+
 
 
     }

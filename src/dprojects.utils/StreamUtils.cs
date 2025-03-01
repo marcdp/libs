@@ -144,15 +144,15 @@ namespace DProjects.Utils {
         //    if (nRead != length) throw new Exception("Expects \'" + length + "\' bytes, but received only " + nRead + " from stream.");
         //    return data;
         //}
-        //public static byte[] ReadMaxNBytes(Stream stream, long length) {
-        //    var result = new MemoryStream();
-        //    do {
-        //        int b = stream.ReadByte();
-        //        if (b == -1) break;
-        //        result.WriteByte((byte)b);
-        //    } while (result.Length < length);
-        //    return result.ToArray();
-        //}
+        public static byte[] ReadMaxNBytes(Stream stream, long length) {
+            var result = new MemoryStream();
+            do {
+                int b = stream.ReadByte();
+                if (b == -1) break;
+                result.WriteByte((byte)b);
+            } while (result.Length < length);
+            return result.ToArray();
+        }
 
 
         //read buffer

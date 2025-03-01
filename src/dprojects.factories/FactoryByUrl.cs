@@ -40,6 +40,10 @@ namespace DProjects.Factories {
             //if (url.StartsWith("/")) url = "fs://" + url;
             //aliases
             url = mConfiguration.Aliases.Where(x => x.Name.Equals(url)).Select(x => x.Value).DefaultIfEmpty(url).FirstOrDefault();
+            //windows path
+            if (url.Length > 2 && url[1] == ':' && url[2] == '\\') {
+                url = "file:///" + url.Replace("\\", "/").Replace(":", "");
+            }
             //if (url.StartsWith("/")) url = "fs://" + url;
             //add dots if required
             if (url.Length > 0 && url.IndexOf(":") == -1) url += ":";

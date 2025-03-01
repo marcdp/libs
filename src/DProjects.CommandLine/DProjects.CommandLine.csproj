@@ -1,19 +1,19 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <AssemblyTitle>DProjects.Db</AssemblyTitle>
+        <AssemblyTitle>DProjects.CommandLine</AssemblyTitle>
         <TargetFramework>netstandard2.0</TargetFramework>
         <LangVersion>preview</LangVersion>
-        <AssemblyName>DProjects.Db</AssemblyName>
+        <AssemblyName>DProjects.CommandLine</AssemblyName>
         <OutputType>Library</OutputType>
-        <PackageId>DProjects.Db</PackageId>
+        <PackageId>DProjects.CommandLine</PackageId>
         <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
         <RootNamespace />
         <ApplicationIcon />
         <OutputTypeEx>library</OutputTypeEx>
         <StartupObject />
         <Company>DProjects</Company>
-        <Description>DProjects.Db</Description>
+        <Description>DProjects.CommandLine</Description>
         <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
         <Version>3.0.0</Version>
         <Authors>marcdp</Authors>
@@ -25,17 +25,13 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="9.0.0" />
+        <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="9.0.2" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.2" />
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\DProjects.Datatypes\DProjects.Datatypes.csproj" />
       <ProjectReference Include="..\DProjects.Factories.Abstractions\DProjects.Factories.Abstractions.csproj" />
-      <ProjectReference Include="..\DProjects.Fs.Abstractions\DProjects.Fs.Abstractions.csproj" />
-      <ProjectReference Include="..\DProjects.Log.Abstractions\DProjects.Log.Abstractions.csproj" />
-      <ProjectReference Include="..\DProjects.Text.Expressions\DProjects.Text.Expressions.csproj" />
-      <ProjectReference Include="..\DProjects.Text.Readers\DProjects.Text.Readers.csproj" />
-      <ProjectReference Include="..\DProjects.Text.Yaml\DProjects.Text.Yaml.csproj" />
+      <ProjectReference Include="..\DProjects.Utils\DProjects.Utils.csproj" />
     </ItemGroup>
-
+ 
 </Project>

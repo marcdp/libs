@@ -47,6 +47,11 @@ namespace DProjects.Db.Schema {
             var serializer = new XmlSerializer(settings);
             return serializer.SerializeToXmlDocument(this);
         }
+        public static DBSchemaDatabase FromXmlDocument(string xml) {
+            var xmlDocument = new XmlDocument();
+            xmlDocument.LoadXml(xml.Trim());
+            return FromXmlDocument(xmlDocument);
+        }
         public static DBSchemaDatabase FromXmlDocument(XmlDocument xmlDocument) {
             var settings = new XmlDeserializerSettings {
                 TypePrefix = "DBSchema"

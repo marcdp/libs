@@ -173,6 +173,15 @@ namespace DProjects.Utils {
                 return hmacSHA256.ComputeHash(input);
             }
         }
+        public static byte[] ToHashHmacSha256(string key, string data, Encoding? encoding = null) {
+            encoding ??= System.Text.Encoding.UTF8;
+            using (HMACSHA256 algorithm = new HMACSHA256()){
+                algorithm.Key = encoding.GetBytes(key);
+                byte[] result = algorithm.ComputeHash(encoding.GetBytes(data));
+                algorithm.Dispose();
+                return result;
+            }
+        }
         public static byte[] ToHashHmacSha256(byte[] key, byte[] data) {
             HMACSHA256 hmacSHA256 = new HMACSHA256();
             hmacSHA256.Key = key;

@@ -143,7 +143,7 @@ namespace DProjects.Fs.Aws {
             httpRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("AWS4-HMAC-SHA256", "Credential=" + credential + ", SignedHeaders=" + signedHeaders + ", Signature=" + signature);
         }
         public static string PreSignUrlV4(string method, string aUrl, int expiresSeconds = 900) {
-            //s3://REDACTEDbN02ea%2Fgx3EnEKGRIo37W@cett-activitats.s3-eu-west-3.amazonaws.com
+            //s3://...:...%2Fgx3EnEKGRIo37W@cett-activitats.s3-eu-west-3.amazonaws.com
             var url = new Uri(aUrl);
             var accessKeyId = UrlUtils.UrlDecode(url.UserInfo.Split(':')[0]);
             var secretAccessKey = UrlUtils.UrlDecode(url.UserInfo.Split(':')[1]);
