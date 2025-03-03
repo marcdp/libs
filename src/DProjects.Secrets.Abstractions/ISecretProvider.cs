@@ -7,6 +7,7 @@ namespace DProjects.Secrets {
 
         //methods
         Task<Secret?> GetAsync(string name, CancellationToken cancellationToken);
+        Task<string[]> GetNamesAsync(CancellationToken cancellationToken);
 
     }
      

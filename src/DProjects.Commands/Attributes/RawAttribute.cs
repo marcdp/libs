@@ -1,0 +1,27 @@
+using System;
+
+namespace DProjects.Commands.Attributes {
+
+
+    [AttributeUsage(AttributeTargets.Property, Inherited = false, AllowMultiple = false)]
+    public class RawAttribute : Attribute {
+
+
+        //properties
+        public string Description { get; }
+        public string? Default { get; }
+        public Boolean AvoidExpansions { get; }
+
+
+        //constructor
+        public RawAttribute(string description, string? aDefault, bool avoidExpansions) {
+            this.Description = description;
+            this.Default = aDefault;
+            this.AvoidExpansions = avoidExpansions;
+        }
+
+
+    }
+
+}
+
