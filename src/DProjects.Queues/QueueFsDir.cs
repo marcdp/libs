@@ -46,11 +46,12 @@ namespace DProjects.Queues {
         }
         public async Task<Message?> ReadAsync(int waitTimeout = 0, CancellationToken cancellationToken = default) {
             if (!mInitialized) await InitializeAsync(cancellationToken);
+            var sleepMs = 1000;
             var pathNew = PathUtils.Combine(path, "new");
-            for(var i = 0; i< waitTimeout; i++) {
+            for(var i = 0; i< waitTimeout; i += sleepMs) {
                 var mesage = await ReadNewMessage(cancellationToken);
                 if (mesage != null) return mesage;
-                await Task.Delay(1000);
+                await Task.Delay(sleepMs);
             }
             return null;
         }

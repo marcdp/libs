@@ -9,6 +9,7 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using DProjects.Crypto;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 
 namespace DProjects.Secrets {
 
@@ -19,24 +20,21 @@ namespace DProjects.Secrets {
         private const string FILE_EXTENSION = ".json.aes";
 
         //methods
-        public Task<Secret?> GetAsync(string name, CancellationToken cancellationToken) {
-            var aux = LoadJson();
-            if (!aux.TryGetPropertyValue(name, out var value) || value == null) return Task.FromResult<Secret?>(null); 
-            var secret = new Secret(name, "", value.GetValue<string>());
-            return Task.FromResult<Secret?>(secret);
+        public Secret? Get(string name) {
+            var dictionary = LoadDictionary();
+            if (!dictionary.ContainsKey(name)) return null;
+            var value = dictionary[name];   
+            var secret = new Secret(name, "", value);
+            return secret;
         }
-        public Task<string[]> GetNamesAsync(CancellationToken cancellationToken) {
-            var aux = LoadJson();
-            var keys = new List<string>();
-            foreach (var key in aux) {
-                keys.Add(key.Key);
-            }
-            return Task.FromResult(keys.ToArray());
+        public Task<Secret?> GetAsync(string name, CancellationToken cancellationToken) {
+            return Task.FromResult<Secret?>(Get(name));
         }
 
 
         //utils
-        private JsonObject LoadJson() {
+        private StringDictionary LoadDictionary() {
+            var dictionary = new StringDictionary();
             //filename
             var filename = System.IO.Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile), ".dprojectstools", "secrets", databaseName + FILE_EXTENSION);
             if (!System.IO.File.Exists(filename)) throw new Exception($"Unable to load secrets: file not found: {filename}");
@@ -48,7 +46,18 @@ namespace DProjects.Secrets {
             var crypto = new DProjects.Crypto.CryptoSymmetricDecryptAES();
             var json = crypto.Decrypt(text, password);
             //return
-            return JsonNode.Parse(json)!.AsObject()!;
+            var jsonObject = JsonNode.Parse(json)!.AsObject();
+            foreach(var key in jsonObject) {
+                if (key.Value is JsonObject) {
+                    foreach (var subkey in key.Value.AsObject()) {
+                        dictionary[key.Key + "." + subkey.Key] = subkey.Value!.AsValue().ToString();
+                    }
+                } else {
+                    dictionary[key.Key] = key.Value!.AsValue().ToString();
+                }
+            }
+            //return
+            return dictionary;
         }
 
         [StructLayout(LayoutKind.Sequential)]

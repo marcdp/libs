@@ -6,8 +6,8 @@ namespace DProjects.Secrets {
     public interface ISecretProvider {
 
         //methods
-        Task<Secret?> GetAsync(string name, CancellationToken cancellationToken);
-        Task<string[]> GetNamesAsync(CancellationToken cancellationToken);
+        Secret? Get(string name);
+        Task<Secret?> GetAsync(string name, CancellationToken cancellationToken);        
 
     }
      

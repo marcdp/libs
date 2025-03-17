@@ -11,27 +11,35 @@ namespace DProjects.Secrets {
     public class SecretProviderUserSecrets(IFilesystem filesystem, string path) : ISecretProvider {
 
 
+
         //methods
-        public async Task<Secret?> GetAsync(string name, CancellationToken cancellationToken) {
-            var aux = await LoadJsonAsync(cancellationToken);
-            if (aux.TryGetPropertyValue(name, out var value)) {
+        public Secret? Get(string name) {
+            var aux = LoadJson();
+            if (aux != null && aux.TryGetPropertyValue(name, out var value)) {
                 if (value != null) {
                     return new Secret(name, "", value.GetValue<string>());
                 }
             }
             return null;
         }
-        public async Task<string[]> GetNamesAsync(CancellationToken cancellationToken) {
+        public async Task<Secret?> GetAsync(string name, CancellationToken cancellationToken) {
             var aux = await LoadJsonAsync(cancellationToken);
-            var keys = new List<string>();
-            foreach (var key in aux) {
-                keys.Add(key.Key);
+            if (aux != null && aux.TryGetPropertyValue(name, out var value)) {
+                if (value != null) {
+                    return new Secret(name, "", value.GetValue<string>());
+                }
             }
-            return keys.ToArray();
+            return null;
         }
 
         //private
-        private async Task<JsonObject> LoadJsonAsync(CancellationToken cancellationToken) {
+        private JsonObject? LoadJson() {
+            var entry = filesystem.GetEntry(path);
+            if (entry == null) return null;
+            var json = filesystem.LoadTextFile(path);
+            return JsonNode.Parse(json)!.AsObject();
+        }
+        private async Task<JsonObject?> LoadJsonAsync(CancellationToken cancellationToken) {
             var entry = await filesystem.GetEntryAsync(path, cancellationToken);
             if (entry == null) return null;
             var json = await filesystem.LoadTextFileAsync(path);

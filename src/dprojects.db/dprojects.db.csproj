@@ -30,6 +30,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\DProjects.Datatypes\DProjects.Datatypes.csproj" />
+      <ProjectReference Include="..\DProjects.Db.Abstractions\DProjects.Db.Abstractions.csproj" />
       <ProjectReference Include="..\DProjects.Factories.Abstractions\DProjects.Factories.Abstractions.csproj" />
       <ProjectReference Include="..\DProjects.Fs.Abstractions\DProjects.Fs.Abstractions.csproj" />
       <ProjectReference Include="..\DProjects.Log.Abstractions\DProjects.Log.Abstractions.csproj" />

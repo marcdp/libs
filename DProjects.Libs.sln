@@ -127,6 +127,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DProjects.Fs.Aws", "src\DPr
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DProjects.Fs.Aws.Test", "test\DProjects.Fs.Aws.Test\DProjects.Fs.Aws.Test.csproj", "{F1B2EE6E-BE9A-4E52-B111-8BD99F019EA5}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DProjects.Db.Postgresql", "src\DProjects.Db.Postgresql\DProjects.Db.Postgresql.csproj", "{98EBC69B-17D4-62DA-A543-D95B76173CCC}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -365,6 +367,10 @@ Global
 		{F1B2EE6E-BE9A-4E52-B111-8BD99F019EA5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F1B2EE6E-BE9A-4E52-B111-8BD99F019EA5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F1B2EE6E-BE9A-4E52-B111-8BD99F019EA5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{98EBC69B-17D4-62DA-A543-D95B76173CCC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{98EBC69B-17D4-62DA-A543-D95B76173CCC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{98EBC69B-17D4-62DA-A543-D95B76173CCC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{98EBC69B-17D4-62DA-A543-D95B76173CCC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -428,6 +434,7 @@ Global
 		{48304377-9D99-459F-BC21-E3CB8678B487} = {3892F25A-3EAF-4987-964A-47712DC53F67}
 		{DFE8AD3E-3B4B-4FA2-ACEC-5BB92911866C} = {3892F25A-3EAF-4987-964A-47712DC53F67}
 		{F1B2EE6E-BE9A-4E52-B111-8BD99F019EA5} = {977F788C-34C7-438C-AB3E-566C8687F3B2}
+		{98EBC69B-17D4-62DA-A543-D95B76173CCC} = {3892F25A-3EAF-4987-964A-47712DC53F67}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {E92CEFFE-87DE-445D-AA8E-52601E4D0790}

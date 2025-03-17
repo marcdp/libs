@@ -11,6 +11,17 @@ namespace DProjects.Utils {
 
 
         //ip utils
+        public static string GetLocalIPAddress() {
+            string hostName = Dns.GetHostName(); // Get the host name
+            IPAddress[] addresses = Dns.GetHostAddresses(hostName);
+            foreach (var ip in addresses) {
+                if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork) // IPv4
+                {
+                    return ip.ToString();
+                }
+            }
+            return "No IPv4 address found";
+        }
         public static string GetClientIP(TcpClient tcpClient) {
             try {
                 PropertyInfo? prInfo = tcpClient.GetType().GetProperty("Client", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);

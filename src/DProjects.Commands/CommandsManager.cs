@@ -61,6 +61,9 @@ namespace DProjects.Commands {
         }
         public async Task<int> ExecuteAsync(string[] args, CancellationToken cancellationToken) {
 
+            //create scropscope
+            using var scopedServices = services.CreateScope();
+
             // get command name
             CmdSchemaDefinition? cmdSchemaDefinition = null;
             if (configuration.Commands.Count == 1) {
@@ -93,7 +96,7 @@ namespace DProjects.Commands {
             }
 
             // create command instance
-            var instance = (ICommand) ActivatorUtilities.CreateInstance(services, cmdSchemaDefinition.Handler);
+            var instance = (ICommand) ActivatorUtilities.CreateInstance(scopedServices.ServiceProvider, cmdSchemaDefinition.Handler);
 
             // inject command properties
             var sheBangArgsSeparator = Guid.NewGuid().ToString();
@@ -103,15 +106,15 @@ namespace DProjects.Commands {
                 //inject property values to command, from dependency injection container
                 if (string.IsNullOrEmpty(key)) {
                     //get default service from container
-                    return services.GetRequiredService(type);
+                    return scopedServices.ServiceProvider.GetRequiredService(type);
                 } else {
                     //get keyed service from container
-                    var keyedServiceProvider = (IKeyedServiceProvider)services;
+                    var keyedServiceProvider = (IKeyedServiceProvider)scopedServices.ServiceProvider;
                     var result = keyedServiceProvider.GetKeyedService(type, key);
                     if (result != null) return result;
                     //get factory from container
                     var factoryType = typeof(IFactoryByUrl<>).MakeGenericType(type);
-                    var factory = services.GetRequiredService(factoryType);
+                    var factory = scopedServices.ServiceProvider.GetRequiredService(factoryType);
                     //create instance from container
                     var createMethodInfo = factory.GetType().GetMethod("Create")!;
                     result = createMethodInfo.Invoke(factory, [key]);

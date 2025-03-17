@@ -128,6 +128,16 @@ namespace DProjects.Factories {
                 var defaultInstance = mServiceProvider.GetService<TType>();
                 if (defaultInstance != null) return defaultInstance;
             }
+            //try get handler
+            var handler = mConfiguration.Handlers.Where(x => x.Name.Equals(scheme)).Select(x => x.Handler).FirstOrDefault();
+            if (handler != null) {  
+                //create from handler
+                var instanceFromHandler = handler(mServiceProvider, argument);
+                //register IDisposable instance
+                if (instanceFromHandler is IDisposable instanceFromHandlerDisposable) mDisposables.Add(instanceFromHandlerDisposable);
+                //return
+                return instanceFromHandler;
+            }
             //create instance
             var protocol = mConfiguration.Protocols.Where(x => x.Name.Equals(scheme)).FirstOrDefault();
             if (protocol == null) {

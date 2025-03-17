@@ -2,7 +2,7 @@ using System;
 
 namespace DProjects.Factories.Attributes {
 
-    [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, Inherited = false, AllowMultiple = false)]
     public class ProtocolAttribute : Attribute {
 
         //delegate
