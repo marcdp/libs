@@ -23,7 +23,7 @@ namespace DProjects.Utils {
         public static void GzipFile(string fileName, string gzFileName) {
             using (var fileStream = System.IO.File.OpenRead(fileName))
             using (var gzFileStream = System.IO.File.OpenWrite(gzFileName)) {
-                var gzStream = new System.IO.Compression.GZipStream(gzFileStream, System.IO.Compression.CompressionMode.Compress );
+                var gzStream = new System.IO.Compression.GZipStream(gzFileStream, System.IO.Compression.CompressionMode.Compress);
                 StreamUtils.Copy(fileStream, gzStream);
                 gzStream.Dispose();
             }

@@ -151,6 +151,10 @@ namespace DProjects.Db.Writers {
                             line.Append(((double)value).ToString(System.Globalization.CultureInfo.InvariantCulture));
                         } else if (value is float) {
                             line.Append(((float)value).ToString(System.Globalization.CultureInfo.InvariantCulture));
+                        } else if (value is decimal) {
+                            line.Append(((decimal)value).ToString(System.Globalization.CultureInfo.InvariantCulture));
+                        } else {
+                            line.Append(value.ToString().Replace(",","."));
                         }
                     } else {
                         line.Append(mSettings.NullSequence);

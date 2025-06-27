@@ -8,13 +8,13 @@ import sys
 # object
 secrets = SecretsManager("cett")
 gitManager = GitManager()
-dockerManager = DockerManager("nas3")
+#dockerManager = DockerManager("nas3")
 
 
 # ***************
 # **  Execute  **
 # ***************
 commandsManager = CommandsManager()
-commandsManager.register(dockerManager)
+#commandsManager.register(dockerManager)
 commandsManager.register(gitManager)
 commandsManager.execute(sys.argv)

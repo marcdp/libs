@@ -16,6 +16,12 @@ namespace DProjects.Commands {
             services.AddSingleton(configuration);
             // Add transient Manager to the services
             services.AddTransient<CommandsManager>();
+
+            services.AddScoped<IEnvironment>(sp => {
+                var configuration = sp.GetRequiredService<Configuration>();
+                // Create a new environment with the current service provider and configuration
+                return new Environment();
+            });
         }
     }
 

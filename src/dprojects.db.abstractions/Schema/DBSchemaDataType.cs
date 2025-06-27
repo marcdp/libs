@@ -26,7 +26,8 @@ namespace DProjects.Db.Schema {
         Timestamp,
         Interval,
         UniqueIdentifier,
-        Json
+        Json,
+        Jsonb
     }
     public static class DBSchemaDataTypeModule {
         public static Type GetNetDataType(this DBSchemaDataType dbSchemaDataType) {
@@ -75,6 +76,8 @@ namespace DProjects.Db.Schema {
             } else if (dbSchemaDataType == DBSchemaDataType.UniqueIdentifier) {
                 return typeof(System.Guid);
             } else if (dbSchemaDataType == DBSchemaDataType.Json) {
+                return typeof(System.String);
+            } else if (dbSchemaDataType == DBSchemaDataType.Jsonb) {
                 return typeof(System.String);
             }
             throw new NotImplementedException();
@@ -125,6 +128,8 @@ namespace DProjects.Db.Schema {
             } else if (dbSchemaDataType == DBSchemaDataType.UniqueIdentifier) {
                 return System.Data.DbType.Guid;
             } else if (dbSchemaDataType == DBSchemaDataType.Json) {
+                return System.Data.DbType.String;
+            } else if (dbSchemaDataType == DBSchemaDataType.Jsonb) {
                 return System.Data.DbType.String;
             }
             throw new NotImplementedException();

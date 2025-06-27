@@ -40,7 +40,7 @@ namespace DProjects.Commands {
             //header
             sb.AppendLine($"usage: ");
             sb.AppendLine($"  {configuration.AppName} {cmdSchemaDefinition.Name}");
-            //subcomands
+            //subcommands
             var subcommands = new List<string>();
             foreach (var subcommand in configuration.Commands.Values) {
                 if (subcommand.Name.StartsWith(cmdSchemaDefinition.Name + "-")) {
@@ -94,7 +94,7 @@ namespace DProjects.Commands {
                 }
                 return 0;
             }
-
+              
             // create command instance
             var instance = (ICommand) ActivatorUtilities.CreateInstance(scopedServices.ServiceProvider, cmdSchemaDefinition.Handler);
 

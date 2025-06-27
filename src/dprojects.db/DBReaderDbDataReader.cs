@@ -154,7 +154,7 @@ namespace DProjects.Db {
                         dbColumn.DBType = typeof(bool);
                     }
                     dbColumn.ReadOnly = Convert.ToBoolean(dbRow["IsReadOnly"]);
-                    dbColumn.Required = !Convert.ToBoolean(dbRow["AllowDBNull"]);
+                    dbColumn.Required = !Convert.ToBoolean(dbRow.IsNull("AllowDBNull") ? true : dbRow["AllowDBNull"]);
                     if (dbRow.Table.Columns.Contains("IsAutoIncrement")) {
                         dbColumn.AutoIncrement = Convert.ToBoolean(dbRow["IsAutoIncrement"]);
                     }

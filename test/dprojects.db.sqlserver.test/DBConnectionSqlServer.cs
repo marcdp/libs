@@ -8,7 +8,7 @@ namespace DProjects.Db.SqlServer.Tests
 
 
         //constructor
-        public DBConnectionSqlServerTests() : base ("sqlserver:Server=.;Database=test;Trusted_Connection=True;TrustServerCertificate=True;") {
-        }
+        public DBConnectionSqlServerTests() : base("sqlserver:Server=.;Database=test;Trusted_Connection=True;TrustServerCertificate=True;") {
+        }  
     }
 }

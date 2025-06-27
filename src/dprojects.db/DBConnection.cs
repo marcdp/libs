@@ -739,6 +739,11 @@ namespace DProjects.Db {
                                 logger.LogInformation(sqlDrop + separator);
                                 if (applyChanges) ExecuteNonQuery(sqlDrop);
                             }
+                            if (dbSchemaColumnOld.Null != dbSchemaColumn.Null) {
+                                //var sqlDrop = GetSqlAlterColumn(dbSchemaTable.Name, dbSchemaColumn);
+                                //logger.LogInformation(sqlDrop + separator);
+                                //if (applyChanges) ExecuteNonQuery(sqlDrop);
+                            }
                             var sql = GetSqlAlterColumn(dbSchemaTable.Name, dbSchemaColumn);
                             logger.LogInformation(sql + separator);
                             if (applyChanges) ExecuteNonQuery(sql);
@@ -1122,7 +1127,6 @@ namespace DProjects.Db {
             if (dataTypeName.Equals("varchar2", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Varchar.ToString();
             if (dataTypeName.Equals("number", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Numeric.ToString();
             if (dataTypeName.Equals("uniqueidentifier", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.UniqueIdentifier.ToString();
-            if (dataTypeName.Equals("json", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Json.ToString();
             if (System.Enum.TryParse<DBSchemaDataType>(dataTypeName, true, out DBSchemaDataType result)) {
                 return result;
             }

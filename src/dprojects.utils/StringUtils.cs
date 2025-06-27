@@ -24,7 +24,58 @@ namespace DProjects.Utils {
             return string.Compare(a, b, StringComparison.CurrentCultureIgnoreCase);
         }
 
-        //connectionString
+        ////connectionString
+        //public static NameValueCollection GetConnectionStringNameValueCollection(string connectionString) {
+        //    var result = new NameValueCollection();
+        //    var insideQuotes = false;
+        //    for (int i = 0; i< connectionString.Length; i++) {
+        //        char c = connectionString[i];
+        //        if (c == '"') {
+        //            insideQuotes = !insideQuotes;
+        //        } else { 
+        //            if (!insideQuotes) { 
+        //                if (c == ';') {
+        //                    var keyValue = connectionString.Substring(0, i).Trim();
+        //                    if (keyValue.Length > 0) {
+        //                        var index = keyValue.IndexOf('=');
+        //                        if (index > 0 && index < keyValue.Length - 1) {
+        //                            var key = keyValue.Substring(0, index).Trim();
+        //                            var value = keyValue.Substring(index + 1).Trim();
+        //                            result[key] = value;
+        //                        }
+        //                    }
+        //                    connectionString = connectionString.Substring(i + 1);
+        //                    i = -1; // Reset index to start parsing the next pair
+        //                }
+        //            }
+        //        }
+        //    }
+        //    return result;
+        //}
+        //public static NameValueCollection GetConnectionStringNameValueCollectionOld(string connectionString) {
+        //    var result = new NameValueCollection();
+
+        //    if (string.IsNullOrWhiteSpace(connectionString))
+        //        return result;
+
+        //    var pairs = connectionString.Split(';');
+
+        //    foreach (var pair in pairs) {
+        //        if (string.IsNullOrWhiteSpace(pair))
+        //            continue;
+
+        //        var index = pair.IndexOf('=');
+        //        if (index <= 0 || index == pair.Length - 1)
+        //            continue; // Skip invalid pairs
+
+        //        var key = pair.Substring(0, index).Trim();
+        //        var value = pair.Substring(index + 1).Trim();
+
+        //        result[key] = value;
+        //    }
+
+        //    return result;
+        //}
         public static NameValueCollection GetConnectionStringNameValueCollection(string text) {
             var result = new NameValueCollection();
             if (string.IsNullOrEmpty(text))
@@ -35,13 +86,27 @@ namespace DProjects.Utils {
             while (i < text.Length) {
                 // Parse the key
                 int keyStart = i;
-                while (i < text.Length && text[i] != '=')
+                while (i < text.Length) {
+                    if (text[i] == '=') break;
+                    if (text[i] == ';') {
+                        break;
+                        //var aux = text.Substring(keyStart, i - keyStart).Trim();
+                        //result.Add(aux, "");
+                        //continue;
+                    }
                     i++;
+                }
 
                 if (i == text.Length)
                     throw new FormatException("Invalid connection string format: missing '=' for a key.");
 
                 string key = text.Substring(keyStart, i - keyStart).Trim();
+                if (text[i]==';') {
+                    result.Add(key, "");
+                    i++;
+                    continue;
+                }
+
                 i++; // Skip '='
 
                 // Parse the value
@@ -376,6 +441,16 @@ namespace DProjects.Utils {
                 }
             }
             return result.ToString().Replace("--", "-").Replace("--", "-");
+        }
+        public static string ReplaceDiacritics(this string str) {
+            var chars =
+                from c in str.Normalize(NormalizationForm.FormD).ToCharArray()
+                let uc = CharUnicodeInfo.GetUnicodeCategory(c)
+                where uc != UnicodeCategory.NonSpacingMark
+                select c;
+
+            var cleanStr = new string(chars.ToArray()).Normalize(NormalizationForm.FormC);
+            return cleanStr;
         }
         public static string ReplaceASCIICharToASCI(string s) {
             s = s.Replace("á", "a");

@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net.NetworkInformation;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 
 namespace DProjects.Utils {
@@ -10,6 +12,18 @@ namespace DProjects.Utils {
 
         //constants
         public const int FILESYSTEM_MAX_PATH = 260;
+        private const uint INVALID_FILE_ATTRIBUTES = 0xFFFFFFFF;
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        private static extern uint GetFileAttributesW(string lpFileName);
+
+
+        //utils
+        private static void PrefixWindowsPath(ref string path) {
+            if (EnvironmentUtils.IsWindows() && EnvironmentUtils.IsNetFramework() && path.Length >= FILESYSTEM_MAX_PATH && path.IndexOf(@"\\") == -1) {
+                path = @"\\?\" + path;
+            }
+        }
 
         //temp
         public static string GetTempPath() {
@@ -27,6 +41,10 @@ namespace DProjects.Utils {
 
 
         //read methods
+        public static Task<string> ReadTextFileAsync(string uri, System.Reflection.Assembly? resourceAssembly = null, System.Text.Encoding? encoding = null) {
+            var result = ReadTextFile(uri, resourceAssembly, encoding);
+            return Task.FromResult(result);
+        }
         public static string ReadTextFile(string uri, System.Reflection.Assembly? resourceAssembly = null, System.Text.Encoding? encoding = null) {
             if (encoding == null) encoding = EncodingUtils.GetDefault();
             if (uri.StartsWith("http://") || uri.StartsWith("https://")) {
@@ -42,6 +60,7 @@ namespace DProjects.Utils {
                 var aUri = new System.Uri(uri);
                 return System.IO.File.ReadAllText(aUri.AbsolutePath, encoding);
             } else {
+                PrefixWindowsPath(ref uri);
                 return System.IO.File.ReadAllText(uri, encoding);
             }
         }
@@ -49,10 +68,12 @@ namespace DProjects.Utils {
             if (uri.StartsWith("http://") || uri.StartsWith("https://")) {
                 throw new NotImplementedException();
             } else {
+                PrefixWindowsPath(ref uri);
                 return System.IO.File.ReadAllBytes(uri);
             }
         }
         public static byte[] ReadFile(string uri, long offset, int length) {
+            PrefixWindowsPath(ref uri);
             long fileLength = new FileInfo(uri).Length;
             if (length == -1) length = (int)fileLength;
             if (offset + length > fileLength) length = System.Convert.ToInt32(fileLength - offset);
@@ -67,9 +88,11 @@ namespace DProjects.Utils {
 
         //write
         public static long WriteFile(string filename, byte[] buffer, long bytesToCopy = 0, bool append = false) {
+            PrefixWindowsPath(ref filename);
             return WriteFile(filename, new MemoryStream(buffer), bytesToCopy, append);
         }
         public static long WriteFile(string filename, Stream inputStream, long bytesToCopy = 0, bool append = false, int bufferSize = 64 * 1024) {
+            PrefixWindowsPath(ref filename);
             if (append) {
                 using (var fileStream = new FileStream(filename, FileMode.Append, FileAccess.Write, FileShare.ReadWrite, bufferSize)) {
                     return StreamUtils.Copy(inputStream: inputStream, outputStream: fileStream, bytesToCopy: bytesToCopy, bufferSize: bufferSize);
@@ -81,6 +104,7 @@ namespace DProjects.Utils {
             }
         }
         public static async Task<long> WriteFileAsync(string filename, Stream inputStream, long bytesToCopy = 0, bool append = false, int bufferSize = 64 * 1024) {
+            PrefixWindowsPath(ref filename);
             if (append) {
                 using (var fileStream = new FileStream(filename, FileMode.Append, FileAccess.Write, FileShare.ReadWrite, bufferSize)) {
                     return await StreamUtils.CopyAsync(inputStream: inputStream, outputStream: fileStream, bytesToCopy: bytesToCopy, bufferSize: bufferSize);
@@ -92,9 +116,10 @@ namespace DProjects.Utils {
             }
         }
         
-        public static void WriteTextFile(string filePath, string fileContent, bool append = false, System.Text.Encoding? encoding = null, int bufferSize = 64 * 1024) {
+        public static void WriteTextFile(string filename, string fileContent, bool append = false, System.Text.Encoding? encoding = null, int bufferSize = 64 * 1024) {
+            PrefixWindowsPath(ref filename);
             encoding ??= EncodingUtils.GetDefault();
-            using (var fileStream = new FileStream(filePath, (append ? FileMode.Append : FileMode.OpenOrCreate), FileAccess.ReadWrite)) {
+            using (var fileStream = new FileStream(filename, (append ? FileMode.Append : FileMode.OpenOrCreate), FileAccess.ReadWrite)) {
                 if (!append) fileStream.SetLength(0);
                 using (var streamWriter = new StreamWriter(fileStream, encoding, bufferSize, true)) {
                     streamWriter.Write(fileContent);
@@ -116,9 +141,28 @@ namespace DProjects.Utils {
             return new FileInfo(filename).FullName;
         }
 
-
-        //directories
+          
+        // files/directories
+        public static bool ExistsFile(string path) {
+            //if (EnvironmentUtils.IsWindows() && EnvironmentUtils.IsNetFramework()) {
+            //    if (string.IsNullOrWhiteSpace(path)) return false;
+            //    if (!path.StartsWith(@"\\?\")) path = @"\\?\" + path;
+            //    uint attrs = GetFileAttributesW(path);
+            //    return attrs != INVALID_FILE_ATTRIBUTES;
+            //}
+            PrefixWindowsPath(ref path);
+            return System.IO.File.Exists(path);
+        }
+        public static bool ExistsDirectory(string path) {
+            PrefixWindowsPath(ref path);
+            return System.IO.Directory.Exists(path);
+        }
+        public static bool Exists(string path) {
+            PrefixWindowsPath(ref path);
+            return System.IO.File.Exists(path) || System.IO.Directory.Exists(path);
+        }
         public static void Delete(string path) {
+            PrefixWindowsPath(ref path);
             if (File.Exists(path)) {
                 File.Delete(path);
             } else if (Directory.Exists(path)) {
@@ -126,37 +170,44 @@ namespace DProjects.Utils {
             }
         }
         public static void DeleteFile(string filename) {
+            PrefixWindowsPath(ref filename);
             if (File.Exists(filename)) {
                 File.Delete(filename);
             }
         }
         public static Task DeleteFileAsync(string filename) {
+            PrefixWindowsPath(ref filename);
             DeleteFile(filename);
             return Task.CompletedTask;
         }
-        public static void CreateFolder(string directoryName) {
-            if (!Directory.Exists(directoryName)) {
-                Directory.CreateDirectory(directoryName);
+        public static void CreateFolder(string dirname) {
+            PrefixWindowsPath(ref dirname);
+            if (!Directory.Exists(dirname)) {
+                Directory.CreateDirectory(dirname);
             }
         }
-        public static Task CreateFolderAsync(string dirName) {
-            CreateFolder(dirName);
+        public static Task CreateFolderAsync(string dirname) {
+            PrefixWindowsPath(ref dirname);
+            CreateFolder(dirname);
             return Task.CompletedTask;
         }
-        public static void DeleteFolder(string irName, bool onlyChilds = false, int indent = 0) {
-            if (Directory.Exists(irName)) {
-                DirectoryInfo directoryInfo = new DirectoryInfo(irName);
+        public static void DeleteFolder(string dirName, bool onlyChilds = false, int indent = 0) {
+            PrefixWindowsPath(ref dirName);
+            if (Directory.Exists(dirName)) {
+                DirectoryInfo directoryInfo = new DirectoryInfo(dirName);
                 if (directoryInfo.Attributes.HasFlag(FileAttributes.ReadOnly)) {
                     directoryInfo.Attributes = FileAttributes.Normal;
                 }
-                foreach (string filename in Directory.GetFiles(irName)) {
+                foreach (string aux in Directory.GetFiles(dirName)) {
+                    var filename = aux;
+                    PrefixWindowsPath(ref filename);
                     FileInfo fileInfo = new FileInfo(filename);
                     if (fileInfo.IsReadOnly) {
                         File.SetAttributes(filename, FileAttributes.Normal);
                     }
                     DeleteFile(filename);
                 }
-                foreach (string subDirectoryName in Directory.GetDirectories(irName)) {
+                foreach (string subDirectoryName in Directory.GetDirectories(dirName)) {
                     DeleteFolder(subDirectoryName, false, indent + 1);
                 }
                 if (!onlyChilds) {
@@ -178,10 +229,12 @@ namespace DProjects.Utils {
             }
         }
         public static Task DeleteFolderAsync(string dirName, bool onlyChilds = false, int indent = 0) {
+            PrefixWindowsPath(ref dirName);
             DeleteFolder(dirName, onlyChilds, indent);
             return Task.CompletedTask;
         }
         public static void DeleteFolder(string dirName, int tries) {
+            PrefixWindowsPath(ref dirName);
             if (Directory.Exists(dirName)) {
                 DirectoryInfo directoryInfo = new DirectoryInfo(dirName);
                 if (directoryInfo.Attributes.HasFlag(FileAttributes.ReadOnly)) {
@@ -208,10 +261,24 @@ namespace DProjects.Utils {
             }
         }
         public static Task DeleteFolderAsync(string dirName, int tries) {
+            PrefixWindowsPath(ref dirName);
             DeleteFolder(dirName, tries);
             return Task.CompletedTask;
         }
-        public static void CopyFile(string src, string dst, bool overwrite) {
+        public static void MoveFile(string src, string dst) {
+            PrefixWindowsPath(ref src);
+            PrefixWindowsPath(ref dst);
+            System.IO.File.Move(src, dst);
+        }
+
+        public static void MoveFolder(string src, string dst) {
+            PrefixWindowsPath(ref src);
+            PrefixWindowsPath(ref dst);
+            System.IO.Directory.Move(src, dst);
+        }
+        public static void CopyFile(string src, string dst, bool overwrite = false) {
+            PrefixWindowsPath(ref src);
+            PrefixWindowsPath(ref dst);
             if (overwrite) {
                 File.Copy(src, dst, true);
             } else {
@@ -324,7 +391,12 @@ namespace DProjects.Utils {
             if (directoryName == null) {
                 return false;
             }
-            return Path.GetFullPath(fileName).ToLower().StartsWith(directoryName.ToLower());
+            if (EnvironmentUtils.IsWindows() && (fileName.Length > FILESYSTEM_MAX_PATH || directoryName.Length > FILESYSTEM_MAX_PATH) && fileName.IndexOf(@"\\")==-1 && directoryName.IndexOf(@"\\") == -1) {
+                fileName = @"\\?\" + fileName;
+                directoryName = @"\\?\" + directoryName;
+                return fileName.StartsWith(directoryName, StringComparison.OrdinalIgnoreCase);
+            }
+            return System.IO.Path.GetFullPath(fileName).ToLower().StartsWith(directoryName.ToLower());
         }
         public static string[] GetFileAndFolderList(string folder, string filter) {
             var result = new List<string>();

@@ -474,7 +474,7 @@ namespace DProjects.Db.Readers {
             return dbRow;
         }        
         private string UnquoteValue(string value) {
-            var result = value;
+            var result = value.Trim();
             if (mSettings.SkipInitialSpace && result.StartsWith(" ")) {
                 result = result.TrimStart();
             }

@@ -434,7 +434,11 @@ namespace DProjects.Utils {
             } else if (aObject.GetType() != type && !aObject.GetType().GetTypeInfo().IsSubclassOf(type)) {             
                 if (type == typeof(DateTime) || type == typeof(DateTime?)) {
                     if (aObject is string && (aObject).ToString() == "") {
-                        aObject = default(DateTime);
+                        if (type == typeof(DateTime?)) {
+                            aObject = new Nullable<DateTime>();
+                        } else {
+                            aObject = default(DateTime);
+                        }
                     } else if (aObject is string && "now".Equals(aObject.ToString(), StringComparison.CurrentCultureIgnoreCase)) {
                         aObject = DateTime.Now;
                     } else if (aObject is string) {
@@ -510,7 +514,11 @@ namespace DProjects.Utils {
                     if (aObject == null) {
                         aObject = 0.0m;
                     } else if (aObject is string) {
-                        aObject = decimal.Parse((string)aObject, CultureInfo.InvariantCulture);
+                        if (((string)aObject).IndexOf("E-") != -1) {
+                            aObject = decimal.Parse((string)aObject, NumberStyles.Float, CultureInfo.InvariantCulture);
+                        } else {
+                            aObject = decimal.Parse((string)aObject, CultureInfo.InvariantCulture);
+                        }
                     } else {
                         aObject = Convert.ToDecimal(aObject);
                     }
