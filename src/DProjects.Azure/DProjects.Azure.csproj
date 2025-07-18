@@ -1,19 +1,19 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <AssemblyTitle>DProjects.Identity</AssemblyTitle>
+        <AssemblyTitle>DProjects.Azure</AssemblyTitle>
         <TargetFramework>netstandard2.0</TargetFramework>
         <LangVersion>preview</LangVersion>
-        <AssemblyName>DProjects.Identity</AssemblyName>
+        <AssemblyName>DProjects.Azure</AssemblyName>
         <OutputType>Library</OutputType>
-        <PackageId>DProjects.Identity</PackageId>
+        <PackageId>DProjects.Azure</PackageId>
         <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
         <RootNamespace />
         <ApplicationIcon />
         <OutputTypeEx>library</OutputTypeEx>
         <StartupObject />
         <Company>DProjects</Company>
-        <Description>DProjects.Identity</Description>
+        <Description>DProjects.Azure</Description>
         <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
         <Version>3.0.0</Version>
         <Authors>marcdp</Authors>
@@ -23,20 +23,18 @@
         <PackageProjectUrl>https://www.dprojects.com/</PackageProjectUrl>
         <PackageIcon></PackageIcon>
     </PropertyGroup>
-
     <ItemGroup>
-        <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="9.0.6" />
-        <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" Version="9.0.6" />
-        <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.6" />
-        <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.6" />
-        <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="9.0.6" />
+        <PackageReference Include="Microsoft.Graph" Version="5.83.0" />
+        <PackageReference Include="Microsoft.Identity.Client" Version="4.73.1" />
     </ItemGroup>
-
     <ItemGroup>
+      <ProjectReference Include="..\DProjects.Db.Abstractions\DProjects.Db.Abstractions.csproj" />
+      <ProjectReference Include="..\DProjects.Db\DProjects.Db.csproj" />
       <ProjectReference Include="..\DProjects.Factories.Abstractions\DProjects.Factories.Abstractions.csproj" />
       <ProjectReference Include="..\DProjects.Fs.Abstractions\DProjects.Fs.Abstractions.csproj" />
-      <ProjectReference Include="..\DProjects.Identity.Abstractions\DProjects.Identity.Abstractions.csproj" />
+      <ProjectReference Include="..\DProjects.Streams\DProjects.Streams.csproj" />
+      <ProjectReference Include="..\DProjects.Text.Json\DProjects.Text.Json.csproj" />
+      <ProjectReference Include="..\DProjects.Utils\DProjects.Utils.csproj" />
     </ItemGroup>
- 
 
 </Project>

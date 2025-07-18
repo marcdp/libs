@@ -12,7 +12,7 @@ namespace DProjects.Db.Sqlite {
         public IDBConnection Create(string src) {
             var name = "";
             var connectionString = src.Substring(src.IndexOf(":") + 1);
-            return new DBConnectionSqlite(name, connectionString.Substring(connectionString.IndexOf(":") + 1));
+            return new DBConnectionSqlite(name, connectionString);
         }
 
     }

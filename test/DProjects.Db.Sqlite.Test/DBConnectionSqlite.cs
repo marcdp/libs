@@ -8,7 +8,7 @@ namespace DProjects.Db.Sqlite.Tests
 
 
         //constructor // user-secret:s3-bucket
-        public DBConnectionSqliteTests() : base ("user-secret:sqlite", typeof(DProjects.Db.Postgresql.Assembly).Assembly) {
+        public DBConnectionSqliteTests() : base ("user-secret:sqlite", typeof(DProjects.Db.Sqlite.Assembly).Assembly) {
         }
     }
 }

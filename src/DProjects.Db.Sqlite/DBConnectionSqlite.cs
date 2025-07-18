@@ -17,6 +17,9 @@ namespace DProjects.Db.Sqlite {
 
         ////DDL 
         #region "DDL table"
+        public override bool ExistsTable(string table) {
+            return ExecuteScalar<int>("SELECT count(*) FROM sqlite_master WHERE type='table' AND name=?", [table]) == 1;
+        }
         //public override string GetSqlQualifierBegin() {
         //    return "\"";
         //}

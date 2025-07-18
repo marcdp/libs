@@ -30,7 +30,8 @@ namespace DProjects.Text.Yaml.YamlConverters {
         }
 
         public void WriteYaml(IEmitter emitter, object? value, Type type, ObjectSerializer serializer) {
-            throw new NotImplementedException();
+            var bytes = (byte[])value!;
+            emitter.Emit(new YamlDotNet.Core.Events.Scalar(null, "tag:yaml.org,2002:binary", Convert.ToBase64String(bytes), ScalarStyle.Plain, false, false));
         }
     }
 

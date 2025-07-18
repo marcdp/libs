@@ -51,7 +51,7 @@ namespace DProjects.Text.Json {
             //    if (vo == null) return null;
             //    var result = vo.Get<object[]>("array");
             //    return result;
-            } else if (returnType == typeof(IDictionary<string, object?>)) {
+            } else if (returnType == typeof(IDictionary<string, object?>) || returnType == typeof(IDictionary<string, object>)) {
                 var jsonDocument = System.Text.Json.JsonSerializer.Deserialize<JsonDocument>(json, options); ;
                 if (jsonDocument == null) return null;
                 return (IDictionary<string, object?>) JsonElementToObject(jsonDocument.RootElement)!;

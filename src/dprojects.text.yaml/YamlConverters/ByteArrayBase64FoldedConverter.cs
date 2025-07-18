@@ -32,7 +32,9 @@ namespace DProjects.Text.Yaml.YamlConverters {
         }
 
         public void WriteYaml(IEmitter emitter, object? value, Type type, ObjectSerializer serializer) {
-            throw new NotImplementedException();
+            var bytes = (byte[])value!;
+            var aux = StringUtils.SplitByColumnsAndFold("!!base64 " + Convert.ToBase64String(bytes), 76);
+            emitter.Emit(new YamlDotNet.Core.Events.Scalar(aux));
         }
     }
 
