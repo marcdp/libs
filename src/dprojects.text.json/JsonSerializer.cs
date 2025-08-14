@@ -1,6 +1,7 @@
 using System.IO;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace DProjects.Text.Json {
@@ -42,7 +43,13 @@ namespace DProjects.Text.Json {
             options.Converters.Add(new JsonConverters.DictionaryObjectObjectConverter());
             options.Converters.Add(new JsonConverters.NameValueCollectionConverter());
             options.Converters.Add(new JsonConverters.CultureInfoConverter());
+            if (mSettings.UseDateTimeLaxConverter) options.Converters.Add(new JsonConverters.DateTimeLaxConverter());
 
+            if (mSettings.UseJsonStringEnumConverter) options.Converters.Add(new JsonStringEnumConverter());
+
+            if (!string.IsNullOrEmpty(mSettings.UseDateTimeOffsetConverterFormat)) {
+                options.Converters.Add(new JsonConverters.DateTimeOffsetConverter(mSettings.UseDateTimeOffsetConverterFormat));
+            }
             return System.Text.Json.JsonSerializer.Serialize(value, value.GetType(), options);
         }
 

@@ -17,8 +17,9 @@ namespace DProjects.Log {
             var useWriterThread = UrlUtils.GetQueryValue(url.Query, "useWriterThread", true);
             var dateTimePattern = UrlUtils.GetQueryValue(url.Query, "dateTimePattern", "yyyy-MM-dd");
             var logFormatter = logFormatterFactory.Create(UrlUtils.GetQueryValue(url.Query, "format", "json"));
+            var extension = UrlUtils.GetQueryValue(url.Query, "extension", "log");
             var level = UrlUtils.GetQueryValue(url.Query, "level", LogLevel.Information);
-            return new LogFsDir(filesystem, url.AbsolutePath, suffix, autoFlush, useWriterThread, logFormatter, dateTimePattern, level);
+            return new LogFsDir(filesystem, url.AbsolutePath, suffix, autoFlush, useWriterThread, logFormatter, dateTimePattern, level, extension);
         }
 
     }

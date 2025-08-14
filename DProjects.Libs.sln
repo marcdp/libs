@@ -139,6 +139,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DProjects.Commands", "src\D
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DProjects.Azure", "src\DProjects.Azure\DProjects.Azure.csproj", "{89954FF1-5A8E-5AC8-FC8E-9D073B42DDE1}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DProjects.Log.OpenTelemetry", "src\DProjects.Log.OpenTelemetry\DProjects.Log.OpenTelemetry.csproj", "{52214A3F-C565-BECE-6EB4-D7FB8ED41D1E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -401,6 +403,10 @@ Global
 		{89954FF1-5A8E-5AC8-FC8E-9D073B42DDE1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{89954FF1-5A8E-5AC8-FC8E-9D073B42DDE1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{89954FF1-5A8E-5AC8-FC8E-9D073B42DDE1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{52214A3F-C565-BECE-6EB4-D7FB8ED41D1E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{52214A3F-C565-BECE-6EB4-D7FB8ED41D1E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{52214A3F-C565-BECE-6EB4-D7FB8ED41D1E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{52214A3F-C565-BECE-6EB4-D7FB8ED41D1E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -470,6 +476,7 @@ Global
 		{9FCE5B42-E53D-CC3C-DFDF-15565265C258} = {977F788C-34C7-438C-AB3E-566C8687F3B2}
 		{7A3404B9-8D80-0B20-9F63-2528F785E20A} = {3892F25A-3EAF-4987-964A-47712DC53F67}
 		{89954FF1-5A8E-5AC8-FC8E-9D073B42DDE1} = {3892F25A-3EAF-4987-964A-47712DC53F67}
+		{52214A3F-C565-BECE-6EB4-D7FB8ED41D1E} = {3892F25A-3EAF-4987-964A-47712DC53F67}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {E92CEFFE-87DE-445D-AA8E-52601E4D0790}

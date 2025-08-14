@@ -32,6 +32,7 @@ namespace DProjects.Db {
         protected Stack<System.Data.Common.DbTransaction> mTransactions;
         protected bool mIsDisposed;
         protected bool mAvoidParametrizedQueries;
+        protected bool mAvoidInitializeDBTableFromDataReader;
 
 
         //constructor
@@ -267,11 +268,30 @@ namespace DProjects.Db {
                 throw new Exception("Error in DBConnectionData.ExecuteReader(\'" + sql + "\'), " + e.Message, e);
             }
         }
+
+        public virtual DbDataReader ExecuteDbDataReader(string sql, object?[]? parameters = null) {
+            var command = CreateCommand(sql, parameters);
+            try {
+                var reader = command.ExecuteReader();
+                return reader;
+            } catch (Exception e) {
+                throw new Exception("Error in DBConnectionData.ExecuteReader(\'" + sql + "\'), " + e.Message, e);
+            }
+        }
+        public virtual async Task<DbDataReader> ExecuteDbDataReaderAsync(string sql, object?[]? parameters = null, CancellationToken cancellationToken = default) {
+            var command = await CreateCommandAsync(sql, parameters, cancellationToken);
+            try {
+                var reader = await command.ExecuteReaderAsync(cancellationToken);
+                return reader;
+            } catch (Exception e) {
+                throw new Exception("Error in DBConnectionData.ExecuteReader(\'" + sql + "\'), " + e.Message, e);
+            }
+        }
         public virtual async Task<IDBReader> ExecuteReaderAsync(string sql, object?[]? parameters = null, CancellationToken cancellationToken = default) {
             var command = await CreateCommandAsync(sql, parameters, cancellationToken);
             try {
                 var reader = await command.ExecuteReaderAsync(cancellationToken);
-                var result = new DBReaderDbDataReader(reader, false);
+                var result = new DBReaderDbDataReader(reader, false, new DBReaderDbDataReader.Settings() { AvoidInitializeDBTableFromDataReader = mAvoidInitializeDBTableFromDataReader });
                 return result;
             } catch (Exception e) {
                 throw new Exception("Error in DBConnectionData.ExecuteReader(\'" + sql + "\'), " + e.Message, e);

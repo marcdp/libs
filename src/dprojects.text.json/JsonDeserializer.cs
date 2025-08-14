@@ -55,6 +55,10 @@ namespace DProjects.Text.Json {
                 var jsonDocument = System.Text.Json.JsonSerializer.Deserialize<JsonDocument>(json, options); ;
                 if (jsonDocument == null) return null;
                 return (IDictionary<string, object?>) JsonElementToObject(jsonDocument.RootElement)!;
+            } else if (returnType == typeof(Dictionary<string, object?>) || returnType == typeof(Dictionary<string, object>)) {
+                var jsonDocument = System.Text.Json.JsonSerializer.Deserialize<JsonDocument>(json, options); ;
+                if (jsonDocument == null) return null;
+                return (Dictionary<string, object?>)JsonElementToObject(jsonDocument.RootElement)!;
             } else {
                 return System.Text.Json.JsonSerializer.Deserialize(json, returnType, options); ;
             }

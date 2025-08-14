@@ -13,9 +13,10 @@ namespace DProjects.Db.Sqlite {
         //constructor
         public DBConnectionSqlite(string name, string connectionString) : base(name, connectionString, new Microsoft.Data.Sqlite.SqliteConnection(connectionString)) {
             this.mAvoidParametrizedQueries = true;
+            this.mAvoidInitializeDBTableFromDataReader = true;
         }
 
-        ////DDL 
+        //DDL 
         #region "DDL table"
         public override bool ExistsTable(string table) {
             return ExecuteScalar<int>("SELECT count(*) FROM sqlite_master WHERE type='table' AND name=?", [table]) == 1;

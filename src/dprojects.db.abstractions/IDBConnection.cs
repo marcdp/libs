@@ -27,6 +27,7 @@ namespace DProjects.Db {
         DBTable ExecuteTable(string sql, object?[]? parameters = null);
         Task<DBTable> ExecuteTableAsync(string sql, object?[]? parameters = null, CancellationToken cancellationToken = default);
         IDBReader ExecuteReader(string sql, object?[]? parameters = null);
+        Task<DbDataReader> ExecuteDbDataReaderAsync(string sql, object?[]? parameters = null, CancellationToken cancellationToken = default);
         Task<IDBReader> ExecuteReaderAsync(string sql, object?[]? parameters = null, CancellationToken cancellationToken = default);
         long ExecuteNonQuery(string sql, object?[]? parameters = null);
         Task<long> ExecuteNonQueryAsync(string sql, object?[]? parameters = null, CancellationToken cancellationToken = default);

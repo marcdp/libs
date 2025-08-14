@@ -17,18 +17,20 @@ namespace DProjects.Log {
         private readonly string mSuffix;
         private readonly ILogEntrySerializer mLogEntrySerializer;
         private readonly string mDateTimePattern;
+        private readonly string mExtension;
 
         private string? mFileName;
         private TextWriter? mWriter;
 
 
         //constructor
-        public LogFsDir(IFilesystem filesystem, string path, string suffix, bool autoFlush, bool useWriterThread, ILogEntrySerializer logEntrySerializer, string dateTimePattern = "yyyy-MM-dd", LogLevel level = LogLevel.Information) : base(autoFlush, useWriterThread, level) {
+        public LogFsDir(IFilesystem filesystem, string path, string suffix, bool autoFlush, bool useWriterThread, ILogEntrySerializer logEntrySerializer, string dateTimePattern = "yyyy-MM-dd", LogLevel level = LogLevel.Information, string extension = "log") : base(autoFlush, useWriterThread, level) {
             mFilesystem = filesystem;
             mPath = path;
             mSuffix = suffix;
             mDateTimePattern = dateTimePattern;
             mLogEntrySerializer = logEntrySerializer;
+            mExtension = extension;
             if (!mFilesystem.ExistsDirectory(mPath)) {
                 mFilesystem.CreateDirectory(mPath);
             }
@@ -50,7 +52,7 @@ namespace DProjects.Log {
 
         //methods
         protected override void ProcessEntry(LogEntry logEntry) {
-            var newFileName = PathUtils.Combine(mPath, logEntry.Date.ToUniversalTime().ToString(mDateTimePattern) + "-Z" + mSuffix + ".log");
+            var newFileName = PathUtils.Combine(mPath, logEntry.Date.ToUniversalTime().ToString(mDateTimePattern) + "-Z" + mSuffix + "." + mExtension);
             if (mWriter != null && newFileName != mFileName) {
                 mWriter.Dispose();
                 mWriter = null;

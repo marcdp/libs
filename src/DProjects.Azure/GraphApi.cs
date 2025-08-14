@@ -1533,10 +1533,6 @@ namespace DProjects.Azure {
                 httpResponse.Dispose();
                 throw new Exception("Unable to load read stream: " + httpResponse.StatusCode);
             }
-            //var result = new DProjects.Core.Streams.DisposableInputStream(await httpResponse.Content.ReadAsStreamAsync(), true);
-            //result.Disposed += (sender) => {
-            //    httpResponse.Dispose();
-            //};
             var result = new DisposableStream(await httpResponse.Content.ReadAsStreamAsync(), () => {
                 httpResponse.Dispose();
             }, true);

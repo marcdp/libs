@@ -17,6 +17,8 @@ namespace DProjects.Log {
         string? Source { get; set; }
         string[]? Tags { get; set; }
         Dictionary<string, object?>? Fields { get; set; }
+        string? SpanId { get; set; }
+        string? TraceId { get; set; }
 
         //methods
         void Debug(string message, params object?[] args);

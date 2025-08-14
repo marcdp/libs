@@ -19,6 +19,7 @@ namespace DProjects.Log {
             var autoFlush = UrlUtils.GetQueryValue(url.Query, "autoFlush", false);
             var useWriterThread = UrlUtils.GetQueryValue(url.Query, "useWriterThread", true);
             var dateTimePattern = UrlUtils.GetQueryValue(url.Query, "dateTimePattern", "yyyy-MM-dd");
+            var extension = UrlUtils.GetQueryValue(url.Query, "extension", "log");
             var logFormatter = logFormatterFactory.Create(UrlUtils.GetQueryValue(url.Query, "format", "json"));
             var level = UrlUtils.GetQueryValue(url.Query, "level", LogLevel.Information);
             var path = url.AbsolutePath;
@@ -27,7 +28,7 @@ namespace DProjects.Log {
             }
             var filesystem = filesystemFactory.Create(path + (init ? "?init=true" : "") );
             if (type.Equals("dir")) {
-                return new LogFsDir(filesystem, "/", suffix, autoFlush, useWriterThread, logFormatter, dateTimePattern, level);
+                return new LogFsDir(filesystem, "/", suffix, autoFlush, useWriterThread, logFormatter, dateTimePattern, level, extension);
             } else if (type.Equals("file")) {
                 return new LogFsFile(filesystem, url.AbsolutePath, truncate, autoFlush, useWriterThread, logFormatter, level);
             } else {

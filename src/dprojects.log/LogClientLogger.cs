@@ -42,6 +42,8 @@ namespace DProjects.Log {
         public string[]? Tags { get; set; }
         public Dictionary<string, object?>? Fields { get; set; }
         public LogLevel Level { get; } = LogLevel.Information;
+        public string? SpanId { get; set; }
+        public string? TraceId { get; set; }
 
 
         //methods
@@ -105,7 +107,7 @@ namespace DProjects.Log {
                 fields["messageOriginal"] = message;
                 message = sb.ToString();
             }
-            return new LogEntry(logType, Prefix + message, fields, Tags, Source, User, Resource, now);
+            return new LogEntry(logType, Prefix + message, fields, Tags, Source, User, Resource, now, SpanId, TraceId);
         }
 
     }

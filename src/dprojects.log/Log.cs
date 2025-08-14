@@ -22,7 +22,7 @@ namespace DProjects.Log {
 
 
         //constructor
-        public Log(bool autoFlush, bool useWriterThread, LogLevel level = LogLevel.Information) {
+        public Log(bool autoFlush, bool useWriterThread, LogLevel level = LogLevel.Information) {  
             mAutoFlush = autoFlush;
             mUseWriterThread = useWriterThread;
             mLevel = level;
@@ -44,7 +44,7 @@ namespace DProjects.Log {
         } 
         public virtual void Dispose() {
             if (mUseWriterThread) {
-                mThreadEntryQueue?.Add(null);
+                mThreadEntryQueue?.Add(null); 
                 if (mThread != null) {
                     mThread.Join();
                 }
@@ -58,26 +58,26 @@ namespace DProjects.Log {
         public LogLevel Level => mLevel;
 
         //methods
-        public void Trace(string message, IDictionary<string, object?>? fields = null, string[]? tags = null, string? source = null, string? user = null, string? resource = null) {
-            Write(new LogEntry(LogLevel.Trace, message, fields, tags, source, user, resource));
+        public void Trace(string message, IDictionary<string, object?>? fields = null, string[]? tags = null, string? source = null, string? user = null, string? resource = null, string? spanId = null, string? traceId = null) {
+            Write(new LogEntry(LogLevel.Trace, message, fields, tags, source, user, resource, default, spanId, traceId));
         }
-        public void Debug(string message, IDictionary<string, object?>? fields = null, string[]? tags = null, string? source = null, string? user = null, string? resource = null) {
-            Write(new LogEntry(LogLevel.Debug, message, fields, tags, source, user, resource));
+        public void Debug(string message, IDictionary<string, object?>? fields = null, string[]? tags = null, string? source = null, string? user = null, string? resource = null, string? spanId = null, string? traceId = null) {
+            Write(new LogEntry(LogLevel.Debug, message, fields, tags, source, user, resource, default, spanId, traceId));
         }
-        public void Info(string message, IDictionary<string, object?>? fields = null, string[]? tags = null, string? source = null, string? user = null, string? resource = null) {
-            Write(new LogEntry(LogLevel.Information, message, fields, tags, source, user, resource));
+        public void Info(string message, IDictionary<string, object?>? fields = null, string[]? tags = null, string? source = null, string? user = null, string? resource = null, string? spanId = null, string? traceId = null) {
+            Write(new LogEntry(LogLevel.Information, message, fields, tags, source, user, resource, default, spanId, traceId));
         }
-        public void Warning(string message, IDictionary<string, object?>? fields = null, string[]? tags = null, string? source = null, string? user = null, string? resource = null) {
-            Write(new LogEntry(LogLevel.Warning, message, fields, tags, source, user, resource));
+        public void Warning(string message, IDictionary<string, object?>? fields = null, string[]? tags = null, string? source = null, string? user = null, string? resource = null, string? spanId = null, string? traceId = null) {
+            Write(new LogEntry(LogLevel.Warning, message, fields, tags, source, user, resource, default, spanId, traceId));
         }
-        public void Error(string message, IDictionary<string, object?>? fields = null, string[]? tags = null, string? source = null, string? user = null, string? resource = null, Exception? exception = null) {
+        public void Error(string message, IDictionary<string, object?>? fields = null, string[]? tags = null, string? source = null, string? user = null, string? resource = null, string? spanId = null, string? traceId = null, Exception? exception = null) {
             if (exception != null) {
                 if (fields == null) fields = new Dictionary<string, object?>();
                 fields["exception"] = ExceptionUtils.GetMessageDetailed(exception);
             }
-            Write(new LogEntry(LogLevel.Error, message, fields, tags, source, user, resource));
+            Write(new LogEntry(LogLevel.Error, message, fields, tags, source, user, resource, default, spanId, traceId));
         }
-        public void Fatal(string message, IDictionary<string, object?>? fields = null, string[]? tags = null, string? source = null, string? user = null, string? resource = null, Exception? exception = null) {
+        public void Fatal(string message, IDictionary<string, object?>? fields = null, string[]? tags = null, string? source = null, string? user = null, string? resource = null, string? spanId = null, string? traceId = null, Exception? exception = null) {
             if (exception != null) {
                 if (fields == null) fields = new Dictionary<string, object?>();
                 fields["exception"] = ExceptionUtils.GetMessageDetailed(exception);

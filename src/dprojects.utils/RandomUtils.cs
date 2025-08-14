@@ -25,14 +25,16 @@ namespace DProjects.Utils {
         public static int GetRandomNumber(int min, int max) {
             return mRandom.Next(min, max);
         }
-        public static byte[] GetRandomKey(int length) {
+        public static byte[] GetRandomNumber(int length) {
             using (var generator = System.Security.Cryptography.RandomNumberGenerator.Create()) {
                 byte[] data = new byte[length];
                 generator.GetBytes(data);
-                data[7] = (byte)((data[7] | (byte)0x40) & (byte)0x4f);
-                data[8] = (byte)((data[8] | (byte)0x80) & (byte)0xbf);
                 return data;
             }
+        }
+        public static string GetRandomNumberHex(int length) {
+            var bytes = GetRandomNumber(length);
+            return BitConverter.ToString(bytes).Replace("-", "").ToLowerInvariant();
         }
 
 

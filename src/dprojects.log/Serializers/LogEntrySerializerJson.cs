@@ -20,6 +20,8 @@ namespace DProjects.Log.Serializers {
             dict["timestamp"] = entry.Date.ToUniversalTime().ToString(DateTimeUtils.DATETIME_ISO8601_MS7);
             dict["level"] = entry.Level.ToString();
             dict["message"] = entry.Message;
+            if (!string.IsNullOrEmpty(entry.SpanId)) dict["spanId"] = entry.SpanId;
+            if (!string.IsNullOrEmpty(entry.TraceId)) dict["traceId"] = entry.TraceId;
             if (!string.IsNullOrEmpty(entry.Resource)) dict["resource"] = entry.Resource;
             if (!string.IsNullOrEmpty(entry.Source)) dict["source"] = entry.Source;
             if (!string.IsNullOrEmpty(entry.User)) dict["user"] = entry.User;

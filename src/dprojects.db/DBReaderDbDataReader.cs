@@ -1,5 +1,6 @@
 using System;
 using System.Data.Common;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
@@ -12,6 +13,7 @@ namespace DProjects.Db {
 
         //inner classes
         public class Settings {
+            public bool AvoidInitializeDBTableFromDataReader { get; set; }
             public Settings() {
             }
         }
@@ -134,57 +136,70 @@ namespace DProjects.Db {
         //private 
         private DBTable InitializeDBTableFromDataReader() {
             var dbTable = new DBTable();
-            //init table columns
-            var schema = mReader.GetSchemaTable();
-            if (schema != null) {
-                //A query returning records was executed
-                //DataTable underlineSchema = null;
+            if (mSettings.AvoidInitializeDBTableFromDataReader) {
+                //avoid initializing the table from the data reader (because it is not needed or is too slow)                
                 for (var i = 0; i < mReader.FieldCount; i++) {
-                    //se situa en la row del schema correspondiente
-                    var dbRow = schema.Rows[i];
-                    //Create a column name that is unique in the data table
-                    string columnName = dbRow["ColumnName"]?.ToString() ?? "";
-                    //Add the column definition to the data table
-                    DBColumn dbColumn = new DBColumn(columnName, (Type)(dbRow["DataType"]));
-                    if ((Type)dbRow["DataType"] == typeof(string)) {
-                        dbColumn.MaxLength = Convert.ToInt32(dbRow["ColumnSize"]);
-                        if (dbColumn.MaxLength < 0) dbColumn.MaxLength = int.MaxValue;
-                    }
-                    if (dbColumn.DBType == typeof(UInt64) && System.Convert.ToInt32(dbRow["Columnsize"]) == 1) {
-                        dbColumn.DBType = typeof(bool);
-                    }
-                    dbColumn.ReadOnly = Convert.ToBoolean(dbRow["IsReadOnly"]);
-                    dbColumn.Required = !Convert.ToBoolean(dbRow.IsNull("AllowDBNull") ? true : dbRow["AllowDBNull"]);
-                    if (dbRow.Table.Columns.Contains("IsAutoIncrement")) {
-                        dbColumn.AutoIncrement = Convert.ToBoolean(dbRow["IsAutoIncrement"]);
-                    }
-                    if (dbRow.Table.Columns.Contains("DefaultValue")) {
-                        if (!dbColumn.AutoIncrement) {
-                            if (!(dbColumn.DBType == typeof(byte[]))) {
-                                if (!(dbRow["DefaultValue"] == System.DBNull.Value) && !(dbRow["DefaultValue"] == null)) {
-                                    dbColumn.DefaultValue = dbRow["DefaultValue"];
+                    var columnName = mReader.GetName(i);
+                    var columnDataTypeName = mReader.GetDataTypeName(i);
+                    var columnDataType = mReader.GetFieldType(i);
+                    DBColumn dbColumn = new DBColumn(columnName, columnDataType);
+                    dbTable.Columns.Add(dbColumn);
+                }
+            } else {
+                //init table columns
+                var schema = mReader.GetSchemaTable();
+                if (schema != null) {
+                    //A query returning records was executed
+                    //DataTable underlineSchema = null;
+                    for (var i = 0; i < mReader.FieldCount; i++) {
+                        //se situa en la row del schema correspondiente
+                        var dbRow = schema.Rows[i];
+                        //Create a column name that is unique in the data table
+                        string columnName = dbRow["ColumnName"]?.ToString() ?? "";
+                        //Add the column definition to the data table
+                        DBColumn dbColumn = new DBColumn(columnName, (Type)(dbRow["DataType"]));
+                        if ((Type)dbRow["DataType"] == typeof(string)) {
+                            dbColumn.MaxLength = Convert.ToInt32(dbRow["ColumnSize"]);
+                            if (dbColumn.MaxLength < 0) dbColumn.MaxLength = int.MaxValue;
+                        }
+                        if (dbColumn.DBType == typeof(UInt64) && System.Convert.ToInt32(dbRow["Columnsize"]) == 1) {
+                            dbColumn.DBType = typeof(bool);
+                        }
+                        if (dbRow.Table.Columns.Contains("IsReadOnly")) {
+                            dbColumn.ReadOnly = Convert.ToBoolean(dbRow["IsReadOnly"]);
+                        }
+                        dbColumn.Required = !Convert.ToBoolean(dbRow.IsNull("AllowDBNull") ? true : dbRow["AllowDBNull"]);
+                        if (dbRow.Table.Columns.Contains("IsAutoIncrement")) {
+                            dbColumn.AutoIncrement = Convert.ToBoolean(dbRow["IsAutoIncrement"]);
+                        }
+                        if (dbRow.Table.Columns.Contains("DefaultValue")) {
+                            if (!dbColumn.AutoIncrement) {
+                                if (!(dbColumn.DBType == typeof(byte[]))) {
+                                    if (!(dbRow["DefaultValue"] == System.DBNull.Value) && !(dbRow["DefaultValue"] == null)) {
+                                        dbColumn.DefaultValue = dbRow["DefaultValue"];
+                                    }
                                 }
                             }
                         }
+                        if (dbColumn.AutoIncrement) dbColumn.ReadOnly = true;
+                        if (dbRow.IsNull("IsUnique")) {
+                            dbColumn.Unique = false;
+                        } else {
+                            dbColumn.Unique = (bool)dbRow["IsUnique"];
+                        }
+                        dbTable.Columns.Add(dbColumn);
+                        if (!dbRow.IsNull("IsKey") && Convert.ToBoolean(dbRow["IsKey"])) {
+                            DBColumn[] array = dbTable.PrimaryKey;
+                            Array.Resize(ref array, array.Length + 1);
+                            array[array.Length - 1] = dbColumn;
+                            dbTable.PrimaryKey = array;
+                        }
                     }
-                    if (dbColumn.AutoIncrement) dbColumn.ReadOnly = true;
-                    if (dbRow.IsNull("IsUnique")) {
-                        dbColumn.Unique = false;
-                    } else {
-                        dbColumn.Unique = (bool)dbRow["IsUnique"];
-                    }
-                    dbTable.Columns.Add(dbColumn);
-                    if (!dbRow.IsNull("IsKey") && Convert.ToBoolean(dbRow["IsKey"])) {
-                        DBColumn[] array = dbTable.PrimaryKey;
-                        Array.Resize(ref array, array.Length + 1);
-                        array[array.Length - 1] = dbColumn;
-                        dbTable.PrimaryKey = array;
-                    }
+                } else {
+                    //No records were returned
+                    mNoResults = true;
+                    dbTable.Columns.Add("RowsAffected", typeof(long));
                 }
-            } else {
-                //No records were returned
-                mNoResults = true;
-                dbTable.Columns.Add("RowsAffected", typeof(long));
             }
             return dbTable;
 

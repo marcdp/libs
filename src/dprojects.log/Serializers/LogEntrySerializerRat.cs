@@ -43,6 +43,14 @@ namespace DProjects.Log.Serializers {
                 result.Append(" | user: ");
                 result.Append(logEntry.User.Replace("|", "\\u007C"));
             }
+            if (logEntry.SpanId != null && logEntry.SpanId.Length > 0) {
+                result.Append(" | spanId: ");
+                result.Append(logEntry.SpanId.Replace("|", "\\u007C"));
+            }
+            if (logEntry.TraceId != null && logEntry.TraceId.Length > 0) {
+                result.Append(" | traceId: ");
+                result.Append(logEntry.TraceId.Replace("|", "\\u007C"));
+            }
             if (logEntry.Fields != null) {
                 var keys = new List<string>();
                 foreach (string? key in logEntry.Fields.Keys) {

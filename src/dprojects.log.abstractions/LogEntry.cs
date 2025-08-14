@@ -17,6 +17,8 @@ namespace DProjects.Log {
         public string[]? Tags { get; set; }
         public string? Source { get; set; }
         public string? User { get; set; }
+        public string? SpanId { get; set; }
+        public string? TraceId { get; set; }
 
 
         //constructor
@@ -25,7 +27,7 @@ namespace DProjects.Log {
             Level = LogLevel.Information;
             Message = "";
         }
-        public LogEntry(LogLevel logLevel, string message, IDictionary<string, object?>? fields = null, string[]? tags = null, string? source = "", string? user = "", string? resource = null, DateTime aDate = default) {
+        public LogEntry(LogLevel logLevel, string message, IDictionary<string, object?>? fields = null, string[]? tags = null, string? source = "", string? user = "", string? resource = null, DateTime aDate = default, string? spanId = null, string? traceId = null) {
             if (aDate == default) aDate = DateTime.MinValue;
             this.Date = (aDate == default) ? DateTime.Now : aDate;
             this.Message = message;
@@ -35,6 +37,8 @@ namespace DProjects.Log {
             this.Level = logLevel;
             this.Fields = fields;
             this.Tags = tags;
+            this.SpanId = spanId;
+            this.TraceId = traceId;
         }
 
 

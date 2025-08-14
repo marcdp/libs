@@ -2,6 +2,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Data;
 using System.Drawing;
 using System.Globalization;
@@ -431,7 +432,7 @@ namespace DProjects.Utils {
         }
         public static object? To(object? aObject, Type type, bool throwExceptionIfUnableToConvert, Func<Type, string, object>? getService = null) {
             if (aObject == null) {
-            } else if (aObject.GetType() != type && !aObject.GetType().GetTypeInfo().IsSubclassOf(type)) {             
+            } else if (aObject.GetType() != type && !aObject.GetType().GetTypeInfo().IsSubclassOf(type)) {
                 if (type == typeof(DateTime) || type == typeof(DateTime?)) {
                     if (aObject is string && (aObject).ToString() == "") {
                         if (type == typeof(DateTime?)) {
@@ -442,7 +443,7 @@ namespace DProjects.Utils {
                     } else if (aObject is string && "now".Equals(aObject.ToString(), StringComparison.CurrentCultureIgnoreCase)) {
                         aObject = DateTime.Now;
                     } else if (aObject is string) {
-                        if (aObject is string && aObject.ToString().IndexOf("- ")!=-1) {
+                        if (aObject is string && aObject.ToString().IndexOf("- ") != -1) {
                             aObject = aObject.ToString().Replace("- ", "-").Replace(".", ":");
                         }
                         try {
@@ -452,6 +453,27 @@ namespace DProjects.Utils {
                         }
                     } else {
                         aObject = Convert.ToDateTime(aObject);
+                    }
+                } else if(type == typeof(DateTimeOffset) || type == typeof(DateTimeOffset?)) {
+                    if (aObject is string && (aObject).ToString() == "") {
+                        if (type == typeof(DateTimeOffset?)) {
+                            aObject = new Nullable<DateTimeOffset>();
+                        } else {
+                            aObject = default(DateTimeOffset);
+                        }
+                    } else if (aObject is string && "now".Equals(aObject.ToString(), StringComparison.CurrentCultureIgnoreCase)) {
+                        aObject = DateTimeOffset.Now;
+                    } else if (aObject is string) {
+                        if (aObject is string && aObject.ToString().IndexOf("- ") != -1) {
+                            aObject = aObject.ToString().Replace("- ", "-").Replace(".", ":");
+                        }
+                        try {
+                            aObject = new DateTimeOffsetConverter().ConvertFrom(aObject);
+                        } catch (System.FormatException) {
+                            aObject = DateTimeUtils.Parse((string)aObject);
+                        }
+                    } else {
+                        aObject = new DateTimeOffsetConverter().ConvertFrom(aObject);
                     }
                 } else if (type == typeof(TimeSpan)) {
                     if (aObject is string) {
