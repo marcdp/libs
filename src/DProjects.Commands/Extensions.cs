@@ -19,8 +19,9 @@ namespace DProjects.Commands {
 
             services.AddScoped<IEnvironment>(sp => {
                 var configuration = sp.GetRequiredService<Configuration>();
+                var commandsManager = sp.GetRequiredService<CommandsManager>();
                 // Create a new environment with the current service provider and configuration
-                return new Environment();
+                return new Environment(commandsManager);
             });
         }
     }

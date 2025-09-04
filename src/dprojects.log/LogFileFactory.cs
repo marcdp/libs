@@ -24,13 +24,20 @@ namespace DProjects.Log {
             var level = UrlUtils.GetQueryValue(url.Query, "level", LogLevel.Information);
             var path = url.AbsolutePath;
             if (DProjects.Utils.EnvironmentUtils.IsWindows()) {
-                path = path[1] + ":" + path.Substring(2).Replace('/', System.IO.Path.DirectorySeparatorChar);
+                if (path.Length > 2 && path[1] == ':') {
+                    // convert windows path to filesystem path .g. C:/path/to/file -> C:\path\to\file
+                    path = path.Replace('/', System.IO.Path.DirectorySeparatorChar);
+                } else {
+                    // convert unix style path to windows style
+                    path = path[1] + ":" + path.Substring(2).Replace('/', System.IO.Path.DirectorySeparatorChar);
+                }
             }
-            var filesystem = filesystemFactory.Create(path + (init ? "?init=true" : "") );
             if (type.Equals("dir")) {
+                var filesystem = filesystemFactory.Create(path + (init ? "?init=true" : ""));
                 return new LogFsDir(filesystem, "/", suffix, autoFlush, useWriterThread, logFormatter, dateTimePattern, level, extension);
             } else if (type.Equals("file")) {
-                return new LogFsFile(filesystem, url.AbsolutePath, truncate, autoFlush, useWriterThread, logFormatter, level);
+                var filesystem = filesystemFactory.Create(path + "?file=true&init=true");
+                return new LogFsFile(filesystem, "/", truncate, autoFlush, useWriterThread, logFormatter, level);
             } else {
                 throw new ArgumentException("Invalid type: " + type);
             }

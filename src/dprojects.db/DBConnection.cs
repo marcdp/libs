@@ -49,10 +49,12 @@ namespace DProjects.Db {
             if (!mIsDisposed) {
                 mIsDisposed = true;
                 if (mConnection != null) {
-                    mConnection.Close();
-                    mConnection.Dispose();
-                };
-                Disposed?.Invoke(this);
+                    var connection = mConnection;
+                    mConnection = null!;
+                    connection.Close();
+                    connection.Dispose();
+                    Disposed?.Invoke(this);                    
+                }
             }
         }
 
@@ -238,7 +240,7 @@ namespace DProjects.Db {
             try {
                 return await command.ExecuteNonQueryAsync();
             } catch (Exception e) {
-                throw new Exception("Error in DBConnectionData.ExecuteNonQuery(\'" + command.CommandText + "\')", e);
+                throw new Exception($"Error in DBConnectionData.ExecuteNonQuery(\'{command.CommandText}\')", e);
             }
         }
         public virtual T ExecuteScalar<T>(string sql, object?[]? parameters = null) {

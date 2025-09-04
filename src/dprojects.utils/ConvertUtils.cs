@@ -7,6 +7,7 @@ using System.Data;
 using System.Drawing;
 using System.Globalization;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 using System.Xml.Linq;
@@ -463,6 +464,8 @@ namespace DProjects.Utils {
                         }
                     } else if (aObject is string && "now".Equals(aObject.ToString(), StringComparison.CurrentCultureIgnoreCase)) {
                         aObject = DateTimeOffset.Now;
+                    } else if (aObject is long) {
+                        aObject = DateTimeOffset.FromUnixTimeMilliseconds((long)aObject);
                     } else if (aObject is string) {
                         if (aObject is string && aObject.ToString().IndexOf("- ") != -1) {
                             aObject = aObject.ToString().Replace("- ", "-").Replace(".", ":");

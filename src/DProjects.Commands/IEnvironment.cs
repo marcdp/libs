@@ -1,3 +1,6 @@
+using System.Threading;
+using System.Threading.Tasks;
+
 namespace DProjects.Commands {
     public interface IEnvironment {
 
@@ -7,6 +10,8 @@ namespace DProjects.Commands {
 
         public void GetVariable(string name);
         public void SetVariable(string name, string value);
+
+        public Task<int> ExecuteAsync(string[] args, CancellationToken cancellationToken);
 
     }
 

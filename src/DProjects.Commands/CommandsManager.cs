@@ -11,11 +11,12 @@ using DProjects.Factories;
 using DProjects.Utils;
 
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace DProjects.Commands {
 
 
-    public class CommandsManager(IServiceProvider services, Configuration configuration) {
+    public class CommandsManager(IServiceProvider services, Configuration configuration, ILogger<CommandsManager> logger) {
 
 
         //methods
@@ -61,7 +62,7 @@ namespace DProjects.Commands {
         }
         public async Task<int> ExecuteAsync(string[] args, CancellationToken cancellationToken) {
 
-            //create scropscope
+            //create scoped services
             using var scopedServices = services.CreateScope();
 
             // get command name
@@ -128,6 +129,9 @@ namespace DProjects.Commands {
                 await System.Console.Error.WriteLineAsync(error);
                 return Errors.ERROR_INVALID_ARGUMENTS;
             }
+
+            // logger
+            logger.LogInformation("Executing command: {CommandName}", cmdSchemaDefinition.Name);
 
             // execute
             int result = await instance.ExecuteAsync(cancellationToken);

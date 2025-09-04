@@ -4,6 +4,8 @@ using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Runtime.CompilerServices;
+using System.Linq;
+using System.Reflection;
 
 namespace DProjects.Utils {
 
@@ -48,7 +50,6 @@ namespace DProjects.Utils {
         public static async Task<T[]> ToArrayAsync<T>(this IAsyncEnumerable<T> collection) {
             return [.. (await collection.ToListAsync())];
         }
-
 
         //utils
         public static async IAsyncEnumerable<T> ToAsyncEnumerable<T>(this IEnumerable<T> enumerable, [EnumeratorCancellation] CancellationToken cancellationToken = default) {

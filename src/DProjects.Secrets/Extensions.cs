@@ -57,6 +57,7 @@ namespace DProjects.Secrets {
                 secretProvider = CreateSecretProvider(configuration["Secrets"]!);
             }
             // scan all configuration keypairs
+            var now = DateTime.Now;
             var items = new Dictionary<string, string>();
             foreach (var child in configuration.AsEnumerable()) {
                 if (child.Value != null) {
@@ -70,11 +71,26 @@ namespace DProjects.Secrets {
                                 var key = value.Substring(i + 2, j - i - 2);
                                 var replacement = "";
                                 if (key.Equals("date")) {
-                                    replacement = DateTime.Now.ToString(DateTimeUtils.DATETIME_ISO8601_DATE);
+                                    replacement = now.ToString(DateTimeUtils.DATETIME_ISO8601_DATE);
                                 } else if (key.Equals("datetime")) {
-                                    replacement = DateTime.Now.ToString(DateTimeUtils.DATETIME_ISO8601);
+                                    replacement = now.ToString(DateTimeUtils.DATETIME_ISO8601);
                                 } else if (key.Equals("time")) {
-                                    replacement = DateTime.Now.ToString(DateTimeUtils.DATETIME_ISO8601_TIME);
+                                    replacement = now.ToString(DateTimeUtils.DATETIME_ISO8601_TIME);
+
+                                } else if (key.Equals("year")) {
+                                    replacement = now.Year.ToString("D2");
+                                } else if (key.Equals("month")) {
+                                    replacement = now.Month.ToString("D2");
+                                } else if (key.Equals("day")) {
+                                    replacement = now.Day.ToString("D2");
+
+                                } else if (key.Equals("hour")) {
+                                    replacement = now.Hour.ToString("D2");
+                                } else if (key.Equals("minute")) {
+                                    replacement = now.Minute.ToString("D2");
+                                } else if (key.Equals("second")) {
+                                    replacement = now.Second.ToString("D2");
+
                                 } else if (key.Equals("pid")) {
                                     replacement = System.Diagnostics.Process.GetCurrentProcess().Id.ToString();
                                 } else if (key.Equals("hostname")) {
@@ -83,6 +99,14 @@ namespace DProjects.Secrets {
                                     replacement = System.Environment.UserName;
                                 } else if (key.Equals("cwd")) {
                                     replacement = System.Environment.CurrentDirectory;
+
+                                } else if (key.StartsWith("config:")) {
+                                    var variable = key.Substring(key.IndexOf(":") + 1);
+                                    if (items.ContainsKey(variable)) {
+                                        replacement = items[variable];
+                                    } else {
+                                        replacement = configuration.GetValue<string>(variable);
+                                    }
                                 } else if (key.StartsWith("env:")) {
                                     var variable = key.Substring(key.IndexOf(":")+1);
                                     replacement = System.Environment.GetEnvironmentVariable(variable);

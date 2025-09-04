@@ -344,6 +344,33 @@ namespace DProjects.Commands.Schema {
                                     i -= 1;
                                     value = list.ToArray();
                                     continue;
+                                } else if (flag.Type.IsArray && flag.Type.GetElementType() != null) {
+                                    //array of typed objects T[]
+                                    var elementType = flag.Type.GetElementType();
+                                    var list = new List<object>();
+                                    if (flag.Default != null && value == flag.Default) {
+                                    } else {
+                                        if (value != null) list.AddRange((object[])value);
+                                    }
+                                    var aux = (object) arguments[i + 1];
+                                    try {
+                                        var valueOfType = ConvertUtils.To(aux, flag.Type.GetElementType(), true, getService);
+                                        list.Add(valueOfType);
+                                    } catch (Exception e) {
+                                        if (e is TargetInvocationException tie) e = tie.InnerException ?? e;
+                                        errors.Add(Name + ": flag --" + flagName + " invalid: " + e.Message);
+                                    }
+                                    arguments.RemoveAt(i + 1);
+                                    arguments.RemoveAt(i);
+                                    i -= 1;
+
+                                    var array = Array.CreateInstance(elementType, list.Count);
+                                    for (int k = 0; k < list.Count; k++) {
+                                        array.SetValue(list[k], k);
+                                    }
+                                    value = array;
+
+                                    continue;
                                 } else {
                                     //single value
                                     var aux = arguments[i + 1];
@@ -367,6 +394,7 @@ namespace DProjects.Commands.Schema {
                             flag.PropertyInfo?.SetValue(instance, valueOfType);
                             dictionary?.Add(flag.Alias ?? flag.Name, value);
                         } catch (Exception e) {
+                            if (e is TargetInvocationException tie) e = tie.InnerException ?? e;
                             errors.Add(Name + ": flag --" + flagName + " invalid: " + e.Message);
                         }
                     }
@@ -467,6 +495,7 @@ namespace DProjects.Commands.Schema {
                                     argument.PropertyInfo?.SetValue(instance, valueOfType);
                                     dictionary?.Add(argument.Name, value);
                                 } catch (Exception e) {
+                                    if (e is TargetInvocationException tie) e = tie.InnerException ?? e;
                                     errors.Add(Name + ": argument '" + argument.Name.ToLower() + "' invalid: " + e.Message);
                                 }
                             }
