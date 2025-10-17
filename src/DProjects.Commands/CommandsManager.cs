@@ -27,8 +27,12 @@ namespace DProjects.Commands {
             sb.AppendLine();
             //commands
             sb.AppendLine("commands:");
+            int commandNameLength = 0;
             foreach (var command in configuration.Commands.Values) {
-                sb.AppendLine($"  {command.Name.Replace("-", " "),-15} {command.Description}");
+                commandNameLength = Math.Max(commandNameLength, command.Name.Length);
+            }
+            foreach (var command in configuration.Commands.Values) {
+                sb.AppendLine($"  {command.Name.Replace("-", " ").PadRight(commandNameLength+5)} {(command.Description.Length>0? "# " : "") + command.Description}");
             }
             sb.AppendLine();
             //

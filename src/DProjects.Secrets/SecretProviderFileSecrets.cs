@@ -38,7 +38,7 @@ namespace DProjects.Secrets {
             return JsonNode.Parse(json)!.AsObject();
         }
         private async Task<JsonObject?> LoadJsonAsync(CancellationToken cancellationToken) {
-            var json = FileUtils.ReadTextFile(path);
+            var json = await FileUtils.ReadTextFileAsync(path);
             return JsonNode.Parse(json)!.AsObject();
         }
     }

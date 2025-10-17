@@ -14,14 +14,19 @@ namespace DProjects.Commands {
         // inner classes
         public class Input : IInput {
             private Stream mStream;
+            private StreamReader mStreamReader;
             public Input() {
                 mStream = System.Console.OpenStandardInput();
+                mStreamReader = new StreamReader(mStream, System.Console.InputEncoding, true, 1024, true);
             }
             public void Dispose() {
                 mStream.Dispose();
             }
             public TextReader CreateTextReader() {
-                return new StreamReader(mStream, System.Console.InputEncoding, true, 1024, true);
+                return mStreamReader;
+            }
+            public async Task<string> ReadLineAsync(CancellationToken cancellationToken = default) {
+                return await mStreamReader.ReadLineAsync();
             }
         }
         public class Output(Output.Mode mode) : IOutput {

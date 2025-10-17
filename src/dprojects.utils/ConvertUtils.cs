@@ -466,6 +466,8 @@ namespace DProjects.Utils {
                         aObject = DateTimeOffset.Now;
                     } else if (aObject is long) {
                         aObject = DateTimeOffset.FromUnixTimeMilliseconds((long)aObject);
+                    } else if (aObject is decimal) {
+                        aObject = DateTimeOffset.FromUnixTimeMilliseconds(decimal.ToInt64((decimal)aObject));
                     } else if (aObject is string) {
                         if (aObject is string && aObject.ToString().IndexOf("- ") != -1) {
                             aObject = aObject.ToString().Replace("- ", "-").Replace(".", ":");
