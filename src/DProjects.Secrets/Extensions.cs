@@ -59,6 +59,7 @@ namespace DProjects.Secrets {
             // scan all configuration keypairs
             var now = DateTime.Now;
             var items = new Dictionary<string, string>();
+            
             foreach (var child in configuration.AsEnumerable()) {
                 if (child.Value != null) {
                     var i = child.Value.IndexOf("${");

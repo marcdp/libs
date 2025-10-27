@@ -8,6 +8,7 @@ namespace DProjects.Utils {
         //constants
         public const string DATETIME_ISO8601 = "yyyy-MM-ddTHH:mm:ssK";
         public const string DATETIME_ISO8601_MS = "yyyy-MM-ddTHH:mm:ss.fffK";
+        public const string DATETIME_ISO8601_MSZ = "yyyy-MM-ddTHH:mm:ss.fffZ";
         public const string DATETIME_ISO8601_MS1 = "yyyy-MM-ddTHH:mm:ss.fK";
         public const string DATETIME_ISO8601_MS2 = "yyyy-MM-ddTHH:mm:ss.ffK";
         public const string DATETIME_ISO8601_MS4 = "yyyy-MM-ddTHH:mm:ss.ffffK";

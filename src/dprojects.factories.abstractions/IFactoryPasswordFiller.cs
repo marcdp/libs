@@ -1,14 +1,14 @@
 
 
-namespace DProjects.Factories {
+//namespace DProjects.Factories {
 
 
-    public interface IFactoryPasswordFiller {
+//    public interface IFactoryPasswordFiller {
 
-        //methods
-        bool FillPassword(ref string url);
+//        //methods
+//        bool FillPassword(ref string url);
         
-    }
+//    }
 
 
-}
+//}

@@ -47,21 +47,33 @@ namespace DProjects.Factories {
             //if (url.StartsWith("/")) url = "fs://" + url;
             //add dots if required
             if (url.Length > 0 && url.IndexOf(":") == -1) url += ":";
-            //fill userInfo password
+            ////fill userInfo password
             var scheme = (url.Length > 0 ? url.Substring(0, url.IndexOf(':')) : "");
-            if (url.Length > 0) {
-                var aUrl = new Uri(url);
-                if ((!string.IsNullOrEmpty(aUrl.UserInfo) && aUrl.UserInfo.IndexOf(":") == -1) || StringUtils.SeemsConnectionString(url)) {
-                    var passwordFiller = mServiceProvider.GetService<IFactoryPasswordFiller>();
-                    if (passwordFiller != null) {
-                        passwordFiller.FillPassword(ref url);
-                    }
-                }
-            }
+            //if (url.Length > 0) {
+            //    var aUrl = new Uri(url);
+            //    if ((!string.IsNullOrEmpty(aUrl.UserInfo) && aUrl.UserInfo.IndexOf(":") == -1) || StringUtils.SeemsConnectionString(url)) {
+            //        var passwordFiller = mServiceProvider.GetService<IFactoryPasswordFiller>();
+            //        if (passwordFiller != null) {
+            //            passwordFiller.FillPassword(ref url);
+            //        }
+            //    } else if (!string.IsNullOrEmpty(aUrl.UserInfo) && aUrl.UserInfo.IndexOf("$%7Bsecret:") != -1) { 
+            //        int kk=123;
+            //    }
+            //}
             //try return default instance
             if (url.Length == 0) {
                 var defaultInstance = mServiceProvider.GetService<TType>();
                 if (defaultInstance != null) return defaultInstance;
+            }
+            //try get handler
+            var handler = mConfiguration.Handlers.Where(x => x.Name.Equals(scheme)).Select(x => x.Handler).FirstOrDefault();
+            if (handler != null) {
+                //create from handler
+                var instanceFromHandler = handler(mServiceProvider, url);
+                //register IDisposable instance
+                if (instanceFromHandler is IDisposable instanceFromHandlerDisposable) mDisposables.Add(instanceFromHandlerDisposable);
+                //return
+                return instanceFromHandler;
             }
             //create instance
             var protocol = mConfiguration.Protocols.Where(x => x.Name.Equals(scheme)).FirstOrDefault();
@@ -114,15 +126,15 @@ namespace DProjects.Factories {
             if (url.Length > 0 && url.IndexOf(":") == -1) url += ":";
             //fill userInfo password
             var scheme = (url.Length > 0 ? url.Substring(0, url.IndexOf(':')) : "");
-            if (url.Length > 0) {
-                var aUrl = new Uri(url);
-                if ((!string.IsNullOrEmpty(aUrl.UserInfo) && aUrl.UserInfo.IndexOf(":") == -1) || StringUtils.SeemsConnectionString(url)) {
-                    var passwordFiller = mServiceProvider.GetService<IFactoryPasswordFiller>();
-                    if (passwordFiller != null) {
-                        passwordFiller.FillPassword(ref url);
-                    }
-                }
-            }
+            //if (url.Length > 0) {
+            //    var aUrl = new Uri(url);
+            //    if ((!string.IsNullOrEmpty(aUrl.UserInfo) && aUrl.UserInfo.IndexOf(":") == -1) || StringUtils.SeemsConnectionString(url)) {
+            //        var passwordFiller = mServiceProvider.GetService<IFactoryPasswordFiller>();
+            //        if (passwordFiller != null) {
+            //            passwordFiller.FillPassword(ref url);
+            //        }
+            //    }
+            //}
             //try return default instance
             if (url.Length == 0) {
                 var defaultInstance = mServiceProvider.GetService<TType>();

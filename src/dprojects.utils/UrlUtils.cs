@@ -115,6 +115,40 @@ namespace DProjects.Utils {
         public static NameValueCollection ParseQueryString(string query, Encoding encoding) {
             return HttpUtility.ParseQueryString(query, encoding);
         }
+        public static T ParseQueryString<T>(string query, Encoding encoding, bool argumentsRequired = false) where T : class {
+            var values = HttpUtility.ParseQueryString(query, encoding);
+            // Get the primary constructor
+            var ctor = typeof(T).GetConstructors().Single();
+            var parameters = ctor.GetParameters();
+            // Build the arguments array by matching parameter names
+            var args = new List<object>();
+            foreach (var param in parameters) {
+                object? arg = values[param.Name.ToLower()] ?? values[param.Name];
+                if (arg == null && param.HasDefaultValue) arg = param.DefaultValue;
+                if (arg == null) arg = (param.ParameterType.IsValueType ? Activator.CreateInstance(param.ParameterType) : null);
+                if (arg == null && argumentsRequired) throw new ArgumentNullException($"Unable to deserialize Querystring '{query}' to object of type '{typeof(T).Name}', argument '{param.Name}' required.");
+                args.Add(Convert.ChangeType(arg, param.ParameterType));
+            }
+            // create and return
+            return (T)ctor.Invoke(args.ToArray());
+        }
+        public static object ParseQueryString(Type type, string query, Encoding encoding, bool argumentsRequired = false) {
+            var values = HttpUtility.ParseQueryString(query, encoding);
+            // Get the primary constructor
+            var ctor = type.GetConstructors().Single();
+            var parameters = ctor.GetParameters();
+            // Build the arguments array by matching parameter names
+            var args = new List<object>();
+            foreach (var param in parameters) {
+                object? arg = values[param.Name.ToLower()] ?? values[param.Name];
+                if (arg == null && param.HasDefaultValue) arg = param.DefaultValue;
+                if (arg == null) arg = (param.ParameterType.IsValueType ? Activator.CreateInstance(param.ParameterType) : null);
+                if (arg == null && argumentsRequired) throw new ArgumentNullException($"Unable to deserialize Querystring '{query}' to object of type '{type.Name}', argument '{param.Name}' required.");
+                args.Add(Convert.ChangeType(arg, param.ParameterType));
+            }
+            // create and return
+            return ctor.Invoke(args.ToArray());
+        }
         public static T? GetQueryValue<T>(string query, string key) {
             var nameValueCollection = HttpUtility.ParseQueryString(query);
             var values = nameValueCollection.GetValues(key);

@@ -1235,6 +1235,23 @@ namespace DProjects.Db {
                     }
                 }
                 return "'" + System.Convert.ToDateTime(value).ToString(DateTimeUtils.DATETIME_ISO8601) + "'";
+            //} else if (type == typeof(DateTimeOffset)) {
+            //    if (value is DateTimeOffset) value = ((DateTimeOffset)value).DateTime;
+            //    if (value == null || (value == System.DBNull.Value)) {
+            //        if (allowNull) {
+            //            return "NULL";
+            //        } else {
+            //            return "'1/1/1'";
+            //        }
+            //    }
+            //    if (System.Convert.ToDateTime(value).Equals(System.Convert.ToDateTime(null))) {
+            //        if (allowNull) {
+            //            return "NULL";
+            //        } else {
+            //            return "'1/1/1'";
+            //        }
+            //    }
+            //    return "'" + System.Convert.ToDateTime(value).ToString(DateTimeUtils.DATETIME_ISO8601_MSZ) + "'";
             } else if (type == typeof(bool)) {
                 if (value == null || (value == System.DBNull.Value)) {
                     if (allowNull) {
