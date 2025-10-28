@@ -1,8 +1,10 @@
+using DProjects.Secrets;
 using DProjects.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace DProjects.Factories {
 
@@ -10,13 +12,16 @@ namespace DProjects.Factories {
     
     public class FactoryByUrl<TType> : IDisposable, IFactoryByUrl<TType> where TType : class {
 
+        // const
+        //private static readonly Regex mSecretRegex = new(@"\$\{secret:(?<name>[A-Za-z0-9_\-]+)\}", RegexOptions.Compiled);
+        private static readonly Regex mSecretRegex = new(@"\$\{secret:(?<name>[^}]+)\}", RegexOptions.Compiled);
 
-        //variables
+        // variables
         private IServiceProvider mServiceProvider;
         private FactoryByUrlConfiguration<TType> mConfiguration; 
         private List<IDisposable> mDisposables;
 
-        //constructor
+        // ctor
         public FactoryByUrl(FactoryByUrlConfiguration<TType> configuration, IServiceProvider serviceProvider) {
             mConfiguration = configuration;
             mServiceProvider = serviceProvider;
@@ -36,30 +41,25 @@ namespace DProjects.Factories {
 
         //methods
         public TType Create(string url) {
-            //validations
-            //if (url.StartsWith("/")) url = "fs://" + url;
             //aliases
             url = mConfiguration.Aliases.Where(x => x.Name.Equals(url)).Select(x => x.Value).DefaultIfEmpty(url).FirstOrDefault();
             //windows path
             if (url.Length > 2 && url[1] == ':' && url[2] == '\\') {
                 url = "file:///" + url.Replace("\\", "/").Replace(":", "");
             }
-            //if (url.StartsWith("/")) url = "fs://" + url;
             //add dots if required
             if (url.Length > 0 && url.IndexOf(":") == -1) url += ":";
-            ////fill userInfo password
+            //fill userInfo password
             var scheme = (url.Length > 0 ? url.Substring(0, url.IndexOf(':')) : "");
-            //if (url.Length > 0) {
-            //    var aUrl = new Uri(url);
-            //    if ((!string.IsNullOrEmpty(aUrl.UserInfo) && aUrl.UserInfo.IndexOf(":") == -1) || StringUtils.SeemsConnectionString(url)) {
-            //        var passwordFiller = mServiceProvider.GetService<IFactoryPasswordFiller>();
-            //        if (passwordFiller != null) {
-            //            passwordFiller.FillPassword(ref url);
-            //        }
-            //    } else if (!string.IsNullOrEmpty(aUrl.UserInfo) && aUrl.UserInfo.IndexOf("$%7Bsecret:") != -1) { 
-            //        int kk=123;
-            //    }
-            //}
+            if (url.Length > 0 && url.IndexOf("${secret:")!=-1) {
+                var secretProvider = mServiceProvider.GetRequiredService<ISecretProvider>();
+                url = mSecretRegex.Replace(url, (match) => {
+                    var name = match.Groups["name"].Value;
+                    var secret = secretProvider.Get(name) ?? throw new KeyNotFoundException($"Secret not found: {name}"); ;
+                    var value = secret.GetValue();
+                    return value;
+                });
+            }
             //try return default instance
             if (url.Length == 0) {
                 var defaultInstance = mServiceProvider.GetService<TType>();

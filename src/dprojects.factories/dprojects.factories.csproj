@@ -32,6 +32,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\DProjects.Factories.Abstractions\DProjects.Factories.Abstractions.csproj" />
+      <ProjectReference Include="..\DProjects.Secrets.Abstractions\DProjects.Secrets.Abstractions.csproj" />
       <ProjectReference Include="..\DProjects.Utils\DProjects.Utils.csproj" />
     </ItemGroup>
 

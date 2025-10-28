@@ -357,6 +357,18 @@ namespace DProjects.Utils {
             return result.ToString().Replace("--", "-").Replace("--", "-");
         }
 
+        // remove user info from urls
+        public static string RemoveUserInfoFromUrls(string input) {
+            if (string.IsNullOrEmpty(input))
+                return input;
+            // Pattern that matches schemes and userinfo before '@'
+            const string pattern = @"\b(?<scheme>[a-zA-Z][a-zA-Z0-9+\-.]*://)(?<userinfo>[^/\s@]+@)";
+            return System.Text.RegularExpressions.Regex.Replace(
+                input,
+                pattern,
+                m => m.Groups["scheme"].Value // keep scheme only
+            );
+        }
     }
 
 }
