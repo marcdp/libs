@@ -41,6 +41,7 @@ namespace DProjects.Utils {
 
 
         public const string ERASE_DISPLAY_FROM_CURSOR_DOWN = ESC + "[J";
+        public const string ERASE_DISPLAY_FROM_CURSOR_UP = ESC + "[1J";
         public const string ERASE_DISPLAY = ESC + "[2J";
 
         public const string ERASE_END_OF_LINE = ESC + "[0K";

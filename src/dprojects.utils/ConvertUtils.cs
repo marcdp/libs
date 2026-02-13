@@ -12,6 +12,8 @@ using System.Text;
 using System.Text.Json;
 using System.Xml.Linq;
 
+using DProjects.DataTypes;
+
 namespace DProjects.Utils {
 
 
@@ -822,6 +824,12 @@ namespace DProjects.Utils {
                         aObject = null;
                     } else {
                         aObject = System.Version.Parse(aObject.ToString() ?? "");
+                    }
+                } else if (type == typeof(Timestamp)) {
+                    if (aObject == null) {
+                        aObject = null;
+                    } else {
+                        aObject = Timestamp.Parse(aObject.ToString() ?? "");
                     }
                 } else if (type == typeof(System.Drawing.Color)) {
                     if (aObject == null) {

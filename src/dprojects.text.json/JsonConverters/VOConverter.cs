@@ -4,7 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using DProjects.DataTypes;
+using DProjects.DataObjects;
 
 namespace DProjects.Text.Json.JsonConverters {
 

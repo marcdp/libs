@@ -31,7 +31,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\DProjects.Datatypes\DProjects.Datatypes.csproj" />
       <ProjectReference Include="..\DProjects.Serialization.Abstractions\DProjects.Serialization.Abstractions.csproj" />
       <ProjectReference Include="..\DProjects.Utils\DProjects.Utils.csproj" />
     </ItemGroup>

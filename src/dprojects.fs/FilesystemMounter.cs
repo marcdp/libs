@@ -24,8 +24,7 @@ namespace DProjects.Fs {
         //variables
         private List<MountPoint> mMountPoints;
         private StringComparison mStringComparison;
-        private int mId;
-
+        
 
         //constructor
         public FilesystemMounter(bool isReadonly = false) : base(isReadonly) {
@@ -517,9 +516,6 @@ namespace DProjects.Fs {
             return result;
         }
         private Entry PrefixPathEntry(MountPoint mountPoint, Entry entry, bool forceReadonly = false) {
-            if (!string.IsNullOrEmpty(mountPoint.Prefix)) {
-                int kk = 13;
-            }
             string newPath = PathUtils.Combine(mountPoint.Path, PathUtils.Uncombine(mountPoint.Prefix, entry.Path, mStringComparison));
             //string newPath = PathUtils.Uncombine(mountPoint.Prefix, PathUtils.Combine(mountPoint.Path, entry.Path), mStringComparison);
             return entry.WithPath(newPath);

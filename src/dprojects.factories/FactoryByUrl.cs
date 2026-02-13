@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 
 namespace DProjects.Factories {
@@ -42,7 +43,22 @@ namespace DProjects.Factories {
         //methods
         public TType Create(string url) {
             //aliases
-            url = mConfiguration.Aliases.Where(x => x.Name.Equals(url)).Select(x => x.Value).DefaultIfEmpty(url).FirstOrDefault();
+            if (url.IndexOf(":") == -1 && url.IndexOf("?") != -1) {
+                // aliases with query (ex: my_alias?var1=a&var2=b)
+                var name = url.Split('?')[0];
+                var query = url.Substring(name.Length + 1);
+                var aux = mConfiguration.Aliases.Where(x => x.Name.Equals(name)).Select(x => x.Value).FirstOrDefault();
+                if (aux != null) {
+                    var queryValues = UrlUtils.ParseQueryString(query);
+                    foreach(var key in queryValues.AllKeys) {
+                        aux = UrlUtils.ReplaceQueryValue(aux, key, queryValues[key]);
+                    }
+                    url = aux;
+                }
+            } else {
+                // aliases without query (ex: my_alias)
+                url = mConfiguration.Aliases.Where(x => x.Name.Equals(url)).Select(x => x.Value).DefaultIfEmpty(url).FirstOrDefault();
+            }
             //windows path
             if (url.Length > 2 && url[1] == ':' && url[2] == '\\') {
                 url = "file:///" + url.Replace("\\", "/").Replace(":", "");

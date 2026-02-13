@@ -148,6 +148,15 @@ namespace DProjects.Utils {
             }
             return false;
         }
+        public static long ToUnixTimeNanoseconds(DateTime dateTime) {
+            if (dateTime.Kind == DateTimeKind.Local) {
+                dateTime = dateTime.ToUniversalTime();
+            } else if (dateTime.Kind == DateTimeKind.Unspecified) {
+                dateTime = DateTime.SpecifyKind(dateTime, DateTimeKind.Utc);
+            }
+            var dto = new DateTimeOffset(dateTime);
+            return dto.ToUnixTimeMilliseconds() * 1_000_000 + (dto.Ticks % TimeSpan.TicksPerMillisecond) * 100;
+        }
 
 
         //text to date format

@@ -3,7 +3,11 @@ using DProjects.Utils;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Data;
+using System.Data.Common;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
 
 namespace DProjects.Db.Sqlite {
@@ -12,7 +16,7 @@ namespace DProjects.Db.Sqlite {
         
         //constructor
         public DBConnectionSqlite(string name, string connectionString) : base(name, connectionString, new Microsoft.Data.Sqlite.SqliteConnection(connectionString)) {
-            this.mAvoidParametrizedQueries = true;
+            this.mAvoidParametrizedQueries = false;
             this.mAvoidInitializeDBTableFromDataReader = true;
         }
 
@@ -481,7 +485,6 @@ namespace DProjects.Db.Sqlite {
         //    return "#";
         //}
         #endregion
-
 
     }
 

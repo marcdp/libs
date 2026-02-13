@@ -87,6 +87,12 @@ namespace DProjects.Utils {
         public static string Combine(string path, string name, string name2, string name3, string name4) {
             return Combine(Combine(path, name), name2, name3, name4);
         }
+        public static string Combine(string path, string name, string name2, string name3, string name4, string name5) {
+            return Combine(Combine(path, name), name2, name3, name4, name5);
+        }
+        public static string Combine(string path, string name, string name2, string name3, string name4, string name5, string name6) {
+            return Combine(Combine(path, name), name2, name3, name4, name5, name6);
+        }
         public static string Normalize(string path) {
             return Combine(path, "");
         }

@@ -5,7 +5,8 @@ using System.Collections.Generic;
 
 using DProjects.Utils;
 
-namespace DProjects.DataTypes {
+
+namespace DProjects.DataObjects {
 
     //[JsonConverter(typeof(DProjects.Core.Serialization.JsonConverters.VOConverter))]
     public class VO : Dictionary<string, object?> {

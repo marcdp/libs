@@ -28,8 +28,6 @@ namespace DProjects.Factories.Tests {
                 cfg.AddAlias("333", "dir");
             });
             services.AddSingleton<FactoryByUrlAndArgumentTests.ISomething>(new FactoryByUrlAndArgumentTests.SomethingDefault());
-            //password
-            services.AddSingleton<IFactoryPasswordFiller>(new FactoryByUrlTests.FactoryPasswordFiller());
             //provider
             var provider = services.BuildServiceProvider();
             //get

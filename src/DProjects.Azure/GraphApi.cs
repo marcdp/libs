@@ -5,6 +5,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
 
+using DProjects.DataObjects;
 using DProjects.DataTypes;
 using DProjects.Db;
 using DProjects.Fs;

@@ -34,6 +34,13 @@ namespace DProjects.Log.Storage.Serializers {
                 return new LogStorageEntryDeserializerRaw().Deserialize(line);
             }
         }
+        public LogEntry? TryDeserialize(string line) {
+            try {
+                return Deserialize(line);
+            } catch {
+                return null;
+            }
+        }
     }
 
 }

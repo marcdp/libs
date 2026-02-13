@@ -7,6 +7,8 @@ using System.Reflection;
 using System.Text;
 using System.Web;
 
+using Microsoft.Extensions.Primitives;
+
 namespace DProjects.Utils {
 
 
@@ -368,6 +370,16 @@ namespace DProjects.Utils {
                 pattern,
                 m => m.Groups["scheme"].Value // keep scheme only
             );
+        }
+
+        // replace
+        public static string ReplaceQueryValue(string url, string key, string newValue) {
+            var uri = new Uri(url);
+            var builder = new UriBuilder(uri);
+            var query = HttpUtility.ParseQueryString(builder.Query);
+            query[key] = newValue;           // replace or add
+            builder.Query = query.ToString(); // rebuild query string
+            return builder.ToString();
         }
     }
 

@@ -369,6 +369,13 @@ namespace DProjects.Utils {
         }
 
         //other
+        public static string[] SplitLines(string text) {
+            if (text == null) return Array.Empty<string>();
+            return text.Split(
+                new[] { "\r\n", "\n" },
+                StringSplitOptions.None
+            );
+        }
         public static string[] SplitByColumns(string text, int columns) {
             var result = new List<string>();
             var i = 0;
@@ -643,7 +650,7 @@ namespace DProjects.Utils {
             return text;
         }
         
-        public static string CamelCase(string text) {
+        public static string CamelCase(string text, bool uncapitalizeFirstLetter = false) {
             //convierte cadenas del tipo hola-que-talestas a holaQueTalEstas
             if (text == null || text.Length == 0) return "";
             var result = new StringBuilder(text.Length);
@@ -661,6 +668,9 @@ namespace DProjects.Utils {
                     result.Append(c);
                 }
                 index++;
+            }
+            if (uncapitalizeFirstLetter && result.Length > 0) {
+                result[0] = char.ToLower(result[0]);
             }
             return result.ToString();
         }

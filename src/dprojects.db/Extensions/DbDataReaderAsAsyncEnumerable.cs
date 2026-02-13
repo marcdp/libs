@@ -1,5 +1,6 @@
 ﻿using DProjects.Db.Readers;
 using DProjects.Db.Writers;
+using DProjects.Utils;
 
 using System;
 using System.Collections.Concurrent;
@@ -38,10 +39,43 @@ namespace DProjects.Db.Extensions {
                         args[i] = GetDefault(map.Params[i].ParameterType);
                         continue;
                     }
-
                     var raw = reader.GetValue(ord);
                     var targetType = Nullable.GetUnderlyingType(map.Params[i].ParameterType) ?? map.Params[i].ParameterType;
-                    args[i] = Convert.ChangeType(raw, targetType);
+                    if (targetType.IsEnum && raw is string) {
+                        args[i] = System.Enum.Parse(targetType, (string)raw, true);
+                    } else if (targetType == typeof(DateTimeOffset) && raw is string) {
+                        var date = DateTimeUtils.Parse((string) raw);
+                        args[i] = new DateTimeOffset(date);
+                    } else {
+                        args[i] = Convert.ChangeType(raw, targetType);
+                    }
+                }
+
+                yield return (T)map.Ctor.Invoke(args);
+            }
+        }
+        public static IEnumerable<T> AsEnumerable<T>(this DbDataReader reader) {
+            var type = typeof(T);
+            var map = Cache.GetOrAdd(type, CreateMap<T>(reader));
+
+            while (reader.Read()) {
+                var args = new object?[map.Params.Length];
+                for (int i = 0; i < map.Params.Length; i++) {
+                    int ord = map.Ordinals[i];
+                    if (ord == -1 || reader.IsDBNull(ord)) {
+                        args[i] = GetDefault(map.Params[i].ParameterType);
+                        continue;
+                    }
+                    var raw = reader.GetValue(ord);
+                    var targetType = Nullable.GetUnderlyingType(map.Params[i].ParameterType) ?? map.Params[i].ParameterType;
+                    if (targetType.IsEnum && raw is string) {
+                        args[i] = System.Enum.Parse(targetType, (string)raw, true);
+                    } else if (targetType == typeof(DateTimeOffset) && raw is string) {
+                        var date = DateTimeUtils.Parse((string)raw);
+                        args[i] = new DateTimeOffset(date);
+                    } else {
+                        args[i] = Convert.ChangeType(raw, targetType);
+                    }
                 }
 
                 yield return (T)map.Ctor.Invoke(args);

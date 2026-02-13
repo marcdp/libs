@@ -45,7 +45,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Text.Readers", "s
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Db.Test", "test\DProjects.Db.Test\DProjects.Db.Test.csproj", "{F4B8154B-9C9C-4F8C-92DC-A987FCA626F2}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Datatypes", "src\DProjects.Datatypes\DProjects.Datatypes.csproj", "{7B194BE8-6578-4A3C-A293-DAAA5FFC681A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.DataTypes", "src\DProjects.DataTypes\DProjects.DataTypes.csproj", "{7B194BE8-6578-4A3C-A293-DAAA5FFC681A}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Log.Storage", "src\DProjects.Log.Storage\DProjects.Log.Storage.csproj", "{56E35A2C-FD4A-4F47-A342-67BBD452A231}"
 EndProject
@@ -63,7 +63,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Text.Json", "src\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Text.Expressions", "src\DProjects.Text.expressions\DProjects.Text.Expressions.csproj", "{80FE5C5D-CC5E-47B2-B26E-0AACE8C548B8}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Datatypes.Test", "test\DProjects.Datatypes.Test\DProjects.Datatypes.Test.csproj", "{86F6F64D-AE27-4DE3-BB70-958376EEDBBA}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.DataTypes.Test", "test\DProjects.DataTypes.Test\DProjects.DataTypes.Test.csproj", "{86F6F64D-AE27-4DE3-BB70-958376EEDBBA}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Log.Storage.Test", "test\DProjects.Log.Storage.Test\DProjects.Log.Storage.Test.csproj", "{6F2E1E76-39B4-48CA-8F7E-284E3EC331A4}"
 EndProject
@@ -140,6 +140,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DProjects.Azure", "src\DProjects.Azure\DProjects.Azure.csproj", "{89954FF1-5A8E-5AC8-FC8E-9D073B42DDE1}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DProjects.Log.OpenTelemetry", "src\DProjects.Log.OpenTelemetry\DProjects.Log.OpenTelemetry.csproj", "{52214A3F-C565-BECE-6EB4-D7FB8ED41D1E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DProjects.DataObjects", "src\DProjects.DataObjects\DProjects.DataObjects.csproj", "{0756D190-CD8F-52D4-3FFA-02CB6E2A25D4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -407,6 +409,10 @@ Global
 		{52214A3F-C565-BECE-6EB4-D7FB8ED41D1E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{52214A3F-C565-BECE-6EB4-D7FB8ED41D1E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{52214A3F-C565-BECE-6EB4-D7FB8ED41D1E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0756D190-CD8F-52D4-3FFA-02CB6E2A25D4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0756D190-CD8F-52D4-3FFA-02CB6E2A25D4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0756D190-CD8F-52D4-3FFA-02CB6E2A25D4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0756D190-CD8F-52D4-3FFA-02CB6E2A25D4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -477,6 +483,7 @@ Global
 		{7A3404B9-8D80-0B20-9F63-2528F785E20A} = {3892F25A-3EAF-4987-964A-47712DC53F67}
 		{89954FF1-5A8E-5AC8-FC8E-9D073B42DDE1} = {3892F25A-3EAF-4987-964A-47712DC53F67}
 		{52214A3F-C565-BECE-6EB4-D7FB8ED41D1E} = {3892F25A-3EAF-4987-964A-47712DC53F67}
+		{0756D190-CD8F-52D4-3FFA-02CB6E2A25D4} = {3892F25A-3EAF-4987-964A-47712DC53F67}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {E92CEFFE-87DE-445D-AA8E-52601E4D0790}

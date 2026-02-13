@@ -135,7 +135,7 @@ namespace DProjects.Commands {
             }
 
             // logger
-            logger.LogInformation("Executing command: {CommandName}", cmdSchemaDefinition.Name);
+            logger.LogDebug("Executing command: {CommandName}", cmdSchemaDefinition.Name);
 
             // execute
             int result = await instance.ExecuteAsync(cancellationToken);

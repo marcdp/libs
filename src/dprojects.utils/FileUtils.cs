@@ -39,8 +39,18 @@ namespace DProjects.Utils {
             return Path.Combine(tempPath, Guid.NewGuid().ToString() + "." + extension);
         }
 
+        // lock methods
+        public static bool IsFileLocked(string path) {
+            if (!File.Exists(path)) return false;
+            try {
+                using var stream = new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+                return false;
+            } catch (IOException) {
+                return true;
+            }
+        }
 
-        //read methods
+        // read methods
         public static Task<string> ReadTextFileAsync(string uri, System.Reflection.Assembly? resourceAssembly = null, System.Text.Encoding? encoding = null) {
             var result = ReadTextFile(uri, resourceAssembly, encoding);
             return Task.FromResult(result);
@@ -63,6 +73,10 @@ namespace DProjects.Utils {
                 PrefixWindowsPath(ref uri);
                 return System.IO.File.ReadAllText(uri, encoding);
             }
+        }
+        public static string[] ReadTextFileLines(string uri, System.Reflection.Assembly? resourceAssembly = null, System.Text.Encoding? encoding = null) {
+            var text = ReadTextFile(uri, resourceAssembly, encoding);
+            return text.Split(new string[] { "\r\n", "\n" }, StringSplitOptions.None);
         }
         public static byte[] ReadFile(string uri) {
             if (uri.StartsWith("http://") || uri.StartsWith("https://")) {

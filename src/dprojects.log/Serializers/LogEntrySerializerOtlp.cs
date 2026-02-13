@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 
@@ -39,7 +40,9 @@ namespace DProjects.Log.Serializers {
             public int SeverityNumber { get; set; }
             public AnyValue? Body { get; set; }
             public KeyValue[] Attributes { get; set; } = [];
+            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
             public string? TraceId { get; set; }
+            [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
             public string? SpanId { get; set; }
         }
         public class KeyValue {
@@ -55,19 +58,23 @@ namespace DProjects.Log.Serializers {
         //vars
         private readonly string mServiceName;
         private readonly string mScopeName;
+        private readonly JsonSerializerOptions mJsonSerializerOptions;
 
 
         //ctor
         public LogEntrySerializerOtlp(string serviceName, string scopeName) {
             mServiceName = serviceName;
             mScopeName = scopeName;
+            mJsonSerializerOptions = new JsonSerializerOptions {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            };
         }
 
 
         //public
         public LogRecord CreateLogRecord(LogEntry logEntry) {
             var logRecord = new LogRecord() {
-                TimeUnixNano = logEntry.Date.ToUniversalTime().Ticks.ToString(),
+                TimeUnixNano = DProjects.Utils.DateTimeUtils.ToUnixTimeNanoseconds(logEntry.Date).ToString(),
             };
             if (logEntry.Level == LogLevel.Trace) {
                 logRecord.SeverityNumber = 1;
@@ -158,11 +165,8 @@ namespace DProjects.Log.Serializers {
         public string Serialize(LogEntry entry) {
             var logRecord = CreateLogRecord(entry);
             var request = CreateExportLogsServiceRequest(new LogRecord[] { logRecord });
-            return System.Text.Json.JsonSerializer.Serialize(request, new JsonSerializerOptions {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-            });
+            return System.Text.Json.JsonSerializer.Serialize(request, mJsonSerializerOptions);
         }
-
     }
 }
 

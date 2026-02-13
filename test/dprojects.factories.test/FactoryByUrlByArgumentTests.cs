@@ -63,17 +63,7 @@ namespace DProjects.Factories.Tests
             public string GetName() => "default";
             public string GetPassword() => "";
         }
-        //password filler
-        public class FactoryPasswordFiller : IFactoryPasswordFiller {
-            public bool FillPassword(ref string url) {
-                if (url.IndexOf("passwored://user@") != -1) {
-                    url = url.Replace("passwored://user@", "passwored://user:1234@");
-                    return true;
-                };
-                return false;
-            }
-        }
-
+        
 
         //tests
         [Theory()]

@@ -11,6 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using DProjects.Log;
 using Microsoft.Extensions.Logging;
+using System.Linq;
 
 namespace DProjects.Db {
 
@@ -24,15 +25,16 @@ namespace DProjects.Db {
 
 
         //variables
-        protected string mName;
-        protected string mConnectionString;
-        protected Type? mConnectionType;
+        protected readonly string mName;
+        protected readonly string mConnectionString;
+        protected readonly Type? mConnectionType;
         protected System.Data.Common.DbConnection mConnection;
         protected int mCommandTimeout;
         protected Stack<System.Data.Common.DbTransaction> mTransactions;
         protected bool mIsDisposed;
         protected bool mAvoidParametrizedQueries;
         protected bool mAvoidInitializeDBTableFromDataReader;
+        protected Dictionary<string, DbCommand>? mCachedCommands;
 
 
         //constructor
@@ -46,6 +48,12 @@ namespace DProjects.Db {
         }
         public virtual void Dispose() {
             if (mTransactions.Count > 0) throw new Exception("There are pending transactions in connection \'" + mName + "\'.");
+            if (mCachedCommands != null) {
+                foreach (var cmd in mCachedCommands.Values) {
+                    cmd.Dispose();
+                }
+                mCachedCommands.Clear();
+            }
             if (!mIsDisposed) {
                 mIsDisposed = true;
                 if (mConnection != null) {
@@ -79,9 +87,10 @@ namespace DProjects.Db {
 
         }
         public void Close() {
-            if (mConnection != null) {
-                mConnection.Close();
-                mConnection.Dispose();
+            var connection = mConnection;
+            if (connection != null) {
+                connection.Close();
+                connection.Dispose();
             }
         }
         public string ParseStatement(string sql, object?[]? parameters = null) {
@@ -212,6 +221,7 @@ namespace DProjects.Db {
             if (value is Int16) return System.Data.DbType.Int16;
             if (value is Int32) return System.Data.DbType.Int32;
             if (value is Int64) return System.Data.DbType.Int64;
+            if (value is Timestamp) return System.Data.DbType.Int64;
             //if (value is ) return System.Data.DbType.SByte;
             if (value is float) return System.Data.DbType.Single;
             if (value is TimeSpan) return System.Data.DbType.Time;
@@ -308,6 +318,56 @@ namespace DProjects.Db {
             using (var dbReaderAsync = await ExecuteReaderAsync(sql, parameters, cancellationToken)) {
                 return await DBTable.FromDBReaderAsync(dbReaderAsync, cancellationToken);
             }
+        }
+        public async Task<long> ExecuteNonQueryCommandAsync(string sql, object?[]? parameters = null, CancellationToken cancellationToken = default) {
+            if (mCachedCommands == null) {
+                mCachedCommands = new();
+            }
+            if (!mCachedCommands.TryGetValue(sql, out var command)) {
+                command = Connection.CreateCommand();
+                CreateCommandTextWithParameters(command, sql, parameters);
+                mCachedCommands[sql] = command;
+            }
+            if (parameters != null) {
+                for (int i = 0; i < parameters.Length; i++) {
+                    var param = command.Parameters[i] as DbParameter;
+                    var parameter = parameters[i];
+                    if (param != null) {
+                        if (parameter is Timestamp ts) {
+                            param.Value = ts.UnixMs;
+                        } else {
+                            param.Value = parameter ?? DBNull.Value;
+                        }
+                    }
+                }
+            }
+            command.Transaction = mTransactions.FirstOrDefault();
+            return await command.ExecuteNonQueryAsync(cancellationToken);
+        }
+        public long ExecuteNonQueryCommand(string sql, object?[]? parameters = null) {
+            if (mCachedCommands == null) {
+                mCachedCommands = new();
+            }
+            if (!mCachedCommands.TryGetValue(sql, out var command)) {
+                command = Connection.CreateCommand();
+                CreateCommandTextWithParameters(command, sql, parameters);
+                mCachedCommands[sql] = command;
+            }
+            if (parameters != null) {
+                for (int i = 0; i < parameters.Length; i++) {
+                    var param = command.Parameters[i] as DbParameter;
+                    var parameter = parameters[i];
+                    if (param != null) {
+                        if (parameter is Timestamp ts) {
+                            param.Value = ts.UnixMs;
+                        } else {
+                            param.Value = parameter ?? DBNull.Value;
+                        }
+                    }
+                }
+            }
+            command.Transaction = mTransactions.FirstOrDefault();
+            return command.ExecuteNonQuery();
         }
         public virtual long ExecuteIdentity() {
             return ExecuteScalar<long>(GetSqlSelectAutoincrement());
@@ -1182,6 +1242,8 @@ namespace DProjects.Db {
                 return DBSchemaDataType.DateTime;
             } else if (type == typeof(Guid)) {
                 return DBSchemaDataType.UniqueIdentifier;
+            } else if (type == typeof(Timestamp)) {
+                return DBSchemaDataType.Bigint;
             } else if (Nullable.GetUnderlyingType(type) != null) {
                 return GetDataTypeFromNetDataTypeName(Nullable.GetUnderlyingType(type), length, precision, scale);
             } else if (type.IsEnum) {
@@ -1235,23 +1297,23 @@ namespace DProjects.Db {
                     }
                 }
                 return "'" + System.Convert.ToDateTime(value).ToString(DateTimeUtils.DATETIME_ISO8601) + "'";
-            //} else if (type == typeof(DateTimeOffset)) {
-            //    if (value is DateTimeOffset) value = ((DateTimeOffset)value).DateTime;
-            //    if (value == null || (value == System.DBNull.Value)) {
-            //        if (allowNull) {
-            //            return "NULL";
-            //        } else {
-            //            return "'1/1/1'";
-            //        }
-            //    }
-            //    if (System.Convert.ToDateTime(value).Equals(System.Convert.ToDateTime(null))) {
-            //        if (allowNull) {
-            //            return "NULL";
-            //        } else {
-            //            return "'1/1/1'";
-            //        }
-            //    }
-            //    return "'" + System.Convert.ToDateTime(value).ToString(DateTimeUtils.DATETIME_ISO8601_MSZ) + "'";
+            } else if (type == typeof(DateTimeOffset)) {
+                if (value is DateTimeOffset) value = ((DateTimeOffset)value).DateTime;
+                if (value == null || (value == System.DBNull.Value)) {
+                    if (allowNull) {
+                        return "NULL";
+                    } else {
+                        return "'1/1/1'";
+                    }
+                }
+                if (System.Convert.ToDateTime(value).Equals(System.Convert.ToDateTime(null))) {
+                    if (allowNull) {
+                        return "NULL";
+                    } else {
+                        return "'1/1/1'";
+                    }
+                }
+                return "'" + System.Convert.ToDateTime(value).ToString(DateTimeUtils.DATETIME_ISO8601_MSZ) + "'";
             } else if (type == typeof(bool)) {
                 if (value == null || (value == System.DBNull.Value)) {
                     if (allowNull) {
@@ -1403,6 +1465,20 @@ namespace DProjects.Db {
                 } else {
                     var valueAsTimeSpan = TimeSpan.Parse(value.ToString() ?? "");
                     return "'" + valueAsTimeSpan.ToString() + "'";
+                }
+            } else if (type == typeof(Timestamp)) {
+                if (value == null || (value == System.DBNull.Value)) {
+                    if (allowNull) {
+                        return "NULL";
+                    } else {
+                        return "0";
+                    }
+                }
+                if (value is Timestamp ts) {
+                    return ts.UnixMs.ToString();
+                } else {
+                    var valueAsTimestamp = Timestamp.Parse(value.ToString() ?? "");
+                    return valueAsTimestamp.UnixMs.ToString();
                 }
             } else if (type == typeof(Guid)) {
                 if (value == null || (value == System.DBNull.Value)) {
