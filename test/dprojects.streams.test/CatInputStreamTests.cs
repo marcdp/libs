@@ -28,7 +28,7 @@ namespace DProjects.Streams.Tests
         }
 
         [Fact()]
-        public async void ReadAsyncTest()
+        public async Task ReadAsyncTest()
         {
             var input1 = "Hello ";
             var input2 = "world";

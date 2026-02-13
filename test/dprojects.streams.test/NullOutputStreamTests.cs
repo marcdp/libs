@@ -18,7 +18,7 @@ namespace DProjects.Streams.Tests
         }
 
         [Fact()]
-        public async void WriteAsyncTest()
+        public async Task WriteAsyncTest()
         {
             using (var nullStream = new NullOutputStream())
             {
@@ -40,7 +40,7 @@ namespace DProjects.Streams.Tests
         }
 
         [Fact()]
-        public async void ReadAsyncTest()
+        public async Task ReadAsyncTest()  
         {
             using (var nullStream = new NullOutputStream())
             {

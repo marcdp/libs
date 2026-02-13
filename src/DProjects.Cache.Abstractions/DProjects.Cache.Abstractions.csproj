@@ -25,12 +25,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="9.0.9" />
-    </ItemGroup>
-
-    <ItemGroup>
       <ProjectReference Include="..\DProjects.Utils\DProjects.Utils.csproj" />
-    </ItemGroup>
- 
+    </ItemGroup> 
 
 </Project>

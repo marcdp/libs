@@ -65,7 +65,7 @@ namespace DProjects.Factories {
             }
             //add dots if required
             if (url.Length > 0 && url.IndexOf(":") == -1) url += ":";
-            //fill userInfo password
+            //fill secrets
             var scheme = (url.Length > 0 ? url.Substring(0, url.IndexOf(':')) : "");
             if (url.Length > 0 && url.IndexOf("${secret:")!=-1) {
                 var secretProvider = mServiceProvider.GetRequiredService<ISecretProvider>();
@@ -107,6 +107,8 @@ namespace DProjects.Factories {
 
     public class FactoryByUrl<TType, TArgument> : IDisposable, IFactoryByUrl<TType, TArgument> where TType : class where TArgument: class {
 
+        //const
+        private static readonly Regex mSecretRegex = new(@"\$\{secret:(?<name>[^}]+)\}", RegexOptions.Compiled);
 
         //variables
         private IServiceProvider mServiceProvider;
@@ -140,17 +142,19 @@ namespace DProjects.Factories {
             //if (url.StartsWith("/")) url = "fs://" + url;
             //add dots if required
             if (url.Length > 0 && url.IndexOf(":") == -1) url += ":";
-            //fill userInfo password
+            //add dots if required
+            if (url.Length > 0 && url.IndexOf(":") == -1) url += ":";
+            //fill secrets
             var scheme = (url.Length > 0 ? url.Substring(0, url.IndexOf(':')) : "");
-            //if (url.Length > 0) {
-            //    var aUrl = new Uri(url);
-            //    if ((!string.IsNullOrEmpty(aUrl.UserInfo) && aUrl.UserInfo.IndexOf(":") == -1) || StringUtils.SeemsConnectionString(url)) {
-            //        var passwordFiller = mServiceProvider.GetService<IFactoryPasswordFiller>();
-            //        if (passwordFiller != null) {
-            //            passwordFiller.FillPassword(ref url);
-            //        }
-            //    }
-            //}
+            if (url.Length > 0 && url.IndexOf("${secret:") != -1) {
+                var secretProvider = mServiceProvider.GetRequiredService<ISecretProvider>();
+                url = mSecretRegex.Replace(url, (match) => {
+                    var name = match.Groups["name"].Value;
+                    var secret = secretProvider.Get(name) ?? throw new KeyNotFoundException($"Secret not found: {name}"); ;
+                    var value = secret.GetValue();
+                    return value;
+                });
+            }
             //try return default instance
             if (url.Length == 0) {
                 var defaultInstance = mServiceProvider.GetService<TType>();

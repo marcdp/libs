@@ -2,7 +2,7 @@
 
     <PropertyGroup>
         <AssemblyTitle>DProjects.Fs.Http</AssemblyTitle>
-        <TargetFramework>net9.0</TargetFramework>
+        <TargetFramework>net10.0</TargetFramework>
         <LangVersion>preview</LangVersion>
         <AssemblyName>DProjects.Fs.Http</AssemblyName>
         <OutputType>Library</OutputType>
@@ -29,9 +29,7 @@
         <FrameworkReference Include="Microsoft.AspNetCore.App" />
     </ItemGroup>
     
-    <ItemGroup>
-        <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="9.0.9" />
-        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.9" />
+    <ItemGroup>        
     </ItemGroup>
 
     <ItemGroup>

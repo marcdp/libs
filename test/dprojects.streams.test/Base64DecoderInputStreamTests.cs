@@ -45,7 +45,7 @@ namespace DProjects.Streams.Tests
         }
 
         [Fact()]
-        public async void ReadByteAsyncTest()
+        public async Task ReadByteAsyncTest()
         {
             var input = "SGVsbG8gd29ybGQ=";
             var expectedOutput = "Hello world";
@@ -64,8 +64,8 @@ namespace DProjects.Streams.Tests
             }
         }
 
-        [Fact()]
-        public async void ReadAsyncTest()
+        [Fact()]  
+        public async Task ReadAsyncTest()
         {
             var input = "SGVsbG8gd29ybGQ=";
             var expectedOutput = "Hello world";

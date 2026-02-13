@@ -24,7 +24,7 @@ namespace DProjects.Streams.Tests
         }
 
         [Fact()]
-        public async void ReadAsyncTest()
+        public async Task ReadAsyncTest()
         {
             var input = "Hello world";
             var expectedCount = Encoding.UTF8.GetByteCount(input);
@@ -56,7 +56,7 @@ namespace DProjects.Streams.Tests
         }
 
         [Fact()]
-        public async void WriteAsyncTest()
+        public async Task WriteAsyncTest()  
         {
             var input = "Hello world";
             var expectedCount = Encoding.UTF8.GetByteCount(input);

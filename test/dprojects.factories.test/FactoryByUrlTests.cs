@@ -3,6 +3,7 @@ using DProjects.Factories;
 using DProjects.Factories.Attributes;
 using Microsoft.Extensions.DependencyInjection;
 using System;
+using DProjects.Secrets;
 
 namespace DProjects.Factories.Tests
 {
@@ -65,6 +66,15 @@ namespace DProjects.Factories.Tests
             public string GetPassword() => "";
         }
 
+        //secret provider
+        public class SecretProvider : ISecretProvider {
+            public Secret? Get(string name) {
+                return new Secret(name, "", "1234");
+            }
+            public Task<Secret?> GetAsync(string name, CancellationToken cancellationToken) {
+                return Task.FromResult<Secret?>(new Secret(name, "", "1234"));
+            }
+        }
 
         //tests
         //[Theory()]
@@ -97,7 +107,7 @@ namespace DProjects.Factories.Tests
         }
 
         [Theory()]
-        [InlineData("passwored://user@host/path", "1234")]
+        [InlineData("passwored://user:${secret:my_secret}@host/path", "1234")]
         public void Create_ShouldFillPassword_WhenUrlContainsUserInfoButNoPassword(string url, string expected) {
             var instance = mFactoryByUrl.Create(url);
             var result = instance.GetPassword();

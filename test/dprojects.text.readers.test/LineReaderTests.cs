@@ -19,7 +19,7 @@ namespace DProjects.Text.Readers.Tests
         }
 
         [Fact()]
-        public async void ReadAsyncTest()
+        public async Task ReadAsyncTest()
         {
             using (var sr = new StringReader("Test"))
             using (var reader = new LineReader(sr))
@@ -45,7 +45,7 @@ namespace DProjects.Text.Readers.Tests
         }
 
         [Fact()]
-        public async void ReadBlockAsyncTest()
+        public async Task ReadBlockAsyncTest()
         {
             using (var sr = new StringReader("Test"))
             using (var reader = new LineReader(sr))
@@ -91,7 +91,7 @@ namespace DProjects.Text.Readers.Tests
         }
 
         [Fact()]
-        public async void ReadLineAsyncTest()
+        public async Task ReadLineAsyncTest()
         {
             using (var sr = new StringReader("Test\nLine"))
             using (var reader = new LineReader(sr))

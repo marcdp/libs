@@ -21,7 +21,7 @@ namespace DProjects.Text.Readers.Tests
         }
 
         [Fact()]
-        public async void ReadAsyncTest()
+        public async Task ReadAsyncTest()
         {
             using (var sr = new StringReader("<root><child>Test</child></root>"))
             using (var reader = new XmlDocumentsReader(sr))

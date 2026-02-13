@@ -1,4 +1,6 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using DProjects.Secrets;
+
+using Microsoft.Extensions.DependencyInjection;
 
 namespace DProjects.Factories.Tests {
     
@@ -28,6 +30,8 @@ namespace DProjects.Factories.Tests {
                 cfg.AddAlias("333", "dir");
             });
             services.AddSingleton<FactoryByUrlAndArgumentTests.ISomething>(new FactoryByUrlAndArgumentTests.SomethingDefault());
+            // secret provider
+            services.AddSingleton<ISecretProvider>(new FactoryByUrlTests.SecretProvider());
             //provider
             var provider = services.BuildServiceProvider();
             //get

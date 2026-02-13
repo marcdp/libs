@@ -26,7 +26,7 @@ namespace DProjects.Streams.Tests {
         }
 
         [Fact()]
-        public async void ReadByteAsyncTest() {
+        public async Task ReadByteAsyncTest() {
             using (var ms = new MemoryStream(Encoding.UTF8.GetBytes("Hello")))
             using (var stream = new Base64EncoderInputStream(ms, 0)) {
                 var result = await stream.ReadByteAsync(default);
@@ -35,7 +35,7 @@ namespace DProjects.Streams.Tests {
         }
 
         [Fact()]
-        public async void ReadAsyncTest() {
+        public async Task ReadAsyncTest() {
             var aux = Encoding.UTF8.GetBytes("Hello");
             using (var ms = new MemoryStream(aux))
             using (var stream = new Base64EncoderInputStream(ms, 0)) {

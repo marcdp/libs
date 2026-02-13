@@ -27,7 +27,7 @@ namespace DProjects.Streams.Tests
         }
 
     [Fact]
-        public async void WriteAsyncTest()
+        public async Task WriteAsyncTest()
         {
             var stream = new MemoryStream();
             using (var encoder = new Base64EncoderOutputStream(stream)) {

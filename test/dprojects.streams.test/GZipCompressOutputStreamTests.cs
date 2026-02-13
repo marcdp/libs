@@ -28,7 +28,7 @@ namespace DProjects.Streams.Tests
         }
 
         [Fact()]
-        public async void WriteAsyncTest()
+        public async Task WriteAsyncTest()
         {
             var input = "Hello world";
             var expectedOutput = Encoding.UTF8.GetBytes(input);
