@@ -21,8 +21,86 @@ namespace DProjects.Cache {
         public void Dispose() {
         }
 
+        // sync methods
+        public void Set(BlobCacheEntry entry) {
+            //set blob
+            var keyEncoded = UrlUtils.UrlEncode(entry.Key);
+            var tempPath = PathUtils.Combine(path, keyEncoded + ".tmp");
+            // create temp file to compute length
+            var tempEntry =  filesystem.SaveFile(tempPath, entry.Stream, new());
+            // write to temp2 file
+            var tempPath2 = PathUtils.Combine(path, keyEncoded + ".tmp.2");
+            using (var tempStream2 =  filesystem.LoadWriteStream(tempPath2, new())) {
+                // set length  
+                entry.Headers.Set(HttpUtils.HEADER_CONTENT_LENGTH, tempEntry.Length.ToString());
+                // set date header
+                entry.Headers.Set(HttpUtils.HEADER_DATE, DateTime.Now.ToUniversalTime().ToString(DateTimeUtils.DATETIME_ISO8601).Replace('.', ':'));
+                // set expires header
+                if (!entry.Headers.Contains(HttpUtils.HEADER_EXPIRES)) {
+                    var timeSpan = TimeSpan.FromHours(1);
+                    entry.Headers.Set(HttpUtils.HEADER_EXPIRES, DateTime.Now.Add(timeSpan).ToUniversalTime().ToString(DateTimeUtils.DATETIME_ISO8601).Replace('.', ':'));
+                }
+                // write headers
+                HeadersUtils.WriteHttpHeaders(entry.Headers, tempStream2);
+                // write content
+                using (var tempStream =  filesystem.LoadReadStream(tempPath, new())) {
+                     tempStream.CopyTo(tempStream2);
+                }
+            }
+             filesystem.DeleteFile(tempPath);
+            // move file to final path
+            var itemPath = PathUtils.Combine(path, keyEncoded + FILE_EXTENSION);
+            if ( filesystem.ExistsFile(itemPath))  filesystem.DeleteFile(itemPath);
+             filesystem.Move(tempPath2, itemPath, new MoveSettings(), logger);
+        }
+        public BlobCacheEntry? Get(string key) {
+            //get blob
+            var keyEncoded = UrlUtils.UrlEncode(key);
+            var itemPath = PathUtils.Combine(path, keyEncoded + FILE_EXTENSION);
+            var entry = filesystem.GetEntry(itemPath);
+            if (entry == null) return null;
+            //read stream
+            var stream = filesystem.LoadReadStream(itemPath, new());
+            //read headers
+            HeadersUtils.Headers? headers = null;
+            try {
+                headers = HeadersUtils.ReadHttpHeaders(stream);
+            } catch (Exception) {
+                stream.Dispose();
+                throw;
+            }
+            var contentLength = headers.Get<int>("Content-Length", 0);
+            var limitedStream = new DProjects.Streams.LimitedInputStream(stream, contentLength);
+            var blobCacheEntry = new BlobCacheEntry(key, limitedStream, headers);
+            if (blobCacheEntry.Expires < DateTime.Now || blobCacheEntry.Expires is null) {
+                stream.Dispose();
+                Remove(key);
+                return null;
+            }
+            //return
+            return blobCacheEntry;
+        }
+        public BlobCacheEntry Get(string key, TimeSpan expiration, Func<BlobCacheEntry> func) {
+            //get blob
+            var result = Get(key);
+            if (result == null) {
+                using (var blobCacheentry = func()) {
+                    blobCacheentry.Expires = DateTime.Now.Add(expiration);
+                    Set(blobCacheentry);
+                }
+                return Get(key) ?? throw new Exception("xxx");
+            }
+            return result;
+        }
+        public void Remove(string key) {
+            //remove blob
+            var keyEncoded = UrlUtils.UrlEncode(key);
+            var itemPath = PathUtils.Combine(path, keyEncoded + FILE_EXTENSION);
+            filesystem.DeleteFile(itemPath);
+        }
 
-        // methods
+
+        // async methods
         public async Task SetAsync(BlobCacheEntry entry, CancellationToken cancellationToken = default) {
             //set blob
             var keyEncoded = UrlUtils.UrlEncode(entry.Key);

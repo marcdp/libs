@@ -12,9 +12,24 @@ namespace DProjects.Cache {
          
         // ctor
         public void Dispose() {
-        }  
+        }
 
-        // methods
+
+        // sync methods
+        public void Set(BlobCacheEntry entry) {
+
+        }
+        public BlobCacheEntry? Get(string key) {
+            throw new NotImplementedException();
+        }
+        public BlobCacheEntry Get(string key, TimeSpan expiration, Func<BlobCacheEntry> func) {
+            throw new NotImplementedException();
+        }
+        public void Remove(string key) { 
+        }
+
+
+        // async methods
         public Task SetAsync(BlobCacheEntry entry, CancellationToken cancellationToken = default) {
             return Task.CompletedTask; 
         }

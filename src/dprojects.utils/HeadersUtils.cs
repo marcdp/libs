@@ -62,6 +62,18 @@ namespace DProjects.Utils {
             } while (true);
             return result;
         }
+        public static void WriteHttpHeaders(Headers headers, Stream stream, Encoding? encoding = null) {
+            if (encoding == null) encoding = new UTF8Encoding(false);
+            using (var streamWriter = new StreamWriter(stream, encoding, 1024, true)) {
+                foreach (var header in headers) {
+                    var name = header.Key;
+                    var value = header.Value;
+                    var line = name + ": " + value;
+                    streamWriter.WriteLine(line);
+                }
+                streamWriter.WriteLine();
+            }
+        }
         public static async Task<Headers> ReadHttpHeadersAsync(Stream stream, Encoding? encoding = null, CancellationToken cancellationToken = default) {
             if (encoding == null) encoding = new UTF8Encoding(false);
             var result = new Headers();

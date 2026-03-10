@@ -7,7 +7,13 @@ namespace DProjects.Cache {
 
     public interface IBlobCache : IDisposable {
 
-        //methods
+        // sync methods
+        void Set(BlobCacheEntry entry);
+        BlobCacheEntry? Get(string key);
+        BlobCacheEntry Get(string key, TimeSpan expiration, Func<BlobCacheEntry> func);
+        void Remove(string key);
+
+        // async methods
         Task SetAsync(BlobCacheEntry entry, CancellationToken cancellationToken = default);
         Task<BlobCacheEntry?> GetAsync(string key, CancellationToken cancellationToken = default);
         Task<BlobCacheEntry> GetAsync(string key, TimeSpan expiration, Func<CancellationToken, Task<BlobCacheEntry>> func, CancellationToken cancellationToken = default);
