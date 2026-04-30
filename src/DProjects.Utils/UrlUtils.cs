@@ -372,6 +372,31 @@ namespace DProjects.Utils {
             );
         }
 
+        // remove passwords from urls
+        public static string ReplaceUserPasswordsFromUrls(string input, string replacement = "****") {
+            if (string.IsNullOrEmpty(input))
+                return input;
+            // Pattern that matches scheme://user:password@host or scheme://user@host
+            // Captures: scheme, user, optional password, and rest of URL
+            const string pattern = @"\b(?<scheme>[a-zA-Z][a-zA-Z0-9+\-.]*://)(?<user>[^:/@\s]+)(?::(?<password>[^@/\s]+))?@(?<rest>[^\s]*)";
+            return System.Text.RegularExpressions.Regex.Replace(
+                input,
+                pattern,
+                m => {
+                    var scheme = m.Groups["scheme"].Value;
+                    var user = m.Groups["user"].Value;
+                    var hasPassword = m.Groups["password"].Success;
+                    var rest = m.Groups["rest"].Value;
+                    // If there was a password, replace it with replacement
+                    if (hasPassword) {
+                        return $"{scheme}{user}:{replacement}@{rest}";
+                    }
+                    // If there was no password, keep the original format
+                    return $"{scheme}{user}@{rest}";
+                }
+            );
+        }
+
         // replace
         public static string ReplaceQueryValue(string url, string key, string newValue) {
             var uri = new Uri(url);

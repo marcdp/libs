@@ -24,6 +24,17 @@ namespace DProjects.Utils {
             }
             return result.ToString();
         }
+        public static byte[] HexToBytes(string hex) {
+            if (hex.Length % 2 != 0) {
+                throw new Exception("Invalid _xvault meta: salt is not valid hex.");
+            }
+            var bytes = new byte[hex.Length / 2];
+            for (var i = 0; i < bytes.Length; i++) {
+                var byteValue = hex.Substring(i * 2, 2);
+                bytes[i] = Convert.ToByte(byteValue, 16);
+            }
+            return bytes;
+        }
     }
 
 }

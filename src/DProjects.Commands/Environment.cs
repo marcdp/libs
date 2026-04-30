@@ -68,6 +68,15 @@ namespace DProjects.Commands {
                 if (format.StartsWith("yfm")) return new DBWriterYfmFactory().Create(format, CreateTextWriter());
                 throw new System.Exception(format + " is not a valid format for output");
             }
+            public bool IsTerminal {
+                get {
+                    if (mode == Mode.Error) {
+                        return System.Console.IsErrorRedirected == false;
+                    } else {
+                        return System.Console.IsOutputRedirected == false;
+                    }
+                }
+            }
         }
 
         // vars

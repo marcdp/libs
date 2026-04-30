@@ -12,6 +12,7 @@ namespace DProjects.Commands {
         Task WriteLineAsync(string text);
         TextWriter CreateTextWriter();
         IDBWriter CreateDBWriter(string format);
+        bool IsTerminal { get; }
 
     }
 

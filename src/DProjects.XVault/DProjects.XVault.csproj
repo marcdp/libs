@@ -1,19 +1,19 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <AssemblyTitle>DProjects.Secrets</AssemblyTitle>
+        <AssemblyTitle>DProjects.XVault</AssemblyTitle>
         <TargetFramework>netstandard2.0</TargetFramework>
         <LangVersion>preview</LangVersion>
-        <AssemblyName>DProjects.Secrets</AssemblyName>
+        <AssemblyName>DProjects.XVault</AssemblyName>
         <OutputType>Library</OutputType>
-        <PackageId>DProjects.Secrets</PackageId>
+        <PackageId>DProjects.XVault</PackageId>
         <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
         <RootNamespace />
         <ApplicationIcon />
         <OutputTypeEx>library</OutputTypeEx>
         <StartupObject />
         <Company>DProjects</Company>
-        <Description>DProjects.Secrets</Description>
+        <Description>DProjects.XVault</Description>
         <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
         <Version>3.0.0</Version>
         <Authors>marcdp</Authors>
@@ -26,17 +26,17 @@
 
     <ItemGroup>
         
+        <PackageReference Include="BouncyCastle.Cryptography" Version="2.6.2" />
+        
+        <PackageReference Include="Isopoh.Cryptography.Argon2" Version="2.0.0" />
+        
         <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.7" />
         <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.7" />
         <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.7" />
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\DProjects.Crypto\DProjects.Crypto.csproj" />
-      <ProjectReference Include="..\DProjects.Db.Abstractions\DProjects.Db.Abstractions.csproj" />
-      <ProjectReference Include="..\DProjects.Factories.Abstractions\DProjects.Factories.Abstractions.csproj" />
-      <ProjectReference Include="..\DProjects.Fs.Abstractions\DProjects.Fs.Abstractions.csproj" />
-      <ProjectReference Include="..\DProjects.Secrets.Abstractions\DProjects.Secrets.Abstractions.csproj" />
+      <ProjectReference Include="..\DProjects.Crypto\DProjects.Crypto.csproj" />      
     </ItemGroup>
  
 
