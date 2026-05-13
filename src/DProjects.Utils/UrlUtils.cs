@@ -373,7 +373,7 @@ namespace DProjects.Utils {
         }
 
         // remove passwords from urls
-        public static string ReplaceUserPasswordsFromUrls(string input, string replacement = "****") {
+        public static string ReplaceUserPasswordsFromUrls(string input, string replacement = "********") {
             if (string.IsNullOrEmpty(input))
                 return input;
             // Pattern that matches scheme://user:password@host or scheme://user@host

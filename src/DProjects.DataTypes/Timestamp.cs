@@ -66,6 +66,11 @@ namespace DProjects.DataTypes {
             return FromDateTimeUtc(dt);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Timestamp AddHours(int hours) {
+            var dt = ToDateTimeUtc().AddHours(hours);
+            return FromDateTimeUtc(dt);
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Timestamp ToMidnight() {
             var dt = ToDateTimeUtc();
             var midnight = new DateTime(dt.Year, dt.Month, dt.Day, 0, 0, 0, DateTimeKind.Utc);
@@ -120,6 +125,21 @@ namespace DProjects.DataTypes {
         public override bool Equals(object obj) => obj is Timestamp ts && ts.UnixMs == UnixMs;
         public override int GetHashCode() => UnixMs.GetHashCode();
         public override string ToString() => UnixMs.ToString();
+
+        // methods
+        public static bool TryParse(string? text, out Timestamp result) {
+            result = default;
+
+            if (string.IsNullOrWhiteSpace(text))
+                return false;
+
+            try {
+                result = Parse(text);
+                return true;
+            } catch {
+                return false;
+            }
+        }
 
     }
 }

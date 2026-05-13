@@ -1,13 +1,18 @@
 using System;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Configuration;
 
 namespace DProjects.XVault.Handlers {
-    class MarkdownHandler : Handler {
+    class MarkdownHandler(string text, string path, string? password = null) : Handler {
+
+        //vars
         private static readonly Regex FrontmatterRegex = new Regex(@"^---\r?\n(.*?)\r?\n---\r?\n?", RegexOptions.Compiled | RegexOptions.Singleline);
         private static readonly Regex MetaLineRegex = new Regex(@"_xvault\s*:\s*([^""\r\n]+)", RegexOptions.Compiled);
         private static readonly Regex MarkdownPlainPattern = new Regex(@"(?<!\$\{)enc:[^""\r\n]+", RegexOptions.Compiled);
 
-        public override string Decrypt(string text, string? password, string path) {
+
+        //methods
+        public override string Decrypt() {
             var fmMatch = FrontmatterRegex.Match(text);
             if (!fmMatch.Success) {
                 throw new Exception("Unable to load vault meta: _xvault field not found.");
@@ -25,6 +30,9 @@ namespace DProjects.XVault.Handlers {
             var derivedKey = ResolveAndValidateKey(password, rawMeta, path);
 
             return ReplaceEncryptedTokens(body, derivedKey, MarkdownPlainPattern);
+        }
+        public override void Register(ConfigurationManager configurationManager) {
+            throw new NotImplementedException();
         }
     }
 

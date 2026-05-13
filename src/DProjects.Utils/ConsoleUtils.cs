@@ -286,14 +286,23 @@ namespace DProjects.Utils {
                     i++;
                     continue;
                 }
-                // Anchors: &name
-                if (ch == '&') {
+                // Separators: /
+                if (ch == '/' ) {
+                    result.Append(COLOR_BRCYAN).Append(ch).Append(ATTRIBUTES_NONE);
+                    i++;
+                    continue;
+                }
+                // Anchors: &name, or ?var=value&var2=valu2
+                if (ch == '&' || ch == '?') {
                     var anchorStart = i;
                     i++;
-                    while (i < length && !char.IsWhiteSpace(yaml[i])) {
+                    while (i < length && !char.IsWhiteSpace(yaml[i]) && yaml[i]!='=') {
                         i++;
                     }
-                    result.Append(COLOR_BRBLUE).Append(yaml.Substring(anchorStart, i - anchorStart)).Append(ATTRIBUTES_NONE);
+                    result.Append(COLOR_BRBLUE).Append(ch).Append(COLOR_BRBLUE).Append(yaml.Substring(anchorStart+1, i - anchorStart - 1)).Append(ATTRIBUTES_NONE);
+                    if (yaml[i] == '=') {
+                        result.Append(COLOR_BRBLUE);
+                    }
                     continue;
                 }
                 // Aliases: *name

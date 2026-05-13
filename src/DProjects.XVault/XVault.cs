@@ -1,66 +1,39 @@
 using System;
+using DProjects.XVault.Handlers;
+using Microsoft.Extensions.Configuration;
 
 namespace DProjects.XVault {
+    
     public class XVault {
-
-        // enum
-        public enum Format {
-            Json,
-            Yaml,
-            Xml,
-            Env,
-            Markdown,
-        }
-
+         
         //vars
-        private readonly string mPath;
-        private readonly string mText;
-        private readonly Format mFormat;
+        private readonly Handler mHandler;
 
         //ctor
-        public XVault(string path) {
-            mPath = path;
-            mText = System.IO.File.ReadAllText(path);
-            if (mPath.EndsWith(".json", StringComparison.OrdinalIgnoreCase) || mPath.EndsWith(".jsonc", StringComparison.OrdinalIgnoreCase)) {
-                mFormat = Format.Json;
-            } else if (mPath.EndsWith(".yaml", StringComparison.OrdinalIgnoreCase) || mPath.EndsWith(".yml", StringComparison.OrdinalIgnoreCase)) {
-                mFormat = Format.Yaml;
-            } else if (mPath.EndsWith(".xml", StringComparison.OrdinalIgnoreCase)) {
-                mFormat = Format.Xml;
-            } else if (mPath.EndsWith(".env", StringComparison.OrdinalIgnoreCase)) {
-                mFormat = Format.Env;
-            } else if (mPath.EndsWith(".md", StringComparison.OrdinalIgnoreCase) || mPath.EndsWith(".markdown", StringComparison.OrdinalIgnoreCase)) {
-                mFormat = Format.Markdown;
+        public XVault(string path, string? password = null) {
+            var text = System.IO.File.ReadAllText(path);
+            if (path.EndsWith(".json", StringComparison.OrdinalIgnoreCase) || path.EndsWith(".jsonc", StringComparison.OrdinalIgnoreCase)) {
+                mHandler = new JsonHandler(text, path, password);
+            } else if (path.EndsWith(".yaml", StringComparison.OrdinalIgnoreCase) || path.EndsWith(".yml", StringComparison.OrdinalIgnoreCase)) {
+                mHandler = new YamlHandler(text, path, password);
+            } else if (path.EndsWith(".xml", StringComparison.OrdinalIgnoreCase)) {
+                mHandler = new XmlHandler(text, path, password);
+            } else if (path.EndsWith(".env", StringComparison.OrdinalIgnoreCase)) {
+                mHandler = new EnvHandler(text, path, password);
+            } else if (path.EndsWith(".md", StringComparison.OrdinalIgnoreCase) || path.EndsWith(".markdown", StringComparison.OrdinalIgnoreCase)) {
+                mHandler = new MarkdownHandler(text, path, password);
             } else {
                 throw new Exception("Unable to determine vault format from file extension. Supported extensions are .json, .yaml/.yml, .xml, .env, .md/.markdown");
             }
-        }
-        public XVault(string text, Format format, string? path = null) {
-            mText = text;
-            mFormat = format;
-            mPath = path ?? "";
-        }
+        } 
 
 
         // methods
-        public string Decrypt(string? password = null) {
-            if (mFormat == Format.Json) {
-                // json
-                return new Handlers.JsonHandler().Decrypt(mText, password, mPath);
-            } else if (mFormat == Format.Xml) {
-                // xml
-                return new Handlers.XmlHandler().Decrypt(mText, password, mPath);
-            } else if (mFormat == Format.Yaml) {
-                // yaml
-                return new Handlers.YamlHandler().Decrypt(mText, password, mPath);
-            } else if (mFormat == Format.Env) {
-                // env  
-                return new Handlers.EnvHandler().Decrypt(mText, password, mPath);
-            } else if (mFormat == Format.Markdown) {
-                // markdown
-                return new Handlers.MarkdownHandler().Decrypt(mText, password, mPath);
-            }
-            throw new NotImplementedException();
+        public string Decrypt() {
+            return mHandler.Decrypt();
+        }
+        public void Register(ConfigurationManager configurationManager) {
+            mHandler.Register(configurationManager);
         }
 
     }

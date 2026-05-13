@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Isopoh.Cryptography.Argon2;
+using Microsoft.Extensions.Configuration;
 using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.Crypto.Engines;
 using Org.BouncyCastle.Crypto.Modes;
@@ -17,20 +18,10 @@ namespace DProjects.XVault {
         protected readonly Regex WrappedTokenPattern = new Regex(@"\$\{enc:[^}\r\n]+\}+", RegexOptions.Compiled);
 
         // methods
-        public abstract string Decrypt(string text, string? password, string path);  
-         
-        //protected byte[] HexToBytes(string hex) {
-        //    if (hex.Length % 2 != 0) {
-        //        throw new Exception("Invalid _xvault meta: salt is not valid hex.");
-        //    }
-        //    var bytes = new byte[hex.Length / 2];
-        //    for (var i = 0; i < bytes.Length; i++) {
-        //        var byteValue = hex.Substring(i * 2, 2);
-        //        bytes[i] = Convert.ToByte(byteValue, 16);
-        //    }
-        //    return bytes;
-        //}
+        public abstract string Decrypt();
+        public abstract void Register(ConfigurationManager configurationManager);
 
+        // protected methods
         protected string DecryptToken(string token, byte[] derivedKey) {
             var blob = DProjects.Utils.Base64Utils.FromBase64UrlSafe(token);
             if (blob.Length < 12 + 16) {
@@ -83,7 +74,6 @@ namespace DProjects.XVault {
                 }
             }
         }
-
         protected byte[] ResolveAndValidateKey(string? password, string rawMeta, string path) {
 
             if (!rawMeta.StartsWith(META_PREFIX, StringComparison.Ordinal)) {

@@ -2,12 +2,16 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Configuration;
 
 namespace DProjects.XVault.Handlers { 
-    class EnvHandler : Handler {
+    class EnvHandler(string text, string path, string? password = null) : Handler {
+
+        // vars
         private static readonly Regex PlainPattern = new Regex(@"(?<!\$\{)enc:[^\r\n#""']+", RegexOptions.Compiled);
 
-        public override string Decrypt(string text, string? password, string path) {
+        // methods
+        public override string Decrypt() {
             // 1) Load ENV text into an in-memory dictionary-like structure.
             var entries = new Dictionary<string, string>(StringComparer.Ordinal);
             var order = new List<string>();
@@ -50,7 +54,11 @@ namespace DProjects.XVault.Handlers {
             }
             return sb.ToString();
         }
+        public override void Register(ConfigurationManager configurationManager) {
+            throw new NotImplementedException();
+        }
 
+        // private
         private string DecryptPlaceholders(string value, byte[] derivedKey) {
             return ReplaceEncryptedTokens(value, derivedKey, PlainPattern);
         }
