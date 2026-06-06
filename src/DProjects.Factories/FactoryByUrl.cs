@@ -39,6 +39,7 @@ namespace DProjects.Factories {
         public FactoryByUrlConfiguration<TType> Configuration => mConfiguration;  
         public IReadOnlyList<FactoryByUrlProtocol<TType>> Protocols => mConfiguration.Protocols;
         public IReadOnlyList<FactoryByUrlAlias> Aliases => mConfiguration.Aliases;
+        public IReadOnlyList<FactoryByUrlHandler<TType>> Handlers => mConfiguration.Handlers;
 
         //methods
         public TType Create(string url) {

@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Web;
 
 using Microsoft.Extensions.Primitives;
@@ -361,7 +362,7 @@ namespace DProjects.Utils {
 
         // remove user info from urls
         public static string RemoveUserInfoFromUrls(string input) {
-            if (string.IsNullOrEmpty(input))
+            if (string.IsNullOrEmpty(input) || input.IndexOf("://") == -1)
                 return input;
             // Pattern that matches schemes and userinfo before '@'
             const string pattern = @"\b(?<scheme>[a-zA-Z][a-zA-Z0-9+\-.]*://)(?<userinfo>[^/\s@]+@)";
@@ -374,7 +375,7 @@ namespace DProjects.Utils {
 
         // remove passwords from urls
         public static string ReplaceUserPasswordsFromUrls(string input, string replacement = "********") {
-            if (string.IsNullOrEmpty(input))
+            if (string.IsNullOrEmpty(input) || input.IndexOf("://") == -1)
                 return input;
             // Pattern that matches scheme://user:password@host or scheme://user@host
             // Captures: scheme, user, optional password, and rest of URL

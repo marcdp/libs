@@ -36,8 +36,8 @@ namespace DProjects.Factories {
         public void AddAlias(string alias, string url, ServiceLifetime lifeTime = ServiceLifetime.Scoped, string description = "") {
             Aliases.Add(new FactoryByUrlAlias(alias, description, url, lifeTime));            
         }
-        public void AddHandler(string alias, Func<IServiceProvider, object?, T> handler, ServiceLifetime lifeTime = ServiceLifetime.Scoped, string description = "") {
-            Handlers.Add(new FactoryByUrlHandler<T>(alias, description, handler, lifeTime));
+        public void AddHandler(string alias, Func<IServiceProvider, object?, T> handler, ServiceLifetime lifeTime = ServiceLifetime.Scoped, string description = "", string usage = "", string[]? examples = null) {
+            Handlers.Add(new FactoryByUrlHandler<T>(alias, description, usage, examples ?? Array.Empty<string>(), handler, lifeTime));
         }
 
     }
@@ -70,8 +70,8 @@ namespace DProjects.Factories {
         public void AddAlias(string alias, string url, ServiceLifetime lifeTime = ServiceLifetime.Scoped, string description = "") {
             Aliases.Add(new FactoryByUrlAlias(alias, description, url, lifeTime));
         }
-        public void AddHandler(string alias, Func<IServiceProvider, object?, TType> handler, ServiceLifetime lifeTime = ServiceLifetime.Scoped, string description = "") {
-            Handlers.Add(new FactoryByUrlHandler<TType>(alias, description, handler, lifeTime));
+        public void AddHandler(string alias, Func<IServiceProvider, object?, TType> handler, ServiceLifetime lifeTime = ServiceLifetime.Scoped, string description = "", string usage = "", string[]? examples = null) {
+            Handlers.Add(new FactoryByUrlHandler<TType>(alias, description, usage, examples ?? Array.Empty<string>(), handler, lifeTime));
         }
 
     }

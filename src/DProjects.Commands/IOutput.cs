@@ -13,6 +13,7 @@ namespace DProjects.Commands {
         TextWriter CreateTextWriter();
         IDBWriter CreateDBWriter(string format);
         bool IsTerminal { get; }
+        
 
     }
 

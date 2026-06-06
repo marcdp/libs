@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 
@@ -15,7 +16,7 @@ namespace DProjects.DataTypes {
             UnixMs = unixMs;
         }
 
-        //props
+        // props
         public static Timestamp UtcNow => new(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
         public long TotalMilliseconds {
             get => UnixMs;
@@ -124,7 +125,8 @@ namespace DProjects.DataTypes {
         public bool Equals(Timestamp other) => UnixMs == other.UnixMs;
         public override bool Equals(object obj) => obj is Timestamp ts && ts.UnixMs == UnixMs;
         public override int GetHashCode() => UnixMs.GetHashCode();
-        public override string ToString() => UnixMs.ToString();
+        public override string ToString() => ToDateTimeUtc().ToString("o");
+        public string DebuggerDisplay => ToString();
 
         // methods
         public static bool TryParse(string? text, out Timestamp result) {
