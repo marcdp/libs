@@ -1,0 +1,37 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <AssemblyTitle>DProjects.Config.Abstractions</AssemblyTitle>
+    <TargetFramework>netstandard2.0</TargetFramework>
+	<LangVersion>preview</LangVersion>
+    <AssemblyName>DProjects.Config.Abstractions</AssemblyName>
+    <OutputType>Library</OutputType>
+    <PackageId>DProjects.Config.Abstractions</PackageId>
+    <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
+    <RootNamespace />
+    <ApplicationIcon />
+    <OutputTypeEx>library</OutputTypeEx>
+    <StartupObject />
+    <Company>DProjects</Company>
+    <Description>DProjects.Config.Abstractions</Description>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <Version>3.0.0</Version>
+    <Authors>marcdp</Authors>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <Copyright>Copyright © DProjects SLU</Copyright>
+    <Nullable>enable</Nullable>
+    <PackageProjectUrl>https://www.dprojects.com/</PackageProjectUrl>
+    <PackageIcon></PackageIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="10.0.7" />
+    <PackageReference Include="System.ComponentModel.Annotations" Version="5.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DProjects.Utils\DProjects.Utils.csproj" />
+  </ItemGroup>
+
+
+</Project>
