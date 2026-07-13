@@ -9,7 +9,7 @@ namespace DProjects.Config {
 
         public static T CreateFromUrl<T>(string src) {
             var uri = new Uri(src);
-            var query = UrlUtils.ParseQueryString(src);
+            var query = UrlUtils.ParseQueryString(src.IndexOf("?")!=-1 ? src.Substring(src.IndexOf("?") + 1) : "");
             var type = typeof(T);
             foreach (var constructorInfo in type.GetConstructors()) {
                 var parameterInfos = constructorInfo.GetParameters();
@@ -29,8 +29,9 @@ namespace DProjects.Config {
                         argument = uri.UserInfo.Split(':')[0];
                     } else if (parameterInfo.Name.Equals("password", StringComparison.OrdinalIgnoreCase)) {
                         argument = uri.UserInfo.Split(':')[1];
-                    } else if (uri.Query.IndexOf("?" + parameterInfo.Name + "=", StringComparison.OrdinalIgnoreCase) != -1 || uri.Query.IndexOf("&" + parameterInfo.Name + "=", StringComparison.OrdinalIgnoreCase) != -1) { 
-                        argument = query.Get(parameterInfo.Name);
+                    } else if (uri.Query.IndexOf("?" + parameterInfo.Name + "=", StringComparison.OrdinalIgnoreCase) != -1 || uri.Query.IndexOf("&" + parameterInfo.Name + "=", StringComparison.OrdinalIgnoreCase) != -1) {
+                        var value = query.Get(parameterInfo.Name);
+                        argument = ConvertUtils.To(value, parameterInfo.ParameterType, true)!;
                     }
                     arguments[i] = argument;
                 }
