@@ -4,6 +4,8 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using System.Threading;
 
+using DProjects.Utils;
+
 namespace DProjects.Db.Writers {
 
 
@@ -11,6 +13,8 @@ namespace DProjects.Db.Writers {
 
         //inner classes
         public class Settings {
+            public bool Colorize { get; set; } = false;
+            public bool Indent { get; set; } = false;
             public Settings() {
             }
         }
@@ -21,6 +25,7 @@ namespace DProjects.Db.Writers {
         private bool mLeaveOpen;
         private DBTable mTable;
         private Settings mSettings;
+        private JsonSerializerOptions mOptions;
 
 
         //constructor
@@ -29,6 +34,9 @@ namespace DProjects.Db.Writers {
             mLeaveOpen = leaveOpen;
             mTable = new DBTable();
             mSettings = settings;
+            mOptions = new System.Text.Json.JsonSerializerOptions() { 
+                WriteIndented = mSettings.Indent
+            };
         }
         public DBWriterJsonLines(TextWriter writer, bool leaveOpen) : this(writer, leaveOpen, new Settings()) {
         }
@@ -83,7 +91,11 @@ namespace DProjects.Db.Writers {
             foreach (var column in mTable.Columns) {
                 aux[column.Name] = values[index++];
             }
-            return JsonSerializer.Serialize(aux);
+            var result = JsonSerializer.Serialize(aux, mOptions);
+            if (mSettings.Colorize) {
+                result = ConsoleUtils.ColorizeJson(result);
+            }
+            return result;
         }
 
     }

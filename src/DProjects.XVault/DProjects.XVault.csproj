@@ -37,7 +37,8 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\DProjects.Crypto\DProjects.Crypto.csproj" />      
+      <ProjectReference Include="..\DProjects.Crypto\DProjects.Crypto.csproj" />
+      <ProjectReference Include="..\DProjects.Text.Yaml\DProjects.Text.Yaml.csproj" />      
     </ItemGroup>
  
 

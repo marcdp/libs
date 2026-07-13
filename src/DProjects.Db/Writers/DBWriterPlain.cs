@@ -24,6 +24,7 @@ namespace DProjects.Db.Writers {
             public string DateTimeFormat { get; set; }
             public NewLineModes NewLineMode;
             public bool ColumnNames { get; set; }
+            public bool Colorize { get; set; } = false;
             public Settings() {
                 DateTimeFormat = DateTimeUtils.DATETIME_ISO8601;
                 NewLineMode = NewLineModes.Default;
@@ -147,19 +148,31 @@ namespace DProjects.Db.Writers {
             }
             if (mSettings.ColumnNames) {
                 int index = 0;
+                var columnNames = new StringBuilder();
                 foreach (DBColumn dbColumn in mTable.Columns) {
-                    result.Append(string.Format("{0,-" + mColWidths[index] + "}", dbColumn.Name) + "  ");
+                    columnNames.Append(string.Format("{0,-" + mColWidths[index] + "}", dbColumn.Name) + "  ");
                     index++;
                 }
-                result.AppendLine();
+                if (mSettings.Colorize) {
+                    columnNames = new StringBuilder(DProjects.Utils.Highlighters.HighlighterPlain.HighlightHeader(columnNames.ToString()));
+                };
+                result.AppendLine(columnNames.ToString());
                 index = 0;
+                var separator = new StringBuilder();
                 foreach (DBColumn dbColumn in mTable.Columns) {
-                    result.Append(StringUtils.Space(mColWidths[index], '-') + "  ");
+                    separator.Append(StringUtils.Space(mColWidths[index], '-') + "  ");
                     index++;
                 }
-                result.AppendLine("");
+                if (mSettings.Colorize) {
+                    separator = new StringBuilder(DProjects.Utils.Highlighters.HighlighterPlain.HighlightSeparator(separator.ToString()));
+                } 
+                result.AppendLine(separator.ToString());
             }
-            return result.ToString();
+            var res = result.ToString();
+            //if (mSettings.Colorize) {
+            //    res = DProjects.Utils.Highlighters.HighlighterPlain.HighlightHeader(res);
+            //}
+            return res;
         }
         private string GetRow(DBRow dbRow) {
             var line = new StringBuilder();
@@ -171,7 +184,11 @@ namespace DProjects.Db.Writers {
                 line.Append(string.Format("{0," + (align == 0 ? "-" : "") + mColWidths[index] + "}", valueAsString) + "  ");
                 index++;
             }
-            return line.ToString();
+            var res = line.ToString();
+            if (mSettings.Colorize) {
+                res = DProjects.Utils.Highlighters.HighlighterPlain.HighlightRow(res);
+            }
+            return res;
         }
         private string ToSimpleString(DBColumn dbColumn, object? aObject, ref int align) {
             string result = "";

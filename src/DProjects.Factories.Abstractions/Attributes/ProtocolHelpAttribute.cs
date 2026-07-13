@@ -4,9 +4,9 @@ namespace DProjects.Factories.Attributes {
 
 
     [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = true)]
-    public class ProtocolHelp : Attribute {
+    public class ProtocolHelpAttribute : Attribute {
         public string Help { get; }
-        public ProtocolHelp(string help) {
+        public ProtocolHelpAttribute(string help) {
             Help = help;
         }
     }

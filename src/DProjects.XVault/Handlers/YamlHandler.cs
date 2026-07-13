@@ -1,5 +1,8 @@
 using System;
 using System.Text.RegularExpressions;
+
+using DProjects.Text.Yaml;
+
 using Microsoft.Extensions.Configuration;
 
 namespace DProjects.XVault.Handlers {
@@ -19,17 +22,15 @@ namespace DProjects.XVault.Handlers {
             if (!match.Success) {
                 throw new Exception("Unable to load vault meta: _xvault field not found.");
             }
-
             var rawMeta = match.Groups[1].Value.Trim(); 
             var derivedKey = ResolveAndValidateKey(password, rawMeta, path);
-
             var cleaned = text.Replace(MetaComment, string.Empty);
             cleaned = MetaLineRegex.Replace(cleaned, string.Empty, 1).TrimStart('\n', '\r', ' ');
-
             return ReplaceEncryptedTokens(cleaned, derivedKey, YamlPlainPattern);
         }
         public override void Register(ConfigurationManager configurationManager) {
-            throw new NotImplementedException();
+            var yaml = Decrypt();
+            configurationManager.AddYaml(yaml);
         }
     }
 

@@ -14,7 +14,6 @@ namespace DProjects.Factories {
     public class FactoryByUrl<TType> : IDisposable, IFactoryByUrl<TType> where TType : class {
 
         // const
-        //private static readonly Regex mSecretRegex = new(@"\$\{secret:(?<name>[A-Za-z0-9_\-]+)\}", RegexOptions.Compiled);
         private static readonly Regex mSecretRegex = new(@"\$\{secret:(?<name>[^}]+)\}", RegexOptions.Compiled);
 
         // variables
@@ -83,7 +82,7 @@ namespace DProjects.Factories {
                 if (defaultInstance != null) return defaultInstance;
             }
             //try get handler
-            var handler = mConfiguration.Handlers.Where(x => x.Name.Equals(scheme)).Select(x => x.Handler).FirstOrDefault();
+            var handler = mConfiguration.Handlers.Where(x => x.Name.Equals(scheme, StringComparison.OrdinalIgnoreCase)).Select(x => x.Handler).FirstOrDefault();
             if (handler != null) {
                 //create from handler
                 var instanceFromHandler = handler(mServiceProvider, url);
@@ -93,7 +92,7 @@ namespace DProjects.Factories {
                 return instanceFromHandler;
             }
             //create instance
-            var protocol = mConfiguration.Protocols.Where(x => x.Name.Equals(scheme)).FirstOrDefault();
+            var protocol = mConfiguration.Protocols.Where(x => x.Name.Equals(scheme, StringComparison.OrdinalIgnoreCase)).FirstOrDefault();
             if (protocol == null) {
                 throw new ArgumentException("Unable to create instance of type, protocol not found: schema: " + scheme + ", protocol: " + typeof(TType).FullName);
             }
@@ -139,7 +138,7 @@ namespace DProjects.Factories {
             //validations
             //if (url.StartsWith("/")) url = "fs://" + url;
             //aliases
-            url = mConfiguration.Aliases.Where(x => x.Name.Equals(url)).Select(x => x.Value).DefaultIfEmpty(url).FirstOrDefault();
+            url = mConfiguration.Aliases.Where(x => x.Name.Equals(url, StringComparison.OrdinalIgnoreCase)).Select(x => x.Value).DefaultIfEmpty(url).FirstOrDefault();
             //if (url.StartsWith("/")) url = "fs://" + url;
             //add dots if required
             if (url.Length > 0 && url.IndexOf(":") == -1) url += ":";
@@ -162,7 +161,7 @@ namespace DProjects.Factories {
                 if (defaultInstance != null) return defaultInstance;
             }
             //try get handler
-            var handler = mConfiguration.Handlers.Where(x => x.Name.Equals(scheme)).Select(x => x.Handler).FirstOrDefault();
+            var handler = mConfiguration.Handlers.Where(x => x.Name.Equals(scheme, StringComparison.OrdinalIgnoreCase)).Select(x => x.Handler).FirstOrDefault();
             if (handler != null) {  
                 //create from handler
                 var instanceFromHandler = handler(mServiceProvider, argument);
@@ -172,7 +171,7 @@ namespace DProjects.Factories {
                 return instanceFromHandler;
             }
             //create instance
-            var protocol = mConfiguration.Protocols.Where(x => x.Name.Equals(scheme)).FirstOrDefault();
+            var protocol = mConfiguration.Protocols.Where(x => x.Name.Equals(scheme, StringComparison.OrdinalIgnoreCase)).FirstOrDefault();
             if (protocol == null) {
                 throw new ArgumentException("Unable to create instance of type, protocol not found: schema: " + scheme + ", protocol: " + typeof(TType).FullName);
             }

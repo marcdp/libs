@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Security.Cryptography;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -56,17 +57,18 @@ namespace DProjects.Commands {
                 }
             }
             public IDBWriter CreateDBWriter(string format) {
+                //var textWriter = (IsTerminal ? new ColorizeTextWriter(CreateTextWriter(), format) : CreateTextWriter());
                 if (format.IndexOf(":")==-1) format += ":";
-                if (format.StartsWith("csv")) return new DBWriterCsvFactory().Create(format, CreateTextWriter());
-                if (format.StartsWith("jsonl")) return new DBWriterJsonLinesFactory().Create(format, CreateTextWriter());
-                if (format.StartsWith("json")) return new DBWriterJsonFactory().Create(format, CreateTextWriter());
-                if (format.StartsWith("plain")) return new DBWriterPlain(CreateTextWriter(), true);
+                if (format.StartsWith("csv")) return new DBWriterCsvFactory().Create(format + (IsTerminal ? (format.IndexOf("?") == -1 ? "?" : "&") + "colorize=true" : ""), CreateTextWriter());
+                if (format.StartsWith("jsonl")) return new DBWriterJsonLinesFactory().Create(format + (IsTerminal ? (format.IndexOf("?") == -1 ? "?" : "&") + "colorize=true" : ""), CreateTextWriter());
+                if (format.StartsWith("json")) return new DBWriterJsonFactory().Create(format + (IsTerminal ? (format.IndexOf("?") == -1 ? "?" : "&") + "colorize=true" : ""), CreateTextWriter());
+                if (format.StartsWith("plain")) return new DBWriterPlainFactory().Create(format + (IsTerminal ? (format.IndexOf("?") == -1 ? "?" : "&") + "colorize=true" : ""), CreateTextWriter());
                 if (format.StartsWith("xml")) return new DBWriterXmlFactory().Create(format, CreateTextWriter());
                 if (format.StartsWith("html")) return new DBWriterHtmlFactory().Create(format, CreateTextWriter());
                 if (format.StartsWith("raw")) return new DBWriterRawFactory().Create(format, CreateTextWriter());
-                if (format.StartsWith("yaml")) return new DBWriterYamlFactory().Create(format, CreateTextWriter());
-                if (format.StartsWith("yfm")) return new DBWriterYfmFactory().Create(format, CreateTextWriter());
-                throw new System.Exception(format + " is not a valid format for output");
+                if (format.StartsWith("yaml")) return new DBWriterYamlFactory().Create(format + (IsTerminal ? (format.IndexOf("?")==-1 ? "?" : "&") + "colorize=true" : ""), CreateTextWriter());
+                if (format.StartsWith("yfm")) return new DBWriterYfmFactory().Create(format + (IsTerminal ? (format.IndexOf("?") == -1 ? "?" : "&") + "colorize=true" : ""), CreateTextWriter());
+                throw new System.Exception("Format is not a valid format for output: " + format);
             }
             public bool IsTerminal {
                 get {

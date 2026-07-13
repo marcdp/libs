@@ -4,10 +4,10 @@ namespace DProjects.Factories.Attributes {
 
     [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = true)]
     public class ProtocolExampleAttribute : Attribute {
-        public string Example { get; }
+        public string Value { get; }
         public string Description { get; }
-        public ProtocolExampleAttribute(string example, string description) {
-            Example = example;
+        public ProtocolExampleAttribute(string value, string description) {
+            Value = value;
             Description = description;
         }
     }
