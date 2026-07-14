@@ -16,7 +16,11 @@ namespace DProjects.Config.Attributes {
 
         // methods
         public override bool IsValid(object? value) {
-            return value is null || Values.Contains(value);
+            if (value == null) return true;
+            foreach (object allowedValue in Values) {
+                if (Equals(value, allowedValue)) return true;
+            }
+            return false;
         }
 
     }

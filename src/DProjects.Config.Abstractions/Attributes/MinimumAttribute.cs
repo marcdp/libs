@@ -1,4 +1,6 @@
 using System;
+using System.ComponentModel.DataAnnotations;
+using System.Globalization;
 
 namespace DProjects.Config.Attributes {
 
@@ -17,7 +19,22 @@ namespace DProjects.Config.Attributes {
 
         // methods
         public override bool IsValid(object? value) {
-            throw new NotImplementedException();
+            if (value == null) return true;
+
+            if (value is not IConvertible)
+                throw new ValidationException($"{nameof(MinimumAttribute)} can only be applied to numeric values.");
+
+            double number;
+
+            try {
+                number = Convert.ToDouble(value, CultureInfo.InvariantCulture);
+            } catch (Exception ex) {
+                throw new ValidationException($"{nameof(MinimumAttribute)} can only be applied to numeric values.", ex);
+            }
+
+            return Inclusive
+                ? number >= Min
+                : number > Min;
         }
 
     }

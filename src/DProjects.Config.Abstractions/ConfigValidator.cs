@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 namespace DProjects.Config {
 
 
-    public class Validator {
+    public class ConfigValidator {
         public static T ValidateAndThrow<T>(T config) {
             // validate all fields
             var type = typeof(T);

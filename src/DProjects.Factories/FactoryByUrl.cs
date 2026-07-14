@@ -1,9 +1,11 @@
+using DProjects.Factories.Attributes;
 using DProjects.Secrets;
 using DProjects.Utils;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 
@@ -100,9 +102,18 @@ namespace DProjects.Factories {
             var instance = factory.Create(url);
             //register IDisposable instance
             if (instance is IDisposable instanceDisposable) mDisposables.Add(instanceDisposable);
+            
             //return instance
             return instance;
         }
+        public string GetProtocolByConfigType(object config) {
+            // get protocol by config type
+            var configType = config.GetType();
+            var protocol = Protocols.SingleOrDefault(protocol => protocol.Factory.GetCustomAttribute<ProtocolConfigAttribute>()?.Type == configType);
+            return protocol.Name;
+
+        }
+
     }
 
     public class FactoryByUrl<TType, TArgument> : IDisposable, IFactoryByUrl<TType, TArgument> where TType : class where TArgument: class {
