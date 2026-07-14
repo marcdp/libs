@@ -739,6 +739,17 @@ namespace DProjects.Utils {
                 return CapitalizeFirstChar(s.ToString().Replace("_", " ").ToLower());
             }
         }
+
+        //// kebab case
+        //private static readonly Regex NonSlugCharacters =  new(@"[^\p{L}\p{N}]+", RegexOptions.Compiled);
+        //public static string ToKebabCase(string? text, bool uncapitalizeFirstLetter = false) {
+        //    //convierte cadenas del tipo HolaQueTalEstas a hola que tal estas
+            
+        //    if (string.IsNullOrWhiteSpace(text)) return string.Empty;
+        //    return NonSlugCharacters.Replace(text.Trim().ToLowerInvariant(), "-").Trim('-');
+        //}
+
+
         public static bool IsAllTextUppercase(string text) {
             foreach (char c in text) {
                 if (char.IsLetterOrDigit(c)) {
@@ -959,13 +970,49 @@ namespace DProjects.Utils {
             DateTime retDate;
             return System.DateTime.TryParse(Convert.ToString(text), out retDate);
         }
-        public static bool IsEmail(string text) {
-            if (text == null) return false;
-            if (text.StartsWith("@")) return false;
-            string validEmailPattern = @"^(?!\.)(""([^""\r\\]|\\[""\r\\])*""|([-a-z0-9!#$%&'*+/=?^_`{|}~]|(?<!\.)\.)*)(?<!\.)@[a-z0-9][\w\.-]*[a-z0-9]\.[a-z][a-z\.]*[a-z]$";
-            var regex = new System.Text.RegularExpressions.Regex(validEmailPattern, System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-            return regex.IsMatch(text.ToString());
+        //public static bool IsEmail(string text) {
+        //    if (text == null) return false;
+        //    if (text.StartsWith("@")) return false;
+        //    string validEmailPattern = @"^(?!\.)(""([^""\r\\]|\\[""\r\\])*""|([-a-z0-9!#$%&'*+/=?^_`{|}~]|(?<!\.)\.)*)(?<!\.)@[a-z0-9][\w\.-]*[a-z0-9]\.[a-z][a-z\.]*[a-z]$";
+        //    var regex = new System.Text.RegularExpressions.Regex(validEmailPattern, System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        //    return regex.IsMatch(text.ToString());
+        private static readonly Regex LocalPartRegex = new Regex(@"^[\p{L}\p{M}\p{N}](?:[\p{L}\p{M}\p{N}._+\-]*[\p{L}\p{M}\p{N}])?$",RegexOptions.Compiled | RegexOptions.CultureInvariant);
+        private static readonly Regex DomainRegex = new Regex(@"^[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)+$",RegexOptions.Compiled | RegexOptions.CultureInvariant);
+        public static bool IsEmail(string? value) {
+            if (value == null || string.IsNullOrWhiteSpace(value)) return false;
+
+            value = value.Trim().Normalize(NormalizationForm.FormC);
+
+            if (value.Length > 254) return false;
+            if (value.IndexOf("..", StringComparison.Ordinal) >= 0) return false;
+
+            int atIndex = value.LastIndexOf('@');
+
+            if (atIndex <= 0 || atIndex == value.Length - 1) return false;
+
+            string localPart = value.Substring(0, atIndex);
+            string domain = value.Substring(atIndex + 1);
+
+            // Ensures that there is exactly one @ character.
+            if (localPart.IndexOf('@') >= 0) return false;
+
+            if (!LocalPartRegex.IsMatch(localPart)) return false;
+
+            string asciiDomain;
+
+            try {
+                IdnMapping idnMapping = new IdnMapping();
+                asciiDomain = idnMapping.GetAscii(domain);
+            } catch (ArgumentException) {
+                return false;
+            }
+
+            if (asciiDomain.Length > 253) return false;
+            if (!DomainRegex.IsMatch(asciiDomain)) return false;
+
+            return true;
         }
+
         public static bool IsPhone(string text) {
             if (text == null) return false;
             return IsNumeric(text);

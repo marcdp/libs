@@ -362,6 +362,9 @@ namespace DProjects.Utils.Tests {
         [InlineData("@at.com", false)]
         [InlineData("@com", false)]
         [InlineData("hello world@host.com", false)]
+        [InlineData("hello+goodbye@at.com", true)]
+        [InlineData("hello+goodbye@at..com", false)]
+        [InlineData("españa@at.com", true)]
         public void IsEmailTest(string expression, bool result) {
             Assert.Equal(result, StringUtils.IsEmail(expression));
         }

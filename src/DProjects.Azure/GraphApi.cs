@@ -374,6 +374,18 @@ namespace DProjects.Azure {
             [System.Text.Json.Serialization.JsonPropertyName("@odata.nextLink")]
             public string ODataNextLink { get; set; } = "";
         }
+        public class TeamMembers {
+            public TeamMember[] Value { get; set; } = new TeamMember[] { };
+            [System.Text.Json.Serialization.JsonPropertyName("@odata.nextLink")]
+            public string ODataNextLink { get; set; } = "";
+        }
+        public class TeamMember {
+            public string Id { get; set; } = "";
+            public string DisplayName { get; set; } = "";
+            public string[] Roles { get; set; } = new string[] { };
+            public string UserId { get; set; } = "";
+            public string Email { get; set; } = "";
+        }
         public class ConversationMember {
             public string Id { get; set; } = "";
             public string DisplayName { get; set; } = "";
@@ -2111,6 +2123,45 @@ namespace DProjects.Azure {
                 }
             }
         }
+        public async Task<TeamMember[]> GetTeamMembersAsync(string teamId) {
+            var nextQuery = "";
+            var result = new List<TeamMember>();
+            do {
+                var httpRequest = await CreateHttpRequestAsync(HttpMethod.Get, "/teams/" + teamId + "/members", nextQuery);
+                using (var httpResponse = await mHttpClient.SendAsync(httpRequest)) {
+                    var json = await httpResponse.Content.ReadAsStringAsync();
+                    if (httpResponse.StatusCode != System.Net.HttpStatusCode.OK) throw new Exception("Unable to get team members: " + httpResponse.StatusCode);
+                    var list = new DProjects.Text.Json.JsonDeserializer().Deserialize<TeamMembers>(json);
+                    foreach (var item in list.Value) {
+                        result.Add(item);
+                    }
+                    var nextLink = list.ODataNextLink;
+                    if (nextLink == "") {
+                        nextQuery = "";
+                    } else {
+                        nextQuery = nextLink.Substring(nextLink.IndexOf("?") + 1);
+                    }
+                }
+            } while (nextQuery.Length > 0);
+            return result.ToArray();
+        }
+        public async Task<ConversationMember> AddTeamMemberAsync(string groupId, string userId, string[]? roles) {
+            var dict = new Dictionary<string, object>();
+            dict["@odata.type"] = "#microsoft.graph.aadUserConversationMember";
+            dict["user@odata.bind"] = "https://graph.microsoft.com/v1.0/users('" + userId + "')";
+            if (roles != null) dict["roles"] = roles;
+            var httpRequest = await CreateHttpRequestAsync(HttpMethod.Post, "/teams/" + groupId + "/members", "");
+            httpRequest.Content = new StringContent(new DProjects.Text.Json.JsonSerializer().Serialize(dict));
+            httpRequest.Content.Headers.ContentType = new MediaTypeHeaderValue(MimeTypeUtils.APPLICATION_JSON);
+            using (var httpResponse = await mHttpClient.SendAsync(httpRequest)) {
+                var json = await httpResponse.Content.ReadAsStringAsync();
+                if (httpResponse.StatusCode == System.Net.HttpStatusCode.Created) {
+                } else {
+                    throw new Exception("Unable to add team member (" + string.Join(",", roles ?? new string[] { }) + "): " + httpResponse.StatusCode + " (" + json + ")");
+                }
+                return new DProjects.Text.Json.JsonDeserializer().Deserialize<ConversationMember>(json);
+            }
+        }
         public async Task<TeamChannel[]> GetTeamChannelsAsync(string groupId) {
             var nextQuery = "";
             var result = new List<TeamChannel>();
@@ -2227,6 +2278,7 @@ namespace DProjects.Azure {
             } while (nextQuery.Length > 0);
             return result.ToArray();
         }
+        
 
         public async Task<ConversationMember> AddTeamChannelMemberAsync(string groupId, string channelId, string userId, string[]? roles) {
             var dict = new Dictionary<string, object>();
