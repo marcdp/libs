@@ -10,8 +10,8 @@ namespace DProjects.Factories {
     public interface IFactoryByUrl<TType, TArgument> where TType : class where TArgument : class {
 
         TType Create(string url, TArgument argument);
-        
 
     }
+
 
 }

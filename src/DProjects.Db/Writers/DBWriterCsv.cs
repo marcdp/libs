@@ -25,6 +25,7 @@ namespace DProjects.Db.Writers {
             public string NullSequence { get; set; }
             public string DateTimeFormat { get; set; }
             public string EscapeChar { get; set; }
+            public bool Colorize { get; set; } = false;
             public Settings() {
                 Delimiter = ',';
                 LineTerminator = "\r\n";
@@ -210,7 +211,11 @@ namespace DProjects.Db.Writers {
                 }
                 index++;
             }
-            return line.ToString();
+            var result = line.ToString();
+            if (mSettings.Colorize) {
+                return ConsoleUtils.ColorizeCsv(result);
+            }
+            return result;
         }
         private string QuoteValue(string value) {
             var result = new StringBuilder(value.Length + 2);

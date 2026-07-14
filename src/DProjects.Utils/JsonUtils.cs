@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Text.Json;
 
 namespace DProjects.Utils {
 
@@ -83,7 +85,36 @@ namespace DProjects.Utils {
                 return typeof(string);
             }
         }
-        
+        public static string InjectFormattedTimeFields(string json) {
+            using var doc = JsonDocument.Parse(json);
+            using var buffer = new MemoryStream();
+            using (var writer = new Utf8JsonWriter(buffer)) {
+                WriteWithFormattedTimeFields(writer, doc.RootElement);
+            }
+            return System.Text.Encoding.UTF8.GetString(buffer.ToArray());
+        }
+        private static void WriteWithFormattedTimeFields(Utf8JsonWriter writer, JsonElement element) {
+            if (element.ValueKind == JsonValueKind.Object) {
+                writer.WriteStartObject();
+                foreach (var property in element.EnumerateObject()) {
+                    writer.WritePropertyName(property.Name);
+                    WriteWithFormattedTimeFields(writer, property.Value);
+                    if ((property.Name.EndsWith("time", StringComparison.OrdinalIgnoreCase) || property.Name.StartsWith("From", StringComparison.OrdinalIgnoreCase) || property.Name.StartsWith("To", StringComparison.OrdinalIgnoreCase)) && property.Value.ValueKind == JsonValueKind.Number && property.Value.TryGetInt64(out var unixMs)) {
+                        writer.WriteString(property.Name + "Str", DateTimeOffset.FromUnixTimeMilliseconds(unixMs).ToString("yyyy-MM-ddTHH:mm:ss.fffZ"));
+                    }
+                }
+                writer.WriteEndObject();
+            } else if (element.ValueKind == JsonValueKind.Array) {
+                writer.WriteStartArray();
+                foreach (var item in element.EnumerateArray()) {
+                    WriteWithFormattedTimeFields(writer, item);
+                }
+                writer.WriteEndArray();
+            } else {
+                element.WriteTo(writer);
+            }
+        }
+
 
     }
 }

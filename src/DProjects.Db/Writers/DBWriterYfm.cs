@@ -13,6 +13,7 @@ namespace DProjects.Db.Writers {
 
         //inner classes
         public class Settings : YamlSerializerSettings {
+            public bool Colorize { get; set; }
             public Settings() {
                 FrontMatter = true;
                 ContentPropertyNames = new string[] { "content" };
@@ -88,6 +89,9 @@ namespace DProjects.Db.Writers {
                 dict[column.Name] = values[index++];
             }
             var result = new DProjects.Text.Yaml.YamlSerializer(mSettings).Serialize(dict);
+            if (mSettings.Colorize) {
+                result = ConsoleUtils.ColorizeYaml(result);
+            }
             return result;
         }
     }

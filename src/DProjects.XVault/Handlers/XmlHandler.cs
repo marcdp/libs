@@ -1,13 +1,18 @@
 using System;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Configuration;
 
 namespace DProjects.XVault.Handlers {
-    class XmlHandler : Handler {
+    class XmlHandler(string text, string path, string? password = null) : Handler {
+
+        //vars
         private static readonly Regex MetaElementRegex = new Regex(@"<_xvault>\s*([^<\r\n]+)\s*</_xvault>", RegexOptions.Compiled);
         private static readonly Regex MetaAttrRegex = new Regex("\\s_xvault\\s*=\\s*\"([^\"]+)\"", RegexOptions.Compiled);
         private static readonly Regex XmlPlainPattern = new Regex(@"(?<!\$\{)enc:[^""'<\r\n]+", RegexOptions.Compiled);
 
-        public override string Decrypt(string text, string? password, string path) {
+
+        // methods
+        public override string Decrypt() {
             string rawMeta;
             string cleaned;
 
@@ -26,6 +31,9 @@ namespace DProjects.XVault.Handlers {
 
             var derivedKey = ResolveAndValidateKey(password, rawMeta, path);
             return ReplaceEncryptedTokens(cleaned, derivedKey, XmlPlainPattern);
+        }
+        public override void Register(ConfigurationManager configurationManager) {
+            throw new NotImplementedException();
         }
     }
 

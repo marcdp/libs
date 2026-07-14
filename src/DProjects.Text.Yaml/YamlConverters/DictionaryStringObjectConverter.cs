@@ -35,7 +35,7 @@ namespace DProjects.Text.Yaml.YamlConverters {
         }
 
         public void WriteYaml(IEmitter emitter, object? value, Type type, ObjectSerializer serializer) {
-            throw new NotImplementedException();
+            WriteYaml(emitter, value, type);
         }
 
         private void WriteValue(IEmitter emitter, object? value) {

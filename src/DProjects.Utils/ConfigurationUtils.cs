@@ -1,15 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Configuration;
-using System.IO;
-using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
-
-using DProjects.Utils;
-
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace DProjects.Utils {
      
@@ -20,24 +11,6 @@ namespace DProjects.Utils {
         public static IConfigurationBuilder ReplaceVariables(this Microsoft.Extensions.Configuration.ConfigurationManager configuration, Func<string, string?> handler) {
             ScanAndReplaceVariables(configuration, handler);
             return configuration;
-            //// scan all configuration keypairs
-            //var items = new Dictionary<string, string>();
-            //foreach (var child in configuration.AsEnumerable()) {
-            //    if (child.Value != null) {
-            //        var i = child.Value.IndexOf("${");
-            //        if (i != -1) {
-            //            var value = child.Value;
-            //            items[child.Key] = value;
-            //        }
-            //    }
-            //}
-            //// add new memory collection keypairs that override the previous ones
-            //ConfigurationUtils.ScanAndReplaceVariables(items, handler);
-            //var itemsList = new List<KeyValuePair<string, string>>();
-            //foreach (var kvp in items) {
-            //    itemsList.Add(new KeyValuePair<string, string>(kvp.Key, kvp.Value));
-            //}
-            //return configuration.AddInMemoryCollection(itemsList.ToArray()!);
         }
 
 

@@ -67,6 +67,10 @@ namespace DProjects.Text.Yaml {
                     );
                     serializerBuilder = serializerBuilder.WithTypeConverter(new YamlConverters.DictionaryStringObjectConverter(ignoredPropertyNames.ToArray()));
                 }
+                // serializer
+                if (!settings.EnableAliases) {
+                    serializerBuilder.DisableAliases();
+                }
                 //build
                 var serializer = serializerBuilder.Build();
                 //serialize

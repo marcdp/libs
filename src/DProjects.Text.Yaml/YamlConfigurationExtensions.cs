@@ -24,6 +24,18 @@ namespace DProjects.Text.Yaml {
             builder.AddJsonStream(stream);
             return builder;
         }
+        public static IConfigurationBuilder AddYaml(this IConfigurationBuilder builder, string yaml) {
+            var deserializer = new DeserializerBuilder().WithNamingConvention(CamelCaseNamingConvention.Instance).Build();
+            var yamlObject = deserializer.Deserialize<object>(yaml);
+            var serializer = new SerializerBuilder().JsonCompatible().Build();
+
+            // Convert YAML -> JSON string -> memory stream
+            var json = serializer.Serialize(yamlObject);
+            var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(json));
+
+            builder.AddJsonStream(stream);
+            return builder;
+        }
     }
 
 

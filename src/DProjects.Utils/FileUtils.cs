@@ -25,6 +25,23 @@ namespace DProjects.Utils {
             }
         }
 
+        public static string DetectEndOfLine(string filePath) {
+            using (var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)) {
+                int previous = -1;
+                int current;
+                while ((current = stream.ReadByte()) != -1) {
+                    if (current == '\n') {
+                        return previous == '\r' ? "\r\n" : "\n";
+                    }
+                    if (previous == '\r') {
+                        return "\r";
+                    }
+                    previous = current;
+                }
+            }
+            return Environment.NewLine; // fallback if file has no line endings
+        }
+
         //temp
         public static string GetTempPath() {
             return Path.GetTempPath();

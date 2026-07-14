@@ -1,13 +1,18 @@
 using System;
+using System.IO;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Configuration;
 
 namespace DProjects.XVault.Handlers {
-    class JsonHandler : Handler {
+    class JsonHandler(string text, string path, string? password= null) : Handler {
+
+        // vars
         private static readonly Regex MetaKeyRegex = new Regex("\"_xvault\"\\s*:\\s*\"([^\"]+)\"\\s*,?", RegexOptions.Compiled);
         private static readonly Regex JsonPlainPattern = new Regex(@"(?<!\$\{)enc:[^""\r\n]+", RegexOptions.Compiled);
         private const string MetaComment = "// xvault meta variable (do not modify)\n";
 
-        public override string Decrypt(string text, string? password, string path) {  
+        // methods
+        public override string Decrypt() {  
             var match = MetaKeyRegex.Match(text);
             if (!match.Success) {
                 throw new Exception("Unable to load vault meta: _xvault field not found.");
@@ -24,7 +29,12 @@ namespace DProjects.XVault.Handlers {
 
             return ReplaceEncryptedTokens(cleaned, derivedKey, JsonPlainPattern);
         }
+        public override void Register(ConfigurationManager configurationManager) { 
+            var json = Decrypt();
+            configurationManager.AddJsonStream(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(json)));
+        }
 
+        // private
         private static string DetectJsonIndentation(string text) {
             foreach (var line in text.Split('\n')) {
                 if (string.IsNullOrWhiteSpace(line)) {

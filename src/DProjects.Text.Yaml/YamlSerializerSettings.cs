@@ -32,6 +32,7 @@ namespace DProjects.Text.Yaml {
         public string[] ContentPropertyNames { get; set; } = [];
         public bool IgnoreFields { get; set; } = true;
         public bool FrontMatter { get; set; } = false;
+        public bool EnableAliases { get; set; } = false;
 
     }
 

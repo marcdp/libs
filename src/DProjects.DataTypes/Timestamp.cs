@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 
@@ -15,7 +16,7 @@ namespace DProjects.DataTypes {
             UnixMs = unixMs;
         }
 
-        //props
+        // props
         public static Timestamp UtcNow => new(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
         public long TotalMilliseconds {
             get => UnixMs;
@@ -63,6 +64,11 @@ namespace DProjects.DataTypes {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Timestamp AddDays(int days) {
             var dt = ToDateTimeUtc().AddDays(days);
+            return FromDateTimeUtc(dt);
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Timestamp AddHours(int hours) {
+            var dt = ToDateTimeUtc().AddHours(hours);
             return FromDateTimeUtc(dt);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -119,7 +125,23 @@ namespace DProjects.DataTypes {
         public bool Equals(Timestamp other) => UnixMs == other.UnixMs;
         public override bool Equals(object obj) => obj is Timestamp ts && ts.UnixMs == UnixMs;
         public override int GetHashCode() => UnixMs.GetHashCode();
-        public override string ToString() => UnixMs.ToString();
+        public override string ToString() => ToDateTimeUtc().ToString("o");
+        public string DebuggerDisplay => ToString();
+
+        // methods
+        public static bool TryParse(string? text, out Timestamp result) {
+            result = default;
+
+            if (string.IsNullOrWhiteSpace(text))
+                return false;
+
+            try {
+                result = Parse(text);
+                return true;
+            } catch {
+                return false;
+            }
+        }
 
     }
 }
