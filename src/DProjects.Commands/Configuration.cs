@@ -15,6 +15,9 @@ namespace DProjects.Commands {
         public IDictionary<string, Schema.CmdSchemaDefinition> Commands = new Dictionary<string, Schema.CmdSchemaDefinition>();
 
         //Add commands from assembly
+        public void AddGlobalFlag(char code, string name, string description, string defaultValue) {
+            
+        }
         public void AddCommandsFromAssembly<TAssembly>() where TAssembly : IAssembly {
             AddCommandsFromAssembly(typeof(TAssembly).Assembly);
         }
@@ -26,6 +29,12 @@ namespace DProjects.Commands {
                 var module = "";
                 var command = Schema.CmdSchemaDefinition.Create(type, location, commandType, addHelpTag, module);
                 Commands.Add(command.Name, command);
+            }
+        }
+        public void AddGlobalVirtualFlag(string name, string description, string? defaultValue) {
+            // Add global virtual flag to all commands
+            foreach (var command in Commands.Values) {
+                command.AddGlobalVirtualFlag(name, description, defaultValue);
             }
         }
 

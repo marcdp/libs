@@ -35,7 +35,10 @@ namespace DProjects.Db.Writers {
             mTable = new DBTable();
             mSettings = settings;
             mOptions = new System.Text.Json.JsonSerializerOptions() { 
-                WriteIndented = mSettings.Indent
+                WriteIndented = mSettings.Indent,
+                Converters = {
+                    new System.Text.Json.Serialization.JsonStringEnumConverter()
+                }
             };
         }
         public DBWriterJsonLines(TextWriter writer, bool leaveOpen) : this(writer, leaveOpen, new Settings()) {

@@ -213,7 +213,22 @@ namespace DProjects.Commands.Schema {
             //return
             return result;
         }
-
+        public void AddGlobalVirtualFlag(string name, string description, string? defaultValue) {
+            // Add global virtual flag to this command
+            var cmdSchemaFlags = new List<CmdSchemaFlag>(this.Flags);
+            cmdSchemaFlags.Add(new CmdSchemaFlag() {
+                Name = name,
+                Char = '\0',
+                Type = typeof(string),
+                Description = description,
+                Default = defaultValue,
+                Required = (defaultValue == null),
+                Domain = null,
+                Alias = null,
+                PropertyInfo = null
+            });
+            this.Flags = cmdSchemaFlags.ToArray();
+        }
 
         //initialize instance properties
         public bool InitializeObjectProperties(object instance, string[] args, object? body, string? sheBangArgsSeparator, IDictionary<string,string>? defaults, List<string> errors, Func<Type, string, object> getService) {

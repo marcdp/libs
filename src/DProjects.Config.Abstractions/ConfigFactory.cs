@@ -14,9 +14,11 @@ namespace DProjects.Config {
             var uri = new Uri(src);
             var query = UrlUtils.ParseQueryString(src.IndexOf("?") != -1 ? src.Substring(src.IndexOf("?") + 1) : "");
             var type = typeof(T);
+            
             foreach (var constructorInfo in type.GetConstructors()) {
                 var parameterInfos = constructorInfo.GetParameters();
                 var arguments = new object[parameterInfos.Length];
+                var argumentNames = new List<string>();
                 for (var i = 0; i < parameterInfos.Length; i++) {
                     var parameterInfo = parameterInfos[i];
                     var argument = parameterInfo.DefaultValue;
@@ -37,6 +39,12 @@ namespace DProjects.Config {
                         argument = ConvertUtils.To(value, parameterInfo.ParameterType, true)!;
                     }
                     arguments[i] = argument;
+                    argumentNames.Add(StringUtils.UnCapitalizeFirstChar(parameterInfo.Name));
+                }
+                foreach (string key in query.Keys) {
+                    if (!argumentNames.Contains(key)) {
+                        throw new Exception($"Unable to create {typeof(T).Name} instance from url: invalid query parameter: {key}");
+                    }
                 }
                 var instance = constructorInfo.Invoke(arguments);
                 return (T)instance;
