@@ -1,9 +1,13 @@
+using DProjects.Config;
+using DProjects.Config.Attributes;
+
+
 namespace DProjects.Config.Test;
 
 public class FactoryTests {
     [Fact]
     public void CreateFromUrl_PopulatesUriPartsAndConvertsQueryParameters() {
-        var config = Factory.CreateFromUrl<UrlConfig>(
+        var config = ConfigFactory.CreateFromUrl<UrlConfig>(
             "postgres://marc:secret@db.example.com:5433/main?poolSize=12&ssl=true");
 
         Assert.Equal("postgres", config.Scheme);
@@ -18,7 +22,7 @@ public class FactoryTests {
 
     [Fact]
     public void CreateFromUrl_WhenQueryParameterIsMissing_UsesConstructorDefault() {
-        var config = Factory.CreateFromUrl<UrlConfig>(
+        var config = ConfigFactory.CreateFromUrl<UrlConfig>(
             "postgres://marc:secret@db.example.com/main");
 
         Assert.Equal(5, config.PoolSize);
@@ -28,7 +32,7 @@ public class FactoryTests {
     [Fact]
     public void CreateFromUrl_WhenTypeHasNoPublicConstructor_Throws() {
         var exception = Assert.Throws<Exception>(
-            () => Factory.CreateFromUrl<NoPublicConstructor>("custom://host/path"));
+            () => ConfigFactory.CreateFromUrl<NoPublicConstructor>("custom://host/path"));
 
         Assert.Equal("Unable to create config instance from url: no constructor found.", exception.Message);
     }

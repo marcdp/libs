@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using DProjects.Config.Attributes;
+using DProjects.Config;
 
 namespace DProjects.Config.Test;
 
@@ -8,7 +9,7 @@ public class ValidatorTests {
     public void ValidateAndThrow_WithValidConfig_ReturnsSameInstance() {
         var config = new ValidatedConfig("production");
 
-        var result = Validator.ValidateAndThrow(config);
+        var result = ConfigValidator.ValidateAndThrow(config);
 
         Assert.Same(config, result);
     }
@@ -17,14 +18,14 @@ public class ValidatorTests {
     public void ValidateAndThrow_WhenConstructorParameterIsInvalid_ThrowsValidationException() {
         var config = new ValidatedConfig("test");
 
-        Assert.Throws<ValidationException>(() => Validator.ValidateAndThrow(config));
+        Assert.Throws<ValidationException>(() => ConfigValidator.ValidateAndThrow(config));
     }
 
     [Fact]
     public void ValidateAndThrow_WhenRequiredConstructorParameterIsNull_ThrowsValidationException() {
         var config = new ValidatedConfig(null);
 
-        Assert.Throws<ValidationException>(() => Validator.ValidateAndThrow(config));
+        Assert.Throws<ValidationException>(() => ConfigValidator.ValidateAndThrow(config));
     }
 
     private sealed class ValidatedConfig {
