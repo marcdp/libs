@@ -11,6 +11,7 @@ namespace DProjects.Fs.Aws {
 
     public class Utils {
 
+
         //methods
         public static string UriEncode(string input, bool encodeSlash) {
             var result = new StringBuilder();
