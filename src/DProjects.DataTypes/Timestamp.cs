@@ -72,6 +72,16 @@ namespace DProjects.DataTypes {
             return FromDateTimeUtc(dt);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Timestamp AddMinutes(int minutes) {
+            var dt = ToDateTimeUtc().AddMinutes(minutes);
+            return FromDateTimeUtc(dt);
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Timestamp AddSeconds(int seconds) {
+            var dt = ToDateTimeUtc().AddSeconds(seconds);
+            return FromDateTimeUtc(dt);
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Timestamp ToMidnight() {
             var dt = ToDateTimeUtc();
             var midnight = new DateTime(dt.Year, dt.Month, dt.Day, 0, 0, 0, DateTimeKind.Utc);
