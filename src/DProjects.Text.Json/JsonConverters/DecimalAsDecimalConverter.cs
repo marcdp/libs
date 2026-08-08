@@ -10,16 +10,16 @@ using System.Globalization;
 namespace DProjects.Text.Json.JsonConverters {
 
 
-    public class Decimal6DigitsConverter : JsonConverter<decimal> {
+    public class DecimalAsDecimalConverter : JsonConverter<decimal> {
+
 
         //methods
-        public override decimal Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) {
-            return reader.GetDecimal();
-        }
+        public override decimal Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) => reader.GetDecimal();
+
         public override void Write(Utf8JsonWriter writer, decimal value, JsonSerializerOptions options) {
-            // redondea a 6 decimales sin cambiar el valor original en memoria
-            var rounded = Math.Round(value, 6, MidpointRounding.AwayFromZero);
-            writer.WriteNumberValue(rounded);
+            // to avoid scientific notation, use custom format
+            var s = value.ToString("0.#############################", CultureInfo.InvariantCulture);
+            writer.WriteRawValue(s);
         }
     }
 
