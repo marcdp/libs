@@ -56,17 +56,6 @@ namespace DProjects.Utils {
             return Path.Combine(tempPath, Guid.NewGuid().ToString() + "." + extension);
         }
 
-        // lock methods
-        public static bool IsFileLocked(string path) {
-            if (!File.Exists(path)) return false;
-            try {
-                using var stream = new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
-                return false;
-            } catch (IOException) {
-                return true;
-            }
-        }
-
         // read methods
         public static Task<string> ReadTextFileAsync(string uri, System.Reflection.Assembly? resourceAssembly = null, System.Text.Encoding? encoding = null) {
             var result = ReadTextFile(uri, resourceAssembly, encoding);
@@ -462,8 +451,69 @@ namespace DProjects.Utils {
         }
 
 
+        // lock methods
+        public static bool IsFileLocked(string path) {
+            if (!File.Exists(path)) return false;
+            try {
+                using var stream = new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+                return false;
+            } catch (IOException) {
+                return true;
+            }
+        }
+        public sealed class IndexLock : IDisposable {
+            private readonly string path;
+            private readonly FileStream stream;
+            private bool disposed;
+            public IndexLock(string path, FileStream stream) {
+                this.path = path;
+                this.stream = stream;
+            }
+            public void Dispose() {
+                if (disposed) return;
+                disposed = true;
+                stream.Dispose();
+                try {
+                    File.Delete(path);
+                } catch {
+                    // Best-effort cleanup only.
+                    // The file itself is not the lock; the open exclusive handle is.
+                }
+            }
+        }
+        public static async Task<IndexLock> AcquireIndexLockAsync(string dataPath, TimeSpan timeout, System.Threading.CancellationToken cancellationToken) {
+            Directory.CreateDirectory(dataPath);
+            var lockPath = Path.Combine(dataPath, ".lock");
+            var startedAt = DateTimeOffset.UtcNow;
+            while (true) {
+                cancellationToken.ThrowIfCancellationRequested();
+                try {
+                    var stream = new FileStream(lockPath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+                    stream.SetLength(0);
+                    using (var writer = new StreamWriter(stream, System.Text.Encoding.UTF8, 1024, true)) {
+                        var json =
+                            "{" +
+                            "\"processId\":" + System.Diagnostics.Process.GetCurrentProcess().Id + "," +
+                            "\"startedAt\":\"" + DateTimeOffset.UtcNow.ToString("O") + "\"," +
+                            "\"command\":\"xtrader index\"" +
+                            "}";
+                        writer.Write(json);
+                        writer.Flush();
+                    }
+                    stream.Position = 0;
+                    return new IndexLock(lockPath, stream);
+                } catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException) {
+                    if (DateTimeOffset.UtcNow - startedAt >= timeout) {
+                        throw new TimeoutException(
+                            $"Unable to acquire index lock '{lockPath}' within {timeout}. Another xtrader index process may be running or hung.",
+                            exception
+                        );
+                    }
+                    await Task.Delay(250, cancellationToken);
+                }
+            }
+        }
     }
-
 
 }
 
