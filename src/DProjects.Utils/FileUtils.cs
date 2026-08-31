@@ -13,9 +13,13 @@ namespace DProjects.Utils {
         //constants
         public const int FILESYSTEM_MAX_PATH = 260;
         private const uint INVALID_FILE_ATTRIBUTES = 0xFFFFFFFF;
+        private const uint MOVEFILE_REPLACE_EXISTING = 0x00000001;
 
         [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         private static extern uint GetFileAttributesW(string lpFileName);
+        [DllImport("kernel32.dll", EntryPoint = "MoveFileExW", CharSet = CharSet.Unicode, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool MoveFileExW(string lpExistingFileName, string lpNewFileName, uint dwFlags);
 
 
         //utils
@@ -123,6 +127,24 @@ namespace DProjects.Utils {
                 }
             }
         }
+        public static void WriteFileAtomic(string filename, byte[] fileContent) {
+            var temporaryPath = filename + $".{Guid.NewGuid():N}.tmp";
+            try {
+                File.WriteAllBytes(temporaryPath, fileContent);
+                if (File.Exists(filename)) {
+                    File.Replace(temporaryPath, filename, null);
+                } else {
+                    File.Move(temporaryPath, filename);
+                }
+            } catch {
+                try {
+                    if (File.Exists(temporaryPath))
+                        File.Delete(temporaryPath);
+                } catch {
+                }
+                throw;
+            }
+        }
         public static async Task<long> WriteFileAsync(string filename, Stream inputStream, long bytesToCopy = 0, bool append = false, int bufferSize = 64 * 1024) {
             PrefixWindowsPath(ref filename);
             if (append) {
@@ -144,6 +166,60 @@ namespace DProjects.Utils {
                 using (var streamWriter = new StreamWriter(fileStream, encoding, bufferSize, true)) {
                     streamWriter.Write(fileContent);
                 }
+            }
+        }
+        public static void WriteTextFileAtomic(string filename, string fileContent, System.Text.Encoding? encoding = null, bool overwrite = true) {
+            var temporaryPath = filename + $".{Guid.NewGuid():N}.tmp";
+            try {
+                WriteTextFile(temporaryPath, fileContent, false, encoding);
+                PublishFileAtomic(temporaryPath, filename, overwrite);
+            } catch {
+                try {
+                    if (File.Exists(temporaryPath))
+                        File.Delete(temporaryPath);
+                } catch {
+                }
+                throw;
+            }
+        }
+        public static async Task WriteTextFileAtomicAsync(string filename, string fileContent, System.Text.Encoding? encoding = null, bool overwrite = true,
+                System.Threading.CancellationToken cancellationToken = default) {
+            var temporaryPath = filename + $".{Guid.NewGuid():N}.tmp";
+            try {
+                encoding ??= EncodingUtils.GetDefault();
+                var preamble = encoding.GetPreamble();
+                var content = encoding.GetBytes(fileContent);
+                using (var stream = new FileStream(temporaryPath, FileMode.CreateNew, FileAccess.Write, FileShare.None, 64 * 1024, true)) {
+                    if (preamble.Length > 0) await stream.WriteAsync(preamble, 0, preamble.Length, cancellationToken);
+                    await stream.WriteAsync(content, 0, content.Length, cancellationToken);
+                    await stream.FlushAsync(cancellationToken);
+                }
+                PublishFileAtomic(temporaryPath, filename, overwrite);
+            } catch {
+                try {
+                    if (File.Exists(temporaryPath))
+                        File.Delete(temporaryPath);
+                } catch {
+                }
+                throw;
+            }
+        }
+        private static void PublishFileAtomic(string temporaryPath, string filename, bool overwrite) {
+            if (!overwrite) {
+                File.Move(temporaryPath, filename);
+                return;
+            }
+            if (EnvironmentUtils.IsWindows()) {
+                if (!MoveFileExW(temporaryPath, filename, MOVEFILE_REPLACE_EXISTING)) {
+                    var error = Marshal.GetLastWin32Error();
+                    throw new IOException($"Unable to atomically replace file '{filename}'.", new System.ComponentModel.Win32Exception(error));
+                }
+                return;
+            }
+            if (File.Exists(filename)) {
+                File.Replace(temporaryPath, filename, null);
+            } else {
+                File.Move(temporaryPath, filename);
             }
         }
         public static string WriteTempFile(string fileContent, System.Text.Encoding? encoding = null, int bufferSize = 64 * 1024) {
@@ -481,9 +557,9 @@ namespace DProjects.Utils {
                 }
             }
         }
-        public static async Task<IndexLock> AcquireIndexLockAsync(string dataPath, TimeSpan timeout, System.Threading.CancellationToken cancellationToken) {
-            Directory.CreateDirectory(dataPath);
-            var lockPath = Path.Combine(dataPath, ".lock");
+        public static async Task<IndexLock> AcquireLockAsync(string path, TimeSpan timeout, string? description, System.Threading.CancellationToken cancellationToken) {
+            Directory.CreateDirectory(path);
+            var lockPath = Path.Combine(path, ".lock");
             var startedAt = DateTimeOffset.UtcNow;
             while (true) {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -495,7 +571,7 @@ namespace DProjects.Utils {
                             "{" +
                             "\"processId\":" + System.Diagnostics.Process.GetCurrentProcess().Id + "," +
                             "\"startedAt\":\"" + DateTimeOffset.UtcNow.ToString("O") + "\"," +
-                            "\"command\":\"xtrader index\"" +
+                            "\"description\":\"" + (description?.Replace("\"", "\\\"") ?? "") + "\"" +
                             "}";
                         writer.Write(json);
                         writer.Flush();
@@ -505,7 +581,7 @@ namespace DProjects.Utils {
                 } catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException) {
                     if (DateTimeOffset.UtcNow - startedAt >= timeout) {
                         throw new TimeoutException(
-                            $"Unable to acquire index lock '{lockPath}' within {timeout}. Another xtrader index process may be running or hung.",
+                            $"Unable to acquire lock '{lockPath}' within {timeout}. Another  process may be running or hung.",
                             exception
                         );
                     }

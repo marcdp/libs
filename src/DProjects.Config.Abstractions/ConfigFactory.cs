@@ -42,6 +42,7 @@ namespace DProjects.Config {
                     argumentNames.Add(StringUtils.UnCapitalizeFirstChar(parameterInfo.Name));
                 }
                 foreach (string key in query.Keys) {
+                    if (key == null) { continue; }
                     if (!argumentNames.Contains(key)) {
                         throw new Exception($"Unable to create {typeof(T).Name} instance from url: invalid query parameter: {key}");
                     }
