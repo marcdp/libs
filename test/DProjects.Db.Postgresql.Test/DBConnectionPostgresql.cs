@@ -2,8 +2,9 @@ using System.Data.Common;
 using System.Data;
 using DProjects.Db.Tests;
 
-namespace DProjects.Db.Postgresql.Tests
-{
+namespace DProjects.Db.Postgresql.Tests {
+
+    [Trait("Category", "Integration")]
     public class DBConnectionPostgresqlTests : DBConnectionTests<DProjects.Db.Postgresql.DBConnectionPostgresql> {
 
 

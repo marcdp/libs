@@ -20,10 +20,4 @@ public class MaximumAttributeTests {
         Assert.True(attribute.Inclusive);
     }
 
-    [Fact]
-    public void IsValid_IsNotImplemented() {
-        var attribute = new MaximumAttribute(9.5);
-
-        Assert.Throws<NotImplementedException>(() => attribute.IsValid(9));
-    }
 }

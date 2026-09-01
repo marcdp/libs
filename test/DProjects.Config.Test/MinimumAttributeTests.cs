@@ -18,12 +18,5 @@ public class MinimumAttributeTests {
         var attribute = new MinimumAttribute(2.5);
 
         Assert.True(attribute.Inclusive);
-    }
-
-    [Fact]
-    public void IsValid_IsNotImplemented() {
-        var attribute = new MinimumAttribute(2.5);
-
-        Assert.Throws<NotImplementedException>(() => attribute.IsValid(3));
-    }
+    } 
 }

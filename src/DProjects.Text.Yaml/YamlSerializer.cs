@@ -126,27 +126,30 @@ namespace DProjects.Text.Yaml {
             private readonly ITypeInspector mInnerTypeDescriptor;
             private readonly string[] mIgnorePropertyNames;
             private readonly object mRoot;
+
             public MyTypeInspectorIgnoreProperties(ITypeInspector innerTypeDescriptor, string[] ignorePropertyNames, object root) {
                 mInnerTypeDescriptor = innerTypeDescriptor;
                 mIgnorePropertyNames = ignorePropertyNames;
                 mRoot = root;
             }
 
-            public override string GetEnumName(Type enumType, string name) {
-                throw new NotImplementedException();
-            }
+            public override string GetEnumName(Type enumType, string name) =>
+                mInnerTypeDescriptor.GetEnumName(enumType, name);
 
-            public override string GetEnumValue(object enumValue) {
-                throw new NotImplementedException();
-            }
+            public override string GetEnumValue(object enumValue) =>
+                mInnerTypeDescriptor.GetEnumValue(enumValue);
+
+            public override bool HasParseMethod(Type type) =>
+                mInnerTypeDescriptor.HasParseMethod(type);
+
+            public override object? Parse(string value, Type type) =>
+                mInnerTypeDescriptor.Parse(value, type);
 
             public override IEnumerable<IPropertyDescriptor> GetProperties(Type type, object? container) {
                 var props = mInnerTypeDescriptor.GetProperties(type, container);
                 if (mRoot == container) {
                     props = props.Where(p => !(p.Type == typeof(Dictionary<string, object>) && p.Name == "extensions"));
-                    props = props.Where((p) => {
-                        return System.Array.IndexOf(mIgnorePropertyNames, p.Name) == -1;
-                    });
+                    props = props.Where(p => Array.IndexOf(mIgnorePropertyNames, p.Name) == -1);
                 }
                 return props;
             }
