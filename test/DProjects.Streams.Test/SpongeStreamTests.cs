@@ -59,9 +59,9 @@ namespace DProjects.Streams.Tests
         [InlineData(32, "abcdefgh12345678", 28)]
         public async Task WriteTestAsync(int bufferSize, string text, int writeSize) {
             var buffer = Encoding.UTF8.GetBytes(text);
-            await using (var sponge = new SpongeOutputStream(bufferSize, async (stream) => {
+            await using (var sponge = new SpongeOutputStream(bufferSize, (stream) => {
                 var ms = new MemoryStream();
-                await stream.CopyToAsync(ms);
+                stream.CopyTo(ms);
                 var buffer2 = ms.ToArray();
                 Assert.Equal(buffer, buffer2);
             })) {
