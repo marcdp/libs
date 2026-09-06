@@ -1,4 +1,4 @@
-# dprojects.libs
+# DProjects.Libs
 
 Repository for libs used in DProjects 
 
