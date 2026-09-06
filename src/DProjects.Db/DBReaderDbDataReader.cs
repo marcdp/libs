@@ -87,7 +87,12 @@ namespace DProjects.Db {
             return null;
         }
         public bool Read(object?[] values) {
-            throw new NotImplementedException();
+            var dbRow = Read();
+            if (dbRow == null) return false;
+            for (var i = 0; i < dbRow.Values.Length; i++) {
+                values[i] = dbRow.Values[i];
+            }
+            return true;
         }
         public async Task<DBRow?> ReadAsync(CancellationToken cancellationToken = default) {
             if (mTable == null) mTable = InitializeDBTableFromDataReader();
@@ -114,10 +119,10 @@ namespace DProjects.Db {
             return null;
         }
         public async Task<bool> ReadAsync(object?[] values, CancellationToken cancellationToken = default) {
-            if (!(await mReader.ReadAsync(cancellationToken))) return false;
-            mReader.GetValues(values);
-            for(var i = 0;i < mReader.FieldCount; i++) {
-                if (values[i] == DBNull.Value) values[i] = null;
+            var dbRow = await ReadAsync(cancellationToken);
+            if (dbRow == null) return false;
+            for (var i = 0; i < dbRow.Values.Length; i++) {
+                values[i] = dbRow.Values[i];
             }
             return true;
         }

@@ -39,13 +39,20 @@ namespace DProjects.Db.Readers {
             return null;
         }
         public bool Read(object?[] values) {
-            throw new NotImplementedException();
+            var dbRow = Read();
+            if (dbRow == null) return false;
+            for (var i = 0; i < dbRow.Values.Length; i++) {
+                values[i] = dbRow.Values[i];
+            }
+            return true;
         }
         public Task<DBRow?> ReadAsync(CancellationToken cancellationToken = default) {
-            throw new NotImplementedException();
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(Read());
         }
         public Task<bool> ReadAsync(object?[] values, CancellationToken cancellationToken = default) {
-            throw new NotImplementedException();
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(Read(values));
         }
         public bool NextResult() {
             return false;

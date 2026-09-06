@@ -80,7 +80,12 @@ namespace DProjects.Db.Readers {
             return ValuesToDBRow(dbTable, values);
         }
         public bool Read(object?[] values) {
-            throw new NotImplementedException();
+            var dbRow = Read();
+            if (dbRow == null) return false;
+            for (var i = 0; i < dbRow.Values.Length; i++) {
+                values[i] = dbRow.Values[i];
+            }
+            return true;
         }
         public bool NextResult() {
             return false;
@@ -97,8 +102,13 @@ namespace DProjects.Db.Readers {
             if (values == null) return null;
             return ValuesToDBRow(dbTable,values);
         }
-        public Task<bool> ReadAsync(object?[] values, CancellationToken cancellationToken = default) {
-            throw new NotImplementedException();
+        public async Task<bool> ReadAsync(object?[] values, CancellationToken cancellationToken = default) {
+            var dbRow = await ReadAsync(cancellationToken);
+            if (dbRow == null) return false;
+            for (var i = 0; i < dbRow.Values.Length; i++) {
+                values[i] = dbRow.Values[i];
+            }
+            return true;
         }
         public Task<bool> NextResultAsync(CancellationToken cancellationToken = default) {
             return Task.FromResult(false);
@@ -246,14 +256,19 @@ namespace DProjects.Db.Readers {
         //private async methods
         private async Task<DBTable> GetTableAsync(CancellationToken cancellationToken = default) {
             if (mTable != null) return mTable;
+            cancellationToken.ThrowIfCancellationRequested();
             mTable = new DBTable();
             //skip rows
             for (var i = 0; i < mSettings.SkipInitialRows; i++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 await mReader.ReadLineAsync();
+                cancellationToken.ThrowIfCancellationRequested();
             }
             //read first line
             if (mSettings.Header) {
+                cancellationToken.ThrowIfCancellationRequested();
                 var line = await mReader.ReadLineAsync();
+                cancellationToken.ThrowIfCancellationRequested();
                 if (line != null) {
                     foreach (string columnName in line.Split(mSettings.Delimiter)) {
                         var dbColumn = new DBColumn(UnquoteValue(columnName));
@@ -274,7 +289,7 @@ namespace DProjects.Db.Readers {
                     }
                 }
             }
-            if (mSettings.InferDataTypes) await InferDataTypesAsync(mTable);
+            if (mSettings.InferDataTypes) await InferDataTypesAsync(mTable, cancellationToken);
             return mTable;
         }        
         private async Task<string[]?> ReadLineAsync(DBTable dbTable, List<string> linesReaded, CancellationToken cancellationToken = default) {
@@ -286,7 +301,9 @@ namespace DProjects.Db.Readers {
             do {
                 if (insideDoubleQuotes) previousValue.AppendLine();
                 //read line
+                cancellationToken.ThrowIfCancellationRequested();
                 var line = await mReader.ReadLineAsync();
+                cancellationToken.ThrowIfCancellationRequested();
                 if (line == null) return null;
                 linesReaded.Add(line);
                 if (mSettings.IgnoreComments && line.StartsWith(mSettings.Comment) && previousValue.Length == 0 && !insideDoubleQuotes) {
@@ -336,12 +353,12 @@ namespace DProjects.Db.Readers {
             //return
             return values.ToArray();
         }
-        private async Task InferDataTypesAsync(DBTable dbTable) {
+        private async Task InferDataTypesAsync(DBTable dbTable, CancellationToken cancellationToken = default) {
             var lines = new List<string>();
             var values = new List<string[]>();
             var numberOfLines = 10;
             for (var i = 0; i < numberOfLines; i++) {
-                var v = await ReadLineAsync(dbTable, lines);
+                var v = await ReadLineAsync(dbTable, lines, cancellationToken);
                 if (v == null) break;
                 values.Add(v);
             }

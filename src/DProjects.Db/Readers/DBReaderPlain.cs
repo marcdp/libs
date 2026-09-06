@@ -96,13 +96,21 @@ namespace DProjects.Db.Readers {
             return new DBRow(mTable, values.ToArray());
         }
         public bool Read(object?[] values) {
-            throw new NotImplementedException();
+            var dbRow = Read();
+            if (dbRow == null) return false;
+            for (var i = 0; i < dbRow.Values.Length; i++) {
+                values[i] = dbRow.Values[i];
+            }
+            return true;
         }
         public async Task<DBRow?> ReadAsync(CancellationToken cancellationToken = default) {
             string? line = null;
             do {
-                line = (line == null ? await mReader.ReadLineAsync() : line + "\n" + await mReader.ReadLineAsync());
-                if (line == null) return null;
+                cancellationToken.ThrowIfCancellationRequested();
+                var nextLine = await mReader.ReadLineAsync();
+                cancellationToken.ThrowIfCancellationRequested();
+                if (nextLine == null) return null;
+                line = (line == null ? nextLine : line + "\n" + nextLine);
             } while (line.Length < mLineLength);
             List<string> values = new List<string>();
             int i = 0;
@@ -114,8 +122,13 @@ namespace DProjects.Db.Readers {
             }
             return new DBRow(mTable, values.ToArray());
         }
-        public Task<bool> ReadAsync(object?[] values, CancellationToken cancellationToken = default) {
-            throw new NotImplementedException();
+        public async Task<bool> ReadAsync(object?[] values, CancellationToken cancellationToken = default) {
+            var dbRow = await ReadAsync(cancellationToken);
+            if (dbRow == null) return false;
+            for (var i = 0; i < dbRow.Values.Length; i++) {
+                values[i] = dbRow.Values[i];
+            }
+            return true;
         }
         public bool NextResult() {
             return false;

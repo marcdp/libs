@@ -93,16 +93,23 @@ namespace DProjects.Db.Readers {
             return dbRow;
         }
         public bool Read(object?[] values) {
-            throw new NotImplementedException();
+            var dbRow = Read();
+            if (dbRow == null) return false;
+            for (var i = 0; i < dbRow.Values.Length; i++) {
+                values[i] = dbRow.Values[i];
+            }
+            return true;
         }
         public Task<DBRow?> ReadAsync(CancellationToken cancellationToken = default) {
-            throw new NotImplementedException();
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(Read());
         }
         public Task<bool> ReadAsync(object?[] values, CancellationToken cancellationToken = default) {
-            throw new NotImplementedException();
+            cancellationToken.ThrowIfCancellationRequested();
+            return Task.FromResult(Read(values));
         }
         public bool NextResult() {
-            throw new System.NotImplementedException();
+            return false;
         }
         public Task<bool> NextResultAsync(CancellationToken cancellationToken = default) {
             return Task.FromResult(NextResult());

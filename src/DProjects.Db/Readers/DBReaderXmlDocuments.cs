@@ -64,6 +64,33 @@ namespace DProjects.Db.Readers {
             mFirstXmlDocument = null;
             if (xmlDocument == null) xmlDocument = mXmlDocumentsReader.Read();
             if (xmlDocument == null) return null;
+            return ToDBRow(xmlDocument);
+        }
+        public bool Read(object?[] values) {
+            var dbRow = Read();
+            if (dbRow == null) return false;
+            for (var i = 0; i < dbRow.Values.Length; i++) {
+                values[i] = dbRow.Values[i];
+            }
+            return true;
+        }
+        public async Task<DBRow?> ReadAsync(CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
+            var xmlDocument = mFirstXmlDocument;
+            mFirstXmlDocument = null;
+            if (xmlDocument == null) xmlDocument = await mXmlDocumentsReader.ReadAsync(cancellationToken);
+            if (xmlDocument == null) return null;
+            return ToDBRow(xmlDocument);
+        }
+        public async Task<bool> ReadAsync(object?[] values, CancellationToken cancellationToken = default) {
+            var dbRow = await ReadAsync(cancellationToken);
+            if (dbRow == null) return false;
+            for (var i = 0; i < dbRow.Values.Length; i++) {
+                values[i] = dbRow.Values[i];
+            }
+            return true;
+        }
+        private DBRow ToDBRow(XmlDocument xmlDocument) {
             var dbRow = mTable.NewRow();
             foreach (XmlElement? xmlChildNode in xmlDocument.DocumentElement.ChildNodes) {
                 if (xmlChildNode != null) {
@@ -75,15 +102,6 @@ namespace DProjects.Db.Readers {
                 }
             }
             return dbRow;
-        }
-        public bool Read(object?[] values) {
-            throw new NotImplementedException();
-        }
-        public Task<DBRow?> ReadAsync(CancellationToken cancellationToken = default) {
-            throw new NotImplementedException();
-        }
-        public Task<bool> ReadAsync(object?[] values, CancellationToken cancellationToken = default) {
-            throw new NotImplementedException();
         }
         public bool NextResult() {
             return false;

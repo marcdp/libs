@@ -61,21 +61,42 @@ namespace DProjects.Db.Readers {
             string? line = (mFirstLine != null ? mFirstLine : mReader.ReadLine());
             mFirstLine = null;
             if (line == null) return null;
+            return ParseLine(line);
+        }
+        public bool Read(object?[] values) {
+            var dbRow = Read();
+            if (dbRow == null) return false;
+            for (var i = 0; i < dbRow.Values.Length; i++) {
+                values[i] = dbRow.Values[i];
+            }
+            return true;
+        }
+        public async Task<DBRow?> ReadAsync(CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
+            string? line = mFirstLine;
+            if (line == null) {
+                line = await mReader.ReadLineAsync();
+                cancellationToken.ThrowIfCancellationRequested();
+            }
+            mFirstLine = null;
+            if (line == null) return null;
+            return ParseLine(line);
+        }
+        public async Task<bool> ReadAsync(object?[] values, CancellationToken cancellationToken = default) {
+            var dbRow = await ReadAsync(cancellationToken);
+            if (dbRow == null) return false;
+            for (var i = 0; i < dbRow.Values.Length; i++) {
+                values[i] = dbRow.Values[i];
+            }
+            return true;
+        }
+        private DBRow ParseLine(string line) {
             var values = line.Split();
             while (values.Length > mTable.Columns.Count) {
                 values[values.Length - 2] += mSettings.ColumnSeparator + values[values.Length - 1];
                 System.Array.Resize(ref values, values.Length - 1);
             }
             return new DBRow(mTable, values);
-        }
-        public bool Read(object?[] values) {
-            throw new NotImplementedException();
-        }
-        public Task<DBRow?> ReadAsync(CancellationToken cancellationToken = default) {
-            throw new NotImplementedException();
-        }
-        public Task<bool> ReadAsync(object?[] values, CancellationToken cancellationToken = default) {
-            throw new NotImplementedException();
         }
         public bool NextResult() {
             return false;
