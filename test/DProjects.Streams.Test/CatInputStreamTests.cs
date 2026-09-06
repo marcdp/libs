@@ -39,7 +39,7 @@ namespace DProjects.Streams.Tests
             using (var concatenated = new CatInputStream(new List<Stream> { ms1, ms2 }))
             {
                 var buffer = new byte[1024];
-                var bytesRead = await concatenated.ReadAsync(buffer, 0, buffer.Length);
+                var bytesRead = await concatenated.ReadAsync(buffer, 0, buffer.Length, TestContext.Current.CancellationToken);
                 var output = Encoding.UTF8.GetString(buffer, 0, bytesRead);
 
                 Assert.Equal(expectedOutput, output);

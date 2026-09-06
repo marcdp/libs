@@ -68,7 +68,7 @@ namespace DProjects.Streams.Tests
                 var offset = 0;
                 while (offset < buffer.Length) {
                     var count = Math.Min(writeSize, buffer.Length - offset);
-                    await sponge.WriteAsync(buffer, offset, count);
+                    await sponge.WriteAsync(buffer, offset, count, TestContext.Current.CancellationToken);
                     offset += count;
                 }
             }

@@ -55,7 +55,7 @@ namespace DProjects.Streams.Tests
             {
                 var output = new StringBuilder();
                 int b;
-                while ((b = await decoder.ReadByteAsync(default)) != -1)
+                while ((b = await decoder.ReadByteAsync(TestContext.Current.CancellationToken)) != -1)
                 {
                     output.Append((char)b);
                 }
@@ -74,7 +74,7 @@ namespace DProjects.Streams.Tests
             using (var decoder = new Base64DecoderInputStream(ms))
             {
                 var buffer = new byte[1024];
-                var bytesRead = await decoder.ReadAsync(buffer, 0, buffer.Length);
+                var bytesRead = await decoder.ReadAsync(buffer, 0, buffer.Length, TestContext.Current.CancellationToken);
                 var output = Encoding.UTF8.GetString(buffer, 0, bytesRead);
 
                 Assert.Equal(expectedOutput, output);

@@ -48,7 +48,7 @@ namespace DProjects.Streams.Tests
                 using (var gzip = new GZipStream(ms, CompressionMode.Compress, true))
                 {
                     var buffer = Encoding.UTF8.GetBytes(input);
-                    await gzip.WriteAsync(buffer, 0, buffer.Length);
+                    await gzip.WriteAsync(buffer, 0, buffer.Length, TestContext.Current.CancellationToken);
                 }
 
                 ms.Position = 0;
@@ -59,7 +59,7 @@ namespace DProjects.Streams.Tests
             using (var gzip = new GZipDecompressInputStream(ms, true))
             {
                 var buffer = new byte[1024];
-                var bytesRead = await gzip.ReadAsync(buffer, 0, buffer.Length);
+                var bytesRead = await gzip.ReadAsync(buffer, 0, buffer.Length, TestContext.Current.CancellationToken);
                 var output = Encoding.UTF8.GetString(buffer, 0, bytesRead);
 
                 Assert.Equal(input, output);

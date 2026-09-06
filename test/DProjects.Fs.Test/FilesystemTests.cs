@@ -52,7 +52,7 @@ namespace DProjects.Fs.Test {
             mFilesystem = mFilesystemFactoryByUrl.Create(url);
             mLogger = new Microsoft.Extensions.Logging.Abstractions.NullLogger<IFilesystem>();
             mPathPrefix = "/test";
-            mFileContent = "asdas asdfjaàaakkl adfñas asd fasdf sdLKA";
+            mFileContent = "asdas asdfjaï¿½aakkl adfï¿½as asd fasdf sdLKA";
         }
         public virtual void Dispose() {
             (mFilesystem as IDisposable)?.Dispose();
@@ -78,19 +78,19 @@ namespace DProjects.Fs.Test {
             }
         }
         protected async Task CreateFilesystemStructureAsync() {
-            if (await mFilesystem.ExistsDirectoryAsync(mPathPrefix, default)) {
-                await mFilesystem.DeleteDirectoryAsync(mPathPrefix, default);
+            if (await mFilesystem.ExistsDirectoryAsync(mPathPrefix, TestContext.Current.CancellationToken)) {
+                await mFilesystem.DeleteDirectoryAsync(mPathPrefix, TestContext.Current.CancellationToken);
             }
-            await mFilesystem.CreateDirectoryAsync(mPathPrefix, default);
+            await mFilesystem.CreateDirectoryAsync(mPathPrefix, TestContext.Current.CancellationToken);
             mFolders = 5;
             mFilesPerFolder = 3;
             for (int j = 0; j <= mFilesPerFolder - 1; j++) {
-                await mFilesystem.SaveTextFileAsync(PathUtils.Combine("/test", "file" + j + ".txt"), mFileContent, System.Text.Encoding.UTF8, default);
+                await mFilesystem.SaveTextFileAsync(PathUtils.Combine("/test", "file" + j + ".txt"), mFileContent, System.Text.Encoding.UTF8, TestContext.Current.CancellationToken);
             }
             for (int i = 0; i <= mFolders - 1; i++) {
-                await mFilesystem.CreateDirectoryAsync(PathUtils.Combine(mPathPrefix, "folder" + i), default);
+                await mFilesystem.CreateDirectoryAsync(PathUtils.Combine(mPathPrefix, "folder" + i), TestContext.Current.CancellationToken);
                 for (int j = 0; j <= mFilesPerFolder - 1; j++) {
-                    await mFilesystem.SaveTextFileAsync(PathUtils.Combine("/test", "folder" + i, "file" + j + ".txt"), mFileContent, System.Text.Encoding.UTF8, default);
+                    await mFilesystem.SaveTextFileAsync(PathUtils.Combine("/test", "folder" + i, "file" + j + ".txt"), mFileContent, System.Text.Encoding.UTF8, TestContext.Current.CancellationToken);
                 }
             }
         }
@@ -146,18 +146,18 @@ namespace DProjects.Fs.Test {
                 await CreateFilesystemStructureAsync();
                 //check childs count at /test
 
-                Assert.Equal(mFilesPerFolder + mFolders, new List<Entry>(mFilesystem.GetEntriesAsync(mPathPrefix).ToBlockingEnumerable()).Count);
-                Assert.Equal(mFilesPerFolder, new List<Entry>(mFilesystem.GetEntriesAsync(mPathPrefix, GetModes.Files).ToBlockingEnumerable()).Count);
-                Assert.Equal(mFolders, new List<Entry>(mFilesystem.GetEntriesAsync(mPathPrefix, GetModes.Directories).ToBlockingEnumerable()).Count);
-                Assert.Equal(mFolders + mFilesPerFolder + mFolders * mFilesPerFolder, new List<Entry>(mFilesystem.GetEntriesAsync(mPathPrefix, GetModes.Descendants).ToBlockingEnumerable()).Count);
+                Assert.Equal(mFilesPerFolder + mFolders, new List<Entry>(mFilesystem.GetEntriesAsync(mPathPrefix, cancellationToken: TestContext.Current.CancellationToken).ToBlockingEnumerable(TestContext.Current.CancellationToken)).Count);
+                Assert.Equal(mFilesPerFolder, new List<Entry>(mFilesystem.GetEntriesAsync(mPathPrefix, GetModes.Files, cancellationToken: TestContext.Current.CancellationToken).ToBlockingEnumerable(TestContext.Current.CancellationToken)).Count);
+                Assert.Equal(mFolders, new List<Entry>(mFilesystem.GetEntriesAsync(mPathPrefix, GetModes.Directories, cancellationToken: TestContext.Current.CancellationToken).ToBlockingEnumerable(TestContext.Current.CancellationToken)).Count);
+                Assert.Equal(mFolders + mFilesPerFolder + mFolders * mFilesPerFolder, new List<Entry>(mFilesystem.GetEntriesAsync(mPathPrefix, GetModes.Descendants, cancellationToken: TestContext.Current.CancellationToken).ToBlockingEnumerable(TestContext.Current.CancellationToken)).Count);
                 //check childs count at /test/folder0
-                Assert.Equal(mFilesPerFolder, new List<Entry>(mFilesystem.GetEntriesAsync(PathUtils.Combine(mPathPrefix, "folder0")).ToBlockingEnumerable()).Count);
-                Assert.Equal(mFilesPerFolder, new List<Entry>(mFilesystem.GetEntriesAsync(PathUtils.Combine(mPathPrefix, "folder0"), GetModes.Files).ToBlockingEnumerable()).Count);
-                Assert.Empty(new List<Entry>(mFilesystem.GetEntriesAsync(PathUtils.Combine(mPathPrefix, "folder0"), GetModes.Directories).ToBlockingEnumerable()));
-                Assert.Equal(mFilesPerFolder, new List<Entry>(mFilesystem.GetEntriesAsync(PathUtils.Combine(mPathPrefix, "folder0"), GetModes.Descendants).ToBlockingEnumerable()).Count);
+                Assert.Equal(mFilesPerFolder, new List<Entry>(mFilesystem.GetEntriesAsync(PathUtils.Combine(mPathPrefix, "folder0"), cancellationToken: TestContext.Current.CancellationToken).ToBlockingEnumerable(TestContext.Current.CancellationToken)).Count);
+                Assert.Equal(mFilesPerFolder, new List<Entry>(mFilesystem.GetEntriesAsync(PathUtils.Combine(mPathPrefix, "folder0"), GetModes.Files, cancellationToken: TestContext.Current.CancellationToken).ToBlockingEnumerable(TestContext.Current.CancellationToken)).Count);
+                Assert.Empty(new List<Entry>(mFilesystem.GetEntriesAsync(PathUtils.Combine(mPathPrefix, "folder0"), GetModes.Directories, cancellationToken: TestContext.Current.CancellationToken).ToBlockingEnumerable(TestContext.Current.CancellationToken)));
+                Assert.Equal(mFilesPerFolder, new List<Entry>(mFilesystem.GetEntriesAsync(PathUtils.Combine(mPathPrefix, "folder0"), GetModes.Descendants, cancellationToken: TestContext.Current.CancellationToken).ToBlockingEnumerable(TestContext.Current.CancellationToken)).Count);
                 //criteria
-                Assert.Equal(mFilesPerFolder + mFolders * mFilesPerFolder, new List<Entry>(mFilesystem.GetEntriesAsync(mPathPrefix, GetModes.Descendants, "*.txt").ToBlockingEnumerable()).Count);
-                Assert.Equal(mFolders + 1, new List<Entry>(mFilesystem.GetEntriesAsync(mPathPrefix, GetModes.Descendants, "file2*").ToBlockingEnumerable()).Count);
+                Assert.Equal(mFilesPerFolder + mFolders * mFilesPerFolder, new List<Entry>(mFilesystem.GetEntriesAsync(mPathPrefix, GetModes.Descendants, "*.txt", cancellationToken: TestContext.Current.CancellationToken).ToBlockingEnumerable(TestContext.Current.CancellationToken)).Count);
+                Assert.Equal(mFolders + 1, new List<Entry>(mFilesystem.GetEntriesAsync(mPathPrefix, GetModes.Descendants, "file2*", cancellationToken: TestContext.Current.CancellationToken).ToBlockingEnumerable(TestContext.Current.CancellationToken)).Count);
                 //sort
                 var aux = PathUtils.Combine(mPathPrefix, "order");
                 mFilesystem.CreateDirectory(aux);
@@ -168,10 +168,10 @@ namespace DProjects.Fs.Test {
                 mFilesystem.CreateDirectory(PathUtils.Combine(aux, "zzzz"));
                 mFilesystem.SaveTextFile(PathUtils.Combine(aux, "zzzz", "item1.txt"), "hola mundo", System.Text.Encoding.UTF8);
                 mFilesystem.SaveTextFile(PathUtils.Combine(aux, "zzzz.txt"), "hola mundo", System.Text.Encoding.UTF8);
-                var entries = new List<Entry>(mFilesystem.GetEntriesAsync(aux, GetModes.All).ToBlockingEnumerable());
+                var entries = new List<Entry>(mFilesystem.GetEntriesAsync(aux, GetModes.All, cancellationToken: TestContext.Current.CancellationToken).ToBlockingEnumerable(TestContext.Current.CancellationToken));
                 Assert.Equal("Facturas", entries[0].Name);
                 Assert.Equal("Facturas FR", entries[1].Name);
-                entries = new List<Entry>(mFilesystem.GetEntriesAsync(aux, GetModes.Descendants).ToBlockingEnumerable());
+                entries = new List<Entry>(mFilesystem.GetEntriesAsync(aux, GetModes.Descendants, cancellationToken: TestContext.Current.CancellationToken).ToBlockingEnumerable(TestContext.Current.CancellationToken));
                 Assert.Equal("Facturas", entries[0].Name);
                 Assert.Equal("item1.txt", entries[1].Name);
                 Assert.Equal("Facturas FR", entries[2].Name);
@@ -239,7 +239,7 @@ namespace DProjects.Fs.Test {
             if (!mFilesystem.IsReadonly) {
                 await CreateFilesystemStructureAsync();
                 //check /test
-                var entry = await mFilesystem.GetEntryAsync(mPathPrefix, default);
+                var entry = await mFilesystem.GetEntryAsync(mPathPrefix, TestContext.Current.CancellationToken);
                 Assert.NotNull(entry);
                 Assert.Equal(entry.Path, mPathPrefix);
                 Assert.Equal(0, entry.Length);
@@ -247,7 +247,7 @@ namespace DProjects.Fs.Test {
                 Assert.Empty(entry.Etag);
                 Assert.Equal(entry.Name, PathUtils.GetPathName(mPathPrefix));
                 //check /test/folder1
-                entry = await mFilesystem.GetEntryAsync(PathUtils.Combine(mPathPrefix, "folder0"), default);
+                entry = await mFilesystem.GetEntryAsync(PathUtils.Combine(mPathPrefix, "folder0"), TestContext.Current.CancellationToken);
                 Assert.NotNull(entry);
                 Assert.Equal(entry.Path, PathUtils.Combine(mPathPrefix, "folder0"));
                 Assert.Equal(0, entry.Length);
@@ -255,7 +255,7 @@ namespace DProjects.Fs.Test {
                 Assert.Empty(entry.Etag);
                 Assert.Equal("folder0", entry.Name);
                 //check /test/file0
-                entry = await mFilesystem.GetEntryAsync(PathUtils.Combine(mPathPrefix, "file0.txt"), default);
+                entry = await mFilesystem.GetEntryAsync(PathUtils.Combine(mPathPrefix, "file0.txt"), TestContext.Current.CancellationToken);
                 Assert.NotNull(entry);
                 Assert.Equal(entry.Path, PathUtils.Combine(mPathPrefix, "file0.txt"));
                 Assert.Equal(entry.Length, System.Text.Encoding.UTF8.GetBytes(mFileContent).Length);
@@ -263,7 +263,7 @@ namespace DProjects.Fs.Test {
                 Assert.NotEmpty(entry.Etag);
                 Assert.Equal("file0.txt", entry.Name);
                 //check /test/folder0/file0
-                entry = await mFilesystem.GetEntryAsync(PathUtils.Combine(mPathPrefix, "folder0", "file0.txt"), default);
+                entry = await mFilesystem.GetEntryAsync(PathUtils.Combine(mPathPrefix, "folder0", "file0.txt"), TestContext.Current.CancellationToken);
                 Assert.NotNull(entry);
                 Assert.Equal(entry.Path, PathUtils.Combine(PathUtils.Combine(mPathPrefix, "folder0"), "file0.txt"));
                 Assert.Equal(entry.Length, System.Text.Encoding.UTF8.GetBytes(mFileContent).Length);
@@ -271,14 +271,14 @@ namespace DProjects.Fs.Test {
                 Assert.NotEmpty(entry.Etag);
                 Assert.Equal("file0.txt", entry.Name);
                 //check get unexistent file /test/xxxxx
-                entry = await mFilesystem.GetEntryAsync(PathUtils.Combine(mPathPrefix, System.Guid.NewGuid().ToString()), default);
+                entry = await mFilesystem.GetEntryAsync(PathUtils.Combine(mPathPrefix, System.Guid.NewGuid().ToString()), TestContext.Current.CancellationToken);
                 Assert.Null(entry);
                 //check get unexistent file /test/folder0/xxxxx
-                entry = await mFilesystem.GetEntryAsync(PathUtils.Combine(mPathPrefix, "folder0", Guid.NewGuid().ToString()), default);
+                entry = await mFilesystem.GetEntryAsync(PathUtils.Combine(mPathPrefix, "folder0", Guid.NewGuid().ToString()), TestContext.Current.CancellationToken);
                 Assert.Null(entry);
             }
             //get root entry
-            var objRootEntry = await mFilesystem.GetEntryAsync("/", default);
+            var objRootEntry = await mFilesystem.GetEntryAsync("/", TestContext.Current.CancellationToken);
             Assert.NotNull(objRootEntry);
             Assert.Equal("/", objRootEntry.Path);
             Assert.Equal(0, objRootEntry.Length);
@@ -322,33 +322,33 @@ namespace DProjects.Fs.Test {
             if (!mFilesystem.IsReadonly) {
                 await CreateFilesystemStructureAsync();
                 //check exists /test
-                Assert.True(await mFilesystem.ExistsAsync(mPathPrefix, default));
-                Assert.True(await mFilesystem.ExistsAsync(PathUtils.Combine(mPathPrefix, "folder0"), default));
-                Assert.True(await mFilesystem.ExistsAsync(PathUtils.Combine(mPathPrefix, "folder0", "file0.txt"), default));
+                Assert.True(await mFilesystem.ExistsAsync(mPathPrefix, TestContext.Current.CancellationToken));
+                Assert.True(await mFilesystem.ExistsAsync(PathUtils.Combine(mPathPrefix, "folder0"), TestContext.Current.CancellationToken));
+                Assert.True(await mFilesystem.ExistsAsync(PathUtils.Combine(mPathPrefix, "folder0", "file0.txt"), TestContext.Current.CancellationToken));
                 //exists
-                Assert.True(await mFilesystem.ExistsDirectoryAsync(mPathPrefix, default));
-                Assert.False(await mFilesystem.ExistsFileAsync(mPathPrefix, default));
-                Assert.True(await mFilesystem.ExistsDirectoryAsync(PathUtils.Combine(mPathPrefix, "folder0"), default));
-                Assert.False(await mFilesystem.ExistsFileAsync(PathUtils.Combine(mPathPrefix, "folder0"), default));
-                Assert.True(await mFilesystem.ExistsFileAsync(PathUtils.Combine(mPathPrefix, "folder0", "file0.txt"), default));
-                Assert.False(await mFilesystem.ExistsDirectoryAsync(PathUtils.Combine(mPathPrefix, "folder0", "file0.txt"), default));
+                Assert.True(await mFilesystem.ExistsDirectoryAsync(mPathPrefix, TestContext.Current.CancellationToken));
+                Assert.False(await mFilesystem.ExistsFileAsync(mPathPrefix, TestContext.Current.CancellationToken));
+                Assert.True(await mFilesystem.ExistsDirectoryAsync(PathUtils.Combine(mPathPrefix, "folder0"), TestContext.Current.CancellationToken));
+                Assert.False(await mFilesystem.ExistsFileAsync(PathUtils.Combine(mPathPrefix, "folder0"), TestContext.Current.CancellationToken));
+                Assert.True(await mFilesystem.ExistsFileAsync(PathUtils.Combine(mPathPrefix, "folder0", "file0.txt"), TestContext.Current.CancellationToken));
+                Assert.False(await mFilesystem.ExistsDirectoryAsync(PathUtils.Combine(mPathPrefix, "folder0", "file0.txt"), TestContext.Current.CancellationToken));
                 //check unexists /test
-                Assert.False(await mFilesystem.ExistsAsync(PathUtils.Combine(mPathPrefix, Guid.NewGuid().ToString()), default));
-                Assert.False(await mFilesystem.ExistsAsync(PathUtils.Combine(mPathPrefix, "folder0", Guid.NewGuid().ToString()), default));
-                Assert.False(await mFilesystem.ExistsAsync(PathUtils.Combine(mPathPrefix, "folder0", "file0.txt", Guid.NewGuid().ToString()), default));
-                Assert.False(await mFilesystem.ExistsAsync(PathUtils.Combine(mPathPrefix, Guid.NewGuid().ToString(), "folder0"), default));
-                Assert.False(await mFilesystem.ExistsAsync(PathUtils.Combine(mPathPrefix, Guid.NewGuid().ToString(), "file0.txt"), default));
+                Assert.False(await mFilesystem.ExistsAsync(PathUtils.Combine(mPathPrefix, Guid.NewGuid().ToString()), TestContext.Current.CancellationToken));
+                Assert.False(await mFilesystem.ExistsAsync(PathUtils.Combine(mPathPrefix, "folder0", Guid.NewGuid().ToString()), TestContext.Current.CancellationToken));
+                Assert.False(await mFilesystem.ExistsAsync(PathUtils.Combine(mPathPrefix, "folder0", "file0.txt", Guid.NewGuid().ToString()), TestContext.Current.CancellationToken));
+                Assert.False(await mFilesystem.ExistsAsync(PathUtils.Combine(mPathPrefix, Guid.NewGuid().ToString(), "folder0"), TestContext.Current.CancellationToken));
+                Assert.False(await mFilesystem.ExistsAsync(PathUtils.Combine(mPathPrefix, Guid.NewGuid().ToString(), "file0.txt"), TestContext.Current.CancellationToken));
                 //cre
-                await mFilesystem.CreateDirectoryAsync(PathUtils.Combine(mPathPrefix, "/a"), default);
-                await mFilesystem.CreateDirectoryAsync(PathUtils.Combine(mPathPrefix, "/a/b"), default);
-                await mFilesystem.CreateDirectoryAsync(PathUtils.Combine(mPathPrefix, "/a/b/c"), default);
-                Assert.True(await mFilesystem.ExistsAsync(PathUtils.Combine(mPathPrefix, "/a"), default));
-                Assert.True(await mFilesystem.ExistsAsync(PathUtils.Combine(mPathPrefix, "/a/b"), default));
-                Assert.True(await mFilesystem.ExistsAsync(PathUtils.Combine(mPathPrefix, "/a/b/c"), default));
+                await mFilesystem.CreateDirectoryAsync(PathUtils.Combine(mPathPrefix, "/a"), TestContext.Current.CancellationToken);
+                await mFilesystem.CreateDirectoryAsync(PathUtils.Combine(mPathPrefix, "/a/b"), TestContext.Current.CancellationToken);
+                await mFilesystem.CreateDirectoryAsync(PathUtils.Combine(mPathPrefix, "/a/b/c"), TestContext.Current.CancellationToken);
+                Assert.True(await mFilesystem.ExistsAsync(PathUtils.Combine(mPathPrefix, "/a"), TestContext.Current.CancellationToken));
+                Assert.True(await mFilesystem.ExistsAsync(PathUtils.Combine(mPathPrefix, "/a/b"), TestContext.Current.CancellationToken));
+                Assert.True(await mFilesystem.ExistsAsync(PathUtils.Combine(mPathPrefix, "/a/b/c"), TestContext.Current.CancellationToken));
             }
             //check root
-            Assert.True(await mFilesystem.ExistsAsync("/", default));
-            Assert.False(await mFilesystem.ExistsFileAsync("/" + Guid.NewGuid().ToString(), default));
+            Assert.True(await mFilesystem.ExistsAsync("/", TestContext.Current.CancellationToken));
+            Assert.False(await mFilesystem.ExistsFileAsync("/" + Guid.NewGuid().ToString(), TestContext.Current.CancellationToken));
         }
         [Fact()]
         public virtual void LoadReadStream() {
@@ -403,7 +403,7 @@ namespace DProjects.Fs.Test {
         public virtual async Task LoadReadStreamAsync() {
             //load read stream from root folder (should raise exception)
             try {
-                await mFilesystem.LoadBinaryFileAsync("/", new(), default);
+                await mFilesystem.LoadBinaryFileAsync("/", new(), TestContext.Current.CancellationToken);
                 Assert.True(false);
             } catch (Exception) {
             }
@@ -411,38 +411,38 @@ namespace DProjects.Fs.Test {
                 await CreateFilesystemStructureAsync();
                 //load stream from folder (should raise exception)
                 try {
-                    await mFilesystem.LoadBinaryFileAsync(mPathPrefix, new(), default);
+                    await mFilesystem.LoadBinaryFileAsync(mPathPrefix, new(), TestContext.Current.CancellationToken);
                     Assert.True(false);
                 } catch (Exception) {
                 }
                 //check loadstream /test/file0.txt
-                using (var readStream = await mFilesystem.LoadReadStreamAsync(PathUtils.Combine(mPathPrefix, "file0.txt"), new(), default)) {
-                    string aux = await StreamUtils.ReadTextAsync(readStream, System.Text.Encoding.UTF8);
+                using (var readStream = await mFilesystem.LoadReadStreamAsync(PathUtils.Combine(mPathPrefix, "file0.txt"), new(), TestContext.Current.CancellationToken)) {
+                    string aux = await StreamUtils.ReadTextAsync(readStream, System.Text.Encoding.UTF8, TestContext.Current.CancellationToken);
                     Assert.Equal(aux, mFileContent);
                 }
 
                 //load stream from unexistent file (should raise exception)
                 try {
-                    await mFilesystem.LoadBinaryFileAsync(PathUtils.Combine(mPathPrefix, Guid.NewGuid().ToString()), new(), default);
+                    await mFilesystem.LoadBinaryFileAsync(PathUtils.Combine(mPathPrefix, Guid.NewGuid().ToString()), new(), TestContext.Current.CancellationToken);
                     Assert.True(false);
                 } catch (Exception) {
                 }
                 //load partial file
-                await mFilesystem.SaveTextFileAsync(PathUtils.Combine(mPathPrefix, "file0.txt"), "hola que tal estas.", System.Text.Encoding.ASCII, default);
-                using (var stream = await mFilesystem.LoadReadStreamAsync(PathUtils.Combine(mPathPrefix, "file0.txt"), new LoadReadStreamSettings() { Offset = 5, Length = -1 }, default)) {
-                    byte[] bytes = await StreamUtils.ReadBytesAsync(stream, default);
+                await mFilesystem.SaveTextFileAsync(PathUtils.Combine(mPathPrefix, "file0.txt"), "hola que tal estas.", System.Text.Encoding.ASCII, TestContext.Current.CancellationToken);
+                using (var stream = await mFilesystem.LoadReadStreamAsync(PathUtils.Combine(mPathPrefix, "file0.txt"), new LoadReadStreamSettings() { Offset = 5, Length = -1 }, TestContext.Current.CancellationToken)) {
+                    byte[] bytes = await StreamUtils.ReadBytesAsync(stream, TestContext.Current.CancellationToken);
                     var aux = System.Text.Encoding.ASCII.GetString(bytes);
                     Assert.Equal("que tal estas.", aux);
                 }
-                using (var stream = await mFilesystem.LoadReadStreamAsync(PathUtils.Combine(mPathPrefix, "file0.txt"), new LoadReadStreamSettings() { Offset = 5, Length = 3 }, default)) {
-                    byte[] bytes = await StreamUtils.ReadBytesAsync(stream, default);
+                using (var stream = await mFilesystem.LoadReadStreamAsync(PathUtils.Combine(mPathPrefix, "file0.txt"), new LoadReadStreamSettings() { Offset = 5, Length = 3 }, TestContext.Current.CancellationToken)) {
+                    byte[] bytes = await StreamUtils.ReadBytesAsync(stream, TestContext.Current.CancellationToken);
                     var aux = System.Text.Encoding.ASCII.GetString(bytes);
                     Assert.Equal("que", aux);
                 }
             } else {
                 foreach (Entry objChild in mFilesystem.GetEntries("/", GetModes.Files)) {
-                    using (var stream = await mFilesystem.LoadReadStreamAsync(objChild.Path, new(), default)) {
-                        await StreamUtils.ConsumeAsync(stream);
+                    using (var stream = await mFilesystem.LoadReadStreamAsync(objChild.Path, new(), TestContext.Current.CancellationToken)) {
+                        await StreamUtils.ConsumeAsync(stream, cancellationToken: TestContext.Current.CancellationToken);
                     }
                     break;
                 }
@@ -457,7 +457,7 @@ namespace DProjects.Fs.Test {
                 string key = System.Guid.NewGuid().ToString();
                 var text = new StringBuilder();
                 while (text.Length < 10){//64 * 1024 + 10) {
-                    text.Append("hòla marcus" + System.Guid.NewGuid().ToString());
+                    text.Append("hï¿½la marcus" + System.Guid.NewGuid().ToString());
                 }
                 byte[] buffer = System.Text.Encoding.UTF8.GetBytes(text.ToString());
                 using (var stream = mFilesystem.LoadWriteStream(PathUtils.Combine(mPathPrefix, key), new())) {
@@ -508,25 +508,25 @@ namespace DProjects.Fs.Test {
                 string key = System.Guid.NewGuid().ToString();
                 var text = new StringBuilder();
                 while (text.Length < 64 * 1024 + 10) {
-                    text.Append("hòla marcus" + System.Guid.NewGuid().ToString());
+                    text.Append("hï¿½la marcus" + System.Guid.NewGuid().ToString());
                 }
                 byte[] buffer = System.Text.Encoding.UTF8.GetBytes(text.ToString());
-                using (var stream = await mFilesystem.LoadWriteStreamAsync(PathUtils.Combine(mPathPrefix, key), new(), default)) {
-                    await stream.WriteAsync(buffer, 0, buffer.Length);
+                using (var stream = await mFilesystem.LoadWriteStreamAsync(PathUtils.Combine(mPathPrefix, key), new(), TestContext.Current.CancellationToken)) {
+                    await stream.WriteAsync(buffer, 0, buffer.Length, TestContext.Current.CancellationToken);
                 }
-                Assert.True(await mFilesystem.ExistsFileAsync(PathUtils.Combine(mPathPrefix, key), default));
-                Assert.Equal(buffer.Length, (await mFilesystem.GetEntryAsync(PathUtils.Combine(mPathPrefix, key), default))!.Length);
+                Assert.True(await mFilesystem.ExistsFileAsync(PathUtils.Combine(mPathPrefix, key), TestContext.Current.CancellationToken));
+                Assert.Equal(buffer.Length, (await mFilesystem.GetEntryAsync(PathUtils.Combine(mPathPrefix, key), TestContext.Current.CancellationToken))!.Length);
 
-                var aux = await mFilesystem.LoadTextFileAsync(PathUtils.Combine(mPathPrefix, key));
+                var aux = await mFilesystem.LoadTextFileAsync(PathUtils.Combine(mPathPrefix, key), cancellationToken: TestContext.Current.CancellationToken);
                 Assert.Equal(text.ToString(), aux);
 
                 //append
                 var appendBuffer = System.Text.Encoding.UTF8.GetBytes("hello");
                 text.Append("hello");
-                using (Stream objStream = await mFilesystem.LoadWriteStreamAsync(PathUtils.Combine(mPathPrefix, key), new() { Append = true }, default)) {
-                    await objStream.WriteAsync(appendBuffer, 0, appendBuffer.Length);
+                using (Stream objStream = await mFilesystem.LoadWriteStreamAsync(PathUtils.Combine(mPathPrefix, key), new() { Append = true }, TestContext.Current.CancellationToken)) {
+                    await objStream.WriteAsync(appendBuffer, 0, appendBuffer.Length, TestContext.Current.CancellationToken);
                 }
-                aux = await mFilesystem.LoadTextFileAsync(PathUtils.Combine(mPathPrefix, key));
+                aux = await mFilesystem.LoadTextFileAsync(PathUtils.Combine(mPathPrefix, key), cancellationToken: TestContext.Current.CancellationToken);
                 Assert.Equal(text.ToString(), aux);
 
                 //truncate
@@ -537,17 +537,17 @@ namespace DProjects.Fs.Test {
                 Assert.Equal(System.Text.Encoding.UTF8.GetString(appendBuffer), aux);
 
                 //append should create file if not exists
-                using (var stream = await mFilesystem.LoadWriteStreamAsync(PathUtils.Combine(mPathPrefix, key) + "A", new() { Append = true }, default)) {
-                    await stream.WriteAsync(appendBuffer, 0, appendBuffer.Length);
+                using (var stream = await mFilesystem.LoadWriteStreamAsync(PathUtils.Combine(mPathPrefix, key) + "A", new() { Append = true }, TestContext.Current.CancellationToken)) {
+                    await stream.WriteAsync(appendBuffer, 0, appendBuffer.Length, TestContext.Current.CancellationToken);
                 }
-                Assert.Equal(System.Text.Encoding.UTF8.GetString(appendBuffer), await mFilesystem.LoadTextFileAsync(PathUtils.Combine(mPathPrefix, key) + "A"));
+                Assert.Equal(System.Text.Encoding.UTF8.GetString(appendBuffer), await mFilesystem.LoadTextFileAsync(PathUtils.Combine(mPathPrefix, key) + "A", cancellationToken: TestContext.Current.CancellationToken));
 
                 //truncate should create file if not exists
                 appendBuffer[0] = 12;
-                using (var stream = await mFilesystem.LoadWriteStreamAsync(PathUtils.Combine(mPathPrefix, key) + "A", new() { Truncate = true }, default)) {
-                    await stream.WriteAsync(appendBuffer, 0, appendBuffer.Length);
+                using (var stream = await mFilesystem.LoadWriteStreamAsync(PathUtils.Combine(mPathPrefix, key) + "A", new() { Truncate = true }, TestContext.Current.CancellationToken)) {
+                    await stream.WriteAsync(appendBuffer, 0, appendBuffer.Length, TestContext.Current.CancellationToken);
                 }
-                Assert.Equal(System.Text.Encoding.UTF8.GetString(appendBuffer), await mFilesystem.LoadTextFileAsync(PathUtils.Combine(mPathPrefix, key) + "A"));
+                Assert.Equal(System.Text.Encoding.UTF8.GetString(appendBuffer), await mFilesystem.LoadTextFileAsync(PathUtils.Combine(mPathPrefix, key) + "A", cancellationToken: TestContext.Current.CancellationToken));
 
             }
         }
@@ -564,7 +564,7 @@ namespace DProjects.Fs.Test {
             if (!mFilesystem.IsReadonly) {
                 await CreateFilesystemStructureAsync();
                 //check touch
-                await mFilesystem.SupportsAsync("/", Features.Touch, default);
+                await mFilesystem.SupportsAsync("/", Features.Touch, TestContext.Current.CancellationToken);
             }
         }
         [Fact()]
@@ -603,26 +603,26 @@ namespace DProjects.Fs.Test {
                 await CreateFilesystemStructureAsync();
                 //create directory
                 string key = System.Guid.NewGuid().ToString();
-                Entry entry = await mFilesystem.CreateDirectoryAsync(PathUtils.Combine(mPathPrefix, key), default);
+                Entry entry = await mFilesystem.CreateDirectoryAsync(PathUtils.Combine(mPathPrefix, key), TestContext.Current.CancellationToken);
                 Assert.NotNull(entry);
                 Assert.Equal(0, entry.Length);
                 Assert.Equal("", entry.Etag);
                 Assert.Equal(entry.Path, PathUtils.Combine(mPathPrefix, key));
                 Assert.True(entry.IsDirectory());
-                Assert.True(await mFilesystem.ExistsDirectoryAsync(PathUtils.Combine(mPathPrefix, key), default));
-                await mFilesystem.DeleteDirectoryAsync(PathUtils.Combine(mPathPrefix, key), default);
-                Assert.False(await mFilesystem.ExistsDirectoryAsync(PathUtils.Combine(mPathPrefix, key), default));
+                Assert.True(await mFilesystem.ExistsDirectoryAsync(PathUtils.Combine(mPathPrefix, key), TestContext.Current.CancellationToken));
+                await mFilesystem.DeleteDirectoryAsync(PathUtils.Combine(mPathPrefix, key), TestContext.Current.CancellationToken);
+                Assert.False(await mFilesystem.ExistsDirectoryAsync(PathUtils.Combine(mPathPrefix, key), TestContext.Current.CancellationToken));
                 //create directory with invalid parent, should create folder
-                await mFilesystem.CreateDirectoryAsync(PathUtils.Combine(mPathPrefix, key, key, key), default);
-                Assert.True(await mFilesystem.ExistsDirectoryAsync(PathUtils.Combine(mPathPrefix, key, key, key), default));
-                Assert.True(await mFilesystem.ExistsDirectoryAsync(PathUtils.Combine(mPathPrefix, key, key), default));
-                Assert.True(await mFilesystem.ExistsDirectoryAsync(PathUtils.Combine(mPathPrefix, key), default));
-                await mFilesystem.DeleteDirectoryAsync(PathUtils.Combine(mPathPrefix, key, key, key), default);
-                Assert.False(await mFilesystem.ExistsDirectoryAsync(PathUtils.Combine(mPathPrefix, key, key, key), default));
+                await mFilesystem.CreateDirectoryAsync(PathUtils.Combine(mPathPrefix, key, key, key), TestContext.Current.CancellationToken);
+                Assert.True(await mFilesystem.ExistsDirectoryAsync(PathUtils.Combine(mPathPrefix, key, key, key), TestContext.Current.CancellationToken));
+                Assert.True(await mFilesystem.ExistsDirectoryAsync(PathUtils.Combine(mPathPrefix, key, key), TestContext.Current.CancellationToken));
+                Assert.True(await mFilesystem.ExistsDirectoryAsync(PathUtils.Combine(mPathPrefix, key), TestContext.Current.CancellationToken));
+                await mFilesystem.DeleteDirectoryAsync(PathUtils.Combine(mPathPrefix, key, key, key), TestContext.Current.CancellationToken);
+                Assert.False(await mFilesystem.ExistsDirectoryAsync(PathUtils.Combine(mPathPrefix, key, key, key), TestContext.Current.CancellationToken));
                 //invalid characters in name should return exception
                 foreach (char invalidCharacter in PathUtils.PATH_INVALID_CHARS) {
                     await Assert.ThrowsAnyAsync<Exception>(async () => {
-                        entry = await mFilesystem.CreateDirectoryAsync(PathUtils.Combine(mPathPrefix, "direab" + invalidCharacter + ""), default);
+                        entry = await mFilesystem.CreateDirectoryAsync(PathUtils.Combine(mPathPrefix, "direab" + invalidCharacter + ""), TestContext.Current.CancellationToken);
                     });
                 }
             }
@@ -682,14 +682,14 @@ namespace DProjects.Fs.Test {
                 Assert.Equal(entry.Path, PathUtils.Combine(mPathPrefix, "file1.bin.txt"));
                 Assert.Equal(5, entry.Length);
                 //non ascii chars in name
-                foreach (char nonAsciiChar in new char[] { 'à', 'Ñ', 'ç', Char.ConvertFromUtf32(0x4EB0).ToCharArray()[0] }) {
+                foreach (char nonAsciiChar in new char[] { 'ï¿½', 'ï¿½', 'ï¿½', Char.ConvertFromUtf32(0x4EB0).ToCharArray()[0] }) {
                     string p = PathUtils.Combine(mPathPrefix, "fileeee" + nonAsciiChar + ".txt");
                     entry = mFilesystem.SaveFile(p, new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")), new());
                     Assert.True(mFilesystem.Exists(p));
                     Assert.Equal("hola1", mFilesystem.LoadTextFile(p));
                 }
                 //especial ascii chars in name
-                foreach (string test in new String[] { "+", "&", "@", "=", ";", ",", "%", "#", "Ñ", "'", "(", ")", "[", "]", "`", "{", "}", "~", "%20" }) {
+                foreach (string test in new String[] { "+", "&", "@", "=", ";", ",", "%", "#", "ï¿½", "'", "(", ")", "[", "]", "`", "{", "}", "~", "%20" }) {
                     string p = PathUtils.Combine(mPathPrefix, "fileeee" + test + ".txt");
                     entry = mFilesystem.SaveFile(p, new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")), new());
                     Assert.True(mFilesystem.Exists(p));
@@ -715,69 +715,69 @@ namespace DProjects.Fs.Test {
         public virtual async Task SaveFileAsync() {
             if (!mFilesystem.IsReadonly) {
                 //save file
-                await mFilesystem.CreateDirectoryAsync(mPathPrefix, default);
-                Entry entry = await mFilesystem.SaveFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")), new(), default);
+                await mFilesystem.CreateDirectoryAsync(mPathPrefix, TestContext.Current.CancellationToken);
+                Entry entry = await mFilesystem.SaveFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")), new(), TestContext.Current.CancellationToken);
                 Assert.NotNull(entry);
                 Assert.Equal(entry.Path, PathUtils.Combine(mPathPrefix, "file1.bin"));
                 Assert.Equal(5, entry.Length);
-                byte[] buffer = await mFilesystem.LoadBinaryFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), new(), default);
+                byte[] buffer = await mFilesystem.LoadBinaryFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), new(), TestContext.Current.CancellationToken);
                 string text = System.Text.Encoding.UTF8.GetString(buffer);
                 Assert.Equal("hola1", text);
-                await mFilesystem.DeleteFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), default);
+                await mFilesystem.DeleteFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), TestContext.Current.CancellationToken);
                 //dates
                 var now = DateTime.Now;
-                var entry1 = await mFilesystem.SaveFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")), new(), default);
-                var entry2 = await mFilesystem.GetEntryAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), default);
+                var entry1 = await mFilesystem.SaveFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")), new(), TestContext.Current.CancellationToken);
+                var entry2 = await mFilesystem.GetEntryAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), TestContext.Current.CancellationToken);
                 Assert.Equal(entry1.Modified, entry2.Modified);
                 Assert.Equal(entry1.Modified, entry1.Modified);
                 Assert.Equal(entry2.Modified, entry2.Modified);
                 Assert.True(entry2.Modified.Subtract(now).TotalMinutes < 10);
-                await mFilesystem.DeleteFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), default);
+                await mFilesystem.DeleteFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), TestContext.Current.CancellationToken);
                 //save big file
                 var bigMs = new MemoryStream();
                 var length = 1024 * 1024 * 10; //10 Mb
                 var random = new System.Random();
                 for (var i = 0; i < length; i++) bigMs.WriteByte((byte)random.Next(0, 255));
                 bigMs.Seek(0, SeekOrigin.Begin);
-                var entryBig = await mFilesystem.SaveFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), bigMs, new(), default);
+                var entryBig = await mFilesystem.SaveFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), bigMs, new(), TestContext.Current.CancellationToken);
                 Assert.Equal(bigMs.Length, entryBig.Length);
                 using (var md5 = MD5.Create()) {
                     bigMs.Seek(0, SeekOrigin.Begin);
                     var hash1 = BitConverter.ToString(md5.ComputeHash(bigMs)).ToLower().Replace("-", "");
-                    using (var bigStreamReaded = await mFilesystem.LoadReadStreamAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), new(), default)) {
+                    using (var bigStreamReaded = await mFilesystem.LoadReadStreamAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), new(), TestContext.Current.CancellationToken)) {
                         var hash2 = BitConverter.ToString(md5.ComputeHash(bigStreamReaded)).ToLower().Replace("-", "");
                         Assert.Equal(hash1, hash2);
                     }
                 }
-                await mFilesystem.DeleteFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), default);
+                await mFilesystem.DeleteFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), TestContext.Current.CancellationToken);
                 //save file over unexistent file should create it
-                await mFilesystem.SaveFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")), new(), default);
+                await mFilesystem.SaveFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")), new(), TestContext.Current.CancellationToken);
                 text = System.Text.Encoding.UTF8.GetString(mFilesystem.LoadBinaryFile(PathUtils.Combine(mPathPrefix, "file1.bin")));
                 Assert.Equal("hola1", text);
-                await mFilesystem.DeleteFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), default);
+                await mFilesystem.DeleteFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), TestContext.Current.CancellationToken);
                 //save file over unexistent directory should fail
                 //mFilesystem.CreateDirectory(PathUtils.Combine(mPathPrefix, "unexistent"));
                 await Assert.ThrowsAnyAsync<Exception>(async () => {
-                    await mFilesystem.SaveFileAsync(PathUtils.Combine(mPathPrefix, "unexistent", "file1.bin"), new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")), new(), default);
+                    await mFilesystem.SaveFileAsync(PathUtils.Combine(mPathPrefix, "unexistent", "file1.bin"), new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")), new(), TestContext.Current.CancellationToken);
                 });
                 //text file
-                entry = await mFilesystem.SaveFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin.txt"), new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")), new(), default);
+                entry = await mFilesystem.SaveFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin.txt"), new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")), new(), TestContext.Current.CancellationToken);
                 Assert.NotNull(entry);
                 Assert.Equal(entry.Path, PathUtils.Combine(mPathPrefix, "file1.bin.txt"));
                 Assert.Equal(5, entry.Length);
                 //non ascii chars in name
-                foreach (char nonAsciiChar in new char[] { 'à', 'Ñ', 'ç', Char.ConvertFromUtf32(0x4EB0).ToCharArray()[0] }) {
+                foreach (char nonAsciiChar in new char[] { 'ï¿½', 'ï¿½', 'ï¿½', Char.ConvertFromUtf32(0x4EB0).ToCharArray()[0] }) {
                     string p = PathUtils.Combine(mPathPrefix, "fileeee" + nonAsciiChar + ".txt");
-                    entry = await mFilesystem.SaveFileAsync(p, new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")), new(), default);
-                    Assert.True(await mFilesystem.ExistsAsync(p, default));
-                    Assert.Equal("hola1", await mFilesystem.LoadTextFileAsync(p));
+                    entry = await mFilesystem.SaveFileAsync(p, new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")), new(), TestContext.Current.CancellationToken);
+                    Assert.True(await mFilesystem.ExistsAsync(p, TestContext.Current.CancellationToken));
+                    Assert.Equal("hola1", await mFilesystem.LoadTextFileAsync(p, cancellationToken: TestContext.Current.CancellationToken));
                 }
                 //especial ascii chars in name
-                foreach (string test in new String[] { "+", "&", "@", "=", ";", ",", "%", "#", "Ñ", "'", "(", ")", "[", "]", "`", "{", "}", "~", "%20" }) {
+                foreach (string test in new String[] { "+", "&", "@", "=", ";", ",", "%", "#", "ï¿½", "'", "(", ")", "[", "]", "`", "{", "}", "~", "%20" }) {
                     string p = PathUtils.Combine(mPathPrefix, "fileeee" + test + ".txt");
-                    entry = await mFilesystem.SaveFileAsync(p, new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")), new(), default);
-                    Assert.True(await mFilesystem.ExistsAsync(p, default));
-                    Assert.Equal("hola1", await mFilesystem.LoadTextFileAsync(p));
+                    entry = await mFilesystem.SaveFileAsync(p, new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")), new(), TestContext.Current.CancellationToken);
+                    Assert.True(await mFilesystem.ExistsAsync(p, TestContext.Current.CancellationToken));
+                    Assert.Equal("hola1", await mFilesystem.LoadTextFileAsync(p, cancellationToken: TestContext.Current.CancellationToken));
                     var bFound = false;
                     var subentries = new List<Entry>(mFilesystem.GetEntries(PathUtils.GetPathParent(p)));
                     foreach (var subentry in subentries) {
@@ -790,7 +790,7 @@ namespace DProjects.Fs.Test {
                 //invalid characters in name should return exception
                 foreach (char invalidCharacter in PathUtils.PATH_INVALID_CHARS) {
                     await Assert.ThrowsAnyAsync<Exception>(async() => {
-                        entry = await mFilesystem.SaveFileAsync(PathUtils.Combine(mPathPrefix, "fileeab" + invalidCharacter + ".txt"), new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")), new(), default);
+                        entry = await mFilesystem.SaveFileAsync(PathUtils.Combine(mPathPrefix, "fileeab" + invalidCharacter + ".txt"), new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")), new(), TestContext.Current.CancellationToken);
                     });
                 }
             }
@@ -820,21 +820,21 @@ namespace DProjects.Fs.Test {
         public virtual async Task AppendFileAsync() {
             if (!mFilesystem.IsReadonly) {
                 //append file
-                await mFilesystem.CreateDirectoryAsync(mPathPrefix, default);
-                await mFilesystem.SaveFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")), new(), default);
-                Entry entry = await mFilesystem.AppendFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola2")), default);
+                await mFilesystem.CreateDirectoryAsync(mPathPrefix, TestContext.Current.CancellationToken);
+                await mFilesystem.SaveFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")), new(), TestContext.Current.CancellationToken);
+                Entry entry = await mFilesystem.AppendFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola2")), TestContext.Current.CancellationToken);
                 Assert.NotNull(entry);
                 Assert.Equal(entry.Path, PathUtils.Combine(mPathPrefix, "file1.bin"));
                 Assert.Equal(10, entry.Length);
-                byte[] buffer = await mFilesystem.LoadBinaryFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), new(), default);
+                byte[] buffer = await mFilesystem.LoadBinaryFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), new(), TestContext.Current.CancellationToken);
                 string text = System.Text.Encoding.UTF8.GetString(buffer);
                 Assert.Equal("hola1hola2", text);
-                await mFilesystem.DeleteFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), default);
+                await mFilesystem.DeleteFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), TestContext.Current.CancellationToken);
                 //append file over unexistent file should create it
-                await mFilesystem.AppendFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")), default);
-                text = System.Text.Encoding.UTF8.GetString(await mFilesystem.LoadBinaryFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), new(), default));
+                await mFilesystem.AppendFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")), TestContext.Current.CancellationToken);
+                text = System.Text.Encoding.UTF8.GetString(await mFilesystem.LoadBinaryFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), new(), TestContext.Current.CancellationToken));
                 Assert.Equal("hola1", text);
-                await mFilesystem.DeleteFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), default);
+                await mFilesystem.DeleteFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), TestContext.Current.CancellationToken);
             }
         }
         [Fact()]
@@ -929,75 +929,75 @@ namespace DProjects.Fs.Test {
                 settings = new CopySettings();
                 settings.Recursive = false;
                 settings.Overwrite = true;
-                await mFilesystem.CreateDirectoryAsync(PathUtils.Combine(mPathPrefix, "1111"), default);
-                await mFilesystem.SaveTextFileAsync(PathUtils.Combine(mPathPrefix, "1111", "file0.txt2"), "hola que ase", System.Text.Encoding.UTF8, default);
-                await mFilesystem.CreateDirectoryAsync(PathUtils.Combine(mPathPrefix, "2222"), default);
-                await mFilesystem.CopyAsync(PathUtils.Combine(mPathPrefix, "1111"), PathUtils.Combine(mPathPrefix, "2222"), settings, mLogger, default);
-                Assert.False(await mFilesystem.ExistsFileAsync(PathUtils.Combine(mPathPrefix, "2222", "file0.txt2"), default));
+                await mFilesystem.CreateDirectoryAsync(PathUtils.Combine(mPathPrefix, "1111"), TestContext.Current.CancellationToken);
+                await mFilesystem.SaveTextFileAsync(PathUtils.Combine(mPathPrefix, "1111", "file0.txt2"), "hola que ase", System.Text.Encoding.UTF8, TestContext.Current.CancellationToken);
+                await mFilesystem.CreateDirectoryAsync(PathUtils.Combine(mPathPrefix, "2222"), TestContext.Current.CancellationToken);
+                await mFilesystem.CopyAsync(PathUtils.Combine(mPathPrefix, "1111"), PathUtils.Combine(mPathPrefix, "2222"), settings, mLogger, TestContext.Current.CancellationToken);
+                Assert.False(await mFilesystem.ExistsFileAsync(PathUtils.Combine(mPathPrefix, "2222", "file0.txt2"), TestContext.Current.CancellationToken));
                 //copy directory
                 settings = new CopySettings();
                 settings.Recursive = true;
                 settings.Overwrite = true;
-                await mFilesystem.CreateDirectoryAsync(PathUtils.Combine(mPathPrefix, "1111"), default);
-                await mFilesystem.SaveTextFileAsync(PathUtils.Combine(mPathPrefix, "1111", "file0.txt2"), "hola que ase", System.Text.Encoding.UTF8, default);
-                await mFilesystem.CreateDirectoryAsync(PathUtils.Combine(mPathPrefix, "2222"), default);
-                await mFilesystem.CopyAsync(PathUtils.Combine(mPathPrefix, "1111"), PathUtils.Combine(mPathPrefix, "2222"), settings, mLogger, default);
-                Assert.True(await mFilesystem.ExistsFileAsync(PathUtils.Combine(mPathPrefix, "2222", "file0.txt2"), default));
+                await mFilesystem.CreateDirectoryAsync(PathUtils.Combine(mPathPrefix, "1111"), TestContext.Current.CancellationToken);
+                await mFilesystem.SaveTextFileAsync(PathUtils.Combine(mPathPrefix, "1111", "file0.txt2"), "hola que ase", System.Text.Encoding.UTF8, TestContext.Current.CancellationToken);
+                await mFilesystem.CreateDirectoryAsync(PathUtils.Combine(mPathPrefix, "2222"), TestContext.Current.CancellationToken);
+                await mFilesystem.CopyAsync(PathUtils.Combine(mPathPrefix, "1111"), PathUtils.Combine(mPathPrefix, "2222"), settings, mLogger, TestContext.Current.CancellationToken);
+                Assert.True(await mFilesystem.ExistsFileAsync(PathUtils.Combine(mPathPrefix, "2222", "file0.txt2"), TestContext.Current.CancellationToken));
                 //copy file over folder
                 settings = new CopySettings();
                 settings.Recursive = false;
                 settings.Overwrite = true;
-                await mFilesystem.CreateDirectoryAsync(PathUtils.Combine(mPathPrefix, "1111"), default);
-                await mFilesystem.SaveTextFileAsync(PathUtils.Combine(mPathPrefix, "1111", "file0.txt2"), "hola que ase", System.Text.Encoding.UTF8, default);
-                await mFilesystem.CreateDirectoryAsync(PathUtils.Combine(mPathPrefix, "3333"), default);
-                await mFilesystem.CopyAsync(PathUtils.Combine(mPathPrefix, "1111", "file0.txt2"), PathUtils.Combine(mPathPrefix, "3333"), settings, mLogger, default);
-                Assert.True(await mFilesystem.ExistsFileAsync(PathUtils.Combine(mPathPrefix, "3333", "file0.txt2"), default));
+                await mFilesystem.CreateDirectoryAsync(PathUtils.Combine(mPathPrefix, "1111"), TestContext.Current.CancellationToken);
+                await mFilesystem.SaveTextFileAsync(PathUtils.Combine(mPathPrefix, "1111", "file0.txt2"), "hola que ase", System.Text.Encoding.UTF8, TestContext.Current.CancellationToken);
+                await mFilesystem.CreateDirectoryAsync(PathUtils.Combine(mPathPrefix, "3333"), TestContext.Current.CancellationToken);
+                await mFilesystem.CopyAsync(PathUtils.Combine(mPathPrefix, "1111", "file0.txt2"), PathUtils.Combine(mPathPrefix, "3333"), settings, mLogger, TestContext.Current.CancellationToken);
+                Assert.True(await mFilesystem.ExistsFileAsync(PathUtils.Combine(mPathPrefix, "3333", "file0.txt2"), TestContext.Current.CancellationToken));
                 //copy folder
-                if (await mFilesystem.ExistsDirectoryAsync(mPathPrefix + "2", default)) {
-                    await mFilesystem.DeleteDirectoryAsync(mPathPrefix + "2", default);
+                if (await mFilesystem.ExistsDirectoryAsync(mPathPrefix + "2", TestContext.Current.CancellationToken)) {
+                    await mFilesystem.DeleteDirectoryAsync(mPathPrefix + "2", TestContext.Current.CancellationToken);
                 }
-                await mFilesystem.CreateDirectoryAsync(mPathPrefix + "2", default);
+                await mFilesystem.CreateDirectoryAsync(mPathPrefix + "2", TestContext.Current.CancellationToken);
                 settings = new CopySettings();
                 settings.Recursive = true;
                 settings.Overwrite = true;
                 mFilesystem.Copy(mPathPrefix, mPathPrefix + "2", settings, mLogger);
-                Assert.True(await mFilesystem.ExistsDirectoryAsync(mPathPrefix + "2", default));
-                Assert.True(await mFilesystem.ExistsFileAsync(PathUtils.Combine(mPathPrefix + "2", "folder0", "file0.txt"), default));
-                await mFilesystem.DeleteDirectoryAsync(mPathPrefix + "2", default);
-                Assert.False(await mFilesystem.ExistsDirectoryAsync(mPathPrefix + "2", default));
+                Assert.True(await mFilesystem.ExistsDirectoryAsync(mPathPrefix + "2", TestContext.Current.CancellationToken));
+                Assert.True(await mFilesystem.ExistsFileAsync(PathUtils.Combine(mPathPrefix + "2", "folder0", "file0.txt"), TestContext.Current.CancellationToken));
+                await mFilesystem.DeleteDirectoryAsync(mPathPrefix + "2", TestContext.Current.CancellationToken);
+                Assert.False(await mFilesystem.ExistsDirectoryAsync(mPathPrefix + "2", TestContext.Current.CancellationToken));
                 //copy unexistent folder should raise exception
                 settings = new CopySettings();
                 settings.Recursive = true;
                 settings.Overwrite = true;
                 try {
-                    await mFilesystem.CopyAsync(mPathPrefix + "2", mPathPrefix + "3", settings, mLogger, default);
+                    await mFilesystem.CopyAsync(mPathPrefix + "2", mPathPrefix + "3", settings, mLogger, TestContext.Current.CancellationToken);
                     Assert.True(false);
                 } catch (Exception) {
                 }
                 //copy single file
                 settings.Overwrite = false;
-                await mFilesystem.CopyAsync(PathUtils.Combine(mPathPrefix, "file0.txt"), PathUtils.Combine(mPathPrefix, "file0.txt2"), settings, mLogger, default);
-                string text = await mFilesystem.LoadTextFileAsync(PathUtils.Combine(mPathPrefix, "file0.txt2"));
+                await mFilesystem.CopyAsync(PathUtils.Combine(mPathPrefix, "file0.txt"), PathUtils.Combine(mPathPrefix, "file0.txt2"), settings, mLogger, TestContext.Current.CancellationToken);
+                string text = await mFilesystem.LoadTextFileAsync(PathUtils.Combine(mPathPrefix, "file0.txt2"), cancellationToken: TestContext.Current.CancellationToken);
                 Assert.Equal(mFileContent, text);
                 //copy single file over existing file, with overwrite should touch destination file
                 settings = new CopySettings();
                 settings.Recursive = true;
                 settings.Overwrite = true;
-                DateTime lastWriteTime1 = (await mFilesystem.SaveTextFileAsync(PathUtils.Combine(mPathPrefix, "file0.txt2"), "hola que ase", System.Text.Encoding.UTF8, default)).Modified;
+                DateTime lastWriteTime1 = (await mFilesystem.SaveTextFileAsync(PathUtils.Combine(mPathPrefix, "file0.txt2"), "hola que ase", System.Text.Encoding.UTF8, TestContext.Current.CancellationToken)).Modified;
                 System.Threading.Thread.Sleep(2100);
-                await mFilesystem.CopyAsync(PathUtils.Combine(mPathPrefix, "file0.txt"), PathUtils.Combine(mPathPrefix, "file0.txt2"), settings, mLogger, default);
+                await mFilesystem.CopyAsync(PathUtils.Combine(mPathPrefix, "file0.txt"), PathUtils.Combine(mPathPrefix, "file0.txt2"), settings, mLogger, TestContext.Current.CancellationToken);
                 DateTime lastWriteTime2 = System.Convert.ToDateTime(mFilesystem.GetEntry(PathUtils.Combine(mPathPrefix, "file0.txt2"))!.Modified);
                 Assert.NotEqual(lastWriteTime1, lastWriteTime2);
                 //copy single file over existing file, without overwrite should not touch destination file
                 settings = new CopySettings();
                 settings.Recursive = true;
                 settings.Overwrite = false;
-                await mFilesystem.SaveTextFileAsync(PathUtils.Combine(mPathPrefix, "file0.txt"), "hola que ase", System.Text.Encoding.UTF8, default);
-                await mFilesystem.SaveTextFileAsync(PathUtils.Combine(mPathPrefix, "file0.txt2"), "hola que ase", System.Text.Encoding.UTF8, default);
-                string lastWriteTime1str = (await mFilesystem.GetEntryAsync(PathUtils.Combine(mPathPrefix, "file0.txt2"), default))!.Modified.ToString("r");
+                await mFilesystem.SaveTextFileAsync(PathUtils.Combine(mPathPrefix, "file0.txt"), "hola que ase", System.Text.Encoding.UTF8, TestContext.Current.CancellationToken);
+                await mFilesystem.SaveTextFileAsync(PathUtils.Combine(mPathPrefix, "file0.txt2"), "hola que ase", System.Text.Encoding.UTF8, TestContext.Current.CancellationToken);
+                string lastWriteTime1str = (await mFilesystem.GetEntryAsync(PathUtils.Combine(mPathPrefix, "file0.txt2"), TestContext.Current.CancellationToken))!.Modified.ToString("r");
                 System.Threading.Thread.Sleep(2100);
-                await mFilesystem.CopyAsync(PathUtils.Combine(mPathPrefix, "file0.txt"), PathUtils.Combine(mPathPrefix, "file0.txt2"), settings, mLogger, default);
-                string lastWriteTime2str = (await mFilesystem.GetEntryAsync(PathUtils.Combine(mPathPrefix, "file0.txt2"), default))!.Modified.ToString("r");
+                await mFilesystem.CopyAsync(PathUtils.Combine(mPathPrefix, "file0.txt"), PathUtils.Combine(mPathPrefix, "file0.txt2"), settings, mLogger, TestContext.Current.CancellationToken);
+                string lastWriteTime2str = (await mFilesystem.GetEntryAsync(PathUtils.Combine(mPathPrefix, "file0.txt2"), TestContext.Current.CancellationToken))!.Modified.ToString("r");
                 Assert.Equal(lastWriteTime1str, lastWriteTime2str);
 
             }
@@ -1034,20 +1034,20 @@ namespace DProjects.Fs.Test {
                     mFilesystem.DeleteDirectory(mPathPrefix + "2");
                 }
                 //move folder
-                await mFilesystem.MoveAsync(mPathPrefix, mPathPrefix + "2", new DProjects.Fs.MoveSettings(), mLogger, default);
-                Assert.False(await mFilesystem.ExistsDirectoryAsync(mPathPrefix, default));
-                Assert.True(await mFilesystem.ExistsDirectoryAsync(mPathPrefix + "2", default));
+                await mFilesystem.MoveAsync(mPathPrefix, mPathPrefix + "2", new DProjects.Fs.MoveSettings(), mLogger, TestContext.Current.CancellationToken);
+                Assert.False(await mFilesystem.ExistsDirectoryAsync(mPathPrefix, TestContext.Current.CancellationToken));
+                Assert.True(await mFilesystem.ExistsDirectoryAsync(mPathPrefix + "2", TestContext.Current.CancellationToken));
                 //test
-                string text = await mFilesystem.LoadTextFileAsync(PathUtils.Combine(mPathPrefix + "2", "file0.txt"));
+                string text = await mFilesystem.LoadTextFileAsync(PathUtils.Combine(mPathPrefix + "2", "file0.txt"), cancellationToken: TestContext.Current.CancellationToken);
                 Assert.Equal(mFileContent, text);
                 //move file
                 mFilesystem.Move(PathUtils.Combine(mPathPrefix + "2", "file0.txt"), PathUtils.Combine(mPathPrefix + "2", "file0.txt2"), new DProjects.Fs.MoveSettings(), mLogger);
-                Assert.False(await mFilesystem.ExistsFileAsync(PathUtils.Combine(mPathPrefix + "2", "file0.txt"), default));
-                Assert.True(await mFilesystem.ExistsFileAsync(PathUtils.Combine(mPathPrefix + "2", "file0.txt2"), default));
-                text = await mFilesystem.LoadTextFileAsync(PathUtils.Combine(mPathPrefix + "2", "file0.txt2"));
+                Assert.False(await mFilesystem.ExistsFileAsync(PathUtils.Combine(mPathPrefix + "2", "file0.txt"), TestContext.Current.CancellationToken));
+                Assert.True(await mFilesystem.ExistsFileAsync(PathUtils.Combine(mPathPrefix + "2", "file0.txt2"), TestContext.Current.CancellationToken));
+                text = await mFilesystem.LoadTextFileAsync(PathUtils.Combine(mPathPrefix + "2", "file0.txt2"), cancellationToken: TestContext.Current.CancellationToken);
                 Assert.Equal(mFileContent, text);
                 //remove
-                await mFilesystem.DeleteDirectoryAsync(mPathPrefix + "2", default);
+                await mFilesystem.DeleteDirectoryAsync(mPathPrefix + "2", TestContext.Current.CancellationToken);
             }
         }
         [Fact()]
@@ -1165,7 +1165,7 @@ namespace DProjects.Fs.Test {
         public virtual async Task MetadataAsync() {
             if (!mFilesystem.IsReadonly) {
                 await CreateFilesystemStructureAsync();
-                if (await mFilesystem.SupportsAsync(mPathPrefix, Features.Metadata, default)) {
+                if (await mFilesystem.SupportsAsync(mPathPrefix, Features.Metadata, TestContext.Current.CancellationToken)) {
                     //simple test
                     var p = PathUtils.Combine(mPathPrefix, "hola.txt");
                     var metadata = new Dictionary<string, string>();
@@ -1174,8 +1174,8 @@ namespace DProjects.Fs.Test {
                     metadata.Add("-var2", "helloworld2");
                     metadata.Add("-var3", "helloworld3");
 
-                    await mFilesystem.SaveTextFileAsync(p, "1234", System.Text.Encoding.UTF8, default);
-                    await mFilesystem.SetMetadataAsync(p, metadata, default);
+                    await mFilesystem.SaveTextFileAsync(p, "1234", System.Text.Encoding.UTF8, TestContext.Current.CancellationToken);
+                    await mFilesystem.SetMetadataAsync(p, metadata, TestContext.Current.CancellationToken);
                     var metadata2 = mFilesystem.GetMetadata(p);
 
                     Assert.Equal(metadata.Count, metadata2.Count);
@@ -1186,8 +1186,8 @@ namespace DProjects.Fs.Test {
                     //case (key must be converted to lowercase)
                     metadata = new Dictionary<string, string>();
                     metadata.Add("VAR1", "1234");
-                    await mFilesystem.SetMetadataAsync(p, metadata, default);
-                    metadata2 = await mFilesystem.GetMetadataAsync(p, default);
+                    await mFilesystem.SetMetadataAsync(p, metadata, TestContext.Current.CancellationToken);
+                    metadata2 = await mFilesystem.GetMetadataAsync(p, TestContext.Current.CancellationToken);
                     foreach (var key in metadata2.Keys) {
                         Assert.Equal("var1", key, false);
                     }
@@ -1196,26 +1196,26 @@ namespace DProjects.Fs.Test {
                     metadata = new Dictionary<string, string>();
                     metadata.Add("VAR1", "1234");
                     metadata.Add("var1", "456");
-                    await mFilesystem.SetMetadataAsync(p, metadata, default);
-                    metadata2 = await mFilesystem.GetMetadataAsync(p, default);
+                    await mFilesystem.SetMetadataAsync(p, metadata, TestContext.Current.CancellationToken);
+                    metadata2 = await mFilesystem.GetMetadataAsync(p, TestContext.Current.CancellationToken);
                     Assert.Single(metadata2.Keys);
                     Assert.Equal("1234", metadata2["var1"]);
 
                     //trim keys
                     metadata = new Dictionary<string, string>();
                     metadata.Add("  var1  ", "1234");
-                    await mFilesystem.SetMetadataAsync(p, metadata, default);
-                    metadata2 = await mFilesystem.GetMetadataAsync(p, default);
+                    await mFilesystem.SetMetadataAsync(p, metadata, TestContext.Current.CancellationToken);
+                    metadata2 = await mFilesystem.GetMetadataAsync(p, TestContext.Current.CancellationToken);
                     Assert.Single(metadata2.Keys);
                     Assert.Equal("1234", metadata2["var1"]);
 
                     //metadata on folders
                     p = PathUtils.Combine(mPathPrefix, "myDir");
-                    await mFilesystem.CreateDirectoryAsync(p, default);
+                    await mFilesystem.CreateDirectoryAsync(p, TestContext.Current.CancellationToken);
                     metadata = new Dictionary<string, string>();
                     metadata.Add("  var1  ", "1234");
-                    await mFilesystem.SetMetadataAsync(p, metadata, default);
-                    metadata2 = await mFilesystem.GetMetadataAsync(p, default);
+                    await mFilesystem.SetMetadataAsync(p, metadata, TestContext.Current.CancellationToken);
+                    metadata2 = await mFilesystem.GetMetadataAsync(p, TestContext.Current.CancellationToken);
                     Assert.Single(metadata2.Keys);
                     Assert.Equal("1234", metadata2["var1"]);
 
@@ -1224,10 +1224,10 @@ namespace DProjects.Fs.Test {
                     var p2 = PathUtils.Combine(mPathPrefix, "p2.txt");
                     var metadata1 = new Dictionary<string, string>();
                     metadata1.Add("var1", "1234");
-                    await mFilesystem.SaveTextFileAsync(p1, "1234", System.Text.Encoding.UTF8, default);
-                    await mFilesystem.SetMetadataAsync(p1, metadata, default);
+                    await mFilesystem.SaveTextFileAsync(p1, "1234", System.Text.Encoding.UTF8, TestContext.Current.CancellationToken);
+                    await mFilesystem.SetMetadataAsync(p1, metadata, TestContext.Current.CancellationToken);
                     mFilesystem.Copy(p1, p2, new CopySettings(), mLogger);
-                    var metadata1copied = await mFilesystem.GetMetadataAsync(p2, default);
+                    var metadata1copied = await mFilesystem.GetMetadataAsync(p2, TestContext.Current.CancellationToken);
                     Assert.Equal(metadata1.Count, metadata1copied.Count);
                     foreach (var key in metadata1.Keys) {
                         Assert.Equal(metadata1[key], metadata1copied[key]);
@@ -1238,10 +1238,10 @@ namespace DProjects.Fs.Test {
                     var d2 = PathUtils.Combine(mPathPrefix, "d2");
                     var metadatad1 = new Dictionary<string, string>();
                     metadatad1.Add("var1", "1234");
-                    await mFilesystem.CreateDirectoryAsync(d1, default);
-                    await mFilesystem.SetMetadataAsync(d1, metadata, default);
-                    await mFilesystem.CopyAsync(d1, d2, new CopySettings(), mLogger, default);
-                    var metadatad1copied = await mFilesystem.GetMetadataAsync(d2, default);
+                    await mFilesystem.CreateDirectoryAsync(d1, TestContext.Current.CancellationToken);
+                    await mFilesystem.SetMetadataAsync(d1, metadata, TestContext.Current.CancellationToken);
+                    await mFilesystem.CopyAsync(d1, d2, new CopySettings(), mLogger, TestContext.Current.CancellationToken);
+                    var metadatad1copied = await mFilesystem.GetMetadataAsync(d2, TestContext.Current.CancellationToken);
                     Assert.Equal(metadatad1.Count, metadatad1copied.Count);
                     foreach (var key in metadatad1.Keys) {
                         Assert.Equal(metadatad1[key], metadatad1copied[key]);
@@ -1252,10 +1252,10 @@ namespace DProjects.Fs.Test {
                     var pp2 = PathUtils.Combine(mPathPrefix, "pp2.txt");
                     var metadata11 = new Dictionary<string, string>();
                     metadata11.Add("var1", "1234");
-                    await mFilesystem.SaveTextFileAsync(pp1, "1234", System.Text.Encoding.UTF8, default);
-                    await mFilesystem.SetMetadataAsync(pp1, metadata, default);
-                    await mFilesystem.MoveAsync(pp1, pp2, new MoveSettings(), mLogger, default);
-                    var metadata11moved = await mFilesystem.GetMetadataAsync(p2, default);
+                    await mFilesystem.SaveTextFileAsync(pp1, "1234", System.Text.Encoding.UTF8, TestContext.Current.CancellationToken);
+                    await mFilesystem.SetMetadataAsync(pp1, metadata, TestContext.Current.CancellationToken);
+                    await mFilesystem.MoveAsync(pp1, pp2, new MoveSettings(), mLogger, TestContext.Current.CancellationToken);
+                    var metadata11moved = await mFilesystem.GetMetadataAsync(p2, TestContext.Current.CancellationToken);
                     Assert.Equal(metadata11.Count, metadata11moved.Count);
                     foreach (var key in metadata11.Keys) {
                         Assert.Equal(metadata11[key], metadata11moved[key]);

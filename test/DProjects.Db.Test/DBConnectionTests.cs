@@ -38,7 +38,7 @@ namespace DProjects.Db.Tests {
         [Fact]
         public async Task Open_ShouldOpenConnection() {
             // Open
-            await mDBConnection.OpenAsync();
+            await mDBConnection.OpenAsync(TestContext.Current.CancellationToken);
             Assert.Equal(System.Data.ConnectionState.Open, mDBConnection.Connection.State);
             // Close
             mDBConnection.Close();
@@ -62,7 +62,7 @@ namespace DProjects.Db.Tests {
             var tableName = "test";
             //drop table
             if (mDBConnection.ExistsTable(tableName)) {
-                await mDBConnection.ExecuteNonQueryAsync(mDBConnection.GetSqlDropTable(tableName));
+                await mDBConnection.ExecuteNonQueryAsync(mDBConnection.GetSqlDropTable(tableName), cancellationToken: TestContext.Current.CancellationToken);
             }
             //create table
             var dbSchemaTable = new DBSchemaTable();
@@ -73,14 +73,14 @@ namespace DProjects.Db.Tests {
                 Name = "pk_" + tableName,
                 Columns = ["id"]
             };
-            await mDBConnection.ExecuteNonQueryAsync(mDBConnection.GetSqlCreateTable(dbSchemaTable));
+            await mDBConnection.ExecuteNonQueryAsync(mDBConnection.GetSqlCreateTable(dbSchemaTable), cancellationToken: TestContext.Current.CancellationToken);
             //insert ok 
-            await mDBConnection.ExecuteNonQueryAsync("INSERT INTO " + mDBConnection.GetSqlQualifierBegin() + tableName + mDBConnection.GetSqlQualifierEnd() + " values (?,?)", [1, "hello"]);
+            await mDBConnection.ExecuteNonQueryAsync("INSERT INTO " + mDBConnection.GetSqlQualifierBegin() + tableName + mDBConnection.GetSqlQualifierEnd() + " values (?,?)", [1, "hello"], cancellationToken: TestContext.Current.CancellationToken);
             Assert.Equal(1, mDBConnection.ExecuteScalar<int>("SELECT max(id) FROM " + tableName));
             //insert error
             mDBConnection.BeginTrans();
             try {
-                await mDBConnection.ExecuteNonQueryAsync("INSERT INTO " + mDBConnection.GetSqlQualifierBegin() + tableName + mDBConnection.GetSqlQualifierEnd() + " values (?,?)", [2, "byte"]);
+                await mDBConnection.ExecuteNonQueryAsync("INSERT INTO " + mDBConnection.GetSqlQualifierBegin() + tableName + mDBConnection.GetSqlQualifierEnd() + " values (?,?)", [2, "byte"], cancellationToken: TestContext.Current.CancellationToken);
                 throw new Exception();
             } catch (Exception ex) {
                 mDBConnection.RollBackTrans();
@@ -88,17 +88,17 @@ namespace DProjects.Db.Tests {
             Assert.Equal(1, mDBConnection.ExecuteScalar<int>("SELECT max(id) FROM " + tableName));
             //insert N rows
             for (var i = 2; i < 100; i++) {
-                await mDBConnection.ExecuteNonQueryAsync("INSERT INTO " + mDBConnection.GetSqlQualifierBegin() + tableName + mDBConnection.GetSqlQualifierEnd() + " values (?,?)", [i, "hello"]);
+                await mDBConnection.ExecuteNonQueryAsync("INSERT INTO " + mDBConnection.GetSqlQualifierBegin() + tableName + mDBConnection.GetSqlQualifierEnd() + " values (?,?)", [i, "hello"], cancellationToken: TestContext.Current.CancellationToken);
             }
             //select top
             var offset = 10;
             var length = 5;
-            var dbTable = await mDBConnection.ExecuteTableAsync("SELECT * FROM " + mDBConnection.GetSqlQualifierBegin() + tableName + mDBConnection.GetSqlQualifierEnd() + " ORDER BY id " + mDBConnection.GetSqlSelectOffsetLimit(offset, length));
+            var dbTable = await mDBConnection.ExecuteTableAsync("SELECT * FROM " + mDBConnection.GetSqlQualifierBegin() + tableName + mDBConnection.GetSqlQualifierEnd() + " ORDER BY id " + mDBConnection.GetSqlSelectOffsetLimit(offset, length), cancellationToken: TestContext.Current.CancellationToken);
             Assert.Equal(length, dbTable.Rows.Count);
             Assert.Equal(offset + 1, dbTable.Rows[0].Get<int>("id", 0));
             Assert.Equal(offset + length, dbTable.Rows[length - 1].Get<int>("id", 0));
             //drop table
-            await mDBConnection.ExecuteNonQueryAsync(mDBConnection.GetSqlDropTable(tableName));
+            await mDBConnection.ExecuteNonQueryAsync(mDBConnection.GetSqlDropTable(tableName), cancellationToken: TestContext.Current.CancellationToken);
         }
         [Fact]
 
@@ -107,7 +107,7 @@ namespace DProjects.Db.Tests {
             var tableName = "test";
             //drop table
             if (mDBConnection.ExistsTable(tableName)) {
-                await mDBConnection.ExecuteNonQueryAsync(mDBConnection.GetSqlDropTable(tableName));
+                await mDBConnection.ExecuteNonQueryAsync(mDBConnection.GetSqlDropTable(tableName), cancellationToken: TestContext.Current.CancellationToken);
             }
             //create table
             var dbSchemaTable = new DBSchemaTable();
@@ -118,14 +118,14 @@ namespace DProjects.Db.Tests {
                 Name = "pk_" + tableName,
                 Columns = ["id"]
             };
-            await mDBConnection.ExecuteNonQueryAsync(mDBConnection.GetSqlCreateTable(dbSchemaTable));
+            await mDBConnection.ExecuteNonQueryAsync(mDBConnection.GetSqlCreateTable(dbSchemaTable), cancellationToken: TestContext.Current.CancellationToken);
             //insert ok 
-            await mDBConnection.ExecuteNonQueryAsync("INSERT INTO " + mDBConnection.GetSqlQualifierBegin() + tableName + mDBConnection.GetSqlQualifierEnd() + " values (?,?)", [1, "hello"]);
+            await mDBConnection.ExecuteNonQueryAsync("INSERT INTO " + mDBConnection.GetSqlQualifierBegin() + tableName + mDBConnection.GetSqlQualifierEnd() + " values (?,?)", [1, "hello"], cancellationToken: TestContext.Current.CancellationToken);
             Assert.Equal(1, mDBConnection.ExecuteScalar<int>("SELECT max(id) FROM " + tableName));
             //insert error
             mDBConnection.BeginTrans();
             try {
-                await mDBConnection.ExecuteNonQueryAsync("INSERT INTO " + mDBConnection.GetSqlQualifierBegin() + tableName + mDBConnection.GetSqlQualifierEnd() + " values (?,?)", [2, "byte"]);
+                await mDBConnection.ExecuteNonQueryAsync("INSERT INTO " + mDBConnection.GetSqlQualifierBegin() + tableName + mDBConnection.GetSqlQualifierEnd() + " values (?,?)", [2, "byte"], cancellationToken: TestContext.Current.CancellationToken);
                 throw new Exception();
             } catch (Exception ex) {
                 mDBConnection.RollBackTrans();
@@ -133,20 +133,20 @@ namespace DProjects.Db.Tests {
             Assert.Equal(1, mDBConnection.ExecuteScalar<int>("SELECT max(id) FROM " + tableName));
             //insert N rows
             for (var i = 2; i < 100; i++) {
-                await mDBConnection.ExecuteNonQueryAsync("INSERT INTO " + mDBConnection.GetSqlQualifierBegin() + tableName + mDBConnection.GetSqlQualifierEnd() + " values (?,?)", [i, "hello"]);
+                await mDBConnection.ExecuteNonQueryAsync("INSERT INTO " + mDBConnection.GetSqlQualifierBegin() + tableName + mDBConnection.GetSqlQualifierEnd() + " values (?,?)", [i, "hello"], cancellationToken: TestContext.Current.CancellationToken);
             }
             //select top
             var offset = 10;
             var length = 5;
-            var dbTable = await mDBConnection.ExecuteTableAsync("SELECT * FROM " + mDBConnection.GetSqlQualifierBegin() + tableName + mDBConnection.GetSqlQualifierEnd() + " ORDER BY id " + mDBConnection.GetSqlSelectOffsetLimit(offset, length));
+            var dbTable = await mDBConnection.ExecuteTableAsync("SELECT * FROM " + mDBConnection.GetSqlQualifierBegin() + tableName + mDBConnection.GetSqlQualifierEnd() + " ORDER BY id " + mDBConnection.GetSqlSelectOffsetLimit(offset, length), cancellationToken: TestContext.Current.CancellationToken);
             Assert.Equal(length, dbTable.Rows.Count);
             // delete rows
-            await mDBConnection.ExecuteNonQueryAsync("DELETE FROM " + mDBConnection.GetSqlQualifierBegin() + tableName + mDBConnection.GetSqlQualifierEnd());
+            await mDBConnection.ExecuteNonQueryAsync("DELETE FROM " + mDBConnection.GetSqlQualifierBegin() + tableName + mDBConnection.GetSqlQualifierEnd(), cancellationToken: TestContext.Current.CancellationToken);
             // check if table is empty
-            dbTable = await mDBConnection.ExecuteTableAsync("SELECT * FROM " + mDBConnection.GetSqlQualifierBegin() + tableName + mDBConnection.GetSqlQualifierEnd());
+            dbTable = await mDBConnection.ExecuteTableAsync("SELECT * FROM " + mDBConnection.GetSqlQualifierBegin() + tableName + mDBConnection.GetSqlQualifierEnd(), cancellationToken: TestContext.Current.CancellationToken);
             Assert.Equal(0, dbTable.Rows.Count);
             // drop table
-            await mDBConnection.ExecuteNonQueryAsync(mDBConnection.GetSqlDropTable(tableName));
+            await mDBConnection.ExecuteNonQueryAsync(mDBConnection.GetSqlDropTable(tableName), cancellationToken: TestContext.Current.CancellationToken);
         }
     }
 }

@@ -26,7 +26,7 @@ namespace DProjects.Text.Readers.Tests
             using (var sr = new StringReader("<root><child>Test</child></root>"))
             using (var reader = new XmlDocumentsReader(sr))
             {
-                var result = await reader.ReadAsync(default);
+                var result = await reader.ReadAsync(TestContext.Current.CancellationToken);
                 Assert.NotNull(result);
                 Assert.Equal("root", result.DocumentElement.Name);
                 Assert.Equal("Test", result.DocumentElement.FirstChild.InnerText);

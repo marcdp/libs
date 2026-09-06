@@ -33,7 +33,7 @@ namespace DProjects.Streams.Tests
             using (var counter = new ByteCounterInputStream(ms))
             {
                 var buffer = new byte[1024];
-                var bytesRead = await counter.ReadAsync(buffer, 0, buffer.Length);
+                var bytesRead = await counter.ReadAsync(buffer, 0, buffer.Length, TestContext.Current.CancellationToken);
 
                 Assert.Equal(expectedCount, counter.Count);
             }
@@ -65,7 +65,7 @@ namespace DProjects.Streams.Tests
             using (var counter = new ByteCounterInputStream(ms))
             {
                 var buffer = Encoding.UTF8.GetBytes(input);
-                await counter.WriteAsync(buffer, 0, buffer.Length);
+                await counter.WriteAsync(buffer, 0, buffer.Length, TestContext.Current.CancellationToken);
 
                 Assert.Equal(expectedCount, counter.Count);
             }

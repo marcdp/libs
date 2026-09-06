@@ -29,7 +29,7 @@ namespace DProjects.Streams.Tests {
         public async Task ReadByteAsyncTest() {
             using (var ms = new MemoryStream(Encoding.UTF8.GetBytes("Hello")))
             using (var stream = new Base64EncoderInputStream(ms, 0)) {
-                var result = await stream.ReadByteAsync(default);
+                var result = await stream.ReadByteAsync(TestContext.Current.CancellationToken);
                 Assert.Equal((byte)'S', result);
             }
         }
@@ -40,7 +40,7 @@ namespace DProjects.Streams.Tests {
             using (var ms = new MemoryStream(aux))
             using (var stream = new Base64EncoderInputStream(ms, 0)) {
                 var buffer = new byte[8];
-                var result = await stream.ReadAsync(buffer, 0, buffer.Length, default);
+                var result = await stream.ReadAsync(buffer, 0, buffer.Length, TestContext.Current.CancellationToken);
                 //await stream.ReadExactlyAsync(buffer, default);
                 Assert.Equal(8, result);
                 Assert.Equal("SGVsbG8=", Encoding.UTF8.GetString(buffer, 0, buffer.Length));

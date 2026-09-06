@@ -36,13 +36,13 @@ namespace DProjects.Streams.Tests
             using (var ms = new MemoryStream())
             using (var gzip = new GZipCompressOutputStream(ms, true))
             {
-                await gzip.WriteAsync(expectedOutput, 0, expectedOutput.Length);
-                await gzip.FlushAsync();
+                await gzip.WriteAsync(expectedOutput, 0, expectedOutput.Length, TestContext.Current.CancellationToken);
+                await gzip.FlushAsync(TestContext.Current.CancellationToken);
 
                 using (var gzipStream = new GZipStream(new MemoryStream(ms.ToArray()), CompressionMode.Decompress))
                 using (var reader = new StreamReader(gzipStream))
                 {
-                    var output = await reader.ReadToEndAsync();
+                    var output = await reader.ReadToEndAsync(TestContext.Current.CancellationToken);
                     Assert.Equal(input, output);
                 }
             }

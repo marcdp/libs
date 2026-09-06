@@ -1,4 +1,4 @@
-﻿using Xunit;
+using Xunit;
 using DProjects.Utils;
 using System;
 using System.Collections.Generic;
@@ -24,28 +24,28 @@ namespace DProjects.Utils.Tests {
         [Fact()]
         public async Task ToAsyncEnumerableTest() {
             var index = 0;
-            await foreach (var item in Data.ToAsyncEnumerable()) {
+            await foreach (var item in Data.ToAsyncEnumerable(TestContext.Current.CancellationToken)) {
                 Assert.Equal(Data[index++], item);
             }
         }
         [Fact()]
         public async Task ToArrayAsyncTest() {
             var index = 0;
-            foreach (var item in await Data.ToAsyncEnumerable().ToArrayAsync()) {
+            foreach (var item in await Data.ToAsyncEnumerable(TestContext.Current.CancellationToken).ToArrayAsync()) {
                 Assert.Equal(Data[index++], item);
             }
         }
         [Fact()]
         public async Task ToListAsyncTest() {
             var index = 0;
-            foreach (var item in await Data.ToAsyncEnumerable().ToListAsync()) {
+            foreach (var item in await Data.ToAsyncEnumerable(TestContext.Current.CancellationToken).ToListAsync()) {
                 Assert.Equal(Data[index++], item);
             }
         }
         [Fact()]
         public void ToEnumerableTest() {
             var index = 0;
-            foreach (var item in Data.ToAsyncEnumerable().ToEnumerable()) {
+            foreach (var item in Data.ToAsyncEnumerable(TestContext.Current.CancellationToken).ToEnumerable()) {
                 Assert.Equal(Data[index++], item);
             }
         }
