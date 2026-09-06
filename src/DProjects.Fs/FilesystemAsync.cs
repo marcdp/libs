@@ -106,7 +106,7 @@ namespace DProjects.Fs {
             AsyncUtils.RunSync(async () => await TouchAsync(path, aDate, default));
         }
         public virtual Task TouchAsync(string path, DateTime aDate, CancellationToken cancellationToken) {
-            throw new NotImplementedException();
+            throw new NotSupportedException("Touch is not supported by this filesystem.");
         }
 
 
@@ -166,7 +166,7 @@ namespace DProjects.Fs {
             } else if (syncSettings.Mode == SyncModes.Bidirectional) {
                 await this.SyncBidirectionalAsync(source, destination, syncSettings, logger, cancellationToken);
             } else {
-                throw new NotImplementedException();
+                throw new ArgumentOutOfRangeException(nameof(syncSettings.Mode), syncSettings.Mode, "Unsupported sync mode.");
             }
         }
 
@@ -176,19 +176,19 @@ namespace DProjects.Fs {
             return AsyncUtils.RunSync(async () => await CreateWatcherAsync(path, filter, excludes, recursive, default));
         }
         public virtual Task<Watcher> CreateWatcherAsync(string path, string filter, string[] excludes, bool recursive, CancellationToken cancellationToken) {
-            throw new NotImplementedException();
+            throw new NotSupportedException("Watchers are not supported by this filesystem.");
         }
         public IDictionary<string, string> GetMetadata(string path) {
             return AsyncUtils.RunSync(async () => await GetMetadataAsync(path, default));
         }
         public virtual Task<IDictionary<string, string>> GetMetadataAsync(string path, CancellationToken cancellationToken) {
-            throw new NotImplementedException();
+            throw new NotSupportedException("Metadata is not supported by this filesystem.");
         }
         public void SetMetadata(string path, IDictionary<string, string> metadata) {
             AsyncUtils.RunSync(async () => await SetMetadataAsync(path, metadata, default));
         }
         public virtual Task SetMetadataAsync(string path, IDictionary<string, string> metadata, CancellationToken cancellationToken) {
-            throw new NotImplementedException();
+            throw new NotSupportedException("Metadata is not supported by this filesystem.");
         }
         public bool Supports(string path, Features feature) {
             return AsyncUtils.RunSync(async () => await SupportsAsync(path,  feature, default));

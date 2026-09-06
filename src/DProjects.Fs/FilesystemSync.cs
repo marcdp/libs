@@ -108,7 +108,7 @@ namespace DProjects.Fs {
             return Task.CompletedTask;
         }
         public virtual void Touch(string path, DateTime aDate) {
-            throw new NotImplementedException();
+            throw new NotSupportedException("Touch is not supported by this filesystem.");
         }
         public virtual Task TouchAsync(string path, DateTime aDate, CancellationToken cancellationToken) {
             Touch(path, aDate);
@@ -187,7 +187,7 @@ namespace DProjects.Fs {
             } else if (syncSettings.Mode == SyncModes.Bidirectional) {
                 FilesystemSyncBidirectionalSync.SyncBidirectional(this, source, destination, syncSettings, logger);
             } else {
-                throw new NotImplementedException();
+                throw new ArgumentOutOfRangeException(nameof(syncSettings.Mode), syncSettings.Mode, "Unsupported sync mode.");
             }
         }
         public virtual async Task SyncAsync(string source, string destination, SyncSettings syncSettings, ILogger<IFilesystem> logger, CancellationToken cancellationToken) {
@@ -196,33 +196,32 @@ namespace DProjects.Fs {
             } else if (syncSettings.Mode == SyncModes.Bidirectional) {
                 await FilesystemSyncBidirectionalAsync.SyncBidirectionalAsync(this, source, destination, syncSettings, logger, cancellationToken);
             } else {
-                throw new NotImplementedException();
+                throw new ArgumentOutOfRangeException(nameof(syncSettings.Mode), syncSettings.Mode, "Unsupported sync mode.");
             }
         }
 
 
         //methods LEVEL 4
         public virtual Watcher CreateWatcher(string path, string filter, string[] excludes, bool recursive) {
-            throw new NotImplementedException();
+            throw new NotSupportedException("Watchers are not supported by this filesystem.");
         }
         public async Task<Watcher> CreateWatcherAsync(string path, string filter, string[] excludes, bool recursive, CancellationToken cancellationToken) {
             return await Task.FromResult(CreateWatcher(path, filter, excludes, recursive));
         }
         public virtual IDictionary<string, string> GetMetadata(string path) {
-            throw new NotImplementedException();
+            throw new NotSupportedException("Metadata is not supported by this filesystem.");
         }
         public virtual async Task<IDictionary<string, string>> GetMetadataAsync(string path, CancellationToken cancellationToken) {
             return await Task.FromResult(GetMetadata(path));
         }
         public virtual void SetMetadata(string path, IDictionary<string, string> metadata) {
-            throw new NotImplementedException();
+            throw new NotSupportedException("Metadata is not supported by this filesystem.");
         }
         public virtual Task SetMetadataAsync(string path, IDictionary<string, string> metadata, CancellationToken cancellationToken) {
             SetMetadata(path, metadata);
             return Task.CompletedTask;
         }
         public virtual bool Supports(string path, Features feature) {
-            if (feature == Features.Select) return true;
             return false;
         }
         public virtual async Task<bool> SupportsAsync(string path, Features feature, CancellationToken cancellationToken) {

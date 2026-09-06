@@ -557,19 +557,46 @@ namespace DProjects.Fs.Test {
         }
         [Fact()]
         public virtual void Supports() {
-            if (!mFilesystem.IsReadonly) {
-                CreateFilesystemStructure();
-                //check touch
-                mFilesystem.Supports("/", Features.Touch);
+            var path = "/";
+            if (!mFilesystem.Supports(path, Features.Touch)) {
+                Assert.Throws<NotSupportedException>(() => mFilesystem.Touch(path, DateTime.UtcNow));
+            }
+            if (!mFilesystem.Supports(path, Features.Metadata)) {
+                Assert.Throws<NotSupportedException>(() => mFilesystem.GetMetadata(path));
+                Assert.Throws<NotSupportedException>(() => mFilesystem.SetMetadata(path, new Dictionary<string, string>()));
+            }
+            if (!mFilesystem.Supports(path, Features.CreateWatcher)) {
+                Assert.Throws<NotSupportedException>(() => mFilesystem.CreateWatcher(path, "*", [], false));
             }
         }
         [Fact()]
         public virtual async Task SupportsAsync() {
-            if (!mFilesystem.IsReadonly) {
-                await CreateFilesystemStructureAsync();
-                //check touch
-                await mFilesystem.SupportsAsync("/", Features.Touch, TestContext.Current.CancellationToken);
+            var path = "/";
+            var cancellationToken = TestContext.Current.CancellationToken;
+            if (!await mFilesystem.SupportsAsync(path, Features.Touch, cancellationToken)) {
+                await Assert.ThrowsAsync<NotSupportedException>(() => mFilesystem.TouchAsync(path, DateTime.UtcNow, cancellationToken));
             }
+            if (!await mFilesystem.SupportsAsync(path, Features.Metadata, cancellationToken)) {
+                await Assert.ThrowsAsync<NotSupportedException>(() => mFilesystem.GetMetadataAsync(path, cancellationToken));
+                await Assert.ThrowsAsync<NotSupportedException>(() => mFilesystem.SetMetadataAsync(path, new Dictionary<string, string>(), cancellationToken));
+            }
+            if (!await mFilesystem.SupportsAsync(path, Features.CreateWatcher, cancellationToken)) {
+                await Assert.ThrowsAsync<NotSupportedException>(() => mFilesystem.CreateWatcherAsync(path, "*", [], false, cancellationToken));
+            }
+        }
+
+        [Fact()]
+        public virtual void SyncRejectsInvalidMode() {
+            var settings = new SyncSettings { Mode = (SyncModes)(-1) };
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => mFilesystem.Sync("/", "/", settings, mLogger));
+        }
+
+        [Fact()]
+        public virtual async Task SyncAsyncRejectsInvalidMode() {
+            var settings = new SyncSettings { Mode = (SyncModes)(-1) };
+
+            await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => mFilesystem.SyncAsync("/", "/", settings, mLogger, TestContext.Current.CancellationToken));
         }
         [Fact()]
         public virtual void CreateDirectory() {
