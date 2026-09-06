@@ -14,21 +14,26 @@ namespace DProjects.Log.Storage {
         public void Dispose() {
         }
 
+        // helper to produce an empty IAsyncEnumerable<T> without external packages
+        private static async IAsyncEnumerable<T> EmptyAsync<T>() {
+            await Task.Yield();
+            yield break;
+        }
+
         //mehods
         public Task<LogStorageStats> GetStatsAsync(CancellationToken cancellationToken) {
-            throw new System.NotImplementedException();
+            return Task.FromResult(new LogStorageStats(0, 0, 0, null, null));
+        }
+        public Task RemoveBeforeAsync(int days, CancellationToken cancellationToken) {
+            return Task.CompletedTask;
         }
 
         public IAsyncEnumerable<LogEntry> QueryAsync(LogStorageQuery query, CancellationToken cancellationToken) {
-            throw new System.NotImplementedException();
-        }
-
-        public Task RemoveBeforeAsync(int days, CancellationToken cancellationToken) {
-            throw new System.NotImplementedException();
+            return EmptyAsync<LogEntry>();
         }
 
         public IAsyncEnumerable<LogEntry> TailAsync(int lines, bool follow, CancellationToken cancellationToken) {
-            throw new System.NotImplementedException();
+            return EmptyAsync<LogEntry>();
         }
     }
 }

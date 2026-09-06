@@ -12,21 +12,20 @@ namespace DProjects.Queues {
 
         //ctor
         public void Dispose() {
-            throw new NotImplementedException();
         }
 
         //methods
         public Task WriteAsync(Message message, CancellationToken cancellationToken = default) {
-            throw new NotImplementedException();
+            return Task.CompletedTask;
         }
         public Task<Message?> ReadAsync(int waitTimeout = 0, CancellationToken cancellationToken = default) {
-            throw new NotImplementedException();
+            return Task.FromResult<Message?>(null);
         }
         public Task DeleteAsync(Message message, CancellationToken cancellationToken = default) {
-            throw new NotImplementedException();
+            return Task.CompletedTask;
         }
         public Task PurgeAsync(CancellationToken cancellationToken = default) {
-            throw new NotImplementedException();
+            return Task.CompletedTask;
         }
 
 

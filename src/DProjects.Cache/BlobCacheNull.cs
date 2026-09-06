@@ -20,10 +20,10 @@ namespace DProjects.Cache {
 
         }
         public BlobCacheEntry? Get(string key) {
-            throw new NotImplementedException();
+            return null;
         }
         public BlobCacheEntry Get(string key, TimeSpan expiration, Func<BlobCacheEntry> func) {
-            throw new NotImplementedException();
+            return func();
         }
         public void Remove(string key) { 
         }
@@ -34,10 +34,19 @@ namespace DProjects.Cache {
             return Task.CompletedTask; 
         }
         public Task<BlobCacheEntry?> GetAsync(string key, CancellationToken cancellationToken = default) {
-            throw new NotImplementedException();
+            return Task.FromResult<BlobCacheEntry?>(null);
         }
-        public Task<BlobCacheEntry> GetAsync(string key, TimeSpan expiration, Func<CancellationToken, Task<BlobCacheEntry>> func, CancellationToken cancellationToken = default) {
-            throw new NotImplementedException();
+        public async Task<BlobCacheEntry> GetAsync(string key, TimeSpan expiration, Func<CancellationToken, Task<BlobCacheEntry>> func, CancellationToken cancellationToken = default) {
+            //get blob
+            var result = await GetAsync(key, cancellationToken);
+            if (result == null) {
+                using (var blobCacheentry = await func(cancellationToken)) {
+                    blobCacheentry.Expires = DateTime.Now.Add(expiration);
+                    await SetAsync(blobCacheentry);
+                }
+                return await GetAsync(key, cancellationToken) ?? throw new Exception("xxx");
+            }
+            return result;
         }
         public Task RemoveAsync(string key, CancellationToken cancellationToken = default) {
             return Task.CompletedTask;

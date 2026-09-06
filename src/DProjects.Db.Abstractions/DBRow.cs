@@ -117,40 +117,56 @@ namespace DProjects.Db {
 
 
         /* IDictionary<string.object> */
-        object? IDictionary<string, object?>.this[string key] { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-        ICollection<string> IDictionary<string, object?>.Keys => throw new NotImplementedException();
-        ICollection<object?> IDictionary<string, object?>.Values => throw new NotImplementedException();
-        int ICollection<KeyValuePair<string, object?>>.Count => throw new NotImplementedException();
-        bool ICollection<KeyValuePair<string, object?>>.IsReadOnly => throw new NotImplementedException();
+        object? IDictionary<string, object?>.this[string key] { get => this[key]; set => this[key] = value; }
+        ICollection<string> IDictionary<string, object?>.Keys {
+            get {
+                var keys = new string[mTable.Columns.Count];
+                for (var index = 0; index < keys.Length; index++) {
+                    keys[index] = mTable.Columns[index].Name;
+                }
+                return keys;
+            }
+        }
+        ICollection<object?> IDictionary<string, object?>.Values => (object?[])mValues.Clone();
+        int ICollection<KeyValuePair<string, object?>>.Count => mValues.Length;
+        bool ICollection<KeyValuePair<string, object?>>.IsReadOnly => true;
         void IDictionary<string, object?>.Add(string key, object? value) {
-            throw new NotImplementedException();
+            throw FixedSchemaException();
         }
         void ICollection<KeyValuePair<string, object?>>.Add(KeyValuePair<string, object?> item) {
-            throw new NotImplementedException();
+            throw FixedSchemaException();
         }
         void ICollection<KeyValuePair<string, object?>>.Clear() {
-            throw new NotImplementedException();
+            throw FixedSchemaException();
         }
         bool ICollection<KeyValuePair<string, object?>>.Contains(KeyValuePair<string, object?> item) {
-            throw new NotImplementedException();
+            var index = mTable.Columns.GetColumnIndex(item.Key);
+            return index != -1 && EqualityComparer<object?>.Default.Equals(this[index], item.Value);
         }
         bool IDictionary<string, object?>.ContainsKey(string key) {
-            throw new NotImplementedException();
+            return mTable.Columns.GetColumnIndex(key) != -1;
         }
         void ICollection<KeyValuePair<string, object?>>.CopyTo(KeyValuePair<string, object?>[] array, int arrayIndex) {
-            throw new NotImplementedException();
+            if (array == null) throw new ArgumentNullException(nameof(array));
+            if (arrayIndex < 0) throw new ArgumentOutOfRangeException(nameof(arrayIndex));
+            if (array.Length - arrayIndex < mValues.Length) {
+                throw new ArgumentException("The destination array has insufficient capacity.", nameof(array));
+            }
+            for (var index = 0; index < mValues.Length; index++) {
+                array[arrayIndex + index] = new KeyValuePair<string, object?>(mTable.Columns[index].Name, mValues[index]);
+            }
         }
         IEnumerator<KeyValuePair<string, object?>> IEnumerable<KeyValuePair<string, object?>>.GetEnumerator() {
-            return ToDict().GetEnumerator();
+            return GetDictionaryEnumerator();
         }
         IEnumerator IEnumerable.GetEnumerator() {
-            throw new NotImplementedException();
+            return GetDictionaryEnumerator();
         }
         bool IDictionary<string, object?>.Remove(string key) {
-            throw new NotImplementedException();
+            throw FixedSchemaException();
         }
         bool ICollection<KeyValuePair<string, object?>>.Remove(KeyValuePair<string, object?> item) {
-            throw new NotImplementedException();
+            throw FixedSchemaException();
         }
         bool IDictionary<string, object?>.TryGetValue(string key, out object? value) {
             var index = mTable.Columns.GetColumnIndex(key);
@@ -162,13 +178,13 @@ namespace DProjects.Db {
                 return true;
             }
         }
-        Dictionary<string, object?> ToDict() {
-            var dict = new Dictionary<string, object?>();
-            int index = 0;
-            foreach(var value in mValues) {
-                dict[mTable.Columns[index++].Name] = value;
+        IEnumerator<KeyValuePair<string, object?>> GetDictionaryEnumerator() {
+            for (var index = 0; index < mValues.Length; index++) {
+                yield return new KeyValuePair<string, object?>(mTable.Columns[index].Name, mValues[index]);
             }
-            return dict;
+        }
+        static NotSupportedException FixedSchemaException() {
+            return new NotSupportedException("DBRow has a fixed schema defined by its table.");
         }
 
 

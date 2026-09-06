@@ -4,7 +4,7 @@
         <AssemblyTitle>DProjects.Queues.SqlServer</AssemblyTitle>
         <TargetFramework>netstandard2.0</TargetFramework>
         <LangVersion>preview</LangVersion>
-        <AssemblyName>DProjects.Qeueues.SqlServer</AssemblyName>
+        <AssemblyName>DProjects.Queues.SqlServer</AssemblyName>
         <OutputType>Library</OutputType>
         <PackageId>DProjects.Queues.SqlServer</PackageId>
         <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
