@@ -59,7 +59,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Text.Yaml", "src\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Text.Json", "src\DProjects.Text.Json\DProjects.Text.Json.csproj", "{46C22FCF-901C-4B16-850B-FC0EA4256FDA}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Text.Expressions", "src\DProjects.Text.expressions\DProjects.Text.Expressions.csproj", "{80FE5C5D-CC5E-47B2-B26E-0AACE8C548B8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Text.Expressions", "src\DProjects.Text.Expressions\DProjects.Text.Expressions.csproj", "{80FE5C5D-CC5E-47B2-B26E-0AACE8C548B8}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.DataTypes.Test", "test\DProjects.DataTypes.Test\DProjects.DataTypes.Test.csproj", "{86F6F64D-AE27-4DE3-BB70-958376EEDBBA}"
 EndProject
