@@ -96,16 +96,17 @@ namespace DProjects.Utils.Tests {
 
 
         [Theory()]
-        [InlineData("2020-01-01T16:16:16.1Z", 637134957761000000, true)]
-        [InlineData("2020-01-01T16:16:16.12Z", 637134957761200000, true)]
-        [InlineData("2020-01-01T16:16:16.123Z",  637134957761230000, true)]
-        [InlineData("2020-01-01T16:16:16.1235Z", 637134957761235000, true)]
-        [InlineData("2020-01-01T16:16:16.1235123Z", 637134957761235123, true)]
+        [InlineData("2020-01-01T16:16:16.1Z", 637134921761000000, true)]
+        [InlineData("2020-01-01T16:16:16.12Z", 637134921761200000, true)]
+        [InlineData("2020-01-01T16:16:16.123Z", 637134921761230000, true)]
+        [InlineData("2020-01-01T16:16:16.1235Z", 637134921761235000, true)]
+        [InlineData("2020-01-01T16:16:16.1235123Z", 637134921761235123, true)]
         [InlineData("2020-01-01Z", 0, false)]
         public void TryParseTest(string value1, long ticks, bool equal) {
             if (DateTimeUtils.TryParse(value1, out DateTime result)) {
                 Assert.True(equal);
                 Assert.Equal(ticks, result.Ticks);
+                Assert.Equal(DateTimeKind.Utc, result.Kind);
             } else {
                 Assert.False(equal);
             }

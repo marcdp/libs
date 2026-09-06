@@ -5,6 +5,8 @@ namespace DProjects.Utils {
 
     public static class DateTimeUtils {
 
+        private const DateTimeStyles UniversalDateTimeStyles = DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal;
+
         //constants
         public const string DATETIME_ISO8601 = "yyyy-MM-ddTHH:mm:ssK";
         public const string DATETIME_ISO8601_MS = "yyyy-MM-ddTHH:mm:ss.fffK";
@@ -100,50 +102,50 @@ namespace DProjects.Utils {
             return result;
         }
         public static bool TryParse(string text, out DateTime result) {
-            if (DateTime.TryParseExact(text, DateTimeUtils.DATETIME_ISO8601, null, System.Globalization.DateTimeStyles.AssumeUniversal, out result)) {
+            if (DateTime.TryParseExact(text, DateTimeUtils.DATETIME_ISO8601, null, UniversalDateTimeStyles, out result)) {
                 return true;
-            } else if (DateTime.TryParseExact(text, DateTimeUtils.DATETIME_ISO8601_MS, null, System.Globalization.DateTimeStyles.AssumeUniversal, out result)) {
+            } else if (DateTime.TryParseExact(text, DateTimeUtils.DATETIME_ISO8601_MS, null, UniversalDateTimeStyles, out result)) {
                 return true;
-            } else if (DateTime.TryParseExact(text, DateTimeUtils.DATETIME_ISO8601_MS1, null, System.Globalization.DateTimeStyles.AssumeUniversal, out result)) {
+            } else if (DateTime.TryParseExact(text, DateTimeUtils.DATETIME_ISO8601_MS1, null, UniversalDateTimeStyles, out result)) {
                 return true;
-            } else if (DateTime.TryParseExact(text, DateTimeUtils.DATETIME_ISO8601_MS2, null, System.Globalization.DateTimeStyles.AssumeUniversal, out result)) {
+            } else if (DateTime.TryParseExact(text, DateTimeUtils.DATETIME_ISO8601_MS2, null, UniversalDateTimeStyles, out result)) {
                 return true;
-            } else if (DateTime.TryParseExact(text, DateTimeUtils.DATETIME_ISO8601_MS4, null, System.Globalization.DateTimeStyles.AssumeUniversal, out result)) {
+            } else if (DateTime.TryParseExact(text, DateTimeUtils.DATETIME_ISO8601_MS4, null, UniversalDateTimeStyles, out result)) {
                 return true;
-            } else if (DateTime.TryParseExact(text, DateTimeUtils.DATETIME_ISO8601_MS5, null, System.Globalization.DateTimeStyles.AssumeUniversal, out result)) {
+            } else if (DateTime.TryParseExact(text, DateTimeUtils.DATETIME_ISO8601_MS5, null, UniversalDateTimeStyles, out result)) {
                 return true;
-            } else if (DateTime.TryParseExact(text, DateTimeUtils.DATETIME_ISO8601_MS6, null, System.Globalization.DateTimeStyles.AssumeUniversal, out result)) {
+            } else if (DateTime.TryParseExact(text, DateTimeUtils.DATETIME_ISO8601_MS6, null, UniversalDateTimeStyles, out result)) {
                 return true;
-            } else if (DateTime.TryParseExact(text, DateTimeUtils.DATETIME_ISO8601_MS7, null, System.Globalization.DateTimeStyles.AssumeUniversal, out result)) {
+            } else if (DateTime.TryParseExact(text, DateTimeUtils.DATETIME_ISO8601_MS7, null, UniversalDateTimeStyles, out result)) {
                 return true;
-            } else if (DateTime.TryParseExact(text, DateTimeUtils.DATETIME_ISO8601_DATE, null, System.Globalization.DateTimeStyles.AssumeUniversal, out result)) {
+            } else if (DateTime.TryParseExact(text, DateTimeUtils.DATETIME_ISO8601_DATE, null, UniversalDateTimeStyles, out result)) {
                 return true;
-            } else if (DateTime.TryParseExact(text, DateTimeUtils.DATETIME_ISO8601_TIME, null, System.Globalization.DateTimeStyles.AssumeUniversal, out result)) {
+            } else if (DateTime.TryParseExact(text, DateTimeUtils.DATETIME_ISO8601_TIME, null, UniversalDateTimeStyles, out result)) {
                 return true;
-            } else if (DateTime.TryParseExact(text, DateTimeUtils.DATETIME_ISO8601_TIME_MS, null, System.Globalization.DateTimeStyles.AssumeUniversal, out result)) {
+            } else if (DateTime.TryParseExact(text, DateTimeUtils.DATETIME_ISO8601_TIME_MS, null, UniversalDateTimeStyles, out result)) {
                 return true;
             } else if (DateTime.TryParseExact(text, "yyyy-MM-dd HH:mm:ss", null, System.Globalization.DateTimeStyles.AssumeLocal, out result)) {
                 return true;
             } else if (DateTime.TryParseExact(text, "yyyy-MM-dd HH:mm:ss.fff", null, System.Globalization.DateTimeStyles.AssumeLocal, out result)) {
                 return true;
-            } else if (DateTime.TryParseExact(text, "yyyy-MM-dd HH:mm:ss K", null, System.Globalization.DateTimeStyles.AssumeUniversal, out result)) {
+            } else if (DateTime.TryParseExact(text, "yyyy-MM-dd HH:mm:ss K", null, UniversalDateTimeStyles, out result)) {
                 return true;
-            } else if (DateTime.TryParseExact(text, "yyyy-MM-dd HH:mm:ss.ff K", null, System.Globalization.DateTimeStyles.AssumeUniversal, out result)) {
+            } else if (DateTime.TryParseExact(text, "yyyy-MM-dd HH:mm:ss.ff K", null, UniversalDateTimeStyles, out result)) {
                 //old formats: used by old DProjects log files
                 return true;
-            } else if (DateTime.TryParseExact(text, "yyyy-MM-dd HH:mm:ss.fff K", null, System.Globalization.DateTimeStyles.AssumeUniversal, out result)) {
+            } else if (DateTime.TryParseExact(text, "yyyy-MM-dd HH:mm:ss.fff K", null, UniversalDateTimeStyles, out result)) {
                 //old formats: used by old DProjects log files
                 return true;
             } else if (DateTime.TryParseExact(text, "yyyy-MM-dd HH:mm:ss ff", null, System.Globalization.DateTimeStyles.AssumeLocal, out result)) {
                 return true;
             } else if (DateTime.TryParseExact(text, "yyyy-MM-dd HH:mm:ss fff", null, System.Globalization.DateTimeStyles.AssumeLocal, out result)) {
                 return true;
-            } else if (DateTime.TryParseExact(text, "yyyy-MM-dd HH:mm:ss ff K", null, System.Globalization.DateTimeStyles.AssumeUniversal, out result)) {
+            } else if (DateTime.TryParseExact(text, "yyyy-MM-dd HH:mm:ss ff K", null, UniversalDateTimeStyles, out result)) {
                 return true;
-            } else if (DateTime.TryParseExact(text, "yyyy-MM-dd HH:mm:ss fff K", null, System.Globalization.DateTimeStyles.AssumeUniversal, out result)) {
+            } else if (DateTime.TryParseExact(text, "yyyy-MM-dd HH:mm:ss fff K", null, UniversalDateTimeStyles, out result)) {
                 //old format: used by GetText
                 return true;
-            } else if (DateTime.TryParseExact(text, "yyyy-MM-dd HH:mmK", null, System.Globalization.DateTimeStyles.AssumeUniversal, out result)) {
+            } else if (DateTime.TryParseExact(text, "yyyy-MM-dd HH:mmK", null, UniversalDateTimeStyles, out result)) {
                 return true;
             }
             return false;

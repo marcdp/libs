@@ -94,7 +94,7 @@ namespace DProjects.Utils.Tests {
             """)]
         public void ToIndentedStringTest(string xml, string result) {
             var toIndented = XmlUtils.ToIndentedString(XmlUtils.LoadXml(xml));
-            Assert.Equal(result, toIndented);
+            Assert.Equal(NormalizeLineEndings(result), NormalizeLineEndings(toIndented));
         }
 
         //[Fact()]
@@ -135,6 +135,12 @@ namespace DProjects.Utils.Tests {
                 return "";
             });
             Assert.Equal(variables, variablesScanned);
+        }
+
+        private static string NormalizeLineEndings(string value) {
+            return value
+                .Replace("\r\n", "\n")
+                .Replace("\r", "\n");
         }
     }
 }
