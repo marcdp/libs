@@ -21,20 +21,20 @@ namespace DProjects.Streams {
             get { return true; }
         }
         public override long Length {
-            get { return 0; }
+            get { throw new NotSupportedException("This stream does not support seeking."); }
         }
         public override long Position {
-            get { return 0; }
-            set { throw new NotImplementedException(); }
+            get { throw new NotSupportedException("This stream does not support seeking."); }
+            set { throw new NotSupportedException("This stream does not support seeking."); }
         }
 
 
         //methods
         public override int Read(byte[] buffer, int offset, int count) {
-            return 0;
+            throw new NotSupportedException("This stream does not support reading.");
         }
         public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) {
-            return Task.FromResult(0);
+            throw new NotSupportedException("This stream does not support reading.");
         }
         public override void Flush() {
         }
@@ -42,10 +42,10 @@ namespace DProjects.Streams {
             return Task.CompletedTask;
         }
         public override long Seek(long offset, SeekOrigin origin) {
-            return 0;
+            throw new NotSupportedException("This stream does not support seeking.");
         }
         public override void SetLength(long value) {
-            throw new NotImplementedException();
+            throw new NotSupportedException("This stream does not support seeking.");
         }
         public override void Write(byte[] buffer, int offset, int count) {
         }

@@ -49,24 +49,24 @@ namespace DProjects.Streams {
             get { return mGZipStream.CanWrite; }
         }
         public override long Length {
-            get { return mGZipStream.Length; }
+            get { throw new NotSupportedException("This stream does not support seeking."); }
         }
         public override long Position {
-            get { return mGZipStream.Position; }
-            set { mGZipStream.Position = value; }
+            get { throw new NotSupportedException("This stream does not support seeking."); }
+            set { throw new NotSupportedException("This stream does not support seeking."); }
         }
 
 
         //methods
         public override int Read(byte[] buffer, int offset, int count) {
-            throw new NotImplementedException();
+            throw new NotSupportedException("This stream does not support reading.");
         }
         
         public override long Seek(long offset, SeekOrigin origin) {
-            throw new NotImplementedException();
+            throw new NotSupportedException("This stream does not support seeking.");
         }
         public override void SetLength(long value) {
-            throw new NotImplementedException();
+            throw new NotSupportedException("This stream does not support seeking.");
         }
         public override void Write(byte[] buffer, int offset, int count) {
             mGZipStream.Write(buffer, offset, count);

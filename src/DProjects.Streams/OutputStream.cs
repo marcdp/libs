@@ -18,22 +18,22 @@ namespace DProjects.Streams {
         public override bool CanRead => false;
         public override bool CanSeek => false;
         public override bool CanWrite => true;
-        public override long Length => 0;
+        public override long Length => throw new NotSupportedException("This stream does not support seeking.");
         public override long Position {
-            get { throw new NotImplementedException(); }
-            set { throw new NotImplementedException(); }
+            get { throw new NotSupportedException("This stream does not support seeking."); }
+            set { throw new NotSupportedException("This stream does not support seeking."); }
         }
 
 
         //methods
         public override void SetLength(long value) {
-            throw new NotImplementedException();
+            throw new NotSupportedException("This stream does not support seeking.");
         }
         public override int Read(byte[] buffer, int offset, int count) {
-            throw new NotImplementedException();
+            throw new NotSupportedException("This stream does not support reading.");
         }
         public override long Seek(long offset, SeekOrigin origin) {
-            throw new NotImplementedException();
+            throw new NotSupportedException("This stream does not support seeking.");
         }
 
 

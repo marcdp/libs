@@ -26,6 +26,71 @@ namespace DProjects.Streams.Tests
                 }
             }
         }
-         
+
+        [Fact]
+        public async Task WriteAsyncProducesFoldedOutput() {
+            using var stream = new MemoryStream();
+            await using (var folded = new FoldedOutputStream(stream, 4, true)) {
+                var buffer = System.Text.Encoding.UTF8.GetBytes("abcdefgh12");
+                await folded.WriteAsync(buffer, 0, buffer.Length, CancellationToken.None);
+            }
+
+            Assert.Equal("abcd\nefgh\n12", System.Text.Encoding.UTF8.GetString(stream.ToArray()));
+        }
+
+        [Fact]
+        public void ReportsCapabilitiesAndRejectsUnsupportedOperations() {
+            using var destination = new MemoryStream();
+            using Stream stream = new FoldedOutputStream(destination, leaveOpen: true);
+            var buffer = new byte[1];
+
+            Assert.False(stream.CanRead);
+            Assert.True(stream.CanWrite);
+            Assert.False(stream.CanSeek);
+            Assert.Throws<NotSupportedException>(() => stream.Length);
+            Assert.Throws<NotSupportedException>(() => stream.Position);
+            Assert.Throws<NotSupportedException>(() => stream.Position = 0);
+            Assert.Throws<NotSupportedException>(() => stream.Seek(0, SeekOrigin.Begin));
+            Assert.Throws<NotSupportedException>(() => stream.SetLength(0));
+            Assert.Throws<NotSupportedException>(() => stream.Read(buffer, 0, buffer.Length));
+        }
+
+        [Fact]
+        public void FlushReachesUnderlyingStream() {
+            using var destination = new TrackingMemoryStream();
+            using var stream = new FoldedOutputStream(destination, leaveOpen: true);
+
+            stream.Flush();
+
+            Assert.True(destination.WasFlushed);
+        }
+
+        [Theory]
+        [InlineData(true, false)]
+        [InlineData(false, true)]
+        public void DisposeHonorsLeaveOpen(bool leaveOpen, bool expectedDisposed) {
+            var destination = new TrackingMemoryStream();
+            var stream = new FoldedOutputStream(destination, leaveOpen: leaveOpen);
+
+            stream.Dispose();
+
+            Assert.Equal(expectedDisposed, destination.WasDisposed);
+            destination.Dispose();
+        }
+
+        private sealed class TrackingMemoryStream : MemoryStream {
+            public bool WasFlushed { get; private set; }
+            public bool WasDisposed { get; private set; }
+
+            public override void Flush() {
+                WasFlushed = true;
+                base.Flush();
+            }
+
+            protected override void Dispose(bool disposing) {
+                WasDisposed = true;
+                base.Dispose(disposing);
+            }
+        }
     }
 }

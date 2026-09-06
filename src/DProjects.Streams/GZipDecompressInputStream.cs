@@ -40,11 +40,11 @@ namespace DProjects.Streams {
             get { return mGZipStream.CanWrite; }
         }
         public override long Length {
-            get { throw new NotImplementedException(); }
+            get { throw new NotSupportedException("This stream does not support seeking."); }
         }
         public override long Position {
-            get { return mGZipStream.Position; }
-            set { mGZipStream.Position = value; }
+            get { throw new NotSupportedException("This stream does not support seeking."); }
+            set { throw new NotSupportedException("This stream does not support seeking."); }
         }
 
 
@@ -59,16 +59,16 @@ namespace DProjects.Streams {
             throw new NotImplementedException();
         }
         public override long Seek(long offset, SeekOrigin origin) {
-            throw new NotImplementedException();
+            throw new NotSupportedException("This stream does not support seeking.");
         }
         public override void SetLength(long value) {
-            throw new NotImplementedException();
+            throw new NotSupportedException("This stream does not support seeking.");
         }
         public override void Write(byte[] buffer, int offset, int count) {
-            throw new NotImplementedException();
+            throw new NotSupportedException("This stream does not support writing.");
         }
         public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) {
-            throw new NotImplementedException();
+            throw new NotSupportedException("This stream does not support writing.");
         }
 
 

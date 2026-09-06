@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using System.Runtime.InteropServices.ComTypes;
 using System.Threading.Tasks;
 using System.Threading;
 
@@ -21,11 +20,11 @@ namespace DProjects.Streams {
             get { return false; }
         }
         public override long Length {
-            get { return 0; }
+            get { throw new NotSupportedException("This stream does not support seeking."); }
         }
         public override long Position {
-            get { return 0; }
-            set { throw new NotImplementedException(); }
+            get { throw new NotSupportedException("This stream does not support seeking."); }
+            set { throw new NotSupportedException("This stream does not support seeking."); }
         }
 
         //methods
@@ -41,15 +40,16 @@ namespace DProjects.Streams {
             return Task.CompletedTask;
         }
         public override long Seek(long offset, SeekOrigin origin) {
-            return 0;
+            throw new NotSupportedException("This stream does not support seeking.");
         }
         public override void SetLength(long value) {
-            throw new NotImplementedException();
+            throw new NotSupportedException("This stream does not support seeking.");
         }
         public override void Write(byte[] buffer, int offset, int count) {
+            throw new NotSupportedException("This stream does not support writing.");
         }
         public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) {
-            return Task.CompletedTask;
+            throw new NotSupportedException("This stream does not support writing.");
         }
 
     }

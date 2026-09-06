@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using System.Runtime.InteropServices.ComTypes;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -41,11 +40,11 @@ namespace DProjects.Streams {
             get { return true; }
         }
         public override long Length {
-            get { return mStream.Length; }
+            get { throw new NotSupportedException("This stream does not support seeking."); }
         }
         public override long Position {
-            get { return mStream.Position; }
-            set { throw new NotImplementedException(); }
+            get { throw new NotSupportedException("This stream does not support seeking."); }
+            set { throw new NotSupportedException("This stream does not support seeking."); }
         }
 
 
@@ -54,13 +53,13 @@ namespace DProjects.Streams {
             mStream.Flush();
         }
         public override int Read(byte[] buffer, int offset, int count) {
-            throw new NotImplementedException();
+            throw new NotSupportedException("This stream does not support reading.");
         }
         public override long Seek(long offset, SeekOrigin origin) {
-            throw new NotImplementedException();
+            throw new NotSupportedException("This stream does not support seeking.");
         }
         public override void SetLength(long value) {
-            throw new NotImplementedException();
+            throw new NotSupportedException("This stream does not support seeking.");
         }
         public override void Write(byte[] buffer, int offset, int count) {
             while (count > 0) {

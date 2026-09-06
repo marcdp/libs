@@ -8,47 +8,38 @@ namespace DProjects.Streams.Tests
     public class NullOutputStreamTests
     {
         [Fact()]
-        public void WriteTest()
+        public async Task SupportsWritingAndFlushing()
         {
-            using (var nullStream = new NullOutputStream())
-            {
-                var buffer = new byte[1024];
-                nullStream.Write(buffer, 0, buffer.Length); // Should not throw an exception
-            }
+            using Stream stream = new NullOutputStream();
+            var buffer = new byte[1024];
+
+            Assert.False(stream.CanRead);
+            Assert.True(stream.CanWrite);
+            Assert.False(stream.CanSeek);
+            stream.Write(buffer, 0, buffer.Length);
+            stream.Write(buffer, 0, buffer.Length);
+            await stream.WriteAsync(buffer, 0, buffer.Length, CancellationToken.None);
+            await stream.WriteAsync(buffer, 0, buffer.Length, CancellationToken.None);
+
+            stream.Flush();
+            await stream.FlushAsync(CancellationToken.None);
         }
 
         [Fact()]
-        public async Task WriteAsyncTest()
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA2022:Avoid inexact read with Stream.ReadAsync", Justification = "Verifies that unsupported reads are rejected.")]
+        public async Task RejectsReadingAndSeeking()
         {
-            using (var nullStream = new NullOutputStream())
-            {
-                var buffer = new byte[1024];
-                await nullStream.WriteAsync(buffer, 0, buffer.Length, CancellationToken.None); // Should not throw an exception
-            }
-        }
+            using Stream stream = new NullOutputStream();
+            var buffer = new byte[1];
 
-        [Fact()]
-        public void ReadTest()
-        {
-            using (var nullStream = new NullOutputStream())
-            {
-                var buffer = new byte[1024];
-                var bytesRead = nullStream.Read(buffer, 0, buffer.Length);
-
-                Assert.Equal(0, bytesRead);
-            }
-        }
-
-        [Fact()]
-        public async Task ReadAsyncTest()  
-        {
-            using (var nullStream = new NullOutputStream())
-            {
-                var buffer = new byte[1024];
-                var bytesRead = await nullStream.ReadAsync(buffer, 0, buffer.Length, CancellationToken.None);
-
-                Assert.Equal(0, bytesRead);
-            }
+            Assert.Throws<NotSupportedException>(() => stream.Length);
+            Assert.Throws<NotSupportedException>(() => stream.Position);
+            Assert.Throws<NotSupportedException>(() => stream.Position = 0);
+            Assert.Throws<NotSupportedException>(() => stream.Seek(0, SeekOrigin.Begin));
+            Assert.Throws<NotSupportedException>(() => stream.SetLength(0));
+            Assert.Throws<NotSupportedException>(() => stream.Read(buffer, 0, buffer.Length));
+            await Assert.ThrowsAsync<NotSupportedException>(async () =>
+                await stream.ReadAsync(buffer, 0, buffer.Length, CancellationToken.None));
         }
     }
 }

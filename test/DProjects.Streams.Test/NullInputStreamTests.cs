@@ -8,47 +8,37 @@ namespace DProjects.Streams.Tests
     public class NullInputStreamTests
     {
         [Fact()]
-        public void ReadTest()
+        public async Task SupportsReadingAtEndOfStreamAndFlushing()
         {
-            using (var nullStream = new NullInputStream())
-            {
-                var buffer = new byte[1024];
-                var bytesRead = nullStream.Read(buffer, 0, buffer.Length);
+            using Stream stream = new NullInputStream();
+            var buffer = new byte[1024];
 
-                Assert.Equal(0, bytesRead);
-            }
+            Assert.True(stream.CanRead);
+            Assert.False(stream.CanWrite);
+            Assert.False(stream.CanSeek);
+            Assert.Equal(0, stream.Read(buffer, 0, buffer.Length));
+            Assert.Equal(0, stream.Read(buffer, 0, buffer.Length));
+            Assert.Equal(0, await stream.ReadAsync(buffer, 0, buffer.Length, CancellationToken.None));
+            Assert.Equal(0, await stream.ReadAsync(buffer, 0, buffer.Length, CancellationToken.None));
+
+            stream.Flush();
+            await stream.FlushAsync(CancellationToken.None);
         }
 
         [Fact()]
-        public async Task ReadAsyncTest()
+        public async Task RejectsWritingAndSeeking()
         {
-            using (var nullStream = new NullInputStream())
-            {
-                var buffer = new byte[1024];
-                var bytesRead = await nullStream.ReadAsync(buffer, 0, buffer.Length, CancellationToken.None);
+            using Stream stream = new NullInputStream();
+            var buffer = new byte[1];
 
-                Assert.Equal(0, bytesRead);
-            }
-        }
-
-        [Fact()]
-        public void WriteTest()
-        {
-            using (var nullStream = new NullInputStream())
-            {
-                var buffer = new byte[1024];
-                nullStream.Write(buffer, 0, buffer.Length); // Should not throw an exception
-            }
-        }
-
-        [Fact()]
-        public async Task WriteAsyncTest()
-        {
-            using (var nullStream = new NullInputStream())
-            {
-                var buffer = new byte[1024];
-                await nullStream.WriteAsync(buffer, 0, buffer.Length, CancellationToken.None); // Should not throw an exception
-            }
+            Assert.Throws<NotSupportedException>(() => stream.Length);
+            Assert.Throws<NotSupportedException>(() => stream.Position);
+            Assert.Throws<NotSupportedException>(() => stream.Position = 0);
+            Assert.Throws<NotSupportedException>(() => stream.Seek(0, SeekOrigin.Begin));
+            Assert.Throws<NotSupportedException>(() => stream.SetLength(0));
+            Assert.Throws<NotSupportedException>(() => stream.Write(buffer, 0, buffer.Length));
+            await Assert.ThrowsAsync<NotSupportedException>(async () =>
+                await stream.WriteAsync(buffer, 0, buffer.Length, CancellationToken.None));
         }
     }
 }
