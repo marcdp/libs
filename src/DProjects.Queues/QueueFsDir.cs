@@ -14,9 +14,6 @@ namespace DProjects.Queues {
     public class QueueFsDir(IFilesystem filesystem, string path, ILogger<IFilesystem> logger) : IQueue {
 
 
-        //long
-        private static long mCounter;
-
         // constants
         private const string FILE_EXTENSION = ".message";
 

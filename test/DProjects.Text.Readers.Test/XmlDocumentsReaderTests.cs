@@ -15,8 +15,8 @@ namespace DProjects.Text.Readers.Tests
             {
                 var result = reader.Read();
                 Assert.NotNull(result);
-                Assert.Equal("root", result.DocumentElement.Name);
-                Assert.Equal("Test", result.DocumentElement.FirstChild.InnerText);
+                Assert.Equal("root", result.DocumentElement!.Name);
+                Assert.Equal("Test", result.DocumentElement!.FirstChild!.InnerText);
             }
         }
 
@@ -28,8 +28,8 @@ namespace DProjects.Text.Readers.Tests
             {
                 var result = await reader.ReadAsync(TestContext.Current.CancellationToken);
                 Assert.NotNull(result);
-                Assert.Equal("root", result.DocumentElement.Name);
-                Assert.Equal("Test", result.DocumentElement.FirstChild.InnerText);
+                Assert.Equal("root", result.DocumentElement!.Name);
+                Assert.Equal("Test", result.DocumentElement!.FirstChild!.InnerText);
             }
         }
 

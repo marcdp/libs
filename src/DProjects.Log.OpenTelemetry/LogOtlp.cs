@@ -232,7 +232,7 @@ namespace DProjects.Log.OpenTelemetry {
 
         }
         private async Task SendBatchAsync(LogRecord[] records, CancellationToken cancellationToken) {
-            int k = 123;
+            // TODO: Implement the logic to send the batch of log records to the OTLP endpoint using mHttpClient.
         }
 
 

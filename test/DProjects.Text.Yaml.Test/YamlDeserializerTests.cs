@@ -14,9 +14,9 @@ namespace DProjects.Text.Yaml.Tests {
          
         //inner class
         public class Person {
-            public string Name { get; set; }
+            public string Name { get; set; } = "";
             public int Age { get; set; }
-            public string[] Keys { get; set; }
+            public string[] Keys { get; set; } = [];
         }
 
         [Fact]

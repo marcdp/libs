@@ -36,7 +36,7 @@ namespace DProjects.Utils.Tests {
         [InlineData("dict:", "var1=123&var2=False")]
         [InlineData("hello world", "hello...", 8)]
         [InlineData("color:#FF0012" , "#FF0012")]
-        public void ToSimpleStringTest(object value, string result, int maxLength= 123) {
+        public void ToSimpleStringTest(object? value, string result, int maxLength= 123) {
             value = ProcessEncodedValue(value);
             if (value != null && value.Equals("dict:")) {
                 var dict = new Dictionary<string, object>();
@@ -114,7 +114,7 @@ namespace DProjects.Utils.Tests {
         [InlineData("1", true)]
         [InlineData("true", true)]
         [InlineData("True", true)]
-        public void ToBoolean(string text, bool result) {
+        public void ToBoolean(string? text, bool result) {
             Assert.Equal(result, ConvertUtils.ToBoolean(text));
         }
 

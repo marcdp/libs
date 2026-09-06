@@ -19,7 +19,7 @@ namespace DProjects.Utils.Tests {
         [Fact()]
         public async Task ExecuteBashAsyncTest() {
             if (EnvironmentUtils.IsLinux()) {
-                Assert.Contains("Linux", await ProcessUtils.ExecuteCmdAsync("uname", TestContext.Current.CancellationToken));
+                Assert.Contains("Linux", await ProcessUtils.ExecuteBashAsync("uname", TestContext.Current.CancellationToken));
             }
         }
         [Fact()]

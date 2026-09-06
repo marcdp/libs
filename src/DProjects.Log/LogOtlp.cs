@@ -66,7 +66,7 @@ namespace DProjects.Log {
                         break; // timeout hit
                     }
                     while (mQueue.Reader.TryRead(out var item)) {
-                        //if (item == null) break;
+                        if (item == null) continue;
                         buffer.Add(item);
                         if (buffer.Count >= mMaxBatchSize)
                             break;
@@ -79,6 +79,7 @@ namespace DProjects.Log {
             }
             //remaining
             await foreach (var logEntry in mQueue.Reader.ReadAllAsync(cancellationToken)) {
+                if (logEntry == null) continue;
                 buffer.Add(logEntry);
             }
             if (buffer.Count > 0) {
@@ -88,19 +89,11 @@ namespace DProjects.Log {
 
         }
         private async Task SendBatchAsync(Serializers.LogEntrySerializerOtlp.LogRecord[] records, CancellationToken cancellationToken) {
-            int k = 123;
-            //var requestUri = new Uri("/", UriKind.Relative);
-            //var httpRequest = new HttpRequestMessage(HttpMethod.Post, requestUri);
-            //using (var httpResponse = await mHttpClient.SendAsync(httpRequest)) {
-            //    var json = await httpResponse.Content.ReadAsStringAsync();
-            //    if (httpResponse.StatusCode != System.Net.HttpStatusCode.OK) {
-            //        throw new Exception("Unable to restore directory item: " + httpResponse.StatusCode + " (" + json + ")");
-            //    }
-            //}
+            // TODO: Implement the logic to send the batch of log records to the OTLP endpoint using mHttpClient.
         }
 
 
-        
+
     }
 
 }

@@ -15,7 +15,7 @@ namespace DProjects.Log.Storage.Serializers {
         //methods
         public LogEntry Deserialize(string line) {
             //Ex: Information|2018-04-26 00:00:00 34|/campus/campusrpc.ashx?60233135-a6c8-4e5c-a042-a96a2c596e5e|campusrpc:{"id":32,"method":"/quiHiHa/admin.aspx/GetContactesOnline","params":[true],"jsonrpc":"2.0"}|0||350416|
-            if (line == null) return null;
+            if (line == null) return null!;
             try {
                 string[] parts = line.Split('|');
                 var logType = LogLevel.Information;

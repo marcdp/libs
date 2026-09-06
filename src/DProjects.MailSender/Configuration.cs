@@ -14,10 +14,15 @@ namespace DProjects.MailSender {
 
     }
 
-    public class Configuration(IServiceCollection services) {
+    public class Configuration {
+        private readonly IServiceCollection mServices;
+
+        public Configuration(IServiceCollection services) {
+            this.mServices = services ?? throw new ArgumentNullException(nameof(services));
+        }
 
         //public void AddSeAuthProvider<T>() where T : IAuthProvider {
-        //    services.AddSingleton(typeof(IAuthProvider), typeof(T));
+        //    mServices.AddSingleton(typeof(IAuthProvider), typeof(T));
         //}
     }
 

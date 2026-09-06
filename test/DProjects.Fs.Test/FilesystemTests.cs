@@ -45,7 +45,11 @@ namespace DProjects.Fs.Test {
                 var builder = new ConfigurationBuilder().AddUserSecrets<FilesystemTests>();
                 var config = builder.Build();
                 var secretProvider = config.Providers.First();
-                secretProvider.TryGet(key, out url);
+                if (secretProvider.TryGet(key, out string? outUrl)) {
+                    if (outUrl != null) {
+                        url = outUrl;
+                    }
+                }
             }
 
             //fs
@@ -644,6 +648,8 @@ namespace DProjects.Fs.Test {
                 var now = DateTime.Now;
                 var entry1 = mFilesystem.SaveFile(PathUtils.Combine(mPathPrefix, "file1.bin"), new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")), new());
                 var entry2 = mFilesystem.GetEntry(PathUtils.Combine(mPathPrefix, "file1.bin"));
+                Assert.NotNull(entry1); 
+                Assert.NotNull(entry2);
                 Assert.Equal(entry1.Modified, entry2.Modified);
                 Assert.Equal(entry1.Modified, entry1.Modified);
                 Assert.Equal(entry2.Modified, entry2.Modified);
@@ -728,6 +734,8 @@ namespace DProjects.Fs.Test {
                 var now = DateTime.Now;
                 var entry1 = await mFilesystem.SaveFileAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), new MemoryStream(System.Text.Encoding.UTF8.GetBytes("hola1")), new(), TestContext.Current.CancellationToken);
                 var entry2 = await mFilesystem.GetEntryAsync(PathUtils.Combine(mPathPrefix, "file1.bin"), TestContext.Current.CancellationToken);
+                Assert.NotNull(entry1);
+                Assert.NotNull(entry2);
                 Assert.Equal(entry1.Modified, entry2.Modified);
                 Assert.Equal(entry1.Modified, entry1.Modified);
                 Assert.Equal(entry2.Modified, entry2.Modified);
@@ -903,7 +911,7 @@ namespace DProjects.Fs.Test {
                 DateTime lastWriteTime1 = mFilesystem.SaveTextFile(PathUtils.Combine(mPathPrefix, "file0.txt2"), "hola que ase", System.Text.Encoding.UTF8).Modified;
                 System.Threading.Thread.Sleep(2100);
                 mFilesystem.Copy(PathUtils.Combine(mPathPrefix, "file0.txt"), PathUtils.Combine(mPathPrefix, "file0.txt2"), settings, mLogger);
-                DateTime lastWriteTime2 = System.Convert.ToDateTime(mFilesystem.GetEntry(PathUtils.Combine(mPathPrefix, "file0.txt2")).Modified);
+                DateTime lastWriteTime2 = System.Convert.ToDateTime(mFilesystem.GetEntry(PathUtils.Combine(mPathPrefix, "file0.txt2"))!.Modified);
                 Assert.NotEqual(lastWriteTime1, lastWriteTime2);
                 //copy single file over existing file, without overwrite should not touch destination file
                 settings = new CopySettings();
@@ -911,10 +919,10 @@ namespace DProjects.Fs.Test {
                 settings.Overwrite = false;
                 mFilesystem.SaveTextFile(PathUtils.Combine(mPathPrefix, "file0.txt"), "hola que ase", System.Text.Encoding.UTF8);
                 mFilesystem.SaveTextFile(PathUtils.Combine(mPathPrefix, "file0.txt2"), "hola que ase", System.Text.Encoding.UTF8);
-                string lastWriteTime1str = mFilesystem.GetEntry(PathUtils.Combine(mPathPrefix, "file0.txt2")).Modified.ToString("r");
+                string lastWriteTime1str = mFilesystem.GetEntry(PathUtils.Combine(mPathPrefix, "file0.txt2"))!.Modified.ToString("r");
                 System.Threading.Thread.Sleep(2100);
                 mFilesystem.Copy(PathUtils.Combine(mPathPrefix, "file0.txt"), PathUtils.Combine(mPathPrefix, "file0.txt2"), settings, mLogger);
-                string lastWriteTime2str = mFilesystem.GetEntry(PathUtils.Combine(mPathPrefix, "file0.txt2")).Modified.ToString("r");
+                string lastWriteTime2str = mFilesystem.GetEntry(PathUtils.Combine(mPathPrefix, "file0.txt2"))!.Modified.ToString("r");
                 Assert.Equal(lastWriteTime1str, lastWriteTime2str);
 
             }

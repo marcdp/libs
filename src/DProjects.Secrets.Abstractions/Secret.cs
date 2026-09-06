@@ -19,6 +19,7 @@ namespace DProjects.Secrets {
             CreatedAt = DateTime.Now;
             Values = new();
             Values[DEFAULT_VALUE_NAME] = "";
+            Tags = [];
         } 
         public Secret(string name, string description, string value) {
             Name = name;

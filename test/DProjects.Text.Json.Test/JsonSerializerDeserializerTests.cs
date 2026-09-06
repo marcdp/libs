@@ -158,7 +158,7 @@ namespace DProjects.Text.Json.Tests
                 WriteIndented = true
             });
             var json = serializer.Serialize(person);
-            Assert.Equal("""
+            Assert.Equal(NormalizeLineEndings("""
                 {
                   "propFirst": 0,
                   "prop2": true,
@@ -198,7 +198,7 @@ namespace DProjects.Text.Json.Tests
                   ],
                   "prop13": 0
                 }
-                """, json);
+                """), NormalizeLineEndings(json));
 
             //deserialize
             var deserializer = new JsonDeserializer(new() {
@@ -206,7 +206,10 @@ namespace DProjects.Text.Json.Tests
             var person2 = deserializer.Deserialize<Person>(json);
             Assert.Equal(serializer.Serialize(person), serializer.Serialize(person2));
         }
-
-
+        private static string NormalizeLineEndings(string value) {
+            return value
+                .Replace("\r\n", "\n")
+                .Replace("\r", "\n");
+        }
     }
 }

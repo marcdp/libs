@@ -208,17 +208,9 @@ namespace DProjects.Fs.Aws {
                     } else if (key.Equals("content-type")) {
                         aux.Append(key).Append(":").Append(httpWebRequest.ContentType.ToString().Trim()).Append(CharUtils.CHAR_LF);
                     } else if (key.Equals("content-md5")) {
-                        int yy = 123;
-                        //var auxxx = httpWebRequestContent!.Headers.GetValues(key);
-                        //                        var buffer = httpWebRequest.Content.Headers.ContentMD5;
-                        //aux.Append(key).Append(":").Append(Base64Utils.ToBase64(buffer)).Append(CharUtils.CHAR_LF);
                     } else {
                         var value = new List<string>(httpWebRequest.Headers.GetValues(key));
                         var value_str = string.Join(", ", value.ToArray());
-                        //foreach (var valueTarget in httpRequest.Headers.GetValues(key)) {
-                        //    value = valueTarget;
-                        //    break;
-                        //}
                         aux.Append(key).Append(":").Append(value_str.Trim()).Append(CharUtils.CHAR_LF);
                     }
                 }

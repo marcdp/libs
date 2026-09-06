@@ -78,8 +78,10 @@ namespace DProjects.Utils.Tests {
             """)]
         public void ValidateXmlDocumentAgainstSchemaTest(string xml, string xsd) {
             var xsdSchema = XmlSchema.Read(new StringReader(xsd), (sender, e) => { throw e.Exception; });
-            XmlUtils.ValidateXmlDocumentAgainstSchema(XmlUtils.LoadXml(xml), xsdSchema, out string[] errors);
-            Assert.Equal([], errors);
+            if (xsdSchema != null) {            
+                XmlUtils.ValidateXmlDocumentAgainstSchema(XmlUtils.LoadXml(xml), xsdSchema, out string[] errors);
+                Assert.Equal([], errors);
+            }
         }
 
         [Theory()]

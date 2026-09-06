@@ -13,6 +13,7 @@ using System.Runtime.CompilerServices;
 
 namespace DProjects.Fs.Http.Test {
 
+    [Trait("Category", "Integration")]
     public class FilesystemHttpTests : FilesystemTests {
 
         //vars

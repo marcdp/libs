@@ -141,7 +141,7 @@ namespace DProjects.DataTypes {
         // methods
         public static bool TryParse(string? text, out Timestamp result) {
             result = default;
-
+            if (text == null) return false;
             if (string.IsNullOrWhiteSpace(text))
                 return false;
 

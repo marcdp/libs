@@ -202,11 +202,13 @@ namespace DProjects.Utils.Tests {
         [InlineData("hello/path", typeof(ArgumentException))]
         [InlineData("hello/path/", typeof(ArgumentException))]
         [InlineData("/path1", null)]
-        public void ValidateTest(string path, Type? exceptionType) {
+        public void ValidateTest(string? path, Type? exceptionType) {
             if (exceptionType == null) {
-                PathUtils.Validate(path);
-            } else {  
-                Assert.Throws(exceptionType, () => PathUtils.Validate(path));
+                // path is guaranteed non-null for this test case (see InlineData), suppress nullable warning
+                PathUtils.Validate(path!);
+            } else {
+                // Use a delegate overload so Assert.Throws can execute the call and capture the exception.
+                Assert.Throws(exceptionType, () => PathUtils.Validate(path!));
             }
         }
 

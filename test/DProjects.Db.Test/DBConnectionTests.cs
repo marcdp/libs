@@ -21,7 +21,11 @@ namespace DProjects.Db.Tests {
                 var builder = new ConfigurationBuilder().AddUserSecrets<DBConnectionTests<T>>();
                 var config = builder.Build();
                 var secretProvider = config.Providers.First();
-                secretProvider.TryGet(key, out connectionString);
+                if (secretProvider.TryGet(key, out string? outConnectionString)) {
+                    if (outConnectionString != null) {
+                        connectionString = outConnectionString;
+                    }
+                }
             }
             //register connection factory
             var services = new ServiceCollection();
@@ -82,7 +86,7 @@ namespace DProjects.Db.Tests {
             try {
                 await mDBConnection.ExecuteNonQueryAsync("INSERT INTO " + mDBConnection.GetSqlQualifierBegin() + tableName + mDBConnection.GetSqlQualifierEnd() + " values (?,?)", [2, "byte"], cancellationToken: TestContext.Current.CancellationToken);
                 throw new Exception();
-            } catch (Exception ex) {
+            } catch (Exception) {
                 mDBConnection.RollBackTrans();
             }
             Assert.Equal(1, mDBConnection.ExecuteScalar<int>("SELECT max(id) FROM " + tableName));
@@ -127,7 +131,7 @@ namespace DProjects.Db.Tests {
             try {
                 await mDBConnection.ExecuteNonQueryAsync("INSERT INTO " + mDBConnection.GetSqlQualifierBegin() + tableName + mDBConnection.GetSqlQualifierEnd() + " values (?,?)", [2, "byte"], cancellationToken: TestContext.Current.CancellationToken);
                 throw new Exception();
-            } catch (Exception ex) {
+            } catch (Exception) {
                 mDBConnection.RollBackTrans();
             }
             Assert.Equal(1, mDBConnection.ExecuteScalar<int>("SELECT max(id) FROM " + tableName));

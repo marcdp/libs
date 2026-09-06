@@ -370,7 +370,7 @@ namespace DProjects.Commands.Schema {
                                     var aux = (object) arguments[i + 1];
                                     try {
                                         var valueOfType = ConvertUtils.To(aux, flag.Type.GetElementType(), true, getService);
-                                        list.Add(valueOfType);
+                                        list.Add(valueOfType!);
                                     } catch (Exception e) {
                                         if (e is TargetInvocationException tie) e = tie.InnerException ?? e;
                                         errors.Add(Name + ": flag --" + flagName + " invalid: " + e.Message);

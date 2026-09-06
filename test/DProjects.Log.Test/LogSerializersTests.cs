@@ -35,7 +35,10 @@ namespace DProjects.Log.Tests {
                 WriteSampleLogs(logClient);
             }
             var result = sw.ToString();
-            Assert.True(StringUtils.Like(result.Trim(), expected.Trim()));
+            Assert.True(StringUtils.Like(
+                NormalizeLineEndings(result.Trim()),
+                NormalizeLineEndings(expected.Trim())
+            ));
         }
 
 
@@ -50,6 +53,12 @@ namespace DProjects.Log.Tests {
             logClient.Warning("This is a message: {a1}, {a2}, {a3}, {a4}, {a5}", 1, 2, false, true, "hello");
             logClient.Error("This is a message: {a1}, {a2}, {a3}, {a4}, {a5}", 1, 2, false, true, "hello");
             logClient.Fatal("This is a message: {a1}, {a2}, {a3}, {a4}, {a5}", 1, 2, false, true, "hello");
+        }
+
+        private static string NormalizeLineEndings(string value) {
+            return value
+                .Replace("\r\n", "\n")
+                .Replace("\r", "\n");
         }
     }
 }

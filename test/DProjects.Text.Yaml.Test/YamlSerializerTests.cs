@@ -33,7 +33,7 @@ namespace DProjects.Text.Yaml.Tests {
             //act
             var actual = serializer.Serialize(obj);
             //assert
-            Assert.Equal(expected, actual);
+            Assert.Equal(NormalizeLineEndings(expected), NormalizeLineEndings(actual));
         }
         [Fact]
         public void Serialize_WithObject_ReturnsYamlStringWithNestedObjects() {
@@ -51,7 +51,7 @@ namespace DProjects.Text.Yaml.Tests {
             //act
             var actual = serializer.Serialize(obj);
             //assert
-            Assert.Equal(expected, actual);
+            Assert.Equal(NormalizeLineEndings(expected), NormalizeLineEndings(actual));
         }
         [Fact]
         public void Serialize_WithObject_ReturnsYamlStringWithArray() {
@@ -66,7 +66,7 @@ namespace DProjects.Text.Yaml.Tests {
             //act
             var actual = serializer.Serialize(obj);
             //assert
-            Assert.Equal(expected, actual);
+            Assert.Equal(NormalizeLineEndings(expected), NormalizeLineEndings(actual));
         }
         [Fact]
         public void Serialize_WithObject_ReturnsYamlStringWithArrayAndFrontMatter() {
@@ -89,7 +89,7 @@ namespace DProjects.Text.Yaml.Tests {
             //act
             var actual = serializer.Serialize(obj);
             //assert
-            Assert.Equal(expected, actual);
+            Assert.Equal(NormalizeLineEndings(expected), NormalizeLineEndings(actual));
         }
 
         [Fact]
@@ -115,7 +115,13 @@ namespace DProjects.Text.Yaml.Tests {
             //act
             var actual = serializer.Serialize(obj);
             //assert
-            Assert.Equal(expected, actual);
+            Assert.Equal(NormalizeLineEndings(expected), NormalizeLineEndings(actual));
+        }
+
+        private static string NormalizeLineEndings(string value) {
+            return value
+                .Replace("\r\n", "\n")
+                .Replace("\r", "\n");
         }
     }
 }

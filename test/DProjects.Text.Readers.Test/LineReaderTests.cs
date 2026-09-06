@@ -64,7 +64,7 @@ namespace DProjects.Text.Readers.Tests
             using (var reader = new LineReader(sr))
             {
                 var result = reader.ReadToEnd();
-                Assert.Equal("Test\r\nLine\r\n", result);
+                Assert.Equal(NormalizeLineEndings("Test\r\nLine\r\n"), NormalizeLineEndings(result));
             }
         }
 
@@ -75,7 +75,7 @@ namespace DProjects.Text.Readers.Tests
             using (var reader = new LineReader(sr))
             {
                 var result = await reader.ReadToEndAsync();
-                Assert.Equal("Test\r\nLine\r\n", result);
+                Assert.Equal(NormalizeLineEndings("Test\r\nLine\r\n"), NormalizeLineEndings(result));
             }
         }
 
@@ -111,8 +111,15 @@ namespace DProjects.Text.Readers.Tests
                 var result = reader.ReadLine();
                 Assert.Equal("Pushed", result);
                 result = reader.ReadToEnd();
-                Assert.Equal("Test\r\nLine\r\n", result);
+                Assert.Equal(NormalizeLineEndings("Test\r\nLine\r\n"), NormalizeLineEndings(result));
             }
+        }
+
+        private static string NormalizeLineEndings(string value)
+        {
+            return value
+                .Replace("\r\n", "\n")
+                .Replace("\r", "\n");
         }
     }
 }

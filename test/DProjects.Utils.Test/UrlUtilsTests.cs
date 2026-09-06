@@ -61,16 +61,16 @@ namespace DProjects.Utils.Tests {
 
         }
         private class MySettings {
-            public string Scheme { get; set; }
-            public string Host { get; set; }
+            public string Scheme { get; set; } = "";
+            public string Host { get; set; } = "";
             public int Port { get; set; }
-            public string Path { get; set; }
-            public string User { get; set; }
-            public string Password { get; set; }
-            public string Var1 { get; set; }
+            public string Path { get; set; } = "";
+            public string User { get; set; } = "";
+            public string Password { get; set; } = "";
+            public string Var1 { get; set; } = "";
             public int Var2 { get; set; }
             public bool Var3 { get; set; }
-            public string Var4 { get; set; }
+            public string Var4 { get; set; } = "";
         }
 
 

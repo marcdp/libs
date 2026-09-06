@@ -63,7 +63,7 @@ namespace DProjects.Text.Xml.Tests
             });
             var xml = serializer.SerializeToStringUTF8NoBom(person);
 
-            Assert.Equal("""
+            Assert.Equal(NormalizeLineEndings("""
                 <?xml version="1.0" encoding="utf-8"?>
                 <person prop1="123" PPPPPPP22222="true" prop3="true" prop4="hello" prop5="123.2" prop6="2020-01-01T01:01:01" prop8="hello,world" prop9="0,1,2,3" prop10="true,false,true">
                   <prop11 name="xxx" number="123" />
@@ -72,7 +72,7 @@ namespace DProjects.Text.Xml.Tests
                     <address name="xxxx" number="124" />
                   </prop12>
                 </person>
-                """, xml);
+                """), NormalizeLineEndings(xml));
         }
 
 
@@ -101,7 +101,7 @@ namespace DProjects.Text.Xml.Tests
             });
             var xml = serializer.SerializeToStringUTF8NoBom(person);
 
-            Assert.Equal("""
+            Assert.Equal(NormalizeLineEndings("""
                 <?xml version="1.0" encoding="utf-8"?>
                 <person prop1="123" prop2="true" prop3="true" prop4="hello" prop5="123.2" prop6="2020-01-01T01:01:01" prop8="hello,world" prop9="0,1,2,3" prop10="true,false,true" prop13="kind1">
                   <prop11 name="xxx" number="123" />
@@ -110,7 +110,7 @@ namespace DProjects.Text.Xml.Tests
                     <address name="xxxx" number="124" />
                   </prop12>
                 </person>
-                """, xml);
+                """), NormalizeLineEndings(xml));
 
             //deserialize
             var deserialize = new XmlDeserializer(new() {
@@ -144,7 +144,7 @@ namespace DProjects.Text.Xml.Tests
                 NamingMode = XmlSerializerSettings.NamingModes.None 
             });
             var xml = serializer.SerializeToStringUTF8NoBom(person);
-            Assert.Equal("""
+            Assert.Equal(NormalizeLineEndings("""
                 <?xml version="1.0" encoding="utf-8"?>
                 <Person Prop1="123" Prop2="true" Prop3="true" Prop4="hello" Prop5="123.2" Prop6="2020-01-01T01:01:01" Prop8="hello,world" Prop9="0,1,2,3" Prop10="true,false,true">
                   <Prop11 Name="xxx" Number="123" />
@@ -153,7 +153,7 @@ namespace DProjects.Text.Xml.Tests
                     <Address Name="xxxx" Number="124" />
                   </Prop12>
                 </Person>
-                """, xml);
+                """), NormalizeLineEndings(xml));
 
             //deserialize
             var deserialize = new XmlDeserializer(new() {
@@ -187,7 +187,7 @@ namespace DProjects.Text.Xml.Tests
                 Unprefixes = ["Pe","Ad"]
             });
             var xml = serializer.SerializeToStringUTF8NoBom(person);
-            Assert.Equal("""
+            Assert.Equal(NormalizeLineEndings("""
                 <?xml version="1.0" encoding="utf-8"?>
                 <rson prop1="123" prop2="true" prop3="true" prop4="hello" prop5="123.2" prop6="2020-01-01T01:01:01" prop8="hello,world" prop9="1,2,3" prop10="true,false,true">
                   <prop11 name="xxx" number="123" />
@@ -196,7 +196,7 @@ namespace DProjects.Text.Xml.Tests
                     <dress name="xxxx" number="124" />
                   </prop12>
                 </rson>
-                """, xml);
+                """), NormalizeLineEndings(xml));
 
 
             //deserialize
@@ -236,12 +236,12 @@ namespace DProjects.Text.Xml.Tests
             });
             var xml = serializer.SerializeToStringUTF8NoBom(person);
 
-            Assert.Equal("""
+            Assert.Equal(NormalizeLineEndings("""
                 <?xml version="1.0" encoding="utf-8"?>
                 <person prop1="123" prop2="true" prop3="true" prop6="2020-01-01T01:01:01">
                   <prop11 number="123" />
                 </person>
-                """, xml);
+                """), NormalizeLineEndings(xml));
 
             //deserialize
             var deserialize = new XmlDeserializer(new() {
@@ -276,13 +276,13 @@ namespace DProjects.Text.Xml.Tests
             });
             var xml = serializer.SerializeToStringUTF8NoBom(person);
 
-            Assert.Equal("""
+            Assert.Equal(NormalizeLineEndings("""
                 <?xml version="1.0" encoding="utf-8"?>
                 <person prop1="123" prop2="true" prop3="true" prop4="" prop5="0.0" prop6="2020-01-01T01:01:01" prop7="false" prop8="" prop9="" prop10="" prop13="none">
                   <prop11 name="" number="123" />
                   <prop12 />
                 </person>
-                """, xml);
+                """), NormalizeLineEndings(xml));
 
             //deserialize
             var deserialize = new XmlDeserializer(new() {
@@ -291,8 +291,10 @@ namespace DProjects.Text.Xml.Tests
             Assert.Equal(xml, serializer.SerializeToStringUTF8NoBom(person2));
         }
 
-
-
-
+        private static string NormalizeLineEndings(string value) {
+            return value
+                .Replace("\r\n", "\n")
+                .Replace("\r", "\n");
+        }
     }
 }

@@ -12,9 +12,12 @@ namespace DProjects.Utils.Tests {
     public class GzipUtilsTests {
 
         [Theory]
-        [InlineData("Hello world", "H4sIAAAAAAAACvNIzcnJVyjPL8pJAQBSntaLCwAAAA==")]
-        public void GzipTest(string text, string result) {
-            Assert.Equal(result, Base64Utils.ToBase64(GzipUtils.Gzip(text)));
+        [InlineData("Hello world")]
+        public void GzipTest(string text) {
+            var compressed = GzipUtils.Gzip(text);
+            var decompressed = Encoding.UTF8.GetString(GzipUtils.UnGzip(compressed));
+
+            Assert.Equal(text, decompressed);
         }
 
     }
