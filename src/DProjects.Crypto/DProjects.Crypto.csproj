@@ -1,19 +1,19 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <AssemblyTitle>DProjects.Crypto.Abstractions</AssemblyTitle>
+        <AssemblyTitle>DProjects.Crypto</AssemblyTitle>
         <TargetFramework>netstandard2.0</TargetFramework>
         <LangVersion>preview</LangVersion>
-        <AssemblyName>DProjects.Crypto.Abstractions</AssemblyName>
+        <AssemblyName>DProjects.Crypto</AssemblyName>
         <OutputType>Library</OutputType>
-        <PackageId>DProjects.Crypto.Abstractions</PackageId>
+        <PackageId>DProjects.Crypto</PackageId>
         <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
         <RootNamespace />
         <ApplicationIcon />
         <OutputTypeEx>library</OutputTypeEx>
         <StartupObject />
         <Company>DProjects</Company>
-        <Description>DProjects.Crypto.Abstractions</Description>
+        <Description>DProjects.Crypto</Description>
         <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
         <Version>3.0.0</Version>
         <Authors>marcdp</Authors>
