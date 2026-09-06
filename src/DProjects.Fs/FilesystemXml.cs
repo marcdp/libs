@@ -137,7 +137,7 @@ namespace DProjects.Fs {
 
         //methods LEVEL 2
         public override Entry SaveFile(string path, Stream stream, SaveFileSettings settings) {
-            if (IsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
+            if (IsReadonly) throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
             if (!ExistsDirectory(PathUtils.GetPathParent(path))) throw new Exception("Unable to modify filesystem: parent path not found");
             PathUtils.Validate(path);
             var append = (settings != null && settings.Append);
@@ -191,7 +191,7 @@ namespace DProjects.Fs {
             return GetEntry(path)!;
         }
         public override Entry CreateDirectory(string path) {
-            if (IsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
+            if (IsReadonly) throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
             PathUtils.Validate(path);
             var pathParent = PathUtils.GetPathParent(path);
             if (!ExistsDirectory(pathParent)) CreateDirectory(pathParent);
@@ -213,7 +213,7 @@ namespace DProjects.Fs {
             return GetEntry(path)!;
         }
         public override void Delete(string path) {
-            if (IsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
+            if (IsReadonly) throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
             var pathParent = PathUtils.GetPathParent(path);
             var xmlNodeParent = GetXmlNodeByPath(pathParent);
             var xmlNode = GetXmlNodeByPath(path);
@@ -224,7 +224,7 @@ namespace DProjects.Fs {
             }
         }
         public override void Touch(string path, DateTime aDate) {
-            throw new NotImplementedException();
+            throw new NotSupportedException("Touch is not supported by the XML filesystem.");
         }
 
         
@@ -243,6 +243,7 @@ namespace DProjects.Fs {
             return result;
         }
         public override void SetMetadata(string path, IDictionary<string, string> metadata) {
+            if (IsReadonly) throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
             var xmlNode = GetXmlNodeByPath(path);
             if (xmlNode == null) throw new Exception("Unable to set metadata: path not found: " + path);            
             var xmlNodeMeta = (XmlElement?)xmlNode.SelectSingleNode("meta");
@@ -265,10 +266,12 @@ namespace DProjects.Fs {
                     addedKeys.Add(keyToUse);
                 }
             }
+            mDirty = true;
+            if (mAutoFlush) Persist();
         }
         public override bool Supports(string path, Features feature) {
             if (feature == Features.Metadata) return true;
-            return mFilesystem.Supports(path, feature);
+            return false;
         }
 
         //private methods
@@ -322,6 +325,7 @@ namespace DProjects.Fs {
             var toXmlSettings = new FilesystemToXml.ToXmlSettings();
             toXmlSettings.Content = true;
             toXmlSettings.Base64Content = true;
+            toXmlSettings.Metadata = true;
             using (var tmpStream = new MemoryStream()) {
                 using (var xmlWriter = System.Xml.XmlWriter.Create(tmpStream, xmlWriterSettings)) {
                     await this.ToXmlAsync("/", xmlWriter, toXmlSettings, cancellationToken);

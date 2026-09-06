@@ -31,25 +31,29 @@ namespace DProjects.Fs {
         //methods LEVEL 0
         public abstract Entry? GetEntry(string path);
         public async Task<Entry?> GetEntryAsync(string path, CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
             return await Task.FromResult(GetEntry(path));
         }
         public abstract IEnumerable<Entry> GetEntries(string path, GetModes mode = GetModes.All, string? pattern = null);
         public IAsyncEnumerable<Entry> GetEntriesAsync(string path, GetModes mode = GetModes.All, string? pattern = null, CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
             return GetEntries(path, mode, pattern).ToAsyncEnumerable(cancellationToken);
         }
         public virtual bool Exists(string path) {
             return GetEntry(path) != null;
         }
         public async Task<bool> ExistsAsync(string path, CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
             return await Task.FromResult(Exists(path));
         }
         public abstract Stream LoadReadStream(string path, LoadReadStreamSettings settings);
         public async Task<Stream> LoadReadStreamAsync(string path, LoadReadStreamSettings settings, CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
             return await Task.FromResult(LoadReadStream(path, settings));
         }
         public virtual Stream LoadWriteStream(string path, LoadWriteStreamSettings settings) {
             PathUtils.Validate(path);
-            if (IsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
+            if (IsReadonly) throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
             settings ??= new LoadWriteStreamSettings();
             int bufferSize = 8 * 1024;
             if (settings.Truncate) this.SaveBinaryFile(path, []);
@@ -60,6 +64,7 @@ namespace DProjects.Fs {
             return result;
         }
         public virtual async Task<Stream> LoadWriteStreamAsync(string path, LoadWriteStreamSettings settings, CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
             return await Task.FromResult(LoadWriteStream(path, settings));
         }
 
@@ -73,6 +78,7 @@ namespace DProjects.Fs {
             return true;
         }
         public virtual async Task<bool> ExistsDirectoryAsync(string path, CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
             return await Task.FromResult(ExistsDirectory(path));
         }
         public virtual bool ExistsFile(string path) {
@@ -83,27 +89,31 @@ namespace DProjects.Fs {
             return true;
         }
         public virtual async Task<bool> ExistsFileAsync(string path, CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
             return await Task.FromResult(ExistsFile(path));
         }
 
 
         //methods LEVEL 2
         public virtual Entry SaveFile(string path, Stream stream, SaveFileSettings settings) {
-            throw new Exception("Unable to modify filesystem: filesystem is readonly");
+            throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
         }
         public virtual async Task<Entry> SaveFileAsync(string path, Stream stream, SaveFileSettings settings, CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
             return await Task.FromResult(SaveFile(path, stream, settings));
         }
         public virtual Entry CreateDirectory(string path) {
-            throw new Exception("Unable to modify filesystem: filesystem is readonly");
+            throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
         }
         public async Task<Entry> CreateDirectoryAsync(string path, CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
             return await Task.FromResult(CreateDirectory(path));
         }
         public virtual void Delete(string path) {
-            throw new Exception("Unable to modify filesystem: filesystem is readonly");
+            throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
         }
         public Task DeleteAsync(string path, CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
             Delete(path);
             return Task.CompletedTask;
         }
@@ -111,6 +121,7 @@ namespace DProjects.Fs {
             throw new NotSupportedException("Touch is not supported by this filesystem.");
         }
         public virtual Task TouchAsync(string path, DateTime aDate, CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
             Touch(path, aDate);
             return Task.CompletedTask;
         }
@@ -123,6 +134,7 @@ namespace DProjects.Fs {
             }
         }
         public virtual Task DeleteFileAsync(string path, CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
             DeleteFile(path);
             return Task.CompletedTask;
         }
@@ -132,6 +144,7 @@ namespace DProjects.Fs {
             }
         }
         public virtual Task DeleteDirectoryAsync(string path, CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
             DeleteDirectory(path);
             return Task.CompletedTask;
         }
@@ -206,18 +219,21 @@ namespace DProjects.Fs {
             throw new NotSupportedException("Watchers are not supported by this filesystem.");
         }
         public async Task<Watcher> CreateWatcherAsync(string path, string filter, string[] excludes, bool recursive, CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
             return await Task.FromResult(CreateWatcher(path, filter, excludes, recursive));
         }
         public virtual IDictionary<string, string> GetMetadata(string path) {
             throw new NotSupportedException("Metadata is not supported by this filesystem.");
         }
         public virtual async Task<IDictionary<string, string>> GetMetadataAsync(string path, CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
             return await Task.FromResult(GetMetadata(path));
         }
         public virtual void SetMetadata(string path, IDictionary<string, string> metadata) {
             throw new NotSupportedException("Metadata is not supported by this filesystem.");
         }
         public virtual Task SetMetadataAsync(string path, IDictionary<string, string> metadata, CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
             SetMetadata(path, metadata);
             return Task.CompletedTask;
         }
@@ -225,6 +241,7 @@ namespace DProjects.Fs {
             return false;
         }
         public virtual async Task<bool> SupportsAsync(string path, Features feature, CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
             return await Task.FromResult(Supports(path, feature));
         }
 

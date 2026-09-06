@@ -12,6 +12,7 @@ namespace DProjects.Streams {
 
         //variables
         private Action<Stream>? mHandler;
+        private Func<Stream, Task>? mHandlerAsync;
         private MemoryStream mMemoryStream;
         private string? mTempFileName;
         private FileStream? mTempFileStream;
@@ -21,6 +22,10 @@ namespace DProjects.Streams {
         public SpongeOutputStream(int bufferSize, Action<Stream> handler) {
             mMemoryStream = new MemoryStream(bufferSize);
             mHandler = handler;
+        }
+        public SpongeOutputStream(int bufferSize, Func<Stream, Task> handler) {
+            mMemoryStream = new MemoryStream(bufferSize);
+            mHandlerAsync = handler;
         }
         public SpongeOutputStream(int bufferSize, Stream output) {
             mMemoryStream = new MemoryStream(bufferSize);
@@ -50,6 +55,7 @@ namespace DProjects.Streams {
         }
 
         protected override void Dispose(bool disposing) {
+            if (!disposing) return;
             if (mHandler != null) {
                 if (mTempFileStream != null) {
                     using var stream = mTempFileStream;
@@ -65,6 +71,8 @@ namespace DProjects.Streams {
                     File.Delete(mTempFileName);
                 }
                 mHandler = null;
+            } else if (mHandlerAsync != null) {
+                RunSync(() => CompleteAsync(CancellationToken.None));
             } else if (mOutputStream != null) {
                 if (mTempFileStream != null) {
                     using var stream = mTempFileStream;
@@ -81,40 +89,31 @@ namespace DProjects.Streams {
                 }
                 mOutputStream = null;
             }
+            base.Dispose(disposing);
         }
-        //public async ValueTask DisposeAsync() {
-        //    if (mHandlerAsync != null) {
-        //        if (mTempFileStream != null) {
-        //            using var stream = mTempFileStream;
-        //            stream.Seek(0, SeekOrigin.Begin);
-        //            await mHandlerAsync(stream);
-        //            stream.Dispose();
-        //        } else {
-        //            using var stream = mMemoryStream;
-        //            stream.Seek(0, SeekOrigin.Begin);
-        //            await mHandlerAsync(stream);
-        //        }
-        //        if (mTempFileName != null) {
-        //            File.Delete(mTempFileName);
-        //        }
-        //        mHandlerAsync = null;
-        //    } else if (mOutputStream!= null) {
-        //        if (mTempFileStream != null) {
-        //            using var stream = mTempFileStream;
-        //            stream.Seek(0, SeekOrigin.Begin);
-        //            await stream.CopyToAsync(mOutputStream);
-        //            stream.Dispose();
-        //        } else {
-        //            using var stream = mMemoryStream;
-        //            stream.Seek(0, SeekOrigin.Begin);
-        //            await stream.CopyToAsync(mOutputStream);
-        //        }
-        //        if (mTempFileName != null) {
-        //            File.Delete(mTempFileName);
-        //        }
-        //        mOutputStream = null;
-        //    }
-        //}
+        public async ValueTask DisposeAsync() {
+            if (mHandlerAsync != null) {
+                await CompleteAsync(CancellationToken.None).ConfigureAwait(false);
+            } else {
+                Dispose();
+            }
+            GC.SuppressFinalize(this);
+        }
+
+        private async Task CompleteAsync(CancellationToken cancellationToken) {
+            var handler = mHandlerAsync;
+            if (handler == null) return;
+            mHandlerAsync = null;
+            try {
+                var stream = (Stream?)mTempFileStream ?? mMemoryStream;
+                stream.Seek(0, SeekOrigin.Begin);
+                await handler(stream).ConfigureAwait(false);
+            } finally {
+                mTempFileStream?.Dispose();
+                mMemoryStream.Dispose();
+                if (mTempFileName != null) File.Delete(mTempFileName);
+            }
+        }
 
 
         //methods
@@ -154,7 +153,7 @@ namespace DProjects.Streams {
                     mTempFileStream = new FileStream(mTempFileName, FileMode.Create, FileAccess.ReadWrite);
                     mMemoryStream.WriteTo(mTempFileStream);
                 }
-                await mTempFileStream.WriteAsync(buffer, offset, count);
+                await mTempFileStream.WriteAsync(buffer, offset, count, cancellationToken);
             }
         }
 

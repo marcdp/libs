@@ -163,7 +163,7 @@ namespace DProjects.Fs.Http {
                 }
             }
             SignRequest(httpRequest);
-            var httpResponse = await mHttpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead);
+            var httpResponse = await mHttpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
             if (httpResponse.StatusCode == System.Net.HttpStatusCode.NotFound) {
                 httpResponse.Dispose();
                 throw new Exception("Not found");
@@ -204,7 +204,7 @@ namespace DProjects.Fs.Http {
                         using (var httpResponse = await mHttpClient.SendAsync(httpRequest, cancellationToken)) {
                             var json = await httpResponse.Content.ReadAsStringAsync();
                             if (httpResponse.StatusCode == HttpStatusCode.MethodNotAllowed) {
-                                throw new Exception("Unable to modify filesystem: filesystem is readonly");
+                                throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
                             } else if (httpResponse.StatusCode != HttpStatusCode.OK && httpResponse.StatusCode != System.Net.HttpStatusCode.Created) {
                                 throw new Exception("Unable to save file: " + httpResponse.StatusCode);
                             }
@@ -227,7 +227,7 @@ namespace DProjects.Fs.Http {
                 using (var httpResponse = await mHttpClient.SendAsync(httpRequest, cancellationToken)) {
                     var json = await httpResponse.Content.ReadAsStringAsync();
                     if (httpResponse.StatusCode == System.Net.HttpStatusCode.MethodNotAllowed) {
-                        throw new Exception("Unable to modify filesystem: filesystem is readonly");
+                        throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
                     } else if (httpResponse.StatusCode != System.Net.HttpStatusCode.OK && httpResponse.StatusCode != System.Net.HttpStatusCode.Created) {
                         throw new Exception("Unable to save file: " + httpResponse.StatusCode);
                     }
@@ -247,7 +247,7 @@ namespace DProjects.Fs.Http {
             using (var httpResponse = await mHttpClient.SendAsync(httpRequest, cancellationToken)) {
                 var json = await httpResponse.Content.ReadAsStringAsync();
                 if (httpResponse.StatusCode == System.Net.HttpStatusCode.MethodNotAllowed) {
-                    throw new Exception("Unable to modify filesystem: filesystem is readonly");
+                    throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
                 } else if (httpResponse.StatusCode != System.Net.HttpStatusCode.OK && httpResponse.StatusCode != System.Net.HttpStatusCode.Created) {
                     throw new Exception("Unable to create directory: " + httpResponse.StatusCode);
                 }
@@ -263,7 +263,7 @@ namespace DProjects.Fs.Http {
             SignRequest(httpRequest);
             using (var httpResponse = await mHttpClient.SendAsync(httpRequest, cancellationToken)) {
                 if (httpResponse.StatusCode == System.Net.HttpStatusCode.MethodNotAllowed) {
-                    throw new Exception("Unable to modify filesystem: filesystem is readonly");
+                    throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
                 } else if (httpResponse.StatusCode == System.Net.HttpStatusCode.NotFound) {
                     return;
                 } else if (httpResponse.StatusCode != System.Net.HttpStatusCode.OK && httpResponse.StatusCode != System.Net.HttpStatusCode.Created) {
@@ -285,7 +285,7 @@ namespace DProjects.Fs.Http {
             SignRequest(httpRequest);
             using (var httpResponse = await mHttpClient.SendAsync(httpRequest, cancellationToken)) {
                 if (httpResponse.StatusCode == System.Net.HttpStatusCode.MethodNotAllowed) {
-                    throw new Exception("Unable to modify filesystem: filesystem is readonly");
+                    throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
                 } else if (httpResponse.StatusCode == System.Net.HttpStatusCode.NotFound) {
                     throw new Exception("Not found");
                 } else if (httpResponse.StatusCode != System.Net.HttpStatusCode.OK) {
@@ -304,7 +304,7 @@ namespace DProjects.Fs.Http {
             SignRequest(httpRequest);
             using (var httpResponse = await mHttpClient.SendAsync(httpRequest, cancellationToken)) {
                 if (httpResponse.StatusCode == System.Net.HttpStatusCode.MethodNotAllowed) {
-                    throw new Exception("Unable to modify filesystem: filesystem is readonly: " + httpResponse.StatusCode);
+                    throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly: " + httpResponse.StatusCode);
                 } else if (httpResponse.StatusCode == System.Net.HttpStatusCode.NotFound) {
                     return;
                 } else if (httpResponse.StatusCode != System.Net.HttpStatusCode.OK && httpResponse.StatusCode != System.Net.HttpStatusCode.Created) {
@@ -319,7 +319,7 @@ namespace DProjects.Fs.Http {
             SignRequest(httpRequest);
             using (var httpResponse = await mHttpClient.SendAsync(httpRequest, cancellationToken)) {
                 if (httpResponse.StatusCode == System.Net.HttpStatusCode.MethodNotAllowed) {
-                    throw new Exception("Unable to modify filesystem: filesystem is readonly");
+                    throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
                 } else if (httpResponse.StatusCode == System.Net.HttpStatusCode.NotFound) {
                     return;
                 } else if (httpResponse.StatusCode != System.Net.HttpStatusCode.OK && httpResponse.StatusCode != System.Net.HttpStatusCode.Created) {
@@ -341,7 +341,7 @@ namespace DProjects.Fs.Http {
             SignRequest(httpRequest);
             using (var httpResponse = await mHttpClient.SendAsync(httpRequest, cancellationToken)) {
                 if (httpResponse.StatusCode == System.Net.HttpStatusCode.MethodNotAllowed) {
-                    throw new Exception("Unable to modify filesystem: filesystem is readonly");
+                    throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
                 } else if (httpResponse.StatusCode != System.Net.HttpStatusCode.OK && httpResponse.StatusCode != System.Net.HttpStatusCode.Created) {
                     throw new Exception("Unable to copy: " + httpResponse.StatusCode);
                 }
@@ -358,7 +358,7 @@ namespace DProjects.Fs.Http {
             SignRequest(httpRequest);
             using (var httpResponse = await mHttpClient.SendAsync(httpRequest, cancellationToken)) {
                 if (httpResponse.StatusCode == System.Net.HttpStatusCode.MethodNotAllowed) {
-                    throw new Exception("Unable to modify filesystem: filesystem is readonly");
+                    throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
                 } else if (httpResponse.StatusCode != System.Net.HttpStatusCode.OK && httpResponse.StatusCode != System.Net.HttpStatusCode.Created) {
                     throw new Exception("Unable to move: " + httpResponse.StatusCode);
                 }
@@ -379,7 +379,7 @@ namespace DProjects.Fs.Http {
             SignRequest(httpRequest);
             using (var httpResponse = await mHttpClient.SendAsync(httpRequest, cancellationToken)) {
                 if (httpResponse.StatusCode == System.Net.HttpStatusCode.MethodNotAllowed) {
-                    throw new Exception("Unable to modify filesystem: filesystem is readonly");
+                    throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
                 } else if (httpResponse.StatusCode != System.Net.HttpStatusCode.OK && httpResponse.StatusCode != System.Net.HttpStatusCode.Created) {
                     throw new Exception("Unable to sync: " + httpResponse.StatusCode);
                 }
@@ -389,7 +389,7 @@ namespace DProjects.Fs.Http {
 
         //method LEVEL 4
         public override Task<Watcher> CreateWatcherAsync(string path, string filter, string[] excludes, bool recursive, CancellationToken cancellationToken) {
-            throw new NotImplementedException();
+            throw new NotSupportedException("Watchers cannot be transported by the HTTP filesystem.");
         }
         public override async Task<IDictionary<string, string>> GetMetadataAsync(string path, CancellationToken cancellationToken) {
             PathUtils.Validate(path);
@@ -417,7 +417,7 @@ namespace DProjects.Fs.Http {
             SignRequest(httpRequest);
             using (var httpResponse = await mHttpClient.SendAsync(httpRequest, cancellationToken)) {
                 if (httpResponse.StatusCode == System.Net.HttpStatusCode.MethodNotAllowed) {
-                    throw new Exception("Unable to modify filesystem: filesystem is readonly");
+                    throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
                 } else if (httpResponse.StatusCode == System.Net.HttpStatusCode.NotFound) {
                     throw new Exception("Not found");
                 } else if (httpResponse.StatusCode != System.Net.HttpStatusCode.OK) {
@@ -426,6 +426,7 @@ namespace DProjects.Fs.Http {
             }
         }
         public override async Task<bool> SupportsAsync(string path, Features feature, CancellationToken cancellationToken) {
+            if (feature == Features.CreateWatcher) return false;
             var httpRequest = CreateHttpRequest(HttpMethod.Get, path, "feature=" + feature.ToString());
             httpRequest.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue(MIMETYPE_FS_SUPPORTS));
             SignRequest(httpRequest);

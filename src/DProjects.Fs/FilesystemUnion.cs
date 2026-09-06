@@ -21,6 +21,8 @@ namespace DProjects.Fs {
 
         //constructor
         public FilesystemUnion(IFilesystem[] filesystems, bool isReadonly) : base(isReadonly) {
+            if (filesystems == null) throw new ArgumentNullException(nameof(filesystems));
+            if (filesystems.Length == 0) throw new ArgumentException("A union requires at least one filesystem.", nameof(filesystems));
             mFilesystems = filesystems;
         } 
 
@@ -77,7 +79,7 @@ namespace DProjects.Fs {
             var filesystems = mFilesystems;
             var entries = new List<Entry>();
             foreach (var fs in filesystems) {
-                if (fs.ExistsDirectory(path)) {
+                if (await fs.ExistsDirectoryAsync(path, cancellationToken)) {
                     await foreach (var entry in fs.GetEntriesAsync(path, mode, pattern, cancellationToken)) {
                         entries.Add(entry);
                     }
@@ -118,14 +120,14 @@ namespace DProjects.Fs {
             var filesystems = mFilesystems;
             for (var i = filesystems.Length - 1; i >= 0; i--) {
                 var filesystem = filesystems[i];
-                if (filesystem.Exists(path)) {
+                if (await filesystem.ExistsAsync(path, cancellationToken)) {
                     return await filesystem.LoadReadStreamAsync(path, settings, cancellationToken);
                 }
             }
             throw new FileNotFoundException();
         }
         public override System.IO.Stream LoadWriteStream(string path, LoadWriteStreamSettings settings) {
-            if (IsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
+            if (IsReadonly) throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
             var filesystems = mFilesystems;
             var pathParent = PathUtils.GetPathParent(path); 
             for (var i = filesystems.Length - 1; i >= 0; i--) {
@@ -134,19 +136,19 @@ namespace DProjects.Fs {
                     return filesystem.LoadWriteStream(path, settings);
                 }
             }
-            throw new NotImplementedException();
+            throw new InvalidOperationException("No writable filesystem could resolve the path.");
         }
         public override async Task<Stream> LoadWriteStreamAsync(string path, LoadWriteStreamSettings settings, CancellationToken cancellationToken) {
-            if (IsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
+            if (IsReadonly) throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
             var filesystems = mFilesystems;
             var pathParent = PathUtils.GetPathParent(path);
             for (var i = filesystems.Length - 1; i >= 0; i--) {
                 var filesystem = filesystems[i];
-                if (filesystem.ExistsFile(path) || filesystem.ExistsDirectory(pathParent) || i == 0) {
+                if (await filesystem.ExistsFileAsync(path, cancellationToken) || await filesystem.ExistsDirectoryAsync(pathParent, cancellationToken) || i == 0) {
                     return await filesystem.LoadWriteStreamAsync(path, settings, cancellationToken);
                 }
             }
-            throw new NotImplementedException();
+            throw new InvalidOperationException("No writable filesystem could resolve the path.");
         }
 
 
@@ -184,7 +186,7 @@ namespace DProjects.Fs {
             return false;
         }
         public override Entry SaveFile(string path, Stream stream, SaveFileSettings settings) {
-            if (IsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
+            if (IsReadonly) throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
             var filesystems = mFilesystems;
             var pathParent = PathUtils.GetPathParent(path);
             for (var i = filesystems.Length - 1; i >= 0; i--) {
@@ -193,22 +195,22 @@ namespace DProjects.Fs {
                     return filesystem.SaveFile(path, stream, settings);
                 }
             }
-            throw new NotImplementedException();
+            throw new InvalidOperationException("No writable filesystem could resolve the path.");
         }
         public override async Task<Entry> SaveFileAsync(string path, Stream stream, SaveFileSettings settings, CancellationToken cancellationToken) {
-            if (IsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
+            if (IsReadonly) throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
             var filesystems = mFilesystems;
             var pathParent = PathUtils.GetPathParent(path);
             for (var i = filesystems.Length - 1; i >= 0; i--) {
                 var filesystem = filesystems[i];
-                if (await filesystem.ExistsFileAsync(path, default) || await filesystem.ExistsDirectoryAsync(pathParent, default) || i == 0) {
+                if (await filesystem.ExistsFileAsync(path, cancellationToken) || await filesystem.ExistsDirectoryAsync(pathParent, cancellationToken) || i == 0) {
                     return await filesystem.SaveFileAsync(path, stream, settings, cancellationToken);
                 }
             }
-            throw new NotImplementedException();
+            throw new InvalidOperationException("No writable filesystem could resolve the path.");
         }
         public override Entry CreateDirectory(string path) {
-            if (IsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
+            if (IsReadonly) throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
             var filesystems = mFilesystems;
             var pathParent = PathUtils.GetPathParent(path);
             for (var i = filesystems.Length - 1; i >= 0; i--) {
@@ -217,22 +219,22 @@ namespace DProjects.Fs {
                     return filesystem.CreateDirectory(path);
                 }
             }
-            throw new NotImplementedException();
+            throw new InvalidOperationException("No writable filesystem could resolve the path.");
         }
         public override async Task<Entry> CreateDirectoryAsync(string path, CancellationToken cancellationToken) {
-            if (IsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
+            if (IsReadonly) throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
             var filesystems = mFilesystems;
             var pathParent = PathUtils.GetPathParent(path);
             for (var i = filesystems.Length - 1; i >= 0; i--) {
                 var filesystem = filesystems[i];
-                if (filesystem.ExistsDirectory(pathParent) || i == 0) {
+                if (await filesystem.ExistsDirectoryAsync(pathParent, cancellationToken) || i == 0) {
                     return await filesystem.CreateDirectoryAsync(path, cancellationToken);
                 }
             }
-            throw new NotImplementedException();
+            throw new InvalidOperationException("No writable filesystem could resolve the path.");
         }
         public override void Delete(string path) {
-            if (IsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
+            if (IsReadonly) throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
             var filesystems = mFilesystems;
             for (var i = filesystems.Length - 1; i >= 0; i--) {
                 var filesystem = filesystems[i];
@@ -243,17 +245,18 @@ namespace DProjects.Fs {
             }
         }
         public override async Task DeleteAsync(string path, CancellationToken cancellationToken) {
-            if (IsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
+            if (IsReadonly) throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
             var filesystems = mFilesystems;
             for (var i = filesystems.Length - 1; i >= 0; i--) {
                 var filesystem = filesystems[i];
-                if (filesystem.Exists(path)) {
+                if (await filesystem.ExistsAsync(path, cancellationToken)) {
                     await filesystem.DeleteAsync(path, cancellationToken);
                     break;
                 }
             }
         }
         public override void Touch(string path, DateTime aDate) {
+            if (IsReadonly) throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
             var filesystems = mFilesystems;
             for (var i = filesystems.Length - 1; i >= 0; i--) {
                 var filesystem = filesystems[i];
@@ -264,6 +267,7 @@ namespace DProjects.Fs {
             }
         }
         public override async Task TouchAsync(string path, DateTime aDate, CancellationToken cancellationToken) {
+            if (IsReadonly) throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
             var filesystems = mFilesystems;
             for (var i = filesystems.Length - 1; i >= 0; i--) {
                 var filesystem = filesystems[i];
@@ -272,6 +276,25 @@ namespace DProjects.Fs {
                     break;
                 }
             }
+        }
+
+        public override bool Supports(string path, Features feature) {
+            if (feature != Features.Touch) return false;
+            for (var i = mFilesystems.Length - 1; i >= 0; i--) {
+                var filesystem = mFilesystems[i];
+                if (filesystem.Exists(path)) return filesystem.Supports(path, feature);
+            }
+            return false;
+        }
+
+        public override async Task<bool> SupportsAsync(string path, Features feature, CancellationToken cancellationToken) {
+            if (feature != Features.Touch) return false;
+            for (var i = mFilesystems.Length - 1; i >= 0; i--) {
+                var filesystem = mFilesystems[i];
+                if (await filesystem.ExistsAsync(path, cancellationToken))
+                    return await filesystem.SupportsAsync(path, feature, cancellationToken);
+            }
+            return false;
         }
          
 

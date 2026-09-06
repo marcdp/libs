@@ -53,7 +53,7 @@ namespace DProjects.Fs {
                     //make dir
                     var processResult = await ProcessUtils.ExecuteProcessAsync("mkdir", "-p " + mPath, default);
                     if (processResult.ExitCode != 0) {
-                        throw new NotImplementedException("FilesystemSmb is not implemented in this platform , return code is " + processResult.ExitCode );
+                        throw new System.IO.IOException("Unable to create SMB mount directory " + mPath + ": " + processResult.Output + processResult.Error + " (code " + processResult.ExitCode + ")");
                     }
                     //run
                     //mount -t cifs //192.168.1.88/shares /mnt/share -o username=USERNAME,password=PASSWD,vers=3.0

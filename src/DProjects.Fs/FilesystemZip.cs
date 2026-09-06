@@ -172,7 +172,7 @@ namespace DProjects.Fs {
 
         //methods LEVEL 2
         public override Entry SaveFile(string path, Stream stream, SaveFileSettings settings) {
-            if (IsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
+            if (IsReadonly) throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
             PathUtils.Validate(path);
             if (!ExistsDirectory(PathUtils.GetPathParent(path))) throw new Exception("Unable to save file: parent directory not found");
             var append = (settings != null && settings.Append);
@@ -187,7 +187,7 @@ namespace DProjects.Fs {
             return GetEntry(path)!;
         } 
         public override Entry CreateDirectory(string path) {
-            if (IsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
+            if (IsReadonly) throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
             PathUtils.Validate(path);
             if (!ExistsDirectory(PathUtils.GetPathParent(path))) CreateDirectory(PathUtils.GetPathParent(path));
             //create
@@ -210,7 +210,7 @@ namespace DProjects.Fs {
             }
         }
         public override void Delete(string path) {
-            if (IsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
+            if (IsReadonly) throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
             PathUtils.Validate(path);
             //delete
             mReaderWriterLock.EnterWriteLock();
@@ -235,7 +235,7 @@ namespace DProjects.Fs {
             }
         }
         public override void Touch(string path, DateTime aDate) {
-            if (IsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
+            if (IsReadonly) throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
             PathUtils.Validate(path);
             //touch
             mReaderWriterLock.EnterWriteLock();

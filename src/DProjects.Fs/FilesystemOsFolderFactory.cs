@@ -21,7 +21,7 @@ namespace DProjects.Fs {
             var isReadonly = UrlUtils.GetQueryValue<bool>(url.Query, "isReadonly");
             var init = UrlUtils.GetQueryValue<bool>(url.Query, "init");
             System.Environment.SpecialFolder specialFolder;
-            if (!System.Enum.TryParse(url.Host, true, out specialFolder)) throw new NotImplementedException("Unable to create filesystem: invalid os special folder: " + url.Host);
+            if (!System.Enum.TryParse(url.Host, true, out specialFolder)) throw new ArgumentException("Invalid OS special folder: " + url.Host, nameof(src));
             var absolutePath = System.IO.Path.Combine(System.Environment.GetFolderPath(specialFolder), UrlUtils.UrlDecode(url.AbsolutePath).Substring(1).Replace('/', System.IO.Path.DirectorySeparatorChar));
             return new FilesystemLocal(absolutePath, isReadonly, init, false);
         }

@@ -120,9 +120,9 @@ namespace DProjects.Fs {
         }
         public override async Task<Stream> LoadReadStreamAsync(string path, LoadReadStreamSettings? settings, CancellationToken cancellationToken = default) {
             if (path.Equals("/")) {
-                throw new NotImplementedException("Unable to load read stream: directory: " + path);
+                throw new IOException("Unable to load read stream from a repository directory: " + path);
             } else if (PathUtils.GetPathParent(path).Equals("/")) {
-                throw new NotImplementedException("Unable to load read stream: directory: " + path);
+                throw new IOException("Unable to load read stream from a repository directory: " + path);
             } else {
                 var name = PathUtils.GetPathName(PathUtils.GetPathCuttedByLevel(path, 1));
                 var subPath = PathUtils.Combine("/", PathUtils.GetPathCuttedFromLevel(path, 1));
@@ -132,10 +132,11 @@ namespace DProjects.Fs {
             }
         }
         public override async Task<Stream> LoadWriteStreamAsync(string path, LoadWriteStreamSettings? settings, CancellationToken cancellationToken = default) {
+            EnsureWritable();
             if (path.Equals("/")) {
-                throw new NotImplementedException("Unable to load write stream: directory: " + path);
+                throw new IOException("Unable to load write stream for a repository directory: " + path);
             } else if (PathUtils.GetPathParent(path).Equals("/")) {
-                throw new NotImplementedException("Unable to load write stream: directory: " + path);
+                throw new IOException("Unable to load write stream for a repository directory: " + path);
             } else {
                 var name = PathUtils.GetPathName(PathUtils.GetPathCuttedByLevel(path, 1));
                 var subPath = PathUtils.Combine("/", PathUtils.GetPathCuttedFromLevel(path, 1));
@@ -150,10 +151,11 @@ namespace DProjects.Fs {
 
         //methods LEVEL 2
         public override async Task<Entry> SaveFileAsync(string path, Stream stream, SaveFileSettings? settings, CancellationToken cancellationToken = default) {
+            EnsureWritable();
             if (path.Equals("/")) {
-                throw new NotImplementedException("Unable to save file: " + path);  
+                throw new IOException("Unable to save a file at a repository directory: " + path);
             } else if (PathUtils.GetPathParent(path).Equals("/")) {
-                throw new NotImplementedException("Unable to save file: " + path);
+                throw new IOException("Unable to save a file at a repository directory: " + path);
             } else {
                 var name = PathUtils.GetPathName(PathUtils.GetPathCuttedByLevel(path, 1));
                 var subPath = PathUtils.Combine("/", PathUtils.GetPathCuttedFromLevel(path, 1));
@@ -164,14 +166,15 @@ namespace DProjects.Fs {
             }
         }
         public override async Task<Entry> CreateDirectoryAsync(string path, CancellationToken cancellationToken) {
+            EnsureWritable();
             if (path.Equals("/")) {  
-                throw new NotImplementedException("Unable to create directory: " + path);
+                throw new InvalidOperationException("The repository root already exists.");
             } else if (PathUtils.GetPathParent(path).Equals("/")) {
                 if (mRepository is RepositoryWritable) {
                     var repositoryWritable = (RepositoryWritable)mRepository;
                     return await repositoryWritable.AddAsync(PathUtils.GetPathName(path), cancellationToken);
                 }
-                throw new NotImplementedException("Unable to create directory: " + path);
+                throw new NotSupportedException("The repository does not support creating containers.");
             } else {
                 var name = PathUtils.GetPathName(PathUtils.GetPathCuttedByLevel(path, 1));
                 var subPath = PathUtils.Combine("/", PathUtils.GetPathCuttedFromLevel(path, 1));
@@ -181,14 +184,15 @@ namespace DProjects.Fs {
             }
         }
         public override async Task DeleteAsync(string path, CancellationToken cancellationToken) {
+            EnsureWritable();
             if (path.Equals("/")) {
-                throw new NotImplementedException("Unable to delete: " + path);
+                throw new InvalidOperationException("The repository root cannot be deleted.");
             } else if (PathUtils.GetPathParent(path).Equals("/")) {
                 if (mRepository is RepositoryWritable) {
                     var repositoryWritable = (RepositoryWritable) mRepository;
                     await repositoryWritable.RemoveAsync(PathUtils.GetPathName(path), cancellationToken);
                 } else {
-                    throw new NotImplementedException("Unable to delete: " + path);
+                    throw new NotSupportedException("The repository does not support removing containers.");
                 }
             } else {
                 var name = PathUtils.GetPathName(PathUtils.GetPathCuttedByLevel(path, 1));
@@ -198,10 +202,11 @@ namespace DProjects.Fs {
             }
         }
         public override async Task TouchAsync(string path, DateTime aDate, CancellationToken cancellationToken) {
+            EnsureWritable();
             if (path.Equals("/")) {
-                throw new NotImplementedException("Unable to touch: " + path);
+                throw new NotSupportedException("Repository-level entries do not support touch.");
             } else if (PathUtils.GetPathParent(path).Equals("/")) {
-                throw new NotImplementedException("Unable to touch: " + path);
+                throw new NotSupportedException("Repository-level entries do not support touch.");
             } else {
                 var name = PathUtils.GetPathName(PathUtils.GetPathCuttedByLevel(path, 1));
                 var subPath = PathUtils.Combine("/", PathUtils.GetPathCuttedFromLevel(path, 1));
@@ -213,10 +218,11 @@ namespace DProjects.Fs {
 
         //method LEVEL 3
         public override async Task DeleteFileAsync(string path, CancellationToken cancellationToken) {
+            EnsureWritable();
             if (path.Equals("/")) {
-                throw new NotImplementedException("Unable to delete file: " + path);
+                throw new IOException("The repository root is a directory, not a file.");
             } else if (PathUtils.GetPathParent(path).Equals("/")) {
-                throw new NotImplementedException("Unable to delete file: " + path);
+                throw new IOException("Repository containers are directories, not files.");
             } else {
                 var name = PathUtils.GetPathName(PathUtils.GetPathCuttedByLevel(path, 1));
                 var subPath = PathUtils.Combine("/", PathUtils.GetPathCuttedFromLevel(path, 1));
@@ -225,14 +231,15 @@ namespace DProjects.Fs {
             }
         }
         public override async Task DeleteDirectoryAsync(string path, CancellationToken cancellationToken) {
+            EnsureWritable();
             if (path.Equals("/")) {
-                throw new NotImplementedException("Unable to delete directory: " + path);
+                throw new InvalidOperationException("The repository root cannot be deleted.");
             } else if (PathUtils.GetPathParent(path).Equals("/")) {
                 if (mRepository is RepositoryWritable) {
                     var repositoryWritable = (RepositoryWritable) mRepository;
                     await repositoryWritable.RemoveAsync(PathUtils.GetPathName(path), cancellationToken);
                 } else {
-                    throw new NotImplementedException("Unable to delete directory: " + path);
+                    throw new NotSupportedException("The repository does not support removing containers.");
                 }
             } else {
                 var name = PathUtils.GetPathName(PathUtils.GetPathCuttedByLevel(path, 1));
@@ -242,14 +249,15 @@ namespace DProjects.Fs {
             }
         }
         public override async Task CopyAsync(string source, string destination, CopySettings settings, ILogger<IFilesystem> logger, CancellationToken cancellationToken) {
+            EnsureWritable();
             if (source.Equals("/")) {
-                throw new NotImplementedException("Unable to move: " + source);
+                throw new ArgumentException("The repository root cannot be copied.", nameof(source));
             } else if (PathUtils.GetPathParent(source).Equals("/")) {
-                throw new NotImplementedException("Unable to move: " + source);
+                throw new ArgumentException("Repository containers cannot be copied as filesystem entries.", nameof(source));
             } else if (destination.Equals("/")) {
-                throw new NotImplementedException("Unable to move: " + destination);
+                throw new ArgumentException("The repository root cannot be a copy destination.", nameof(destination));
             } else if (PathUtils.GetPathParent(destination).Equals("/")) {
-                throw new NotImplementedException("Unable to move: " + destination);
+                throw new ArgumentException("A repository container cannot be a copy destination.", nameof(destination));
             } else {
                 var nameA = PathUtils.GetPathName(PathUtils.GetPathCuttedByLevel(source, 1));
                 var subPathA = PathUtils.Combine("/", PathUtils.GetPathCuttedFromLevel(source, 1));
@@ -264,14 +272,15 @@ namespace DProjects.Fs {
             }
         }
         public override async Task MoveAsync(string source, string destination, MoveSettings settings, ILogger<IFilesystem> logger, CancellationToken cancellationToken) {
+            EnsureWritable();
             if (source.Equals("/")) {
-                throw new NotImplementedException("Unable to move: " + source);
+                throw new ArgumentException("The repository root cannot be moved.", nameof(source));
             } else if (PathUtils.GetPathParent(source).Equals("/")) {
-                throw new NotImplementedException("Unable to move: " + source);
+                throw new ArgumentException("Repository containers cannot be moved through the filesystem facade.", nameof(source));
             } else if (destination.Equals("/")) {
-                throw new NotImplementedException("Unable to move: " + destination);
+                throw new ArgumentException("The repository root cannot be a move destination.", nameof(destination));
             } else if (PathUtils.GetPathParent(destination).Equals("/")) {
-                throw new NotImplementedException("Unable to move: " + destination);
+                throw new ArgumentException("A repository container cannot be a move destination.", nameof(destination));
             } else {
                 var nameA = PathUtils.GetPathName(PathUtils.GetPathCuttedByLevel(source, 1));
                 var subPathA = PathUtils.Combine("/", PathUtils.GetPathCuttedFromLevel(source, 1));
@@ -303,10 +312,11 @@ namespace DProjects.Fs {
             }
         }
         public override async Task SetMetadataAsync(string path, IDictionary<string, string> metadata, CancellationToken cancellationToken) {
+            EnsureWritable();
             if (path.Equals("/")) {
-                throw new NotImplementedException("Unable to set metadata: " + path);
+                throw new NotSupportedException("Repository-level entries do not support metadata mutation.");
             } else if (PathUtils.GetPathParent(path).Equals("/")) {
-                throw new NotImplementedException("Unable to set metadata: " + path);
+                throw new NotSupportedException("Repository-level entries do not support metadata mutation.");
             } else {
                 var name = PathUtils.GetPathName(PathUtils.GetPathCuttedByLevel(path, 1));
                 var subPath = PathUtils.Combine("/", PathUtils.GetPathCuttedFromLevel(path, 1));
@@ -315,7 +325,7 @@ namespace DProjects.Fs {
             }
         }
         public override async Task<bool> SupportsAsync(string path, Features feature, CancellationToken cancellationToken) {
-            if (path.Equals("/")) {
+            if (path.Equals("/") || PathUtils.GetPathParent(path).Equals("/")) {
                 return false; 
             } else {
                 var name = PathUtils.GetPathName(PathUtils.GetPathCuttedByLevel(path, 1));
@@ -323,6 +333,10 @@ namespace DProjects.Fs {
                 var fs = mRepository.CreateFilesystem(name, IsReadonly);
                 return await fs.SupportsAsync(subPath, feature, cancellationToken);
             }
+        }
+
+        private void EnsureWritable() {
+            if (IsReadonly) throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
         }
 
     }

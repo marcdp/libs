@@ -49,7 +49,9 @@ namespace DProjects.Fs {
         public bool Exists(string path) {
             return AsyncUtils.RunSync(async () => await ExistsAsync(path, default));
         }
-        public abstract Task<bool> ExistsAsync(string path, CancellationToken cancellationToken);
+        public virtual async Task<bool> ExistsAsync(string path, CancellationToken cancellationToken) {
+            return await GetEntryAsync(path, cancellationToken) != null;
+        }
         public Stream LoadReadStream(string path, LoadReadStreamSettings settings) {
             return AsyncUtils.RunSync(async () => await LoadReadStreamAsync(path, settings, new()));
         }
@@ -57,18 +59,17 @@ namespace DProjects.Fs {
         public Stream LoadWriteStream(string path, LoadWriteStreamSettings settings) {
             return AsyncUtils.RunSync(async () => await LoadWriteStreamAsync(path, settings, default));
         }
-        public virtual Task<Stream> LoadWriteStreamAsync(string path, LoadWriteStreamSettings settings, CancellationToken cancellationToken) {
+        public virtual async Task<Stream> LoadWriteStreamAsync(string path, LoadWriteStreamSettings settings, CancellationToken cancellationToken) {
             PathUtils.Validate(path);
-            if (IsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
+            if (IsReadonly) throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
+            cancellationToken.ThrowIfCancellationRequested();
+            settings ??= new LoadWriteStreamSettings();
             int bufferSize = 8 * 1024;
-            if (settings.Truncate) this.SaveBinaryFile(path, []);
-            if (settings.Append && !Exists(path)) this.SaveBinaryFile(path, []);
-            var result = new SpongeOutputStream(bufferSize, (stream) => {
-                AsyncUtils.RunSync(async () => {
-                    await this.SaveFileAsync(path, stream, new() { Append = settings.Append }, cancellationToken);
-                });                
-            });
-            return Task.FromResult<Stream>(result);
+            if (settings.Truncate) await SaveFileAsync(path, Stream.Null, new SaveFileSettings(), cancellationToken);
+            if (settings.Append && !await ExistsAsync(path, cancellationToken))
+                await SaveFileAsync(path, Stream.Null, new SaveFileSettings(), cancellationToken);
+            return new SpongeOutputStream(bufferSize, stream =>
+                SaveFileAsync(path, stream, new SaveFileSettings { Append = settings.Append }, cancellationToken));
         }
 
 
@@ -137,7 +138,7 @@ namespace DProjects.Fs {
             AsyncUtils.RunSync(async () => await MoveAsync(source, destination, settings, logger, default));
         }
         public virtual async Task MoveAsync(string source, string destination, MoveSettings settings, ILogger<IFilesystem> logger, CancellationToken cancellationToken) {
-            if (IsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
+            if (IsReadonly) throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
             var entry = await GetEntryAsync(source, cancellationToken);
             if (entry == null) {
                 throw new Exception("Unable to move: not found " + source);

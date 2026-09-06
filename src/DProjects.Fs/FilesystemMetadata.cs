@@ -113,6 +113,7 @@ namespace DProjects.Fs {
             return mFilesystem.SaveFile(path, stream, settings);
         }
         public async Task<Entry> SaveFileAsync(string path, Stream stream, SaveFileSettings settings, CancellationToken cancellationToken) {
+            if (path.EndsWith(mSuffix)) throw new ArgumentException("The reserved metadata suffix cannot be used as a filesystem path.", nameof(path));
             return await mFilesystem.SaveFileAsync(path, stream, settings, cancellationToken);
         }
         public Entry CreateDirectory(string path) {
@@ -152,7 +153,7 @@ namespace DProjects.Fs {
         public async Task DeleteFileAsync(string path, CancellationToken cancellationToken) {
             if (path.EndsWith(mSuffix)) throw new Exception("Unable to delete file: path not found: " + path);
             await mFilesystem.DeleteFileAsync(path, cancellationToken);
-            if (mFilesystem.ExistsFile(path + mSuffix)) await mFilesystem.DeleteFileAsync(path + mSuffix, cancellationToken);
+            if (await mFilesystem.ExistsFileAsync(path + mSuffix, cancellationToken)) await mFilesystem.DeleteFileAsync(path + mSuffix, cancellationToken);
         }
         public void DeleteDirectory(string path) {
             if (path.EndsWith(mSuffix)) throw new Exception("Unable to delete directory: path not found: " + path);
@@ -162,7 +163,7 @@ namespace DProjects.Fs {
         public async Task DeleteDirectoryAsync(string path, CancellationToken cancellationToken) {
             if (path.EndsWith(mSuffix)) throw new Exception("Unable to delete directory: path not found: " + path);
             await mFilesystem.DeleteDirectoryAsync(path, cancellationToken);
-            if (mFilesystem.ExistsFile(path + mSuffix)) await mFilesystem.DeleteFileAsync(path + mSuffix, cancellationToken);
+            if (await mFilesystem.ExistsFileAsync(path + mSuffix, cancellationToken)) await mFilesystem.DeleteFileAsync(path + mSuffix, cancellationToken);
         }
         public void Copy(string source, string destination, CopySettings settings, ILogger<IFilesystem> logger) {
             if (source.EndsWith(mSuffix)) throw new Exception("Unable to copy: path not found: " + source);
@@ -186,7 +187,8 @@ namespace DProjects.Fs {
             if (source.EndsWith(mSuffix)) throw new Exception("Unable to move: path not found: " + source);
             if (destination.EndsWith(mSuffix)) throw new Exception("Unable to move: path not found: " + destination);
             await mFilesystem.MoveAsync(source, destination, settings, logger, cancellationToken);
-            if (mFilesystem.ExistsFile(source + mSuffix)) mFilesystem.Move(source + mSuffix, destination + mSuffix, settings, logger);
+            if (await mFilesystem.ExistsFileAsync(source + mSuffix, cancellationToken))
+                await mFilesystem.MoveAsync(source + mSuffix, destination + mSuffix, settings, logger, cancellationToken);
         }
         public void Sync(string source, string destination, SyncSettings syncSettings, ILogger<IFilesystem> logger) {
             if (source.EndsWith(mSuffix)) throw new Exception("Unable to sync: path not found: " + source);
@@ -209,6 +211,7 @@ namespace DProjects.Fs {
             return await mFilesystem.CreateWatcherAsync(path, filter, excludes, recursive, cancellationToken);
         }
         public IDictionary<string, string> GetMetadata(string path) {
+            if (path.EndsWith(mSuffix)) throw new ArgumentException("The reserved metadata suffix cannot be used as a filesystem path.", nameof(path));
             var entry = mFilesystem.GetEntry(path);
             if (entry == null) throw new Exception("Unable to get metadata: path not found: " + path);
             var entryMetadata = mFilesystem.GetEntry(path + mSuffix);
@@ -220,9 +223,17 @@ namespace DProjects.Fs {
             }
         }
         public async Task<IDictionary<string, string>> GetMetadataAsync(string path, CancellationToken cancellationToken) {
-            return await Task.FromResult(GetMetadata(path));
+            if (path.EndsWith(mSuffix)) throw new ArgumentException("The reserved metadata suffix cannot be used as a filesystem path.", nameof(path));
+            var entry = await mFilesystem.GetEntryAsync(path, cancellationToken);
+            if (entry == null) throw new FileNotFoundException("Unable to get metadata: path not found: " + path, path);
+            if (!await mFilesystem.ExistsFileAsync(path + mSuffix, cancellationToken)) return new Dictionary<string, string>();
+            using var stream = await mFilesystem.LoadReadStreamAsync(path + mSuffix, new LoadReadStreamSettings(), cancellationToken);
+            using var reader = new StreamReader(stream);
+            var json = await reader.ReadToEndAsync();
+            return JsonSerializer.Deserialize<IDictionary<string, string>>(json)!;
         }
         public void SetMetadata(string path, IDictionary<string, string> metadata) {
+            if (path.EndsWith(mSuffix)) throw new ArgumentException("The reserved metadata suffix cannot be used as a filesystem path.", nameof(path));
             var entry = mFilesystem.GetEntry(path);
             if (entry == null) throw new Exception("Unable to set metadata: path not found: " + path);
             var data = new Dictionary<string, string>();
@@ -237,9 +248,18 @@ namespace DProjects.Fs {
             var json = JsonSerializer.Serialize(data);
             mFilesystem.SaveTextFile(path + mSuffix, json, System.Text.Encoding.UTF8);
         }
-        public Task SetMetadataAsync(string path, IDictionary<string, string> metadata, CancellationToken cancellationToken) {
-            SetMetadata(path, metadata);
-            return Task.CompletedTask;
+        public async Task SetMetadataAsync(string path, IDictionary<string, string> metadata, CancellationToken cancellationToken) {
+            if (path.EndsWith(mSuffix)) throw new ArgumentException("The reserved metadata suffix cannot be used as a filesystem path.", nameof(path));
+            var entry = await mFilesystem.GetEntryAsync(path, cancellationToken);
+            if (entry == null) throw new FileNotFoundException("Unable to set metadata: path not found: " + path, path);
+            var data = new Dictionary<string, string>();
+            foreach (var pair in metadata) {
+                var key = pair.Key.ToLower().Trim();
+                if (!data.ContainsKey(key)) data[key] = pair.Value;
+            }
+            var bytes = System.Text.Encoding.UTF8.GetBytes(JsonSerializer.Serialize(data));
+            using var stream = new MemoryStream(bytes);
+            await mFilesystem.SaveFileAsync(path + mSuffix, stream, new SaveFileSettings(), cancellationToken);
         }
         public bool Supports(string path, Features feature) {
             if (feature == Features.Metadata) return true;

@@ -243,7 +243,7 @@ namespace DProjects.Fs.Aws {
 
         public override async Task<Entry> SaveFileAsync(string path, Stream stream, SaveFileSettings? settings = null, CancellationToken cancellationToken = default) {
             PathUtils.Validate(path);
-            if (IsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
+            if (IsReadonly) throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
             string mimetype = MimeTypeUtils.GetMimeType(path);
             bool gzip = mAutoGzip && MimeTypeUtils.IsCompressible(mimetype);
             var pathParent = PathUtils.GetPathParent(path);
@@ -394,7 +394,7 @@ namespace DProjects.Fs.Aws {
         }
         public override async Task<Entry> CreateDirectoryAsync(string path, CancellationToken cancellationToken) {
             PathUtils.Validate(path);
-            if (IsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
+            if (IsReadonly) throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
             var pathParent = PathUtils.GetPathParent(path);
             if (!ExistsDirectory(pathParent)) CreateDirectory(pathParent);
             var httpRequest = CreateHttpRequest(HttpMethod.Put, mBasePath + path + "/", "");
@@ -410,7 +410,7 @@ namespace DProjects.Fs.Aws {
         }
         public override async Task DeleteAsync(string path, CancellationToken cancellationToken) {
             PathUtils.Validate(path);
-            if (IsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
+            if (IsReadonly) throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
             var entry = GetEntry(path);
             if (entry != null) {
                 if (entry.IsDirectory()) {
@@ -426,7 +426,7 @@ namespace DProjects.Fs.Aws {
         public override async Task CopyAsync(string source, string destination, CopySettings settings, ILogger<IFilesystem> logger, CancellationToken cancellationToken) {
             PathUtils.Validate(source);
             PathUtils.Validate(destination);
-            if (IsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
+            if (IsReadonly) throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
             var entrySource = await GetEntryAsync(source, cancellationToken);
             if (entrySource == null) {
                 throw new Exception("Unable to copy: not found " + source);
@@ -503,7 +503,7 @@ namespace DProjects.Fs.Aws {
         }
         public override async Task DeleteFileAsync(string path, CancellationToken cancellationToken) {
             PathUtils.Validate(path);
-            if (IsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
+            if (IsReadonly) throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
             var httpRequest = CreateHttpRequest(HttpMethod.Delete, mBasePath + path, "");
             httpRequest.Content = new StringContent("", System.Text.Encoding.ASCII, "text/plain");
             SignRequest(httpRequest, mBasePath + path, "");
@@ -516,7 +516,7 @@ namespace DProjects.Fs.Aws {
         }
         public override async Task DeleteDirectoryAsync(string path, CancellationToken cancellationToken) {
             PathUtils.Validate(path);
-            if (IsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
+            if (IsReadonly) throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
             var entryRoot = GetEntry(path);
             if (entryRoot == null) throw new Exception("Unable to delete directory \'" + path + "\': not found");
             var entries = new List<Entry>();
@@ -572,7 +572,7 @@ namespace DProjects.Fs.Aws {
         }
         public override async Task SetMetadataAsync(string path, IDictionary<string, string> metadata, CancellationToken cancellationToken) {
             PathUtils.Validate(path);
-            if (IsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
+            if (IsReadonly) throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
             await SetMetadataRawAsync(path, metadata);
         }
         private async Task SetMetadataRawAsync(string path, IDictionary<string, string> metadata) {
@@ -742,7 +742,7 @@ namespace DProjects.Fs.Aws {
                 int flags = 0;
                 return new Entry(path, entryType, created, modified, length, etag, flags);
             }
-            throw new NotImplementedException();
+            throw new InvalidDataException("Unexpected S3 XML entry element: " + xmlNode.Name);
         }
     }
 

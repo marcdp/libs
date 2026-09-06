@@ -117,7 +117,7 @@ namespace DProjects.Fs.Aws {
                 var httpRequest = CreateHttpRequest(HttpMethod.Get, "/", "");
                 SignRequest(httpRequest, "/", "");
                 //using (var httpResponse = await mHttpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead)) {
-                using (var httpResponse = await mHttpClient.SendAsync(httpRequest)) {
+                using (var httpResponse = await mHttpClient.SendAsync(httpRequest, cancellationToken)) {
                     var xml = await httpResponse.Content.ReadAsStringAsync();
                     if (httpResponse.StatusCode != System.Net.HttpStatusCode.OK) throw new Exception("Unable to get entries: " + httpResponse.StatusCode);
                     var xmlDocument = XmlUtils.LoadXml(xml);
@@ -144,7 +144,8 @@ namespace DProjects.Fs.Aws {
                 }
             }
             public async Task<Entry> AddAsync(string id, CancellationToken cancellationToken) {
-                if (!mAdmin) throw new NotImplementedException("Unable to add bucket: operation is not permitted");
+                if (mIsReadOnly) throw new InvalidOperationException("Unable to add bucket: filesystem is readonly");
+                if (!mAdmin) throw new InvalidOperationException("Unable to add bucket: administrative access is required");
                 var name = PreSuffixName(id);
                 var fs = new FilesystemS3(name, mRegion, mAccesKeyId, mSecretAccessKey, "/", mAutoGzip, mAutoCache, mIsReadOnly, mHttpClientHandler);
                 await fs.CreateBucketAsync(cancellationToken);
@@ -156,7 +157,8 @@ namespace DProjects.Fs.Aws {
                 return fs.GetEntry("/")!;
             }
             public async Task RemoveAsync(string id, CancellationToken cancellationToken) {
-                if (!mAdmin) throw new NotImplementedException("Unable to remove bucket: operation is not permitted");
+                if (mIsReadOnly) throw new InvalidOperationException("Unable to remove bucket: filesystem is readonly");
+                if (!mAdmin) throw new InvalidOperationException("Unable to remove bucket: administrative access is required");
                 var name = PreSuffixName(id);
                 var fs = new FilesystemS3(name, mRegion, mAccesKeyId, mSecretAccessKey, "/", mAutoGzip, mAutoCache, mIsReadOnly, mHttpClientHandler);
                 await fs.RemoveBucketAsync(false, cancellationToken);

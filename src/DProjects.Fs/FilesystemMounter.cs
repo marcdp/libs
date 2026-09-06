@@ -107,7 +107,7 @@ namespace DProjects.Fs {
                 }
             }
             if (targetMountPoint == null) {
-                throw new NotImplementedException("Unhandled mount point for: " + path);
+                throw new InvalidOperationException("No mount point resolves path: " + path);
             }
             //list
             var targetPath = PathUtils.Uncombine(targetMountPoint.Path, path, mStringComparison);
@@ -153,7 +153,7 @@ namespace DProjects.Fs {
                 }
             }
             if (targetMountPoint == null) {
-                throw new NotImplementedException("Unhandled mount point for: " + path);
+                throw new InvalidOperationException("No mount point resolves path: " + path);
             }
             //list
             var targetPath = PathUtils.Uncombine(targetMountPoint.Path, path, mStringComparison);

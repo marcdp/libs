@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using DProjects.Fs.Extensions;
 using DProjects.Utils;
+using DProjects.Streams;
 using Microsoft.Extensions.Logging;
 
 namespace DProjects.Fs {
@@ -43,31 +44,23 @@ namespace DProjects.Fs {
         public abstract Task<Stream> LoadReadStreamAsync(string path, LoadReadStreamSettings settings, CancellationToken cancellationToken);
         public virtual Stream LoadWriteStream(string path, LoadWriteStreamSettings settings) {
             PathUtils.Validate(path);
-            if (IsReadonly) throw new Exception("Unable to modify filesystem: filesystem is readonly");
-            //var pipeStream = new PipeStream(64 * 1024); 
-            //var disposableOutputStream = new DisposableOutputStream(pipeStream);
-            //settings ??= new LoadWriteStreamSettings();
-            //Exception? exception = null;
-            //var thread = new Thread(() => {
-            //    try {
-            //        this.SaveFile(path, pipeStream, new() { 
-            //            Append = settings.Append
-            //        });
-            //    } catch (Exception e) {
-            //        exception = e;
-            //    }
-            //});
-            //thread.IsBackground = true;
-            //thread.Start();
-            //disposableOutputStream.Disposed += (e) => {
-            //    thread.Join();
-            //    if (exception != null) throw exception;
-            //};
-            //return disposableOutputStream;
-            throw new NotImplementedException();
+            if (IsReadonly) throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
+            settings ??= new LoadWriteStreamSettings();
+            if (settings.Truncate) SaveFile(path, Stream.Null, new SaveFileSettings());
+            if (settings.Append && !Exists(path)) SaveFile(path, Stream.Null, new SaveFileSettings());
+            return new SpongeOutputStream(8 * 1024, stream =>
+                SaveFile(path, stream, new SaveFileSettings { Append = settings.Append }));
         }
         public virtual async Task<Stream> LoadWriteStreamAsync(string path, LoadWriteStreamSettings settings, CancellationToken cancellationToken) {
-            return await Task.FromResult(LoadWriteStream(path, settings));
+            PathUtils.Validate(path);
+            if (IsReadonly) throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
+            cancellationToken.ThrowIfCancellationRequested();
+            settings ??= new LoadWriteStreamSettings();
+            if (settings.Truncate) await SaveFileAsync(path, Stream.Null, new SaveFileSettings(), cancellationToken);
+            if (settings.Append && !await ExistsAsync(path, cancellationToken))
+                await SaveFileAsync(path, Stream.Null, new SaveFileSettings(), cancellationToken);
+            return new SpongeOutputStream(8 * 1024, stream =>
+                SaveFileAsync(path, stream, new SaveFileSettings { Append = settings.Append }, cancellationToken));
         }
 
 
@@ -102,19 +95,19 @@ namespace DProjects.Fs {
 
         //methods LEVEL 2
         public virtual Entry SaveFile(string path, Stream stream, SaveFileSettings settings) {
-            throw new Exception("Unable to modify filesystem: filesystem is readonly");
+            throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
         }
         public virtual Task<Entry> SaveFileAsync(string path, Stream stream, SaveFileSettings settings, CancellationToken cancellationToken = default) {
-            throw new Exception("Unable to modify filesystem: filesystem is readonly");
+            throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
         }
         public virtual Entry CreateDirectory(string path) {
-            throw new Exception("Unable to modify filesystem: filesystem is readonly");
+            throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
         }
         public virtual Task<Entry> CreateDirectoryAsync(string path, CancellationToken cancellationToken) {
             return Task.FromResult(CreateDirectory(path));
         }
         public virtual void Delete(string path) {
-            throw new Exception("Unable to modify filesystem: filesystem is readonly");
+            throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
         }
         public virtual Task DeleteAsync(string path, CancellationToken cancellationToken) {
             Delete(path);
