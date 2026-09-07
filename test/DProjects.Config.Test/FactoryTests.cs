@@ -37,6 +37,54 @@ public class FactoryTests {
         Assert.Equal("Unable to create config instance from url: no constructor found.", exception.Message);
     }
 
+    [Fact]
+    public void ToUrl_GenericOverload_SerializesActualInstance() {
+        var config = new TestConfig {
+            Host = "example.com",
+            Port = 1234,
+            Secure = true
+        };
+
+        var url = ConfigFactory.ToUrl<TestConfig>("test", config);
+
+        Assert.Equal("test://example.com:1234?secure=True", url);
+    }
+
+    [Fact]
+    public void ToUrl_GenericAndNonGenericOverloads_AreEquivalent() {
+        var config = new TestConfig {
+            Host = "example.com",
+            Port = 1234,
+            Secure = true
+        };
+
+        var genericUrl = ConfigFactory.ToUrl<TestConfig>("test", config);
+        var nonGenericUrl = ConfigFactory.ToUrl("test", config);
+
+        Assert.Equal(nonGenericUrl, genericUrl);
+    }
+
+    [Fact]
+    public void ToUrl_GenericOverload_UsesValuesFromEachInstance() {
+        var configA = new TestConfig {
+            Host = "first.example.com",
+            Port = 1234,
+            Secure = true
+        };
+        var configB = new TestConfig {
+            Host = "second.example.com",
+            Port = 5678,
+            Secure = false
+        };
+
+        var urlA = ConfigFactory.ToUrl<TestConfig>("test", configA);
+        var urlB = ConfigFactory.ToUrl<TestConfig>("test", configB);
+
+        Assert.Equal("test://first.example.com:1234?secure=True", urlA);
+        Assert.Equal("test://second.example.com:5678?secure=False", urlB);
+        Assert.NotEqual(urlA, urlB);
+    }
+
     private sealed class UrlConfig {
         public UrlConfig(
             string scheme,
@@ -69,5 +117,11 @@ public class FactoryTests {
 
     private sealed class NoPublicConstructor {
         private NoPublicConstructor() { }
+    }
+
+    private sealed class TestConfig {
+        public string Host { get; set; } = "";
+        public int Port { get; set; }
+        public bool Secure { get; set; }
     }
 }

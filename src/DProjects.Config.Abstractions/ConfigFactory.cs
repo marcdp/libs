@@ -92,7 +92,7 @@ namespace DProjects.Config {
             return result.ToString();
         }
         public static string ToUrl<T>(string protocol, object config) {
-            return ToUrl(protocol, typeof(T));
+            return ToUrl(protocol, config);
         }
 
     }
