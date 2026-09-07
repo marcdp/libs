@@ -82,6 +82,22 @@ namespace DProjects.Log.Storage.Tests {
             Assert.Equal(DateTime.MinValue, entry.Date);
             Assert.Equal(record, entry.Message);
         }
+        [Fact]
+        public void Classic_RejectsInvalidTimestamp() {
+            var deserializer = new LogStorageEntryDeserializerClassic();
+
+            var exception = Assert.Throws<FormatException>(() => deserializer.Deserialize("Information|invalid-date|source|message|0||user|"));
+
+            Assert.Equal("Unable to parse Classic log record.", exception.Message);
+        }
+        [Fact]
+        public void Auto_RejectsInvalidTimestampInClassicShapedRecord() {
+            var deserializer = new LogStorageEntryDeserializerAuto();
+
+            var exception = Assert.Throws<FormatException>(() => deserializer.Deserialize("Information|invalid-date|source|message|0||user|"));
+
+            Assert.Equal("Unable to parse Classic log record.", exception.Message);
+        }
         [Theory]
         [InlineData("classic", "Secret|credential-value|source|message|", "Unable to parse Classic log record.")]
         [InlineData("rat", "credential-value", "Unable to parse RAT log record.")]

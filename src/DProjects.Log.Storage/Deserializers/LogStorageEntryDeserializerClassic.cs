@@ -17,7 +17,8 @@ namespace DProjects.Log.Storage.Serializers {
             try {
                 string[] parts = line.Split('|');
                 if (!TryGetLevel(parts[0], out var logType)) throw new FormatException("The Classic log level is not supported.");
-                var aDate = DateTimeUtils.Parse(parts[1], true).ToUniversalTime();
+                if (!DateTimeUtils.TryParse(parts[1], out var aDate)) throw new FormatException("The Classic log timestamp is invalid.");
+                aDate = aDate.ToUniversalTime();
                 string message = parts[3].Replace("\\r", CharUtils.CHAR_CR.ToString()).Replace("\\n", CharUtils.CHAR_LF.ToString()).Replace("\\u007C", "|").Replace("\\\\", "\\");
                 var fields = new Dictionary<string, object?>();
                 if (parts.Length > 4 && !parts[4].Equals("0")) fields["extra"] = parts[4];
@@ -39,7 +40,9 @@ namespace DProjects.Log.Storage.Serializers {
             if (secondSeparator <= firstSeparator + 1) return false;
             var thirdSeparator = line.IndexOf('|', secondSeparator + 1);
             if (thirdSeparator == -1) return false;
-            return DateTimeUtils.TryParse(line.Substring(firstSeparator + 1, secondSeparator - firstSeparator - 1), out _);
+            var levelSupported = TryGetLevel(line.Substring(0, firstSeparator), out _);
+            var timestampValid = DateTimeUtils.TryParse(line.Substring(firstSeparator + 1, secondSeparator - firstSeparator - 1), out _);
+            return levelSupported || timestampValid;
         }
         private static bool TryGetLevel(string value, out LogLevel level) {
             switch (value) {
