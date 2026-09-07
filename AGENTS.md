@@ -720,3 +720,18 @@ The goal is not merely:
 The goal is:
 
 > Make the smallest correct change while preserving the contracts and architectural intent of DProjects.Libs.
+
+---
+
+## Coding Guidelines
+
+* In documentation files, use a preferred line width of 100 characters.
+* Preserve existing project style and naming.
+* Prefer small, targeted changes over broad refactors.
+* Keep public contracts stable unless asked to change them.
+* Do not introduce breaking changes without explicit justification.
+* When behavior is unclear, infer from active runtime paths, especially worker runtime and broker
+  abstractions, not legacy folders.
+* Prefer clear, idiomatic C# over clever abstractions.
+* Add comments only when they clarify non-obvious logic.
+* Use existing helper methods, fixtures, naming conventions, and test patterns when available.
