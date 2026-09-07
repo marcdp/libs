@@ -3,6 +3,7 @@ using System.IO;
 using System.Text;
 using DProjects.Log;
 using DProjects.Utils;
+using DProjects.Log.Storage.Serializers;
 
 namespace DProjects.Log.Storage.Tests {
 
@@ -37,6 +38,50 @@ namespace DProjects.Log.Storage.Tests {
                 var line2 = serializer.Serialize(logEntry);
                 Assert.Equal(line, line2);
             }
+        }
+        [Theory]
+        [InlineData("Trace", LogLevel.Trace)]
+        [InlineData("Debug", LogLevel.Debug)]
+        [InlineData("Information", LogLevel.Information)]
+        [InlineData("Warning", LogLevel.Warning)]
+        [InlineData("Error", LogLevel.Error)]
+        [InlineData("Critical", LogLevel.Fatal)]
+        [InlineData("Fatal", LogLevel.Fatal)]
+        [InlineData("Severe", LogLevel.Fatal)]
+        public void Auto_RecognizesEveryClassicSeverity(string severity, LogLevel expectedLevel) {
+            var deserializer = new LogStorageEntryDeserializerAuto();
+
+            var entry = deserializer.Deserialize(severity + "|2018-04-26 00:00:00 34|source|message|0||user|");
+
+            Assert.Equal(expectedLevel, entry.Level);
+            Assert.Equal("message", entry.Message);
+            Assert.NotEqual(DateTime.MinValue, entry.Date);
+        }
+        [Fact]
+        public void Classic_RejectsUnknownSeverity() {
+            var deserializer = new LogStorageEntryDeserializerClassic();
+
+            var exception = Assert.Throws<FormatException>(() => deserializer.Deserialize("Verbose|2018-04-26 00:00:00 34|source|message|0||user|"));
+
+            Assert.IsType<FormatException>(exception.InnerException);
+        }
+        [Theory]
+        [InlineData("classic", "Secret|credential-value|source|message|", "Unable to parse Classic log record.")]
+        [InlineData("rat", "credential-value", "Unable to parse RAT log record.")]
+        [InlineData("json", "{credential-value", "Unable to parse JSON log record.")]
+        public void MalformedRecord_DoesNotExposeRawContent(string format, string record, string expectedMessage) {
+            ILogStorageEntryDeserializer deserializer = format switch {
+                "classic" => new LogStorageEntryDeserializerClassic(),
+                "rat" => new LogStorageEntryDeserializerRat(),
+                "json" => new LogStorageEntryDeserializerJson(),
+                _ => throw new ArgumentOutOfRangeException(nameof(format))
+            };
+
+            var exception = Assert.Throws<FormatException>(() => deserializer.Deserialize(record));
+
+            Assert.Equal(expectedMessage, exception.Message);
+            Assert.DoesNotContain("credential-value", exception.Message);
+            Assert.NotNull(exception.InnerException);
         }
 
     }

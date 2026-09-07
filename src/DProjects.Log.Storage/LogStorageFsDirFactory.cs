@@ -21,9 +21,10 @@ namespace DProjects.Log.Storage {
             var fileExtension = UrlUtils.GetQueryValue(url.Query, "fileExtension", ".log");
             var recursive = UrlUtils.GetQueryValue(url.Query, "recursive", false);
             var deserializer = logStorageEntryDeserializer.Create(UrlUtils.GetQueryValue(url.Query, "format", "auto"));
-            return new LogStorageFsDir(filesystem, url.AbsolutePath, string.IsNullOrWhiteSpace(filePattern) ? fileName : filePattern, fileExtension, recursive, deserializer);
+            if (!string.IsNullOrWhiteSpace(filePattern)) return new LogStorageFsDir(filesystem, url.AbsolutePath, filePattern, recursive, deserializer);
+            return new LogStorageFsDir(filesystem, url.AbsolutePath, fileName, fileExtension, recursive, deserializer);
         }
-         
+
     }
 
 }

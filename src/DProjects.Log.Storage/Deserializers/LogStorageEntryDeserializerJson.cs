@@ -15,8 +15,8 @@ namespace DProjects.Log.Storage.Serializers {
             if (line == null) throw new ArgumentNullException(nameof(line));
             try {
                 return DeserializeCore(line);
-            } catch (Exception e) when (!(e is FormatException)) {
-                throw new FormatException("Unable to parse JSON log record " + GetSafeContext(line) + ".", e);
+            } catch (Exception e) {
+                throw new FormatException("Unable to parse JSON log record.", e);
             }
         }
 
@@ -109,11 +109,6 @@ namespace DProjects.Log.Storage.Serializers {
             //return
             return logEntry;
         }
-        private static string GetSafeContext(string line) {
-            const int maxLength = 120;
-            return line.Length <= maxLength ? "'" + line + "'" : "'" + line.Substring(0, maxLength) + "...'";
-        }
-
     }
 
 }

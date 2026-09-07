@@ -36,15 +36,13 @@ namespace DProjects.Log.Storage {
         public void Dispose() {
         }
         public async Task<LogStorageStats> GetStatsAsync(CancellationToken cancellationToken) {
-            var entry = await mFilesystem.GetEntryAsync(mPath, cancellationToken);
-            if (entry == null || !entry.IsFile()) throw new FileNotFoundException("Log storage file was not found.", mPath);
+            var entry = await GetFileEntryAsync(cancellationToken);
             return new LogStorageStats(1, 0, entry.Length, entry.Created, entry.Modified);
         }
         public async IAsyncEnumerable<LogEntry> QueryAsync(LogStorageQuery query, [EnumeratorCancellation] CancellationToken cancellationToken) {
             if (query == null) throw new ArgumentNullException(nameof(query));
             ValidateQuery(query);
-            var entry = await mFilesystem.GetEntryAsync(mPath, cancellationToken);
-            if (entry == null || !entry.IsFile()) throw new FileNotFoundException("Log storage file was not found.", mPath);
+            await GetFileEntryAsync(cancellationToken);
             using (var textReader = new StreamReader(await mFilesystem.LoadReadStreamAsync(mPath, new(), cancellationToken), mEncoding)) {
                 do {
                     cancellationToken.ThrowIfCancellationRequested();
@@ -63,8 +61,7 @@ namespace DProjects.Log.Storage {
         public async IAsyncEnumerable<LogEntry> TailAsync(int lines, bool follow, [EnumeratorCancellation]CancellationToken cancellationToken) {
             if (lines < 0) throw new ArgumentOutOfRangeException(nameof(lines));
             cancellationToken.ThrowIfCancellationRequested();
-            var entry = await mFilesystem.GetEntryAsync(mPath, cancellationToken);
-            if (entry == null || !entry.IsFile()) throw new FileNotFoundException("Log storage file was not found.", mPath);
+            await GetFileEntryAsync(cancellationToken);
 
             // retain only the requested records while scanning the complete file, which is correct for arbitrary record sizes and encodings
             var tail = new Queue<string>(lines);
@@ -102,6 +99,12 @@ namespace DProjects.Log.Storage {
         }
 
         // methods (private)
+        private async Task<Entry> GetFileEntryAsync(CancellationToken cancellationToken) {
+            var entry = await mFilesystem.GetEntryAsync(mPath, cancellationToken);
+            if (entry == null) throw new FileNotFoundException("Log storage file was not found.", mPath);
+            if (!entry.IsFile()) throw new InvalidOperationException("File log storage requires a file path.");
+            return entry;
+        }
         private static void ValidateQuery(LogStorageQuery query) {
             if (query.From.HasValue && query.To.HasValue && query.From.Value > query.To.Value) throw new ArgumentException("From must be earlier than or equal to To.", nameof(query));
         }

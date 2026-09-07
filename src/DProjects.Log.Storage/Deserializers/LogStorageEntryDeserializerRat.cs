@@ -63,15 +63,9 @@ namespace DProjects.Log.Storage.Serializers {
                 }
                 message = message.Replace("\\u007C", "|").Replace("\\n", CharUtils.CHAR_LF.ToString()).Replace("\\r", CharUtils.CHAR_CR.ToString()).Replace("\\\\", "\\").TrimEnd();
                 return new LogEntry(logLevel, message, fields, tags.ToArray(), source, user, null, aDate);
-            } catch (Exception e) when (!(e is FormatException)) {
-                throw new FormatException("Unable to parse RAT log record " + GetSafeContext(line) + ".", e);
+            } catch (Exception e) {
+                throw new FormatException("Unable to parse RAT log record.", e);
             }
-        }
-
-        // methods (private)
-        private static string GetSafeContext(string line) {
-            const int maxLength = 120;
-            return line.Length <= maxLength ? "'" + line + "'" : "'" + line.Substring(0, maxLength) + "...'";
         }
     }
 

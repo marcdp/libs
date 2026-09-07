@@ -81,11 +81,29 @@ namespace DProjects.Log.Storage.Tests {
             Assert.True(filesystem.Exists("/logs/unrelated.log"));
         }
         [Fact]
-        public async Task RemoveBeforeAsync_RejectsNegativeDays() {
+        public async Task RemoveBeforeAsync_RejectsNonPositiveDays() {
             using var filesystem = LogStorageTestUtils.CreateFilesystem();
             using var storage = new LogStorageFsDir(filesystem, "/logs", "*.log", ".log", false, new LogStorageEntryDeserializerRaw());
 
             await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => storage.RemoveBeforeAsync(-1, TestContext.Current.CancellationToken));
+            await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => storage.RemoveBeforeAsync(0, TestContext.Current.CancellationToken));
+        }
+        [Fact]
+        public async Task RemoveBeforeAsync_PreservesFilesAtOrNewerThanCutoff() {
+            using var filesystem = LogStorageTestUtils.CreateFilesystem();
+            filesystem.SaveText("/logs/old.log", "old");
+            filesystem.SaveText("/logs/boundary.log", "boundary");
+            filesystem.SaveText("/logs/new.log", "new");
+            filesystem.Touch("/logs/old.log", DateTime.Now.AddDays(-11));
+            filesystem.Touch("/logs/boundary.log", DateTime.Now.AddDays(-10).AddMinutes(1));
+            filesystem.Touch("/logs/new.log", DateTime.Now);
+            using var storage = new LogStorageFsDir(filesystem, "/logs", "*.log", false, new LogStorageEntryDeserializerRaw());
+
+            await storage.RemoveBeforeAsync(10, TestContext.Current.CancellationToken);
+
+            Assert.False(filesystem.Exists("/logs/old.log"));
+            Assert.True(filesystem.Exists("/logs/boundary.log"));
+            Assert.True(filesystem.Exists("/logs/new.log"));
         }
         [Theory]
         [InlineData(false)]
@@ -103,6 +121,54 @@ namespace DProjects.Log.Storage.Tests {
 
             await Assert.ThrowsAsync<DirectoryNotFoundException>(() => storage.GetStatsAsync(TestContext.Current.CancellationToken));
         }
+        [Fact]
+        public async Task FilePath_UsesInvalidOperationException() {
+            using var filesystem = LogStorageTestUtils.CreateFilesystem();
+            filesystem.SaveText("/logs/file.log", "record\n");
+            using var storage = new LogStorageFsDir(filesystem, "/logs/file.log", "*.log", false, new LogStorageEntryDeserializerRaw());
+
+            await Assert.ThrowsAsync<InvalidOperationException>(() => storage.GetStatsAsync(TestContext.Current.CancellationToken));
+            await Assert.ThrowsAsync<InvalidOperationException>(() => LogStorageTestUtils.CollectAsync(storage.QueryAsync(new LogStorageQuery(), TestContext.Current.CancellationToken), TestContext.Current.CancellationToken));
+        }
+        [Fact]
+#pragma warning disable xUnit1051 // this test uses a controlled cancellation token to stop active enumeration
+        public async Task GetStatsAsync_CancelsDuringEnumeration() {
+            using var inner = LogStorageTestUtils.CreateFilesystem();
+            inner.SaveText("/logs/a.log", "a");
+            inner.SaveText("/logs/b.log", "b");
+            inner.SaveText("/logs/c.log", "c");
+            using var source = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+            using var filesystem = new ControlledFilesystem(inner) { EntryEnumerated = count => { if (count == 2) source.Cancel(); } };
+            using var storage = new LogStorageFsDir(filesystem, "/logs", "*.log", false, new LogStorageEntryDeserializerRaw());
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => storage.GetStatsAsync(source.Token));
+
+            Assert.Equal(2, filesystem.EntriesEnumerated);
+        }
+#pragma warning restore xUnit1051
+        [Fact]
+#pragma warning disable xUnit1051 // this test uses a controlled cancellation token to document partial deletion
+        public async Task RemoveBeforeAsync_CancellationLeavesRetryablePartialCompletion() {
+            using var inner = LogStorageTestUtils.CreateFilesystem();
+            foreach (var name in new[] { "a.log", "b.log", "c.log" }) {
+                inner.SaveText("/logs/" + name, name);
+                inner.Touch("/logs/" + name, DateTime.Now.AddDays(-20));
+            }
+            using var source = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+            using var filesystem = new ControlledFilesystem(inner) { FileDeleted = count => { if (count == 1) source.Cancel(); } };
+            using var storage = new LogStorageFsDir(filesystem, "/logs", "*.log", false, new LogStorageEntryDeserializerRaw());
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => storage.RemoveBeforeAsync(10, source.Token));
+            Assert.False(inner.Exists("/logs/a.log"));
+            Assert.True(inner.Exists("/logs/b.log"));
+            Assert.True(inner.Exists("/logs/c.log"));
+
+            filesystem.FileDeleted = null;
+            await storage.RemoveBeforeAsync(10, TestContext.Current.CancellationToken);
+            Assert.False(inner.Exists("/logs/b.log"));
+            Assert.False(inner.Exists("/logs/c.log"));
+        }
+#pragma warning restore xUnit1051
         [Fact]
 #pragma warning disable xUnit1051 // this test deliberately supplies a pre-canceled token
         public async Task Enumeration_ObservesCancellation() {

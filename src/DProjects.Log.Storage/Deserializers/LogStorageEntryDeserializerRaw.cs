@@ -10,7 +10,7 @@ namespace DProjects.Log.Storage.Serializers {
 
         //methods
         public LogEntry Deserialize(string line) {
-            // raw records do not contain timestamps, so use a stable unknown sentinel rather than the read time
+            // raw records have no intrinsic timestamp; the stable minimum-value sentinel participates normally in temporal queries
             var result = new LogEntry(LogLevel.Information, line);
             result.Date = DateTime.MinValue;
             return result;

@@ -42,6 +42,15 @@ namespace DProjects.Log.Storage.Tests {
             await Assert.ThrowsAsync<FileNotFoundException>(() => LogStorageTestUtils.CollectAsync(storage.QueryAsync(new LogStorageQuery(), TestContext.Current.CancellationToken), TestContext.Current.CancellationToken));
         }
         [Fact]
+        public async Task DirectoryPath_UsesInvalidOperationException() {
+            using var filesystem = LogStorageTestUtils.CreateFilesystem();
+            using var storage = LogStorageTestUtils.CreateRawFileStorage(filesystem, "/logs");
+
+            await Assert.ThrowsAsync<InvalidOperationException>(() => storage.GetStatsAsync(TestContext.Current.CancellationToken));
+            await Assert.ThrowsAsync<InvalidOperationException>(() => LogStorageTestUtils.CollectAsync(storage.QueryAsync(new LogStorageQuery(), TestContext.Current.CancellationToken), TestContext.Current.CancellationToken));
+            await Assert.ThrowsAsync<InvalidOperationException>(() => LogStorageTestUtils.CollectAsync(storage.TailAsync(1, false, TestContext.Current.CancellationToken), TestContext.Current.CancellationToken));
+        }
+        [Fact]
 #pragma warning disable xUnit1051 // this test deliberately supplies a pre-canceled token
         public async Task QueryAsync_ObservesCancellation() {
             using var filesystem = LogStorageTestUtils.CreateFilesystem();
@@ -51,6 +60,20 @@ namespace DProjects.Log.Storage.Tests {
             source.Cancel();
 
             await Assert.ThrowsAnyAsync<OperationCanceledException>(() => LogStorageTestUtils.CollectAsync(storage.QueryAsync(new LogStorageQuery(), source.Token), source.Token));
+        }
+#pragma warning restore xUnit1051
+        [Fact]
+#pragma warning disable xUnit1051 // this test cancels deterministically after records have started processing
+        public async Task QueryAsync_CancelsDuringRecordProcessing() {
+            using var filesystem = LogStorageTestUtils.CreateFilesystem();
+            filesystem.SaveText("/logs/app.log", string.Join("\n", Enumerable.Range(0, 100).Select(index => "record-" + index)) + "\n");
+            using var source = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+            var deserializer = new CancelingDeserializer(source, 3);
+            using var storage = new LogStorageFsFile(filesystem, "/logs/app.log", deserializer);
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => LogStorageTestUtils.CollectAsync(storage.QueryAsync(new LogStorageQuery(), source.Token), source.Token));
+
+            Assert.Equal(3, deserializer.RecordsProcessed);
         }
 #pragma warning restore xUnit1051
         [Fact]
@@ -156,6 +179,28 @@ namespace DProjects.Log.Storage.Tests {
             // methods
             public override Stream LoadReadStream(string path, LoadReadStreamSettings settings) {
                 return new DisposableStream(base.LoadReadStream(path, settings), () => ReadStreamDisposed = true);
+            }
+        }
+        private sealed class CancelingDeserializer : ILogStorageEntryDeserializer {
+
+            // vars
+            private readonly CancellationTokenSource mCancellationTokenSource;
+            private readonly int mCancelAfter;
+
+            // props
+            public int RecordsProcessed { get; private set; }
+
+            // ctor
+            public CancelingDeserializer(CancellationTokenSource cancellationTokenSource, int cancelAfter) {
+                mCancellationTokenSource = cancellationTokenSource;
+                mCancelAfter = cancelAfter;
+            }
+
+            // methods
+            public LogEntry Deserialize(string line) {
+                RecordsProcessed++;
+                if (RecordsProcessed == mCancelAfter) mCancellationTokenSource.Cancel();
+                return new LogEntry(LogLevel.Information, line) { Date = DateTime.MinValue };
             }
         }
     }

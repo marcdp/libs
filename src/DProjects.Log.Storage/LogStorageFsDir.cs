@@ -23,13 +23,16 @@ namespace DProjects.Log.Storage {
 
 
         //constructor
-        public LogStorageFsDir(IFilesystem filesystem, string path, string fileName, string fileExtension ,bool recursive, ILogStorageEntryDeserializer deserializer, Encoding? encoding = null) {
+        public LogStorageFsDir(IFilesystem filesystem, string path, string filePattern, bool recursive, ILogStorageEntryDeserializer deserializer, Encoding? encoding = null) {
             mFilesystem = filesystem;    
             mPath = path;
-            mFilePattern = GetEffectiveFilePattern(fileName, fileExtension);
+            mFilePattern = string.IsNullOrWhiteSpace(filePattern) ? "*.log" : filePattern;
             mDeserializer = deserializer;
             mRecursive = recursive;
             mEncoding = encoding ?? System.Text.Encoding.UTF8;
+        }
+        public LogStorageFsDir(IFilesystem filesystem, string path, string fileName, string fileExtension, bool recursive, ILogStorageEntryDeserializer deserializer, Encoding? encoding = null)
+            : this(filesystem, path, GetEffectiveFilePattern(fileName, fileExtension), recursive, deserializer, encoding) {
         }
         //methods
         public void Dispose() {
@@ -64,7 +67,7 @@ namespace DProjects.Log.Storage {
             }
         }
         public async Task RemoveBeforeAsync(int days, CancellationToken cancellationToken) {
-            if (days < 0) throw new ArgumentOutOfRangeException(nameof(days));
+            if (days <= 0) throw new ArgumentOutOfRangeException(nameof(days), "Retention days must be greater than zero.");
             var cutoff = DateTime.Now.AddDays(-days);
             var selectedFiles = await GetSelectedFilesAsync(cancellationToken);
             foreach (var entry in selectedFiles) {
@@ -79,7 +82,8 @@ namespace DProjects.Log.Storage {
         // methods (private)
         private async Task<List<Entry>> GetSelectedFilesAsync(CancellationToken cancellationToken) {
             var root = await mFilesystem.GetEntryAsync(mPath, cancellationToken);
-            if (root == null || !root.IsDirectory()) throw new DirectoryNotFoundException("Log storage directory was not found: " + mPath);
+            if (root == null) throw new DirectoryNotFoundException("Log storage directory was not found: " + mPath);
+            if (!root.IsDirectory()) throw new InvalidOperationException("Directory log storage requires a directory path.");
             var result = new List<Entry>();
             await foreach (var entry in mFilesystem.GetEntriesAsync(mPath, mRecursive ? GetModes.Descendants : GetModes.Files, mFilePattern, cancellationToken)) {
                 cancellationToken.ThrowIfCancellationRequested();
