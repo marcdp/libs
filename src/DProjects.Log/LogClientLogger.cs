@@ -2,7 +2,6 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Text;
-using LogLevelNative = Microsoft.Extensions.Logging.LogLevel;
 
 namespace DProjects.Log {
 
@@ -48,27 +47,27 @@ namespace DProjects.Log {
 
         //methods
         public void Trace(string message, params object?[] args) {
-            mLogger.Log(ConvertLogLevel(LogLevel.Trace), message, args);
+            mLogger.Log(LogLevelMappings.ToMicrosoftLogLevel(LogLevel.Trace), message, args);
             if (Writed != null) Writed?.Invoke(this, CreateLogEntry(LogLevel.Trace, message, args));
         }
         public void Debug(string message, params object?[] args) {
-            mLogger.Log(ConvertLogLevel(LogLevel.Debug), message, args);
+            mLogger.Log(LogLevelMappings.ToMicrosoftLogLevel(LogLevel.Debug), message, args);
             if (Writed != null) Writed?.Invoke(this, CreateLogEntry(LogLevel.Debug, message, args));
         }
         public void Info(string message, params object?[] args) {
-            mLogger.Log(ConvertLogLevel(LogLevel.Information), message, args);
+            mLogger.Log(LogLevelMappings.ToMicrosoftLogLevel(LogLevel.Information), message, args);
             if (Writed != null) Writed?.Invoke(this, CreateLogEntry(LogLevel.Information, message, args));
         }
         public void Warning(string message, params object?[] args) {
-            mLogger.Log(ConvertLogLevel(LogLevel.Warning), message, args);
+            mLogger.Log(LogLevelMappings.ToMicrosoftLogLevel(LogLevel.Warning), message, args);
             if (Writed != null) Writed?.Invoke(this, CreateLogEntry(LogLevel.Warning, message, args));
         }
         public void Error(string message, params object?[] args) {
-            mLogger.Log(ConvertLogLevel(LogLevel.Error), message, args);
+            mLogger.Log(LogLevelMappings.ToMicrosoftLogLevel(LogLevel.Error), message, args);
             if (Writed != null) Writed?.Invoke(this, CreateLogEntry(LogLevel.Error, message, args));
         }
         public void Fatal(string message, params object?[] args) {
-            mLogger.Log(ConvertLogLevel(LogLevel.Fatal), message, args);
+            mLogger.Log(LogLevelMappings.ToMicrosoftLogLevel(LogLevel.Fatal), message, args);
             if (Writed != null) Writed?.Invoke(this, CreateLogEntry(LogLevel.Fatal, message, args));
         }
         public void Write(LogEntry logEntry) {
@@ -107,7 +106,7 @@ namespace DProjects.Log {
                 args.Add(logEntry.TraceId);
             }
 
-            mLogger.Log(ConvertLogLevel(logEntry.Level), message.ToString(), args.ToArray());
+            mLogger.Log(LogLevelMappings.ToMicrosoftLogLevel(logEntry.Level), message.ToString(), args.ToArray());
             Writed?.Invoke(this, logEntry);
         }
 
@@ -144,26 +143,6 @@ namespace DProjects.Log {
                 message = sb.ToString();
             }
             return new LogEntry(logType, Prefix + message, fields, Tags, Source, User, Resource, now, SpanId, TraceId);
-        }
-
-        private static LogLevelNative ConvertLogLevel(LogLevel logLevel) {
-            switch (logLevel) {
-                case LogLevel.Trace:
-                    return LogLevelNative.Trace;
-                case LogLevel.Debug:
-                    return LogLevelNative.Debug;
-                case LogLevel.Information:
-                case LogLevel.Custom:
-                    return LogLevelNative.Information;
-                case LogLevel.Warning:
-                    return LogLevelNative.Warning;
-                case LogLevel.Error:
-                    return LogLevelNative.Error;
-                case LogLevel.Fatal:
-                    return LogLevelNative.Critical;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(logLevel), logLevel, "Unsupported log level.");
-            }
         }
 
     }

@@ -95,8 +95,8 @@ namespace DProjects.Log.Serializers {
                 logRecord.SeverityNumber = 21;
                 logRecord.SeverityText = "FATAL";
             } else if (logEntry.Level == LogLevel.Custom) {
-                logRecord.SeverityNumber = 13;
-                logRecord.SeverityText = "WARN";
+                logRecord.SeverityNumber = 9;
+                logRecord.SeverityText = "INFO";
             }
             logRecord.Body = new AnyValue() {
                 StringValue = logEntry.Message

@@ -85,7 +85,9 @@ namespace DProjects.Log {
             Write(new LogEntry(LogLevel.Fatal, message, fields, tags, source, user, resource));
         }
         public void Write(LogEntry logEntry) {
-            if (mLevel > logEntry.Level) return;
+            if (LogLevelMappings.GetSeverityRank(logEntry.Level) < LogLevelMappings.GetSeverityRank(mLevel)) {
+                return;
+            }
             if (mUseWriterThread) {
                 if (mThreadEntryQueue?.Count < mMaxQueueLength) {
                     mThreadEntryQueue?.Add(logEntry);

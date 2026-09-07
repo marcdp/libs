@@ -15,12 +15,14 @@ namespace DProjects.Log {
         string? Prefix { get; set; }
         string? User { get; set; }
         string? Source { get; set; }
+        string? Resource { get; set; }
         string[]? Tags { get; set; }
         Dictionary<string, object?>? Fields { get; set; }
         string? SpanId { get; set; }
         string? TraceId { get; set; }
 
         //methods
+        void Trace(string message, params object?[] args);
         void Debug(string message, params object?[] args);
         void Info(string message, params object?[] args);
         void Warning(string message, params object?[] args);

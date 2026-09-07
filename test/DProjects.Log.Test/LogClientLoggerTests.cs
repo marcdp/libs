@@ -6,13 +6,17 @@ namespace DProjects.Log.Tests {
     public class LogClientLoggerTests {
 
         [Fact]
-        public void Trace_LogsAtNativeTraceLevel() {
+        public void InterfaceTrace_LogsAtNativeTraceLevelAndIncludesInterfaceResource() {
             var logger = new RecordingLogger();
-            var client = new LogClientLogger(logger);
+            ILogClient client = new LogClientLogger(logger);
+            LogEntry? writtenEntry = null;
+            client.Resource = "orders";
+            client.Writed += (_, entry) => writtenEntry = entry;
 
             client.Trace("message");
 
             Assert.Equal(LogLevelNative.Trace, Assert.Single(logger.Entries).Level);
+            Assert.Equal("orders", Assert.IsType<LogEntry>(writtenEntry).Resource);
         }
 
         [Theory]
@@ -51,6 +55,9 @@ namespace DProjects.Log.Tests {
 
         [Theory]
         [InlineData(DProjects.Log.LogLevel.Information, LogLevelNative.Information)]
+        [InlineData(DProjects.Log.LogLevel.Trace, LogLevelNative.Trace)]
+        [InlineData(DProjects.Log.LogLevel.Debug, LogLevelNative.Debug)]
+        [InlineData(DProjects.Log.LogLevel.Warning, LogLevelNative.Warning)]
         [InlineData(DProjects.Log.LogLevel.Error, LogLevelNative.Error)]
         [InlineData(DProjects.Log.LogLevel.Fatal, LogLevelNative.Critical)]
         [InlineData(DProjects.Log.LogLevel.Custom, LogLevelNative.Information)]
@@ -67,6 +74,16 @@ namespace DProjects.Log.Tests {
             var recorded = Assert.Single(logger.Entries);
             Assert.Equal(expectedLevel, recorded.Level);
             Assert.Equal("original message", recorded.Message);
+        }
+
+        [Fact]
+        public void Write_InvalidLevelThrowsArgumentOutOfRangeException() {
+            var logger = new RecordingLogger();
+            ILogClient client = new LogClientLogger(logger);
+            var entry = new LogEntry((DProjects.Log.LogLevel)999, "message");
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => client.Write(entry));
+            Assert.Empty(logger.Entries);
         }
 
         [Fact]

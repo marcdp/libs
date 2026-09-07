@@ -1,7 +1,6 @@
 using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 using System.Text;
-using LogLevelNative = Microsoft.Extensions.Logging.LogLevel;
 
 namespace DProjects.Log {
 
@@ -19,21 +18,6 @@ namespace DProjects.Log {
 
         //methods
         protected override void ProcessEntry(LogEntry logEntry) {
-            //log level
-            LogLevelNative logLevelNative = LogLevelNative.Information;
-            if (logEntry.Level == LogLevel.Debug) {
-                logLevelNative = LogLevelNative.Debug;
-            } else if (logEntry.Level == LogLevel.Trace) {
-                logLevelNative = LogLevelNative.Trace;
-            } else if (logEntry.Level == LogLevel.Information) {
-                logLevelNative = LogLevelNative.Information;
-            } else if (logEntry.Level == LogLevel.Warning) {
-                logLevelNative = LogLevelNative.Warning;
-            } else if (logEntry.Level == LogLevel.Error) {
-                logLevelNative = LogLevelNative.Error;
-            } else if (logEntry.Level == LogLevel.Fatal) {
-                logLevelNative = LogLevelNative.Critical;
-            }
             //message
             var message = new StringBuilder();
             message.Append(logEntry.Message);
@@ -69,7 +53,7 @@ namespace DProjects.Log {
                 args.Add(logEntry.TraceId);
             }
             //log
-            mLogger.Log(logLevelNative, message.ToString(), args.ToArray());
+            mLogger.Log(LogLevelMappings.ToMicrosoftLogLevel(logEntry.Level), message.ToString(), args.ToArray());
         }
 
     }

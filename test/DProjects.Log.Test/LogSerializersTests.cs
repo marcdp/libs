@@ -7,6 +7,16 @@ using DProjects.Utils;
 namespace DProjects.Log.Tests {
     public class LogTextWriterTests : Base {
 
+        [Fact]
+        public void OtlpSerializer_CustomUsesInformationSeverity() {
+            var serializer = new DProjects.Log.Serializers.LogEntrySerializerOtlp("service", "scope");
+
+            var record = serializer.CreateLogRecord(new LogEntry(LogLevel.Custom, "message"));
+
+            Assert.Equal(9, record.SeverityNumber);
+            Assert.Equal("INFO", record.SeverityText);
+        }
+
         //tests
         [Theory()]
         [InlineData("json:", """
