@@ -1,8 +1,5 @@
 using DProjects.Utils;
 using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text.Json;
 
 
 namespace DProjects.Log.Storage.Serializers {
@@ -25,10 +22,10 @@ namespace DProjects.Log.Storage.Serializers {
                 return new LogStorageEntryDeserializerClassic().Deserialize(line);
             } else if (line.StartsWith("#")) {
                 //W3C
-                throw new NotImplementedException();
+                throw new NotSupportedException("W3C log deserialization is not supported.");
             } else if (line.StartsWith("\"")) {
                 //csv
-                throw new NotImplementedException();
+                throw new NotSupportedException("CSV log deserialization is not supported.");
             } else {
                 //raw
                 return new LogStorageEntryDeserializerRaw().Deserialize(line);

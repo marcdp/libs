@@ -16,7 +16,7 @@ namespace DProjects.Log.Storage {
 
         public ILogStorage Create(string src) {
             var url = new Uri(src);
-            var format = UrlUtils.GetQueryValue(url.Query, "format", "");
+            var format = UrlUtils.GetQueryValue(url.Query, "format", "auto");
             var deserializer = logStorageEntryDeserializer.Create(format);
             return new LogStorageFsFile(filesystem, url.AbsolutePath, deserializer);
         }

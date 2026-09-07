@@ -1,8 +1,4 @@
-using DProjects.Utils;
 using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text.Json;
 
 
 namespace DProjects.Log.Storage.Serializers {
@@ -14,7 +10,10 @@ namespace DProjects.Log.Storage.Serializers {
 
         //methods
         public LogEntry Deserialize(string line) {
-            return new LogEntry(LogLevel.Information, line, null, null, null, null, null, DateTime.Now);
+            // raw records do not contain timestamps, so use a stable unknown sentinel rather than the read time
+            var result = new LogEntry(LogLevel.Information, line);
+            result.Date = DateTime.MinValue;
+            return result;
         }
     }
 

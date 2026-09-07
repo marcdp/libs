@@ -12,11 +12,18 @@ namespace DProjects.Log.Storage.Serializers {
 
         //methods
         public LogEntry Deserialize(string line) {
+            if (line == null) throw new ArgumentNullException(nameof(line));
+            try {
+                return DeserializeCore(line);
+            } catch (Exception e) when (!(e is FormatException)) {
+                throw new FormatException("Unable to parse JSON log record " + GetSafeContext(line) + ".", e);
+            }
+        }
+
+        // methods (private)
+        private static LogEntry DeserializeCore(string line) {
             var logEntry = new LogEntry();
-            var jsonDeserializer = new DProjects.Text.Json.JsonDeserializer(new() {
-                UseDateTimeLaxConverter = true,
-            });
-            //var entry = jsonDeserializer.Deserialize<LogEntry>(line);
+            var jsonDeserializer = new DProjects.Text.Json.JsonDeserializer(new() { UseDateTimeLaxConverter = true });
             var dict = jsonDeserializer.Deserialize<IDictionary<string, object?>>(line);
             //date
             foreach (var key in new string[] { "date", "timestamp", "StartUTC", "time" }) {
@@ -101,6 +108,10 @@ namespace DProjects.Log.Storage.Serializers {
             }
             //return
             return logEntry;
+        }
+        private static string GetSafeContext(string line) {
+            const int maxLength = 120;
+            return line.Length <= maxLength ? "'" + line + "'" : "'" + line.Substring(0, maxLength) + "...'";
         }
 
     }

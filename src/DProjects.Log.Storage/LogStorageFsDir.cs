@@ -1,7 +1,6 @@
 using DProjects.Fs;
 using System;
 using System.Collections.Generic;
-using System.Data;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -14,12 +13,11 @@ namespace DProjects.Log.Storage {
     public class LogStorageFsDir : ILogStorage  {
 
 
-        //variables
+        // vars
         private readonly IFilesystem mFilesystem;
         private readonly string mPath;
         private readonly Encoding mEncoding;
-        private readonly string mFileName;
-        private readonly string mFileExtension;
+        private readonly string mFilePattern;
         private readonly bool mRecursive;
         private readonly ILogStorageEntryDeserializer mDeserializer;
 
@@ -28,69 +26,78 @@ namespace DProjects.Log.Storage {
         public LogStorageFsDir(IFilesystem filesystem, string path, string fileName, string fileExtension ,bool recursive, ILogStorageEntryDeserializer deserializer, Encoding? encoding = null) {
             mFilesystem = filesystem;    
             mPath = path;
-            mFileName = fileName;
-            mFileExtension = fileExtension;
+            mFilePattern = GetEffectiveFilePattern(fileName, fileExtension);
             mDeserializer = deserializer;
             mRecursive = recursive;
             mEncoding = encoding ?? System.Text.Encoding.UTF8;
         }
+        //methods
         public void Dispose() {
         }
-
-
-
-        //methods
         public async Task<LogStorageStats> GetStatsAsync(CancellationToken cancellationToken) {
-            var entry = mFilesystem.GetEntry(mPath);
-            if (entry == null) throw new Exception("Path not found: " + mPath);
-            var files = 0;
-            var dirs = 1;
-            var size = (long)0;
+            var selectedFiles = await GetSelectedFilesAsync(cancellationToken);
+            long size = 0;
             DateTime? from = null;
             DateTime? to = null;
-            await foreach (var childEntry in mFilesystem.GetEntriesAsync(mPath, (mRecursive ? GetModes.Descendants : GetModes.Files), "*" + mFileExtension)) {
-                if (childEntry.IsFile()) {
-                    files++;
-                    size += childEntry.Length;
-                    if (from == null) from = childEntry.Created;
-                    to = childEntry.Modified;
-                }
+            foreach (var entry in selectedFiles) {
+                cancellationToken.ThrowIfCancellationRequested();
+                size += entry.Length;
+                if (!from.HasValue || entry.Created < from.Value) from = entry.Created;
+                if (!to.HasValue || entry.Modified > to.Value) to = entry.Modified;
             }
-            return new LogStorageStats(files, dirs, size, from, to);
+            return new LogStorageStats(selectedFiles.Count, 1, size, from, to);
         }
         public async IAsyncEnumerable<LogEntry> QueryAsync(LogStorageQuery query, [EnumeratorCancellation] CancellationToken cancellationToken) {
-            var paths = new List<string>();
-            await foreach (var entry in mFilesystem.GetEntriesAsync(mPath, (mRecursive ? GetModes.Descendants : GetModes.Files), "*" + mFileExtension)) {
-                if (entry.IsFile()) {
-                    using (var textReader = new StreamReader(await mFilesystem.LoadReadStreamAsync(entry.Path, new(), cancellationToken), mEncoding)) {
-                        do {
-                            var line = await textReader.ReadLineAsync();
-                            if (line == null) break;
-                            var logEntry = mDeserializer.Deserialize(line);
-                            if (query.Check(logEntry)) {
-                                yield return logEntry;
-                            }
-                        } while (true);
-                    }
-                    paths.Add(entry.Path);
+            if (query == null) throw new ArgumentNullException(nameof(query));
+            ValidateQuery(query);
+            var selectedFiles = await GetSelectedFilesAsync(cancellationToken);
+            foreach (var entry in selectedFiles) {
+                using (var textReader = new StreamReader(await mFilesystem.LoadReadStreamAsync(entry.Path, new(), cancellationToken), mEncoding)) {
+                    do {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        var line = await textReader.ReadLineAsync();
+                        if (line == null) break;
+                        var logEntry = mDeserializer.Deserialize(line);
+                        if (query.Check(logEntry)) yield return logEntry;
+                    } while (true);
                 }
             }
         }
         public async Task RemoveBeforeAsync(int days, CancellationToken cancellationToken) {
-            var entriesToRemove = new List<Entry>();
-            await foreach (var entry in mFilesystem.GetEntriesAsync(mPath, (mRecursive ? GetModes.Descendants : GetModes.Files), "*" + mFileExtension)) {
-                if (entry.IsFile()) {
-                    if (entry.Modified < DateTime.Now.AddDays(-days)) {
-                        entriesToRemove.Add(entry);
-                    }
-                }
-            }
-            foreach (var entry in entriesToRemove) {
-                await mFilesystem.DeleteFileAsync(entry.Path, cancellationToken);
+            if (days < 0) throw new ArgumentOutOfRangeException(nameof(days));
+            var cutoff = DateTime.Now.AddDays(-days);
+            var selectedFiles = await GetSelectedFilesAsync(cancellationToken);
+            foreach (var entry in selectedFiles) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (entry.Modified < cutoff) await mFilesystem.DeleteFileAsync(entry.Path, cancellationToken);
             }
         }
         public IAsyncEnumerable<LogEntry> TailAsync(int lines, bool follow, CancellationToken cancellationToken) {
-            throw new NotImplementedException();
+            throw new NotSupportedException("Tail and follow are not supported for directory log storage because no active file is defined.");
+        }
+
+        // methods (private)
+        private async Task<List<Entry>> GetSelectedFilesAsync(CancellationToken cancellationToken) {
+            var root = await mFilesystem.GetEntryAsync(mPath, cancellationToken);
+            if (root == null || !root.IsDirectory()) throw new DirectoryNotFoundException("Log storage directory was not found: " + mPath);
+            var result = new List<Entry>();
+            await foreach (var entry in mFilesystem.GetEntriesAsync(mPath, mRecursive ? GetModes.Descendants : GetModes.Files, mFilePattern, cancellationToken)) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (entry.IsFile()) result.Add(entry);
+            }
+            result.Sort((left, right) => StringComparer.Ordinal.Compare(NormalizePath(left.Path), NormalizePath(right.Path)));
+            return result;
+        }
+        private static string GetEffectiveFilePattern(string fileName, string fileExtension) {
+            if (!string.IsNullOrWhiteSpace(fileName)) return fileName;
+            if (!string.IsNullOrWhiteSpace(fileExtension)) return fileExtension.StartsWith("*", StringComparison.Ordinal) ? fileExtension : "*" + fileExtension;
+            return "*.log";
+        }
+        private static string NormalizePath(string path) {
+            return path.Replace('\\', '/');
+        }
+        private static void ValidateQuery(LogStorageQuery query) {
+            if (query.From.HasValue && query.To.HasValue && query.From.Value > query.To.Value) throw new ArgumentException("From must be earlier than or equal to To.", nameof(query));
         }
     }
 

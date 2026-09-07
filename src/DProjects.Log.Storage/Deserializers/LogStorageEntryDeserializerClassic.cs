@@ -1,8 +1,6 @@
 using DProjects.Utils;
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Text.Json;
 
 
 namespace DProjects.Log.Storage.Serializers {
@@ -15,7 +13,7 @@ namespace DProjects.Log.Storage.Serializers {
         //methods
         public LogEntry Deserialize(string line) {
             //Ex: Information|2018-04-26 00:00:00 34|/campus/campusrpc.ashx?60233135-a6c8-4e5c-a042-a96a2c596e5e|campusrpc:{"id":32,"method":"/quiHiHa/admin.aspx/GetContactesOnline","params":[true],"jsonrpc":"2.0"}|0||350416|
-            if (line == null) return null!;
+            if (line == null) throw new ArgumentNullException(nameof(line));
             try {
                 string[] parts = line.Split('|');
                 var logType = LogLevel.Information;
@@ -34,9 +32,15 @@ namespace DProjects.Log.Storage.Serializers {
                 if (!String.IsNullOrEmpty(hostname)) source += "," + hostname;
                 string user = (parts.Length > 6 ? (parts[6]) : "");
                 return new LogEntry(logType, message, fields, null, source, user, null, aDate);
-            } catch (Exception e) {
-                throw new Exception("Unable to pase log line: " + e.Message + ": " + line, e);
+            } catch (Exception e) when (!(e is FormatException)) {
+                throw new FormatException("Unable to parse classic log record " + GetSafeContext(line) + ".", e);
             }
+        }
+
+        // methods (private)
+        private static string GetSafeContext(string line) {
+            const int maxLength = 120;
+            return line.Length <= maxLength ? "'" + line + "'" : "'" + line.Substring(0, maxLength) + "...'";
         }
     }
 

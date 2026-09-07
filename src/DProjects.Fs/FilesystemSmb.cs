@@ -46,7 +46,7 @@ namespace DProjects.Fs {
                         var arguments = "use \\\\" + mHost + "\\" + mShare + " /user:" + mUsername + " " + mPassword;
                         var processResult = await ProcessUtils.ExecuteProcessAsync("net", arguments, default);
                         if (processResult.ExitCode != 0) {
-                            throw new Exception("Error mounting FilesystemSmb //" + mHost + "/" + mShare + " on " + mPath + ": " + processResult.Output + processResult.Error + " (code " + processResult.ExitCode + ", username: " + mUsername + ", password: ********     ").Substring(0, 5) + "..." + ")");
+                            throw new Exception("Error mounting FilesystemSmb //" + mHost + "/" + mShare + " on " + mPath + ": " + processResult.Output + processResult.Error + " (code " + processResult.ExitCode + ", username: " + mUsername + ", password: ********)");
                         }
                     }
                 } else {
@@ -65,7 +65,7 @@ namespace DProjects.Fs {
                         if (!string.IsNullOrEmpty(StringUtils.GetConnectionStringVariable(arguments, "password"))) {
                             cmdToLog = cmdToLog.Replace(StringUtils.GetConnectionStringVariable(arguments, "password"), "******");
                         }
-                        throw new Exception("Error mounting FilesystemSmb //" + mHost + "/" + mShare + " on " + mPath + ": " + processResult.Output + processResult.Error + " (code " + processResult.ExitCode + ", cmd: mount " + cmdToLog + ", username: " + mUsername + ", password: ********     ").Substring(0, 5) + "..." + ")");
+                        throw new Exception("Error mounting FilesystemSmb //" + mHost + "/" + mShare + " on " + mPath + ": " + processResult.Output + processResult.Error + " (code " + processResult.ExitCode + ", cmd: mount " + cmdToLog + ", username: " + mUsername + ", password: ********)");
                     }
                 }
             });

@@ -25,20 +25,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <Compile Remove="LogEntryReaderAuto.cs" />
-      <Compile Remove="LogEntryReaderClassic.cs" />
-      <Compile Remove="LogEntryReaderCsv.cs" />
-      <Compile Remove="LogEntryReaderDirTail.cs" />
-      <Compile Remove="LogEntryReaderFiles.cs" />
-      <Compile Remove="LogEntryReaderFilter.cs" />
-      <Compile Remove="LogEntryReaderFsFileTail.cs" />
-      <Compile Remove="LogEntryReaderJson.cs" />
-      <Compile Remove="LogEntryReaderRat.cs" />
-      <Compile Remove="LogEntryReaderRaw.cs" />
-      <Compile Remove="LogEntryReaderW3C.cs" />
-    </ItemGroup>
-
-    <ItemGroup>
         <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="10.0.11" />
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.11" />
     </ItemGroup>

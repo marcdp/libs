@@ -2,7 +2,6 @@ using DProjects.Utils;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text.Json;
 
 
 namespace DProjects.Log.Storage.Serializers {
@@ -14,6 +13,7 @@ namespace DProjects.Log.Storage.Serializers {
 
         //methods
         public LogEntry Deserialize(string line) {
+            if (line == null) throw new ArgumentNullException(nameof(line));
             try { 
                 var aDate = DateTime.Parse(line.Substring(0, 24)).ToUniversalTime();
                 var i = line.IndexOf("] ");
@@ -63,9 +63,15 @@ namespace DProjects.Log.Storage.Serializers {
                 }
                 message = message.Replace("\\u007C", "|").Replace("\\n", CharUtils.CHAR_LF.ToString()).Replace("\\r", CharUtils.CHAR_CR.ToString()).Replace("\\\\", "\\").TrimEnd();
                 return new LogEntry(logLevel, message, fields, tags.ToArray(), source, user, null, aDate);
-            } catch (Exception e) {
-                throw new Exception("Unable to parse log line: " + e.Message + ": " + line, e);
+            } catch (Exception e) when (!(e is FormatException)) {
+                throw new FormatException("Unable to parse RAT log record " + GetSafeContext(line) + ".", e);
             }
+        }
+
+        // methods (private)
+        private static string GetSafeContext(string line) {
+            const int maxLength = 120;
+            return line.Length <= maxLength ? "'" + line + "'" : "'" + line.Substring(0, maxLength) + "...'";
         }
     }
 
