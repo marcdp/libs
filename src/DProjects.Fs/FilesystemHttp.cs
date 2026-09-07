@@ -191,6 +191,7 @@ namespace DProjects.Fs.Http {
 
         //methods LEVEL 2
         public override async Task<Entry> SaveFileAsync(string path, Stream stream, SaveFileSettings settings, CancellationToken cancellationToken) {
+            EnsureWritable();
             PathUtils.Validate(path);
             if (mMaxFileUploadSize > 0) {
                 long offset = 0;
@@ -239,6 +240,7 @@ namespace DProjects.Fs.Http {
             }
         }
         public override async Task<Entry> CreateDirectoryAsync(string path, CancellationToken cancellationToken) {
+            EnsureWritable();
             PathUtils.Validate(path);
             var httpRequest = CreateHttpRequest(HttpMethod.Put, path, "");
             httpRequest.Content = new StringContent("", System.Text.Encoding.UTF8, MIMETYPE_FS_ENTRY_DIRECTORY);
@@ -258,6 +260,7 @@ namespace DProjects.Fs.Http {
             }
         }
         public override async Task DeleteAsync(string path, CancellationToken cancellationToken) {
+            EnsureWritable();
             PathUtils.Validate(path);
             var httpRequest = CreateHttpRequest(HttpMethod.Delete, path, "");
             SignRequest(httpRequest);
@@ -272,6 +275,7 @@ namespace DProjects.Fs.Http {
             }
         }
         public override async Task TouchAsync(string path, DateTime aDate, CancellationToken cancellationToken) {
+            EnsureWritable();
             PathUtils.Validate(path);
             var httpRequest = CreateHttpRequest(new HttpMethod("PATCH"), path, "");
             var data = new Dictionary<string, object?>();
@@ -298,6 +302,7 @@ namespace DProjects.Fs.Http {
 
         //method LEVEL 3
         public override async Task DeleteFileAsync(string path, CancellationToken cancellationToken) {
+            EnsureWritable();
             PathUtils.Validate(path);
             var httpRequest = CreateHttpRequest(HttpMethod.Delete, path, "");
             httpRequest.Headers.Add(HEADER_FS_IF_ENTRY_FILE, "file");
@@ -313,6 +318,7 @@ namespace DProjects.Fs.Http {
             }
         }
         public override async Task DeleteDirectoryAsync(string path, CancellationToken cancellationToken) {
+            EnsureWritable();
             PathUtils.Validate(path);
             var httpRequest = CreateHttpRequest(HttpMethod.Delete, path, "");
             httpRequest.Headers.Add(HEADER_FS_IF_ENTRY_FILE, "dir");
@@ -328,6 +334,7 @@ namespace DProjects.Fs.Http {
             }
         }
         public override async Task CopyAsync(string source, string destination, CopySettings settings, ILogger<IFilesystem> logger, CancellationToken cancellationToken) {
+            EnsureWritable();
             PathUtils.Validate(source);
             PathUtils.Validate(destination);
             var httpRequest = CreateHttpRequest(HttpMethod.Put, destination, "");
@@ -348,6 +355,7 @@ namespace DProjects.Fs.Http {
             }
         }
         public override async Task MoveAsync(string source, string destination, MoveSettings settings, ILogger<IFilesystem> logger, CancellationToken cancellationToken) {
+            EnsureWritable();
             PathUtils.Validate(source);
             PathUtils.Validate(destination);
             var httpRequest = CreateHttpRequest(HttpMethod.Put, destination, "");
@@ -365,6 +373,7 @@ namespace DProjects.Fs.Http {
             }
         }
         public override async Task SyncAsync(string source, string destination, SyncSettings syncSettings, ILogger<IFilesystem> logger, CancellationToken cancellationToken) {
+            EnsureWritable();
             PathUtils.Validate(source);
             PathUtils.Validate(destination);
             var httpRequest = CreateHttpRequest(HttpMethod.Put, destination, "");
@@ -408,6 +417,7 @@ namespace DProjects.Fs.Http {
 
         }
         public override async Task SetMetadataAsync(string path, IDictionary<string, string> metadata, CancellationToken cancellationToken) {
+            EnsureWritable();
             PathUtils.Validate(path);
             var httpRequest = CreateHttpRequest(new HttpMethod("PATCH"), path, "");
             var patchRequest = new PatchRequest();
@@ -443,6 +453,9 @@ namespace DProjects.Fs.Http {
 
 
         //utils
+        private void EnsureWritable() {
+            if (IsReadonly) throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
+        }
         private HttpRequestMessage CreateHttpRequest(HttpMethod method, string path, string querystring) {
             var aux = PathUtils.Combine(mUrl.AbsolutePath, PathUtils.GetPathURLEncoded(path)) + (querystring.Length > 0 ? "?" + querystring : "");
             Uri requestUri = new Uri(aux, UriKind.Relative);

@@ -192,11 +192,13 @@ namespace DProjects.Fs {
             return await mountPoint.Filesystem.LoadReadStreamAsync(PathUtils.Combine(mountPoint.Prefix, path), settings, cancellationToken);
         }
         public override System.IO.Stream LoadWriteStream(string path, LoadWriteStreamSettings settings) {
+            EnsureWritable();
             var mountPoint = GetMountPoint(ref path);
             if (mountPoint == null) throw new Exception("Mount point not found: " + path);
             return mountPoint.Filesystem.LoadWriteStream(PathUtils.Combine(mountPoint.Prefix, path), settings);
         }
         public override async Task<Stream> LoadWriteStreamAsync(string path, LoadWriteStreamSettings settings, CancellationToken cancellationToken) {
+            EnsureWritable();
             var mountPoint = GetMountPoint(ref path);
             if (mountPoint == null) throw new Exception("Mount point not found: " + path);
             return await mountPoint.Filesystem.LoadWriteStreamAsync(PathUtils.Combine(mountPoint.Prefix, path), settings, cancellationToken);
@@ -224,6 +226,7 @@ namespace DProjects.Fs {
             return await mountPoint.Filesystem.ExistsFileAsync(PathUtils.Combine(mountPoint.Prefix, path), cancellationToken);
         }
         public override Entry SaveFile(string path, Stream stream, SaveFileSettings settings) {
+            EnsureWritable();
             var mountPoint = GetMountPoint(ref path);
             if (mountPoint == null) throw new Exception("Mount point not found: " + path);
             var entry = mountPoint.Filesystem.SaveFile(PathUtils.Combine(mountPoint.Prefix, path), stream, settings);
@@ -231,6 +234,7 @@ namespace DProjects.Fs {
             return PrefixPathEntry(mountPoint, entry);
         }
         public override async Task<Entry> SaveFileAsync(string path, Stream stream, SaveFileSettings settings, CancellationToken cancellationToken = default) {
+            EnsureWritable();
             var mountPoint = GetMountPoint(ref path);
             if (mountPoint == null) throw new Exception("Mount point not found: " + path);
             var entry = await mountPoint.Filesystem.SaveFileAsync(PathUtils.Combine(mountPoint.Prefix, path), stream, settings, cancellationToken);
@@ -238,6 +242,7 @@ namespace DProjects.Fs {
             return PrefixPathEntry(mountPoint, entry);
         }
         public override Entry CreateDirectory(string path) {
+            EnsureWritable();
             var mountPoint = GetMountPoint(ref path);
             if (mountPoint == null) throw new Exception("Mount point not found: " + path);
             var entry = mountPoint.Filesystem.CreateDirectory(PathUtils.Combine(mountPoint.Prefix, path));
@@ -245,6 +250,7 @@ namespace DProjects.Fs {
             return PrefixPathEntry(mountPoint, entry);
         }
         public override async Task<Entry> CreateDirectoryAsync(string path, CancellationToken cancellationToken) {
+            EnsureWritable();
             var mountPoint = GetMountPoint(ref path);
             if (mountPoint == null) throw new Exception("Mount point not found: " + path);
             var entry = await mountPoint.Filesystem.CreateDirectoryAsync(PathUtils.Combine(mountPoint.Prefix, path), cancellationToken);
@@ -252,21 +258,25 @@ namespace DProjects.Fs {
             return PrefixPathEntry(mountPoint, entry);
         }
         public override void Delete(string path) {
+            EnsureWritable();
             var mountPoint = GetMountPoint(ref path);
             if (mountPoint == null) throw new Exception("Mount point not found: " + path);
             mountPoint.Filesystem.Delete(PathUtils.Combine(mountPoint.Prefix, path));
         }
         public override async Task DeleteAsync(string path, CancellationToken cancellationToken) {
+            EnsureWritable();
             var mountPoint = GetMountPoint(ref path);
             if (mountPoint == null) throw new Exception("Mount point not found: " + path);
             await mountPoint.Filesystem.DeleteAsync(PathUtils.Combine(mountPoint.Prefix, path), cancellationToken);
         }
         public override void Touch(string path, DateTime aDate) {
+            EnsureWritable();
             var mountPoint = GetMountPoint(ref path);
             if (mountPoint == null) throw new Exception("Mount point not found: " + path);
             mountPoint.Filesystem.Touch(PathUtils.Combine(mountPoint.Prefix, path), aDate);
         }
         public override async Task TouchAsync(string path, DateTime aDate, CancellationToken cancellationToken) {
+            EnsureWritable();
             var mountPoint = GetMountPoint(ref path);
             if (mountPoint == null) throw new Exception("Mount point not found: " + path);
             await mountPoint.Filesystem.TouchAsync(PathUtils.Combine(mountPoint.Prefix, path), aDate, cancellationToken);
@@ -275,26 +285,31 @@ namespace DProjects.Fs {
 
         //methods LEVEL 3
         public override void DeleteFile(string path) {
+            EnsureWritable();
             var mountPoint = GetMountPoint(ref path);
             if (mountPoint == null) throw new Exception("Mount point not found: " + path);
             mountPoint.Filesystem.DeleteFile(PathUtils.Combine(mountPoint.Prefix, path));
         }
         public override async Task DeleteFileAsync(string path, CancellationToken cancellationToken) {
+            EnsureWritable();
             var mountPoint = GetMountPoint(ref path);
             if (mountPoint == null) throw new Exception("Mount point not found: " + path);
             await mountPoint.Filesystem.DeleteFileAsync(PathUtils.Combine(mountPoint.Prefix, path), cancellationToken);
         }
         public override void DeleteDirectory(string path) {
+            EnsureWritable();
             var mountPoint = GetMountPoint(ref path);
             if (mountPoint == null) throw new Exception("Mount point not found: " + path);
             mountPoint.Filesystem.DeleteDirectory(PathUtils.Combine(mountPoint.Prefix, path));
         }
         public override async Task DeleteDirectoryAsync(string path, CancellationToken cancellationToken) {
+            EnsureWritable();
             var mountPoint = GetMountPoint(ref path);
             if (mountPoint == null) throw new Exception("Mount point not found: " + path);
             await mountPoint.Filesystem.DeleteDirectoryAsync(PathUtils.Combine(mountPoint.Prefix, path), cancellationToken);
         }
         public override void Copy(string source, string destination, CopySettings settings, ILogger<IFilesystem> logger) {
+            EnsureWritable();
             string sourcePath = "" + source;
             string destinationPath = "" + destination;
             var mountPointA = GetMountPoint(ref sourcePath);
@@ -308,6 +323,7 @@ namespace DProjects.Fs {
             }
         }
         public override async Task CopyAsync(string source, string destination, CopySettings settings, ILogger<IFilesystem> logger, CancellationToken cancellationToken) {
+            EnsureWritable();
             string sourcePath = "" + source;
             string destinationPath = "" + destination;
             var mountPointA = GetMountPoint(ref sourcePath);
@@ -321,6 +337,7 @@ namespace DProjects.Fs {
             }
         }
         public override void Move(string source, string destination, MoveSettings settings, ILogger<IFilesystem> logger) {
+            EnsureWritable();
             string sourcePath = "" + source;
             string destinationPath = "" + destination;
             var mountPointA = GetMountPoint(ref sourcePath);
@@ -334,6 +351,7 @@ namespace DProjects.Fs {
             }
         }
         public override async Task MoveAsync(string source, string destination, MoveSettings settings, ILogger<IFilesystem> logger, CancellationToken cancellationToken) {
+            EnsureWritable();
             string sourcePath = "" + source;
             string destinationPath = "" + destination;
             var mountPointA = GetMountPoint(ref sourcePath);
@@ -347,6 +365,7 @@ namespace DProjects.Fs {
             }
         }
         public override void Sync(string source, string destination, SyncSettings syncSettings, ILogger<IFilesystem> logger) {
+            EnsureWritable();
             string sourcePath = "" + source;
             string destinationPath = "" + destination;
             var mountPointA = GetMountPoint(ref sourcePath);
@@ -354,13 +373,13 @@ namespace DProjects.Fs {
             if (mountPointA == null) throw new Exception("Mount point not found: " + sourcePath);
             if (mountPointB == null) throw new Exception("Mount point not found: " + destinationPath);
             if (mountPointA == mountPointB) {
-                mountPointA.Filesystem.Sync(mountPointA.Prefix + sourcePath, mountPointA.Prefix + destinationPath, syncSettings, logger);
                 mountPointA.Filesystem.Sync(PathUtils.Combine(mountPointA.Prefix, sourcePath), PathUtils.Combine(mountPointA.Prefix, destinationPath), syncSettings, logger);
             } else {
                 base.Sync(source, destination, syncSettings, logger);
             }
         }
         public override async Task SyncAsync(string source, string destination, SyncSettings syncSettings, ILogger<IFilesystem> logger, CancellationToken cancellationToken) {
+            EnsureWritable();
             string sourcePath = "" + source;
             string destinationPath = "" + destination;
             var mountPointA = GetMountPoint(ref sourcePath);
@@ -368,7 +387,6 @@ namespace DProjects.Fs {
             if (mountPointA == null) throw new Exception("Mount point not found: " + sourcePath);
             if (mountPointB == null) throw new Exception("Mount point not found: " + destinationPath);
             if (mountPointA == mountPointB) {
-                await mountPointA.Filesystem.SyncAsync(mountPointA.Prefix + sourcePath, mountPointA.Prefix + destinationPath, syncSettings, logger, cancellationToken);
                 await mountPointA.Filesystem.SyncAsync(PathUtils.Combine(mountPointA.Prefix, sourcePath), PathUtils.Combine(mountPointA.Prefix, destinationPath), syncSettings, logger, cancellationToken);
             } else {
                 await base.SyncAsync(source, destination, syncSettings, logger, cancellationToken);
@@ -397,11 +415,13 @@ namespace DProjects.Fs {
             return await mountPoint.Filesystem.GetMetadataAsync(PathUtils.Combine(mountPoint.Prefix, path), cancellationToken);
         }
         public override void SetMetadata(string path, IDictionary<string, string> metadata) {
+            EnsureWritable();
             var mountPoint = GetMountPoint(ref path);
             if (mountPoint == null) throw new Exception("Mount point not found: " + path);
             mountPoint.Filesystem.SetMetadata(PathUtils.Combine(mountPoint.Prefix, path), metadata);
         }
         public override async Task SetMetadataAsync(string path, IDictionary<string, string> metadata, CancellationToken cancellationToken) {
+            EnsureWritable();
             var mountPoint = GetMountPoint(ref path);
             if (mountPoint == null) throw new Exception("Mount point not found: " + path);
             await mountPoint.Filesystem.SetMetadataAsync(PathUtils.Combine(mountPoint.Prefix, path), metadata, cancellationToken);
@@ -522,6 +542,9 @@ namespace DProjects.Fs {
         }
         public MountPoint[] GetMountPoints() {
             return mMountPoints.ToArray();
+        }
+        private void EnsureWritable() {
+            if (IsReadonly) throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
         }
 
 

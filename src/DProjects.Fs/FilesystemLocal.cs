@@ -298,9 +298,23 @@ namespace DProjects.Fs {
             while (path.StartsWith("\\") || path.StartsWith("/")) {
                 path = path.Substring(1);
             }
-            path = (path.Length == 0 ? mPath : System.IO.Path.Combine(mPath, (prefix.StartsWith("/") ? prefix.Substring(1) : ""), path));
-            if (!FileUtils.GetFileIsDescendantFromDirectory(path, mPath)) path = mPath;
-            return path;
+            var prefixPath = prefix.StartsWith("/") ? prefix.Substring(1) : prefix;
+            var nativePath = System.IO.Path.GetFullPath(
+                path.Length == 0
+                    ? System.IO.Path.Combine(mPath, prefixPath)
+                    : System.IO.Path.Combine(mPath, prefixPath, path));
+            var comparison = System.IO.Path.DirectorySeparatorChar == '\\'
+                ? StringComparison.OrdinalIgnoreCase
+                : StringComparison.Ordinal;
+            var rootPath = System.IO.Path.GetFullPath(mPath);
+            var rootPathWithSeparator = rootPath.EndsWith(System.IO.Path.DirectorySeparatorChar.ToString())
+                ? rootPath
+                : rootPath + System.IO.Path.DirectorySeparatorChar;
+            if (!nativePath.Equals(rootPath, comparison) &&
+                !nativePath.StartsWith(rootPathWithSeparator, comparison)) {
+                throw new ArgumentException("Path escapes the filesystem root: " + path, nameof(path));
+            }
+            return nativePath;
         }
 
     }

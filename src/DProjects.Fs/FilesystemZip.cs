@@ -41,7 +41,7 @@ namespace DProjects.Fs {
                 }
             }
             if (IsReadonly) {
-                mZipArchive = new ZipArchive(mFilesystem.LoadWriteStream(mPath, new()), ZipArchiveMode.Read, false, mEncoding);
+                mZipArchive = new ZipArchive(mFilesystem.LoadReadStream(mPath, new()), ZipArchiveMode.Read, false, mEncoding);
             } else {
                 mZipArchive = new ZipArchive(mFilesystem.LoadWriteStream(mPath, new()), ZipArchiveMode.Update, false, mEncoding);
             }
@@ -57,7 +57,7 @@ namespace DProjects.Fs {
         //properties
         public override string Url {
             get {
-                return "zip:" + mFilesystem.ToString() + (mPath.Equals("/") ? "" : mPath);
+                return "zip:" + mFilesystem.Url + (mPath.Equals("/") ? "" : mPath);
             }
         }
 
@@ -133,6 +133,7 @@ namespace DProjects.Fs {
             }
         }
         public override Stream LoadWriteStream(string path, LoadWriteStreamSettings settings) {
+            if (IsReadonly) throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
             mReaderWriterLock.EnterWriteLock();
             try {
                 var zipPath = path.Substring(1);
@@ -240,14 +241,18 @@ namespace DProjects.Fs {
             //touch
             mReaderWriterLock.EnterWriteLock();
             try {
-                var zipPath = path.Substring(1);
+                var entry = GetEntryRaw(path);
+                if (entry == null) throw new Exception("Unable to touch: path not found: " + path);
+                var zipPath = path.Substring(1) + (entry.IsDirectory() ? "/" : "");
                 var zipEntry = mZipArchive.GetEntry(zipPath);
-                if (zipEntry == null) {
-                    zipPath = zipPath.Substring(1);
-                    zipEntry = mZipArchive.GetEntry(zipPath);
-                    if (zipEntry == null) throw new Exception("Unable to load stream: path not found: " + path);
-                }
+                if (zipEntry == null) throw new Exception("Unable to touch: path not found: " + path);
                 zipEntry.LastWriteTime = aDate;
+                for (var i = 0; i < mEntries.Count; i++) {
+                    if (mEntries[i].Path.Equals(path)) {
+                        mEntries[i] = new Entry(path, entry.EntryType, entry.Created, zipEntry.LastWriteTime.DateTime, entry.Length, entry.Etag, entry.Flags);
+                        break;
+                    }
+                }
             } finally {
                 mReaderWriterLock.ExitWriteLock();
             }

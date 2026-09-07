@@ -327,7 +327,7 @@ namespace DProjects.Fs {
             try {
                 var entry = mEntry.GetEntry(path);
                 if (entry == null) throw new Exception("Unable to get metadata: path not found: " + path);
-                return entry.Metadata;
+                return new Dictionary<string, string>(entry.Metadata);
             } finally {
                 mReaderWriterLock.ExitReadLock();
             }
