@@ -11,7 +11,17 @@ namespace DProjects.Db.Oracle {
         
         //constructor
         public DBConnectionOracle(string name, string connectionString) : base(name, connectionString, new client.OracleConnection(connectionString)) {
-            this.mAvoidParametrizedQueries = true;
+        }
+        public override string GetSqlParameterPrefix() {
+            return ":";
+        }
+
+        // methods (private)
+        protected override string GetSqlParameterName(int index) {
+            return "__p" + index;
+        }
+        protected override string GetSqlParameterPlaceholder(int index) {
+            return ":" + GetSqlParameterName(index);
         }
 
         //DDL 

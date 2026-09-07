@@ -11,7 +11,6 @@ namespace DProjects.Db.SqlServer {
         
         //constructor
         public DBConnectionSqlServer(string name, string connectionString) : base(name, connectionString, new Microsoft.Data.SqlClient.SqlConnection(connectionString)) {
-            this.mAvoidParametrizedQueries = true;
         }
 
         //DDL 

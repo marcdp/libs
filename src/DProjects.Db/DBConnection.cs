@@ -12,7 +12,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using DProjects.Log;
 using Microsoft.Extensions.Logging;
-using System.Linq;
 
 namespace DProjects.Db {
 
@@ -31,8 +30,9 @@ namespace DProjects.Db {
         protected readonly Type? mConnectionType;
         protected System.Data.Common.DbConnection mConnection;
         protected int mCommandTimeout;
-        protected Stack<System.Data.Common.DbTransaction> mTransactions;
+        protected System.Data.Common.DbTransaction? mTransaction;
         protected bool mIsDisposed;
+        [Obsolete("Literal-substitution execution is no longer supported. Use ParseStatement for diagnostic rendering.")]
         protected bool mAvoidParametrizedQueries;
         protected bool mAvoidInitializeDBTableFromDataReader;
         protected Dictionary<string, DbCommand>? mCachedCommands;
@@ -43,7 +43,6 @@ namespace DProjects.Db {
             mName = name;
             mConnectionString = connectionString;
             mCommandTimeout = 0;
-            mTransactions = new Stack<System.Data.Common.DbTransaction>();
             mIsDisposed = false;
             mConnection = connection;
         }
@@ -51,13 +50,15 @@ namespace DProjects.Db {
             if (mIsDisposed) return;
             mIsDisposed = true;
             Exception? disposalException = null;
-            // dispose tracked transactions without committing them
-            while (mTransactions.Count > 0) {
-                var transaction = mTransactions.Pop();
+            // dispose the active transaction without committing it
+            if (mTransaction != null) {
+                var transaction = mTransaction;
                 try {
                     transaction.Dispose();
                 } catch (Exception exception) {
                     disposalException = disposalException ?? exception;
+                } finally {
+                    mTransaction = null;
                 }
             }
             // dispose commands owned by the connection wrapper
@@ -127,10 +128,8 @@ namespace DProjects.Db {
             if (mConnection.State != System.Data.ConnectionState.Closed) mConnection.Close();
         }
         public string ParseStatement(string sql, object?[]? parameters = null) {
-            var command = CreateCommand(sql, parameters);
-            var result = command.CommandText;
-            command.Dispose();
-            return result;
+            ThrowIfDisposed();
+            return CreateCommandText(sql, parameters);
         }
         public System.Data.Common.DbCommand CreateCommand() {
             if (!IsOpen) Open();
@@ -144,14 +143,10 @@ namespace DProjects.Db {
             if (!IsOpen) Open();
             var command = Connection.CreateCommand();
             try {
-                if (mAvoidParametrizedQueries) {
-                    command.CommandText = CreateCommandText(sql, parameters);
-                } else {
-                    command.CommandText = CreateCommandTextWithParameters(command, sql, parameters);
-                }
+                command.CommandText = CreateCommandTextWithParameters(command, sql, parameters);
                 if (mCommandTimeout != 0) command.CommandTimeout = mCommandTimeout;
                 command.CommandType = System.Data.CommandType.Text;
-                if (mTransactions.Count > 0) command.Transaction = mTransactions.Peek();
+                command.Transaction = mTransaction;
                 return command;
             } catch {
                 command.Dispose();
@@ -162,12 +157,8 @@ namespace DProjects.Db {
             if (!IsOpen) await OpenAsync(cancellationToken);
             var command = Connection.CreateCommand();
             try {
-                if (mAvoidParametrizedQueries) {
-                    command.CommandText = CreateCommandText(sql, parameters);
-                } else {
-                    command.CommandText = CreateCommandTextWithParameters(command, sql, parameters);
-                }
-                if (mTransactions.Count > 0) command.Transaction = mTransactions.Peek();
+                command.CommandText = CreateCommandTextWithParameters(command, sql, parameters);
+                command.Transaction = mTransaction;
                 command.CommandType = System.Data.CommandType.Text;
                 if (mCommandTimeout != 0) command.CommandTimeout = mCommandTimeout;
                 return command;
@@ -221,7 +212,6 @@ namespace DProjects.Db {
             try {
                 command.CommandText = sql;
                 if (parameters != null && parameters.Length > 0) {
-                    var parameterPrefix = GetSqlParameterPrefix();
                     var sb = new StringBuilder();
                     j = 0;
                     k = 0;
@@ -229,14 +219,14 @@ namespace DProjects.Db {
                         k = sql.IndexOf('?', j);
                         if (k == -1) throw new Exception("Error parsing sql statement: too many parameters");
                         sb.Append(sql.Substring(j, k - j));
-                        sb.Append(parameterPrefix + (command.Parameters.Count));
+                        sb.Append(GetSqlParameterPlaceholder(command.Parameters.Count));
                         j = k + 1;
                         var dbParameter = command.CreateParameter();
-                        dbParameter.ParameterName = parameterPrefix + (command.Parameters.Count);
+                        dbParameter.ParameterName = GetSqlParameterName(command.Parameters.Count);
                         if (parameter == null) {
                             dbParameter.Value = DBNull.Value;
                         } else {
-                            dbParameter.Value = parameter;
+                            dbParameter.Value = GetDbParameterValue(parameter);
                             var dbType = GetDbType(parameter);
                             if (dbType != System.Data.DbType.Object) dbParameter.DbType = dbType;
                         }
@@ -268,7 +258,7 @@ namespace DProjects.Db {
             if (value is bool) return System.Data.DbType.Boolean;
             if (value is Currency) return System.Data.DbType.Currency;
             if (value is DateTime) return System.Data.DbType.DateTime;
-            if (value is DateTime) return System.Data.DbType.Date;
+            if (value is DateTimeOffset) return System.Data.DbType.DateTimeOffset;
             if (value is decimal) return System.Data.DbType.Decimal;
             if (value is double) return System.Data.DbType.Double;
             if (value is Guid) return System.Data.DbType.Guid;
@@ -287,7 +277,6 @@ namespace DProjects.Db {
             if (value is char) return System.Data.DbType.StringFixedLength;
             if (value is System.Xml.XmlDocument) return System.Data.DbType.Xml;
             //if (value is ) return System.Data.DbType.DateTime2;
-            //if (value is ) return System.Data.DbType.DateTimeOffset;
             if (value is byte[]) return System.Data.DbType.Binary;
             return System.Data.DbType.Object;
         }
@@ -415,6 +404,7 @@ namespace DProjects.Db {
                 return await DBTable.FromDBReaderAsync(dbReaderAsync, cancellationToken);
             }
         }
+        [Obsolete("Command caching is a legacy optimization. Use ExecuteNonQueryAsync instead.")]
         public async Task<long> ExecuteNonQueryCommandAsync(string sql, object?[]? parameters = null, CancellationToken cancellationToken = default) {
             if (!IsOpen) await OpenAsync(cancellationToken);
             if (mCachedCommands == null) {
@@ -422,25 +412,21 @@ namespace DProjects.Db {
             }
             if (!mCachedCommands.TryGetValue(sql, out var command)) {
                 command = Connection.CreateCommand();
-                CreateCommandTextWithParameters(command, sql, parameters);
-                mCachedCommands[sql] = command;
-            }
-            if (parameters != null) {
-                for (int i = 0; i < parameters.Length; i++) {
-                    var param = command.Parameters[i] as DbParameter;
-                    var parameter = parameters[i];
-                    if (param != null) {
-                        if (parameter is Timestamp ts) {
-                            param.Value = ts.UnixMs;
-                        } else {
-                            param.Value = parameter ?? DBNull.Value;
-                        }
-                    }
+                try {
+                    CreateCommandTextWithParameters(command, sql, parameters);
+                    command.CommandType = System.Data.CommandType.Text;
+                    if (mCommandTimeout != 0) command.CommandTimeout = mCommandTimeout;
+                    mCachedCommands[sql] = command;
+                } catch {
+                    command.Dispose();
+                    throw;
                 }
             }
-            command.Transaction = mTransactions.FirstOrDefault();
+            UpdateCachedCommand(command, sql, parameters);
+            command.Transaction = mTransaction;
             return await command.ExecuteNonQueryAsync(cancellationToken);
         }
+        [Obsolete("Command caching is a legacy optimization. Use ExecuteNonQuery instead.")]
         public long ExecuteNonQueryCommand(string sql, object?[]? parameters = null) {
             if (!IsOpen) Open();
             if (mCachedCommands == null) {
@@ -448,23 +434,18 @@ namespace DProjects.Db {
             }
             if (!mCachedCommands.TryGetValue(sql, out var command)) {
                 command = Connection.CreateCommand();
-                CreateCommandTextWithParameters(command, sql, parameters);
-                mCachedCommands[sql] = command;
-            }
-            if (parameters != null) {
-                for (int i = 0; i < parameters.Length; i++) {
-                    var param = command.Parameters[i] as DbParameter;
-                    var parameter = parameters[i];
-                    if (param != null) {
-                        if (parameter is Timestamp ts) {
-                            param.Value = ts.UnixMs;
-                        } else {
-                            param.Value = parameter ?? DBNull.Value;
-                        }
-                    }
+                try {
+                    CreateCommandTextWithParameters(command, sql, parameters);
+                    command.CommandType = System.Data.CommandType.Text;
+                    if (mCommandTimeout != 0) command.CommandTimeout = mCommandTimeout;
+                    mCachedCommands[sql] = command;
+                } catch {
+                    command.Dispose();
+                    throw;
                 }
             }
-            command.Transaction = mTransactions.FirstOrDefault();
+            UpdateCachedCommand(command, sql, parameters);
+            command.Transaction = mTransaction;
             return command.ExecuteNonQuery();
         }
         public virtual long ExecuteIdentity() {
@@ -475,15 +456,17 @@ namespace DProjects.Db {
         }
         public virtual void BeginTrans() {
             ThrowIfDisposed();
-            mTransactions.Push(Connection.BeginTransaction());
+            if (mTransaction != null) throw new InvalidOperationException("A transaction is already active.");
+            if (!IsOpen) Open();
+            mTransaction = Connection.BeginTransaction();
         }
         public virtual void CommitTrans() {
             ThrowIfDisposed();
-            mTransactions.Pop().Commit();
+            CompleteTransaction(transaction => transaction.Commit(), "No transaction is active to commit.");
         }
         public virtual void RollBackTrans() {
             ThrowIfDisposed();
-            mTransactions.Pop().Rollback();
+            CompleteTransaction(transaction => transaction.Rollback(), "No transaction is active to roll back.");
         }
         #endregion
 
@@ -799,7 +782,7 @@ namespace DProjects.Db {
 
         //sequences
         public virtual string[] GetSequenceNames() {
-            return [];
+            throw new NotSupportedException("Sequence enumeration is not supported by this database connection.");
         }
         public virtual DBSchemaSequence GetSequenceSchema(string name) {
             throw new NotSupportedException("Sequence schema retrieval is not supported by this database connection.");
@@ -833,7 +816,7 @@ namespace DProjects.Db {
 
         //procedures
         public virtual string[] GetProcedureNames() {
-            return [];
+            throw new NotSupportedException("Procedure enumeration is not supported by this database connection.");
         }
         public virtual string GetProcedure(string name) {
             throw new NotSupportedException("Procedure retrieval is not supported by this database connection.");
@@ -1341,10 +1324,14 @@ namespace DProjects.Db {
                 return DBSchemaDataType.Varbinary;
             } else if (type == typeof(DateTime)) {
                 return DBSchemaDataType.DateTime;
+            } else if (type == typeof(DateTimeOffset)) {
+                return DBSchemaDataType.DateTime;
             } else if (type == typeof(Guid)) {
                 return DBSchemaDataType.UniqueIdentifier;
             } else if (type == typeof(Timestamp)) {
                 return DBSchemaDataType.Bigint;
+            } else if (type == typeof(TimeSpan)) {
+                return DBSchemaDataType.Time;
             } else if (Nullable.GetUnderlyingType(type) != null) {
                 return GetDataTypeFromNetDataTypeName(Nullable.GetUnderlyingType(type), length, precision, scale);
             } else if (type.IsEnum) {
@@ -1615,6 +1602,43 @@ namespace DProjects.Db {
         }
 
         // methods (private)
+        protected virtual string GetSqlParameterName(int index) {
+            return GetSqlParameterPrefix() + index;
+        }
+        protected virtual string GetSqlParameterPlaceholder(int index) {
+            return GetSqlParameterName(index);
+        }
+        private static object GetDbParameterValue(object value) {
+            if (value == DBNull.Value) return DBNull.Value;
+            if (value is Timestamp timestamp) return timestamp.UnixMs;
+            return value;
+        }
+        private void UpdateCachedCommand(DbCommand command, string sql, object?[]? parameters) {
+            ValidateParameterCount(sql, parameters);
+            var parameterCount = parameters?.Length ?? 0;
+            if (command.Parameters.Count != parameterCount) throw new ArgumentException($"Cached command contains {command.Parameters.Count} parameters but {parameterCount} parameters were provided.", nameof(parameters));
+            for (var index = 0; index < parameterCount; index++) {
+                var parameter = (DbParameter)command.Parameters[index];
+                var value = parameters![index];
+                parameter.Value = value == null ? DBNull.Value : GetDbParameterValue(value);
+                if (value != null && value != DBNull.Value) {
+                    var dbType = GetDbType(value);
+                    if (dbType != System.Data.DbType.Object) parameter.DbType = dbType;
+                }
+            }
+        }
+        private void CompleteTransaction(Action<DbTransaction> operation, string missingTransactionMessage) {
+            var transaction = mTransaction ?? throw new InvalidOperationException(missingTransactionMessage);
+            try {
+                operation(transaction);
+            } finally {
+                mTransaction = null;
+                if (mCachedCommands != null) {
+                    foreach (var command in mCachedCommands.Values) command.Transaction = null;
+                }
+                transaction.Dispose();
+            }
+        }
         private void ThrowIfDisposed() {
             if (mIsDisposed) throw new ObjectDisposedException(GetType().FullName);
         }

@@ -70,7 +70,7 @@ namespace DProjects.Db.Schema {
             } else if (dbSchemaDataType == DBSchemaDataType.Time) {
                 return typeof(System.TimeSpan);
             } else if (dbSchemaDataType == DBSchemaDataType.Timestamp) {
-                return typeof(System.TimeSpan);
+                return typeof(System.DateTime);
             } else if (dbSchemaDataType == DBSchemaDataType.Interval) {
                 return typeof(string);
             } else if (dbSchemaDataType == DBSchemaDataType.UniqueIdentifier) {

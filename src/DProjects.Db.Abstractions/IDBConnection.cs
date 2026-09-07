@@ -33,7 +33,9 @@ namespace DProjects.Db {
         long ExecuteNonQuery(string sql, object?[]? parameters = null);
         Task<long> ExecuteNonQueryAsync(string sql, object?[]? parameters = null, CancellationToken cancellationToken = default);
 
+        [Obsolete("Command caching is a legacy optimization. Use ExecuteNonQueryAsync instead.")]
         Task<long> ExecuteNonQueryCommandAsync(string sql, object?[]? parameters = null, CancellationToken cancellationToken = default);
+        [Obsolete("Command caching is a legacy optimization. Use ExecuteNonQuery instead.")]
         long ExecuteNonQueryCommand(string sql, object?[]? parameters = null);
 
         T ExecuteScalar<T>(string sql, object?[]? parameters = null);

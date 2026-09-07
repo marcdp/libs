@@ -12,7 +12,19 @@ namespace DProjects.Db.Postgresql {
         
         //constructor
         public DBConnectionPostgresql(string name, string connectionString) : base(name, connectionString, new Npgsql.NpgsqlConnection(connectionString)) {
-            this.mAvoidParametrizedQueries = true;
+        }
+
+        // methods
+        public override string GetSqlParameterPrefix() {
+            return "$";
+        }
+
+        // methods (private)
+        protected override string GetSqlParameterName(int index) {
+            return string.Empty;
+        }
+        protected override string GetSqlParameterPlaceholder(int index) {
+            return "$" + (index + 1);
         }
 
         ////DDL 
@@ -37,7 +49,7 @@ namespace DProjects.Db.Postgresql {
             if (dataTypeName.Equals("float", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Double.ToString();
             if (dataTypeName.Equals("real", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Float.ToString();
             if (dataTypeName.Equals("character varying", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Varchar.ToString();
-            if (dataTypeName.Equals("timestamp without time zone", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Timestamp.ToString();
+            if (dataTypeName.Equals("timestamp without time zone", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.DateTime.ToString();
             if (dataTypeName.Equals("json", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Json.ToString();
             if (dataTypeName.Equals("jsonb", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Jsonb.ToString();
             if (dataTypeName.Equals("integer", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Int.ToString();

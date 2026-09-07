@@ -16,7 +16,6 @@ namespace DProjects.Db.Sqlite {
         
         //constructor
         public DBConnectionSqlite(string name, string connectionString) : base(name, connectionString, new Microsoft.Data.Sqlite.SqliteConnection(connectionString)) {
-            this.mAvoidParametrizedQueries = false;
             this.mAvoidInitializeDBTableFromDataReader = true;
         }
 

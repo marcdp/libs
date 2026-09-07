@@ -4,27 +4,150 @@ using System.Data;
 using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
 
+#pragma warning disable CS0618 // cached-command compatibility tests intentionally exercise the obsolete API
+
 namespace DProjects.Db.Tests {
 
     public class DBConnectionHardeningTests {
 
         // tests
         [Fact]
-        public void ParseStatement_ShouldValidatePlaceholderCountForBothCommandModes() {
+        public void ParseStatement_ShouldRenderValuesAndValidatePlaceholderCount() {
             using var connection = new TestDBConnection();
-            Assert.Equal("SELECT @__p0, @__p1", connection.ParseStatement("SELECT ?, ?", [1, 2]));
-            Assert.Throws<ArgumentException>(() => connection.ParseStatement("SELECT ?, ?", [1]));
-            Assert.Throws<ArgumentException>(() => connection.ParseStatement("SELECT ?", [1, 2]));
-            connection.AvoidParametrizedQueries = true;
+            Assert.Equal("SELECT 1, 2", connection.ParseStatement("SELECT ?, ?", [1, 2]));
             Assert.Throws<ArgumentException>(() => connection.ParseStatement("SELECT ?, ?", [1]));
             Assert.Throws<ArgumentException>(() => connection.ParseStatement("SELECT ?", [1, 2]));
         }
         [Fact]
         public void ParseStatement_ShouldEncodeLiteralValues() {
-            using var connection = new TestDBConnection() { AvoidParametrizedQueries = true };
+            using var connection = new TestDBConnection();
             Assert.Equal("SELECT NULL", connection.ParseStatement("SELECT ?", [null]));
             Assert.Equal("SELECT NULL", connection.ParseStatement("SELECT ?", [DBNull.Value]));
             Assert.Equal("SELECT 'hello'''", connection.ParseStatement("SELECT ?", ["hello'"]));
+        }
+        [Fact]
+        public void Execution_ShouldUseNativeParametersInsteadOfRenderedLiterals() {
+            using var connection = new TestDBConnection();
+
+            Assert.Equal(1, connection.ExecuteScalar<int>("SELECT ?", [123]));
+
+            var command = connection.FakeConnection.LastCommand!;
+            Assert.Equal("SELECT @__p0", command.CommandText);
+            Assert.Single(command.Parameters.Cast<DbParameter>());
+            Assert.Equal(123, command.Parameters[0].Value);
+        }
+        [Fact]
+        public void Execution_ShouldBindSupportedValuesAndNormalizeNullAndProjectTimestamp() {
+            using var connection = new TestDBConnection();
+            var timestamp = new DProjects.DataTypes.Timestamp(123456789);
+            var values = new object?[] { null, DBNull.Value, "hello'", 1, 2L, 3.5m, 4.5d, true, Guid.Empty, DateTime.UnixEpoch, DateTimeOffset.UnixEpoch, TimeSpan.FromSeconds(1), new byte[] { 1, 2 }, timestamp };
+
+            Assert.Equal(1, connection.ExecuteScalar<int>("SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?", values));
+
+            var command = connection.FakeConnection.LastCommand!;
+            Assert.Equal(values.Length, command.Parameters.Count);
+            Assert.Equal(DBNull.Value, command.Parameters[0].Value);
+            Assert.Equal(DBNull.Value, command.Parameters[1].Value);
+            Assert.Equal("hello'", command.Parameters[2].Value);
+            Assert.Equal(timestamp.UnixMs, command.Parameters[13].Value);
+            Assert.DoesNotContain("hello'", command.CommandText);
+        }
+        [Fact]
+        public void BeginTrans_OnClosedConnectionAutoOpensAndNestedBeginFails() {
+            using var connection = new TestDBConnection();
+
+            connection.BeginTrans();
+
+            Assert.Equal(ConnectionState.Open, connection.FakeConnection.State);
+            Assert.Equal(1, connection.FakeConnection.OpenCallCount);
+            Assert.Throws<InvalidOperationException>(() => connection.BeginTrans());
+        }
+        [Fact]
+        public void CommandsUseActiveTransactionAndConnectionRemainsUsableAfterCommit() {
+            using var connection = new TestDBConnection();
+            connection.BeginTrans();
+            var transaction = connection.FakeConnection.LastTransaction!;
+
+            Assert.Equal(1, connection.ExecuteScalar<int>("SELECT 1"));
+            Assert.Same(transaction, connection.FakeConnection.LastCommand!.Transaction);
+
+            connection.CommitTrans();
+
+            Assert.True(transaction.WasCommitted);
+            Assert.Equal(1, transaction.DisposeCallCount);
+            Assert.Equal(1, connection.ExecuteScalar<int>("SELECT 1"));
+            Assert.Null(connection.FakeConnection.LastCommand!.Transaction);
+        }
+        [Fact]
+        public void RollBackTrans_RollsBackDisposesAndClearsTransaction() {
+            using var connection = new TestDBConnection();
+            connection.BeginTrans();
+            var transaction = connection.FakeConnection.LastTransaction!;
+
+            connection.RollBackTrans();
+
+            Assert.True(transaction.WasRolledBack);
+            Assert.Equal(1, transaction.DisposeCallCount);
+            Assert.Throws<InvalidOperationException>(() => connection.RollBackTrans());
+        }
+        [Fact]
+        public void TransactionCompletionWithoutActiveTransactionFailsExplicitly() {
+            using var connection = new TestDBConnection();
+
+            Assert.Throws<InvalidOperationException>(() => connection.CommitTrans());
+            Assert.Throws<InvalidOperationException>(() => connection.RollBackTrans());
+        }
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void TransactionCompletionFailureStillDisposesAndClearsTransaction(bool commit) {
+            using var connection = new TestDBConnection();
+            connection.BeginTrans();
+            var transaction = connection.FakeConnection.LastTransaction!;
+            transaction.ThrowOnCommit = commit;
+            transaction.ThrowOnRollback = !commit;
+
+            Assert.Throws<InvalidOperationException>(() => {
+                if (commit) connection.CommitTrans(); else connection.RollBackTrans();
+            });
+
+            Assert.Equal(1, transaction.DisposeCallCount);
+            connection.BeginTrans();
+        }
+        [Fact]
+        public void CachedCommand_ValidatesShapeRefreshesValuesAndCurrentTransaction() {
+            using var connection = new TestDBConnection();
+            Assert.Equal(1, connection.ExecuteNonQueryCommand("SELECT ?, ?", [1, "A"]));
+            var command = connection.FakeConnection.LastCommand!;
+
+            Assert.Throws<ArgumentException>(() => connection.ExecuteNonQueryCommand("SELECT ?, ?", [2]));
+            Assert.Equal("A", command.Parameters[1].Value);
+
+            command.Parameters.Clear();
+            Assert.Throws<ArgumentException>(() => connection.ExecuteNonQueryCommand("SELECT ?, ?", [2, "B"]));
+            command.Parameters.Add(new FakeDbParameter());
+            command.Parameters.Add(new FakeDbParameter());
+
+            connection.BeginTrans();
+            var transaction = connection.FakeConnection.LastTransaction!;
+            Assert.Equal(1, connection.ExecuteNonQueryCommand("SELECT ?, ?", [2, null]));
+            Assert.Equal(2, command.Parameters[0].Value);
+            Assert.Equal(DBNull.Value, command.Parameters[1].Value);
+            Assert.Same(transaction, command.Transaction);
+
+            connection.CommitTrans();
+            Assert.Null(command.Transaction);
+            Assert.Equal(1, connection.ExecuteNonQueryCommand("SELECT ?, ?", [3, "B"]));
+            Assert.Null(command.Transaction);
+        }
+        [Fact]
+        public async Task CachedCommandAsync_ForwardsCancellationToken() {
+            using var connection = new TestDBConnection();
+            var cancellationToken = TestContext.Current.CancellationToken;
+
+            await Assert.ThrowsAsync<OperationCanceledException>(() => connection.ExecuteNonQueryCommandAsync("SELECT ?", [1], cancellationToken));
+
+            Assert.Equal(cancellationToken, connection.FakeConnection.LastCommand!.CancellationToken);
         }
         [Theory]
         [InlineData(CommandOperation.NonQuery)]
@@ -282,6 +405,8 @@ namespace DProjects.Db.Tests {
         public void UnsupportedOperations_ShouldUseSpecificExceptions() {
             using var connection = new TestDBConnection();
             Assert.Throws<NotSupportedException>(() => connection.GetTableNames());
+            Assert.Throws<NotSupportedException>(() => connection.GetSequenceNames());
+            Assert.Throws<NotSupportedException>(() => connection.GetProcedureNames());
             Assert.Throws<NotSupportedException>(() => connection.BackupDb());
             Assert.Throws<NotSupportedException>(() => connection.GetDataTypeFromSqlDataTypeName("unsupported", 0, 0, 0));
             Assert.Throws<NotSupportedException>(() => connection.GetDataTypeFromNetDataTypeName(typeof(Version)));
@@ -289,6 +414,32 @@ namespace DProjects.Db.Tests {
             Assert.Throws<NotSupportedException>(() => new DBTable().Select("id = 1"));
             Assert.Throws<ArgumentOutOfRangeException>(() => ((DBSchemaDataType)int.MaxValue).GetNetDataType());
             Assert.Throws<ArgumentOutOfRangeException>(() => ((DBSchemaDataType)int.MaxValue).GetDbType());
+        }
+        [Fact]
+        public void ImplementedEmptyCapabilityCanBeDistinguishedFromUnsupportedCapability() {
+            using var unsupported = new TestDBConnection();
+            using var implemented = new EmptyCapabilityDBConnection();
+
+            Assert.Throws<NotSupportedException>(() => unsupported.GetSequenceNames());
+            Assert.Empty(implemented.GetSequenceNames());
+        }
+        [Fact]
+        public void TypeMappings_AreSemanticallyConsistent() {
+            using var connection = new TestDBConnection();
+
+            Assert.Equal(typeof(DateTime), DBSchemaDataType.Timestamp.GetNetDataType());
+            Assert.Equal(DbType.DateTime, DBSchemaDataType.Timestamp.GetDbType());
+            Assert.Equal(DBSchemaDataType.Varchar, connection.GetDataTypeFromNetDataTypeName(typeof(string)));
+            Assert.Equal(DBSchemaDataType.Boolean, connection.GetDataTypeFromNetDataTypeName(typeof(bool)));
+            Assert.Equal(DBSchemaDataType.Int, connection.GetDataTypeFromNetDataTypeName(typeof(int)));
+            Assert.Equal(DBSchemaDataType.Bigint, connection.GetDataTypeFromNetDataTypeName(typeof(long)));
+            Assert.Equal(DBSchemaDataType.Decimal, connection.GetDataTypeFromNetDataTypeName(typeof(decimal)));
+            Assert.Equal(DBSchemaDataType.UniqueIdentifier, connection.GetDataTypeFromNetDataTypeName(typeof(Guid)));
+            Assert.Equal(DBSchemaDataType.DateTime, connection.GetDataTypeFromNetDataTypeName(typeof(DateTime)));
+            Assert.Equal(DBSchemaDataType.DateTime, connection.GetDataTypeFromNetDataTypeName(typeof(DateTimeOffset)));
+            Assert.Equal(DBSchemaDataType.Varbinary, connection.GetDataTypeFromNetDataTypeName(typeof(byte[])));
+            Assert.Equal(DBSchemaDataType.Bigint, connection.GetDataTypeFromNetDataTypeName(typeof(DProjects.DataTypes.Timestamp)));
+            Assert.Equal(DBSchemaDataType.Time, connection.GetDataTypeFromNetDataTypeName(typeof(TimeSpan)));
         }
 
         public enum CommandOperation {
@@ -304,13 +455,9 @@ namespace DProjects.Db.Tests {
             DbDataReaderAsync
         }
 
-        private sealed class TestDBConnection : DBConnection {
+        private class TestDBConnection : DBConnection {
 
             // props
-            public bool AvoidParametrizedQueries {
-                get => mAvoidParametrizedQueries;
-                set => mAvoidParametrizedQueries = value;
-            }
             public bool AvoidInitializeDBTableFromDataReader {
                 get => mAvoidInitializeDBTableFromDataReader;
                 set => mAvoidInitializeDBTableFromDataReader = value;
@@ -319,6 +466,14 @@ namespace DProjects.Db.Tests {
 
             // ctor
             public TestDBConnection() : base("test", "test", new FakeDbConnection()) {
+            }
+        }
+
+        private sealed class EmptyCapabilityDBConnection : TestDBConnection {
+
+            // methods
+            public override string[] GetSequenceNames() {
+                return [];
             }
         }
 
@@ -384,6 +539,9 @@ namespace DProjects.Db.Tests {
             public int DisposeCallCount { get; private set; }
             public override IsolationLevel IsolationLevel => mIsolationLevel;
             public bool WasCommitted { get; private set; }
+            public bool WasRolledBack { get; private set; }
+            public bool ThrowOnCommit { get; set; }
+            public bool ThrowOnRollback { get; set; }
             protected override DbConnection DbConnection => mConnection;
 
             // ctor
@@ -394,9 +552,12 @@ namespace DProjects.Db.Tests {
 
             // methods
             public override void Commit() {
+                if (ThrowOnCommit) throw new InvalidOperationException("commit failed");
                 WasCommitted = true;
             }
             public override void Rollback() {
+                if (ThrowOnRollback) throw new InvalidOperationException("rollback failed");
+                WasRolledBack = true;
             }
 
             // methods (private)
@@ -669,3 +830,5 @@ namespace DProjects.Db.Tests {
         }
     }
 }
+
+#pragma warning restore CS0618
