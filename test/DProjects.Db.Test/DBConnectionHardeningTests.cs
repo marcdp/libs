@@ -4,8 +4,6 @@ using System.Data;
 using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
 
-#pragma warning disable CS0618 // cached-command compatibility tests intentionally exercise the obsolete API
-
 namespace DProjects.Db.Tests {
 
     public class DBConnectionHardeningTests {
@@ -113,41 +111,6 @@ namespace DProjects.Db.Tests {
 
             Assert.Equal(1, transaction.DisposeCallCount);
             connection.BeginTrans();
-        }
-        [Fact]
-        public void CachedCommand_ValidatesShapeRefreshesValuesAndCurrentTransaction() {
-            using var connection = new TestDBConnection();
-            Assert.Equal(1, connection.ExecuteNonQueryCommand("SELECT ?, ?", [1, "A"]));
-            var command = connection.FakeConnection.LastCommand!;
-
-            Assert.Throws<ArgumentException>(() => connection.ExecuteNonQueryCommand("SELECT ?, ?", [2]));
-            Assert.Equal("A", command.Parameters[1].Value);
-
-            command.Parameters.Clear();
-            Assert.Throws<ArgumentException>(() => connection.ExecuteNonQueryCommand("SELECT ?, ?", [2, "B"]));
-            command.Parameters.Add(new FakeDbParameter());
-            command.Parameters.Add(new FakeDbParameter());
-
-            connection.BeginTrans();
-            var transaction = connection.FakeConnection.LastTransaction!;
-            Assert.Equal(1, connection.ExecuteNonQueryCommand("SELECT ?, ?", [2, null]));
-            Assert.Equal(2, command.Parameters[0].Value);
-            Assert.Equal(DBNull.Value, command.Parameters[1].Value);
-            Assert.Same(transaction, command.Transaction);
-
-            connection.CommitTrans();
-            Assert.Null(command.Transaction);
-            Assert.Equal(1, connection.ExecuteNonQueryCommand("SELECT ?, ?", [3, "B"]));
-            Assert.Null(command.Transaction);
-        }
-        [Fact]
-        public async Task CachedCommandAsync_ForwardsCancellationToken() {
-            using var connection = new TestDBConnection();
-            var cancellationToken = TestContext.Current.CancellationToken;
-
-            await Assert.ThrowsAsync<OperationCanceledException>(() => connection.ExecuteNonQueryCommandAsync("SELECT ?", [1], cancellationToken));
-
-            Assert.Equal(cancellationToken, connection.FakeConnection.LastCommand!.CancellationToken);
         }
         [Theory]
         [InlineData(CommandOperation.NonQuery)]
@@ -382,24 +345,6 @@ namespace DProjects.Db.Tests {
             Assert.Equal(1, transaction.DisposeCallCount);
             Assert.False(transaction.WasCommitted);
             Assert.Equal(1, physicalConnection.DisposeCallCount);
-        }
-        [Fact]
-        public void CachedCommand_SurvivesCloseAndIsDisposedWithWrapper() {
-            var connection = new TestDBConnection();
-            var physicalConnection = connection.FakeConnection;
-            connection.Open();
-            Assert.Equal(1, connection.ExecuteNonQueryCommand("SELECT 1"));
-            var command = physicalConnection.LastCommand!;
-
-            connection.Close();
-            Assert.False(command.IsDisposed);
-            Assert.Equal(1, connection.ExecuteNonQueryCommand("SELECT 1"));
-            Assert.Same(command, physicalConnection.LastCommand);
-            Assert.Equal(ConnectionState.Open, physicalConnection.State);
-            Assert.Equal(2, physicalConnection.OpenCallCount);
-
-            connection.Dispose();
-            Assert.True(command.IsDisposed);
         }
         [Fact]
         public void UnsupportedOperations_ShouldUseSpecificExceptions() {
@@ -830,5 +775,3 @@ namespace DProjects.Db.Tests {
         }
     }
 }
-
-#pragma warning restore CS0618

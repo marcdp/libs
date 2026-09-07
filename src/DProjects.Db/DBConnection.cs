@@ -35,7 +35,6 @@ namespace DProjects.Db {
         [Obsolete("Literal-substitution execution is no longer supported. Use ParseStatement for diagnostic rendering.")]
         protected bool mAvoidParametrizedQueries;
         protected bool mAvoidInitializeDBTableFromDataReader;
-        protected Dictionary<string, DbCommand>? mCachedCommands;
 
 
         //constructor
@@ -60,17 +59,6 @@ namespace DProjects.Db {
                 } finally {
                     mTransaction = null;
                 }
-            }
-            // dispose commands owned by the connection wrapper
-            if (mCachedCommands != null) {
-                foreach (var cmd in mCachedCommands.Values) {
-                    try {
-                        cmd.Dispose();
-                    } catch (Exception exception) {
-                        disposalException = disposalException ?? exception;
-                    }
-                }
-                mCachedCommands.Clear();
             }
             // close and dispose the physical connection after dependent resources
             try {
@@ -403,50 +391,6 @@ namespace DProjects.Db {
             using (var dbReaderAsync = await ExecuteReaderAsync(sql, parameters, cancellationToken)) {
                 return await DBTable.FromDBReaderAsync(dbReaderAsync, cancellationToken);
             }
-        }
-        [Obsolete("Command caching is a legacy optimization. Use ExecuteNonQueryAsync instead.")]
-        public async Task<long> ExecuteNonQueryCommandAsync(string sql, object?[]? parameters = null, CancellationToken cancellationToken = default) {
-            if (!IsOpen) await OpenAsync(cancellationToken);
-            if (mCachedCommands == null) {
-                mCachedCommands = new();
-            }
-            if (!mCachedCommands.TryGetValue(sql, out var command)) {
-                command = Connection.CreateCommand();
-                try {
-                    CreateCommandTextWithParameters(command, sql, parameters);
-                    command.CommandType = System.Data.CommandType.Text;
-                    if (mCommandTimeout != 0) command.CommandTimeout = mCommandTimeout;
-                    mCachedCommands[sql] = command;
-                } catch {
-                    command.Dispose();
-                    throw;
-                }
-            }
-            UpdateCachedCommand(command, sql, parameters);
-            command.Transaction = mTransaction;
-            return await command.ExecuteNonQueryAsync(cancellationToken);
-        }
-        [Obsolete("Command caching is a legacy optimization. Use ExecuteNonQuery instead.")]
-        public long ExecuteNonQueryCommand(string sql, object?[]? parameters = null) {
-            if (!IsOpen) Open();
-            if (mCachedCommands == null) {
-                mCachedCommands = new();
-            }
-            if (!mCachedCommands.TryGetValue(sql, out var command)) {
-                command = Connection.CreateCommand();
-                try {
-                    CreateCommandTextWithParameters(command, sql, parameters);
-                    command.CommandType = System.Data.CommandType.Text;
-                    if (mCommandTimeout != 0) command.CommandTimeout = mCommandTimeout;
-                    mCachedCommands[sql] = command;
-                } catch {
-                    command.Dispose();
-                    throw;
-                }
-            }
-            UpdateCachedCommand(command, sql, parameters);
-            command.Transaction = mTransaction;
-            return command.ExecuteNonQuery();
         }
         public virtual long ExecuteIdentity() {
             return ExecuteScalar<long>(GetSqlSelectAutoincrement());
@@ -1613,29 +1557,12 @@ namespace DProjects.Db {
             if (value is Timestamp timestamp) return timestamp.UnixMs;
             return value;
         }
-        private void UpdateCachedCommand(DbCommand command, string sql, object?[]? parameters) {
-            ValidateParameterCount(sql, parameters);
-            var parameterCount = parameters?.Length ?? 0;
-            if (command.Parameters.Count != parameterCount) throw new ArgumentException($"Cached command contains {command.Parameters.Count} parameters but {parameterCount} parameters were provided.", nameof(parameters));
-            for (var index = 0; index < parameterCount; index++) {
-                var parameter = (DbParameter)command.Parameters[index];
-                var value = parameters![index];
-                parameter.Value = value == null ? DBNull.Value : GetDbParameterValue(value);
-                if (value != null && value != DBNull.Value) {
-                    var dbType = GetDbType(value);
-                    if (dbType != System.Data.DbType.Object) parameter.DbType = dbType;
-                }
-            }
-        }
         private void CompleteTransaction(Action<DbTransaction> operation, string missingTransactionMessage) {
             var transaction = mTransaction ?? throw new InvalidOperationException(missingTransactionMessage);
             try {
                 operation(transaction);
             } finally {
                 mTransaction = null;
-                if (mCachedCommands != null) {
-                    foreach (var command in mCachedCommands.Values) command.Transaction = null;
-                }
                 transaction.Dispose();
             }
         }
