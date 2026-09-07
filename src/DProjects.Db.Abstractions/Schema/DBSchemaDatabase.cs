@@ -19,6 +19,7 @@ namespace DProjects.Db.Schema {
         public DBSchemaTables Tables { get; set; } = new DBSchemaTables();
         public DBSchemaViews Views { get; set; } = new DBSchemaViews();
         public DBSchemaProcedures Procedures { get; set; } = new DBSchemaProcedures();
+        public DBSchemaFunctions Functions { get; set; } = new DBSchemaFunctions();
         public DBSchemaSequences Sequences { get; set; } = new DBSchemaSequences();
         public DBSchemaScripts Scripts { get; set; } = new DBSchemaScripts { };
 
