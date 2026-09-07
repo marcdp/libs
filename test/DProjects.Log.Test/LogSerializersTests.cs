@@ -20,16 +20,16 @@ namespace DProjects.Log.Tests {
         //tests
         [Theory()]
         [InlineData("json:", """
-            {"timestamp":"*","level":"Information","message":"prefix1This is a message: 1, 2, False, True, hello","source":"source","user":"username1","tags":[[]"tag1","tag2"],"fields":{"a1":1,"a2":2,"a3":false,"a4":true,"a5":"hello","messageOriginal":"This is a message: {a1}, {a2}, {a3}, {a4}, {a5}"}}
-            {"timestamp":"*","level":"Warning","message":"prefix1This is a message: 1, 2, False, True, hello","source":"source","user":"username1","tags":[[]"tag1","tag2"],"fields":{"a1":1,"a2":2,"a3":false,"a4":true,"a5":"hello","messageOriginal":"This is a message: {a1}, {a2}, {a3}, {a4}, {a5}"}}
-            {"timestamp":"*","level":"Error","message":"prefix1This is a message: 1, 2, False, True, hello","source":"source","user":"username1","tags":[[]"tag1","tag2"],"fields":{"a1":1,"a2":2,"a3":false,"a4":true,"a5":"hello","messageOriginal":"This is a message: {a1}, {a2}, {a3}, {a4}, {a5}"}}
-            {"timestamp":"*","level":"Fatal","message":"prefix1This is a message: 1, 2, False, True, hello","source":"source","user":"username1","tags":[[]"tag1","tag2"],"fields":{"a1":1,"a2":2,"a3":false,"a4":true,"a5":"hello","messageOriginal":"This is a message: {a1}, {a2}, {a3}, {a4}, {a5}"}}
+            {"timestamp":"*","level":"Information","message":"prefix1This is a message: 1, 2, False, True, hello","source":"source","user":"username1","tags":[[]"tag1","tag2"],"fields":{"a1":1,"a2":2,"a3":false,"a4":true,"a5":"hello"}}
+            {"timestamp":"*","level":"Warning","message":"prefix1This is a message: 1, 2, False, True, hello","source":"source","user":"username1","tags":[[]"tag1","tag2"],"fields":{"a1":1,"a2":2,"a3":false,"a4":true,"a5":"hello"}}
+            {"timestamp":"*","level":"Error","message":"prefix1This is a message: 1, 2, False, True, hello","source":"source","user":"username1","tags":[[]"tag1","tag2"],"fields":{"a1":1,"a2":2,"a3":false,"a4":true,"a5":"hello"}}
+            {"timestamp":"*","level":"Fatal","message":"prefix1This is a message: 1, 2, False, True, hello","source":"source","user":"username1","tags":[[]"tag1","tag2"],"fields":{"a1":1,"a2":2,"a3":false,"a4":true,"a5":"hello"}}
             """)]
         [InlineData("rat:", """
-            * [[]info|tag1|tag2] prefix1This is a message: 1, 2, False, True, hello | source: source | user: username1 | a1: 1 | a2: 2 | a3: False | a4: True | a5: hello | messageOriginal: This is a message: {a1}, {a2}, {a3}, {a4}, {a5}
-            * [[]warn|tag1|tag2] prefix1This is a message: 1, 2, False, True, hello | source: source | user: username1 | a1: 1 | a2: 2 | a3: False | a4: True | a5: hello | messageOriginal: This is a message: {a1}, {a2}, {a3}, {a4}, {a5}
-            * [[]error|tag1|tag2] prefix1This is a message: 1, 2, False, True, hello | source: source | user: username1 | a1: 1 | a2: 2 | a3: False | a4: True | a5: hello | messageOriginal: This is a message: {a1}, {a2}, {a3}, {a4}, {a5}
-            * [[]fatal|tag1|tag2] prefix1This is a message: 1, 2, False, True, hello | source: source | user: username1 | a1: 1 | a2: 2 | a3: False | a4: True | a5: hello | messageOriginal: This is a message: {a1}, {a2}, {a3}, {a4}, {a5}
+            * [[]info|tag1|tag2] prefix1This is a message: 1, 2, False, True, hello | source: source | user: username1 | a1: 1 | a2: 2 | a3: False | a4: True | a5: hello
+            * [[]warn|tag1|tag2] prefix1This is a message: 1, 2, False, True, hello | source: source | user: username1 | a1: 1 | a2: 2 | a3: False | a4: True | a5: hello
+            * [[]error|tag1|tag2] prefix1This is a message: 1, 2, False, True, hello | source: source | user: username1 | a1: 1 | a2: 2 | a3: False | a4: True | a5: hello
+            * [[]fatal|tag1|tag2] prefix1This is a message: 1, 2, False, True, hello | source: source | user: username1 | a1: 1 | a2: 2 | a3: False | a4: True | a5: hello
             """)]
         [InlineData("raw:", """
             prefix1This is a message: 1, 2, False, True, hello

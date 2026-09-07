@@ -1,7 +1,5 @@
-using DProjects.Utils;
 using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace DProjects.Log {
 
@@ -80,30 +78,12 @@ namespace DProjects.Log {
                 if (fields == null) fields = new Dictionary<string, object?>();
                 foreach (var key in Fields.Keys) fields[key] = Fields[key];
             }
-            if (args.Length> 0) {
+            var parsedMessage = LogMessageTemplate.Parse(message, args);
+            if (parsedMessage.Fields.Count > 0) {
                 if (fields == null) fields = new Dictionary<string, object?>();
-                var sb = new StringBuilder();
-                var argIndex = 0;
-                var iAnt = 0;
-                do {
-                    var i = message.IndexOf("{", iAnt);
-                    if (i == -1) {
-                        sb.Append(message.Substring(iAnt));
-                        break;
-                    }
-                    var j = message.IndexOf("}", i);
-                    if (j == -1) break;
-                    var varName = message.Substring(i + 1, j - i - 1);
-                    var varValue = (argIndex < args.Length ? args[argIndex++] : "{" + varName + "}");
-                    sb.Append(message.Substring(iAnt, i - iAnt));
-                    sb.Append(varValue);
-                    fields[varName] = varValue;
-                    iAnt = j + 1;
-                } while (true);
-                fields["messageOriginal"] = message;
-                message = sb.ToString();  
+                foreach (var field in parsedMessage.Fields) fields[field.Key] = field.Value;
             }
-            return new LogEntry(logLevel, Prefix + message, fields, Tags, Source, User, Resource, now, SpanId, TraceId);
+            return new LogEntry(logLevel, Prefix + parsedMessage.RenderedMessage, fields, Tags, Source, User, Resource, now, SpanId, TraceId);
         }
 
     }
