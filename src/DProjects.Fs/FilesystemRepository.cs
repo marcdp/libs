@@ -20,6 +20,12 @@ namespace DProjects.Fs {
         public interface Repository {
             Task<Entry?> GetByIdAsync(string id, CancellationToken cancellationToken);
             IAsyncEnumerable<Entry> GetByPatternAsync(string? pattern, CancellationToken cancellationToken);
+            /// <summary>
+            /// Creates a filesystem for the specified repository entry.
+            /// The returned filesystem is owned by the caller and may be
+            /// disposed when the operation or returned resource lifetime ends.
+            /// Implementations must not return a shared instance whose lifetime
+            /// is managed elsewhere.
             IFilesystem CreateFilesystem(string id, bool isReadonly);
         }
         public interface RepositoryWritable { 
