@@ -20,11 +20,13 @@ namespace DProjects.Db {
 
 
         //variables
-        private DbDataReader mReader;
-        private bool mLeaveOpen;
+        private readonly DbDataReader mReader;
+        private readonly DbCommand? mCommand;
+        private readonly bool mLeaveOpen;
         private DBTable? mTable;
-        private Settings mSettings;
+        private readonly Settings mSettings;
         private bool mNoResults;
+        private bool mIsDisposed;
 
 
         //constructor
@@ -32,11 +34,21 @@ namespace DProjects.Db {
             if (settings == null) settings = new Settings();
             mReader = reader;
             mLeaveOpen = leaveOpen;
-            mSettings = settings;            
+            mSettings = settings;
+        }
+        public DBReaderDbDataReader(DbDataReader reader, DbCommand command, Settings? settings = null) {
+            if (settings == null) settings = new Settings();
+            mReader = reader;
+            mCommand = command;
+            mSettings = settings;
         }
         public void Dispose() {
-            if (!mLeaveOpen && mReader != null) {
-                mReader.Dispose();
+            if (mIsDisposed) return;
+            mIsDisposed = true;
+            try {
+                if (!mLeaveOpen) mReader.Dispose();
+            } finally {
+                mCommand?.Dispose();
             }
         }
 

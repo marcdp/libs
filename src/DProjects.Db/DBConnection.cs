@@ -110,28 +110,38 @@ namespace DProjects.Db {
         protected virtual System.Data.Common.DbCommand CreateCommand(string sql, object?[]? parameters = null) {
             if (!IsOpen) Open();
             var command = Connection.CreateCommand();
-            if (mAvoidParametrizedQueries) {
-                command.CommandText = CreateCommandText(sql, parameters);
-            } else {
-                command.CommandText = CreateCommandTextWithParameters(command, sql, parameters);
+            try {
+                if (mAvoidParametrizedQueries) {
+                    command.CommandText = CreateCommandText(sql, parameters);
+                } else {
+                    command.CommandText = CreateCommandTextWithParameters(command, sql, parameters);
+                }
+                if (mCommandTimeout != 0) command.CommandTimeout = mCommandTimeout;
+                command.CommandType = System.Data.CommandType.Text;
+                if (mTransactions.Count > 0) command.Transaction = mTransactions.Peek();
+                return command;
+            } catch {
+                command.Dispose();
+                throw;
             }
-            if (mCommandTimeout != 0) command.CommandTimeout = mCommandTimeout;
-            command.CommandType = System.Data.CommandType.Text;
-            if (mTransactions.Count > 0) command.Transaction = mTransactions.Peek();
-            return command;
         }
         protected virtual async Task<System.Data.Common.DbCommand> CreateCommandAsync(string sql, object?[]? parameters = null, CancellationToken cancellationToken = default) {
             if (!IsOpen) await OpenAsync(cancellationToken);
             var command = Connection.CreateCommand();
-            if (mAvoidParametrizedQueries) {
-                command.CommandText = CreateCommandText(sql, parameters);
-            } else {
-                command.CommandText = CreateCommandTextWithParameters(command, sql, parameters);
+            try {
+                if (mAvoidParametrizedQueries) {
+                    command.CommandText = CreateCommandText(sql, parameters);
+                } else {
+                    command.CommandText = CreateCommandTextWithParameters(command, sql, parameters);
+                }
+                if (mTransactions.Count > 0) command.Transaction = mTransactions.Peek();
+                command.CommandType = System.Data.CommandType.Text;
+                if (mCommandTimeout != 0) command.CommandTimeout = mCommandTimeout;
+                return command;
+            } catch {
+                command.Dispose();
+                throw;
             }
-            if (mTransactions.Count > 0) command.Transaction = mTransactions.Peek();
-            command.CommandType = System.Data.CommandType.Text;
-            if (mCommandTimeout != 0) command.CommandTimeout = mCommandTimeout;
-            return command;
         }
         protected string CreateCommandText(string sql, object?[]? parameters = null) {
             ValidateParameterCount(sql, parameters);
@@ -288,43 +298,77 @@ namespace DProjects.Db {
         }
         public virtual IDBReader ExecuteReader(string sql, object?[]? parameters = null) {
             var command = CreateCommand(sql, parameters);
+            DbDataReader? reader = null;
             try {
-                var reader = command.ExecuteReader();
-                return new DBReaderDbDataReader(reader, GetSqlAvoidCloseCommandForDBTable());
+                reader = command.ExecuteReader();
+                return new DBReaderDbDataReader(reader, command, new DBReaderDbDataReader.Settings() { AvoidInitializeDBTableFromDataReader = mAvoidInitializeDBTableFromDataReader });
             } catch (Exception e) {
+                try {
+                    reader?.Dispose();
+                } finally {
+                    command.Dispose();
+                }
                 throw new Exception("Error in DBConnectionData.ExecuteReader(\'" + sql + "\'), " + e.Message, e);
             }
         }
 
         public virtual DbDataReader ExecuteDbDataReader(string sql, object?[]? parameters = null) {
             var command = CreateCommand(sql, parameters);
+            DbDataReader? reader = null;
             try {
-                var reader = command.ExecuteReader();
-                return reader;
+                reader = command.ExecuteReader();
+                return new OwnedDbDataReader(reader, command);
             } catch (Exception e) {
+                try {
+                    reader?.Dispose();
+                } finally {
+                    command.Dispose();
+                }
                 throw new Exception("Error in DBConnectionData.ExecuteReader(\'" + sql + "\'), " + e.Message, e);
             }
         }
         public virtual async Task<DbDataReader> ExecuteDbDataReaderAsync(string sql, object?[]? parameters = null, CancellationToken cancellationToken = default) {
             var command = await CreateCommandAsync(sql, parameters, cancellationToken);
+            DbDataReader? reader = null;
             try {
-                var reader = await command.ExecuteReaderAsync(cancellationToken);
-                return reader;
+                reader = await command.ExecuteReaderAsync(cancellationToken);
+                return new OwnedDbDataReader(reader, command);
             } catch (OperationCanceledException) {
+                try {
+                    reader?.Dispose();
+                } finally {
+                    command.Dispose();
+                }
                 throw;
             } catch (Exception e) {
+                try {
+                    reader?.Dispose();
+                } finally {
+                    command.Dispose();
+                }
                 throw new Exception("Error in DBConnectionData.ExecuteReader(\'" + sql + "\'), " + e.Message, e);
             }
         }
         public virtual async Task<IDBReader> ExecuteReaderAsync(string sql, object?[]? parameters = null, CancellationToken cancellationToken = default) {
             var command = await CreateCommandAsync(sql, parameters, cancellationToken);
+            DbDataReader? reader = null;
             try {
-                var reader = await command.ExecuteReaderAsync(cancellationToken);
-                var result = new DBReaderDbDataReader(reader, false, new DBReaderDbDataReader.Settings() { AvoidInitializeDBTableFromDataReader = mAvoidInitializeDBTableFromDataReader });
+                reader = await command.ExecuteReaderAsync(cancellationToken);
+                var result = new DBReaderDbDataReader(reader, command, new DBReaderDbDataReader.Settings() { AvoidInitializeDBTableFromDataReader = mAvoidInitializeDBTableFromDataReader });
                 return result;
             } catch (OperationCanceledException) {
+                try {
+                    reader?.Dispose();
+                } finally {
+                    command.Dispose();
+                }
                 throw;
             } catch (Exception e) {
+                try {
+                    reader?.Dispose();
+                } finally {
+                    command.Dispose();
+                }
                 throw new Exception("Error in DBConnectionData.ExecuteReader(\'" + sql + "\'), " + e.Message, e);
             }
         }

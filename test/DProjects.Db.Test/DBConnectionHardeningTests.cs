@@ -46,6 +46,122 @@ namespace DProjects.Db.Tests {
                 }
             });
             Assert.Equal(cancellationToken, connection.FakeConnection.LastCommand!.CancellationToken);
+            if (operation == CommandOperation.DbDataReader || operation == CommandOperation.Reader) Assert.True(connection.FakeConnection.LastCommand.IsDisposed);
+        }
+        [Fact]
+        public void ExecuteReader_DisposeOwnsDataReaderAndCommandAndIsRepeatable() {
+            using var connection = new TestDBConnection();
+
+            var reader = connection.ExecuteReader("SELECT 1");
+            var command = connection.FakeConnection.LastCommand!;
+            var dataReader = command.Reader!;
+
+            Assert.False(dataReader.IsDisposed);
+            Assert.False(command.IsDisposed);
+            reader.Dispose();
+            Assert.True(dataReader.IsDisposed);
+            Assert.True(command.IsDisposed);
+            reader.Dispose();
+        }
+        [Fact]
+        public async Task ExecuteReaderAsync_DisposeOwnsDataReaderAndCommand() {
+            using var connection = new TestDBConnection();
+            connection.FakeConnection.CancelReaderExecutionAsync = false;
+
+            var reader = await connection.ExecuteReaderAsync("SELECT 1", cancellationToken: TestContext.Current.CancellationToken);
+            var command = connection.FakeConnection.LastCommand!;
+            var dataReader = command.Reader!;
+
+            Assert.False(dataReader.IsDisposed);
+            Assert.False(command.IsDisposed);
+            reader.Dispose();
+            Assert.True(dataReader.IsDisposed);
+            Assert.True(command.IsDisposed);
+        }
+        [Fact]
+        public void ExecuteDbDataReader_DisposeOwnsUnderlyingReaderAndCommand() {
+            using var connection = new TestDBConnection();
+
+            var reader = connection.ExecuteDbDataReader("SELECT 1");
+            var command = connection.FakeConnection.LastCommand!;
+            var underlyingReader = command.Reader!;
+
+            Assert.False(underlyingReader.IsDisposed);
+            Assert.False(command.IsDisposed);
+            reader.Dispose();
+            Assert.True(underlyingReader.IsDisposed);
+            Assert.True(command.IsDisposed);
+        }
+        [Fact]
+        public async Task ExecuteDbDataReaderAsync_DisposeOwnsUnderlyingReaderAndCommand() {
+            using var connection = new TestDBConnection();
+            connection.FakeConnection.CancelReaderExecutionAsync = false;
+
+            var reader = await connection.ExecuteDbDataReaderAsync("SELECT 1", cancellationToken: TestContext.Current.CancellationToken);
+            var command = connection.FakeConnection.LastCommand!;
+            var underlyingReader = command.Reader!;
+
+            Assert.False(underlyingReader.IsDisposed);
+            Assert.False(command.IsDisposed);
+            await reader.DisposeAsync();
+            Assert.True(underlyingReader.IsDisposed);
+            Assert.True(command.IsDisposed);
+        }
+        [Theory]
+        [InlineData(ReaderOperation.Reader)]
+        [InlineData(ReaderOperation.ReaderAsync)]
+        [InlineData(ReaderOperation.DbDataReader)]
+        [InlineData(ReaderOperation.DbDataReaderAsync)]
+        public async Task ReaderExecutionFailure_DisposesCommand(ReaderOperation operation) {
+            using var connection = new TestDBConnection();
+            connection.FakeConnection.ReaderExecutionException = new InvalidOperationException("reader failed");
+            connection.FakeConnection.CancelReaderExecutionAsync = false;
+
+            if (operation == ReaderOperation.Reader) {
+                Assert.Throws<Exception>(() => connection.ExecuteReader("SELECT 1"));
+            } else if (operation == ReaderOperation.ReaderAsync) {
+                await Assert.ThrowsAsync<Exception>(() => connection.ExecuteReaderAsync("SELECT 1", cancellationToken: TestContext.Current.CancellationToken));
+            } else if (operation == ReaderOperation.DbDataReader) {
+                Assert.Throws<Exception>(() => connection.ExecuteDbDataReader("SELECT 1"));
+            } else {
+                await Assert.ThrowsAsync<Exception>(() => connection.ExecuteDbDataReaderAsync("SELECT 1", cancellationToken: TestContext.Current.CancellationToken));
+            }
+
+            Assert.True(connection.FakeConnection.LastCommand!.IsDisposed);
+        }
+        [Fact]
+        public async Task ReaderCommandConfigurationFailure_DisposesCommandForSyncAndAsyncPaths() {
+            using var connection = new TestDBConnection();
+
+            Assert.Throws<ArgumentException>(() => connection.ExecuteReader("SELECT ?"));
+            Assert.True(connection.FakeConnection.LastCommand!.IsDisposed);
+
+            await Assert.ThrowsAsync<ArgumentException>(() => connection.ExecuteReaderAsync("SELECT ?", cancellationToken: TestContext.Current.CancellationToken));
+            Assert.True(connection.FakeConnection.LastCommand!.IsDisposed);
+        }
+        [Theory]
+        [InlineData(ReaderOperation.Reader)]
+        [InlineData(ReaderOperation.DbDataReader)]
+        public void ReaderDisposalFailure_StillDisposesCommand(ReaderOperation operation) {
+            using var connection = new TestDBConnection();
+            connection.FakeConnection.ThrowOnReaderDispose = true;
+
+            IDisposable reader = operation == ReaderOperation.Reader ? connection.ExecuteReader("SELECT 1") : connection.ExecuteDbDataReader("SELECT 1");
+
+            Assert.Throws<InvalidOperationException>(() => reader.Dispose());
+            Assert.True(connection.FakeConnection.LastCommand!.Reader!.IsDisposed);
+            Assert.True(connection.FakeConnection.LastCommand.IsDisposed);
+        }
+        [Fact]
+        public async Task ExecuteReader_SyncAndAsyncUseEquivalentInitializationSettings() {
+            using var connection = new TestDBConnection() { AvoidInitializeDBTableFromDataReader = true };
+
+            using var syncReader = connection.ExecuteReader("SELECT 1");
+            Assert.Equal("value", syncReader.GetColumns()[0].Name);
+
+            connection.FakeConnection.CancelReaderExecutionAsync = false;
+            using var asyncReader = await connection.ExecuteReaderAsync("SELECT 1", cancellationToken: TestContext.Current.CancellationToken);
+            Assert.Equal("value", asyncReader.GetColumns()[0].Name);
         }
         [Fact]
         public void UnsupportedOperations_ShouldUseSpecificExceptions() {
@@ -66,6 +182,12 @@ namespace DProjects.Db.Tests {
             DbDataReader,
             Reader
         }
+        public enum ReaderOperation {
+            Reader,
+            ReaderAsync,
+            DbDataReader,
+            DbDataReaderAsync
+        }
 
         private sealed class TestDBConnection : DBConnection {
 
@@ -73,6 +195,10 @@ namespace DProjects.Db.Tests {
             public bool AvoidParametrizedQueries {
                 get => mAvoidParametrizedQueries;
                 set => mAvoidParametrizedQueries = value;
+            }
+            public bool AvoidInitializeDBTableFromDataReader {
+                get => mAvoidInitializeDBTableFromDataReader;
+                set => mAvoidInitializeDBTableFromDataReader = value;
             }
             public FakeDbConnection FakeConnection => (FakeDbConnection)Connection;
 
@@ -87,7 +213,10 @@ namespace DProjects.Db.Tests {
             private ConnectionState mState;
 
             // props
+            public bool CancelReaderExecutionAsync { get; set; } = true;
             public FakeDbCommand? LastCommand { get; private set; }
+            public Exception? ReaderExecutionException { get; set; }
+            public bool ThrowOnReaderDispose { get; set; }
             [AllowNull]
             public override string ConnectionString { get; set; } = "";
             public override string Database => "test";
@@ -124,6 +253,8 @@ namespace DProjects.Db.Tests {
 
             // props
             public CancellationToken CancellationToken { get; private set; }
+            public bool IsDisposed { get; private set; }
+            public FakeDbDataReader? Reader { get; private set; }
             [AllowNull]
             public override string CommandText { get; set; } = "";
             public override int CommandTimeout { get; set; }
@@ -164,11 +295,127 @@ namespace DProjects.Db.Tests {
                 return new FakeDbParameter();
             }
             protected override DbDataReader ExecuteDbDataReader(CommandBehavior behavior) {
-                throw new NotSupportedException();
+                if (((FakeDbConnection)mConnection!).ReaderExecutionException is Exception exception) throw exception;
+                Reader = new FakeDbDataReader(((FakeDbConnection)mConnection!).ThrowOnReaderDispose);
+                return Reader;
             }
             protected override Task<DbDataReader> ExecuteDbDataReaderAsync(CommandBehavior behavior, CancellationToken cancellationToken) {
                 CancellationToken = cancellationToken;
-                return Task.FromException<DbDataReader>(new OperationCanceledException(cancellationToken));
+                var connection = (FakeDbConnection)mConnection!;
+                if (connection.ReaderExecutionException is Exception exception) return Task.FromException<DbDataReader>(exception);
+                if (connection.CancelReaderExecutionAsync) return Task.FromException<DbDataReader>(new OperationCanceledException(cancellationToken));
+                Reader = new FakeDbDataReader(connection.ThrowOnReaderDispose);
+                return Task.FromResult<DbDataReader>(Reader);
+            }
+            protected override void Dispose(bool disposing) {
+                IsDisposed = true;
+                base.Dispose(disposing);
+            }
+        }
+
+        private sealed class FakeDbDataReader : DbDataReader {
+
+            // vars
+            private readonly bool mThrowOnDispose;
+
+            // props
+            public override object this[int ordinal] => 1;
+            public override object this[string name] => 1;
+            public override int Depth => 0;
+            public override int FieldCount => 1;
+            public override bool HasRows => true;
+            public override bool IsClosed => IsDisposed;
+            public bool IsDisposed { get; private set; }
+            public override int RecordsAffected => 0;
+
+            // ctor
+            public FakeDbDataReader(bool throwOnDispose) {
+                mThrowOnDispose = throwOnDispose;
+            }
+
+            // methods
+            public override bool GetBoolean(int ordinal) {
+                return true;
+            }
+            public override byte GetByte(int ordinal) {
+                return 1;
+            }
+            public override long GetBytes(int ordinal, long dataOffset, byte[]? buffer, int bufferOffset, int length) {
+                return 0;
+            }
+            public override char GetChar(int ordinal) {
+                return '1';
+            }
+            public override long GetChars(int ordinal, long dataOffset, char[]? buffer, int bufferOffset, int length) {
+                return 0;
+            }
+            public override string GetDataTypeName(int ordinal) {
+                return "Int32";
+            }
+            public override DateTime GetDateTime(int ordinal) {
+                return default;
+            }
+            public override decimal GetDecimal(int ordinal) {
+                return 1;
+            }
+            public override double GetDouble(int ordinal) {
+                return 1;
+            }
+            public override IEnumerator GetEnumerator() {
+                return Array.Empty<object>().GetEnumerator();
+            }
+            public override Type GetFieldType(int ordinal) {
+                return typeof(int);
+            }
+            public override float GetFloat(int ordinal) {
+                return 1;
+            }
+            public override Guid GetGuid(int ordinal) {
+                return Guid.Empty;
+            }
+            public override short GetInt16(int ordinal) {
+                return 1;
+            }
+            public override int GetInt32(int ordinal) {
+                return 1;
+            }
+            public override long GetInt64(int ordinal) {
+                return 1;
+            }
+            public override string GetName(int ordinal) {
+                return "value";
+            }
+            public override int GetOrdinal(string name) {
+                return 0;
+            }
+            public override DataTable? GetSchemaTable() {
+                throw new InvalidOperationException("Schema initialization should be avoided.");
+            }
+            public override string GetString(int ordinal) {
+                return "1";
+            }
+            public override object GetValue(int ordinal) {
+                return 1;
+            }
+            public override int GetValues(object[] values) {
+                values[0] = 1;
+                return 1;
+            }
+            public override bool IsDBNull(int ordinal) {
+                return false;
+            }
+            public override bool NextResult() {
+                return false;
+            }
+            public override bool Read() {
+                return false;
+            }
+
+            // methods (private)
+            protected override void Dispose(bool disposing) {
+                IsDisposed = true;
+                if (mThrowOnDispose) throw new InvalidOperationException("reader dispose failed");
+                base.Dispose(disposing);
             }
         }
 
