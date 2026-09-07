@@ -164,6 +164,121 @@ namespace DProjects.Db.Tests {
             Assert.Equal("value", asyncReader.GetColumns()[0].Name);
         }
         [Fact]
+        public void Open_RepeatedOpenCloseAndReopenFollowLifecycleContract() {
+            using var connection = new TestDBConnection();
+            var physicalConnection = connection.FakeConnection;
+
+            connection.Open();
+            Assert.Equal(ConnectionState.Open, physicalConnection.State);
+            Assert.Equal(1, physicalConnection.OpenCallCount);
+
+            connection.Open();
+            Assert.Equal(1, physicalConnection.OpenCallCount);
+
+            connection.Close();
+            Assert.Equal(ConnectionState.Closed, physicalConnection.State);
+            Assert.Equal(1, physicalConnection.CloseCallCount);
+            Assert.Equal(0, physicalConnection.DisposeCallCount);
+
+            connection.Close();
+            Assert.Equal(1, physicalConnection.CloseCallCount);
+
+            connection.Open();
+            Assert.Equal(ConnectionState.Open, physicalConnection.State);
+            Assert.Equal(2, physicalConnection.OpenCallCount);
+        }
+        [Fact]
+        public void ExecuteAfterClose_AutomaticallyReopensConnection() {
+            using var connection = new TestDBConnection();
+            var physicalConnection = connection.FakeConnection;
+            connection.Open();
+            connection.Close();
+
+            var result = connection.ExecuteScalar<int>("SELECT 1");
+
+            Assert.Equal(1, result);
+            Assert.Equal(ConnectionState.Open, physicalConnection.State);
+            Assert.Equal(2, physicalConnection.OpenCallCount);
+        }
+        [Fact]
+        public void Dispose_IsRepeatableAndDisposesPhysicalConnectionExactlyOnce() {
+            var connection = new TestDBConnection();
+            var physicalConnection = connection.FakeConnection;
+            var disposedEventCount = 0;
+            connection.Disposed += _ => disposedEventCount++;
+            connection.Open();
+
+            connection.Dispose();
+            connection.Dispose();
+
+            Assert.Equal(ConnectionState.Closed, physicalConnection.State);
+            Assert.Equal(1, physicalConnection.CloseCallCount);
+            Assert.Equal(1, physicalConnection.DisposeCallCount);
+            Assert.Equal(1, disposedEventCount);
+        }
+        [Fact]
+        public void CloseAndDispose_AreSafeInEitherOrder() {
+            var closeThenDispose = new TestDBConnection();
+            var firstPhysicalConnection = closeThenDispose.FakeConnection;
+            closeThenDispose.Open();
+            closeThenDispose.Close();
+            closeThenDispose.Dispose();
+            Assert.Equal(1, firstPhysicalConnection.DisposeCallCount);
+
+            var disposeThenClose = new TestDBConnection();
+            var secondPhysicalConnection = disposeThenClose.FakeConnection;
+            disposeThenClose.Open();
+            disposeThenClose.Dispose();
+            disposeThenClose.Close();
+            Assert.Equal(1, secondPhysicalConnection.DisposeCallCount);
+        }
+        [Fact]
+        public void OperationsAfterDispose_ThrowObjectDisposedException() {
+            var connection = new TestDBConnection();
+            connection.Dispose();
+
+            Assert.Throws<ObjectDisposedException>(() => connection.Open());
+            Assert.Throws<ObjectDisposedException>(() => connection.CreateCommand());
+            Assert.Throws<ObjectDisposedException>(() => connection.ExecuteNonQuery("SELECT 1"));
+            Assert.Throws<ObjectDisposedException>(() => connection.ExecuteScalar<int>("SELECT 1"));
+            Assert.Throws<ObjectDisposedException>(() => connection.ExecuteReader("SELECT 1"));
+            Assert.Throws<ObjectDisposedException>(() => connection.BeginTrans());
+            Assert.Throws<ObjectDisposedException>(() => connection.Connection);
+            Assert.Throws<ObjectDisposedException>(() => connection.IsOpen);
+        }
+        [Fact]
+        public void Dispose_WithActiveTransactionDisposesTransactionAndConnection() {
+            var connection = new TestDBConnection();
+            var physicalConnection = connection.FakeConnection;
+            connection.Open();
+            connection.BeginTrans();
+            var transaction = physicalConnection.LastTransaction!;
+
+            connection.Dispose();
+
+            Assert.Equal(1, transaction.DisposeCallCount);
+            Assert.False(transaction.WasCommitted);
+            Assert.Equal(1, physicalConnection.DisposeCallCount);
+        }
+        [Fact]
+        public void CachedCommand_SurvivesCloseAndIsDisposedWithWrapper() {
+            var connection = new TestDBConnection();
+            var physicalConnection = connection.FakeConnection;
+            connection.Open();
+            Assert.Equal(1, connection.ExecuteNonQueryCommand("SELECT 1"));
+            var command = physicalConnection.LastCommand!;
+
+            connection.Close();
+            Assert.False(command.IsDisposed);
+            Assert.Equal(1, connection.ExecuteNonQueryCommand("SELECT 1"));
+            Assert.Same(command, physicalConnection.LastCommand);
+            Assert.Equal(ConnectionState.Open, physicalConnection.State);
+            Assert.Equal(2, physicalConnection.OpenCallCount);
+
+            connection.Dispose();
+            Assert.True(command.IsDisposed);
+        }
+        [Fact]
         public void UnsupportedOperations_ShouldUseSpecificExceptions() {
             using var connection = new TestDBConnection();
             Assert.Throws<NotSupportedException>(() => connection.GetTableNames());
@@ -214,7 +329,11 @@ namespace DProjects.Db.Tests {
 
             // props
             public bool CancelReaderExecutionAsync { get; set; } = true;
+            public int CloseCallCount { get; private set; }
+            public int DisposeCallCount { get; private set; }
             public FakeDbCommand? LastCommand { get; private set; }
+            public FakeDbTransaction? LastTransaction { get; private set; }
+            public int OpenCallCount { get; private set; }
             public Exception? ReaderExecutionException { get; set; }
             public bool ThrowOnReaderDispose { get; set; }
             [AllowNull]
@@ -228,19 +347,62 @@ namespace DProjects.Db.Tests {
             public override void ChangeDatabase(string databaseName) {
             }
             public override void Close() {
+                if (mState == ConnectionState.Closed) throw new InvalidOperationException("connection is already closed");
+                CloseCallCount++;
                 mState = ConnectionState.Closed;
             }
             public override void Open() {
+                if (mState == ConnectionState.Open) throw new InvalidOperationException("connection is already open");
+                OpenCallCount++;
                 mState = ConnectionState.Open;
             }
 
             // methods (private)
             protected override DbTransaction BeginDbTransaction(IsolationLevel isolationLevel) {
-                throw new NotSupportedException();
+                LastTransaction = new FakeDbTransaction(this, isolationLevel);
+                return LastTransaction;
             }
             protected override DbCommand CreateDbCommand() {
                 LastCommand = new FakeDbCommand(this);
                 return LastCommand;
+            }
+            protected override void Dispose(bool disposing) {
+                if (disposing) {
+                    DisposeCallCount++;
+                    mState = ConnectionState.Closed;
+                }
+            }
+        }
+
+        private sealed class FakeDbTransaction : DbTransaction {
+
+            // vars
+            private readonly DbConnection mConnection;
+            private readonly IsolationLevel mIsolationLevel;
+
+            // props
+            public int DisposeCallCount { get; private set; }
+            public override IsolationLevel IsolationLevel => mIsolationLevel;
+            public bool WasCommitted { get; private set; }
+            protected override DbConnection DbConnection => mConnection;
+
+            // ctor
+            public FakeDbTransaction(DbConnection connection, IsolationLevel isolationLevel) {
+                mConnection = connection;
+                mIsolationLevel = isolationLevel;
+            }
+
+            // methods
+            public override void Commit() {
+                WasCommitted = true;
+            }
+            public override void Rollback() {
+            }
+
+            // methods (private)
+            protected override void Dispose(bool disposing) {
+                if (disposing) DisposeCallCount++;
+                base.Dispose(disposing);
             }
         }
 
@@ -274,14 +436,14 @@ namespace DProjects.Db.Tests {
             public override void Cancel() {
             }
             public override int ExecuteNonQuery() {
-                throw new NotSupportedException();
+                return 1;
             }
             public override Task<int> ExecuteNonQueryAsync(CancellationToken cancellationToken) {
                 CancellationToken = cancellationToken;
                 return Task.FromException<int>(new OperationCanceledException(cancellationToken));
             }
             public override object? ExecuteScalar() {
-                throw new NotSupportedException();
+                return 1;
             }
             public override Task<object?> ExecuteScalarAsync(CancellationToken cancellationToken) {
                 CancellationToken = cancellationToken;

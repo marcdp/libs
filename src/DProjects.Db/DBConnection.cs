@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Data.Common;
 using System.Reflection;
+using System.Runtime.ExceptionServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -47,23 +48,46 @@ namespace DProjects.Db {
             mConnection = connection;
         }
         public virtual void Dispose() {
-            if (mTransactions.Count > 0) throw new Exception("There are pending transactions in connection \'" + mName + "\'.");
+            if (mIsDisposed) return;
+            mIsDisposed = true;
+            Exception? disposalException = null;
+            // dispose tracked transactions without committing them
+            while (mTransactions.Count > 0) {
+                var transaction = mTransactions.Pop();
+                try {
+                    transaction.Dispose();
+                } catch (Exception exception) {
+                    disposalException = disposalException ?? exception;
+                }
+            }
+            // dispose commands owned by the connection wrapper
             if (mCachedCommands != null) {
                 foreach (var cmd in mCachedCommands.Values) {
-                    cmd.Dispose();
+                    try {
+                        cmd.Dispose();
+                    } catch (Exception exception) {
+                        disposalException = disposalException ?? exception;
+                    }
                 }
                 mCachedCommands.Clear();
             }
-            if (!mIsDisposed) {
-                mIsDisposed = true;
-                if (mConnection != null) {
-                    var connection = mConnection;
-                    mConnection = null!;
-                    connection.Close();
-                    connection.Dispose();
-                    Disposed?.Invoke(this);                    
-                }
+            // close and dispose the physical connection after dependent resources
+            try {
+                if (mConnection.State != System.Data.ConnectionState.Closed) mConnection.Close();
+            } catch (Exception exception) {
+                disposalException = disposalException ?? exception;
             }
+            try {
+                mConnection.Dispose();
+            } catch (Exception exception) {
+                disposalException = disposalException ?? exception;
+            }
+            try {
+                Disposed?.Invoke(this);
+            } catch (Exception exception) {
+                disposalException = disposalException ?? exception;
+            }
+            if (disposalException != null) ExceptionDispatchInfo.Capture(disposalException).Throw();
         }
 
 
@@ -71,27 +95,36 @@ namespace DProjects.Db {
         public string Name => mName; 
         public string ConnectionString => mConnectionString;
         public int CommandTimeout { get { return mCommandTimeout; } set { mCommandTimeout = value; } }
-        public System.Data.Common.DbConnection Connection => mConnection;
-        public bool IsOpen => (mConnection.State == System.Data.ConnectionState.Open);
+        public System.Data.Common.DbConnection Connection {
+            get {
+                ThrowIfDisposed();
+                return mConnection;
+            }
+        }
+        public bool IsOpen {
+            get {
+                ThrowIfDisposed();
+                return mConnection.State == System.Data.ConnectionState.Open;
+            }
+        }
 
 
         //DML methods
         #region "DML methods"
         public void Open() {
+            ThrowIfDisposed();
             if (mConnection.State == System.Data.ConnectionState.Open) return;
             mConnection.Open();
         }
         public async Task OpenAsync(CancellationToken cancellationToken = default) {
+            ThrowIfDisposed();
             if (mConnection.State == System.Data.ConnectionState.Open) return;
             await mConnection.OpenAsync(cancellationToken!);
 
         }
         public void Close() {
-            var connection = mConnection;
-            if (connection != null) {
-                connection.Close();
-                connection.Dispose();
-            }
+            if (mIsDisposed) return;
+            if (mConnection.State != System.Data.ConnectionState.Closed) mConnection.Close();
         }
         public string ParseStatement(string sql, object?[]? parameters = null) {
             var command = CreateCommand(sql, parameters);
@@ -383,6 +416,7 @@ namespace DProjects.Db {
             }
         }
         public async Task<long> ExecuteNonQueryCommandAsync(string sql, object?[]? parameters = null, CancellationToken cancellationToken = default) {
+            if (!IsOpen) await OpenAsync(cancellationToken);
             if (mCachedCommands == null) {
                 mCachedCommands = new();
             }
@@ -408,6 +442,7 @@ namespace DProjects.Db {
             return await command.ExecuteNonQueryAsync(cancellationToken);
         }
         public long ExecuteNonQueryCommand(string sql, object?[]? parameters = null) {
+            if (!IsOpen) Open();
             if (mCachedCommands == null) {
                 mCachedCommands = new();
             }
@@ -439,12 +474,15 @@ namespace DProjects.Db {
             return await ExecuteScalarAsync<long>(GetSqlSelectAutoincrement(), [], cancellationToken);
         }
         public virtual void BeginTrans() {
+            ThrowIfDisposed();
             mTransactions.Push(Connection.BeginTransaction());
         }
         public virtual void CommitTrans() {
+            ThrowIfDisposed();
             mTransactions.Pop().Commit();
         }
         public virtual void RollBackTrans() {
+            ThrowIfDisposed();
             mTransactions.Pop().Rollback();
         }
         #endregion
@@ -1574,6 +1612,11 @@ namespace DProjects.Db {
             sql.AppendLine("    THROW " + errorCode + ", '" + errorMessage.Replace("'", "''") + "', 0;");
             sql.AppendLine("END;");
             return sql.ToString();
+        }
+
+        // methods (private)
+        private void ThrowIfDisposed() {
+            if (mIsDisposed) throw new ObjectDisposedException(GetType().FullName);
         }
 
         #endregion
