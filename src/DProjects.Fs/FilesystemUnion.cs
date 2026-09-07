@@ -271,7 +271,7 @@ namespace DProjects.Fs {
             var filesystems = mFilesystems;
             for (var i = filesystems.Length - 1; i >= 0; i--) {
                 var filesystem = filesystems[i];
-                if (filesystem.Exists(path)) {
+                if (await filesystem.ExistsAsync(path, cancellationToken)) {
                     await filesystem.TouchAsync(path, aDate, cancellationToken);
                     break;
                 }

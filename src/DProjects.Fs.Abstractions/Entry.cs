@@ -55,7 +55,7 @@ namespace DProjects.Fs {
             return new Entry(path, EntryType, Created, Modified, Length, Etag, Flags);
         }
         public Entry WithLength(long length) {
-            if (Path.Length == length) return this;
+            if (Length == length) return this;
             return new Entry(Path, EntryType, Created, Modified, length, Etag, Flags);
         }
 

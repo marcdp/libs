@@ -45,6 +45,7 @@ namespace DProjects.Fs {
         //variables
         private Entry mRoot;
         private Repository mRepository;
+        private bool mIsDisposed;
 
 
         //constructor
@@ -53,6 +54,9 @@ namespace DProjects.Fs {
             mRoot = new Entry("/", EntryType.Directory, DateTime.Now, DateTime.Now, 0, "", 0);
         }
         public override void Dispose() {
+            if (mIsDisposed) return;
+            mIsDisposed = true;
+            (mRepository as IDisposable)?.Dispose();
             base.Dispose();
         }
 
@@ -110,7 +114,7 @@ namespace DProjects.Fs {
                 var name = PathUtils.GetPathName(PathUtils.GetPathCuttedByLevel(path, 1));
                 var subPath = PathUtils.Combine("/", PathUtils.GetPathCuttedFromLevel(path, 1));
                 var fs = mRepository.CreateFilesystem(name, IsReadonly);
-                await foreach (var entry in fs.GetEntriesAsync(subPath, mode, pattern)) {
+                await foreach (var entry in fs.GetEntriesAsync(subPath, mode, pattern, cancellationToken)) {
                     yield return entry.WithPath(PathUtils.Combine("/", name, entry.Path));
                 }
             }

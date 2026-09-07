@@ -46,7 +46,9 @@ namespace DProjects.Fs.Aws {
             mUploadPartSize = 50 * 1024 * 1024;
             mStartDate = DateTime.Now;
             //http client
-            mHttpClient = new HttpClient(httpClientHandler ?? new HttpClientHandler());
+            mHttpClient = httpClientHandler == null
+                ? new HttpClient(new HttpClientHandler(), true)
+                : new HttpClient(httpClientHandler, false);
             mHttpClient.BaseAddress = new Uri("https://" + bucket + ".s3" + (!string.IsNullOrEmpty(region) ? "-" + region : "") + ".amazonaws.com");
             mHttpClient.Timeout = TimeSpan.FromHours(1);
         }
@@ -61,7 +63,7 @@ namespace DProjects.Fs.Aws {
             get {
                 var query = new List<string>();
                 if (mAutoGzip) query.Add("autogzip=true");
-                return "s3://" + UrlUtils.UrlEncode(mAccessKeyId) + ":" + UrlUtils.UrlEncode(mSecretAccesKey) + "@" + mBucket + ".s3" + (!string.IsNullOrEmpty(mRegion) ? "-" + mRegion : "") + ".amazonaws.com/" + (query.Count > 0 ? "?" + string.Join("&", query.ToArray()) : "");
+                return "s3://" + UrlUtils.UrlEncode(mAccessKeyId) + "@" + mBucket + ".s3" + (!string.IsNullOrEmpty(mRegion) ? "-" + mRegion : "") + ".amazonaws.com/" + (query.Count > 0 ? "?" + string.Join("&", query.ToArray()) : "");
             }
         }
 
@@ -69,6 +71,7 @@ namespace DProjects.Fs.Aws {
         //methods LEVEL 0
         public override async Task<Entry?> GetEntryAsync(string path, CancellationToken cancellationToken) {
             PathUtils.Validate(path);
+            cancellationToken.ThrowIfCancellationRequested();
             if (path.Equals("/")) {
                 DateTime d = mStartDate;
                 return new Entry("/", EntryType.Directory, mStartDate, mStartDate, 0, "", 0);
@@ -76,8 +79,8 @@ namespace DProjects.Fs.Aws {
                 var querystring = "?list-type=2&prefix=" + Utils.UriEncode(mBasePath + path, false).Substring(1) + "&delimiter=/";
                 var httpRequest = CreateHttpRequest(HttpMethod.Get, "/", querystring);
                 SignRequest(httpRequest, "/", querystring);
-                using (var httpResponse = await mHttpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead)) {
-                    var xml = await httpResponse.Content.ReadAsStringAsync();
+                using (var httpResponse = await mHttpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken)) {
+                    var xml = await ReadAsStringAsync(httpResponse.Content, cancellationToken);
                     if (httpResponse.StatusCode != System.Net.HttpStatusCode.OK) {
                         throw new Exception("Unable to get getentry: " + httpResponse.StatusCode);
                     }
@@ -92,6 +95,7 @@ namespace DProjects.Fs.Aws {
                         var xmlNodeContents = xmlDocumentElement.SelectNodes("//s3:Contents", xlNamespaceManager);
                         if (xmlNodeContents != null) {
                             foreach (XmlNode? xmlNode in xmlNodeContents) {
+                                cancellationToken.ThrowIfCancellationRequested();
                                 if (xmlNode != null) {
                                     var entry = CreateEntryFromXmlNode(xmlNode, xlNamespaceManager);
                                     if (entry.Path.Equals(path)) return entry;
@@ -101,6 +105,7 @@ namespace DProjects.Fs.Aws {
                         var xmlCommonPrefixes = xmlDocumentElement.SelectNodes("//s3:CommonPrefixes", xlNamespaceManager);
                         if (xmlCommonPrefixes != null) {
                             foreach (XmlNode? xmlNode in xmlCommonPrefixes) {
+                                cancellationToken.ThrowIfCancellationRequested();
                                 if (xmlNode != null) {
                                     var entry = CreateEntryFromXmlNode(xmlNode, xlNamespaceManager);
                                     if (entry.Path.Equals(path)) return entry;
@@ -114,6 +119,7 @@ namespace DProjects.Fs.Aws {
         }
         public override async IAsyncEnumerable<Entry> GetEntriesAsync(string path, GetModes mode = GetModes.All, string? pattern = null, [EnumeratorCancellation] CancellationToken cancellationToken = default) {
             PathUtils.Validate(path);
+            cancellationToken.ThrowIfCancellationRequested();
             var querystring = "";
             if (mode == GetModes.All) {
                 querystring = "?list-type=2&prefix=" + Utils.UriEncode(mBasePath + path, false).Substring(1) + (path.Length > 1 ? "/" : "") + "&delimiter=/";
@@ -130,8 +136,8 @@ namespace DProjects.Fs.Aws {
                 var queryParamContinuationToken = (nextContinuationToken != null ? "&continuation-token=" + Utils.UriEncode(nextContinuationToken, false) : "");
                 var httpRequest = CreateHttpRequest(HttpMethod.Get, "/", querystring + queryParamContinuationToken);
                 SignRequest(httpRequest, "/", querystring + queryParamContinuationToken);
-                using (var httpResponse = await mHttpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead)) {
-                    var xml = await httpResponse.Content.ReadAsStringAsync();
+                using (var httpResponse = await mHttpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken)) {
+                    var xml = await ReadAsStringAsync(httpResponse.Content, cancellationToken);
                     var aux = httpResponse.Headers.GetValues("x-amz-bucket-region");
                     if (httpResponse.StatusCode != System.Net.HttpStatusCode.OK) {
                         throw new Exception("Unable to get entries: " + httpResponse.StatusCode);
@@ -152,6 +158,7 @@ namespace DProjects.Fs.Aws {
                         var xmlNodeContents = xmlDocumentElement.SelectNodes("//s3:Contents", xlNamespaceManager);
                         if (xmlNodeContents != null) {
                             foreach (XmlNode? xmlNode in xmlNodeContents) {
+                                cancellationToken.ThrowIfCancellationRequested();
                                 if (xmlNode != null) {
                                     var entry = CreateEntryFromXmlNode(xmlNode, xlNamespaceManager);
                                     if (!entry.Path.Equals(path)) {
@@ -163,6 +170,7 @@ namespace DProjects.Fs.Aws {
                         var xmlCommonPrefixes = xmlDocumentElement.SelectNodes("//s3:CommonPrefixes", xlNamespaceManager);
                         if (xmlCommonPrefixes != null) {
                             foreach (XmlNode? xmlNode in xmlCommonPrefixes) {
+                                cancellationToken.ThrowIfCancellationRequested();
                                 if (xmlNode != null) {
                                     var entry = CreateEntryFromXmlNode(xmlNode, xlNamespaceManager);
                                     if (!entry.Path.Equals(path)) {
@@ -176,6 +184,7 @@ namespace DProjects.Fs.Aws {
             } while (nextContinuationToken != null);
             all.Sort(new EntryComparer());
             foreach (var entry in all) {
+                cancellationToken.ThrowIfCancellationRequested();
                 var isValid = false;
                 if (entry.IsFile() && (mode == GetModes.All || mode == GetModes.Files || mode == GetModes.Descendants)) isValid = true;
                 if (entry.IsDirectory() && (mode == GetModes.All || mode == GetModes.Directories || mode == GetModes.Descendants)) isValid = true;
@@ -197,6 +206,7 @@ namespace DProjects.Fs.Aws {
         }
         public override async Task<Stream> LoadReadStreamAsync(string path, LoadReadStreamSettings? settings = null, CancellationToken cancellationToken = default) {
             PathUtils.Validate(path);
+            cancellationToken.ThrowIfCancellationRequested();
             var gzipped = (mAutoGzip && MimeTypeUtils.IsCompressible(MimeTypeUtils.GetMimeType(path)));
             var httpRequest = CreateHttpRequest(HttpMethod.Get, mBasePath + path, "");
             if (!gzipped && settings != null && (settings.Offset != 0 || settings.Length != -1)) {
@@ -207,23 +217,28 @@ namespace DProjects.Fs.Aws {
                 }
             }
             SignRequest(httpRequest, mBasePath + path, "");
-            var httpResponse = await mHttpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead);
+            var httpResponse = await mHttpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
             if (httpResponse.StatusCode != System.Net.HttpStatusCode.OK && httpResponse.StatusCode != System.Net.HttpStatusCode.PartialContent) {
                 httpResponse.Dispose();
                 throw new Exception("Unable to load read stream: " + httpResponse.StatusCode);
             }
-            Stream result = new DProjects.Streams.DisposableStream(await httpResponse.Content.ReadAsStreamAsync(), () => {
+            try {
+                Stream result = new DProjects.Streams.DisposableStream(await ReadAsStreamAsync(httpResponse.Content, cancellationToken), () => {
+                    httpResponse.Dispose();
+                });
+                if (gzipped && settings != null && (settings.Offset != 0 || settings.Length != -1)) {
+                    if (settings.Offset != 0) {
+                        await StreamUtils.CopyAsync(result, Stream.Null, bytesToCopy: settings.Offset, cancellationToken: cancellationToken);
+                    }
+                    if (settings.Length != -1) {
+                        result = new LimitedInputStream(result, settings.Length);
+                    }
+                }
+                return result;
+            } catch {
                 httpResponse.Dispose();
-            });
-            if (gzipped && settings != null && (settings.Offset != 0 || settings.Length != -1)) {
-                if (settings.Offset != 0) {
-                    await StreamUtils.ConsumeAsync(result, settings.Offset);
-                }
-                if (settings.Length != -1) {
-                    result = new LimitedInputStream(result, settings.Length);
-                }
+                throw;
             }
-            return result;
         }
 
 
@@ -252,7 +267,7 @@ namespace DProjects.Fs.Aws {
             var append = (settings != null && settings.Append);
             if (append && await ExistsFileAsync(path, cancellationToken)) {
                 using (var concatenatedStream = new CatInputStream(new Stream[] { await LoadReadStreamAsync(path, new(), cancellationToken), stream })) {
-                    return await SaveFileAsync(path, concatenatedStream);
+                    return await SaveFileAsync(path, concatenatedStream, null, cancellationToken);
                 }
             }
             //temp file
@@ -261,12 +276,14 @@ namespace DProjects.Fs.Aws {
             try {
                 using (var tempStream = new FileStream(tempFilename, FileMode.Truncate, FileAccess.ReadWrite)) {
                     //consume
-                    var bytesReaded = await StreamUtils.CopyAsync(new LimitedInputStream(stream, uploadPartSize, true), tempStream);
+                    var bytesReaded = await StreamUtils.CopyAsync(new LimitedInputStream(stream, uploadPartSize, true), tempStream, cancellationToken: cancellationToken);
                     //hash
                     tempStream.Seek(0, SeekOrigin.Begin);
                     byte[]? sha256 = null;
                     using (var sha256Managed = SHA256.Create()) {
+                        cancellationToken.ThrowIfCancellationRequested();
                         sha256 = sha256Managed.ComputeHash(tempStream);
+                        cancellationToken.ThrowIfCancellationRequested();
                     }
                     tempStream.Seek(0, SeekOrigin.Begin);
                     //decide single vs multipart upload
@@ -277,7 +294,7 @@ namespace DProjects.Fs.Aws {
                         if (mAutoCache) httpRequest.Headers.CacheControl = CreateAutoCacheHeaderValue(mimetype, cancellationToken);
                         httpRequest.Content.Headers.ContentType = new MediaTypeHeaderValue(mimetype);
                         SignRequest(httpRequest, mBasePath + path, "", ConvertUtils.ToHexString(sha256).ToLower());
-                        using (var httpResponse = await mHttpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead)) {
+                        using (var httpResponse = await mHttpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken)) {
                             if (httpResponse.StatusCode != System.Net.HttpStatusCode.OK) throw new Exception("Unable to save file: " + httpResponse.StatusCode);
                             var etag = httpResponse.Headers.ETag?.Tag.Replace("\"", "") ?? "";
                             var aDateTimeOffset = httpResponse.Headers.Date ?? new DateTimeOffset();
@@ -295,9 +312,9 @@ namespace DProjects.Fs.Aws {
                         httpRequest.Content.Headers.ContentType = new MediaTypeHeaderValue(mimetype);
 
                         SignRequest(httpRequest, mBasePath + path, "?uploads", ConvertUtils.ToHexString(sha256).ToLower());
-                        using (var httpResponse = await mHttpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead)) {
+                        using (var httpResponse = await mHttpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken)) {
                             if (httpResponse.StatusCode != System.Net.HttpStatusCode.OK) throw new Exception("Unable to save file: unable to init multipart upload: " + httpResponse.StatusCode);
-                            var xml = await httpResponse.Content.ReadAsStringAsync();
+                            var xml = await ReadAsStringAsync(httpResponse.Content, cancellationToken);
                             var xmlDocument = XmlUtils.LoadXml(xml);
                             var xmlDocumentElement = xmlDocument.DocumentElement;
                             if (xmlDocumentElement != null) {
@@ -309,14 +326,15 @@ namespace DProjects.Fs.Aws {
                         try {
                             var partNumber = 1;
                             while (bytesReaded > 0) {
+                                cancellationToken.ThrowIfCancellationRequested();
                                 httpRequest = CreateHttpRequest(HttpMethod.Put, mBasePath + path, "?partNumber=" + partNumber + "&uploadId=" + uploadId);
                                 httpRequest.Content = new StreamContent(new Streams.LeaveOpenInputStream(tempStream));
                                 httpRequest.Content.Headers.ContentType = new MediaTypeHeaderValue(MimeTypeUtils.APPLICATION_OCTET_STREAM);
                                 httpRequest.Content.Headers.ContentType = new MediaTypeHeaderValue(mimetype);
                                 SignRequest(httpRequest, mBasePath + path, "?partNumber=" + partNumber + "&uploadId=" + uploadId, ConvertUtils.ToHexString(sha256).ToLower());
-                                using (var httpResponse = await mHttpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead)) {
+                                using (var httpResponse = await mHttpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken)) {
                                     if (httpResponse.StatusCode != System.Net.HttpStatusCode.OK) {
-                                        var error = await httpResponse.Content.ReadAsStringAsync();
+                                        var error = await ReadAsStringAsync(httpResponse.Content, cancellationToken);
                                         throw new Exception("Unable to save file: unable to upload multipart part: " + httpResponse.StatusCode + ", " + error);
                                     }
                                     bytesUploaded += bytesReaded;
@@ -329,11 +347,13 @@ namespace DProjects.Fs.Aws {
                                 //read next part
                                 tempStream.Seek(0, SeekOrigin.Begin);
                                 tempStream.SetLength(0);
-                                bytesReaded = await StreamUtils.CopyAsync(new LimitedInputStream(stream, uploadPartSize, true), tempStream);
+                                bytesReaded = await StreamUtils.CopyAsync(new LimitedInputStream(stream, uploadPartSize, true), tempStream, cancellationToken: cancellationToken);
                                 //hash
                                 tempStream.Seek(0, SeekOrigin.Begin);
                                 using (var sha256Managed = SHA256.Create()) {
+                                    cancellationToken.ThrowIfCancellationRequested();
                                     sha256 = sha256Managed.ComputeHash(new LimitedInputStream(tempStream, bytesReaded, true));
+                                    cancellationToken.ThrowIfCancellationRequested();
                                 }
                                 tempStream.Seek(0, SeekOrigin.Begin);
                             }
@@ -365,8 +385,8 @@ namespace DProjects.Fs.Aws {
                             httpRequest.Content = new ByteArrayContent(xmlBytes);
                             httpRequest.Content.Headers.ContentType = new MediaTypeHeaderValue(MimeTypeUtils.TEXT_XML);
                             SignRequest(httpRequest, mBasePath + path, "?uploadId=" + uploadId, ConvertUtils.ToHexString(sha256).ToLower());
-                            using (var httpResponse = await mHttpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseContentRead)) {
-                                var xml = await httpResponse.Content.ReadAsStringAsync();
+                            using (var httpResponse = await mHttpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseContentRead, cancellationToken)) {
+                                var xml = await ReadAsStringAsync(httpResponse.Content, cancellationToken);
                                 var xmlDocument = XmlUtils.LoadXml(xml);
                                 var xmlDocumentElement = xmlDocument.DocumentElement;
                                 var xlNamespaceManager = new XmlNamespaceManager(xmlDocument.NameTable);
@@ -376,12 +396,14 @@ namespace DProjects.Fs.Aws {
                                 var aDateTimeOffset = httpResponse.Headers.Date ?? new DateTimeOffset();
                                 return new Entry(path, EntryType.File, aDateTimeOffset.LocalDateTime, aDateTimeOffset.LocalDateTime, bytesUploaded, etag, 0);
                             }
+                        } catch (OperationCanceledException) {
+                            throw;
                         } catch (Exception e) {
                             //cancel multipart upload upload
                             var message = e.Message;
                             httpRequest = CreateHttpRequest(HttpMethod.Delete, mBasePath + path, "?uploadId=" + uploadId);
                             SignRequest(httpRequest, mBasePath + path, "?uploadId=" + uploadId, ConvertUtils.ToHexString(sha256).ToLower());
-                            using (var httpResponse = await mHttpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead)) {
+                            using (var httpResponse = await mHttpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken)) {
                                 if (httpResponse.StatusCode != System.Net.HttpStatusCode.NoContent) throw new Exception("Unable to save file: unable to delete multipart upload: " + httpResponse.StatusCode);
                             }
                             throw;
@@ -396,7 +418,7 @@ namespace DProjects.Fs.Aws {
             PathUtils.Validate(path);
             if (IsReadonly) throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
             var pathParent = PathUtils.GetPathParent(path);
-            if (!ExistsDirectory(pathParent)) CreateDirectory(pathParent);
+            if (!await ExistsDirectoryAsync(pathParent, cancellationToken)) await CreateDirectoryAsync(pathParent, cancellationToken);
             var httpRequest = CreateHttpRequest(HttpMethod.Put, mBasePath + path + "/", "");
             httpRequest.Content = new StringContent("", System.Text.Encoding.ASCII, "text/plain");
             SignRequest(httpRequest, mBasePath + path + "/", "");
@@ -411,7 +433,7 @@ namespace DProjects.Fs.Aws {
         public override async Task DeleteAsync(string path, CancellationToken cancellationToken) {
             PathUtils.Validate(path);
             if (IsReadonly) throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
-            var entry = GetEntry(path);
+            var entry = await GetEntryAsync(path, cancellationToken);
             if (entry != null) {
                 if (entry.IsDirectory()) {
                     await DeleteDirectoryAsync(path, cancellationToken);
@@ -436,14 +458,16 @@ namespace DProjects.Fs.Aws {
                     await CreateDirectoryAsync(destination, cancellationToken);
                     var metadata = await GetMetadataAsync(source, cancellationToken);
                     if (metadata.Count > 0) {
-                        await SetMetadataRawAsync(destination, metadata);
+                        await SetMetadataRawAsync(destination, metadata, cancellationToken);
                     }
                 }
                 if (settings.Recursive) {
-                    await foreach (Entry entryChildsource in GetEntriesAsync(source)) {
+                    await foreach (Entry entryChildsource in GetEntriesAsync(source, cancellationToken: cancellationToken)) {
                         string childPath = PathUtils.Combine(destination, entryChildsource.Name);
                         try {
                             await CopyAsync(entryChildsource.Path, childPath, settings, logger, cancellationToken);
+                        } catch (OperationCanceledException) {
+                            throw;
                         } catch (Exception ex) {
                             if (settings.IgnoreErrors) {
                                 logger.LogError(ex.Message);
@@ -465,7 +489,7 @@ namespace DProjects.Fs.Aws {
                     }
                 } else if (entryDestination.IsDirectory()) {
                     string destinationInDirectory = PathUtils.Combine(destination, PathUtils.GetPathName(source));
-                    var entryDestinationInDirectory = GetEntry(destinationInDirectory);
+                    var entryDestinationInDirectory = await GetEntryAsync(destinationInDirectory, cancellationToken);
                     if (entryDestinationInDirectory == null) {
                         await CopyFileAsync(entrySource, destinationInDirectory, settings, logger, cancellationToken);
                     } else if (!entryDestination.IsDirectory()) {
@@ -491,12 +515,14 @@ namespace DProjects.Fs.Aws {
                         }
                     }
                     return;
+                } catch (OperationCanceledException) {
+                    throw;
                 } catch (Exception ex) {
                     logger.LogError(ex, "Unable to copy from {0}, to {1} ({2}/{3}): {4}", aSource.Path, destination, trie + 1, settings.Tries, ex.Message);
                     if (trie == settings.Tries - 1) {
                         if (!settings.IgnoreErrors) throw;
                     } else {
-                        await Task.Delay(250);
+                        await Task.Delay(250, cancellationToken);
                     }
                 }
             }
@@ -508,7 +534,7 @@ namespace DProjects.Fs.Aws {
             httpRequest.Content = new StringContent("", System.Text.Encoding.ASCII, "text/plain");
             SignRequest(httpRequest, mBasePath + path, "");
             using (var httpResponse = await mHttpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken)) {
-                await httpResponse.Content.ReadAsStringAsync();
+                await ReadAsStringAsync(httpResponse.Content, cancellationToken);
                 if (httpResponse.StatusCode != System.Net.HttpStatusCode.NoContent) {
                     throw new Exception("Unable to get delete file: " + httpResponse.StatusCode);
                 }
@@ -517,7 +543,7 @@ namespace DProjects.Fs.Aws {
         public override async Task DeleteDirectoryAsync(string path, CancellationToken cancellationToken) {
             PathUtils.Validate(path);
             if (IsReadonly) throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
-            var entryRoot = GetEntry(path);
+            var entryRoot = await GetEntryAsync(path, cancellationToken);
             if (entryRoot == null) throw new Exception("Unable to delete directory \'" + path + "\': not found");
             var entries = new List<Entry>();
             await foreach (var entry in GetEntriesAsync(path, GetModes.Descendants, null, cancellationToken)) {
@@ -527,6 +553,7 @@ namespace DProjects.Fs.Aws {
             entries.Sort(new EntryComparer());
             entries.Reverse();
             foreach (var entry in entries) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (entry.IsDirectory()) {
                     var httpRequest = CreateHttpRequest(HttpMethod.Delete, mBasePath + entry.Path + "/", "");
                     httpRequest.Content = new StringContent("", System.Text.Encoding.ASCII, "text/plain");
@@ -537,7 +564,7 @@ namespace DProjects.Fs.Aws {
                         }
                     }
                 } else {
-                    DeleteFile(entry.Path);
+                    await DeleteFileAsync(entry.Path, cancellationToken);
                 }
             }
         }
@@ -552,7 +579,7 @@ namespace DProjects.Fs.Aws {
             var httpRequest = CreateHttpRequest(HttpMethod.Head, mBasePath + path, "");
             SignRequest(httpRequest, mBasePath + path, "");
             using (var httpResponse = await mHttpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken)) {
-                var res = await httpResponse.Content.ReadAsStringAsync();
+                var res = await ReadAsStringAsync(httpResponse.Content, cancellationToken);
                 if (httpResponse.StatusCode == System.Net.HttpStatusCode.NotFound) {
                     return await GetMetadataRawAsync(path + "/", cancellationToken);
                 } else if (httpResponse.StatusCode != System.Net.HttpStatusCode.OK) {
@@ -573,9 +600,9 @@ namespace DProjects.Fs.Aws {
         public override async Task SetMetadataAsync(string path, IDictionary<string, string> metadata, CancellationToken cancellationToken) {
             PathUtils.Validate(path);
             if (IsReadonly) throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
-            await SetMetadataRawAsync(path, metadata);
+            await SetMetadataRawAsync(path, metadata, cancellationToken);
         }
-        private async Task SetMetadataRawAsync(string path, IDictionary<string, string> metadata) {
+        private async Task SetMetadataRawAsync(string path, IDictionary<string, string> metadata, CancellationToken cancellationToken) {
             var httpRequest = CreateHttpRequest(HttpMethod.Put, mBasePath + path, "");
             httpRequest.Headers.Add("x-amz-copy-source", "/" + mBucket + Utils.UriEncode(path, false));
             httpRequest.Headers.Add("x-amz-metadata-directive", "REPLACE");
@@ -588,16 +615,17 @@ namespace DProjects.Fs.Aws {
                 }
             }
             SignRequest(httpRequest, mBasePath + path, "");
-            using (var httpResponse = await mHttpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead)) {
-                var aux = await httpResponse.Content.ReadAsStringAsync();
+            using (var httpResponse = await mHttpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken)) {
+                var aux = await ReadAsStringAsync(httpResponse.Content, cancellationToken);
                 if (httpResponse.StatusCode == System.Net.HttpStatusCode.NotFound && !path.EndsWith("/")) {
-                    await SetMetadataRawAsync(path + "/", metadata);
+                    await SetMetadataRawAsync(path + "/", metadata, cancellationToken);
                 } else if (httpResponse.StatusCode != System.Net.HttpStatusCode.OK) {
                     throw new Exception("Unable to set metadata: " + httpResponse.StatusCode);
                 }
             }
         }
         public override Task<bool> SupportsAsync(string path, Features feature, CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (feature == Features.Metadata) return Task.FromResult(true);
             return Task.FromResult(false);
         }
@@ -605,6 +633,7 @@ namespace DProjects.Fs.Aws {
 
         //utils
         private CacheControlHeaderValue CreateAutoCacheHeaderValue(string mimetype, CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
             var seconds = 60 * 60;
             if (MimeTypeUtils.IsImage(mimetype)) {
                 seconds = 7 * 24 * 60 * 60; // 7 days
@@ -625,6 +654,7 @@ namespace DProjects.Fs.Aws {
             return cacheControlHeader;
         }
         public async Task CreateBucketAsync(CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
             var xmlSB = new StringBuilder();
             using (var xmlWriter = XmlWriter.Create(xmlSB)) {
                 xmlWriter.WriteStartDocument();
@@ -646,19 +676,21 @@ namespace DProjects.Fs.Aws {
             httpRequest.Content.Headers.ContentType = new MediaTypeHeaderValue(MimeTypeUtils.TEXT_XML);
             SignRequest(httpRequest, "/", "", ConvertUtils.ToHexString(sha256).ToLower());
             using (var httpResponse = await mHttpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseContentRead, cancellationToken)) {
-                var xml = await httpResponse.Content.ReadAsStringAsync();
+                var xml = await ReadAsStringAsync(httpResponse.Content, cancellationToken);
                 if (httpResponse.StatusCode != System.Net.HttpStatusCode.OK) {
                     throw new Exception("Unable to create bucket: " + httpResponse.StatusCode);
                 }
             }
         }
         public async Task SetBucketTagsAsync(IDictionary<string, string> tags, CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
             var sb = new StringBuilder();
             using (var xmlWriter = XmlWriter.Create(sb)) {
                 xmlWriter.WriteStartDocument();
                 xmlWriter.WriteStartElement("Tagging", "http://s3.amazonaws.com/doc/2006-03-01/");
                 xmlWriter.WriteStartElement("TagSet");
                 foreach (var key in tags.Keys) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     xmlWriter.WriteStartElement("Tag");
                     xmlWriter.WriteStartElement("Key");
                     xmlWriter.WriteString(key);
@@ -688,22 +720,23 @@ namespace DProjects.Fs.Aws {
             httpRequest.Content.Headers.ContentMD5 = md5;
             SignRequest(httpRequest, "/", "?tagging", ConvertUtils.ToHexString(sha256).ToLower());
             using (var httpResponse = await mHttpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseContentRead, cancellationToken)) {
-                xml = await httpResponse.Content.ReadAsStringAsync();
+                xml = await ReadAsStringAsync(httpResponse.Content, cancellationToken);
                 if (httpResponse.StatusCode != System.Net.HttpStatusCode.NoContent) {
                     throw new Exception("Unable to set bucket tag: " + httpResponse.StatusCode);
                 }
             }
         }
         public async Task RemoveBucketAsync(bool recursive, CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (recursive) {
                 await foreach (var entry in GetEntriesAsync("/", GetModes.All, null, cancellationToken)) {
-                    Delete(entry.Path);
+                    await DeleteAsync(entry.Path, cancellationToken);
                 }
             }
             var httpRequest = CreateHttpRequest(HttpMethod.Delete, "/", "");
             SignRequest(httpRequest, "/", "");
             using (var httpResponse = await mHttpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseContentRead, cancellationToken)) {
-                var xml = await httpResponse.Content.ReadAsStringAsync();
+                var xml = await ReadAsStringAsync(httpResponse.Content, cancellationToken);
                 if (httpResponse.StatusCode != System.Net.HttpStatusCode.NoContent) {
                     throw new Exception("Unable to remove bucket: " + httpResponse.StatusCode);
                 }
@@ -715,6 +748,18 @@ namespace DProjects.Fs.Aws {
         }
         private void SignRequest(HttpRequestMessage httpRequest, string pathAbsolute, string query, string? contentHasSha256 = null) {
             Utils.SignRequestV4(httpRequest, mRegion, mService, mHttpClient.BaseAddress?.Host ?? "", pathAbsolute, query, mAccessKeyId, mSecretAccesKey, contentHasSha256);
+        }
+        private static async Task<string> ReadAsStringAsync(HttpContent content, CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
+            var result = await content.ReadAsStringAsync();
+            cancellationToken.ThrowIfCancellationRequested();
+            return result;
+        }
+        private static async Task<Stream> ReadAsStreamAsync(HttpContent content, CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
+            var result = await content.ReadAsStreamAsync();
+            cancellationToken.ThrowIfCancellationRequested();
+            return result;
         }
         private Entry CreateEntryFromXmlNode(XmlNode xmlNode, XmlNamespaceManager xmlNamespaceManager) {
             if (xmlNode.Name.Equals("Contents")) {

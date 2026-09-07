@@ -85,7 +85,7 @@ namespace DProjects.Fs {
             var additionalDirectories = new Stack<Entry>();
             for (int i = mMountPoints.Count - 1; i >= 0; i--) {
                 var mountPoint = mMountPoints[i];
-                if (path.StartsWith(mountPoint.Path, mStringComparison)) {
+                if (IsPathResolvedByMount(path, mountPoint.Path)) {
                     //root mountpoint
                     targetMountPoint = mountPoint;
                     break;
@@ -131,11 +131,11 @@ namespace DProjects.Fs {
             var additionalDirectories = new Stack<Entry>();
             for (int i = mMountPoints.Count - 1; i >= 0; i--) {
                 var mountPoint = mMountPoints[i];
-                if (path.StartsWith(mountPoint.Path, mStringComparison)) {
+                if (IsPathResolvedByMount(path, mountPoint.Path)) {
                     //root mountpoint
                     targetMountPoint = mountPoint;
                     break;
-                } else if (PathUtils.GetPathParent(mountPoint.Path).Equals(path)) {
+                } else if (PathUtils.GetPathParent(mountPoint.Path).Equals(path, mStringComparison)) {
                     // root mounts points to list
                     var entry = await mountPoint.Filesystem.GetEntryAsync(PathUtils.Combine("/", mountPoint.Prefix), cancellationToken);
                     if (entry != null) {
@@ -505,6 +505,11 @@ namespace DProjects.Fs {
                 }
             }
             return null;
+        }
+        private bool IsPathResolvedByMount(string path, string mountPath) {
+            return mountPath == "/" ||
+                mountPath.Equals(path, mStringComparison) ||
+                path.StartsWith(mountPath + "/", mStringComparison);
         }
         public bool IsMountPoint(string path) {
             for (int i = mMountPoints.Count - 1; i >= 0; i--) {

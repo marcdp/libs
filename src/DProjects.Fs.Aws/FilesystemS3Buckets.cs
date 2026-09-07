@@ -65,7 +65,7 @@ namespace DProjects.Fs.Aws {
 
 
         //repo
-        public class MyRepository : Repository, RepositoryWritable {
+        public class MyRepository : Repository, RepositoryWritable, IDisposable {
 
             //variables
             private string mRegion;
@@ -101,7 +101,7 @@ namespace DProjects.Fs.Aws {
                 mBucketRegions = bucketRegions;
                 mIsReadOnly = isReadOnly;
                 mHttpClientHandler = new HttpClientHandler();
-                mHttpClient = new HttpClient(mHttpClientHandler);
+                mHttpClient = new HttpClient(mHttpClientHandler, true);
                 mHttpClient.BaseAddress = new Uri("https://s3" + (!string.IsNullOrEmpty(region) ? "-" + region : "") + ".amazonaws.com");
                 mHttpClient.Timeout = TimeSpan.FromDays(1);
             }
@@ -114,11 +114,14 @@ namespace DProjects.Fs.Aws {
                 return null;
             }
             public async IAsyncEnumerable<Entry> GetByPatternAsync(string? pattern, [EnumeratorCancellation] CancellationToken cancellationToken) {
+                cancellationToken.ThrowIfCancellationRequested();
                 var httpRequest = CreateHttpRequest(HttpMethod.Get, "/", "");
                 SignRequest(httpRequest, "/", "");
                 //using (var httpResponse = await mHttpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead)) {
                 using (var httpResponse = await mHttpClient.SendAsync(httpRequest, cancellationToken)) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     var xml = await httpResponse.Content.ReadAsStringAsync();
+                    cancellationToken.ThrowIfCancellationRequested();
                     if (httpResponse.StatusCode != System.Net.HttpStatusCode.OK) throw new Exception("Unable to get entries: " + httpResponse.StatusCode);
                     var xmlDocument = XmlUtils.LoadXml(xml);
                     var xmlDocumentElement = xmlDocument.DocumentElement;
@@ -128,6 +131,7 @@ namespace DProjects.Fs.Aws {
                         var xmlNodes = xmlDocumentElement.SelectNodes("//s3:Bucket", xlNamespaceManager);
                         if (xmlNodes != null) {
                             foreach (XmlNode? xmlNode in xmlNodes) {
+                                cancellationToken.ThrowIfCancellationRequested();
                                 if (xmlNode != null) {
                                     var name = UnPreSuffixName(XmlUtils.GetXmlChildNodeAs<string>(xmlNode, "Name", ""));
                                     if (name != null) {
@@ -147,7 +151,7 @@ namespace DProjects.Fs.Aws {
                 if (mIsReadOnly) throw new InvalidOperationException("Unable to add bucket: filesystem is readonly");
                 if (!mAdmin) throw new InvalidOperationException("Unable to add bucket: administrative access is required");
                 var name = PreSuffixName(id);
-                var fs = new FilesystemS3(name, mRegion, mAccesKeyId, mSecretAccessKey, "/", mAutoGzip, mAutoCache, mIsReadOnly, mHttpClientHandler);
+                using var fs = new FilesystemS3(name, mRegion, mAccesKeyId, mSecretAccessKey, "/", mAutoGzip, mAutoCache, mIsReadOnly, mHttpClientHandler);
                 await fs.CreateBucketAsync(cancellationToken);
                 if (!string.IsNullOrEmpty(mCostTag)) {
                     var tags = new Dictionary<string, string>();
@@ -160,7 +164,7 @@ namespace DProjects.Fs.Aws {
                 if (mIsReadOnly) throw new InvalidOperationException("Unable to remove bucket: filesystem is readonly");
                 if (!mAdmin) throw new InvalidOperationException("Unable to remove bucket: administrative access is required");
                 var name = PreSuffixName(id);
-                var fs = new FilesystemS3(name, mRegion, mAccesKeyId, mSecretAccessKey, "/", mAutoGzip, mAutoCache, mIsReadOnly, mHttpClientHandler);
+                using var fs = new FilesystemS3(name, mRegion, mAccesKeyId, mSecretAccessKey, "/", mAutoGzip, mAutoCache, mIsReadOnly, mHttpClientHandler);
                 await fs.RemoveBucketAsync(false, cancellationToken);
             }
             public IFilesystem CreateFilesystem(string id, bool isReadonly) {
@@ -172,6 +176,9 @@ namespace DProjects.Fs.Aws {
                 var fs = new FilesystemS3(name, region, mAccesKeyId, mSecretAccessKey, "/", mAutoGzip, mAutoCache, isReadonly, mHttpClientHandler);
                 fs.Start();
                 return fs;
+            }
+            public void Dispose() {
+                mHttpClient.Dispose();
             }
 
 
