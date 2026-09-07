@@ -7,24 +7,8 @@ namespace DProjects.Log.Provider {
 
     public class LoggerClient<TCategory> : Log, Microsoft.Extensions.Logging.ILogger<TCategory> {
 
-        private sealed class Scope<T> : IDisposable {
-            private readonly string mKey = Guid.NewGuid().ToString();
-
-            public Scope(T state) {
-                State = state;
-            }
-
-            public T State { get; }
-
-            public void Dispose() {
-            }
-
-            public override string ToString() {
-                return mKey;
-            }
-        }
-
         private readonly ILogClient mLogClient;
+        private readonly LoggerScopeContext mScopeContext = new LoggerScopeContext();
 
         public LoggerClient(ILogClient logClient) : base(false, false, LogLevel.Trace) {
             mLogClient = logClient ?? throw new ArgumentNullException(nameof(logClient));
@@ -35,7 +19,7 @@ namespace DProjects.Log.Provider {
         }
 
         IDisposable ILogger.BeginScope<TState>(TState state) {
-            return new Scope<TState>(state);
+            return mScopeContext.Push(state!);
         }
 
         bool ILogger.IsEnabled(LogLevelNative logLevel) {
@@ -53,7 +37,9 @@ namespace DProjects.Log.Provider {
                 this,
                 mLogClient.Level,
                 typeof(TCategory).FullName,
+                mScopeContext,
                 logLevel,
+                eventId,
                 state,
                 exception,
                 formatter

@@ -53,6 +53,21 @@ namespace DProjects.Log.Tests {
         }
 
         [Fact]
+        public void LoggerClient_PropagatesScopeFields() {
+            var client = new RecordingLogClient(DProjects.Log.LogLevel.Trace);
+            ILogger logger = new Provider.LoggerClient<ProviderLoggerTests>(client);
+
+            using (logger.BeginScope(new Dictionary<string, object?> { ["RequestId"] = "client-42" })) {
+                logger.LogInformation("inside");
+            }
+
+            var fields = Assert.IsAssignableFrom<IDictionary<string, object?>>(
+                Assert.Single(client.Entries).Fields
+            );
+            Assert.Equal("client-42", fields["RequestId"]);
+        }
+
+        [Fact]
         public void StructuredState_PreservesFieldsAndOmitsOriginalFormat() {
             var log = new RecordingLog(DProjects.Log.LogLevel.Trace);
             ILogger logger = new Provider.Logger(log);
@@ -94,6 +109,152 @@ namespace DProjects.Log.Tests {
                 Assert.Single(log.Entries).Fields
             );
             Assert.Contains("warning failure", Assert.IsType<string>(fields["exception"]));
+        }
+
+        [Fact]
+        public void StructuredScope_IsAddedToFieldsAndRemovedWhenDisposed() {
+            var log = new RecordingLog(DProjects.Log.LogLevel.Trace);
+            ILogger logger = new Provider.Logger(log);
+
+            using (logger.BeginScope(new Dictionary<string, object?> { ["RequestId"] = "42" })) {
+                logger.LogInformation("inside");
+            }
+            logger.LogInformation("outside");
+
+            Assert.Equal("42", Assert.IsAssignableFrom<IDictionary<string, object?>>(log.Entries[0].Fields)["RequestId"]);
+            Assert.Null(log.Entries[1].Fields);
+        }
+
+        [Fact]
+        public void NestedScopes_UseInnerValuesUntilInnerScopeIsDisposed() {
+            var log = new RecordingLog(DProjects.Log.LogLevel.Trace);
+            ILogger logger = new Provider.Logger(log);
+
+            using (logger.BeginScope(new Dictionary<string, object?> {
+                ["Tenant"] = "north",
+                ["RequestId"] = "outer"
+            })) {
+                using (logger.BeginScope(new Dictionary<string, object?> { ["RequestId"] = "inner" })) {
+                    logger.LogInformation("inner");
+                }
+                logger.LogInformation("outer");
+            }
+
+            var innerFields = Assert.IsAssignableFrom<IDictionary<string, object?>>(log.Entries[0].Fields);
+            Assert.Equal("north", innerFields["Tenant"]);
+            Assert.Equal("inner", innerFields["RequestId"]);
+            var outerFields = Assert.IsAssignableFrom<IDictionary<string, object?>>(log.Entries[1].Fields);
+            Assert.Equal("outer", outerFields["RequestId"]);
+        }
+
+        [Fact]
+        public void ExplicitFieldsOverrideScopeFields() {
+            var log = new RecordingLog(DProjects.Log.LogLevel.Trace);
+            ILogger logger = new Provider.Logger(log);
+
+            using (logger.BeginScope(new Dictionary<string, object?> { ["RequestId"] = "scope" })) {
+                logger.LogInformation("Request {RequestId}", "explicit");
+            }
+
+            var fields = Assert.IsAssignableFrom<IDictionary<string, object?>>(Assert.Single(log.Entries).Fields);
+            Assert.Equal("explicit", fields["RequestId"]);
+        }
+
+        [Fact]
+        public async Task Scope_FlowsAcrossAwait() {
+            var log = new RecordingLog(DProjects.Log.LogLevel.Trace);
+            ILogger logger = new Provider.Logger(log);
+
+            using (logger.BeginScope(new Dictionary<string, object?> { ["RequestId"] = "async-42" })) {
+                await Task.Yield();
+                logger.LogInformation("after await");
+            }
+
+            var fields = Assert.IsAssignableFrom<IDictionary<string, object?>>(Assert.Single(log.Entries).Fields);
+            Assert.Equal("async-42", fields["RequestId"]);
+        }
+
+        [Fact]
+        public async Task Scopes_AreIsolatedBetweenAsyncFlows() {
+            var log = new RecordingLog(DProjects.Log.LogLevel.Trace);
+            ILogger logger = new Provider.Logger(log);
+
+            async Task WriteScoped(string requestId) {
+                using (logger.BeginScope(new Dictionary<string, object?> { ["RequestId"] = requestId })) {
+                    await Task.Yield();
+                    logger.LogInformation(requestId);
+                }
+            }
+
+            await Task.WhenAll(WriteScoped("first"), WriteScoped("second"));
+
+            Assert.Collection(
+                log.Entries.OrderBy(entry => entry.Message),
+                entry => Assert.Equal("first", entry.Fields!["RequestId"]),
+                entry => Assert.Equal("second", entry.Fields!["RequestId"])
+            );
+        }
+
+        [Fact]
+        public void NonStructuredScopes_ArePreservedInOrder() {
+            var log = new RecordingLog(DProjects.Log.LogLevel.Trace);
+            ILogger logger = new Provider.Logger(log);
+
+            using (logger.BeginScope("outer"))
+            using (logger.BeginScope(42)) {
+                logger.LogInformation("inside");
+            }
+
+            var fields = Assert.IsAssignableFrom<IDictionary<string, object?>>(Assert.Single(log.Entries).Fields);
+            Assert.Equal(new object[] { "outer", 42 }, Assert.IsType<object[]>(fields["scopes"]));
+        }
+
+        [Fact]
+        public void Scope_DoesNotLeakToAnotherLoggerInstance() {
+            var firstLog = new RecordingLog(DProjects.Log.LogLevel.Trace);
+            var secondLog = new RecordingLog(DProjects.Log.LogLevel.Trace);
+            ILogger firstLogger = new Provider.Logger(firstLog);
+            ILogger secondLogger = new Provider.Logger(secondLog);
+
+            using (firstLogger.BeginScope(new Dictionary<string, object?> { ["RequestId"] = "first" })) {
+                secondLogger.LogInformation("second");
+            }
+
+            Assert.Null(Assert.Single(secondLog.Entries).Fields);
+        }
+
+        [Fact]
+        public void EventId_IsPreservedWithoutOverwritingExplicitFields() {
+            var log = new RecordingLog(DProjects.Log.LogLevel.Trace);
+            ILogger logger = new Provider.Logger(log);
+
+            logger.LogInformation(new EventId(42, "OrderCompleted"), "Order {eventId}", "explicit");
+
+            var fields = Assert.IsAssignableFrom<IDictionary<string, object?>>(Assert.Single(log.Entries).Fields);
+            Assert.Equal("explicit", fields["eventId"]);
+            Assert.Equal("OrderCompleted", fields["eventName"]);
+        }
+
+        [Fact]
+        public void EventIdAndName_AreAddedWhenSupplied() {
+            var log = new RecordingLog(DProjects.Log.LogLevel.Trace);
+            ILogger logger = new Provider.Logger(log);
+
+            logger.LogInformation(new EventId(42, "OrderCompleted"), "Order completed");
+
+            var fields = Assert.IsAssignableFrom<IDictionary<string, object?>>(Assert.Single(log.Entries).Fields);
+            Assert.Equal(42, fields["eventId"]);
+            Assert.Equal("OrderCompleted", fields["eventName"]);
+        }
+
+        [Fact]
+        public void DefaultEventId_DoesNotAddMetadata() {
+            var log = new RecordingLog(DProjects.Log.LogLevel.Trace);
+            ILogger logger = new Provider.Logger(log);
+
+            logger.LogInformation("message");
+
+            Assert.Null(Assert.Single(log.Entries).Fields);
         }
 
         [Fact]
@@ -180,7 +341,9 @@ namespace DProjects.Log.Tests {
             }
 
             public void Write(LogEntry logEntry) {
-                Entries.Add(logEntry);
+                lock (Entries) {
+                    Entries.Add(logEntry);
+                }
             }
         }
 

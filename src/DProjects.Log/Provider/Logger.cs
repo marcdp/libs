@@ -7,25 +7,9 @@ namespace DProjects.Log.Provider {
 
     public class Logger : Log, Microsoft.Extensions.Logging.ILogger {
 
-        private sealed class Scope<T> : IDisposable {
-            private readonly string mKey = Guid.NewGuid().ToString();
-
-            public Scope(T state) {
-                State = state;
-            }
-
-            public T State { get; }
-
-            public void Dispose() {
-            }
-
-            public override string ToString() {
-                return mKey;
-            }
-        }
-
         private readonly ILog mLog;
         private readonly string? mSource;
+        private readonly LoggerScopeContext mScopeContext = new LoggerScopeContext();
 
         public Logger(ILog log) : this(log, null) {
         }
@@ -40,7 +24,7 @@ namespace DProjects.Log.Provider {
         }
 
         IDisposable ILogger.BeginScope<TState>(TState state) {
-            return new Scope<TState>(state);
+            return mScopeContext.Push(state!);
         }
 
         bool ILogger.IsEnabled(LogLevelNative logLevel) {
@@ -54,30 +38,24 @@ namespace DProjects.Log.Provider {
             Exception? exception,
             Func<TState, Exception?, string> formatter
         ) {
-            LoggerAdapter.Log(this, mLog.Level, mSource, logLevel, state, exception, formatter);
+            LoggerAdapter.Log(
+                this,
+                mLog.Level,
+                mSource,
+                mScopeContext,
+                logLevel,
+                eventId,
+                state,
+                exception,
+                formatter
+            );
         }
     }
 
     public class Logger<TCategory> : Log, Microsoft.Extensions.Logging.ILogger<TCategory> {
 
-        private sealed class Scope<T> : IDisposable {
-            private readonly string mKey = Guid.NewGuid().ToString();
-
-            public Scope(T state) {
-                State = state;
-            }
-
-            public T State { get; }
-
-            public void Dispose() {
-            }
-
-            public override string ToString() {
-                return mKey;
-            }
-        }
-
         private readonly ILog mLog;
+        private readonly LoggerScopeContext mScopeContext = new LoggerScopeContext();
 
         public Logger(ILog log) : base(false, false, LogLevel.Trace) {
             mLog = log ?? throw new ArgumentNullException(nameof(log));
@@ -88,7 +66,7 @@ namespace DProjects.Log.Provider {
         }
 
         IDisposable ILogger.BeginScope<TState>(TState state) {
-            return new Scope<TState>(state);
+            return mScopeContext.Push(state!);
         }
 
         bool ILogger.IsEnabled(LogLevelNative logLevel) {
@@ -102,7 +80,17 @@ namespace DProjects.Log.Provider {
             Exception? exception,
             Func<TState, Exception?, string> formatter
         ) {
-            LoggerAdapter.Log(this, mLog.Level, typeof(TCategory).FullName, logLevel, state, exception, formatter);
+            LoggerAdapter.Log(
+                this,
+                mLog.Level,
+                typeof(TCategory).FullName,
+                mScopeContext,
+                logLevel,
+                eventId,
+                state,
+                exception,
+                formatter
+            );
         }
     }
 }

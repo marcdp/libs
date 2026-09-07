@@ -177,7 +177,148 @@ namespace DProjects.Log.Tests {
             Assert.Equal(1, writtenCount);
         }
 
-        private sealed class RecordingLogger : ILogger {
+        [Fact]
+        public void ConstructorLevel_IsExplicitForGenericAndNonGenericAdapters() {
+            var logger = new RecordingLogger();
+            ILogClient client = new LogClientLogger(logger, DProjects.Log.LogLevel.Debug);
+            ILogClient genericClient = new LogClientLogger<LogClientLoggerTests>(
+                logger,
+                DProjects.Log.LogLevel.Warning
+            );
+
+            Assert.Equal(DProjects.Log.LogLevel.Debug, client.Level);
+            Assert.Equal(DProjects.Log.LogLevel.Warning, genericClient.Level);
+        }
+
+        [Fact]
+        public void Constructor_InvalidLevelThrowsArgumentOutOfRangeException() {
+            var logger = new RecordingLogger();
+
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                new LogClientLogger(logger, (DProjects.Log.LogLevel)999)
+            );
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                new LogClientLogger<LogClientLoggerTests>(logger, (DProjects.Log.LogLevel)999)
+            );
+        }
+
+        [Fact]
+        public void ConstructorLevel_DoesNotAddRedundantLocalFiltering() {
+            var logger = new RecordingLogger();
+            var client = new LogClientLogger(logger, DProjects.Log.LogLevel.Fatal);
+
+            client.Trace("trace");
+
+            Assert.Equal(LogLevelNative.Trace, Assert.Single(logger.Entries).Level);
+        }
+
+        [Fact]
+        public void Template_MultiplePlaceholdersPreserveRenderedAndStructuredValues() {
+            var logger = new RecordingLogger();
+            var client = new LogClientLogger(logger);
+            LogEntry? written = null;
+            client.Writed += (_, entry) => written = entry;
+
+            client.Info("Order {Id} for {User}", 42, "Marc");
+
+            var entry = Assert.IsType<LogEntry>(written);
+            Assert.Equal("Order 42 for Marc", entry.Message);
+            Assert.Equal(42, entry.Fields!["Id"]);
+            Assert.Equal("Marc", entry.Fields["User"]);
+            Assert.False(entry.Fields.ContainsKey("messageOriginal"));
+            var native = Assert.Single(logger.Entries);
+            Assert.Equal(42, native.State["Id"]);
+            Assert.Equal("Marc", native.State["User"]);
+        }
+
+        [Fact]
+        public void Template_RepeatedPlaceholderUsesLastValueInDProjectsFields() {
+            var logger = new RecordingLogger();
+            var client = new LogClientLogger(logger);
+            LogEntry? written = null;
+            client.Writed += (_, entry) => written = entry;
+
+            client.Info("{Id} -> {Id}", 1, 2);
+
+            var entry = Assert.IsType<LogEntry>(written);
+            Assert.Equal("1 -> 2", entry.Message);
+            Assert.Equal(2, entry.Fields!["Id"]);
+            Assert.Equal("1 -> 2", Assert.Single(logger.Entries).Message);
+        }
+
+        [Fact]
+        public void Template_MissingArgumentPreservesUnresolvedPlaceholder() {
+            var logger = new RecordingLogger();
+            var client = new LogClientLogger(logger);
+            LogEntry? written = null;
+            client.Writed += (_, entry) => written = entry;
+
+            client.Info("Order {Id} {State}", 42);
+
+            var entry = Assert.IsType<LogEntry>(written);
+            Assert.Equal("Order 42 {State}", entry.Message);
+            Assert.Equal(42, entry.Fields!["Id"]);
+            Assert.False(entry.Fields.ContainsKey("State"));
+            Assert.Equal("Order 42 {State}", Assert.Single(logger.Entries).Message);
+        }
+
+        [Fact]
+        public void Template_ExtraArgumentsAreIgnored() {
+            var logger = new RecordingLogger();
+            var client = new LogClientLogger(logger);
+
+            client.Info("Order {Id}", 42, "extra");
+
+            var native = Assert.Single(logger.Entries);
+            Assert.Equal("Order 42", native.Message);
+            Assert.Equal(42, native.State["Id"]);
+        }
+
+        [Theory]
+        [InlineData("Order {Id")]
+        [InlineData("Order Id}")]
+        public void Template_MalformedBracesAreTreatedLiterally(string message) {
+            var logger = new RecordingLogger();
+            var client = new LogClientLogger(logger);
+
+            client.Info(message);
+
+            Assert.Equal(message, Assert.Single(logger.Entries).Message);
+        }
+
+        [Fact]
+        public void Template_EscapedBracesAreTreatedAsLiteralText() {
+            var logger = new RecordingLogger();
+            var client = new LogClientLogger(logger);
+            LogEntry? written = null;
+            client.Writed += (_, entry) => written = entry;
+
+            client.Info("Value {{literal}}");
+
+            Assert.Equal("Value {literal}", Assert.IsType<LogEntry>(written).Message);
+            var native = Assert.Single(logger.Entries);
+            Assert.Equal("Value {literal}", native.Message);
+            Assert.False(native.State.ContainsKey("literal"));
+        }
+
+        [Fact]
+        public void Template_FormatAndAlignmentUseSemanticFieldNames() {
+            var logger = new RecordingLogger();
+            var client = new LogClientLogger(logger);
+            LogEntry? written = null;
+            client.Writed += (_, entry) => written = entry;
+
+            client.Info("{Amount:N2} {Name,-20}", 12.5m, "Marc");
+
+            var entry = Assert.IsType<LogEntry>(written);
+            Assert.Equal(12.5m, entry.Fields!["Amount"]);
+            Assert.Equal("Marc", entry.Fields["Name"]);
+            var native = Assert.Single(logger.Entries);
+            Assert.Equal(12.5m, native.State["Amount"]);
+            Assert.Equal("Marc", native.State["Name"]);
+        }
+
+        private sealed class RecordingLogger : ILogger, ILogger<LogClientLoggerTests> {
 
             public List<RecordedLog> Entries { get; } = new List<RecordedLog>();
 
@@ -196,7 +337,8 @@ namespace DProjects.Log.Tests {
                 Entries.Add(new RecordedLog(
                     logLevel,
                     formatter(state, exception),
-                    structuredState?.ToDictionary(item => item.Key, item => item.Value)
+                    structuredState?.GroupBy(item => item.Key)
+                        .ToDictionary(group => group.Key, group => group.Last().Value)
                         ?? new Dictionary<string, object?>(),
                     exception
                 ));

@@ -1,4 +1,5 @@
 using DProjects.Utils;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 
@@ -17,7 +18,9 @@ namespace DProjects.Log.Provider {
             Log log,
             LogLevel minimumLevel,
             string? source,
+            LoggerScopeContext scopeContext,
             LogLevelNative logLevel,
+            EventId eventId,
             TState state,
             Exception? exception,
             Func<TState, Exception?, string> formatter
@@ -27,7 +30,7 @@ namespace DProjects.Log.Provider {
                 return;
             }
 
-            var fields = GetFields(state);
+            var fields = GetFields(eventId, scopeContext, state);
             var message = formatter(state, exception);
             if (exception != null && mappedLevel != LogLevel.Error && mappedLevel != LogLevel.Fatal) {
                 if (fields == null) {
@@ -59,17 +62,56 @@ namespace DProjects.Log.Provider {
             }
         }
 
-        private static IDictionary<string, object?>? GetFields<TState>(TState state) {
-            if (!(state is IEnumerable<KeyValuePair<string, object?>> structuredState)) {
-                return null;
+        private static IDictionary<string, object?>? GetFields<TState>(
+            EventId eventId,
+            LoggerScopeContext scopeContext,
+            TState state
+        ) {
+            // Merge from lowest to highest precedence: adapter metadata, outer scopes,
+            // inner scopes, then explicit log state.
+            Dictionary<string, object?>? fields = null;
+            if (eventId.Id != 0) {
+                fields = new Dictionary<string, object?> { ["eventId"] = eventId.Id };
+            }
+            if (!string.IsNullOrEmpty(eventId.Name)) {
+                if (fields == null) {
+                    fields = new Dictionary<string, object?>();
+                }
+                fields["eventName"] = eventId.Name;
             }
 
-            Dictionary<string, object?>? fields = null;
+            List<object>? unstructuredScopes = null;
+            foreach (var scopeState in scopeContext.GetStates()) {
+                if (scopeState is IEnumerable<KeyValuePair<string, object?>> structuredScope) {
+                    fields = AddStructuredState(fields, structuredScope);
+                } else {
+                    if (unstructuredScopes == null) {
+                        unstructuredScopes = new List<object>();
+                    }
+                    unstructuredScopes.Add(scopeState);
+                }
+            }
+            if (unstructuredScopes != null) {
+                if (fields == null) {
+                    fields = new Dictionary<string, object?>();
+                }
+                fields["scopes"] = unstructuredScopes.ToArray();
+            }
+
+            if (state is IEnumerable<KeyValuePair<string, object?>> structuredState) {
+                fields = AddStructuredState(fields, structuredState);
+            }
+            return fields;
+        }
+
+        private static Dictionary<string, object?>? AddStructuredState(
+            Dictionary<string, object?>? fields,
+            IEnumerable<KeyValuePair<string, object?>> structuredState
+        ) {
             foreach (var item in structuredState) {
                 if (item.Key == "{OriginalFormat}") {
                     continue;
                 }
-
                 if (fields == null) {
                     fields = new Dictionary<string, object?>();
                 }

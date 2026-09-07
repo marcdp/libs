@@ -1,13 +1,16 @@
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Text;
 
 namespace DProjects.Log {
 
 
     public class LogClientLogger<T> : LogClientLogger, ILogClient<T> where T : class {
-        public LogClientLogger(ILogger<T> logger) :base(logger) {
+        public LogClientLogger(ILogger<T> logger) : this(logger, LogLevel.Information) {
+        }
+        public LogClientLogger(ILogger<T> logger, LogLevel level) :base(logger, level) {
             mLogger = logger;
             Source = typeof(T).FullName;
         }
@@ -19,6 +22,8 @@ namespace DProjects.Log {
 
         //variables
         protected ILogger mLogger;
+        private readonly ConditionalWeakTable<LogEntry, NativeMessage> mNativeMessages =
+            new ConditionalWeakTable<LogEntry, NativeMessage>();
 
 
         //events
@@ -26,8 +31,12 @@ namespace DProjects.Log {
 
 
         //constructor
-        public LogClientLogger(ILogger logger) {
-            mLogger = logger;
+        public LogClientLogger(ILogger logger) : this(logger, LogLevel.Information) {
+        }
+        public LogClientLogger(ILogger logger, LogLevel level) {
+            mLogger = logger ?? throw new ArgumentNullException(nameof(logger));
+            LogLevelMappings.GetSeverityRank(level);
+            Level = level;
         }
         public void Dispose() {
         }
@@ -40,7 +49,7 @@ namespace DProjects.Log {
         public string? Resource { get; set; }
         public string[]? Tags { get; set; }
         public Dictionary<string, object?>? Fields { get; set; }
-        public LogLevel Level { get; } = LogLevel.Information;
+        public LogLevel Level { get; }
         public string? SpanId { get; set; }
         public string? TraceId { get; set; }
 
@@ -81,7 +90,7 @@ namespace DProjects.Log {
             }
             if (logEntry.Fields != null) {
                 foreach (var field in logEntry.Fields) {
-                    if (field.Key == "messageOriginal" || messageFieldNames.Contains(field.Key)) {
+                    if (messageFieldNames.Contains(field.Key)) {
                         continue;
                     }
                     message.Append(" {" + field.Key + "}");
@@ -110,49 +119,19 @@ namespace DProjects.Log {
         }
 
 
-        private static void AppendMessage(
+        private void AppendMessage(
             LogEntry logEntry,
             StringBuilder message,
             List<object?> args,
             HashSet<string> messageFieldNames
         ) {
-            if (logEntry.Fields == null
-                || !logEntry.Fields.TryGetValue("messageOriginal", out var originalValue)
-                || !(originalValue is string originalMessage)) {
+            if (!mNativeMessages.TryGetValue(logEntry, out var nativeMessage)) {
                 message.Append(logEntry.Message);
                 return;
             }
-
-            var renderedMessage = new StringBuilder();
-            var index = 0;
-            while (index < originalMessage.Length) {
-                var openIndex = originalMessage.IndexOf("{", index, StringComparison.Ordinal);
-                if (openIndex == -1) {
-                    renderedMessage.Append(originalMessage.Substring(index));
-                    break;
-                }
-
-                var closeIndex = originalMessage.IndexOf("}", openIndex, StringComparison.Ordinal);
-                if (closeIndex == -1) {
-                    renderedMessage.Append(originalMessage.Substring(index));
-                    break;
-                }
-
-                renderedMessage.Append(originalMessage.Substring(index, openIndex - index));
-                var fieldName = originalMessage.Substring(openIndex + 1, closeIndex - openIndex - 1);
-                if (logEntry.Fields.TryGetValue(fieldName, out var fieldValue)) {
-                    renderedMessage.Append(fieldValue);
-                    args.Add(fieldValue);
-                    messageFieldNames.Add(fieldName);
-                }
-                index = closeIndex + 1;
-            }
-
-            var rendered = renderedMessage.ToString();
-            if (logEntry.Message.EndsWith(rendered, StringComparison.Ordinal)) {
-                message.Append(logEntry.Message.Substring(0, logEntry.Message.Length - rendered.Length));
-            }
-            message.Append(originalMessage);
+            message.Append(nativeMessage.Template);
+            args.AddRange(nativeMessage.Arguments);
+            messageFieldNames.UnionWith(nativeMessage.FieldNames);
         }
 
 
@@ -164,30 +143,41 @@ namespace DProjects.Log {
                 if (fields == null) fields = new Dictionary<string, object?>();
                 foreach (var key in Fields.Keys) fields[key] = Fields[key];
             }
-            if (args.Length > 0) {
+            var parsedMessage = LogMessageTemplate.Parse(message, args);
+            if (parsedMessage.Fields.Count > 0) {
                 if (fields == null) fields = new Dictionary<string, object?>();
-                var sb = new StringBuilder();
-                var argIndex = 0;
-                var iAnt = 0;
-                do {
-                    var i = message.IndexOf("{", iAnt);
-                    if (i == -1) {
-                        sb.Append(message.Substring(iAnt));
-                        break;
-                    }
-                    var j = message.IndexOf("}", i);
-                    if (j == -1) break;
-                    var varName = message.Substring(i + 1, j - i - 1);
-                    var varValue = (argIndex < args.Length ? args[argIndex++] : "{" + varName + "}");
-                    sb.Append(message.Substring(iAnt, i - iAnt));
-                    sb.Append(varValue);
-                    fields[varName] = varValue;
-                    iAnt = j + 1;
-                } while (true);
-                fields["messageOriginal"] = message;
-                message = sb.ToString();
+                foreach (var field in parsedMessage.Fields) fields[field.Key] = field.Value;
             }
-            return new LogEntry(logType, Prefix + message, fields, Tags, Source, User, Resource, now, SpanId, TraceId);
+            var logEntry = new LogEntry(
+                logType,
+                Prefix + parsedMessage.RenderedMessage,
+                fields,
+                Tags,
+                Source,
+                User,
+                Resource,
+                now,
+                SpanId,
+                TraceId
+            );
+            mNativeMessages.Add(logEntry, new NativeMessage(
+                LogMessageTemplate.EscapeLiteral(Prefix) + parsedMessage.NativeTemplate,
+                parsedMessage.NativeArguments,
+                parsedMessage.FieldNames
+            ));
+            return logEntry;
+        }
+
+        private sealed class NativeMessage {
+            public NativeMessage(string template, object?[] arguments, HashSet<string> fieldNames) {
+                Template = template;
+                Arguments = arguments;
+                FieldNames = fieldNames;
+            }
+
+            public string Template { get; }
+            public object?[] Arguments { get; }
+            public HashSet<string> FieldNames { get; }
         }
 
     }
