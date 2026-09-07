@@ -373,6 +373,11 @@ namespace DProjects.Fs.Http {
             }
         }
         public override async Task SyncAsync(string source, string destination, SyncSettings syncSettings, ILogger<IFilesystem> logger, CancellationToken cancellationToken) {
+            // Validate mode first so callers receive ArgumentOutOfRangeException for invalid modes
+            if (syncSettings == null) throw new ArgumentNullException(nameof(syncSettings));
+            if (syncSettings.Mode != SyncModes.LeftToRight && syncSettings.Mode != SyncModes.Bidirectional) {
+                throw new ArgumentOutOfRangeException(nameof(syncSettings.Mode), syncSettings.Mode, "Unsupported sync mode.");
+            }
             EnsureWritable();
             PathUtils.Validate(source);
             PathUtils.Validate(destination);
@@ -387,6 +392,7 @@ namespace DProjects.Fs.Http {
             httpRequest.Content = new StringContent(JsonSerializer.Serialize(syncRequest), System.Text.Encoding.UTF8, MIMETYPE_FS_SYNC);
             SignRequest(httpRequest);
             using (var httpResponse = await mHttpClient.SendAsync(httpRequest, cancellationToken)) {
+                var json = await httpResponse.Content.ReadAsStringAsync();
                 if (httpResponse.StatusCode == System.Net.HttpStatusCode.MethodNotAllowed) {
                     throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
                 } else if (httpResponse.StatusCode != System.Net.HttpStatusCode.OK && httpResponse.StatusCode != System.Net.HttpStatusCode.Created) {
