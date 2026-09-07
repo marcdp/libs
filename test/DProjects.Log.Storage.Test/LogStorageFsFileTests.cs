@@ -133,6 +133,16 @@ namespace DProjects.Log.Storage.Tests {
             Assert.Equal(expectedCount, entries.Count);
         }
         [Fact]
+        public async Task TailAsync_LargeRequestedCountDoesNotCauseEagerAllocation() {
+            using var filesystem = LogStorageTestUtils.CreateFilesystem();
+            filesystem.SaveText("/logs/app.log", "one\ntwo\nthree\n");
+            using var storage = LogStorageTestUtils.CreateRawFileStorage(filesystem);
+
+            var entries = await LogStorageTestUtils.CollectAsync(storage.TailAsync(500_000_000, false, TestContext.Current.CancellationToken), TestContext.Current.CancellationToken);
+
+            Assert.Equal(["one", "two", "three"], entries.Select(entry => entry.Message));
+        }
+        [Fact]
         public async Task TailAsync_RejectsNegativeLines() {
             using var filesystem = LogStorageTestUtils.CreateFilesystem();
             filesystem.SaveText("/logs/app.log", "one\n");

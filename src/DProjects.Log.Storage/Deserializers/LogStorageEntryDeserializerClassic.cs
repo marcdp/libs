@@ -32,9 +32,14 @@ namespace DProjects.Log.Storage.Serializers {
         }
 
         // methods (private)
-        internal static bool IsSupportedRecord(string line) {
-            var separator = line.IndexOf('|');
-            return separator > 0 && TryGetLevel(line.Substring(0, separator), out _);
+        internal static bool LooksLikeRecord(string line) {
+            var firstSeparator = line.IndexOf('|');
+            if (firstSeparator <= 0) return false;
+            var secondSeparator = line.IndexOf('|', firstSeparator + 1);
+            if (secondSeparator <= firstSeparator + 1) return false;
+            var thirdSeparator = line.IndexOf('|', secondSeparator + 1);
+            if (thirdSeparator == -1) return false;
+            return DateTimeUtils.TryParse(line.Substring(firstSeparator + 1, secondSeparator - firstSeparator - 1), out _);
         }
         private static bool TryGetLevel(string value, out LogLevel level) {
             switch (value) {

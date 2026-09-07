@@ -65,6 +65,23 @@ namespace DProjects.Log.Storage.Tests {
 
             Assert.IsType<FormatException>(exception.InnerException);
         }
+        [Fact]
+        public void Auto_RejectsUnknownSeverityInClassicShapedRecord() {
+            var deserializer = new LogStorageEntryDeserializerAuto();
+
+            Assert.Throws<FormatException>(() => deserializer.Deserialize("Verbose|2018-04-26 00:00:00 34|source|message|0||user|"));
+        }
+        [Fact]
+        public void Auto_KeepsNonClassicRecordContainingPipesAsRaw() {
+            const string record = "raw message | with | pipes";
+            var deserializer = new LogStorageEntryDeserializerAuto();
+
+            var entry = deserializer.Deserialize(record);
+
+            Assert.Equal(LogLevel.Information, entry.Level);
+            Assert.Equal(DateTime.MinValue, entry.Date);
+            Assert.Equal(record, entry.Message);
+        }
         [Theory]
         [InlineData("classic", "Secret|credential-value|source|message|", "Unable to parse Classic log record.")]
         [InlineData("rat", "credential-value", "Unable to parse RAT log record.")]

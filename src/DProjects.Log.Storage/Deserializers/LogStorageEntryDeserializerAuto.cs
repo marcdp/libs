@@ -18,7 +18,7 @@ namespace DProjects.Log.Storage.Serializers {
             } else if (line.StartsWith("{")) {
                 //json
                 return new LogStorageEntryDeserializerJson().Deserialize(line);
-            } else if (LogStorageEntryDeserializerClassic.IsSupportedRecord(line)) {
+            } else if (LogStorageEntryDeserializerClassic.LooksLikeRecord(line)) {
                 //Classic format (ex: Information|2018-04-26 00:00:00 34|/campus/campusrpc.ashx?60233135-a6c8-4e5c-a042-a96a2c596e5e|campusrpc:{"id":32,"method":"/quiHiHa/admin.aspx/GetContactesOnline","params":[true],"jsonrpc":"2.0"}|0||350416|)
                 return new LogStorageEntryDeserializerClassic().Deserialize(line);
             } else if (line.StartsWith("#")) {

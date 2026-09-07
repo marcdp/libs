@@ -27,6 +27,7 @@ namespace DProjects.Log.Storage.Tests {
             source.Cancel();
 
             await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => storage.RemoveBeforeAsync(-1, TestContext.Current.CancellationToken));
+            await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => storage.RemoveBeforeAsync(0, TestContext.Current.CancellationToken));
             Assert.Throws<ArgumentOutOfRangeException>(() => storage.TailAsync(-1, false, TestContext.Current.CancellationToken));
             await Assert.ThrowsAnyAsync<OperationCanceledException>(() => storage.GetStatsAsync(source.Token));
         }

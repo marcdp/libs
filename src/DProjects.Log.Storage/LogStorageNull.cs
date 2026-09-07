@@ -19,7 +19,7 @@ namespace DProjects.Log.Storage {
             return Task.FromResult(new LogStorageStats(0, 0, 0, null, null));
         }
         public Task RemoveBeforeAsync(int days, CancellationToken cancellationToken) {
-            if (days < 0) throw new ArgumentOutOfRangeException(nameof(days));
+            if (days <= 0) throw new ArgumentOutOfRangeException(nameof(days), "Retention days must be greater than zero.");
             cancellationToken.ThrowIfCancellationRequested();
             return Task.CompletedTask;
         }

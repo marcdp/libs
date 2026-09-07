@@ -64,7 +64,7 @@ namespace DProjects.Log.Storage {
             await GetFileEntryAsync(cancellationToken);
 
             // retain only the requested records while scanning the complete file, which is correct for arbitrary record sizes and encodings
-            var tail = new Queue<string>(lines);
+            var tail = new Queue<string>();
             using (var readStream = await mFilesystem.LoadReadStreamAsync(mPath, new(), cancellationToken))
             using (var textReader = new StreamReader(readStream, mEncoding)) {
                 do {
