@@ -27,14 +27,13 @@
 
     <ItemGroup>
         
-        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.11" />
-        <PackageReference Include="System.Threading.Channels" Version="10.0.11" />
+        <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.11" />
+        <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.18.0" />
     </ItemGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\DProjects.Factories.Abstractions\DProjects.Factories.Abstractions.csproj" />
-        <ProjectReference Include="..\DProjects.Fs.Abstractions\DProjects.Fs.Abstractions.csproj" />
-        <ProjectReference Include="..\DProjects.Log.Abstractions\DProjects.Log.Abstractions.csproj" />
+        <ProjectReference Include="..\DProjects.Log\DProjects.Log.csproj" />
     </ItemGroup>
 
 </Project>

@@ -56,6 +56,18 @@ namespace DProjects.Log {
                 message.Append(" {user}");
                 args.Add(logEntry.User);
             }
+            if (logEntry.Resource != null) {
+                message.Append(" {resource}");
+                args.Add(logEntry.Resource);
+            }
+            if (logEntry.SpanId != null) {
+                message.Append(" {spanId}");
+                args.Add(logEntry.SpanId);
+            }
+            if (logEntry.TraceId != null) {
+                message.Append(" {traceId}");
+                args.Add(logEntry.TraceId);
+            }
             //log
             mLogger.Log(logLevelNative, message.ToString(), args.ToArray());
         }

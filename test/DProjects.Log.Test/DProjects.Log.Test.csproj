@@ -16,6 +16,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\DProjects.Factories\DProjects.Factories.csproj" />
     <ProjectReference Include="..\..\src\DProjects.Log\DProjects.Log.csproj" />
+    <ProjectReference Include="..\..\src\DProjects.Log.OpenTelemetry\DProjects.Log.OpenTelemetry.csproj" />
   </ItemGroup>
 
   <ItemGroup>
