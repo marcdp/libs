@@ -60,6 +60,9 @@ namespace DProjects.Fs {
             }
             public void SetLastWritetime(DateTime lastWriteTime) {
                 Modified = lastWriteTime;
+                if (IsFile()) {
+                    Etag = CreateEtag(Length, Modified);
+                }
             }
         }
 
@@ -90,13 +93,14 @@ namespace DProjects.Fs {
         public override Entry? GetEntry(string path) {
             mReaderWriterLock.EnterReadLock();
             try {
-                return mEntry.GetEntry(path);
+                var entry = mEntry.GetEntry(path);
+                return entry == null ? null : Snapshot(entry);
             } finally {
                 mReaderWriterLock.ExitReadLock();
             }
         }
         public override IEnumerable<Entry> GetEntries(string path, GetModes mode = GetModes.All, string? pattern = null) {
-            List<MyEntry> result = new List<MyEntry>();
+            List<Entry> result = new List<Entry>();
             PathUtils.Validate(path);
             mReaderWriterLock.EnterReadLock();
             try {
@@ -107,7 +111,7 @@ namespace DProjects.Fs {
                     }
                     foreach (var entry in parent.Childs.Values) {
                         if (pattern == null || StringUtils.Like(entry.Name, pattern)) {
-                            result.Add(entry);
+                            result.Add(Snapshot(entry));
                         }
                     }
                 } else if (mode == GetModes.Directories) {
@@ -118,7 +122,7 @@ namespace DProjects.Fs {
                     foreach (var entry in parent.Childs.Values) {
                         if (entry.IsDirectory()) {
                             if (pattern == null || StringUtils.Like(entry.Name, pattern)) {
-                                result.Add(entry);
+                                result.Add(Snapshot(entry));
                             }
                         }
                     }
@@ -130,7 +134,7 @@ namespace DProjects.Fs {
                     foreach (var entry in parent.Childs.Values) {
                         if (!entry.IsDirectory()) {
                             if (pattern == null || StringUtils.Like(entry.Name, pattern)) {
-                                result.Add(entry);
+                                result.Add(Snapshot(entry));
                             }
                         }
                     }
@@ -141,7 +145,7 @@ namespace DProjects.Fs {
                     }
                     foreach (MyEntry subentry in entry.Descendants) {
                         if (pattern == null || StringUtils.Like(subentry.Name, pattern)) {
-                            result.Add(subentry);
+                            result.Add(Snapshot(subentry));
                         }
                     }
                 }
@@ -207,6 +211,7 @@ namespace DProjects.Fs {
             if (IsReadonly) throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
             if (!ExistsDirectory(PathUtils.GetPathParent(path))) throw new Exception("Unable to modify filesystem: parent path not found");
             MyEntry? entry = null;
+            Entry? result = null;
             byte[] content = StreamUtils.ReadBytes(stream);
             PathUtils.Validate(path);
             mReaderWriterLock.EnterUpgradeableReadLock();
@@ -222,10 +227,14 @@ namespace DProjects.Fs {
                             mReaderWriterLock.ExitWriteLock();
                         }
                     }
-                    DateTime objLastWriteDate = DateTime.Now;
-                    string etag = HashUtils.ToHashSHA1Hex(content.Length + "-" + objLastWriteDate.ToUniversalTime().ToString("YYYY-MM-dd-HH-mm-ss")).ToLower();
-                    entry = new MyEntry(path, EntryType.File, objLastWriteDate, objLastWriteDate, content.Length, etag, 0);
-                    parent.Childs.Add(entry.Name, entry);
+                    mReaderWriterLock.EnterWriteLock();
+                    try {
+                        DateTime objLastWriteDate = DateTime.Now;
+                        entry = new MyEntry(path, EntryType.File, objLastWriteDate, objLastWriteDate, 0, "", 0);
+                        parent.Childs.Add(entry.Name, entry);
+                    } finally {
+                        mReaderWriterLock.ExitWriteLock();
+                    }
                 }
                 mReaderWriterLock.EnterWriteLock();
                 try {
@@ -234,7 +243,12 @@ namespace DProjects.Fs {
                     } else {
                         entry.Content = content;
                     }
-                    entry.SetLastWritetime(DateTime.Now);
+                    var lastWriteTime = DateTime.Now;
+                    if (lastWriteTime == entry.Modified) {
+                        lastWriteTime = entry.Modified.AddTicks(1);
+                    }
+                    entry.SetLastWritetime(lastWriteTime);
+                    result = Snapshot(entry);
                 } finally {
                     mReaderWriterLock.ExitWriteLock();
                 }
@@ -242,12 +256,13 @@ namespace DProjects.Fs {
                 mReaderWriterLock.ExitUpgradeableReadLock();
                 MarkAsDirty();
             }
-            return entry;
+            return result!;
         }
         public override Entry CreateDirectory(string path) {
             if (IsReadonly) throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
             PathUtils.Validate(path);
             MyEntry? entry = null;
+            Entry? result = null;
             mReaderWriterLock.EnterUpgradeableReadLock();
             try {
                 var parent = mEntry.GetEntry(PathUtils.GetPathParent(path));
@@ -269,11 +284,12 @@ namespace DProjects.Fs {
                         mReaderWriterLock.ExitWriteLock();
                     }
                 }
+                result = Snapshot(entry);
             } finally {
                 mReaderWriterLock.ExitUpgradeableReadLock();
                 MarkAsDirty();
             }
-            return entry;
+            return result!;
         }
         public override void Delete(string path) {
             if (IsReadonly) throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
@@ -361,6 +377,13 @@ namespace DProjects.Fs {
 
 
         //utils
+        private static string CreateEtag(long length, DateTime modified) {
+            return HashUtils.ToHashSHA1Hex(length.ToString(System.Globalization.CultureInfo.InvariantCulture) + "-" +
+                modified.ToUniversalTime().Ticks.ToString(System.Globalization.CultureInfo.InvariantCulture)).ToLower();
+        }
+        private static Entry Snapshot(MyEntry entry) {
+            return new Entry(entry.Path, entry.EntryType, entry.Created, entry.Modified, entry.Length, entry.Etag, entry.Flags);
+        }
         protected MyEntry CreateDirectoryRecursively(string path) {
             string[] pathParts = path.Split('/');
             string pathAux = "/";

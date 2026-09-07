@@ -397,6 +397,7 @@ namespace DProjects.Fs.Aws {
                                 return new Entry(path, EntryType.File, aDateTimeOffset.LocalDateTime, aDateTimeOffset.LocalDateTime, bytesUploaded, etag, 0);
                             }
                         } catch (OperationCanceledException) {
+                            await AbortMultipartUploadAfterCancellationAsync(path, uploadId);
                             throw;
                         } catch (Exception e) {
                             //cancel multipart upload upload
@@ -632,6 +633,23 @@ namespace DProjects.Fs.Aws {
 
 
         //utils
+        private async Task AbortMultipartUploadAfterCancellationAsync(string path, string uploadId) {
+            if (string.IsNullOrEmpty(uploadId)) {
+                return;
+            }
+            try {
+                using (var cleanupCancellationTokenSource = new CancellationTokenSource(TimeSpan.FromSeconds(5))) {
+                    var query = "?uploadId=" + uploadId;
+                    using (var httpRequest = CreateHttpRequest(HttpMethod.Delete, mBasePath + path, query)) {
+                        SignRequest(httpRequest, mBasePath + path, query);
+                        using (var httpResponse = await mHttpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead, cleanupCancellationTokenSource.Token)) {
+                        }
+                    }
+                }
+            } catch {
+                // preserve the caller's original cancellation when best-effort cleanup fails
+            }
+        }
         private CacheControlHeaderValue CreateAutoCacheHeaderValue(string mimetype, CancellationToken cancellationToken) {
             cancellationToken.ThrowIfCancellationRequested();
             var seconds = 60 * 60;

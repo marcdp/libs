@@ -392,7 +392,6 @@ namespace DProjects.Fs.Http {
             httpRequest.Content = new StringContent(JsonSerializer.Serialize(syncRequest), System.Text.Encoding.UTF8, MIMETYPE_FS_SYNC);
             SignRequest(httpRequest);
             using (var httpResponse = await mHttpClient.SendAsync(httpRequest, cancellationToken)) {
-                var json = await httpResponse.Content.ReadAsStringAsync();
                 if (httpResponse.StatusCode == System.Net.HttpStatusCode.MethodNotAllowed) {
                     throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
                 } else if (httpResponse.StatusCode != System.Net.HttpStatusCode.OK && httpResponse.StatusCode != System.Net.HttpStatusCode.Created) {
