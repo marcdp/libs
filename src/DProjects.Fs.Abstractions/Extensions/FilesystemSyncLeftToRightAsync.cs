@@ -29,7 +29,7 @@ namespace DProjects.Fs.Extensions {
                 var timestampCache = new Dictionary<string, string>();
                 var timestampCachePath = PathUtils.Combine(syncSettings.StatusPath, "index.db");
                 if (await fs.ExistsFileAsync(timestampCachePath, cancellationToken)) {
-                    timestampCache = JsonSerializer.Deserialize<Dictionary<string, string>>(await fs.LoadTextFileAsync(timestampCachePath));
+                    timestampCache = JsonSerializer.Deserialize<Dictionary<string, string>>(await fs.LoadTextFileAsync(timestampCachePath, cancellationToken: cancellationToken));
                 }
                 await SyncLeftToRightRecursiveAsync(fs, source, destination, syncSettings, logger, CompareMethod.TimestampCache, timestampCache ?? new Dictionary<string, string>(), cancellationToken);
                 await fs.SaveTextFileAsync(timestampCachePath, JsonSerializer.Serialize(timestampCache), System.Text.Encoding.UTF8, cancellationToken);
@@ -41,8 +41,14 @@ namespace DProjects.Fs.Extensions {
             //check cancellationToken
             cancellationToken.ThrowIfCancellationRequested();
             //get entries
-            var srcEntries = new List<Entry>(fs.GetEntriesAsync(source).ToEnumerable());
-            var dstEntries = new List<Entry>(fs.GetEntriesAsync(destination).ToEnumerable());
+            var srcEntries = new List<Entry>();
+            await foreach (var entry in fs.GetEntriesAsync(source, cancellationToken: cancellationToken)) {
+                srcEntries.Add(entry);
+            }
+            var dstEntries = new List<Entry>();
+            await foreach (var entry in fs.GetEntriesAsync(destination, cancellationToken: cancellationToken)) {
+                dstEntries.Add(entry);
+            }
             //source
             var srcEntriesCache = new Dictionary<string, Entry>(srcEntries.Count);
             foreach (var srcEntry in srcEntries) {
@@ -81,12 +87,54 @@ namespace DProjects.Fs.Extensions {
             foreach (var srcEntry in srcEntries) {
                 Entry? dstEntry = null;
                 dstEntriesCache.TryGetValue(srcEntry.Name, out dstEntry);
+                if (dstEntry != null && srcEntry.IsDirectory() != dstEntry.IsDirectory()) {
+                    var deleted = false;
+                    for (int trie = 0; trie < syncSettings.Tries; trie++) {
+                        logger.LogInformation("replacing conflicting entry {path} ...", dstEntry.Path);
+                        cancellationToken.ThrowIfCancellationRequested();
+                        try {
+                            if (dstEntry.IsDirectory()) {
+                                await fs.DeleteDirectoryAsync(dstEntry.Path, cancellationToken);
+                            } else {
+                                await fs.DeleteFileAsync(dstEntry.Path, cancellationToken);
+                            }
+                            deleted = true;
+                            break;
+                        } catch (OperationCanceledException) {
+                            throw;
+                        } catch (Exception ex) {
+                            logger.LogError("Unable to replace conflicting entry {path} {trie}/{tries}: {message} {ex}", dstEntry.Path, (trie + 1), syncSettings.Tries, ex.Message, ex);
+                            if (trie == syncSettings.Tries - 1) {
+                                if (!syncSettings.IgnoreErrors) throw;
+                            } else {
+                                await Task.Delay(250, cancellationToken);
+                            }
+                        }
+                    }
+                    if (!deleted) continue;
+                    dstEntry = null;
+                }
                 if (dstEntry == null) {
                     //create dst entry
                     if (srcEntry.IsDirectory()) {
-                        logger.LogInformation("creating {path} ...", PathUtils.Combine(destination, srcEntry.Path.Substring(source.Length)));
-                        dstEntry = await fs.CreateDirectoryAsync(PathUtils.Combine(destination, srcEntry.Path.Substring(source.Length)), cancellationToken);
-                        if (syncSettings.Recursive) await SyncLeftToRightRecursiveAsync(fs, srcEntry.Path, dstEntry.Path, syncSettings, logger, compareMethod, timestampCache, cancellationToken);
+                        for (int trie = 0; trie < syncSettings.Tries; trie++) {
+                            logger.LogInformation("creating {path} ...", PathUtils.Combine(destination, srcEntry.Path.Substring(source.Length)));
+                            cancellationToken.ThrowIfCancellationRequested();
+                            try {
+                                dstEntry = await fs.CreateDirectoryAsync(PathUtils.Combine(destination, srcEntry.Path.Substring(source.Length)), cancellationToken);
+                                if (syncSettings.Recursive) await SyncLeftToRightRecursiveAsync(fs, srcEntry.Path, dstEntry.Path, syncSettings, logger, compareMethod, timestampCache, cancellationToken);
+                                break;
+                            } catch (OperationCanceledException) {
+                                throw;
+                            } catch (Exception ex) {
+                                logger.LogError("Unable to create {path} {trie}/{tries}: {message} {ex}", PathUtils.Combine(destination, srcEntry.Path.Substring(source.Length)), (trie + 1), syncSettings.Tries, ex.Message, ex);
+                                if (trie == syncSettings.Tries - 1) {
+                                    if (!syncSettings.IgnoreErrors) throw;
+                                } else {
+                                    await Task.Delay(250, cancellationToken);
+                                }
+                            }
+                        }
                     } else {
                         for (int trie = 0; trie <= syncSettings.Tries - 1; trie++) {
                             logger.LogInformation("creating {path} ...", PathUtils.Combine(destination, srcEntry.Path.Substring(source.Length)));
@@ -102,14 +150,14 @@ namespace DProjects.Fs.Extensions {
                                     timestampCache[srcEntry.Path] = HashUtils.ToHashSHA256Hex(srcEntry.Modified.ToUniversalTime().Ticks + ":" + srcEntry.Length + ":" + entrySaved.Modified.ToUniversalTime().Ticks);
                                 }
                                 break;
-                            } catch (TaskCanceledException) {
+                            } catch (OperationCanceledException) {
                                 throw;
                             } catch (Exception ex) {
                                 logger.LogError("Unable to create {path} {trie}/{tries}: {message} {ex}", PathUtils.Combine(destination, srcEntry.Path.Substring(source.Length)), (trie + 1), syncSettings.Tries, ex.Message, ex);
                                 if (trie == syncSettings.Tries - 1) {
                                     if (!syncSettings.IgnoreErrors) throw;
                                 } else {
-                                    System.Threading.Thread.Sleep(250);
+                                    await Task.Delay(250, cancellationToken);
                                 }
                             }
                         }
@@ -156,14 +204,14 @@ namespace DProjects.Fs.Extensions {
                                     timestampCache[srcEntry.Path] = HashUtils.ToHashSHA256Hex(srcEntry.Modified.ToUniversalTime().Ticks + ":" + srcEntry.Length + ":" + entrySaved.Modified.ToUniversalTime().Ticks);
                                 }
                                 break;
-                            } catch (TaskCanceledException) {
+                            } catch (OperationCanceledException) {
                                 throw;
                             } catch (Exception ex) {
                                 logger.LogError("Unable to update {path} {trie}/{tries}: {message} {ex}", PathUtils.Combine(destination, srcEntry.Path.Substring(source.Length)), (trie + 1), syncSettings.Tries, ex.Message, ex);
                                 if (trie == syncSettings.Tries - 1) {
                                     if (!syncSettings.IgnoreErrors) throw;
                                 } else {
-                                    System.Threading.Thread.Sleep(250);
+                                    await Task.Delay(250, cancellationToken);
                                 }
                             }
                         }
@@ -188,7 +236,7 @@ namespace DProjects.Fs.Extensions {
                             } else {
                                 await fs.DeleteFileAsync(dstEntry.Path, cancellationToken);
                             }
-                        } catch (TaskCanceledException) {
+                        } catch (OperationCanceledException) {
                             throw;
                         } catch (Exception) {
                             if (syncSettings.IgnoreErrors) continue;

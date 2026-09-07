@@ -78,12 +78,52 @@ namespace DProjects.Fs.Extensions {
             foreach (var srcEntry in srcEntries) {
                 Entry? dstEntry = null;
                 dstEntriesCache.TryGetValue(srcEntry.Name, out dstEntry);
+                if (dstEntry != null && srcEntry.IsDirectory() != dstEntry.IsDirectory()) {
+                    var deleted = false;
+                    for (int trie = 0; trie < syncSettings.Tries; trie++) {
+                        logger.LogInformation("replacing conflicting entry {path} ...", dstEntry.Path);
+                        try {
+                            if (dstEntry.IsDirectory()) {
+                                fs.DeleteDirectory(dstEntry.Path);
+                            } else {
+                                fs.DeleteFile(dstEntry.Path);
+                            }
+                            deleted = true;
+                            break;
+                        } catch (OperationCanceledException) {
+                            throw;
+                        } catch (Exception ex) {
+                            logger.LogError("Unable to replace conflicting entry {path} {trie}/{tries}: {message} {ex}", dstEntry.Path, (trie + 1), syncSettings.Tries, ex.Message, ex);
+                            if (trie == syncSettings.Tries - 1) {
+                                if (!syncSettings.IgnoreErrors) throw;
+                            } else {
+                                System.Threading.Thread.Sleep(250);
+                            }
+                        }
+                    }
+                    if (!deleted) continue;
+                    dstEntry = null;
+                }
                 if (dstEntry == null) {
                     //create dst entry
                     if (srcEntry.IsDirectory()) {
-                        logger.LogInformation("creating {path} ...", PathUtils.Combine(destination, srcEntry.Path.Substring(source.Length)));
-                        dstEntry = fs.CreateDirectory(PathUtils.Combine(destination, srcEntry.Path.Substring(source.Length)));
-                        if (syncSettings.Recursive) SyncLeftToRightRecursive(fs, srcEntry.Path, dstEntry.Path, syncSettings, logger, compareMethod, timestampCache);
+                        for (int trie = 0; trie < syncSettings.Tries; trie++) {
+                            logger.LogInformation("creating {path} ...", PathUtils.Combine(destination, srcEntry.Path.Substring(source.Length)));
+                            try {
+                                dstEntry = fs.CreateDirectory(PathUtils.Combine(destination, srcEntry.Path.Substring(source.Length)));
+                                if (syncSettings.Recursive) SyncLeftToRightRecursive(fs, srcEntry.Path, dstEntry.Path, syncSettings, logger, compareMethod, timestampCache);
+                                break;
+                            } catch (OperationCanceledException) {
+                                throw;
+                            } catch (Exception ex) {
+                                logger.LogError("Unable to create {path} {trie}/{tries}: {message} {ex}", PathUtils.Combine(destination, srcEntry.Path.Substring(source.Length)), (trie + 1), syncSettings.Tries, ex.Message, ex);
+                                if (trie == syncSettings.Tries - 1) {
+                                    if (!syncSettings.IgnoreErrors) throw;
+                                } else {
+                                    System.Threading.Thread.Sleep(250);
+                                }
+                            }
+                        }
                     } else {
                         for (int trie = 0; trie <= syncSettings.Tries - 1; trie++) {
                             logger.LogInformation("creating {path} ...", PathUtils.Combine(destination, srcEntry.Path.Substring(source.Length)));
@@ -99,7 +139,7 @@ namespace DProjects.Fs.Extensions {
                                     timestampCache[srcEntry.Path] = HashUtils.ToHashSHA256Hex(srcEntry.Modified.ToUniversalTime().Ticks + ":" + srcEntry.Length + ":" + entrySaved.Modified.ToUniversalTime().Ticks);
                                 }
                                 break;
-                            } catch (TaskCanceledException) {
+                            } catch (OperationCanceledException) {
                                 throw;
                             } catch (Exception ex) {
                                 logger.LogError("Unable to create {path} {trie}/{tries}: {message} {ex}", PathUtils.Combine(destination, srcEntry.Path.Substring(source.Length)), (trie + 1), syncSettings.Tries, ex.Message, ex);
@@ -153,7 +193,7 @@ namespace DProjects.Fs.Extensions {
                                     timestampCache[srcEntry.Path] = HashUtils.ToHashSHA256Hex(srcEntry.Modified.ToUniversalTime().Ticks + ":" + srcEntry.Length + ":" + entrySaved.Modified.ToUniversalTime().Ticks);
                                 }
                                 break;
-                            } catch (TaskCanceledException) {
+                            } catch (OperationCanceledException) {
                                 throw;
                             } catch (Exception ex) {
                                 logger.LogError("Unable to create {path} {trie}/{tries}: {message} {ex}", PathUtils.Combine(destination, srcEntry.Path.Substring(source.Length)), (trie + 1), syncSettings.Tries, ex.Message, ex);
@@ -185,7 +225,7 @@ namespace DProjects.Fs.Extensions {
                             } else {
                                 fs.DeleteFile(dstEntry.Path);
                             }
-                        } catch (TaskCanceledException) {
+                        } catch (OperationCanceledException) {
                             throw;
                         } catch (Exception) {
                             if (syncSettings.IgnoreErrors) continue;

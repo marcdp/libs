@@ -86,15 +86,19 @@ namespace DProjects.Fs.Extensions {
                             CopyNewerEntry(fs, entryA, entryB, processedPaths, syncSettings, logger, status);
                         } else {
                             // CONFLICT: files exists in both places
-                            if (entryAprev.Modified == entryA.Modified && entryBprev.Modified == entryB.Modified) {
+                            var entryAChanged = entryAprev.Modified != entryA.Modified || entryAprev.IsDirectory() != entryA.IsDirectory();
+                            var entryBChanged = entryBprev.Modified != entryB.Modified || entryBprev.IsDirectory() != entryB.IsDirectory();
+                            if (!entryAChanged && !entryBChanged && entryA.IsDirectory() != entryB.IsDirectory()) {
+                                CopyNewerEntry(fs, entryA, entryB, processedPaths, syncSettings, logger, status);
+                            } else if (!entryAChanged && !entryBChanged) {
                                 //no changed
-                            } else if (entryAprev.Modified != entryA.Modified && entryBprev.Modified == entryB.Modified) {
+                            } else if (entryAChanged && !entryBChanged) {
                                 //changed entryA: a --> b
                                 CopyEntry(fs, entryA, pathB, processedPaths, syncSettings, logger, status);
-                            } else if (entryAprev.Modified == entryA.Modified && entryBprev.Modified != entryB.Modified) {
+                            } else if (!entryAChanged && entryBChanged) {
                                 //changed entryB
                                 CopyEntry(fs, entryB, pathA, processedPaths, syncSettings, logger, status);
-                            } else if (entryAprev.Modified != entryA.Modified && entryBprev.Modified != entryB.Modified) {
+                            } else if (entryAChanged && entryBChanged) {
                                 // CONFLICT: copy newer file to other side (both changed)
                                 CopyNewerEntry(fs, entryA, entryB, processedPaths, syncSettings, logger, status);
                             }
@@ -117,6 +121,8 @@ namespace DProjects.Fs.Extensions {
                     status.Remove(entry.Path);
                     processedPaths.Add(entry.Path);
                     return true;
+                } catch (OperationCanceledException) {
+                    throw;
                 } catch (Exception ex) {
                     logger.LogError("Error deleting {path}: {message} {ex}", entry.Path, ex.Message, ex);
                     if (trie == syncSettings.Tries - 1) {
@@ -139,6 +145,17 @@ namespace DProjects.Fs.Extensions {
             for (var trie = 0; trie < syncSettings.Tries; trie++) {
                 logger.LogInformation("copy {from} to {to}", source.Path, destination);
                 try {
+                    var destinationEntry = fs.GetEntry(destination);
+                    if (destinationEntry != null && source.IsDirectory() != destinationEntry.IsDirectory()) {
+                        if (destinationEntry.IsDirectory()) {
+                            fs.DeleteDirectory(destination);
+                        } else {
+                            fs.DeleteFile(destination);
+                        }
+                        foreach (var removedPath in status.RemoveTree(destination)) {
+                            processedPaths.Add(removedPath);
+                        }
+                    }
                     if (source.IsDirectory()) {
                         var entry = fs.CreateDirectory(destination);
                         status.Modify(entry.Path, entry);
@@ -151,6 +168,8 @@ namespace DProjects.Fs.Extensions {
                     processedPaths.Add(source.Path);
                     processedPaths.Add(destination);
                     return true;
+                } catch (OperationCanceledException) {
+                    throw;
                 } catch (Exception ex) {
                     logger.LogError("Error copying {from} to {to}: {message} {ex}", source.Path, destination, ex.Message, ex);
                     if (trie == syncSettings.Tries - 1) {
@@ -189,6 +208,18 @@ namespace DProjects.Fs.Extensions {
             //methods
             public void Remove(string path) {
                 mEntries.Remove(path);
+            }
+            public string[] RemoveTree(string path) {
+                var paths = new List<string>();
+                foreach (var entryPath in mEntries.Keys) {
+                    if (entryPath.Equals(path) || entryPath.StartsWith(path + "/")) {
+                        paths.Add(entryPath);
+                    }
+                }
+                foreach (var entryPath in paths) {
+                    mEntries.Remove(entryPath);
+                }
+                return paths.ToArray();
             }
             public void Modify(string path, Entry entry) {
                 mEntries[path] = entry;

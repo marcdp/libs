@@ -16,6 +16,10 @@ namespace DProjects.Fs.Extensions {
             if (entrySource == null) {
                 throw new Exception("Unable to copy: not found " + source);
             } else if (entrySource.IsDirectory()) {
+                var entryDestination = filesystem.GetEntry(destination);
+                if (entryDestination != null && !entryDestination.IsDirectory()) {
+                    throw new InvalidOperationException("Unable to copy directory: destination exists and is a file: " + destination);
+                }
                 IDictionary<string, string>? metadata = null;
                 if (filesystem.Supports(source, Features.Metadata) && filesystem.Supports(destination, Features.Metadata)) {
                     metadata = filesystem.GetMetadata(source);
@@ -32,7 +36,7 @@ namespace DProjects.Fs.Extensions {
                         string childPath = PathUtils.Combine(destination, entryChildSource.Name);
                         try {
                             filesystem.CopyRecursive(entryChildSource.Path, childPath, settings, logger);
-                        } catch (TaskCanceledException) {
+                        } catch (OperationCanceledException) {
                             throw;
                         } catch (Exception ex) {
                             if (settings.IgnoreErrors) {
@@ -58,8 +62,8 @@ namespace DProjects.Fs.Extensions {
                     var entryDestinationInDirectory = filesystem.GetEntry(destinationInDirectory);
                     if (entryDestinationInDirectory == null) {
                         CopyFileRecursive(filesystem, entrySource, destinationInDirectory, settings, logger);
-                    } else if (!entryDestination.IsDirectory()) {
-                        throw new Exception("Unable to copy: destination exists and is a directory");
+                    } else if (entryDestinationInDirectory.IsDirectory()) {
+                        throw new InvalidOperationException("Unable to copy file: destination exists and is a directory: " + destinationInDirectory);
                     } else {
                         if (settings.Overwrite) {
                             CopyFileRecursive(filesystem, entrySource, destinationInDirectory, settings, logger);
@@ -83,7 +87,7 @@ namespace DProjects.Fs.Extensions {
                         filesystem.SetMetadata(destination, metadata);
                     }
                     return;
-                } catch (TaskCanceledException) {
+                } catch (OperationCanceledException) {
                     throw;
                 } catch (Exception ex) {
                     logger.LogError("Error copying {from} to {to}: {message}", source.Path, destination, ex.Message);
@@ -106,6 +110,10 @@ namespace DProjects.Fs.Extensions {
             if (entrySource == null) {
                 throw new Exception("Unable to copy: not found " + source);
             } else if (entrySource.IsDirectory()) {
+                var entryDestination = await filesystem.GetEntryAsync(destination, cancellationToken);
+                if (entryDestination != null && !entryDestination.IsDirectory()) {
+                    throw new InvalidOperationException("Unable to copy directory: destination exists and is a file: " + destination);
+                }
                 IDictionary<string, string>? metadata = null;
                 if (await filesystem.SupportsAsync(source, Features.Metadata, cancellationToken) && await filesystem.SupportsAsync(destination, Features.Metadata, cancellationToken)) {
                     metadata = await filesystem.GetMetadataAsync(source, cancellationToken);
@@ -118,11 +126,11 @@ namespace DProjects.Fs.Extensions {
                     await filesystem.SetMetadataAsync(destination, metadata, cancellationToken);
                 }
                 if (settings.Recursive) {
-                    await foreach (Entry entryChildSource in filesystem.GetEntriesAsync(source)) {
+                    await foreach (Entry entryChildSource in filesystem.GetEntriesAsync(source, cancellationToken: cancellationToken)) {
                         string childPath = PathUtils.Combine(destination, entryChildSource.Name);
                         try {
                             await filesystem.CopyRecursiveAsync(entryChildSource.Path, childPath, settings, logger, cancellationToken);
-                        } catch (TaskCanceledException) {
+                        } catch (OperationCanceledException) {
                             throw;
                         } catch (Exception ex) {
                             if (settings.IgnoreErrors) {
@@ -148,8 +156,8 @@ namespace DProjects.Fs.Extensions {
                     var entryDestinationInDirectory = await filesystem.GetEntryAsync(destinationInDirectory, cancellationToken);
                     if (entryDestinationInDirectory == null) {
                         await CopyFileRecursiveAsync(filesystem, entrySource, destinationInDirectory, settings, logger, cancellationToken);
-                    } else if (!entryDestination.IsDirectory()) {
-                        throw new Exception("Unable to copy: destination exists and is a directory");
+                    } else if (entryDestinationInDirectory.IsDirectory()) {
+                        throw new InvalidOperationException("Unable to copy file: destination exists and is a directory: " + destinationInDirectory);
                     } else {
                         if (settings.Overwrite) {
                             await CopyFileRecursiveAsync(filesystem, entrySource, destinationInDirectory, settings, logger, cancellationToken);
@@ -174,14 +182,14 @@ namespace DProjects.Fs.Extensions {
                         await filesystem.SetMetadataAsync(destination, metadata, cancellationToken);
                     }
                     return;
-                } catch (TaskCanceledException) {
+                } catch (OperationCanceledException) {
                     throw;
                 } catch (Exception ex) {
                     logger.LogError("Error copying {from} to {to}: {message}", source.Path, destination, ex.Message);
                     if (trie == settings.Tries - 1) {
                         if (!settings.IgnoreErrors) throw;
                     } else {
-                        System.Threading.Thread.Sleep(250);
+                        await Task.Delay(250, cancellationToken);
                     }
                 }
             }

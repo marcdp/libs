@@ -21,7 +21,7 @@ namespace DProjects.Fs.Extensions {
             cancellationToken.ThrowIfCancellationRequested();
             //status
             var status = new Status();
-            await foreach (var entry in fs.GetEntriesAsync(source, GetModes.Descendants)) {
+            await foreach (var entry in fs.GetEntriesAsync(source, GetModes.Descendants, cancellationToken: cancellationToken)) {
                 bool isExcluded = false;
                 foreach (string exclude in syncSettings.SourceExcludes) {
                     if (StringUtils.Like(entry.Path, exclude)) {
@@ -32,7 +32,7 @@ namespace DProjects.Fs.Extensions {
                     status.Add(entry);
                 };
             }
-            await foreach (var entry in fs.GetEntriesAsync(destination, GetModes.Descendants)) {
+            await foreach (var entry in fs.GetEntriesAsync(destination, GetModes.Descendants, cancellationToken: cancellationToken)) {
                 bool isExcluded = false;
                 foreach (string exclude in syncSettings.DestinationExcludes) {
                     if (StringUtils.Like(entry.Path, exclude)) {
@@ -47,7 +47,7 @@ namespace DProjects.Fs.Extensions {
             string statusIndexPath = PathUtils.Combine(syncSettings.StatusPath, "index.db");
             Status? prevStatus = null;
             if (await fs.ExistsFileAsync(statusIndexPath, cancellationToken)) {
-                prevStatus = new Status(new StringReader(await fs.LoadTextFileAsync(statusIndexPath)));
+                prevStatus = new Status(new StringReader(await fs.LoadTextFileAsync(statusIndexPath, cancellationToken: cancellationToken)));
             }
             //process
             var processedPaths = new List<string>();
@@ -88,15 +88,19 @@ namespace DProjects.Fs.Extensions {
                             await CopyNewerEntryAsync(fs, entryA, entryB, processedPaths, syncSettings, logger, status, cancellationToken);
                         } else {
                             // CONFLICT: files exists in both places
-                            if (entryAprev.Modified == entryA.Modified && entryBprev.Modified == entryB.Modified) {
+                            var entryAChanged = entryAprev.Modified != entryA.Modified || entryAprev.IsDirectory() != entryA.IsDirectory();
+                            var entryBChanged = entryBprev.Modified != entryB.Modified || entryBprev.IsDirectory() != entryB.IsDirectory();
+                            if (!entryAChanged && !entryBChanged && entryA.IsDirectory() != entryB.IsDirectory()) {
+                                await CopyNewerEntryAsync(fs, entryA, entryB, processedPaths, syncSettings, logger, status, cancellationToken);
+                            } else if (!entryAChanged && !entryBChanged) {
                                 //no changed
-                            } else if (entryAprev.Modified != entryA.Modified && entryBprev.Modified == entryB.Modified) {
+                            } else if (entryAChanged && !entryBChanged) {
                                 //changed entryA: a --> b
                                 await CopyEntryAsync(fs, entryA, pathB, processedPaths, syncSettings, logger, status, cancellationToken);
-                            } else if (entryAprev.Modified == entryA.Modified && entryBprev.Modified != entryB.Modified) {
+                            } else if (!entryAChanged && entryBChanged) {
                                 //changed entryB
                                 await CopyEntryAsync(fs, entryB, pathA, processedPaths, syncSettings, logger, status, cancellationToken);
-                            } else if (entryAprev.Modified != entryA.Modified && entryBprev.Modified != entryB.Modified) {
+                            } else if (entryAChanged && entryBChanged) {
                                 // CONFLICT: copy newer file to other side (both changed)
                                 await CopyNewerEntryAsync(fs, entryA, entryB, processedPaths, syncSettings, logger, status, cancellationToken);
                             }
@@ -122,12 +126,14 @@ namespace DProjects.Fs.Extensions {
                     status.Remove(entry.Path);
                     processedPaths.Add(entry.Path);
                     return true;
+                } catch (OperationCanceledException) {
+                    throw;
                 } catch (Exception ex) {
                     logger.LogError("Error deleting {path}: {message} {ex}", entry.Path, ex.Message, ex);
                     if (trie == syncSettings.Tries - 1) {
                         if (!syncSettings.IgnoreErrors) throw;
                     } else {
-                        System.Threading.Thread.Sleep(250);
+                        await Task.Delay(250, cancellationToken);
                     }
                 }
             }
@@ -147,6 +153,17 @@ namespace DProjects.Fs.Extensions {
                 //check cancellationToken
                 cancellationToken.ThrowIfCancellationRequested();
                 try {
+                    var destinationEntry = await fs.GetEntryAsync(destination, cancellationToken);
+                    if (destinationEntry != null && source.IsDirectory() != destinationEntry.IsDirectory()) {
+                        if (destinationEntry.IsDirectory()) {
+                            await fs.DeleteDirectoryAsync(destination, cancellationToken);
+                        } else {
+                            await fs.DeleteFileAsync(destination, cancellationToken);
+                        }
+                        foreach (var removedPath in status.RemoveTree(destination)) {
+                            processedPaths.Add(removedPath);
+                        }
+                    }
                     if (source.IsDirectory()) {
                         var entry = await fs.CreateDirectoryAsync(destination, cancellationToken);
                         status.Modify(entry.Path, entry);
@@ -159,12 +176,14 @@ namespace DProjects.Fs.Extensions {
                     processedPaths.Add(source.Path);
                     processedPaths.Add(destination);
                     return true;
+                } catch (OperationCanceledException) {
+                    throw;
                 } catch (Exception ex) {
                     logger.LogError("Error copying {from} to {to}: {message} {ex}", source.Path, destination, ex.Message, ex);
                     if (trie == syncSettings.Tries - 1) {
                         if (!syncSettings.IgnoreErrors) throw;
                     } else {
-                        System.Threading.Thread.Sleep(250);
+                        await Task.Delay(250, cancellationToken);
                     }
                 }
             }
@@ -197,6 +216,18 @@ namespace DProjects.Fs.Extensions {
             //methods
             public void Remove(string path) {
                 mEntries.Remove(path);
+            }
+            public string[] RemoveTree(string path) {
+                var paths = new List<string>();
+                foreach (var entryPath in mEntries.Keys) {
+                    if (entryPath.Equals(path) || entryPath.StartsWith(path + "/")) {
+                        paths.Add(entryPath);
+                    }
+                }
+                foreach (var entryPath in paths) {
+                    mEntries.Remove(entryPath);
+                }
+                return paths.ToArray();
             }
             public void Modify(string path, Entry entry) {
                 mEntries[path] = entry;
