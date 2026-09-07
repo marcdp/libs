@@ -78,6 +78,34 @@ public class FilesystemCompletenessTests {
     }
 
     [Fact]
+    public async Task WritableFilesystemFallbacksReportMissingPrimitives() {
+        using var filesystem = new MinimalIncompleteFilesystem(false);
+
+        await AssertMissingWritePrimitives(filesystem);
+    }
+
+    [Fact]
+    public async Task ReadonlyFilesystemFallbacksReportReadonlyState() {
+        using var filesystem = new MinimalIncompleteFilesystem(true);
+
+        await AssertReadonlyWritePrimitives(filesystem);
+    }
+
+    [Fact]
+    public async Task WritableFilesystemSyncFallbacksReportMissingPrimitives() {
+        using var filesystem = new MinimalIncompleteSyncFilesystem(false);
+
+        await AssertMissingWritePrimitives(filesystem);
+    }
+
+    [Fact]
+    public async Task ReadonlyFilesystemSyncFallbacksReportReadonlyState() {
+        using var filesystem = new MinimalIncompleteSyncFilesystem(true);
+
+        await AssertReadonlyWritePrimitives(filesystem);
+    }
+
+    [Fact]
     public async Task InvalidSyncModeIsRejected() {
         using var filesystem = new MinimalFilesystem();
         var settings = new SyncSettings { Mode = (SyncModes)int.MaxValue };
@@ -114,6 +142,28 @@ public class FilesystemCompletenessTests {
         using var stream = filesystem.LoadReadStream(path, new());
         using var reader = new StreamReader(stream);
         return reader.ReadToEnd();
+    }
+
+    private static async Task AssertMissingWritePrimitives(IFilesystem filesystem) {
+        using var stream = new MemoryStream();
+        Assert.Contains("SaveFile", Assert.Throws<NotSupportedException>(() => filesystem.SaveFile("/file", stream, new())).Message);
+        Assert.Contains("CreateDirectory", Assert.Throws<NotSupportedException>(() => filesystem.CreateDirectory("/directory")).Message);
+        Assert.Contains("Delete", Assert.Throws<NotSupportedException>(() => filesystem.Delete("/entry")).Message);
+
+        Assert.Contains("SaveFile", (await Assert.ThrowsAsync<NotSupportedException>(() => filesystem.SaveFileAsync("/file", stream, new(), TestContext.Current.CancellationToken))).Message);
+        Assert.Contains("CreateDirectory", (await Assert.ThrowsAsync<NotSupportedException>(() => filesystem.CreateDirectoryAsync("/directory", TestContext.Current.CancellationToken))).Message);
+        Assert.Contains("Delete", (await Assert.ThrowsAsync<NotSupportedException>(() => filesystem.DeleteAsync("/entry", TestContext.Current.CancellationToken))).Message);
+    }
+
+    private static async Task AssertReadonlyWritePrimitives(IFilesystem filesystem) {
+        using var stream = new MemoryStream();
+        Assert.Contains("readonly", Assert.Throws<InvalidOperationException>(() => filesystem.SaveFile("/file", stream, new())).Message);
+        Assert.Contains("readonly", Assert.Throws<InvalidOperationException>(() => filesystem.CreateDirectory("/directory")).Message);
+        Assert.Contains("readonly", Assert.Throws<InvalidOperationException>(() => filesystem.Delete("/entry")).Message);
+
+        Assert.Contains("readonly", (await Assert.ThrowsAsync<InvalidOperationException>(() => filesystem.SaveFileAsync("/file", stream, new(), TestContext.Current.CancellationToken))).Message);
+        Assert.Contains("readonly", (await Assert.ThrowsAsync<InvalidOperationException>(() => filesystem.CreateDirectoryAsync("/directory", TestContext.Current.CancellationToken))).Message);
+        Assert.Contains("readonly", (await Assert.ThrowsAsync<InvalidOperationException>(() => filesystem.DeleteAsync("/entry", TestContext.Current.CancellationToken))).Message);
     }
 
     private class MinimalFilesystem : Filesystem {
@@ -164,5 +214,25 @@ public class FilesystemCompletenessTests {
         public override Task<Entry> CreateDirectoryAsync(string path, CancellationToken cancellationToken) => _inner.CreateDirectoryAsync(path, cancellationToken);
         public override Task DeleteAsync(string path, CancellationToken cancellationToken) => _inner.DeleteAsync(path, cancellationToken);
         public override void Dispose() => _inner.Dispose();
+    }
+
+    private sealed class MinimalIncompleteFilesystem(bool isReadonly) : Filesystem(isReadonly) {
+        public override string Url => "minimal-incomplete:/";
+        public override Entry? GetEntry(string path) => null;
+        public override Task<Entry?> GetEntryAsync(string path, CancellationToken cancellationToken) => Task.FromResult<Entry?>(null);
+        public override IEnumerable<Entry> GetEntries(string path, GetModes mode = GetModes.All, string? pattern = null) => [];
+        public override async IAsyncEnumerable<Entry> GetEntriesAsync(string path, GetModes mode = GetModes.All, string? pattern = null, [EnumeratorCancellation] CancellationToken cancellationToken = default) {
+            await Task.CompletedTask;
+            yield break;
+        }
+        public override Stream LoadReadStream(string path, LoadReadStreamSettings settings) => Stream.Null;
+        public override Task<Stream> LoadReadStreamAsync(string path, LoadReadStreamSettings settings, CancellationToken cancellationToken) => Task.FromResult(Stream.Null);
+    }
+
+    private sealed class MinimalIncompleteSyncFilesystem(bool isReadonly) : FilesystemSync(isReadonly) {
+        public override string Url => "minimal-incomplete-sync:/";
+        public override Entry? GetEntry(string path) => null;
+        public override IEnumerable<Entry> GetEntries(string path, GetModes mode = GetModes.All, string? pattern = null) => [];
+        public override Stream LoadReadStream(string path, LoadReadStreamSettings settings) => Stream.Null;
     }
 }

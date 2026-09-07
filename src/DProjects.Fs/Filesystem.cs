@@ -95,19 +95,23 @@ namespace DProjects.Fs {
 
         //methods LEVEL 2
         public virtual Entry SaveFile(string path, Stream stream, SaveFileSettings settings) {
-            throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
+            EnsureWritable();
+            throw new NotSupportedException("SaveFile is not provided by this filesystem implementation.");
         }
         public virtual Task<Entry> SaveFileAsync(string path, Stream stream, SaveFileSettings settings, CancellationToken cancellationToken = default) {
-            throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
+            EnsureWritable();
+            throw new NotSupportedException("SaveFileAsync is not provided by this filesystem implementation.");
         }
         public virtual Entry CreateDirectory(string path) {
-            throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
+            EnsureWritable();
+            throw new NotSupportedException("CreateDirectory is not provided by this filesystem implementation.");
         }
         public virtual Task<Entry> CreateDirectoryAsync(string path, CancellationToken cancellationToken) {
             return Task.FromResult(CreateDirectory(path));
         }
         public virtual void Delete(string path) {
-            throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
+            EnsureWritable();
+            throw new NotSupportedException("Delete is not provided by this filesystem implementation.");
         }
         public virtual Task DeleteAsync(string path, CancellationToken cancellationToken) {
             Delete(path);
@@ -234,6 +238,11 @@ namespace DProjects.Fs {
         }
         public virtual async Task<bool> SupportsAsync(string path, Features feature, CancellationToken cancellationToken) {
             return await Task.FromResult(Supports(path, feature));
+        }
+
+
+        private void EnsureWritable() {
+            if (IsReadonly) throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly.");
         }
 
 
