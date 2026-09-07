@@ -134,6 +134,7 @@ namespace DProjects.Db {
             return command;
         }
         protected string CreateCommandText(string sql, object?[]? parameters = null) {
+            ValidateParameterCount(sql, parameters);
             if (parameters == null) return sql;
             int j = 0;
             int k = 0;
@@ -171,6 +172,7 @@ namespace DProjects.Db {
             return sql;
         }
         protected string CreateCommandTextWithParameters(System.Data.Common.DbCommand command, string sql, object?[]? parameters = null) {
+            ValidateParameterCount(sql, parameters);
             int j = 0;
             int k = 0;
             try {
@@ -206,6 +208,15 @@ namespace DProjects.Db {
                 throw new Exception("Error parsing sql statement \'" + sql + "\'.", e);
             }
             return command.CommandText;
+        }
+        private static void ValidateParameterCount(string sql, object?[]? parameters) {
+            if (sql == null) throw new ArgumentNullException(nameof(sql));
+            var placeholderCount = 0;
+            foreach (var character in sql) {
+                if (character == '?') placeholderCount++;
+            }
+            var parameterCount = parameters?.Length ?? 0;
+            if (placeholderCount != parameterCount) throw new ArgumentException($"SQL contains {placeholderCount} placeholders but {parameterCount} parameters were provided.", nameof(parameters));
         }
         private System.Data.DbType GetDbType(object? value) {
             //if (value is string) return System.Data.DbType.AnsiString;
@@ -248,7 +259,9 @@ namespace DProjects.Db {
         public virtual async Task<long> ExecuteNonQueryAsync(string sql, object?[]? parameters = null, CancellationToken cancellationToken = default) {
             using var command = await CreateCommandAsync(sql, parameters, cancellationToken);
             try {
-                return await command.ExecuteNonQueryAsync();
+                return await command.ExecuteNonQueryAsync(cancellationToken);
+            } catch (OperationCanceledException) {
+                throw;
             } catch (Exception e) {
                 throw new Exception($"Error in DBConnectionData.ExecuteNonQuery(\'{command.CommandText}\')", e);
             }
@@ -265,8 +278,10 @@ namespace DProjects.Db {
         public virtual async Task<T> ExecuteScalarAsync<T>(string sql, object?[]? parameters = null, CancellationToken cancellationToken = default) {
             using var command = await CreateCommandAsync(sql, parameters, cancellationToken);
             try {
-                var res = await command.ExecuteScalarAsync();
+                var res = await command.ExecuteScalarAsync(cancellationToken);
                 return ConvertUtils.To<T>(res);
+            } catch (OperationCanceledException) {
+                throw;
             } catch (Exception e) {
                 throw new Exception("Error in DBConnectionData.ExecuteScalar(\'" + sql + "\')", e);
             }
@@ -295,6 +310,8 @@ namespace DProjects.Db {
             try {
                 var reader = await command.ExecuteReaderAsync(cancellationToken);
                 return reader;
+            } catch (OperationCanceledException) {
+                throw;
             } catch (Exception e) {
                 throw new Exception("Error in DBConnectionData.ExecuteReader(\'" + sql + "\'), " + e.Message, e);
             }
@@ -305,6 +322,8 @@ namespace DProjects.Db {
                 var reader = await command.ExecuteReaderAsync(cancellationToken);
                 var result = new DBReaderDbDataReader(reader, false, new DBReaderDbDataReader.Settings() { AvoidInitializeDBTableFromDataReader = mAvoidInitializeDBTableFromDataReader });
                 return result;
+            } catch (OperationCanceledException) {
+                throw;
             } catch (Exception e) {
                 throw new Exception("Error in DBConnectionData.ExecuteReader(\'" + sql + "\'), " + e.Message, e);
             }
@@ -437,13 +456,13 @@ namespace DProjects.Db {
 
         //tables
         public virtual string[] GetTableNames() {
-            throw new NotImplementedException();
+            throw new NotSupportedException("Table enumeration is not supported by this database connection.");
         }
         public virtual bool ExistsTable(string table) {
-            throw new NotImplementedException();
+            throw new NotSupportedException("Table existence checks are not supported by this database connection.");
         }
         public virtual DBSchemaTable GetTableSchema(string table) {
-            throw new NotImplementedException();
+            throw new NotSupportedException("Table schema retrieval is not supported by this database connection.");
         }
         public virtual string GetSqlCreateTable(DBSchemaTable dbSchemaTable, bool avoidCreatePrimaryKey = false, bool avoidCreateForeignKeys = false) {
             var qb = GetSqlQualifierBegin();
@@ -669,10 +688,10 @@ namespace DProjects.Db {
 
         //views
         public virtual string[] GetViewNames() {
-            throw new NotImplementedException("GetViewNames not implemented");
+            throw new NotSupportedException("View enumeration is not supported by this database connection.");
         }
         public virtual bool ExistsView(string name) {
-            throw new NotImplementedException("ExistsView not implemented");
+            throw new NotSupportedException("View existence checks are not supported by this database connection.");
         }
         public virtual DBSchemaView GetViewSchema(string name) {
             var dbSchemaView = new DBSchemaView();
@@ -682,7 +701,7 @@ namespace DProjects.Db {
             return dbSchemaView;
         }
         public virtual string GetView(string name) {
-            throw new NotImplementedException("GetView not implemented");
+            throw new NotSupportedException("View retrieval is not supported by this database connection.");
         }
         public virtual string GetSqlDropView(string name) {
             var qb = GetSqlQualifierBegin();
@@ -701,10 +720,10 @@ namespace DProjects.Db {
             return [];
         }
         public virtual DBSchemaSequence GetSequenceSchema(string name) {
-            throw new NotImplementedException("GetSequenceSchema not implemented");
+            throw new NotSupportedException("Sequence schema retrieval is not supported by this database connection.");
         }
         public virtual bool ExistsSequence(string name) {
-            throw new NotImplementedException("Exists sequence not implemented");
+            throw new NotSupportedException("Sequence existence checks are not supported by this database connection.");
         }
         public virtual string GetSqlCreateSequence(DBSchemaSequence dbSchemaSequence) {
             var sql = new StringBuilder();
@@ -735,7 +754,7 @@ namespace DProjects.Db {
             return [];
         }
         public virtual string GetProcedure(string name) {
-            throw new NotImplementedException();
+            throw new NotSupportedException("Procedure retrieval is not supported by this database connection.");
         }
         public virtual DBSchemaProcedure GetProcedureSchema(string name) {
             var dbSchemaProcedure = new DBSchemaProcedure();
@@ -760,19 +779,19 @@ namespace DProjects.Db {
 
         //backup
         public virtual string BackupDb() {
-            throw new Exception("Backup Not implemented");
+            throw new NotSupportedException("Database backup is not supported by this database connection.");
         }
         public virtual void RestoreDb(string filename, string dbname) {
-            throw new Exception("Restore Not implemented");
+            throw new NotSupportedException("Database restore is not supported by this database connection.");
         }
         public virtual void CompactDb() {
-            throw new Exception("Compact Not implemented");
+            throw new NotSupportedException("Database compaction is not supported by this database connection.");
         }
         public virtual bool ExistsDb(string dbname) {
-            throw new Exception("ExistsDatabase Not implemented");
+            throw new NotSupportedException("Database existence checks are not supported by this database connection.");
         }
         public virtual void CreateDb(string dbname) {
-            throw new Exception("CreateDatabase Not implemented");
+            throw new NotSupportedException("Database creation is not supported by this database connection.");
         }
         protected string ConverFullTypeNameToTypeName(string aFullTypeName) {
             if (aFullTypeName.LastIndexOf(".") > -1) {
@@ -1212,7 +1231,7 @@ namespace DProjects.Db {
             if (System.Enum.TryParse<DBSchemaDataType>(dataTypeName, true, out DBSchemaDataType result)) {
                 return result;
             }
-            throw new NotImplementedException();
+            throw new NotSupportedException($"SQL data type '{dataTypeName}' is not supported.");
         }
         public virtual DBSchemaDataType GetDataTypeFromNetDataTypeName(Type type, int length = 0, int precision = 0, int scale = 0) {
             if (length == int.MaxValue) length = 0;
@@ -1249,10 +1268,12 @@ namespace DProjects.Db {
             } else if (type.IsEnum) {
                 return DBSchemaDataType.Int;
             }
-            throw new NotImplementedException();
+            throw new NotSupportedException($".NET data type '{type.FullName}' is not supported.");
         }
         public virtual string GetSqlEncodedValue(object? value, Type? type, bool allowNull) {
-            if (type == null) {
+            if (value == DBNull.Value) {
+                return "NULL";
+            } else if (type == null) {
                 if (allowNull) {
                     return "NULL";
                 } else {
@@ -1490,7 +1511,7 @@ namespace DProjects.Db {
                 }
                 return this.GetSqlEncodedValue(value.ToString() ?? "", typeof(string), allowNull);
             } else {
-                throw new Exception("Unimplemend sql data type \'" + type.FullName + "\'.");
+                throw new NotSupportedException("SQL encoding for data type '" + type.FullName + "' is not supported.");
             }
         }
         public virtual string GetSqlParameterPrefix() {

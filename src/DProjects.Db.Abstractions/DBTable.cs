@@ -77,7 +77,7 @@ namespace DProjects.Db {
             mRows.Add(row);
         }
         public DBRow[] Select(string expression) {
-            throw new NotImplementedException();
+            throw new NotSupportedException("DBTable expression selection is not supported.");
         }
         public void AcceptChanges() {
             mChanged = false;

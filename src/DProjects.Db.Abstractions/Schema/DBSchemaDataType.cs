@@ -80,7 +80,7 @@ namespace DProjects.Db.Schema {
             } else if (dbSchemaDataType == DBSchemaDataType.Jsonb) {
                 return typeof(System.String);
             }
-            throw new NotImplementedException();
+            throw new ArgumentOutOfRangeException(nameof(dbSchemaDataType), dbSchemaDataType, "Unsupported database schema data type.");
         }
         public static System.Data.DbType GetDbType(this DBSchemaDataType dbSchemaDataType) {
             if (dbSchemaDataType == DBSchemaDataType.Char) {
@@ -132,7 +132,7 @@ namespace DProjects.Db.Schema {
             } else if (dbSchemaDataType == DBSchemaDataType.Jsonb) {
                 return System.Data.DbType.String;
             }
-            throw new NotImplementedException();
+            throw new ArgumentOutOfRangeException(nameof(dbSchemaDataType), dbSchemaDataType, "Unsupported database schema data type.");
         }
     }
 
