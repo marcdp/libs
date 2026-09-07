@@ -84,7 +84,7 @@ namespace DProjects.Fs {
         //properties
         public override string Url {
             get {
-                return "smb://" + (mUsername != null ? UrlUtils.UrlEncode(mUsername) + ":" + UrlUtils.UrlEncode(mPassword) + "@" : "") + mHost + "/" + mShare;
+                return "smb://" + (!string.IsNullOrEmpty(mUsername) ? UrlUtils.UrlEncode(mUsername) + "@" : "") + mHost + "/" + mShare;
             }
         }
 

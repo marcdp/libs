@@ -78,7 +78,7 @@ namespace DProjects.Fs {
             } else {
                 var name = PathUtils.GetPathName(PathUtils.GetPathCuttedByLevel(path, 1));
                 var subPath = PathUtils.Combine("/", PathUtils.GetPathCuttedFromLevel(path, 1));
-                var fs = mRepository.CreateFilesystem(name, IsReadonly);
+                using var fs = mRepository.CreateFilesystem(name, IsReadonly);
                 var entry = await fs.GetEntryAsync(subPath, cancellationToken);
                 if (entry != null) return entry.WithPath(PathUtils.Combine("/", name, entry.Path));
                 return null;
@@ -113,7 +113,7 @@ namespace DProjects.Fs {
             } else {
                 var name = PathUtils.GetPathName(PathUtils.GetPathCuttedByLevel(path, 1));
                 var subPath = PathUtils.Combine("/", PathUtils.GetPathCuttedFromLevel(path, 1));
-                var fs = mRepository.CreateFilesystem(name, IsReadonly);
+                using var fs = mRepository.CreateFilesystem(name, IsReadonly);
                 await foreach (var entry in fs.GetEntriesAsync(subPath, mode, pattern, cancellationToken)) {
                     yield return entry.WithPath(PathUtils.Combine("/", name, entry.Path));
                 }
@@ -132,7 +132,15 @@ namespace DProjects.Fs {
                 var subPath = PathUtils.Combine("/", PathUtils.GetPathCuttedFromLevel(path, 1));
                 var fs = mRepository.CreateFilesystem(name, IsReadonly);
                 if (settings==null) settings = new LoadReadStreamSettings();
-                return await fs.LoadReadStreamAsync(subPath, settings, cancellationToken);
+                Stream? stream = null;
+                try {
+                    stream = await fs.LoadReadStreamAsync(subPath, settings, cancellationToken);
+                    return CreateOwnedStream(stream, fs);
+                } catch {
+                    stream?.Dispose();
+                    fs.Dispose();
+                    throw;
+                }
             }
         }
         public override async Task<Stream> LoadWriteStreamAsync(string path, LoadWriteStreamSettings? settings, CancellationToken cancellationToken = default) {
@@ -146,7 +154,15 @@ namespace DProjects.Fs {
                 var subPath = PathUtils.Combine("/", PathUtils.GetPathCuttedFromLevel(path, 1));
                 var fs = mRepository.CreateFilesystem(name, IsReadonly);
                 if (settings==null) settings = new LoadWriteStreamSettings();
-                return await fs.LoadWriteStreamAsync(subPath, settings, cancellationToken);
+                Stream? stream = null;
+                try {
+                    stream = await fs.LoadWriteStreamAsync(subPath, settings, cancellationToken);
+                    return CreateOwnedStream(stream, fs);
+                } catch {
+                    stream?.Dispose();
+                    fs.Dispose();
+                    throw;
+                }
             }
         }
 
@@ -163,7 +179,7 @@ namespace DProjects.Fs {
             } else {
                 var name = PathUtils.GetPathName(PathUtils.GetPathCuttedByLevel(path, 1));
                 var subPath = PathUtils.Combine("/", PathUtils.GetPathCuttedFromLevel(path, 1));
-                var fs = mRepository.CreateFilesystem(name, IsReadonly);
+                using var fs = mRepository.CreateFilesystem(name, IsReadonly);
                 if (settings==null) settings = new SaveFileSettings();
                 var entry = await fs.SaveFileAsync(subPath, stream, settings, cancellationToken);
                 return entry.WithPath(PathUtils.Combine("/", name, entry.Path));
@@ -182,7 +198,7 @@ namespace DProjects.Fs {
             } else {
                 var name = PathUtils.GetPathName(PathUtils.GetPathCuttedByLevel(path, 1));
                 var subPath = PathUtils.Combine("/", PathUtils.GetPathCuttedFromLevel(path, 1));
-                var fs = mRepository.CreateFilesystem(name, IsReadonly);
+                using var fs = mRepository.CreateFilesystem(name, IsReadonly);
                 var entry = await fs.CreateDirectoryAsync(subPath, cancellationToken);
                 return entry.WithPath(PathUtils.Combine("/", name, entry.Path));
             }
@@ -201,7 +217,7 @@ namespace DProjects.Fs {
             } else {
                 var name = PathUtils.GetPathName(PathUtils.GetPathCuttedByLevel(path, 1));
                 var subPath = PathUtils.Combine("/", PathUtils.GetPathCuttedFromLevel(path, 1));
-                var fs = mRepository.CreateFilesystem(name, IsReadonly);
+                using var fs = mRepository.CreateFilesystem(name, IsReadonly);
                 await fs.DeleteAsync(subPath, cancellationToken);
             }
         }
@@ -214,7 +230,7 @@ namespace DProjects.Fs {
             } else {
                 var name = PathUtils.GetPathName(PathUtils.GetPathCuttedByLevel(path, 1));
                 var subPath = PathUtils.Combine("/", PathUtils.GetPathCuttedFromLevel(path, 1));
-                var fs = mRepository.CreateFilesystem(name, IsReadonly);
+                using var fs = mRepository.CreateFilesystem(name, IsReadonly);
                 await fs.TouchAsync(subPath, aDate, cancellationToken);
             }
         }
@@ -230,7 +246,7 @@ namespace DProjects.Fs {
             } else {
                 var name = PathUtils.GetPathName(PathUtils.GetPathCuttedByLevel(path, 1));
                 var subPath = PathUtils.Combine("/", PathUtils.GetPathCuttedFromLevel(path, 1));
-                var fs = mRepository.CreateFilesystem(name, IsReadonly);
+                using var fs = mRepository.CreateFilesystem(name, IsReadonly);
                 await fs.DeleteFileAsync(subPath, cancellationToken);
             }
         }
@@ -248,7 +264,7 @@ namespace DProjects.Fs {
             } else {
                 var name = PathUtils.GetPathName(PathUtils.GetPathCuttedByLevel(path, 1));
                 var subPath = PathUtils.Combine("/", PathUtils.GetPathCuttedFromLevel(path, 1));
-                var fs = mRepository.CreateFilesystem(name, IsReadonly);
+                using var fs = mRepository.CreateFilesystem(name, IsReadonly);
                 await fs.DeleteDirectoryAsync(subPath, cancellationToken);
             }
         }
@@ -268,7 +284,7 @@ namespace DProjects.Fs {
                 var nameB = PathUtils.GetPathName(PathUtils.GetPathCuttedByLevel(destination, 1));
                 var subPathB = PathUtils.Combine("/", PathUtils.GetPathCuttedFromLevel(destination, 1));
                 if (nameA.Equals(nameB)) {
-                    var fs = mRepository.CreateFilesystem(nameA, IsReadonly);
+                    using var fs = mRepository.CreateFilesystem(nameA, IsReadonly);
                     await fs.CopyAsync(subPathA, subPathB, settings, logger, cancellationToken);
                 } else {
                     await base.CopyAsync(source, destination, settings, logger, cancellationToken);
@@ -292,7 +308,7 @@ namespace DProjects.Fs {
                 var nameB = PathUtils.GetPathName(PathUtils.GetPathCuttedByLevel(destination, 1));
                 var subPathB = PathUtils.Combine("/", PathUtils.GetPathCuttedFromLevel(destination, 1));
                 if (nameA.Equals(nameB)) {
-                    var fs = mRepository.CreateFilesystem(nameA, IsReadonly);
+                    using var fs = mRepository.CreateFilesystem(nameA, IsReadonly);
                     await fs.MoveAsync(subPathA, subPathB, settings, logger, cancellationToken);
                 } else {
                     await base.MoveAsync(source, destination, settings, logger, cancellationToken);
@@ -311,7 +327,7 @@ namespace DProjects.Fs {
             } else {
                 var name = PathUtils.GetPathName(PathUtils.GetPathCuttedByLevel(path, 1));
                 var subPath = PathUtils.Combine("/", PathUtils.GetPathCuttedFromLevel(path, 1));
-                var fs = mRepository.CreateFilesystem(name, IsReadonly);
+                using var fs = mRepository.CreateFilesystem(name, IsReadonly);
                 return await fs.GetMetadataAsync(subPath, cancellationToken);
             }
         }
@@ -324,7 +340,7 @@ namespace DProjects.Fs {
             } else {
                 var name = PathUtils.GetPathName(PathUtils.GetPathCuttedByLevel(path, 1));
                 var subPath = PathUtils.Combine("/", PathUtils.GetPathCuttedFromLevel(path, 1));
-                var fs = mRepository.CreateFilesystem(name, IsReadonly);
+                using var fs = mRepository.CreateFilesystem(name, IsReadonly);
                 await fs.SetMetadataAsync(subPath, metadata, cancellationToken);
             }
         }
@@ -334,13 +350,24 @@ namespace DProjects.Fs {
             } else {
                 var name = PathUtils.GetPathName(PathUtils.GetPathCuttedByLevel(path, 1));
                 var subPath = PathUtils.Combine("/", PathUtils.GetPathCuttedFromLevel(path, 1));
-                var fs = mRepository.CreateFilesystem(name, IsReadonly);
+                using var fs = mRepository.CreateFilesystem(name, IsReadonly);
                 return await fs.SupportsAsync(subPath, feature, cancellationToken);
             }
         }
 
+        // methods (private)
         private void EnsureWritable() {
             if (IsReadonly) throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
+        }
+        private static Stream CreateOwnedStream(Stream stream, IFilesystem filesystem) {
+            // dispose the returned stream before releasing its owning child filesystem
+            return new DisposableStream(stream, () => {
+                try {
+                    stream.Dispose();
+                } finally {
+                    filesystem.Dispose();
+                }
+            }, true);
         }
 
     }

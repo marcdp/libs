@@ -91,7 +91,21 @@ namespace DProjects.Fs.Http {
         //properties
         public override string Url {
             get {
-                return mUrl.ToString();
+                // remove authentication data and retain only recognized non-secret options
+                var builder = new UriBuilder(mUrl) {
+                    Fragment = "",
+                    Password = ""
+                };
+                if (mAuthScheme == AuthSchemes.ApiKey) builder.UserName = "";
+                var query = UrlUtils.ParseQueryString(mUrl.Query);
+                var safeQuery = new List<string>();
+                foreach (var key in new[] { "maxFileUploadSize", "isReadonly", "authScheme" }) {
+                    var values = query.GetValues(key);
+                    if (values == null) continue;
+                    foreach (var value in values) safeQuery.Add(UrlUtils.UrlEncode(key) + "=" + UrlUtils.UrlEncode(value));
+                }
+                builder.Query = string.Join("&", safeQuery.ToArray());
+                return builder.Uri.ToString();
             }
         }
 
