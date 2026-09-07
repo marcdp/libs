@@ -113,6 +113,86 @@ namespace DProjects.Db.Tests {
             connection.BeginTrans();
         }
         [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void TransactionOperationFailureRemainsPrimaryWhenDisposalAlsoFails(bool commit) {
+            using var connection = new TestDBConnection();
+            connection.BeginTrans();
+            var transaction = connection.FakeConnection.LastTransaction!;
+            var operationException = new InvalidOperationException(commit ? "commit failed" : "rollback failed");
+            transaction.CommitException = commit ? operationException : null;
+            transaction.RollbackException = commit ? null : operationException;
+            transaction.DisposeException = new ApplicationException("dispose failed");
+
+            var actualException = Assert.Throws<InvalidOperationException>(() => {
+                if (commit) connection.CommitTrans(); else connection.RollBackTrans();
+            });
+
+            Assert.Same(operationException, actualException);
+            Assert.Equal(1, transaction.DisposeCallCount);
+            connection.BeginTrans();
+        }
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void TransactionDisposalFailureSurfacesWhenOperationSucceeds(bool commit) {
+            using var connection = new TestDBConnection();
+            connection.BeginTrans();
+            var transaction = connection.FakeConnection.LastTransaction!;
+            var disposalException = new ApplicationException("dispose failed");
+            transaction.DisposeException = disposalException;
+
+            var actualException = Assert.Throws<ApplicationException>(() => {
+                if (commit) connection.CommitTrans(); else connection.RollBackTrans();
+            });
+
+            Assert.Same(disposalException, actualException);
+            Assert.Equal(1, transaction.DisposeCallCount);
+            connection.BeginTrans();
+        }
+        [Theory]
+        [InlineData(ProviderFailureOperation.NonQuery)]
+        [InlineData(ProviderFailureOperation.NonQueryAsync)]
+        [InlineData(ProviderFailureOperation.Scalar)]
+        [InlineData(ProviderFailureOperation.ScalarAsync)]
+        [InlineData(ProviderFailureOperation.Reader)]
+        [InlineData(ProviderFailureOperation.ReaderAsync)]
+        [InlineData(ProviderFailureOperation.DbDataReader)]
+        [InlineData(ProviderFailureOperation.DbDataReaderAsync)]
+        public async Task Execution_PreservesProviderExceptionIdentityAndDisposesCommand(ProviderFailureOperation operation) {
+            using var connection = new TestDBConnection();
+            var expectedException = new InvalidOperationException("provider failure");
+            var cancellationToken = TestContext.Current.CancellationToken;
+            if (operation == ProviderFailureOperation.NonQuery || operation == ProviderFailureOperation.NonQueryAsync) connection.FakeConnection.NonQueryExecutionException = expectedException;
+            if (operation == ProviderFailureOperation.Scalar || operation == ProviderFailureOperation.ScalarAsync) connection.FakeConnection.ScalarExecutionException = expectedException;
+            if (operation == ProviderFailureOperation.Reader || operation == ProviderFailureOperation.ReaderAsync || operation == ProviderFailureOperation.DbDataReader || operation == ProviderFailureOperation.DbDataReaderAsync) connection.FakeConnection.ReaderExecutionException = expectedException;
+
+            Exception actualException;
+            if (operation == ProviderFailureOperation.NonQuery) actualException = Assert.Throws<InvalidOperationException>(() => connection.ExecuteNonQuery("SELECT 1"));
+            else if (operation == ProviderFailureOperation.NonQueryAsync) actualException = await Assert.ThrowsAsync<InvalidOperationException>(() => connection.ExecuteNonQueryAsync("SELECT 1", cancellationToken: cancellationToken));
+            else if (operation == ProviderFailureOperation.Scalar) actualException = Assert.Throws<InvalidOperationException>(() => connection.ExecuteScalar<int>("SELECT 1"));
+            else if (operation == ProviderFailureOperation.ScalarAsync) actualException = await Assert.ThrowsAsync<InvalidOperationException>(() => connection.ExecuteScalarAsync<int>("SELECT 1", cancellationToken: cancellationToken));
+            else if (operation == ProviderFailureOperation.Reader) actualException = Assert.Throws<InvalidOperationException>(() => connection.ExecuteReader("SELECT 1"));
+            else if (operation == ProviderFailureOperation.ReaderAsync) actualException = await Assert.ThrowsAsync<InvalidOperationException>(() => connection.ExecuteReaderAsync("SELECT 1", cancellationToken: cancellationToken));
+            else if (operation == ProviderFailureOperation.DbDataReader) actualException = Assert.Throws<InvalidOperationException>(() => connection.ExecuteDbDataReader("SELECT 1"));
+            else actualException = await Assert.ThrowsAsync<InvalidOperationException>(() => connection.ExecuteDbDataReaderAsync("SELECT 1", cancellationToken: cancellationToken));
+
+            Assert.Same(expectedException, actualException);
+            Assert.True(connection.FakeConnection.LastCommand!.IsDisposed);
+        }
+        [Fact]
+        public void ExecutionFailureRemainsPrimaryWhenCommandDisposalAlsoFails() {
+            using var connection = new TestDBConnection();
+            var expectedException = new InvalidOperationException("provider failure");
+            connection.FakeConnection.NonQueryExecutionException = expectedException;
+            connection.FakeConnection.CommandDisposeException = new ApplicationException("command dispose failed");
+
+            var actualException = Assert.Throws<InvalidOperationException>(() => connection.ExecuteNonQuery("SELECT 1"));
+
+            Assert.Same(expectedException, actualException);
+            Assert.True(connection.FakeConnection.LastCommand!.IsDisposed);
+        }
+        [Theory]
         [InlineData(CommandOperation.NonQuery)]
         [InlineData(CommandOperation.Scalar)]
         [InlineData(CommandOperation.DbDataReader)]
@@ -204,13 +284,13 @@ namespace DProjects.Db.Tests {
             connection.FakeConnection.CancelReaderExecutionAsync = false;
 
             if (operation == ReaderOperation.Reader) {
-                Assert.Throws<Exception>(() => connection.ExecuteReader("SELECT 1"));
+                Assert.Throws<InvalidOperationException>(() => connection.ExecuteReader("SELECT 1"));
             } else if (operation == ReaderOperation.ReaderAsync) {
-                await Assert.ThrowsAsync<Exception>(() => connection.ExecuteReaderAsync("SELECT 1", cancellationToken: TestContext.Current.CancellationToken));
+                await Assert.ThrowsAsync<InvalidOperationException>(() => connection.ExecuteReaderAsync("SELECT 1", cancellationToken: TestContext.Current.CancellationToken));
             } else if (operation == ReaderOperation.DbDataReader) {
-                Assert.Throws<Exception>(() => connection.ExecuteDbDataReader("SELECT 1"));
+                Assert.Throws<InvalidOperationException>(() => connection.ExecuteDbDataReader("SELECT 1"));
             } else {
-                await Assert.ThrowsAsync<Exception>(() => connection.ExecuteDbDataReaderAsync("SELECT 1", cancellationToken: TestContext.Current.CancellationToken));
+                await Assert.ThrowsAsync<InvalidOperationException>(() => connection.ExecuteDbDataReaderAsync("SELECT 1", cancellationToken: TestContext.Current.CancellationToken));
             }
 
             Assert.True(connection.FakeConnection.LastCommand!.IsDisposed);
@@ -272,6 +352,60 @@ namespace DProjects.Db.Tests {
             connection.Open();
             Assert.Equal(ConnectionState.Open, physicalConnection.State);
             Assert.Equal(2, physicalConnection.OpenCallCount);
+        }
+        [Fact]
+        public void Close_WithActiveTransactionDisposesClearsAndAllowsReuse() {
+            using var connection = new TestDBConnection();
+            connection.BeginTrans();
+            var physicalConnection = connection.FakeConnection;
+            var transaction = physicalConnection.LastTransaction!;
+
+            connection.Close();
+
+            Assert.Equal(1, transaction.DisposeCallCount);
+            Assert.False(transaction.WasCommitted);
+            Assert.Equal(ConnectionState.Closed, physicalConnection.State);
+            Assert.Equal(1, connection.ExecuteScalar<int>("SELECT 1"));
+            Assert.Equal(ConnectionState.Open, physicalConnection.State);
+            Assert.Null(physicalConnection.LastCommand!.Transaction);
+        }
+        [Fact]
+        public void Close_StillClosesAndClearsTransactionWhenTransactionDisposalFails() {
+            using var connection = new TestDBConnection();
+            connection.BeginTrans();
+            var physicalConnection = connection.FakeConnection;
+            var transaction = physicalConnection.LastTransaction!;
+            var disposalException = new ApplicationException("transaction dispose failed");
+            transaction.DisposeException = disposalException;
+
+            var actualException = Assert.Throws<ApplicationException>(() => connection.Close());
+
+            Assert.Same(disposalException, actualException);
+            Assert.Equal(ConnectionState.Closed, physicalConnection.State);
+            Assert.Equal(1, connection.ExecuteScalar<int>("SELECT 1"));
+            Assert.Null(physicalConnection.LastCommand!.Transaction);
+        }
+        [Fact]
+        public async Task PublicCreateCommand_SyncAndAsyncApplyTransactionTimeoutAndAutoOpen() {
+            using var connection = new TestDBConnection() { CommandTimeout = 42 };
+            connection.BeginTrans();
+            var transaction = connection.FakeConnection.LastTransaction!;
+
+            using (var command = connection.CreateCommand()) {
+                Assert.Same(transaction, command.Transaction);
+                Assert.Equal(42, command.CommandTimeout);
+                Assert.Equal(string.Empty, command.CommandText);
+            }
+            connection.CommitTrans();
+            connection.Close();
+            using var cancellationTokenSource = new CancellationTokenSource();
+            var cancellationToken = cancellationTokenSource.Token;
+
+            using var asyncCommand = await connection.CreateCommandAsync(cancellationToken);
+            Assert.Null(asyncCommand.Transaction);
+            Assert.Equal(42, asyncCommand.CommandTimeout);
+            Assert.Equal(ConnectionState.Open, connection.FakeConnection.State);
+            Assert.Equal(cancellationToken, connection.FakeConnection.OpenCancellationToken);
         }
         [Fact]
         public void ExecuteAfterClose_AutomaticallyReopensConnection() {
@@ -399,6 +533,16 @@ namespace DProjects.Db.Tests {
             DbDataReader,
             DbDataReaderAsync
         }
+        public enum ProviderFailureOperation {
+            NonQuery,
+            NonQueryAsync,
+            Scalar,
+            ScalarAsync,
+            Reader,
+            ReaderAsync,
+            DbDataReader,
+            DbDataReaderAsync
+        }
 
         private class TestDBConnection : DBConnection {
 
@@ -430,11 +574,15 @@ namespace DProjects.Db.Tests {
             // props
             public bool CancelReaderExecutionAsync { get; set; } = true;
             public int CloseCallCount { get; private set; }
+            public Exception? CommandDisposeException { get; set; }
             public int DisposeCallCount { get; private set; }
             public FakeDbCommand? LastCommand { get; private set; }
             public FakeDbTransaction? LastTransaction { get; private set; }
+            public Exception? NonQueryExecutionException { get; set; }
+            public CancellationToken OpenCancellationToken { get; private set; }
             public int OpenCallCount { get; private set; }
             public Exception? ReaderExecutionException { get; set; }
+            public Exception? ScalarExecutionException { get; set; }
             public bool ThrowOnReaderDispose { get; set; }
             [AllowNull]
             public override string ConnectionString { get; set; } = "";
@@ -455,6 +603,11 @@ namespace DProjects.Db.Tests {
                 if (mState == ConnectionState.Open) throw new InvalidOperationException("connection is already open");
                 OpenCallCount++;
                 mState = ConnectionState.Open;
+            }
+            public override Task OpenAsync(CancellationToken cancellationToken) {
+                OpenCancellationToken = cancellationToken;
+                Open();
+                return Task.CompletedTask;
             }
 
             // methods (private)
@@ -485,6 +638,9 @@ namespace DProjects.Db.Tests {
             public override IsolationLevel IsolationLevel => mIsolationLevel;
             public bool WasCommitted { get; private set; }
             public bool WasRolledBack { get; private set; }
+            public Exception? CommitException { get; set; }
+            public Exception? DisposeException { get; set; }
+            public Exception? RollbackException { get; set; }
             public bool ThrowOnCommit { get; set; }
             public bool ThrowOnRollback { get; set; }
             protected override DbConnection DbConnection => mConnection;
@@ -497,10 +653,12 @@ namespace DProjects.Db.Tests {
 
             // methods
             public override void Commit() {
+                if (CommitException != null) throw CommitException;
                 if (ThrowOnCommit) throw new InvalidOperationException("commit failed");
                 WasCommitted = true;
             }
             public override void Rollback() {
+                if (RollbackException != null) throw RollbackException;
                 if (ThrowOnRollback) throw new InvalidOperationException("rollback failed");
                 WasRolledBack = true;
             }
@@ -508,6 +666,7 @@ namespace DProjects.Db.Tests {
             // methods (private)
             protected override void Dispose(bool disposing) {
                 if (disposing) DisposeCallCount++;
+                if (disposing && DisposeException != null) throw DisposeException;
                 base.Dispose(disposing);
             }
         }
@@ -542,17 +701,21 @@ namespace DProjects.Db.Tests {
             public override void Cancel() {
             }
             public override int ExecuteNonQuery() {
+                if (((FakeDbConnection)mConnection!).NonQueryExecutionException is Exception exception) throw exception;
                 return 1;
             }
             public override Task<int> ExecuteNonQueryAsync(CancellationToken cancellationToken) {
                 CancellationToken = cancellationToken;
+                if (((FakeDbConnection)mConnection!).NonQueryExecutionException is Exception exception) return Task.FromException<int>(exception);
                 return Task.FromException<int>(new OperationCanceledException(cancellationToken));
             }
             public override object? ExecuteScalar() {
+                if (((FakeDbConnection)mConnection!).ScalarExecutionException is Exception exception) throw exception;
                 return 1;
             }
             public override Task<object?> ExecuteScalarAsync(CancellationToken cancellationToken) {
                 CancellationToken = cancellationToken;
+                if (((FakeDbConnection)mConnection!).ScalarExecutionException is Exception exception) return Task.FromException<object?>(exception);
                 return Task.FromException<object?>(new OperationCanceledException(cancellationToken));
             }
             public override void Prepare() {
@@ -577,6 +740,7 @@ namespace DProjects.Db.Tests {
             }
             protected override void Dispose(bool disposing) {
                 IsDisposed = true;
+                if (disposing && ((FakeDbConnection)mConnection!).CommandDisposeException is Exception exception) throw exception;
                 base.Dispose(disposing);
             }
         }

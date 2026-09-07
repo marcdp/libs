@@ -113,7 +113,22 @@ namespace DProjects.Db {
         }
         public void Close() {
             if (mIsDisposed) return;
-            if (mConnection.State != System.Data.ConnectionState.Closed) mConnection.Close();
+            Exception? cleanupException = null;
+            var transaction = mTransaction;
+            mTransaction = null;
+            if (transaction != null) {
+                try {
+                    transaction.Dispose();
+                } catch (Exception exception) {
+                    cleanupException = exception;
+                }
+            }
+            try {
+                if (mConnection.State != System.Data.ConnectionState.Closed) mConnection.Close();
+            } catch (Exception exception) {
+                cleanupException = cleanupException ?? exception;
+            }
+            if (cleanupException != null) ExceptionDispatchInfo.Capture(cleanupException).Throw();
         }
         public string ParseStatement(string sql, object?[]? parameters = null) {
             ThrowIfDisposed();
@@ -121,23 +136,36 @@ namespace DProjects.Db {
         }
         public System.Data.Common.DbCommand CreateCommand() {
             if (!IsOpen) Open();
-            return Connection.CreateCommand();
+            var command = Connection.CreateCommand();
+            try {
+                ConfigureCommand(command);
+                return command;
+            } catch (Exception exception) {
+                DisposePreservingPrimaryException(command, exception);
+                throw;
+            }
         }
         public async Task<DbCommand> CreateCommandAsync(CancellationToken cancellationToken = default) {
             if (!IsOpen) await OpenAsync(cancellationToken);
-            return Connection.CreateCommand();
+            var command = Connection.CreateCommand();
+            try {
+                ConfigureCommand(command);
+                return command;
+            } catch (Exception exception) {
+                DisposePreservingPrimaryException(command, exception);
+                throw;
+            }
         }
         protected virtual System.Data.Common.DbCommand CreateCommand(string sql, object?[]? parameters = null) {
             if (!IsOpen) Open();
             var command = Connection.CreateCommand();
             try {
                 command.CommandText = CreateCommandTextWithParameters(command, sql, parameters);
-                if (mCommandTimeout != 0) command.CommandTimeout = mCommandTimeout;
+                ConfigureCommand(command);
                 command.CommandType = System.Data.CommandType.Text;
-                command.Transaction = mTransaction;
                 return command;
-            } catch {
-                command.Dispose();
+            } catch (Exception exception) {
+                DisposePreservingPrimaryException(command, exception);
                 throw;
             }
         }
@@ -146,12 +174,11 @@ namespace DProjects.Db {
             var command = Connection.CreateCommand();
             try {
                 command.CommandText = CreateCommandTextWithParameters(command, sql, parameters);
-                command.Transaction = mTransaction;
+                ConfigureCommand(command);
                 command.CommandType = System.Data.CommandType.Text;
-                if (mCommandTimeout != 0) command.CommandTimeout = mCommandTimeout;
                 return command;
-            } catch {
-                command.Dispose();
+            } catch (Exception exception) {
+                DisposePreservingPrimaryException(command, exception);
                 throw;
             }
         }
@@ -269,41 +296,53 @@ namespace DProjects.Db {
             return System.Data.DbType.Object;
         }
         public virtual long ExecuteNonQuery(string sql, object?[]? parameters = null) {
-            using var command = CreateCommand(sql, parameters);
+            var command = CreateCommand(sql, parameters);
+            Exception? executionException = null;
             try {
                 return command.ExecuteNonQuery();
-            } catch (Exception e) {
-                throw new Exception("Error in DBConnectionData.ExecuteNonQuery(\'" + command.CommandText + "\')", e);
-            } 
+            } catch (Exception exception) {
+                executionException = exception;
+                throw;
+            } finally {
+                DisposePreservingPrimaryException(command, executionException);
+            }
         }
         public virtual async Task<long> ExecuteNonQueryAsync(string sql, object?[]? parameters = null, CancellationToken cancellationToken = default) {
-            using var command = await CreateCommandAsync(sql, parameters, cancellationToken);
+            var command = await CreateCommandAsync(sql, parameters, cancellationToken);
+            Exception? executionException = null;
             try {
                 return await command.ExecuteNonQueryAsync(cancellationToken);
-            } catch (OperationCanceledException) {
+            } catch (Exception exception) {
+                executionException = exception;
                 throw;
-            } catch (Exception e) {
-                throw new Exception($"Error in DBConnectionData.ExecuteNonQuery(\'{command.CommandText}\')", e);
+            } finally {
+                DisposePreservingPrimaryException(command, executionException);
             }
         }
         public virtual T ExecuteScalar<T>(string sql, object?[]? parameters = null) {
-            using var command = CreateCommand(sql, parameters);
+            var command = CreateCommand(sql, parameters);
+            Exception? executionException = null;
             try {
                 var res = command.ExecuteScalar();
                 return ConvertUtils.To<T>(res);
-            } catch (Exception e) {
-                throw new Exception("Error in DBConnectionData.ExecuteScalar(\'" + sql + "\')", e);
+            } catch (Exception exception) {
+                executionException = exception;
+                throw;
+            } finally {
+                DisposePreservingPrimaryException(command, executionException);
             }
         }
         public virtual async Task<T> ExecuteScalarAsync<T>(string sql, object?[]? parameters = null, CancellationToken cancellationToken = default) {
-            using var command = await CreateCommandAsync(sql, parameters, cancellationToken);
+            var command = await CreateCommandAsync(sql, parameters, cancellationToken);
+            Exception? executionException = null;
             try {
                 var res = await command.ExecuteScalarAsync(cancellationToken);
                 return ConvertUtils.To<T>(res);
-            } catch (OperationCanceledException) {
+            } catch (Exception exception) {
+                executionException = exception;
                 throw;
-            } catch (Exception e) {
-                throw new Exception("Error in DBConnectionData.ExecuteScalar(\'" + sql + "\')", e);
+            } finally {
+                DisposePreservingPrimaryException(command, executionException);
             }
         }
         public virtual IDBReader ExecuteReader(string sql, object?[]? parameters = null) {
@@ -312,13 +351,10 @@ namespace DProjects.Db {
             try {
                 reader = command.ExecuteReader();
                 return new DBReaderDbDataReader(reader, command, new DBReaderDbDataReader.Settings() { AvoidInitializeDBTableFromDataReader = mAvoidInitializeDBTableFromDataReader });
-            } catch (Exception e) {
-                try {
-                    reader?.Dispose();
-                } finally {
-                    command.Dispose();
-                }
-                throw new Exception("Error in DBConnectionData.ExecuteReader(\'" + sql + "\'), " + e.Message, e);
+            } catch (Exception exception) {
+                if (reader != null) DisposePreservingPrimaryException(reader, exception);
+                DisposePreservingPrimaryException(command, exception);
+                throw;
             }
         }
 
@@ -328,13 +364,10 @@ namespace DProjects.Db {
             try {
                 reader = command.ExecuteReader();
                 return new OwnedDbDataReader(reader, command);
-            } catch (Exception e) {
-                try {
-                    reader?.Dispose();
-                } finally {
-                    command.Dispose();
-                }
-                throw new Exception("Error in DBConnectionData.ExecuteReader(\'" + sql + "\'), " + e.Message, e);
+            } catch (Exception exception) {
+                if (reader != null) DisposePreservingPrimaryException(reader, exception);
+                DisposePreservingPrimaryException(command, exception);
+                throw;
             }
         }
         public virtual async Task<DbDataReader> ExecuteDbDataReaderAsync(string sql, object?[]? parameters = null, CancellationToken cancellationToken = default) {
@@ -343,20 +376,10 @@ namespace DProjects.Db {
             try {
                 reader = await command.ExecuteReaderAsync(cancellationToken);
                 return new OwnedDbDataReader(reader, command);
-            } catch (OperationCanceledException) {
-                try {
-                    reader?.Dispose();
-                } finally {
-                    command.Dispose();
-                }
+            } catch (Exception exception) {
+                if (reader != null) DisposePreservingPrimaryException(reader, exception);
+                DisposePreservingPrimaryException(command, exception);
                 throw;
-            } catch (Exception e) {
-                try {
-                    reader?.Dispose();
-                } finally {
-                    command.Dispose();
-                }
-                throw new Exception("Error in DBConnectionData.ExecuteReader(\'" + sql + "\'), " + e.Message, e);
             }
         }
         public virtual async Task<IDBReader> ExecuteReaderAsync(string sql, object?[]? parameters = null, CancellationToken cancellationToken = default) {
@@ -366,20 +389,10 @@ namespace DProjects.Db {
                 reader = await command.ExecuteReaderAsync(cancellationToken);
                 var result = new DBReaderDbDataReader(reader, command, new DBReaderDbDataReader.Settings() { AvoidInitializeDBTableFromDataReader = mAvoidInitializeDBTableFromDataReader });
                 return result;
-            } catch (OperationCanceledException) {
-                try {
-                    reader?.Dispose();
-                } finally {
-                    command.Dispose();
-                }
+            } catch (Exception exception) {
+                if (reader != null) DisposePreservingPrimaryException(reader, exception);
+                DisposePreservingPrimaryException(command, exception);
                 throw;
-            } catch (Exception e) {
-                try {
-                    reader?.Dispose();
-                } finally {
-                    command.Dispose();
-                }
-                throw new Exception("Error in DBConnectionData.ExecuteReader(\'" + sql + "\'), " + e.Message, e);
             }
         }
         public virtual DBTable ExecuteTable(string sql, object?[]? parameters = null) {
@@ -1546,6 +1559,17 @@ namespace DProjects.Db {
         }
 
         // methods (private)
+        private void ConfigureCommand(DbCommand command) {
+            command.Transaction = mTransaction;
+            if (mCommandTimeout != 0) command.CommandTimeout = mCommandTimeout;
+        }
+        private static void DisposePreservingPrimaryException(IDisposable resource, Exception? primaryException) {
+            try {
+                resource.Dispose();
+            } catch when (primaryException != null) {
+                // preserve the primary operation exception
+            }
+        }
         protected virtual string GetSqlParameterName(int index) {
             return GetSqlParameterPrefix() + index;
         }
@@ -1559,12 +1583,16 @@ namespace DProjects.Db {
         }
         private void CompleteTransaction(Action<DbTransaction> operation, string missingTransactionMessage) {
             var transaction = mTransaction ?? throw new InvalidOperationException(missingTransactionMessage);
+            Exception? operationException = null;
             try {
                 operation(transaction);
+            } catch (Exception exception) {
+                operationException = exception;
             } finally {
                 mTransaction = null;
-                transaction.Dispose();
+                DisposePreservingPrimaryException(transaction, operationException);
             }
+            if (operationException != null) ExceptionDispatchInfo.Capture(operationException).Throw();
         }
         private void ThrowIfDisposed() {
             if (mIsDisposed) throw new ObjectDisposedException(GetType().FullName);
