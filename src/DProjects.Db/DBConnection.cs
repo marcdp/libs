@@ -32,8 +32,6 @@ namespace DProjects.Db {
         protected int mCommandTimeout;
         protected System.Data.Common.DbTransaction? mTransaction;
         protected bool mIsDisposed;
-        [Obsolete("Literal-substitution execution is no longer supported. Use ParseStatement for diagnostic rendering.")]
-        protected bool mAvoidParametrizedQueries;
         protected bool mAvoidInitializeDBTableFromDataReader;
 
 
