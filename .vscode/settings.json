@@ -1,0 +1,14 @@
+{
+    "workbench.tree.indent": 20,
+    "workbench.editor.enablePreview": false,
+    "explorer.compactFolders": false,
+    "editor.minimap.enabled": false,
+    "editor.codeLens": false,
+    "files.exclude": {
+        "**/.pytest_cache": true,
+        "**/obj": true,
+        ".vs": true,
+        ".tmp": true,
+        "dist": true,
+    }
+}

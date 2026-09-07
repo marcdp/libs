@@ -619,14 +619,10 @@ namespace DProjects.Db {
             return "ALTER TABLE " + qb + table + qe + " DROP COLUMN " + column;
         }
         public virtual string GetSqlDropDefault(string table, string column) {
-            var qb = GetSqlQualifierBegin();
-            var qe = GetSqlQualifierEnd();
-            return "ALTER TABLE " + qb + table + qe + " ALTER " + column + " DROP DEFAULT ";
+            throw new NotSupportedException("Default constraint removal is not supported by this database connection.");
         }
         public virtual string GetSqlDropIndex(string table, string index) {
-            var qb = GetSqlQualifierBegin();
-            var qe = GetSqlQualifierEnd();
-            return "DROP INDEX " + qb + table + qe + "." + index;
+            throw new NotSupportedException("Index removal is not supported by this database connection.");
         }
         public virtual string GetSqlCreateColumn(string table, DBSchemaColumn dBSchemaColumn) {
             var qb = GetSqlQualifierBegin();
@@ -660,30 +656,10 @@ namespace DProjects.Db {
             return sql.ToString();
         }
         public virtual string GetSqlAlterColumn(string table, DBSchemaColumn dBSchemaColumn) {
-            var qb = GetSqlQualifierBegin();
-            var qe = GetSqlQualifierEnd();
-            var sql = new StringBuilder();
-            sql.Append("ALTER TABLE " + qb + table + qe + " ALTER COLUMN " + qb + dBSchemaColumn.Name + qe);
-            sql.Append(" ").Append(GetSqlTypeDefinition(dBSchemaColumn.DataType, dBSchemaColumn.Size, dBSchemaColumn.Precision, dBSchemaColumn.Scale));
-            if (dBSchemaColumn.Null) {
-                sql.Append(" NULL ");
-            } else {
-                sql.Append(" NOT NULL ");
-            }
-            return sql.ToString();
+            throw new NotSupportedException("Column alteration is not supported by this database connection.");
         }
         public virtual string GetSqlCreateDefault(string table, string column, string aDefault) {
-            var qb = GetSqlQualifierBegin();
-            var qe = GetSqlQualifierEnd();
-            var sql = new StringBuilder();
-            sql.Append("ALTER TABLE " + qb + table + qe + " ADD CONSTRAINT DF_" + table + "_" + column);
-            if ("now".Equals(aDefault, StringComparison.OrdinalIgnoreCase)) {
-                sql.Append(" DEFAULT ").Append(GetSqlDefaultNowExpression());
-            } else if (aDefault.Length > 0) {
-                sql.Append(" DEFAULT ").Append(aDefault);
-            }
-            sql.Append(" FOR " + column);
-            return sql.ToString();
+            throw new NotSupportedException("Default constraint creation is not supported by this database connection.");
         }
         public virtual string GetSqlTransactionWrap(string sql) {
             return GetSqlTransactionStart() + GetSqlSeparator() + System.Environment.NewLine + sql + (sql.EndsWith(GetSqlSeparator() + System.Environment.NewLine) ? "" : GetSqlSeparator() + System.Environment.NewLine)  + GetSqlTransactionCommit();
@@ -746,26 +722,13 @@ namespace DProjects.Db {
             throw new NotSupportedException("Sequence existence checks are not supported by this database connection.");
         }
         public virtual string GetSqlCreateSequence(DBSchemaSequence dbSchemaSequence) {
-            var sql = new StringBuilder();
-            var qb = GetSqlQualifierBegin();
-            var qe = GetSqlQualifierEnd();
-            sql.AppendLine("CREATE SEQUENCE  " + qb + dbSchemaSequence.Name + qe);
-            sql.AppendLine("    START WITH " + dbSchemaSequence.InitValue);
-            sql.AppendLine("    INCREMENT BY " + dbSchemaSequence.IncrementBy);
-            return sql.ToString();
+            throw new NotSupportedException("Sequence creation is not supported by this database connection.");
         }
         public virtual string GetSqlAlterSequenceIncrement(DBSchemaSequence dbSchemaSequence) {
-            var sql = new StringBuilder();
-            var qb = GetSqlQualifierBegin();
-            var qe = GetSqlQualifierEnd();
-            sql.AppendLine("ALTER SEQUENCE  " + qb + dbSchemaSequence.Name + qe);
-            sql.AppendLine("    INCREMENT BY " + dbSchemaSequence.IncrementBy);
-            return sql.ToString();
+            throw new NotSupportedException("Sequence alteration is not supported by this database connection.");
         }
         public virtual string GetSqlDropSequence(string sequence) {
-            var qb = GetSqlQualifierBegin();
-            var qe = GetSqlQualifierEnd();
-            return "DROP SEQUENCE " + qb + sequence + qe;
+            throw new NotSupportedException("Sequence removal is not supported by this database connection.");
         }
 
 
@@ -1134,13 +1097,13 @@ namespace DProjects.Db {
         //format 
         #region "format" 
         public virtual string GetSqlSelectTop(int number) {
-            return " TOP " + number + " ";
+            throw new NotSupportedException("Limited select syntax is not supported by this database connection.");
         }
         public virtual bool GetSqlSelectTopAtEnd() {
-            return true;
+            throw new NotSupportedException("Limited select syntax is not supported by this database connection.");
         }
         public virtual string GetSqlSelectOffsetLimit(long offset, int length) {
-            return " OFFSET " + offset + " ROWS FETCH NEXT " + length + " ROW ONLY";
+            throw new NotSupportedException("Paged select syntax is not supported by this database connection.");
         }
         public virtual string GetSqlLikeAllExpression() {
             return "%";
@@ -1152,7 +1115,7 @@ namespace DProjects.Db {
             return "SELECT 1";
         }
         public virtual string GetSqlSelectAutoincrement() {
-            return "SELECT @@IDENTITY";
+            throw new NotSupportedException("Autoincrement value retrieval is not supported by this database connection.");
         }
         public virtual string GetSqlSeparator() {
             return ";";
@@ -1161,7 +1124,7 @@ namespace DProjects.Db {
             return "a";
         }
         public virtual string GetSqlDefaultNowExpression() {
-            return "getDate()";
+            throw new NotSupportedException("Current timestamp defaults are not supported by this database connection.");
         }
         public virtual string GetSqlTrueExpression() {
             return "1";
@@ -1176,13 +1139,7 @@ namespace DProjects.Db {
             return "";
         }
         public virtual string GetSqlIdentityDefinition(Type type) {
-            if (type == typeof(System.Guid)) {
-                return " uniqueidentifier NOT NULL DEFAULT newId()";
-            } else if (type == typeof(System.Int64)) {
-                return " BIGINT IDENTITY NOT NULL ";
-            } else {
-                return " INT IDENTITY NOT NULL ";
-            }
+            throw new NotSupportedException("Identity columns are not supported by this database connection.");
         }
         public virtual string GetSqlTimeStampDefinition() {
             return "TIMESTAMP";
@@ -1194,40 +1151,7 @@ namespace DProjects.Db {
             return false;
         }
         public virtual string GetSqlEncodedLikeValue(string target) {
-            string s = target.Trim();
-            s = s.Replace("[", "[[]");
-            s = s.Replace("á", "a");
-            s = s.Replace("à", "a");
-            s = s.Replace("Á", "a");
-            s = s.Replace("À", "a");
-            s = s.Replace("A", "a");
-            s = s.Replace("a", "[aáàÀAÁ]");
-            s = s.Replace("é", "e");
-            s = s.Replace("è", "e");
-            s = s.Replace("È", "e");
-            s = s.Replace("É", "e");
-            s = s.Replace("E", "e");
-            s = s.Replace("e", "[eéèÉÈE]");
-            s = s.Replace("í", "i");
-            s = s.Replace("ï", "i");
-            s = s.Replace("Í", "i");
-            s = s.Replace("Ï", "i");
-            s = s.Replace("I", "i");
-            s = s.Replace("i", "[iíïÌÍI]");
-            s = s.Replace("ó", "o");
-            s = s.Replace("ò", "o");
-            s = s.Replace("Ó", "o");
-            s = s.Replace("Ò", "o");
-            s = s.Replace("O", "o");
-            s = s.Replace("o", "[oóòÒÓO]");
-            s = s.Replace("ú", "u");
-            s = s.Replace("ü", "u");
-            s = s.Replace("Ú", "u");
-            s = s.Replace("Ú", "u");
-            s = s.Replace("Ü", "u");
-            s = s.Replace("u", "[uúüÚÙU]");
-            s = s.Replace("_", "[_]");
-            return s;
+            throw new NotSupportedException("LIKE value encoding is not supported by this database connection.");
         }
         public virtual string GetSqlTypeDefinition(DBSchemaDataType dataType, int size, int precision, int scale) {
             var result = new StringBuilder();
@@ -1235,7 +1159,7 @@ namespace DProjects.Db {
             if (size > 0) {
                 result.Append("(" + size + ")");
             } else if (size == 0 && (dataType == DBSchemaDataType.Varchar || dataType == DBSchemaDataType.Nvarchar || dataType == DBSchemaDataType.Varbinary)) {
-                result.Append("(MAX)");
+                throw new NotSupportedException("Unbounded SQL data type rendering is not supported by this database connection.");
             } else if (precision > 0 || scale > 0) {
                 result.Append("(" + precision + "," + scale + ")");
             }
@@ -1542,18 +1466,13 @@ namespace DProjects.Db {
             return "@__p";
         }
         public virtual string GetSqlGetNextSequenceValue(string sequenceName) {
-            return "SELECT NEXT VALUE FOR " + GetSqlQualifierBegin() + sequenceName + GetSqlQualifierEnd();
+            throw new NotSupportedException("Sequence value retrieval is not supported by this database connection.");
         }
         public virtual string GetSqlTempTablePrefix() {
             return "";
         }
         public virtual string GetSqlIfRowCountThrowError(int rowCount, int errorCode, string errorMessage) {
-            var sql = new StringBuilder();
-            sql.AppendLine("if @@ROWCOUNT = " + rowCount);
-            sql.AppendLine("BEGIN");
-            sql.AppendLine("    THROW " + errorCode + ", '" + errorMessage.Replace("'", "''") + "', 0;");
-            sql.AppendLine("END;");
-            return sql.ToString();
+            throw new NotSupportedException("Row-count error SQL is not supported by this database connection.");
         }
 
         // methods (private)

@@ -495,6 +495,28 @@ namespace DProjects.Db.Tests {
             Assert.Throws<ArgumentOutOfRangeException>(() => ((DBSchemaDataType)int.MaxValue).GetDbType());
         }
         [Fact]
+        public void ProviderSpecificSqlPrimitives_AreUnsupportedByDialectNeutralBase() {
+            using var connection = new TestDBConnection();
+
+            Assert.Throws<NotSupportedException>(() => connection.GetSqlSelectTop(1));
+            Assert.Throws<NotSupportedException>(() => connection.GetSqlSelectTopAtEnd());
+            Assert.Throws<NotSupportedException>(() => connection.GetSqlSelectOffsetLimit(0, 1));
+            Assert.Throws<NotSupportedException>(() => connection.GetSqlSelectAutoincrement());
+            Assert.Throws<NotSupportedException>(() => connection.GetSqlIdentityDefinition(typeof(int)));
+            Assert.Throws<NotSupportedException>(() => connection.GetSqlDefaultNowExpression());
+            Assert.Throws<NotSupportedException>(() => connection.GetSqlTypeDefinition(DBSchemaDataType.Varchar, 0, 0, 0));
+            Assert.Throws<NotSupportedException>(() => connection.GetSqlDropDefault("table", "column"));
+            Assert.Throws<NotSupportedException>(() => connection.GetSqlDropIndex("table", "index"));
+            Assert.Throws<NotSupportedException>(() => connection.GetSqlAlterColumn("table", new DBSchemaColumn("column")));
+            Assert.Throws<NotSupportedException>(() => connection.GetSqlCreateDefault("table", "column", "0"));
+            Assert.Throws<NotSupportedException>(() => connection.GetSqlCreateSequence(new DBSchemaSequence()));
+            Assert.Throws<NotSupportedException>(() => connection.GetSqlAlterSequenceIncrement(new DBSchemaSequence()));
+            Assert.Throws<NotSupportedException>(() => connection.GetSqlDropSequence("sequence"));
+            Assert.Throws<NotSupportedException>(() => connection.GetSqlGetNextSequenceValue("sequence"));
+            Assert.Throws<NotSupportedException>(() => connection.GetSqlIfRowCountThrowError(0, 50000, "error"));
+            Assert.Throws<NotSupportedException>(() => connection.GetSqlEncodedLikeValue("value"));
+        }
+        [Fact]
         public void ImplementedEmptyCapabilityCanBeDistinguishedFromUnsupportedCapability() {
             using var unsupported = new TestDBConnection();
             using var implemented = new EmptyCapabilityDBConnection();

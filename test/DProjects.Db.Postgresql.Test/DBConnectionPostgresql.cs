@@ -1,6 +1,7 @@
 using System.Data.Common;
 using System.Data;
 using DProjects.Db.Tests;
+using DProjects.Db.Schema;
 
 namespace DProjects.Db.Postgresql.Tests {
 
@@ -11,6 +12,28 @@ namespace DProjects.Db.Postgresql.Tests {
         public void TimestampWithoutTimeZoneMapsToPortableDateTime() {
             using var connection = new DProjects.Db.Postgresql.DBConnectionPostgresql("mapping", "Host=localhost;Database=mapping;Username=mapping;Password=mapping");
             Assert.Equal(DProjects.Db.Schema.DBSchemaDataType.DateTime, connection.GetDataTypeFromSqlDataTypeName("timestamp without time zone", 0, 0, 0));
+        }
+        [Fact]
+        public void SqlPrimitives_UsePostgresqlDialectBehavior() {
+            var connectionString = "Host=localhost;Database=generation;Username=generation;Password=generation";
+            using var connection = new DProjects.Db.Postgresql.DBConnectionPostgresql("generation", connectionString);
+
+            Assert.Equal("$", connection.GetSqlParameterPrefix());
+            Assert.Equal(" LIMIT 5", connection.GetSqlSelectTop(5));
+            Assert.True(connection.GetSqlSelectTopAtEnd());
+            Assert.Equal(" LIMIT 5 OFFSET 10", connection.GetSqlSelectOffsetLimit(10, 5));
+            Assert.Equal("CURRENT_TIMESTAMP", connection.GetSqlDefaultNowExpression());
+            Assert.Equal("SELECT nextval('sequence')", connection.GetSqlGetNextSequenceValue("sequence"));
+            Assert.Equal("\"", connection.GetSqlQualifierBegin());
+            Assert.Equal("\"", connection.GetSqlQualifierEnd());
+            Assert.Equal("TEXT", connection.GetSqlTypeDefinition(DBSchemaDataType.Varchar, 0, 0, 0));
+            Assert.Equal("BYTEA", connection.GetSqlTypeDefinition(DBSchemaDataType.Varbinary, 0, 0, 0));
+            Assert.Equal("DROP INDEX \"index\"", connection.GetSqlDropIndex("table", "index"));
+            Assert.Equal("ALTER TABLE \"table\" ALTER COLUMN \"column\" SET DEFAULT 0", connection.GetSqlCreateDefault("table", "column", "0"));
+            var sequence = new DBSchemaSequence() { Name = "sequence", InitValue = 10, IncrementBy = 2 };
+            Assert.Contains("START 10", connection.GetSqlCreateSequence(sequence));
+            Assert.Equal("ALTER SEQUENCE \"sequence\" INCREMENT BY 2", connection.GetSqlAlterSequenceIncrement(sequence));
+            Assert.Equal("DROP SEQUENCE \"sequence\"", connection.GetSqlDropSequence("sequence"));
         }
     }
 

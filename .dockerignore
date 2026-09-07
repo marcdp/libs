@@ -1,5 +1,0 @@
-src/*/bin
-src/*/obj
-.build
-.vs
-.git

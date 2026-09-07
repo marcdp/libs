@@ -24,6 +24,9 @@ namespace DProjects.Db.Sqlite {
         public override bool ExistsTable(string table) {
             return ExecuteScalar<int>("SELECT count(*) FROM sqlite_master WHERE type='table' AND name=?", [table]) == 1;
         }
+        public override string GetSqlDropIndex(string table, string index) {
+            return "DROP INDEX " + GetSqlQualifierBegin() + index + GetSqlQualifierEnd();
+        }
         //public override string GetSqlQualifierBegin() {
         //    return "\"";
         //}
@@ -432,6 +435,27 @@ namespace DProjects.Db.Sqlite {
 
 
         //#region "sql format methods"                         
+        public override string GetSqlSelectTop(int number) {
+            return " LIMIT " + number;
+        }
+        public override bool GetSqlSelectTopAtEnd() {
+            return true;
+        }
+        public override string GetSqlSelectOffsetLimit(long offset, int length) {
+            return " LIMIT " + length + " OFFSET " + offset;
+        }
+        public override string GetSqlDefaultNowExpression() {
+            return "CURRENT_TIMESTAMP";
+        }
+        public override string GetSqlTypeDefinition(DBSchemaDataType dataType, int size, int precision, int scale) {
+            if (dataType == DBSchemaDataType.Varchar || dataType == DBSchemaDataType.Nvarchar) {
+                return "TEXT";
+            } else if (dataType == DBSchemaDataType.Binary || dataType == DBSchemaDataType.Varbinary) {
+                return "BLOB";
+            } else {
+                return base.GetSqlTypeDefinition(dataType, size, precision, scale);
+            }
+        }
         //public override string GetSqlGetNextSequenceValue(string sequenceName) {
         //    return $"SELECT nextval('{sequenceName}')";
         //}

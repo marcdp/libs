@@ -1,6 +1,7 @@
 using System.Data.Common;
 using System.Data;
 using DProjects.Db.Tests;
+using DProjects.Db.Schema;
 
 namespace DProjects.Db.Sqlite.Tests
 {
@@ -15,6 +16,22 @@ namespace DProjects.Db.Sqlite.Tests
     public class DBConnectionSqlitePortableContractTests {
 
         // methods
+        [Fact]
+        public void SqlPrimitives_UseSqliteDialectBehavior() {
+            using var connection = CreateConnection();
+
+            Assert.Equal(" LIMIT 5", connection.GetSqlSelectTop(5));
+            Assert.True(connection.GetSqlSelectTopAtEnd());
+            Assert.Equal(" LIMIT 5 OFFSET 10", connection.GetSqlSelectOffsetLimit(10, 5));
+            Assert.Equal("CURRENT_TIMESTAMP", connection.GetSqlDefaultNowExpression());
+            Assert.Equal("TEXT", connection.GetSqlTypeDefinition(DBSchemaDataType.Varchar, 0, 0, 0));
+            Assert.Equal("BLOB", connection.GetSqlTypeDefinition(DBSchemaDataType.Varbinary, 0, 0, 0));
+            Assert.Equal("DROP INDEX index", connection.GetSqlDropIndex("table", "index"));
+            Assert.Throws<NotSupportedException>(() => connection.GetSqlCreateDefault("table", "column", "0"));
+            Assert.Throws<NotSupportedException>(() => connection.GetSqlAlterColumn("table", new DBSchemaColumn("column")));
+            Assert.Throws<NotSupportedException>(() => connection.GetSqlCreateSequence(new DBSchemaSequence()));
+            Assert.Throws<NotSupportedException>(() => connection.GetSqlGetNextSequenceValue("sequence"));
+        }
         [Fact]
         public async Task Lifecycle_OpenCloseReopenAndAutoOpenExecution() {
             using var connection = CreateConnection();

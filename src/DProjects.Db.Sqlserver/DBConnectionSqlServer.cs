@@ -227,6 +227,30 @@ namespace DProjects.Db.SqlServer {
             }
             return sql.ToString();
         }
+        public override string GetSqlDropIndex(string table, string index) {
+            return "DROP INDEX " + GetSqlQualifierBegin() + table + GetSqlQualifierEnd() + "." + index;
+        }
+        public override string GetSqlAlterColumn(string table, DBSchemaColumn dBSchemaColumn) {
+            var qb = GetSqlQualifierBegin();
+            var qe = GetSqlQualifierEnd();
+            var sql = new StringBuilder();
+            sql.Append("ALTER TABLE " + qb + table + qe + " ALTER COLUMN " + qb + dBSchemaColumn.Name + qe);
+            var typeDefinition = GetSqlTypeDefinition(dBSchemaColumn.DataType, dBSchemaColumn.Size, dBSchemaColumn.Precision, dBSchemaColumn.Scale);
+            sql.Append(" ").Append(typeDefinition);
+            sql.Append(dBSchemaColumn.Null ? " NULL " : " NOT NULL ");
+            return sql.ToString();
+        }
+        public override string GetSqlCreateDefault(string table, string column, string aDefault) {
+            var sql = new StringBuilder();
+            sql.Append("ALTER TABLE " + GetSqlQualifierBegin() + table + GetSqlQualifierEnd() + " ADD CONSTRAINT DF_" + table + "_" + column);
+            if ("now".Equals(aDefault, StringComparison.OrdinalIgnoreCase)) {
+                sql.Append(" DEFAULT ").Append(GetSqlDefaultNowExpression());
+            } else if (aDefault.Length > 0) {
+                sql.Append(" DEFAULT ").Append(aDefault);
+            }
+            sql.Append(" FOR " + column);
+            return sql.ToString();
+        }
         public override string GetSqlCreateTempTable(string table, string select) {
             var qb = GetSqlQualifierBegin();
             var qe = GetSqlQualifierEnd();
@@ -310,11 +334,31 @@ namespace DProjects.Db.SqlServer {
         public override bool ExistsSequence(string name) {
             return (ExecuteScalar<int>("select count(*) from sys.sequences where object_id = object_id(?)", [name]) > 0);
         }
+        public override string GetSqlCreateSequence(DBSchemaSequence dbSchemaSequence) {
+            var sql = new StringBuilder();
+            sql.AppendLine("CREATE SEQUENCE  " + GetSqlQualifierBegin() + dbSchemaSequence.Name + GetSqlQualifierEnd());
+            sql.AppendLine("    START WITH " + dbSchemaSequence.InitValue);
+            sql.AppendLine("    INCREMENT BY " + dbSchemaSequence.IncrementBy);
+            return sql.ToString();
+        }
+        public override string GetSqlAlterSequenceIncrement(DBSchemaSequence dbSchemaSequence) {
+            var sql = new StringBuilder();
+            sql.AppendLine("ALTER SEQUENCE  " + GetSqlQualifierBegin() + dbSchemaSequence.Name + GetSqlQualifierEnd());
+            sql.AppendLine("    INCREMENT BY " + dbSchemaSequence.IncrementBy);
+            return sql.ToString();
+        }
+        public override string GetSqlDropSequence(string sequence) {
+            return "DROP SEQUENCE " + GetSqlQualifierBegin() + sequence + GetSqlQualifierEnd();
+        }
         public override string[] GetProcedureNames() {
             return new string[] { };
         }
         public override string GetSqlTypeDefinition(DBSchemaDataType dataType, int size, int precision, int scale) {
-            if (dataType == DBSchemaDataType.Boolean) {
+            var isUnboundedSqlServerType = dataType == DBSchemaDataType.Varchar || dataType == DBSchemaDataType.Nvarchar
+                || dataType == DBSchemaDataType.Varbinary;
+            if (size == 0 && isUnboundedSqlServerType) {
+                return dataType.ToString().ToUpper() + "(MAX)";
+            } else if (dataType == DBSchemaDataType.Boolean) {
                 return "BIT";
             } else if (dataType == DBSchemaDataType.Float ) {
                 if (size == 0) size = 24;
@@ -402,6 +446,76 @@ namespace DProjects.Db.SqlServer {
 
 
         #region "sql format methods"                         
+        public override string GetSqlSelectTop(int number) {
+            return " TOP " + number + " ";
+        }
+        public override bool GetSqlSelectTopAtEnd() {
+            return true;
+        }
+        public override string GetSqlSelectOffsetLimit(long offset, int length) {
+            return " OFFSET " + offset + " ROWS FETCH NEXT " + length + " ROW ONLY";
+        }
+        public override string GetSqlSelectAutoincrement() {
+            return "SELECT @@IDENTITY";
+        }
+        public override string GetSqlDefaultNowExpression() {
+            return "getDate()";
+        }
+        public override string GetSqlIdentityDefinition(Type type) {
+            if (type == typeof(Guid)) {
+                return " uniqueidentifier NOT NULL DEFAULT newId()";
+            } else if (type == typeof(long)) {
+                return " BIGINT IDENTITY NOT NULL ";
+            } else {
+                return " INT IDENTITY NOT NULL ";
+            }
+        }
+        public override string GetSqlEncodedLikeValue(string target) {
+            string result = target.Trim();
+            result = result.Replace("[", "[[]");
+            result = result.Replace("á", "a");
+            result = result.Replace("à", "a");
+            result = result.Replace("Á", "a");
+            result = result.Replace("À", "a");
+            result = result.Replace("A", "a");
+            result = result.Replace("a", "[aáàÀAÁ]");
+            result = result.Replace("é", "e");
+            result = result.Replace("è", "e");
+            result = result.Replace("È", "e");
+            result = result.Replace("É", "e");
+            result = result.Replace("E", "e");
+            result = result.Replace("e", "[eéèÉÈE]");
+            result = result.Replace("í", "i");
+            result = result.Replace("ï", "i");
+            result = result.Replace("Í", "i");
+            result = result.Replace("Ï", "i");
+            result = result.Replace("I", "i");
+            result = result.Replace("i", "[iíïÌÍI]");
+            result = result.Replace("ó", "o");
+            result = result.Replace("ò", "o");
+            result = result.Replace("Ó", "o");
+            result = result.Replace("Ò", "o");
+            result = result.Replace("O", "o");
+            result = result.Replace("o", "[oóòÒÓO]");
+            result = result.Replace("ú", "u");
+            result = result.Replace("ü", "u");
+            result = result.Replace("Ú", "u");
+            result = result.Replace("Ú", "u");
+            result = result.Replace("Ü", "u");
+            result = result.Replace("u", "[uúüÚÙU]");
+            return result.Replace("_", "[_]");
+        }
+        public override string GetSqlGetNextSequenceValue(string sequenceName) {
+            return "SELECT NEXT VALUE FOR " + GetSqlQualifierBegin() + sequenceName + GetSqlQualifierEnd();
+        }
+        public override string GetSqlIfRowCountThrowError(int rowCount, int errorCode, string errorMessage) {
+            var sql = new StringBuilder();
+            sql.AppendLine("if @@ROWCOUNT = " + rowCount);
+            sql.AppendLine("BEGIN");
+            sql.AppendLine("    THROW " + errorCode + ", '" + errorMessage.Replace("'", "''") + "', 0;");
+            sql.AppendLine("END;");
+            return sql.ToString();
+        }
         public override string GetSqlEncodedValue(object? value, Type? type, bool bAllowNull) {
             if (type == typeof(DateTime)) {
                 if (value == null || value == System.DBNull.Value || System.Convert.ToDateTime(value) == default) {

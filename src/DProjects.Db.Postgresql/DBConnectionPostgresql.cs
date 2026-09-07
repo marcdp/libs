@@ -241,6 +241,20 @@ namespace DProjects.Db.Postgresql {
             }
             return sql.ToString();
         }
+        public override string GetSqlDropDefault(string table, string column) {
+            var qualifiedTable = GetSqlQualifierBegin() + table + GetSqlQualifierEnd();
+            var qualifiedColumn = GetSqlQualifierBegin() + column + GetSqlQualifierEnd();
+            return "ALTER TABLE " + qualifiedTable + " ALTER COLUMN " + qualifiedColumn + " DROP DEFAULT";
+        }
+        public override string GetSqlDropIndex(string table, string index) {
+            return "DROP INDEX " + GetSqlQualifierBegin() + index + GetSqlQualifierEnd();
+        }
+        public override string GetSqlCreateDefault(string table, string column, string aDefault) {
+            var value = "now".Equals(aDefault, StringComparison.OrdinalIgnoreCase) ? GetSqlDefaultNowExpression() : aDefault;
+            var qualifiedTable = GetSqlQualifierBegin() + table + GetSqlQualifierEnd();
+            var qualifiedColumn = GetSqlQualifierBegin() + column + GetSqlQualifierEnd();
+            return "ALTER TABLE " + qualifiedTable + " ALTER COLUMN " + qualifiedColumn + " SET DEFAULT " + value;
+        }
         //public override string GetSqlDropDefault(string table, string column) {
         //    var aux = new StringBuilder();
         //    aux.AppendLine("SELECT SchemaName = s.Name,");
@@ -335,6 +349,13 @@ namespace DProjects.Db.Postgresql {
             sql.AppendLine("    INCREMENT BY " + dbSchemaSequence.IncrementBy);
             return sql.ToString();
         }
+        public override string GetSqlAlterSequenceIncrement(DBSchemaSequence dbSchemaSequence) {
+            var qualifiedSequence = GetSqlQualifierBegin() + dbSchemaSequence.Name + GetSqlQualifierEnd();
+            return "ALTER SEQUENCE " + qualifiedSequence + " INCREMENT BY " + dbSchemaSequence.IncrementBy;
+        }
+        public override string GetSqlDropSequence(string sequence) {
+            return "DROP SEQUENCE " + GetSqlQualifierBegin() + sequence + GetSqlQualifierEnd();
+        }
         public override string[] GetSequenceNames() {
             var schema = "public";
             var result = new List<string>();
@@ -361,7 +382,11 @@ namespace DProjects.Db.Postgresql {
         //    return new string[] { };
         //}
         public override string GetSqlTypeDefinition(DBSchemaDataType dataType, int size, int precision, int scale) {
-            if (dataType == DBSchemaDataType.UniqueIdentifier) {
+            if (size == 0 && (dataType == DBSchemaDataType.Varchar || dataType == DBSchemaDataType.Nvarchar)) {
+                return "TEXT";
+            } else if (dataType == DBSchemaDataType.Binary || dataType == DBSchemaDataType.Varbinary) {
+                return "BYTEA";
+            } else if (dataType == DBSchemaDataType.UniqueIdentifier) {
                 return "UUID";
             //} else if (dataType == DBSchemaDataType.Float) {
             //    if (size == 0) size = 24;
@@ -449,6 +474,18 @@ namespace DProjects.Db.Postgresql {
 
 
         //#region "sql format methods"                         
+        public override string GetSqlSelectTop(int number) {
+            return " LIMIT " + number;
+        }
+        public override bool GetSqlSelectTopAtEnd() {
+            return true;
+        }
+        public override string GetSqlSelectOffsetLimit(long offset, int length) {
+            return " LIMIT " + length + " OFFSET " + offset;
+        }
+        public override string GetSqlDefaultNowExpression() {
+            return "CURRENT_TIMESTAMP";
+        }
         public override string GetSqlGetNextSequenceValue(string sequenceName) {
             return $"SELECT nextval('{sequenceName}')";
         }
