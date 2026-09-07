@@ -149,6 +149,34 @@ namespace DProjects.Log.Tests {
             Assert.Equal(1, count);
         }
 
+        [Fact]
+        public void ConvenienceMethod_PropagatesConfiguredMetadataAndTemplateFields() {
+            var logger = new RecordingLogger();
+            var client = new LogClientLogger(logger) {
+                Prefix = "prefix: ",
+                Source = "checkout",
+                User = "user-7",
+                Resource = "order-42",
+                SpanId = "span-1",
+                TraceId = "trace-1",
+                Fields = new Dictionary<string, object?> { ["tenant"] = "north" }
+            };
+            var writtenCount = 0;
+            client.Writed += (_, _) => writtenCount++;
+
+            client.Info("Order {Id}", 42);
+
+            var recorded = Assert.Single(logger.Entries);
+            Assert.Equal(42, recorded.State["Id"]);
+            Assert.Equal("north", recorded.State["tenant"]);
+            Assert.Equal("checkout", recorded.State["source"]);
+            Assert.Equal("user-7", recorded.State["user"]);
+            Assert.Equal("order-42", recorded.State["resource"]);
+            Assert.Equal("span-1", recorded.State["spanId"]);
+            Assert.Equal("trace-1", recorded.State["traceId"]);
+            Assert.Equal(1, writtenCount);
+        }
+
         private sealed class RecordingLogger : ILogger {
 
             public List<RecordedLog> Entries { get; } = new List<RecordedLog>();

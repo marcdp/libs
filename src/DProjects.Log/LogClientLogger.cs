@@ -47,34 +47,30 @@ namespace DProjects.Log {
 
         //methods
         public void Trace(string message, params object?[] args) {
-            mLogger.Log(LogLevelMappings.ToMicrosoftLogLevel(LogLevel.Trace), message, args);
-            if (Writed != null) Writed?.Invoke(this, CreateLogEntry(LogLevel.Trace, message, args));
+            Write(CreateLogEntry(LogLevel.Trace, message, args));
         }
         public void Debug(string message, params object?[] args) {
-            mLogger.Log(LogLevelMappings.ToMicrosoftLogLevel(LogLevel.Debug), message, args);
-            if (Writed != null) Writed?.Invoke(this, CreateLogEntry(LogLevel.Debug, message, args));
+            Write(CreateLogEntry(LogLevel.Debug, message, args));
         }
         public void Info(string message, params object?[] args) {
-            mLogger.Log(LogLevelMappings.ToMicrosoftLogLevel(LogLevel.Information), message, args);
-            if (Writed != null) Writed?.Invoke(this, CreateLogEntry(LogLevel.Information, message, args));
+            Write(CreateLogEntry(LogLevel.Information, message, args));
         }
         public void Warning(string message, params object?[] args) {
-            mLogger.Log(LogLevelMappings.ToMicrosoftLogLevel(LogLevel.Warning), message, args);
-            if (Writed != null) Writed?.Invoke(this, CreateLogEntry(LogLevel.Warning, message, args));
+            Write(CreateLogEntry(LogLevel.Warning, message, args));
         }
         public void Error(string message, params object?[] args) {
-            mLogger.Log(LogLevelMappings.ToMicrosoftLogLevel(LogLevel.Error), message, args);
-            if (Writed != null) Writed?.Invoke(this, CreateLogEntry(LogLevel.Error, message, args));
+            Write(CreateLogEntry(LogLevel.Error, message, args));
         }
         public void Fatal(string message, params object?[] args) {
-            mLogger.Log(LogLevelMappings.ToMicrosoftLogLevel(LogLevel.Fatal), message, args);
-            if (Writed != null) Writed?.Invoke(this, CreateLogEntry(LogLevel.Fatal, message, args));
+            Write(CreateLogEntry(LogLevel.Fatal, message, args));
         }
         public void Write(LogEntry logEntry) {
             if (logEntry == null) throw new ArgumentNullException(nameof(logEntry));
 
-            var message = new StringBuilder(logEntry.Message);
+            var message = new StringBuilder();
             var args = new List<object?>();
+            var messageFieldNames = new HashSet<string>(StringComparer.Ordinal);
+            AppendMessage(logEntry, message, args, messageFieldNames);
             if (logEntry.Tags != null) {
                 message.Append(" {tags}");
                 args.Add(logEntry.Tags);
@@ -85,6 +81,9 @@ namespace DProjects.Log {
             }
             if (logEntry.Fields != null) {
                 foreach (var field in logEntry.Fields) {
+                    if (field.Key == "messageOriginal" || messageFieldNames.Contains(field.Key)) {
+                        continue;
+                    }
                     message.Append(" {" + field.Key + "}");
                     args.Add(field.Value);
                 }
@@ -108,6 +107,52 @@ namespace DProjects.Log {
 
             mLogger.Log(LogLevelMappings.ToMicrosoftLogLevel(logEntry.Level), message.ToString(), args.ToArray());
             Writed?.Invoke(this, logEntry);
+        }
+
+
+        private static void AppendMessage(
+            LogEntry logEntry,
+            StringBuilder message,
+            List<object?> args,
+            HashSet<string> messageFieldNames
+        ) {
+            if (logEntry.Fields == null
+                || !logEntry.Fields.TryGetValue("messageOriginal", out var originalValue)
+                || !(originalValue is string originalMessage)) {
+                message.Append(logEntry.Message);
+                return;
+            }
+
+            var renderedMessage = new StringBuilder();
+            var index = 0;
+            while (index < originalMessage.Length) {
+                var openIndex = originalMessage.IndexOf("{", index, StringComparison.Ordinal);
+                if (openIndex == -1) {
+                    renderedMessage.Append(originalMessage.Substring(index));
+                    break;
+                }
+
+                var closeIndex = originalMessage.IndexOf("}", openIndex, StringComparison.Ordinal);
+                if (closeIndex == -1) {
+                    renderedMessage.Append(originalMessage.Substring(index));
+                    break;
+                }
+
+                renderedMessage.Append(originalMessage.Substring(index, openIndex - index));
+                var fieldName = originalMessage.Substring(openIndex + 1, closeIndex - openIndex - 1);
+                if (logEntry.Fields.TryGetValue(fieldName, out var fieldValue)) {
+                    renderedMessage.Append(fieldValue);
+                    args.Add(fieldValue);
+                    messageFieldNames.Add(fieldName);
+                }
+                index = closeIndex + 1;
+            }
+
+            var rendered = renderedMessage.ToString();
+            if (logEntry.Message.EndsWith(rendered, StringComparison.Ordinal)) {
+                message.Append(logEntry.Message.Substring(0, logEntry.Message.Length - rendered.Length));
+            }
+            message.Append(originalMessage);
         }
 
 

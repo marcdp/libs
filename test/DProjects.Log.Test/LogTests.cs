@@ -69,6 +69,22 @@ namespace DProjects.Log.Tests {
             Assert.Empty(log.Entries);
         }
 
+        [Fact]
+        public void Fatal_PreservesTraceMetadataAndException() {
+            using var log = new RecordingLog(DProjects.Log.LogLevel.Trace);
+            var exception = new InvalidOperationException("fatal failure");
+
+            log.Fatal("fatal", spanId: "span-1", traceId: "trace-1", exception: exception);
+
+            var entry = Assert.Single(log.Entries);
+            Assert.Equal("span-1", entry.SpanId);
+            Assert.Equal("trace-1", entry.TraceId);
+            Assert.Contains(
+                "fatal failure",
+                Assert.IsType<string>(Assert.IsAssignableFrom<IDictionary<string, object?>>(entry.Fields)["exception"])
+            );
+        }
+
         private sealed class RecordingLog : Log {
 
             public List<LogEntry> Entries { get; } = new List<LogEntry>();

@@ -82,10 +82,10 @@ namespace DProjects.Log {
                 if (fields == null) fields = new Dictionary<string, object?>();
                 fields["exception"] = ExceptionUtils.GetMessageDetailed(exception);
             }
-            Write(new LogEntry(LogLevel.Fatal, message, fields, tags, source, user, resource));
+            Write(new LogEntry(LogLevel.Fatal, message, fields, tags, source, user, resource, default, spanId, traceId));
         }
         public void Write(LogEntry logEntry) {
-            if (LogLevelMappings.GetSeverityRank(logEntry.Level) < LogLevelMappings.GetSeverityRank(mLevel)) {
+            if (!LogLevelMappings.IsEnabled(mLevel, logEntry.Level)) {
                 return;
             }
             if (mUseWriterThread) {

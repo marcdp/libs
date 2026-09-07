@@ -25,6 +25,37 @@ namespace DProjects.Log {
             }
         }
 
+        public static bool TryFromMicrosoftLogLevel(LogLevelNative logLevel, out LogLevel result) {
+            switch (logLevel) {
+                case LogLevelNative.Trace:
+                    result = LogLevel.Trace;
+                    return true;
+                case LogLevelNative.Debug:
+                    result = LogLevel.Debug;
+                    return true;
+                case LogLevelNative.Information:
+                    result = LogLevel.Information;
+                    return true;
+                case LogLevelNative.Warning:
+                    result = LogLevel.Warning;
+                    return true;
+                case LogLevelNative.Error:
+                    result = LogLevel.Error;
+                    return true;
+                case LogLevelNative.Critical:
+                    result = LogLevel.Fatal;
+                    return true;
+                case LogLevelNative.None:
+                default:
+                    result = default;
+                    return false;
+            }
+        }
+
+        public static bool IsEnabled(LogLevel minimumLevel, LogLevel logLevel) {
+            return GetSeverityRank(logLevel) >= GetSeverityRank(minimumLevel);
+        }
+
         public static int GetSeverityRank(LogLevel logLevel) {
             switch (logLevel) {
                 case LogLevel.Trace:
