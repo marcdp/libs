@@ -558,6 +558,45 @@ Do not convert an entire file to a different style merely because the edited sec
 
 Keep diffs focused on the requested behavior.
 
+## Coding Guidelines
+
+* In documentation files, use a preferred line width of 150 characters.
+* Preserve existing project style and naming.
+* Prefer small, targeted changes over broad refactors.
+* Keep public contracts stable unless asked to change them.
+* Do not introduce breaking changes without explicit justification.
+* When behavior is unclear, infer from active runtime paths, especially worker runtime and broker
+  abstractions, not legacy folders.
+* Prefer clear, idiomatic C# over clever abstractions.
+* Add comments only when they clarify non-obvious logic.
+* Use existing helper methods, fixtures, naming conventions, and test patterns when available.
+
+## C# Conventions
+
+- Match the existing target framework, nullable context, analyzers, and formatting rules.
+- Keep public APIs stable unless the task explicitly requires an API change.
+- Prefer deterministic, allocation-conscious indicator calculations.
+- Avoid hidden time, culture, or timezone dependencies in numeric tests.
+- Use K&R-style braces. Always place the opening brace `{` on the same line as the declaration or
+  control statement.
+- write an EMPTY line plus a comment "// consts" just before defining the consts of the classes
+- write an EMPTY line plus a comment "// vars" just before defining the fields of the classes
+- write an EMPTY line plus a comment "// props" just before defining the properties of the classes
+- write an EMPTY line plus a comment "// ctor" just before the first constructor
+- write an EMPTY line plus a comment "// methods" just before the first public method
+- write an EMPTY line plus a comment "// methods (private)" just before the first private method
+- do not write an empty line bettwen constants declarations
+- do not write an empty line bettwen vars declarations
+- do not write an empty line bettwen properties declarations
+- do not write an empty line bettwen constructors declarations
+- do not write an empty line bettwen methods declarations
+- always put first consts, vars/fields, then properties, then constructors, then public methods, and
+  finally private methods
+- always insert an empty line after a class or interface declaration
+- always generate one line short comment for code blocks of functionallity. That comment should
+  start in lowercase
+- my screen is enough wide to show 150 characters per line. Avoid split long lines shorter than 150
+  characters in multiple lines.
 ---
 
 # 14. Nullability and argument semantics
@@ -723,15 +762,3 @@ The goal is:
 
 ---
 
-## Coding Guidelines
-
-* In documentation files, use a preferred line width of 100 characters.
-* Preserve existing project style and naming.
-* Prefer small, targeted changes over broad refactors.
-* Keep public contracts stable unless asked to change them.
-* Do not introduce breaking changes without explicit justification.
-* When behavior is unclear, infer from active runtime paths, especially worker runtime and broker
-  abstractions, not legacy folders.
-* Prefer clear, idiomatic C# over clever abstractions.
-* Add comments only when they clarify non-obvious logic.
-* Use existing helper methods, fixtures, naming conventions, and test patterns when available.
