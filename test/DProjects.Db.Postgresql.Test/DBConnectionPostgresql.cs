@@ -2,6 +2,7 @@ using System.Data.Common;
 using System.Data;
 using DProjects.Db.Tests;
 using DProjects.Db.Schema;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace DProjects.Db.Postgresql.Tests {
 
@@ -79,6 +80,49 @@ namespace DProjects.Db.Postgresql.Tests {
             Assert.Throws<ArgumentOutOfRangeException>(() => connection.GetSqlTypeDefinition(dataType, 0, 0, 2));
         }
         [Theory]
+        [InlineData(DBSchemaDataType.DateTime, DBSchemaDataType.Timestamp)]
+        [InlineData(DBSchemaDataType.Timestamp, DBSchemaDataType.DateTime)]
+        [InlineData(DBSchemaDataType.Char, DBSchemaDataType.Nchar)]
+        [InlineData(DBSchemaDataType.Nchar, DBSchemaDataType.Char)]
+        [InlineData(DBSchemaDataType.Varchar, DBSchemaDataType.Nvarchar)]
+        [InlineData(DBSchemaDataType.Nvarchar, DBSchemaDataType.Varchar)]
+        [InlineData(DBSchemaDataType.Binary, DBSchemaDataType.Varbinary)]
+        [InlineData(DBSchemaDataType.Varbinary, DBSchemaDataType.Binary)]
+        [InlineData(DBSchemaDataType.Smallint, DBSchemaDataType.TinyInt)]
+        [InlineData(DBSchemaDataType.TinyInt, DBSchemaDataType.Smallint)]
+        [InlineData(DBSchemaDataType.Real, DBSchemaDataType.Double)]
+        [InlineData(DBSchemaDataType.Double, DBSchemaDataType.Real)]
+        public void SchemaDataTypeEquivalence_RecognizesPostgresqlTypeCollapses(DBSchemaDataType actual, DBSchemaDataType expected) {
+            using var connection = new TestableDBConnectionPostgresql();
+
+            Assert.True(connection.AreSchemaDataTypesEquivalentForTest(actual, expected));
+        }
+        [Theory]
+        [InlineData(DBSchemaDataType.Float, DBSchemaDataType.Double)]
+        [InlineData(DBSchemaDataType.Int, DBSchemaDataType.Bigint)]
+        [InlineData(DBSchemaDataType.Date, DBSchemaDataType.DateTime)]
+        [InlineData(DBSchemaDataType.Json, DBSchemaDataType.Jsonb)]
+        public void SchemaDataTypeEquivalence_PreservesDistinctPostgresqlTypes(DBSchemaDataType actual, DBSchemaDataType expected) {
+            using var connection = new TestableDBConnectionPostgresql();
+
+            Assert.False(connection.AreSchemaDataTypesEquivalentForTest(actual, expected));
+        }
+        [Theory]
+        [InlineData(DBSchemaDataType.DateTime, DBSchemaDataType.Timestamp, 0)]
+        [InlineData(DBSchemaDataType.Varchar, DBSchemaDataType.Nvarchar, 100)]
+        [InlineData(DBSchemaDataType.Smallint, DBSchemaDataType.TinyInt, 0)]
+        public void ApplySchemaChanges_DoesNotAlterProviderCanonicalizedTypes(DBSchemaDataType discovered, DBSchemaDataType desired, int size) {
+            using var connection = new TestableDBConnectionPostgresql() { DiscoveredDataType = discovered, ColumnSize = size };
+            var schema = new DBSchemaDatabase();
+            var table = new DBSchemaTable() { Name = "records" };
+            table.Columns.Add(new DBSchemaColumn("value") { DataType = desired, Size = size });
+            schema.Tables.Add(table);
+
+            connection.ApplySchemaChanges(schema, false, NullLogger<IDBConnection>.Instance);
+
+            Assert.Equal(0, connection.GetSqlAlterColumnCallCount);
+        }
+        [Theory]
         [InlineData(true, "DROP NOT NULL")]
         [InlineData(false, "SET NOT NULL")]
         public void AlterColumn_UsesSeparateTypeAndNullabilityStatements(bool nullable, string nullabilityClause) {
@@ -144,6 +188,35 @@ namespace DProjects.Db.Postgresql.Tests {
         // methods (private)
         private static DProjects.Db.Postgresql.DBConnectionPostgresql CreateConnection() {
             return new DProjects.Db.Postgresql.DBConnectionPostgresql("mapping", "Host=localhost;Database=mapping;Username=mapping;Password=mapping");
+        }
+
+        private sealed class TestableDBConnectionPostgresql : DProjects.Db.Postgresql.DBConnectionPostgresql {
+
+            // props
+            public int ColumnSize { get; set; }
+            public DBSchemaDataType DiscoveredDataType { get; set; }
+            public int GetSqlAlterColumnCallCount { get; private set; }
+
+            // ctor
+            public TestableDBConnectionPostgresql() : base("test", "Host=localhost;Database=test;Username=test;Password=test") {
+            }
+
+            // methods
+            public bool AreSchemaDataTypesEquivalentForTest(DBSchemaDataType actual, DBSchemaDataType expected) {
+                return AreSchemaDataTypesEquivalent(actual, expected);
+            }
+            public override string[] GetTableNames() {
+                return ["records"];
+            }
+            public override DBSchemaTable GetTableSchema(string table) {
+                var schema = new DBSchemaTable() { Name = table };
+                schema.Columns.Add(new DBSchemaColumn("value") { DataType = DiscoveredDataType, Size = ColumnSize });
+                return schema;
+            }
+            public override string GetSqlAlterColumn(string table, DBSchemaColumn dBSchemaColumn) {
+                GetSqlAlterColumnCallCount++;
+                return base.GetSqlAlterColumn(table, dBSchemaColumn);
+            }
         }
     }
 

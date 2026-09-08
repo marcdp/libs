@@ -43,6 +43,8 @@ namespace DProjects.Db {
             mIsDisposed = false;
             mConnection = connection;
         }
+        /// <summary>Permanently ends this wrapper's lifetime and releases its owned transaction and connection resources.</summary>
+        /// <remarks>This method is idempotent. Operations requiring a live wrapper subsequently throw <see cref="ObjectDisposedException"/>.</remarks>
         public virtual void Dispose() {
             if (mIsDisposed) return;
             mIsDisposed = true;
@@ -803,7 +805,10 @@ namespace DProjects.Db {
                             logger.LogInformation(sql + separator);
                             if (applyChanges) ExecuteNonQuery(sql);
                             modified = true;
-                        } else if (dbSchemaColumnOld.DataType != dbSchemaColumn.DataType || dbSchemaColumnOld.Size != dbSchemaColumn.Size || dbSchemaColumnOld.Precision != dbSchemaColumn.Precision || dbSchemaColumnOld.Scale != dbSchemaColumn.Scale || dbSchemaColumnOld.Default != dbSchemaColumn.Default || dbSchemaColumnOld.Null != dbSchemaColumn.Null) {
+                        } else if (!AreSchemaDataTypesEquivalent(dbSchemaColumnOld.DataType, dbSchemaColumn.DataType)
+                            || dbSchemaColumnOld.Size != dbSchemaColumn.Size || dbSchemaColumnOld.Precision != dbSchemaColumn.Precision
+                            || dbSchemaColumnOld.Scale != dbSchemaColumn.Scale || dbSchemaColumnOld.Default != dbSchemaColumn.Default
+                            || dbSchemaColumnOld.Null != dbSchemaColumn.Null) {
                             //change
                             if (dbSchemaColumnOld.Default != null && dbSchemaColumnOld.Default != dbSchemaColumn.Default) {
                                 var sqlDrop = GetSqlDropDefault(dbSchemaTable.Name, dbSchemaColumn.Name);
@@ -1124,6 +1129,12 @@ namespace DProjects.Db {
         }
         public virtual string GetSqlDefaultNowExpression() {
             throw new NotSupportedException("Current timestamp defaults are not supported by this database connection.");
+        }
+        /// <summary>Gets the legacy generic timestamp SQL definition.</summary>
+        /// <returns><c>TIMESTAMP</c>.</returns>
+        [Obsolete("GetSqlTimeStampDefinition is ambiguous. Use GetSqlTypeDefinition(DBSchemaDataType.Timestamp, ...) instead.")]
+        public virtual string GetSqlTimeStampDefinition() {
+            return "TIMESTAMP";
         }
         public virtual string GetSqlTrueExpression() {
             return "1";
@@ -1488,6 +1499,10 @@ namespace DProjects.Db {
         }
         protected virtual string GetSqlParameterPlaceholder(int index) {
             return GetSqlParameterName(index);
+        }
+        /// <summary>Determines whether discovered and desired portable schema types have equivalent provider storage semantics.</summary>
+        protected virtual bool AreSchemaDataTypesEquivalent(DBSchemaDataType actual, DBSchemaDataType expected) {
+            return actual == expected;
         }
         private static object GetDbParameterValue(object value) {
             if (value == DBNull.Value) return DBNull.Value;

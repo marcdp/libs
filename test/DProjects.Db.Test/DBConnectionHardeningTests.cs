@@ -550,6 +550,21 @@ namespace DProjects.Db.Tests {
             Assert.Throws<NotSupportedException>(() => connection.GetDataTypeFromSqlDataTypeName("rowversion", 0, 0, 0));
         }
         [Fact]
+        public void BaseSchemaDataTypeEquivalence_RemainsStrict() {
+            using var connection = new TestDBConnection();
+
+            Assert.True(connection.AreSchemaDataTypesEquivalentForTest(DBSchemaDataType.Timestamp, DBSchemaDataType.Timestamp));
+            Assert.False(connection.AreSchemaDataTypesEquivalentForTest(DBSchemaDataType.DateTime, DBSchemaDataType.Timestamp));
+        }
+        [Fact]
+        public void GetSqlTimeStampDefinition_PreservesLegacyCompatibilityValue() {
+            using var connection = new TestDBConnection();
+
+#pragma warning disable CS0618 // validates the obsolete compatibility API
+            Assert.Equal("TIMESTAMP", connection.GetSqlTimeStampDefinition());
+#pragma warning restore CS0618
+        }
+        [Fact]
         public void LikeExpressions_UseSqlWildcardSemantics() {
             using var connection = new TestDBConnection();
 
@@ -718,6 +733,11 @@ namespace DProjects.Db.Tests {
 
             // ctor
             public TestDBConnection() : base("test", "test", new FakeDbConnection()) {
+            }
+
+            // methods
+            public bool AreSchemaDataTypesEquivalentForTest(DBSchemaDataType actual, DBSchemaDataType expected) {
+                return AreSchemaDataTypesEquivalent(actual, expected);
             }
         }
 

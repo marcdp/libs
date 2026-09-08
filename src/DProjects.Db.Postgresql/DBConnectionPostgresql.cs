@@ -26,6 +26,9 @@ namespace DProjects.Db.Postgresql {
         protected override string GetSqlParameterPlaceholder(int index) {
             return "$" + (index + 1);
         }
+        protected override bool AreSchemaDataTypesEquivalent(DBSchemaDataType actual, DBSchemaDataType expected) {
+            return GetCanonicalSchemaDataType(actual) == GetCanonicalSchemaDataType(expected);
+        }
 
         ////DDL 
         #region "DDL table"
@@ -571,6 +574,18 @@ namespace DProjects.Db.Postgresql {
                 throw new ArgumentOutOfRangeException(nameof(precision), precision, "Precision must be greater than zero when scale is specified.");
             }
             return precision > 0 ? sqlType + "(" + precision + "," + scale + ")" : sqlType;
+        }
+        private static DBSchemaDataType GetCanonicalSchemaDataType(DBSchemaDataType dataType) {
+            // canonicalizes only portable types that PostgreSQL persists with indistinguishable storage semantics
+            return dataType switch {
+                DBSchemaDataType.Timestamp => DBSchemaDataType.DateTime,
+                DBSchemaDataType.Nchar => DBSchemaDataType.Char,
+                DBSchemaDataType.Nvarchar => DBSchemaDataType.Varchar,
+                DBSchemaDataType.Binary => DBSchemaDataType.Varbinary,
+                DBSchemaDataType.TinyInt => DBSchemaDataType.Smallint,
+                DBSchemaDataType.Real => DBSchemaDataType.Double,
+                _ => dataType
+            };
         }
 
     }
