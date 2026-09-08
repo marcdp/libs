@@ -56,11 +56,39 @@ This keeps dependency direction explicit and avoids pushing technology-specific 
 | Log storage | Storage and reading of structured log data through explicit storage contracts | Filesystem-backed and null implementations |
 | Factories | Protocol-based creation and discovery of implementations | `IFactoryByUrl<T>` |
 
-The solution contains additional libraries outside these families. They are not all at the same maturity level and are intentionally not presented here as having identical support guarantees.
+## Verification
+
+Testing is organized around behavior and contract boundaries.
+
+The repository uses:
+
+- unit tests for focused behavior;
+- reusable contract tests for abstractions implemented by multiple providers;
+- provider-specific tests for backend-specific behavior;
+- integration tests when external infrastructure is required.
+
+Examples of reusable contract suites include filesystem behavior, database readers, and database connections.
+
+The CI pipeline treats repository-wide validation as an engineering contract:
+
+```text
+Restore
+   ↓
+Release build
+   ↓
+Non-integration test suite
+   ↓
+Selected real-provider contract validation
+   ↓
+Package
+```
+
+CI currently provisions PostgreSQL and executes selected database provider-contract validation against a real PostgreSQL instance. Other integrations that require external services or credentials remain separately categorized as integration tests.
+
 
 ## Engineering principles
 
-Several principles guide the maintained parts of the repository.
+The maintained subsystems follow a few recurring engineering principles.
 
 ### Public contracts are compatibility boundaries
 
@@ -126,34 +154,6 @@ Database abstractions expose common connection, reader, command, schema, and met
 
 Shared contracts define behavior that should remain consistent across providers, while provider-specific capabilities and metadata differences are preserved rather than hidden behind misleading generic behavior.
 
-## Verification
-
-Testing is organized around behavior and contract boundaries.
-
-The repository uses:
-
-- unit tests for focused behavior;
-- reusable contract tests for abstractions implemented by multiple providers;
-- provider-specific tests for backend-specific behavior;
-- integration tests when external infrastructure is required.
-
-Examples of reusable contract suites include filesystem behavior, database readers, and database connections.
-
-The CI pipeline treats repository-wide validation as an engineering contract:
-
-```text
-Restore
-   ↓
-Release build
-   ↓
-Non-integration test suite
-   ↓
-Selected real-provider contract validation
-   ↓
-Package
-```
-
-CI currently provisions PostgreSQL and executes selected database provider-contract validation against a real PostgreSQL instance. Other integrations that require external services or credentials remain separately categorized as integration tests.
 
 ## Support and limitations
 
