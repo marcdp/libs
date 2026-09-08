@@ -215,4 +215,6 @@ docs/       subsystem documentation
 .github/    CI and repository automation
 ```
 
+Start with the [documentation index](docs/index.md) for architecture and subsystem navigation.
+
 `AGENTS.md` documents the repository's detailed architecture, compatibility rules, implementation conventions, and validation requirements for AI coding agents and repository changes.
