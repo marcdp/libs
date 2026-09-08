@@ -1140,10 +1140,6 @@ namespace DProjects.Db {
         public virtual string GetSqlIdentityDefinition(Type type) {
             throw new NotSupportedException("Identity columns are not supported by this database connection.");
         }
-        [Obsolete("GetSqlTimeStampDefinition is ambiguous. Use GetSqlTypeDefinition(DBSchemaDataType.Timestamp, ...) instead.")]
-        public virtual string GetSqlTimeStampDefinition() {
-            return "TIMESTAMP";
-        }
         public virtual bool GetSqlAvoidCloseCommandForDBTable() {
             return false;
         }

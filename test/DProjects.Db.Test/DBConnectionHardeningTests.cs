@@ -550,17 +550,6 @@ namespace DProjects.Db.Tests {
             Assert.Throws<NotSupportedException>(() => connection.GetDataTypeFromSqlDataTypeName("rowversion", 0, 0, 0));
         }
         [Fact]
-        public void LegacyTimestampDefinition_PreservesCompatibilityWhileCanonicalDefinitionRemainsAvailable() {
-            using var connection = new TestDBConnection();
-
-#pragma warning disable CS0618
-            var legacyDefinition = connection.GetSqlTimeStampDefinition();
-#pragma warning restore CS0618
-
-            Assert.Equal("TIMESTAMP", legacyDefinition);
-            Assert.Equal("TIMESTAMP", connection.GetSqlTypeDefinition(DBSchemaDataType.Timestamp, 0, 0, 0));
-        }
-        [Fact]
         public void LikeExpressions_UseSqlWildcardSemantics() {
             using var connection = new TestDBConnection();
 

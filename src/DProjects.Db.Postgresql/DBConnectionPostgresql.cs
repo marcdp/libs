@@ -48,8 +48,11 @@ namespace DProjects.Db.Postgresql {
         public override DBSchemaDataType GetDataTypeFromSqlDataTypeName(string dataTypeName, int length, int precision, int scale) {
             if (dataTypeName.Equals("float", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Double.ToString();
             if (dataTypeName.Equals("real", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Float.ToString();
+            if (dataTypeName.Equals("double precision", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Double.ToString();
             if (dataTypeName.Equals("text", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Varchar.ToString();
+            if (dataTypeName.Equals("character", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Char.ToString();
             if (dataTypeName.Equals("character varying", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Varchar.ToString();
+            if (dataTypeName.Equals("bytea", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Varbinary.ToString();
             if (dataTypeName.Equals("timestamp without time zone", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.DateTime.ToString();
             if (dataTypeName.Equals("json", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Json.ToString();
             if (dataTypeName.Equals("jsonb", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Jsonb.ToString();
@@ -385,22 +388,36 @@ namespace DProjects.Db.Postgresql {
         //    return new string[] { };
         //}
         public override string GetSqlTypeDefinition(DBSchemaDataType dataType, int size, int precision, int scale) {
-            if (size == 0 && (dataType == DBSchemaDataType.Varchar || dataType == DBSchemaDataType.Nvarchar)) {
-                return "TEXT";
-            } else if (dataType == DBSchemaDataType.Binary || dataType == DBSchemaDataType.Varbinary) {
-                return "BYTEA";
-            } else if (dataType == DBSchemaDataType.UniqueIdentifier) {
-                return "UUID";
-            //} else if (dataType == DBSchemaDataType.Float) {
-            //    if (size == 0) size = 24;
-            //    return "FLOAT(" + size + ")";
-            //} else if (dataType == DBSchemaDataType.Double) {
-            //    if (size == 0) size = 53;
-            //    return "FLOAT(" + size + ")";
-            } else {
-                return base.GetSqlTypeDefinition(dataType, size, precision, scale);
-            }
+            // translates every supported portable type explicitly into PostgreSQL SQL
+            return dataType switch {
+                DBSchemaDataType.Char => GetSqlCharacterTypeDefinition("CHAR", size),
+                DBSchemaDataType.Varchar => GetSqlVariableCharacterTypeDefinition(size),
+                DBSchemaDataType.Nchar => GetSqlCharacterTypeDefinition("CHAR", size),
+                DBSchemaDataType.Nvarchar => GetSqlVariableCharacterTypeDefinition(size),
+                DBSchemaDataType.Binary => "BYTEA",
+                DBSchemaDataType.Varbinary => "BYTEA",
+                DBSchemaDataType.Numeric => GetSqlNumericTypeDefinition("NUMERIC", precision, scale),
+                DBSchemaDataType.Decimal => GetSqlNumericTypeDefinition("DECIMAL", precision, scale),
+                DBSchemaDataType.Smallint => "SMALLINT",
+                DBSchemaDataType.TinyInt => "SMALLINT",
+                DBSchemaDataType.Int => "INTEGER",
+                DBSchemaDataType.Bigint => "BIGINT",
+                DBSchemaDataType.Float => "REAL",
+                DBSchemaDataType.Real => "DOUBLE PRECISION",
+                DBSchemaDataType.Double => "DOUBLE PRECISION",
+                DBSchemaDataType.Boolean => "BOOLEAN",
+                DBSchemaDataType.Date => "DATE",
+                DBSchemaDataType.DateTime => "TIMESTAMP WITHOUT TIME ZONE",
+                DBSchemaDataType.Time => "TIME",
+                DBSchemaDataType.Timestamp => "TIMESTAMP WITHOUT TIME ZONE",
+                DBSchemaDataType.Interval => "INTERVAL",
+                DBSchemaDataType.UniqueIdentifier => "UUID",
+                DBSchemaDataType.Json => "JSON",
+                DBSchemaDataType.Jsonb => "JSONB",
+                _ => throw new NotSupportedException($"Portable data type '{dataType}' is not supported by PostgreSQL.")
+            };
         }
+
         //public override string BackupDb() {
         //    var databaseName = StringUtils.GetConnectionStringVariable(ConnectionString, "Initial Catalog", "");
         //    var databaseBackupFolder = ExecuteScalar<string>("DECLARE    @BackupDirectory varchar(1000);EXEC master.dbo.xp_instance_regread N\'HKEY_LOCAL_MACHINE\',N\'Software\\Microsoft\\MSSQLServer\\MSSQLServer\',N\'BackupDirectory\',@BackupDirectory OUTPUT ;select @BackupDirectory"); ;
@@ -542,6 +559,19 @@ namespace DProjects.Db.Postgresql {
         //}
         #endregion
 
+        // methods (private)
+        private static string GetSqlCharacterTypeDefinition(string sqlType, int size) {
+            return size > 0 ? sqlType + "(" + size + ")" : sqlType;
+        }
+        private static string GetSqlVariableCharacterTypeDefinition(int size) {
+            return size > 0 ? "VARCHAR(" + size + ")" : "TEXT";
+        }
+        private static string GetSqlNumericTypeDefinition(string sqlType, int precision, int scale) {
+            if (precision == 0 && scale > 0) {
+                throw new ArgumentOutOfRangeException(nameof(precision), precision, "Precision must be greater than zero when scale is specified.");
+            }
+            return precision > 0 ? sqlType + "(" + precision + "," + scale + ")" : sqlType;
+        }
 
     }
 
