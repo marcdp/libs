@@ -239,6 +239,16 @@ namespace DProjects.Db.Postgresql.Tests {
             Assert.Contains("ix_advanced", exception.Message);
             Assert.Contains(reason, exception.Message);
         }
+        [Fact]
+        public void ConstraintOwnedUniqueIndex_IsExplicitlyUnsupported() {
+            using var connection = new TestableDBConnectionPostgresql();
+            var metadata = CreateMetadataTable(["constraint_name", "index_name"], ["uq_orders_code", "uq_orders_code"]);
+
+            var exception = Assert.Throws<NotSupportedException>(() => connection.ValidateConstraintOwnedUniqueIndexesForTest("orders", metadata));
+
+            Assert.Contains("orders", exception.Message);
+            Assert.Contains("uq_orders_code", exception.Message);
+        }
         [Theory]
         [InlineData("archive", "s", false, false, "a", "a", "cross-schema reference")]
         [InlineData("public", "f", false, false, "a", "a", "MATCH mode")]
@@ -357,6 +367,9 @@ namespace DProjects.Db.Postgresql.Tests {
             public void ValidateSupportedIndexesForTest(string table, DBTable metadata) {
                 ValidateSupportedIndexes(table, metadata);
             }
+            public void ValidateConstraintOwnedUniqueIndexesForTest(string table, DBTable metadata) {
+                ValidateConstraintOwnedUniqueIndexes(table, metadata);
+            }
             public void ValidateSupportedForeignKeysForTest(string table, string schema, DBTable metadata) {
                 ValidateSupportedForeignKeys(table, schema, metadata);
             }
@@ -394,6 +407,7 @@ namespace DProjects.Db.Postgresql.Tests {
             var childTable = "schema_child_" + suffix;
             var parentPrimaryKey = "pk_parent_" + suffix;
             var childPrimaryKey = "pk_child_" + suffix;
+            var uniqueConstraint = "uq_code_" + suffix;
             var normalIndex = "ix_parent_code_" + suffix;
             var compositeIndex = "ux_external_ref_" + suffix;
             var normalForeignKey = "fk_parent_code_" + suffix;
@@ -401,7 +415,7 @@ namespace DProjects.Db.Postgresql.Tests {
             using var connection = new DProjects.Db.Postgresql.DBConnectionPostgresql("ci-provider-contract", connectionString);
             try {
                 // creates an isolated schema using every production discovery category under contract
-                connection.ExecuteNonQuery($"CREATE TABLE \"{parentTable}\" (\"tenant_id\" INTEGER NOT NULL, \"id\" INTEGER NOT NULL, \"code\" INTEGER NOT NULL, CONSTRAINT \"{parentPrimaryKey}\" PRIMARY KEY (\"tenant_id\", \"id\"), CONSTRAINT \"uq_code_{suffix}\" UNIQUE (\"code\"))");
+                connection.ExecuteNonQuery($"CREATE TABLE \"{parentTable}\" (\"tenant_id\" INTEGER NOT NULL, \"id\" INTEGER NOT NULL, \"code\" INTEGER NOT NULL, CONSTRAINT \"{parentPrimaryKey}\" PRIMARY KEY (\"tenant_id\", \"id\"), CONSTRAINT \"{uniqueConstraint}\" UNIQUE (\"code\"))");
                 connection.ExecuteNonQuery($"CREATE TABLE \"{childTable}\" (\"child_id\" INTEGER NOT NULL, \"tenant_id\" INTEGER NOT NULL, \"parent_id\" INTEGER NOT NULL, \"parent_code\" INTEGER NULL, \"external_ref\" VARCHAR(40) NOT NULL, CONSTRAINT \"{childPrimaryKey}\" PRIMARY KEY (\"child_id\"), CONSTRAINT \"{normalForeignKey}\" FOREIGN KEY (\"parent_code\") REFERENCES \"{parentTable}\" (\"code\") ON DELETE SET NULL ON UPDATE CASCADE, CONSTRAINT \"{compositeForeignKey}\" FOREIGN KEY (\"tenant_id\", \"parent_id\") REFERENCES \"{parentTable}\" (\"tenant_id\", \"id\") ON DELETE CASCADE ON UPDATE NO ACTION)");
                 connection.ExecuteNonQuery($"CREATE INDEX \"{normalIndex}\" ON \"{childTable}\" (\"parent_code\")");
                 connection.ExecuteNonQuery($"CREATE UNIQUE INDEX \"{compositeIndex}\" ON \"{childTable}\" (\"tenant_id\", \"external_ref\")");
@@ -431,6 +445,9 @@ namespace DProjects.Db.Postgresql.Tests {
                 Assert.Equal(["tenant_id", "id"], discoveredCompositeForeignKey.RefColumns);
                 Assert.Equal(DBSchemaOnDeleteRule.Cascade, discoveredCompositeForeignKey.OnDelete);
                 Assert.Equal(DBSchemaOnUpdateRule.NoAction, discoveredCompositeForeignKey.OnUpdate);
+                var exception = Assert.Throws<NotSupportedException>(() => connection.GetTableSchema(parentTable));
+                Assert.Contains(parentTable, exception.Message);
+                Assert.Contains(uniqueConstraint, exception.Message);
             } finally {
                 connection.ExecuteNonQuery($"DROP TABLE IF EXISTS \"{childTable}\"");
                 connection.ExecuteNonQuery($"DROP TABLE IF EXISTS \"{parentTable}\"");

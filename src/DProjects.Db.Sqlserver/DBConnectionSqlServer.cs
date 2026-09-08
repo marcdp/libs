@@ -49,7 +49,7 @@ namespace DProjects.Db.SqlServer {
             return (ExecuteScalar<int>("SELECT count(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = ?", [table]) > 0);
         }
         public override DBSchemaDataType GetDataTypeFromSqlDataTypeName(string dataTypeName, int length, int precision, int scale) {
-            if (dataTypeName.Equals("float", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Double.ToString();
+            if (dataTypeName.Equals("float", StringComparison.OrdinalIgnoreCase)) dataTypeName = precision <= 24 ? DBSchemaDataType.Float.ToString() : DBSchemaDataType.Double.ToString();
             if (dataTypeName.Equals("real", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Float.ToString();
             if (dataTypeName.Equals("bit", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Boolean.ToString();
             if (dataTypeName.Equals("text", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Varchar.ToString();
@@ -135,6 +135,16 @@ namespace DProjects.Db.SqlServer {
             }
             pk.Columns = pkColumnNames.ToArray();
             if (pkFound) dbSchemaTable.PrimaryKey = pk;
+            // rejects unique constraints whose backing indexes cannot be represented as ordinary portable indexes
+            var uniqueConstraintMetadata = ExecuteTable(@"
+                SELECT key_constraint.name AS constraint_name, index_definition.name AS index_name
+                FROM sys.key_constraints key_constraint
+                INNER JOIN sys.tables table_definition ON table_definition.object_id = key_constraint.parent_object_id
+                INNER JOIN sys.indexes index_definition ON index_definition.object_id = key_constraint.parent_object_id
+                    AND index_definition.index_id = key_constraint.unique_index_id
+                WHERE table_definition.name = ? AND key_constraint.type = 'UQ'
+                ORDER BY key_constraint.name", [table]);
+            ValidateConstraintOwnedUniqueIndexes(table, uniqueConstraintMetadata);
             //indexes 
             PopulateIndexes(dbSchemaTable, ExecuteTable("sys.sp_helpindex @objname = ?", [table]));
             //foreign keys
@@ -373,7 +383,7 @@ namespace DProjects.Db.SqlServer {
                 DBSchemaDataType.TinyInt => "TINYINT",
                 DBSchemaDataType.Int => "INT",
                 DBSchemaDataType.Bigint => "BIGINT",
-                DBSchemaDataType.Float => "FLOAT(24)",
+                DBSchemaDataType.Float => "REAL",
                 DBSchemaDataType.Real => "FLOAT(53)",
                 DBSchemaDataType.Double => "FLOAT(53)",
                 DBSchemaDataType.Boolean => "BIT",
@@ -598,6 +608,11 @@ namespace DProjects.Db.SqlServer {
                 index.Columns = columns.ToArray();
                 table.Indexes.Add(index);
             }
+        }
+        protected static void ValidateConstraintOwnedUniqueIndexes(string table, DBTable metadata) {
+            if (metadata.Rows.Count == 0) return;
+            var row = metadata.Rows[0];
+            throw new NotSupportedException($"SQL Server unique constraint '{row.Get("constraint_name", "")}' on table '{table}' cannot be represented by the portable schema model (backing index '{row.Get("index_name", "")}').");
         }
 
         // methods (private)

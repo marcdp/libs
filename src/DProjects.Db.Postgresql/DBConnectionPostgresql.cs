@@ -248,6 +248,16 @@ namespace DProjects.Db.Postgresql {
             //    fks.Add(fk);
             //}
             //dbSchemaTable.ForeignKeys.AddRange(fks.ToArray());
+            // rejects unique constraints whose backing indexes cannot be represented as ordinary portable indexes
+            var uniqueConstraintMetadata = ExecuteTable(@"
+                SELECT constraint_definition.conname AS constraint_name, index_class.relname AS index_name
+                FROM pg_catalog.pg_class table_class
+                INNER JOIN pg_catalog.pg_namespace namespace ON namespace.oid = table_class.relnamespace
+                INNER JOIN pg_catalog.pg_constraint constraint_definition ON constraint_definition.conrelid = table_class.oid
+                INNER JOIN pg_catalog.pg_class index_class ON index_class.oid = constraint_definition.conindid
+                WHERE namespace.nspname = ? AND table_class.relname = ? AND constraint_definition.contype = 'u'
+                ORDER BY constraint_definition.conname", [schema, table]);
+            ValidateConstraintOwnedUniqueIndexes(table, uniqueConstraintMetadata);
             // rejects indexes whose semantics cannot be represented by the portable schema model
             var unsupportedIndexMetadata = ExecuteTable(@"
                 SELECT index_class.relname AS index_name, access_method.amname AS access_method,
@@ -781,6 +791,11 @@ namespace DProjects.Db.Postgresql {
                 : row.Get("has_nondefault_collation", false) ? "non-default collation"
                 : "unsupported definition";
             throw new NotSupportedException($"PostgreSQL index '{row.Get("index_name", "")}' on table '{table}' cannot be represented: {reason}.");
+        }
+        protected static void ValidateConstraintOwnedUniqueIndexes(string table, DBTable metadata) {
+            if (metadata.Rows.Count == 0) return;
+            var row = metadata.Rows[0];
+            throw new NotSupportedException($"PostgreSQL unique constraint '{row.Get("constraint_name", "")}' on table '{table}' cannot be represented by the portable schema model (backing index '{row.Get("index_name", "")}').");
         }
         protected static void ValidateSupportedForeignKeys(string table, string schema, DBTable metadata) {
             if (metadata.Rows.Count == 0) return;

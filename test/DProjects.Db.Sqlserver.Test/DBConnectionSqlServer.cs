@@ -22,7 +22,7 @@ namespace DProjects.Db.SqlServer.Tests {
         [InlineData(DBSchemaDataType.TinyInt, 0, 0, 0, "TINYINT")]
         [InlineData(DBSchemaDataType.Int, 0, 0, 0, "INT")]
         [InlineData(DBSchemaDataType.Bigint, 0, 0, 0, "BIGINT")]
-        [InlineData(DBSchemaDataType.Float, 0, 0, 0, "FLOAT(24)")]
+        [InlineData(DBSchemaDataType.Float, 0, 0, 0, "REAL")]
         [InlineData(DBSchemaDataType.Real, 0, 0, 0, "FLOAT(53)")]
         [InlineData(DBSchemaDataType.Double, 0, 0, 0, "FLOAT(53)")]
         [InlineData(DBSchemaDataType.Boolean, 0, 0, 0, "BIT")]
@@ -47,17 +47,18 @@ namespace DProjects.Db.SqlServer.Tests {
             Assert.Throws<NotSupportedException>(() => connection.GetSqlTypeDefinition(dataType, 0, 0, 0));
         }
         [Theory]
-        [InlineData("datetime", DBSchemaDataType.DateTime)]
-        [InlineData("smalldatetime", DBSchemaDataType.DateTime)]
-        [InlineData("datetime2", DBSchemaDataType.Timestamp)]
-        [InlineData("real", DBSchemaDataType.Float)]
-        [InlineData("float", DBSchemaDataType.Double)]
-        [InlineData("timestamp", DBSchemaDataType.Varbinary)]
-        [InlineData("rowversion", DBSchemaDataType.Varbinary)]
-        public void SqlServerTypeNamesMapToDeliberatePortableTypes(string sqlType, DBSchemaDataType expected) {
+        [InlineData("datetime", 0, DBSchemaDataType.DateTime)]
+        [InlineData("smalldatetime", 0, DBSchemaDataType.DateTime)]
+        [InlineData("datetime2", 0, DBSchemaDataType.Timestamp)]
+        [InlineData("real", 0, DBSchemaDataType.Float)]
+        [InlineData("float", 24, DBSchemaDataType.Float)]
+        [InlineData("float", 53, DBSchemaDataType.Double)]
+        [InlineData("timestamp", 0, DBSchemaDataType.Varbinary)]
+        [InlineData("rowversion", 0, DBSchemaDataType.Varbinary)]
+        public void SqlServerTypeNamesMapToDeliberatePortableTypes(string sqlType, int precision, DBSchemaDataType expected) {
             using var connection = CreateConnection();
 
-            Assert.Equal(expected, connection.GetDataTypeFromSqlDataTypeName(sqlType, 0, 0, 0));
+            Assert.Equal(expected, connection.GetDataTypeFromSqlDataTypeName(sqlType, 0, precision, 0));
         }
         [Fact]
         public void SchemaColumnTypeEquivalence_CanonicalizesSqlServerFacets() {
@@ -75,6 +76,8 @@ namespace DProjects.Db.SqlServer.Tests {
                 new DBSchemaColumn() { DataType = DBSchemaDataType.Char, Size = 0 }));
             Assert.False(connection.AreSchemaColumnTypesEquivalentForTest(new DBSchemaColumn() { DataType = DBSchemaDataType.Float },
                 new DBSchemaColumn() { DataType = DBSchemaDataType.Double }));
+            Assert.False(connection.AreSchemaColumnTypesEquivalentForTest(new DBSchemaColumn() { DataType = DBSchemaDataType.Float },
+                new DBSchemaColumn() { DataType = DBSchemaDataType.Real }));
             Assert.False(connection.AreSchemaColumnTypesEquivalentForTest(new DBSchemaColumn() { DataType = DBSchemaDataType.Decimal, Precision = 12, Scale = 3 },
                 new DBSchemaColumn() { DataType = DBSchemaDataType.Numeric, Precision = 12, Scale = 4 }));
         }
@@ -100,6 +103,29 @@ namespace DProjects.Db.SqlServer.Tests {
 
             Assert.Equal(0, connection.GetSqlAlterColumnCallCount);
         }
+        [Theory]
+        [InlineData("float", 24, DBSchemaDataType.Float)]
+        [InlineData("float", 53, DBSchemaDataType.Double)]
+        public void ApplySchemaChanges_DoesNotAlterMatchingSqlServerFloatingPointMetadata(string sqlType, int precision, DBSchemaDataType desired) {
+            using var typeMappingConnection = CreateConnection();
+            using var connection = new TestableDBConnectionSqlServer() {
+                DiscoveredDataType = typeMappingConnection.GetDataTypeFromSqlDataTypeName(sqlType, 0, precision, 0)
+            };
+            var schema = CreateSingleColumnSchema(desired);
+
+            connection.ApplySchemaChanges(schema, false, Microsoft.Extensions.Logging.Abstractions.NullLogger<IDBConnection>.Instance);
+
+            Assert.Equal(0, connection.GetSqlAlterColumnCallCount);
+        }
+        [Fact]
+        public void ApplySchemaChanges_AltersSinglePrecisionDesiredColumnDiscoveredAsDoublePrecision() {
+            using var connection = new TestableDBConnectionSqlServer() { DiscoveredDataType = DBSchemaDataType.Double };
+            var schema = CreateSingleColumnSchema(DBSchemaDataType.Float);
+
+            connection.ApplySchemaChanges(schema, false, Microsoft.Extensions.Logging.Abstractions.NullLogger<IDBConnection>.Instance);
+
+            Assert.Equal(1, connection.GetSqlAlterColumnCallCount);
+        }
         [Fact]
         public void PopulateIndexes_FiltersPrimaryKeyBackingIndex() {
             using var connection = new TestableDBConnectionSqlServer();
@@ -115,6 +141,29 @@ namespace DProjects.Db.SqlServer.Tests {
             var index = Assert.Single(table.Indexes);
             Assert.Equal("ix_code", index.Name);
             Assert.Equal(["code"], index.Columns);
+        }
+        [Fact]
+        public void PopulateIndexes_PreservesOrdinaryUniqueIndex() {
+            using var connection = new TestableDBConnectionSqlServer();
+            var table = new DBSchemaTable() { Name = "orders" };
+            table.Columns.Add(new DBSchemaColumn("code"));
+            var metadata = CreateMetadataTable(["index_name", "index_description", "index_keys"], ["ux_orders_code", "nonclustered, unique", "code"]);
+
+            connection.PopulateIndexesForTest(table, metadata);
+
+            var index = Assert.Single(table.Indexes);
+            Assert.Equal("ux_orders_code", index.Name);
+            Assert.True(index.Unique);
+        }
+        [Fact]
+        public void ConstraintOwnedUniqueIndex_IsExplicitlyUnsupported() {
+            using var connection = new TestableDBConnectionSqlServer();
+            var metadata = CreateMetadataTable(["constraint_name", "index_name"], ["uq_orders_code", "uq_orders_code"]);
+
+            var exception = Assert.Throws<NotSupportedException>(() => connection.ValidateConstraintOwnedUniqueIndexesForTest("orders", metadata));
+
+            Assert.Contains("orders", exception.Message);
+            Assert.Contains("uq_orders_code", exception.Message);
         }
         [Fact]
         public void SqlPrimitives_PreserveSqlServerDialectBehavior() {
@@ -175,6 +224,13 @@ namespace DProjects.Db.SqlServer.Tests {
             foreach (var values in rows) table.Rows.Add(new DBRow(table, values));
             return table;
         }
+        private static DBSchemaDatabase CreateSingleColumnSchema(DBSchemaDataType dataType) {
+            var schema = new DBSchemaDatabase();
+            var table = new DBSchemaTable() { Name = "records" };
+            table.Columns.Add(new DBSchemaColumn("value") { DataType = dataType });
+            schema.Tables.Add(table);
+            return schema;
+        }
 
         private sealed class TestableDBConnectionSqlServer : DProjects.Db.SqlServer.DBConnectionSqlServer {
 
@@ -195,6 +251,9 @@ namespace DProjects.Db.SqlServer.Tests {
             }
             public void PopulateIndexesForTest(DBSchemaTable table, DBTable metadata) {
                 PopulateIndexes(table, metadata);
+            }
+            public void ValidateConstraintOwnedUniqueIndexesForTest(string table, DBTable metadata) {
+                ValidateConstraintOwnedUniqueIndexes(table, metadata);
             }
             public override string[] GetTableNames() {
                 return ["records"];
