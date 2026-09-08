@@ -3,6 +3,7 @@ using System.Collections;
 using System.Data;
 using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace DProjects.Db.Tests {
 
@@ -575,6 +576,107 @@ namespace DProjects.Db.Tests {
             Assert.Empty(implemented.GetSequenceNames());
         }
         [Fact]
+        public void GetSchema_TablesOnly_DoesNotInspectUnrequestedCategories() {
+            using var connection = new SchemaTrackingDBConnection() { TableNames = ["customers"] };
+
+            var schema = connection.GetSchema(["*"], [], [], []);
+
+            Assert.Equal(1, connection.GetTableNamesCallCount);
+            Assert.Equal(0, connection.GetViewNamesCallCount);
+            Assert.Equal(0, connection.GetSequenceNamesCallCount);
+            Assert.Equal(0, connection.GetProcedureNamesCallCount);
+            Assert.Equal("customers", Assert.Single(schema.Tables).Name);
+            Assert.Empty(schema.Views);
+            Assert.Empty(schema.Sequences);
+            Assert.Empty(schema.Procedures);
+        }
+        [Fact]
+        public void GetSchema_EmptyScope_DoesNotInspectAnyCategory() {
+            using var connection = new SchemaTrackingDBConnection();
+
+            var schema = connection.GetSchema([], [], [], []);
+
+            Assert.Equal(0, connection.GetTableNamesCallCount);
+            Assert.Equal(0, connection.GetViewNamesCallCount);
+            Assert.Equal(0, connection.GetSequenceNamesCallCount);
+            Assert.Equal(0, connection.GetProcedureNamesCallCount);
+            Assert.Empty(schema.Tables);
+            Assert.Empty(schema.Views);
+            Assert.Empty(schema.Sequences);
+            Assert.Empty(schema.Procedures);
+        }
+        [Fact]
+        public void GetSchema_RequestedUnsupportedCategory_PropagatesNotSupportedException() {
+            using var connection = new SchemaTrackingDBConnection() { ProcedureNamesSupported = false };
+
+            Assert.Throws<NotSupportedException>(() => connection.GetSchema([], [], [], ["*"]));
+
+            Assert.Equal(1, connection.GetProcedureNamesCallCount);
+        }
+        [Fact]
+        public void GetSchema_MultiplePatterns_PreserveLikeFilteringSemantics() {
+            using var connection = new SchemaTrackingDBConnection() { TableNames = ["customers", "audit_log", "orders", "event1"] };
+
+            var schema = connection.GetSchema(["customer?", "*_log", "event#"], [], [], []);
+
+            Assert.Equal(["customers", "audit_log", "event1"], schema.Tables.Select(table => table.Name));
+            Assert.Equal(["customers", "audit_log", "event1"], connection.TableSchemaNames);
+        }
+        [Fact]
+        public void GetSchema_NullFilters_ThrowArgumentNullExceptionBeforeInspectingCapabilities() {
+            using var connection = new SchemaTrackingDBConnection();
+
+            Assert.Equal("tableNames", Assert.Throws<ArgumentNullException>(() => connection.GetSchema(null!, [], [], [])).ParamName);
+            Assert.Equal("viewNames", Assert.Throws<ArgumentNullException>(() => connection.GetSchema([], null!, [], [])).ParamName);
+            Assert.Equal("sequenceNames", Assert.Throws<ArgumentNullException>(() => connection.GetSchema([], [], null!, [])).ParamName);
+            Assert.Equal("procedureNames", Assert.Throws<ArgumentNullException>(() => connection.GetSchema([], [], [], null!)).ParamName);
+            Assert.Equal(0, connection.GetTableNamesCallCount);
+            Assert.Equal(0, connection.GetViewNamesCallCount);
+            Assert.Equal(0, connection.GetSequenceNamesCallCount);
+            Assert.Equal(0, connection.GetProcedureNamesCallCount);
+        }
+        [Fact]
+        public void GetSchema_WithoutFilters_RemainsAFullSnapshot() {
+            using var connection = new SchemaTrackingDBConnection() { ProcedureNamesSupported = false };
+
+            Assert.Throws<NotSupportedException>(() => connection.GetSchema());
+
+            Assert.Equal(1, connection.GetTableNamesCallCount);
+            Assert.Equal(1, connection.GetViewNamesCallCount);
+            Assert.Equal(1, connection.GetSequenceNamesCallCount);
+            Assert.Equal(1, connection.GetProcedureNamesCallCount);
+        }
+        [Fact]
+        public void ApplySchemaChanges_WithoutOptionalTargets_OnlyInspectsTables() {
+            using var connection = new SchemaTrackingDBConnection() { ProcedureNamesSupported = false };
+
+            connection.ApplySchemaChanges(new DBSchemaDatabase(), false, NullLogger<IDBConnection>.Instance);
+
+            Assert.Equal(1, connection.GetTableNamesCallCount);
+            Assert.Equal(0, connection.GetViewNamesCallCount);
+            Assert.Equal(0, connection.GetSequenceNamesCallCount);
+            Assert.Equal(0, connection.GetProcedureNamesCallCount);
+        }
+        [Fact]
+        public void ApplySchemaChanges_WithUnsupportedProcedureTarget_PropagatesNotSupportedException() {
+            using var connection = new SchemaTrackingDBConnection() { ProcedureNamesSupported = false };
+            var schema = new DBSchemaDatabase();
+            schema.Procedures.Add(new DBSchemaProcedure() { Name = "refresh_data", Content = "SELECT 1" });
+
+            Assert.Throws<NotSupportedException>(() => connection.ApplySchemaChanges(schema, false, NullLogger<IDBConnection>.Instance));
+
+            Assert.Equal(1, connection.GetProcedureNamesCallCount);
+        }
+        [Fact]
+        public void ApplySchemaChanges_ExistingUnmanagedProcedure_IsNotInspectedOrDropped() {
+            using var connection = new SchemaTrackingDBConnection() { ProcedureNames = ["existing_procedure"], ProcedureNamesSupported = true };
+
+            connection.ApplySchemaChanges(new DBSchemaDatabase(), false, NullLogger<IDBConnection>.Instance);
+
+            Assert.Equal(0, connection.GetProcedureNamesCallCount);
+            Assert.Equal(0, connection.GetSqlDropProcedureCallCount);
+        }
+        [Fact]
         public void TypeMappings_AreSemanticallyConsistent() {
             using var connection = new TestDBConnection();
 
@@ -635,6 +737,58 @@ namespace DProjects.Db.Tests {
             // methods
             public override string[] GetSequenceNames() {
                 return [];
+            }
+        }
+
+        private sealed class SchemaTrackingDBConnection : TestDBConnection {
+
+            // props
+            public int GetProcedureNamesCallCount { get; private set; }
+            public int GetSequenceNamesCallCount { get; private set; }
+            public int GetSqlDropProcedureCallCount { get; private set; }
+            public int GetTableNamesCallCount { get; private set; }
+            public int GetViewNamesCallCount { get; private set; }
+            public string[] ProcedureNames { get; set; } = [];
+            public bool ProcedureNamesSupported { get; set; } = true;
+            public string[] SequenceNames { get; set; } = [];
+            public string[] TableNames { get; set; } = [];
+            public List<string> TableSchemaNames { get; } = [];
+            public string[] ViewNames { get; set; } = [];
+
+            // methods
+            public override string[] GetTableNames() {
+                GetTableNamesCallCount++;
+                return TableNames;
+            }
+            public override DBSchemaTable GetTableSchema(string table) {
+                TableSchemaNames.Add(table);
+                return new DBSchemaTable() { Name = table };
+            }
+            public override string[] GetViewNames() {
+                GetViewNamesCallCount++;
+                return ViewNames;
+            }
+            public override DBSchemaView GetViewSchema(string view) {
+                return new DBSchemaView() { Name = view };
+            }
+            public override string[] GetSequenceNames() {
+                GetSequenceNamesCallCount++;
+                return SequenceNames;
+            }
+            public override DBSchemaSequence GetSequenceSchema(string sequence) {
+                return new DBSchemaSequence() { Name = sequence };
+            }
+            public override string[] GetProcedureNames() {
+                GetProcedureNamesCallCount++;
+                if (!ProcedureNamesSupported) throw new NotSupportedException("Procedure enumeration is not supported by this test connection.");
+                return ProcedureNames;
+            }
+            public override DBSchemaProcedure GetProcedureSchema(string procedure) {
+                return new DBSchemaProcedure() { Name = procedure };
+            }
+            public override string GetSqlDropProcedure(string procedure) {
+                GetSqlDropProcedureCallCount++;
+                return "DROP PROCEDURE " + procedure;
             }
         }
 

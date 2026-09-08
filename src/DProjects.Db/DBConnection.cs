@@ -420,44 +420,40 @@ namespace DProjects.Db {
             return GetSchema(all, all, all, all);
         }
         public DBSchemaDatabase GetSchema(string[] tableNames, string[] viewNames, string[] sequenceNames, string[] procedureNames) {
+            if (tableNames == null) throw new ArgumentNullException(nameof(tableNames));
+            if (viewNames == null) throw new ArgumentNullException(nameof(viewNames));
+            if (sequenceNames == null) throw new ArgumentNullException(nameof(sequenceNames));
+            if (procedureNames == null) throw new ArgumentNullException(nameof(procedureNames));
             var dbSchema = new DBSchemaDatabase();
             dbSchema.Name = Name;
-            var tables = new List<DBSchemaTable>();
-            foreach (var tableName in GetTableNames()) {
-                var valid = false;
-                foreach (var pattern in tableNames) {
-                    if (pattern.Length>0 && StringUtils.Like(tableName, pattern)) valid = true;
+            if (tableNames.Length > 0) {
+                var tables = new List<DBSchemaTable>();
+                foreach (var tableName in GetTableNames()) {
+                    if (MatchesAny(tableName, tableNames)) tables.Add(GetTableSchema(tableName));
                 }
-                if (valid) tables.Add(GetTableSchema(tableName));
+                dbSchema.Tables.AddRange(tables.ToArray());
             }
-            dbSchema.Tables.AddRange(tables.ToArray());
-            var views = new List<DBSchemaView>();
-            foreach (var viewName in GetViewNames()) {
-                var valid = false;
-                foreach (var pattern in viewNames) {
-                    if (pattern.Length > 0 && StringUtils.Like(viewName, pattern)) valid = true;
+            if (viewNames.Length > 0) {
+                var views = new List<DBSchemaView>();
+                foreach (var viewName in GetViewNames()) {
+                    if (MatchesAny(viewName, viewNames)) views.Add(GetViewSchema(viewName));
                 }
-                if (valid) views.Add(GetViewSchema(viewName));
+                dbSchema.Views.AddRange(views.ToArray());
             }
-            dbSchema.Views.AddRange(views.ToArray());
-            var sequences = new List<DBSchemaSequence>();
-            foreach (var sequenceName in GetSequenceNames()) {
-                var valid = false;
-                foreach (var pattern in sequenceNames) {
-                    if (pattern.Length > 0 && StringUtils.Like(sequenceName, pattern)) valid = true;
+            if (sequenceNames.Length > 0) {
+                var sequences = new List<DBSchemaSequence>();
+                foreach (var sequenceName in GetSequenceNames()) {
+                    if (MatchesAny(sequenceName, sequenceNames)) sequences.Add(GetSequenceSchema(sequenceName));
                 }
-                if (valid) sequences.Add(GetSequenceSchema(sequenceName));
+                dbSchema.Sequences.AddRange(sequences.ToArray());
             }
-            dbSchema.Sequences.AddRange(sequences.ToArray());
-            var procedures = new List<DBSchemaProcedure>();
-            foreach (var procedureName in GetProcedureNames()) {
-                var valid = false;
-                foreach (var pattern in procedureNames) {
-                    if (pattern.Length > 0 && StringUtils.Like(procedureName, pattern)) valid = true;
+            if (procedureNames.Length > 0) {
+                var procedures = new List<DBSchemaProcedure>();
+                foreach (var procedureName in GetProcedureNames()) {
+                    if (MatchesAny(procedureName, procedureNames)) procedures.Add(GetProcedureSchema(procedureName));
                 }
-                if (valid) procedures.Add(GetProcedureSchema(procedureName));
+                dbSchema.Procedures.AddRange(procedures.ToArray());
             }
-            dbSchema.Procedures.AddRange(procedures.ToArray());
             return dbSchema;
         }
 
@@ -773,7 +769,11 @@ namespace DProjects.Db {
 
         //schema
         public void ApplySchemaChanges(DBSchemaDatabase dbSchema, bool applyChanges, ILogger<IDBConnection> logger) {
-            var dbSchemaOld = GetSchema();
+            var manageViews = dbSchema.Views.Count > 0;
+            var manageSequences = dbSchema.Sequences.Count > 0;
+            var manageProcedures = dbSchema.Procedures.Count > 0;
+            var all = new string[] { "*" };
+            var dbSchemaOld = GetSchema(all, manageViews ? all : Array.Empty<string>(), manageSequences ? all : Array.Empty<string>(), manageProcedures ? all : Array.Empty<string>());
             var qb = GetSqlQualifierBegin();
             var qe = GetSqlQualifierEnd();
             var separator = GetSqlSeparator();
@@ -886,44 +886,50 @@ namespace DProjects.Db {
                 }
             }
             //views
-            foreach (var dbSchemaView in dbSchema.Views) {
-                var dbSchemaViewExisting = dbSchemaOld.GetView(dbSchemaView.Name);
-                if (dbSchemaViewExisting == null || !dbSchemaViewExisting.Content.Trim().Equals(dbSchemaView.Content.Trim())) {
-                    if (dbSchemaViewExisting != null) {
-                        var sqlDrop = GetSqlDropView(dbSchemaViewExisting.Name);
-                        logger.LogInformation(sqlDrop + separator);
-                        if (applyChanges) ExecuteNonQuery(sqlDrop);
+            if (manageViews) {
+                foreach (var dbSchemaView in dbSchema.Views) {
+                    var dbSchemaViewExisting = dbSchemaOld.GetView(dbSchemaView.Name);
+                    if (dbSchemaViewExisting == null || !dbSchemaViewExisting.Content.Trim().Equals(dbSchemaView.Content.Trim())) {
+                        if (dbSchemaViewExisting != null) {
+                            var sqlDrop = GetSqlDropView(dbSchemaViewExisting.Name);
+                            logger.LogInformation(sqlDrop + separator);
+                            if (applyChanges) ExecuteNonQuery(sqlDrop);
+                        }
+                        var sql = GetSqlCreateView(dbSchemaView);
+                        logger.LogInformation(sql + separator);
+                        if (applyChanges) ExecuteNonQuery(sql);
                     }
-                    var sql = GetSqlCreateView(dbSchemaView);
-                    logger.LogInformation(sql + separator);
-                    if (applyChanges) ExecuteNonQuery(sql);
                 }
             }
             //sequences
-            foreach (var dbSchemaSequence in dbSchema.Sequences) {
-                var dbSchemaSequenceOld = dbSchemaOld.GetSequence(dbSchemaSequence.Name);
-                if (dbSchemaSequenceOld == null) {
-                    var sql = GetSqlCreateSequence(dbSchemaSequence);
-                    logger.LogInformation(sql + separator);
-                    if (applyChanges) ExecuteNonQuery(sql);
-                } else if (dbSchemaSequenceOld.IncrementBy != dbSchemaSequence.IncrementBy) {
-                    var sql = GetSqlAlterSequenceIncrement(dbSchemaSequence);
-                    logger.LogInformation(sql + separator);
-                    if (applyChanges) ExecuteNonQuery(sql);
+            if (manageSequences) {
+                foreach (var dbSchemaSequence in dbSchema.Sequences) {
+                    var dbSchemaSequenceOld = dbSchemaOld.GetSequence(dbSchemaSequence.Name);
+                    if (dbSchemaSequenceOld == null) {
+                        var sql = GetSqlCreateSequence(dbSchemaSequence);
+                        logger.LogInformation(sql + separator);
+                        if (applyChanges) ExecuteNonQuery(sql);
+                    } else if (dbSchemaSequenceOld.IncrementBy != dbSchemaSequence.IncrementBy) {
+                        var sql = GetSqlAlterSequenceIncrement(dbSchemaSequence);
+                        logger.LogInformation(sql + separator);
+                        if (applyChanges) ExecuteNonQuery(sql);
+                    }
                 }
             }
             //procedures
-            foreach (var dbSchemaProcedure in dbSchema.Procedures) {
-                var dbSchemaProcedureOld = dbSchemaOld.GetProcedure(dbSchemaProcedure.Name);
-                if (dbSchemaProcedureOld == null || !dbSchemaProcedureOld.Content.Trim().Equals(dbSchemaProcedure.Content.Trim())) {
-                    if (dbSchemaProcedureOld != null) {
-                        var sqlDrop = GetSqlDropProcedure(dbSchemaProcedureOld.Name);
-                        logger.LogInformation(sqlDrop + separator);
-                        if (applyChanges) ExecuteNonQuery(sqlDrop);
+            if (manageProcedures) {
+                foreach (var dbSchemaProcedure in dbSchema.Procedures) {
+                    var dbSchemaProcedureOld = dbSchemaOld.GetProcedure(dbSchemaProcedure.Name);
+                    if (dbSchemaProcedureOld == null || !dbSchemaProcedureOld.Content.Trim().Equals(dbSchemaProcedure.Content.Trim())) {
+                        if (dbSchemaProcedureOld != null) {
+                            var sqlDrop = GetSqlDropProcedure(dbSchemaProcedureOld.Name);
+                            logger.LogInformation(sqlDrop + separator);
+                            if (applyChanges) ExecuteNonQuery(sqlDrop);
+                        }
+                        var sql = GetSqlCreateProcedure(dbSchemaProcedure);
+                        logger.LogInformation(sql + separator);
+                        if (applyChanges) ExecuteNonQuery(sql);
                     }
-                    var sql = GetSqlCreateProcedure(dbSchemaProcedure);
-                    logger.LogInformation(sql + separator);
-                    if (applyChanges) ExecuteNonQuery(sql);
                 }
             }
             //remove invalid tables
@@ -981,27 +987,33 @@ namespace DProjects.Db {
                 }
             }
             //remove invalid views
-            foreach (var dbSchemaView in dbSchemaOld.Views) {
-                if (dbSchema.GetView(dbSchemaView.Name) == null) {
-                    var sql = GetSqlDropView(dbSchemaView.Name);
-                    logger.LogInformation(sql + separator);
-                    if (applyChanges) ExecuteNonQuery(sql);
+            if (manageViews) {
+                foreach (var dbSchemaView in dbSchemaOld.Views) {
+                    if (dbSchema.GetView(dbSchemaView.Name) == null) {
+                        var sql = GetSqlDropView(dbSchemaView.Name);
+                        logger.LogInformation(sql + separator);
+                        if (applyChanges) ExecuteNonQuery(sql);
+                    }
                 }
             }
             //remove invalid sequences
-            foreach (var dbSchemaSequence in dbSchemaOld.Sequences) {
-                if (dbSchema.GetSequence(dbSchemaSequence.Name) == null) {
-                    var sql = GetSqlDropSequence(dbSchemaSequence.Name);
-                    logger.LogInformation(sql + separator);
-                    if (applyChanges) ExecuteNonQuery(sql);
+            if (manageSequences) {
+                foreach (var dbSchemaSequence in dbSchemaOld.Sequences) {
+                    if (dbSchema.GetSequence(dbSchemaSequence.Name) == null) {
+                        var sql = GetSqlDropSequence(dbSchemaSequence.Name);
+                        logger.LogInformation(sql + separator);
+                        if (applyChanges) ExecuteNonQuery(sql);
+                    }
                 }
             }
             //remove invalid procedures
-            foreach (var dbSchemaProcedure in dbSchemaOld.Procedures) {
-                if (dbSchema.GetProcedure(dbSchemaProcedure.Name) == null) {
-                    var sql = GetSqlDropProcedure(dbSchemaProcedure.Name);
-                    logger.LogInformation(sql + separator);
-                    if (applyChanges) ExecuteNonQuery(sql);
+            if (manageProcedures) {
+                foreach (var dbSchemaProcedure in dbSchemaOld.Procedures) {
+                    if (dbSchema.GetProcedure(dbSchemaProcedure.Name) == null) {
+                        var sql = GetSqlDropProcedure(dbSchemaProcedure.Name);
+                        logger.LogInformation(sql + separator);
+                        if (applyChanges) ExecuteNonQuery(sql);
+                    }
                 }
             }
             //scripts
@@ -1458,6 +1470,12 @@ namespace DProjects.Db {
         }
 
         // methods (private)
+        private static bool MatchesAny(string name, string[] patterns) {
+            foreach (var pattern in patterns) {
+                if (pattern.Length > 0 && StringUtils.Like(name, pattern)) return true;
+            }
+            return false;
+        }
         private void ConfigureCommand(DbCommand command) {
             command.Transaction = mTransaction;
             if (mCommandTimeout != 0) command.CommandTimeout = mCommandTimeout;
