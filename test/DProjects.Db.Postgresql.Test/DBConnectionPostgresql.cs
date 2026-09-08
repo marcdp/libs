@@ -13,7 +13,19 @@ namespace DProjects.Db.Postgresql.Tests {
         [InlineData("bytea", DBSchemaDataType.Varbinary)]
         [InlineData("character", DBSchemaDataType.Char)]
         [InlineData("character varying", DBSchemaDataType.Varchar)]
+        [InlineData("bpchar", DBSchemaDataType.Char)]
         [InlineData("double precision", DBSchemaDataType.Double)]
+        [InlineData("float4", DBSchemaDataType.Float)]
+        [InlineData("float8", DBSchemaDataType.Double)]
+        [InlineData("int2", DBSchemaDataType.Smallint)]
+        [InlineData("int4", DBSchemaDataType.Int)]
+        [InlineData("int8", DBSchemaDataType.Bigint)]
+        [InlineData("numeric", DBSchemaDataType.Numeric)]
+        [InlineData("decimal", DBSchemaDataType.Decimal)]
+        [InlineData("real", DBSchemaDataType.Float)]
+        [InlineData("time without time zone", DBSchemaDataType.Time)]
+        [InlineData("timestamp", DBSchemaDataType.DateTime)]
+        [InlineData("varchar", DBSchemaDataType.Varchar)]
         [InlineData("timestamp without time zone", DBSchemaDataType.DateTime)]
         [InlineData("text", DBSchemaDataType.Varchar)]
         [InlineData("uuid", DBSchemaDataType.UniqueIdentifier)]
@@ -92,10 +104,12 @@ namespace DProjects.Db.Postgresql.Tests {
         [InlineData(DBSchemaDataType.TinyInt, DBSchemaDataType.Smallint)]
         [InlineData(DBSchemaDataType.Real, DBSchemaDataType.Double)]
         [InlineData(DBSchemaDataType.Double, DBSchemaDataType.Real)]
+        [InlineData(DBSchemaDataType.Numeric, DBSchemaDataType.Decimal)]
+        [InlineData(DBSchemaDataType.Decimal, DBSchemaDataType.Numeric)]
         public void SchemaDataTypeEquivalence_RecognizesPostgresqlTypeCollapses(DBSchemaDataType actual, DBSchemaDataType expected) {
             using var connection = new TestableDBConnectionPostgresql();
 
-            Assert.True(connection.AreSchemaDataTypesEquivalentForTest(actual, expected));
+            Assert.True(connection.AreSchemaColumnTypesEquivalentForTest(new DBSchemaColumn() { DataType = actual }, new DBSchemaColumn() { DataType = expected }));
         }
         [Theory]
         [InlineData(DBSchemaDataType.Float, DBSchemaDataType.Double)]
@@ -105,7 +119,30 @@ namespace DProjects.Db.Postgresql.Tests {
         public void SchemaDataTypeEquivalence_PreservesDistinctPostgresqlTypes(DBSchemaDataType actual, DBSchemaDataType expected) {
             using var connection = new TestableDBConnectionPostgresql();
 
-            Assert.False(connection.AreSchemaDataTypesEquivalentForTest(actual, expected));
+            Assert.False(connection.AreSchemaColumnTypesEquivalentForTest(new DBSchemaColumn() { DataType = actual }, new DBSchemaColumn() { DataType = expected }));
+        }
+        [Fact]
+        public void SchemaColumnTypeEquivalence_IgnoresByteaSizeButPreservesMeaningfulFacets() {
+            using var connection = new TestableDBConnectionPostgresql();
+
+            Assert.True(connection.AreSchemaColumnTypesEquivalentForTest(
+                new DBSchemaColumn() { DataType = DBSchemaDataType.Binary, Size = 100 },
+                new DBSchemaColumn() { DataType = DBSchemaDataType.Varbinary, Size = 0 }));
+            Assert.True(connection.AreSchemaColumnTypesEquivalentForTest(
+                new DBSchemaColumn() { DataType = DBSchemaDataType.Char, Size = 1 },
+                new DBSchemaColumn() { DataType = DBSchemaDataType.Nchar, Size = 0 }));
+            Assert.True(connection.AreSchemaColumnTypesEquivalentForTest(
+                new DBSchemaColumn() { DataType = DBSchemaDataType.Timestamp, Precision = 6 },
+                new DBSchemaColumn() { DataType = DBSchemaDataType.DateTime, Precision = 0 }));
+            Assert.False(connection.AreSchemaColumnTypesEquivalentForTest(
+                new DBSchemaColumn() { DataType = DBSchemaDataType.Varchar, Size = 100 },
+                new DBSchemaColumn() { DataType = DBSchemaDataType.Nvarchar, Size = 200 }));
+            Assert.False(connection.AreSchemaColumnTypesEquivalentForTest(
+                new DBSchemaColumn() { DataType = DBSchemaDataType.Numeric, Precision = 12, Scale = 3 },
+                new DBSchemaColumn() { DataType = DBSchemaDataType.Decimal, Precision = 18, Scale = 3 }));
+            Assert.False(connection.AreSchemaColumnTypesEquivalentForTest(
+                new DBSchemaColumn() { DataType = DBSchemaDataType.Numeric, Precision = 12, Scale = 3 },
+                new DBSchemaColumn() { DataType = DBSchemaDataType.Decimal, Precision = 12, Scale = 4 }));
         }
         [Theory]
         [InlineData(DBSchemaDataType.DateTime, DBSchemaDataType.Timestamp, 0)]
@@ -121,6 +158,63 @@ namespace DProjects.Db.Postgresql.Tests {
             connection.ApplySchemaChanges(schema, false, NullLogger<IDBConnection>.Instance);
 
             Assert.Equal(0, connection.GetSqlAlterColumnCallCount);
+        }
+        [Theory]
+        [InlineData(DBSchemaDataType.Numeric, 0, 12, 3, DBSchemaDataType.Decimal, 0, 12, 3, 0)]
+        [InlineData(DBSchemaDataType.Varbinary, 0, 0, 0, DBSchemaDataType.Binary, 100, 0, 0, 0)]
+        [InlineData(DBSchemaDataType.Varchar, 100, 0, 0, DBSchemaDataType.Varchar, 200, 0, 0, 1)]
+        public void ApplySchemaChanges_UsesPostgresqlColumnSemantics(DBSchemaDataType discoveredType, int discoveredSize, int discoveredPrecision,
+            int discoveredScale, DBSchemaDataType desiredType, int desiredSize, int desiredPrecision, int desiredScale, int expectedAlterCount) {
+            using var connection = new TestableDBConnectionPostgresql() {
+                DiscoveredDataType = discoveredType,
+                ColumnSize = discoveredSize,
+                ColumnPrecision = discoveredPrecision,
+                ColumnScale = discoveredScale
+            };
+            var schema = new DBSchemaDatabase();
+            var table = new DBSchemaTable() { Name = "records" };
+            table.Columns.Add(new DBSchemaColumn("value") { DataType = desiredType, Size = desiredSize, Precision = desiredPrecision, Scale = desiredScale });
+            schema.Tables.Add(table);
+
+            connection.ApplySchemaChanges(schema, false, NullLogger<IDBConnection>.Instance);
+
+            Assert.Equal(expectedAlterCount, connection.GetSqlAlterColumnCallCount);
+        }
+        [Fact]
+        public void MetadataMaterialization_PreservesIndexColumnsAndDoesNotDuplicatePrimaryKey() {
+            using var connection = new TestableDBConnectionPostgresql();
+            var table = new DBSchemaTable() { Name = "orders", PrimaryKey = new DBSchemaPrimaryKey() { Name = "orders_pkey", Columns = ["id"] } };
+            var metadata = CreateMetadataTable(["index_name", "is_unique", "column_name", "ordinal_position"],
+                ["ix_customer", false, "customer_id", 1],
+                ["ux_reference", true, "tenant_id", 1],
+                ["ux_reference", true, "reference", 2]);
+
+            connection.PopulateIndexesForTest(table, metadata);
+
+            Assert.Equal(2, table.Indexes.Count);
+            Assert.Equal(["customer_id"], table.Indexes[0].Columns);
+            Assert.False(table.Indexes[0].Unique);
+            Assert.Equal(["tenant_id", "reference"], table.Indexes[1].Columns);
+            Assert.True(table.Indexes[1].Unique);
+            Assert.DoesNotContain(table.Indexes, index => index.Name == "orders_pkey");
+        }
+        [Fact]
+        public void MetadataMaterialization_PreservesCompositeForeignKeyPairingAndActions() {
+            using var connection = new TestableDBConnectionPostgresql();
+            var table = new DBSchemaTable() { Name = "orders" };
+            var metadata = CreateMetadataTable(
+                ["constraint_name", "local_column", "referenced_table", "referenced_column", "ordinal_position", "delete_action", "update_action"],
+                ["fk_order_customer", "tenant_id", "customers", "tenant_id", 1, "c", "a"],
+                ["fk_order_customer", "customer_id", "customers", "id", 2, "c", "a"]);
+
+            connection.PopulateForeignKeysForTest(table, metadata);
+
+            var foreignKey = Assert.Single(table.ForeignKeys);
+            Assert.Equal(["tenant_id", "customer_id"], foreignKey.Columns);
+            Assert.Equal("customers", foreignKey.RefTable);
+            Assert.Equal(["tenant_id", "id"], foreignKey.RefColumns);
+            Assert.Equal(DBSchemaOnDeleteRule.Cascade, foreignKey.OnDelete);
+            Assert.Equal(DBSchemaOnUpdateRule.NoAction, foreignKey.OnUpdate);
         }
         [Theory]
         [InlineData(true, "DROP NOT NULL")]
@@ -189,11 +283,19 @@ namespace DProjects.Db.Postgresql.Tests {
         private static DProjects.Db.Postgresql.DBConnectionPostgresql CreateConnection() {
             return new DProjects.Db.Postgresql.DBConnectionPostgresql("mapping", "Host=localhost;Database=mapping;Username=mapping;Password=mapping");
         }
+        private static DBTable CreateMetadataTable(string[] columns, params object?[][] rows) {
+            var table = new DBTable();
+            foreach (var column in columns) table.Columns.Add(column);
+            foreach (var values in rows) table.Rows.Add(new DBRow(table, values));
+            return table;
+        }
 
         private sealed class TestableDBConnectionPostgresql : DProjects.Db.Postgresql.DBConnectionPostgresql {
 
             // props
             public int ColumnSize { get; set; }
+            public int ColumnPrecision { get; set; }
+            public int ColumnScale { get; set; }
             public DBSchemaDataType DiscoveredDataType { get; set; }
             public int GetSqlAlterColumnCallCount { get; private set; }
 
@@ -202,15 +304,26 @@ namespace DProjects.Db.Postgresql.Tests {
             }
 
             // methods
-            public bool AreSchemaDataTypesEquivalentForTest(DBSchemaDataType actual, DBSchemaDataType expected) {
-                return AreSchemaDataTypesEquivalent(actual, expected);
+            public bool AreSchemaColumnTypesEquivalentForTest(DBSchemaColumn actual, DBSchemaColumn expected) {
+                return AreSchemaColumnTypesEquivalent(actual, expected);
+            }
+            public void PopulateIndexesForTest(DBSchemaTable table, DBTable metadata) {
+                PopulateIndexes(table, metadata);
+            }
+            public void PopulateForeignKeysForTest(DBSchemaTable table, DBTable metadata) {
+                PopulateForeignKeys(table, metadata);
             }
             public override string[] GetTableNames() {
                 return ["records"];
             }
             public override DBSchemaTable GetTableSchema(string table) {
                 var schema = new DBSchemaTable() { Name = table };
-                schema.Columns.Add(new DBSchemaColumn("value") { DataType = DiscoveredDataType, Size = ColumnSize });
+                schema.Columns.Add(new DBSchemaColumn("value") {
+                    DataType = DiscoveredDataType,
+                    Size = ColumnSize,
+                    Precision = ColumnPrecision,
+                    Scale = ColumnScale
+                });
                 return schema;
             }
             public override string GetSqlAlterColumn(string table, DBSchemaColumn dBSchemaColumn) {

@@ -51,6 +51,17 @@ namespace DProjects.Db.Sqlite.Tests
             Assert.Throws<NotSupportedException>(() => connection.GetSqlDropSequence("sequence"));
         }
         [Fact]
+        public void ProviderNormalizedAffinitiesAreStableWhileSchemaDiscoveryRemainsUnsupported() {
+            using var connection = CreateConnection();
+
+            Assert.Equal("TEXT", connection.GetSqlTypeDefinition(DBSchemaDataType.Varchar, 100, 0, 0));
+            Assert.Equal("TEXT", connection.GetSqlTypeDefinition(DBSchemaDataType.Nvarchar, 0, 0, 0));
+            Assert.Equal("BLOB", connection.GetSqlTypeDefinition(DBSchemaDataType.Binary, 100, 0, 0));
+            Assert.Equal("BLOB", connection.GetSqlTypeDefinition(DBSchemaDataType.Varbinary, 0, 0, 0));
+            Assert.Throws<NotSupportedException>(() => connection.GetTableNames());
+            Assert.Throws<NotSupportedException>(() => connection.GetTableSchema("table"));
+        }
+        [Fact]
         public void SupportedColumnMutationsGenerateWorkingSql() {
             using var connection = CreateConnection();
             connection.ExecuteNonQuery("CREATE TABLE mutation_test (id INTEGER NOT NULL)");

@@ -26,8 +26,15 @@ namespace DProjects.Db.Postgresql {
         protected override string GetSqlParameterPlaceholder(int index) {
             return "$" + (index + 1);
         }
-        protected override bool AreSchemaDataTypesEquivalent(DBSchemaDataType actual, DBSchemaDataType expected) {
-            return GetCanonicalSchemaDataType(actual) == GetCanonicalSchemaDataType(expected);
+        protected override bool AreSchemaColumnTypesEquivalent(DBSchemaColumn actual, DBSchemaColumn expected) {
+            var actualDataType = GetCanonicalSchemaDataType(actual.DataType);
+            var expectedDataType = GetCanonicalSchemaDataType(expected.DataType);
+            if (actualDataType != expectedDataType) return false;
+            if (actualDataType == DBSchemaDataType.Varbinary) return true;
+            if (actualDataType == DBSchemaDataType.Char) return GetPostgresqlCharSize(actual.Size) == GetPostgresqlCharSize(expected.Size);
+            if (actualDataType == DBSchemaDataType.Varchar) return actual.Size == expected.Size;
+            if (actualDataType == DBSchemaDataType.Numeric) return actual.Precision == expected.Precision && actual.Scale == expected.Scale;
+            return true;
         }
 
         ////DDL 
@@ -55,11 +62,19 @@ namespace DProjects.Db.Postgresql {
             if (dataTypeName.Equals("text", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Varchar.ToString();
             if (dataTypeName.Equals("character", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Char.ToString();
             if (dataTypeName.Equals("character varying", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Varchar.ToString();
+            if (dataTypeName.Equals("bpchar", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Char.ToString();
             if (dataTypeName.Equals("bytea", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Varbinary.ToString();
+            if (dataTypeName.Equals("timestamp", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.DateTime.ToString();
             if (dataTypeName.Equals("timestamp without time zone", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.DateTime.ToString();
+            if (dataTypeName.Equals("time without time zone", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Time.ToString();
             if (dataTypeName.Equals("json", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Json.ToString();
             if (dataTypeName.Equals("jsonb", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Jsonb.ToString();
             if (dataTypeName.Equals("integer", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Int.ToString();
+            if (dataTypeName.Equals("int2", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Smallint.ToString();
+            if (dataTypeName.Equals("int4", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Int.ToString();
+            if (dataTypeName.Equals("int8", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Bigint.ToString();
+            if (dataTypeName.Equals("float4", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Float.ToString();
+            if (dataTypeName.Equals("float8", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Double.ToString();
             if (dataTypeName.Equals("uuid", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.UniqueIdentifier.ToString();
             if (Enum.TryParse<DBSchemaDataType>(dataTypeName, true, out var portableDataType)) dataTypeName = portableDataType.ToString();
             return base.GetDataTypeFromSqlDataTypeName(dataTypeName, length, precision, scale);
@@ -233,6 +248,58 @@ namespace DProjects.Db.Postgresql {
             //    fks.Add(fk);
             //}
             //dbSchemaTable.ForeignKeys.AddRange(fks.ToArray());
+            // discover representable indexes without duplicating primary-key backing indexes
+            var indexMetadata = ExecuteTable(@"
+                SELECT index_class.relname AS index_name, index_definition.indisunique AS is_unique, attribute.attname AS column_name,
+                    key_column.ordinality AS ordinal_position
+                FROM pg_catalog.pg_class table_class
+                INNER JOIN pg_catalog.pg_namespace namespace ON namespace.oid = table_class.relnamespace
+                INNER JOIN pg_catalog.pg_index index_definition ON index_definition.indrelid = table_class.oid
+                INNER JOIN pg_catalog.pg_class index_class ON index_class.oid = index_definition.indexrelid
+                INNER JOIN pg_catalog.pg_am access_method ON access_method.oid = index_class.relam AND access_method.amname = 'btree'
+                CROSS JOIN LATERAL unnest(index_definition.indkey) WITH ORDINALITY AS key_column(attnum, ordinality)
+                INNER JOIN pg_catalog.pg_attribute attribute ON attribute.attrelid = table_class.oid AND attribute.attnum = key_column.attnum
+                WHERE namespace.nspname = ? AND table_class.relname = ? AND NOT index_definition.indisprimary
+                    AND index_definition.indisvalid AND index_definition.indisready AND index_definition.indislive
+                    AND NOT COALESCE((to_jsonb(index_definition) ->> 'indnullsnotdistinct')::boolean, false)
+                    AND index_definition.indexprs IS NULL AND index_definition.indpred IS NULL
+                    AND index_definition.indnkeyatts = index_definition.indnatts AND key_column.attnum > 0
+                    AND NOT EXISTS (SELECT 1 FROM unnest(index_definition.indoption::smallint[]) AS option(value) WHERE option.value <> 0)
+                    AND NOT EXISTS (
+                        SELECT 1 FROM unnest(index_definition.indclass::oid[]) AS operator_class(oid)
+                        INNER JOIN pg_catalog.pg_opclass operator_class_definition ON operator_class_definition.oid = operator_class.oid
+                        WHERE NOT operator_class_definition.opcdefault)
+                    AND NOT EXISTS (
+                        SELECT 1
+                        FROM unnest(index_definition.indcollation::oid[]) WITH ORDINALITY AS index_collation(oid, ordinality)
+                        INNER JOIN unnest(index_definition.indkey::smallint[]) WITH ORDINALITY AS indexed_key(attnum, ordinality)
+                            ON indexed_key.ordinality = index_collation.ordinality
+                        INNER JOIN pg_catalog.pg_attribute indexed_attribute
+                            ON indexed_attribute.attrelid = table_class.oid AND indexed_attribute.attnum = indexed_key.attnum
+                        WHERE index_collation.oid <> 0 AND index_collation.oid <> indexed_attribute.attcollation)
+                ORDER BY index_class.relname, key_column.ordinality", [schema, table]);
+            PopulateIndexes(dbSchemaTable, indexMetadata);
+            // discover foreign keys with local and referenced columns paired by ordinal position
+            var foreignKeyMetadata = ExecuteTable(@"
+                SELECT constraint_definition.conname AS constraint_name, local_attribute.attname AS local_column,
+                    referenced_table.relname AS referenced_table, referenced_attribute.attname AS referenced_column,
+                    local_key.ordinality AS ordinal_position, constraint_definition.confdeltype AS delete_action,
+                    constraint_definition.confupdtype AS update_action
+                FROM pg_catalog.pg_constraint constraint_definition
+                INNER JOIN pg_catalog.pg_class local_table ON local_table.oid = constraint_definition.conrelid
+                INNER JOIN pg_catalog.pg_namespace namespace ON namespace.oid = local_table.relnamespace
+                INNER JOIN pg_catalog.pg_class referenced_table ON referenced_table.oid = constraint_definition.confrelid
+                INNER JOIN pg_catalog.pg_namespace referenced_namespace
+                    ON referenced_namespace.oid = referenced_table.relnamespace AND referenced_namespace.nspname = namespace.nspname
+                CROSS JOIN LATERAL unnest(constraint_definition.conkey) WITH ORDINALITY AS local_key(attnum, ordinality)
+                INNER JOIN LATERAL unnest(constraint_definition.confkey) WITH ORDINALITY AS referenced_key(attnum, ordinality)
+                    ON referenced_key.ordinality = local_key.ordinality
+                INNER JOIN pg_catalog.pg_attribute local_attribute ON local_attribute.attrelid = local_table.oid AND local_attribute.attnum = local_key.attnum
+                INNER JOIN pg_catalog.pg_attribute referenced_attribute
+                    ON referenced_attribute.attrelid = referenced_table.oid AND referenced_attribute.attnum = referenced_key.attnum
+                WHERE constraint_definition.contype = 'f' AND namespace.nspname = ? AND local_table.relname = ?
+                ORDER BY constraint_definition.conname, local_key.ordinality", [schema, table]);
+            PopulateForeignKeys(dbSchemaTable, foreignKeyMetadata);
             //return
             return dbSchemaTable;
         }
@@ -575,6 +642,9 @@ namespace DProjects.Db.Postgresql {
             }
             return precision > 0 ? sqlType + "(" + precision + "," + scale + ")" : sqlType;
         }
+        private static int GetPostgresqlCharSize(int size) {
+            return size == 0 ? 1 : size;
+        }
         private static DBSchemaDataType GetCanonicalSchemaDataType(DBSchemaDataType dataType) {
             // canonicalizes only portable types that PostgreSQL persists with indistinguishable storage semantics
             return dataType switch {
@@ -584,7 +654,71 @@ namespace DProjects.Db.Postgresql {
                 DBSchemaDataType.Binary => DBSchemaDataType.Varbinary,
                 DBSchemaDataType.TinyInt => DBSchemaDataType.Smallint,
                 DBSchemaDataType.Real => DBSchemaDataType.Double,
+                DBSchemaDataType.Decimal => DBSchemaDataType.Numeric,
                 _ => dataType
+            };
+        }
+        protected static void PopulateIndexes(DBSchemaTable table, DBTable metadata) {
+            DBSchemaIndex? index = null;
+            var columns = new List<string>();
+            foreach (var row in metadata.Rows) {
+                var name = row.Get("index_name", "");
+                if (index == null || !index.Name.Equals(name, StringComparison.Ordinal)) {
+                    if (index != null) {
+                        index.Columns = columns.ToArray();
+                        table.Indexes.Add(index);
+                    }
+                    index = new DBSchemaIndex() { Name = name, Unique = row.Get("is_unique", false) };
+                    columns = new List<string>();
+                }
+                columns.Add(row.Get("column_name", ""));
+            }
+            if (index != null) {
+                index.Columns = columns.ToArray();
+                table.Indexes.Add(index);
+            }
+        }
+        protected static void PopulateForeignKeys(DBSchemaTable table, DBTable metadata) {
+            DBSchemaForeignKey? foreignKey = null;
+            var columns = new List<string>();
+            var referencedColumns = new List<string>();
+            foreach (var row in metadata.Rows) {
+                var name = row.Get("constraint_name", "");
+                if (foreignKey == null || !foreignKey.Name.Equals(name, StringComparison.Ordinal)) {
+                    if (foreignKey != null) AddForeignKey(table, foreignKey, columns, referencedColumns);
+                    foreignKey = new DBSchemaForeignKey() {
+                        Name = name,
+                        RefTable = row.Get("referenced_table", ""),
+                        OnDelete = GetOnDeleteRule(row.Get("delete_action", "a")),
+                        OnUpdate = GetOnUpdateRule(row.Get("update_action", "a"))
+                    };
+                    columns = new List<string>();
+                    referencedColumns = new List<string>();
+                }
+                columns.Add(row.Get("local_column", ""));
+                referencedColumns.Add(row.Get("referenced_column", ""));
+            }
+            if (foreignKey != null) AddForeignKey(table, foreignKey, columns, referencedColumns);
+        }
+        private static void AddForeignKey(DBSchemaTable table, DBSchemaForeignKey foreignKey, List<string> columns, List<string> referencedColumns) {
+            foreignKey.Columns = columns.ToArray();
+            foreignKey.RefColumns = referencedColumns.ToArray();
+            table.ForeignKeys.Add(foreignKey);
+        }
+        private static DBSchemaOnDeleteRule GetOnDeleteRule(string action) {
+            return action switch {
+                "c" => DBSchemaOnDeleteRule.Cascade,
+                "n" => DBSchemaOnDeleteRule.SetNull,
+                "d" => DBSchemaOnDeleteRule.SetDefault,
+                _ => DBSchemaOnDeleteRule.NoAction
+            };
+        }
+        private static DBSchemaOnUpdateRule GetOnUpdateRule(string action) {
+            return action switch {
+                "c" => DBSchemaOnUpdateRule.Cascade,
+                "n" => DBSchemaOnUpdateRule.SetNull,
+                "d" => DBSchemaOnUpdateRule.SetDefault,
+                _ => DBSchemaOnUpdateRule.NoAction
             };
         }
 

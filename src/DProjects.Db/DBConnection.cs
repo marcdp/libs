@@ -805,9 +805,7 @@ namespace DProjects.Db {
                             logger.LogInformation(sql + separator);
                             if (applyChanges) ExecuteNonQuery(sql);
                             modified = true;
-                        } else if (!AreSchemaDataTypesEquivalent(dbSchemaColumnOld.DataType, dbSchemaColumn.DataType)
-                            || dbSchemaColumnOld.Size != dbSchemaColumn.Size || dbSchemaColumnOld.Precision != dbSchemaColumn.Precision
-                            || dbSchemaColumnOld.Scale != dbSchemaColumn.Scale || dbSchemaColumnOld.Default != dbSchemaColumn.Default
+                        } else if (!AreSchemaColumnTypesEquivalent(dbSchemaColumnOld, dbSchemaColumn) || dbSchemaColumnOld.Default != dbSchemaColumn.Default
                             || dbSchemaColumnOld.Null != dbSchemaColumn.Null) {
                             //change
                             if (dbSchemaColumnOld.Default != null && dbSchemaColumnOld.Default != dbSchemaColumn.Default) {
@@ -1023,27 +1021,31 @@ namespace DProjects.Db {
             }
             //scripts
             foreach (var dbSchemaScript in dbSchema.Scripts) {
-                if (applyChanges) {
-                    var sql = dbSchemaScript.Content;
-                    logger.LogInformation(sql.ToString() + separator);
-                    if (applyChanges) ExecuteNonQuery(sql.ToString());
-                }
+                var sql = dbSchemaScript.Content;
+                logger.LogInformation(sql + separator);
+                if (applyChanges) ExecuteNonQuery(sql);
             }
             //records
             foreach (var dbSchemaTable in dbSchema.Tables) {
                 foreach (var dBSchemaRecord in dbSchemaTable.Records) {
-                    if (dbSchemaTable.PrimaryKey is null) throw new Exception("Unable to insert record: primary key not found: " + dbSchemaTable.Name);
+                    if (dbSchemaTable.PrimaryKey is null) throw new InvalidOperationException("Unable to insert record: primary key not found: " + dbSchemaTable.Name);
                     //check if row exists
                     var sSql = new StringBuilder();
                     var oArgs = new List<object?>();
-                    sSql.Append("SELECT COUNT(*) FROM " + dbSchemaTable.Name + " WHERE ");
+                    sSql.Append("SELECT COUNT(*) FROM " + qb + dbSchemaTable.Name + qe + " WHERE ");
                     var index = 0;
-                    foreach (var key in dBSchemaRecord.Keys) {
-                        if (key != null && System.Array.IndexOf(dbSchemaTable.PrimaryKey.Columns, key) != -1) {
-                            var dbSchemaColumn = dbSchemaTable.GetColumn(key.ToString() ?? "");
-                            if (dbSchemaColumn == null) throw new Exception("Unable to insert record: column not found: " + dbSchemaTable.Name + "." + key.ToString());
-                            sSql.Append((index > 0 ? " AND " : "") + dbSchemaColumn.Name + "=?");
-                            var value = ConvertUtils.To(dBSchemaRecord[key.ToString()], dbSchemaColumn.GetNetDataType(), true);
+                    var primaryKeyColumns = new List<DBSchemaColumn>();
+                    var primaryKeyUsable = dbSchemaTable.PrimaryKey.Columns.Length > 0;
+                    foreach (var columnName in dbSchemaTable.PrimaryKey.Columns) {
+                        var dbSchemaColumn = dbSchemaTable.GetColumn(columnName);
+                        if (dbSchemaColumn == null) throw new InvalidOperationException("Unable to insert record: column not found: " + dbSchemaTable.Name + "." + columnName);
+                        primaryKeyColumns.Add(dbSchemaColumn);
+                        if (!ContainsRecordKey(dBSchemaRecord, columnName)) primaryKeyUsable = false;
+                    }
+                    if (primaryKeyUsable) {
+                        foreach (var dbSchemaColumn in primaryKeyColumns) {
+                            sSql.Append((index > 0 ? " AND " : "") + qb + dbSchemaColumn.Name + qe + "=?");
+                            var value = ConvertUtils.To(dBSchemaRecord[dbSchemaColumn.Name], dbSchemaColumn.GetNetDataType(), true);
                             oArgs.Add(value);
                             index++;
                         }
@@ -1052,40 +1054,51 @@ namespace DProjects.Db {
                         //search for unique index
                         foreach (var dbSchemaIndex in dbSchemaTable.Indexes) {
                             if (dbSchemaIndex.Unique) {
+                                var uniqueColumns = new List<DBSchemaColumn>();
+                                var uniqueIndexUsable = dbSchemaIndex.Columns.Length > 0;
                                 foreach (var columnName in dbSchemaIndex.Columns) {
                                     var dbSchemaColumn = dbSchemaTable.GetColumn(columnName);
-                                    if (dbSchemaColumn == null) throw new Exception("Unable to insert record: column not found: " + dbSchemaTable.Name + "." + columnName);
-                                    sSql.Append((index > 0 ? " AND " : "") + dbSchemaColumn.Name + "=?");
-                                    var value = ConvertUtils.To(dBSchemaRecord[columnName], dbSchemaColumn.GetNetDataType(), true);
+                                    if (dbSchemaColumn == null) throw new InvalidOperationException("Unable to insert record: column not found: " + dbSchemaTable.Name + "." + columnName);
+                                    uniqueColumns.Add(dbSchemaColumn);
+                                    if (!ContainsRecordKey(dBSchemaRecord, columnName)) uniqueIndexUsable = false;
+                                }
+                                if (!uniqueIndexUsable) continue;
+                                foreach (var dbSchemaColumn in uniqueColumns) {
+                                    sSql.Append((index > 0 ? " AND " : "") + qb + dbSchemaColumn.Name + qe + "=?");
+                                    var value = ConvertUtils.To(dBSchemaRecord[dbSchemaColumn.Name], dbSchemaColumn.GetNetDataType(), true);
                                     oArgs.Add(value);
                                     index++;
                                 }
                                 break;
                             }
                         }
-                        if (index == 0) throw new Exception("Unable to insert record: unique index not found: " + dbSchemaTable.Name);
+                        if (index == 0) throw new InvalidOperationException("Unable to insert record: unique index not found: " + dbSchemaTable.Name);
                     }
                     var count = ExecuteScalar<int>(sSql.ToString(), oArgs.ToArray()!);
                     if (count == 0) {
                         //insert
                         sSql = new StringBuilder();
                         oArgs = new List<object?>();
-                        sSql.Append("INSERT INTO " + dbSchemaTable.Name + " (");
-                        index = 0;
-                        foreach (var key in dBSchemaRecord.Keys) {
-                            if (key != null) sSql.Append((index++ > 0 ? "," : "") + key.ToString());
-                        }
-                        sSql.Append(") VALUES (");
-                        index = 0;
+                        var recordColumns = new List<DBSchemaColumn>();
                         foreach (var key in dBSchemaRecord.Keys) {
                             if (key != null) {
                                 var dbSchemaColumn = dbSchemaTable.GetColumn(key.ToString() ?? "");
-                                if (dbSchemaColumn == null) throw new Exception("Unable to insert record: column not found: " + dbSchemaTable.Name + "." + key.ToString());
-                                sSql.Append((index > 0 ? "," : "") + "?");
-                                var value = ConvertUtils.To(dBSchemaRecord[key.ToString()], dbSchemaColumn.GetNetDataType(), true);
-                                oArgs.Add(value);
-                                index++;
+                                if (dbSchemaColumn == null) throw new InvalidOperationException("Unable to insert record: column not found: " + dbSchemaTable.Name + "." + key.ToString());
+                                recordColumns.Add(dbSchemaColumn);
                             }
+                        }
+                        sSql.Append("INSERT INTO " + qb + dbSchemaTable.Name + qe + " (");
+                        index = 0;
+                        foreach (var dbSchemaColumn in recordColumns) {
+                            sSql.Append((index++ > 0 ? "," : "") + qb + dbSchemaColumn.Name + qe);
+                        }
+                        sSql.Append(") VALUES (");
+                        index = 0;
+                        foreach (var dbSchemaColumn in recordColumns) {
+                            sSql.Append((index > 0 ? "," : "") + "?");
+                            var value = ConvertUtils.To(dBSchemaRecord[dbSchemaColumn.Name], dbSchemaColumn.GetNetDataType(), true);
+                            oArgs.Add(value);
+                            index++;
                         }
                         sSql.Append(")");
                         logger.LogInformation(ParseStatement(sSql.ToString(), oArgs.ToArray()) + separator);
@@ -1500,9 +1513,12 @@ namespace DProjects.Db {
         protected virtual string GetSqlParameterPlaceholder(int index) {
             return GetSqlParameterName(index);
         }
-        /// <summary>Determines whether discovered and desired portable schema types have equivalent provider storage semantics.</summary>
-        protected virtual bool AreSchemaDataTypesEquivalent(DBSchemaDataType actual, DBSchemaDataType expected) {
-            return actual == expected;
+        /// <summary>Determines whether discovered and desired column type metadata has equivalent provider storage semantics.</summary>
+        protected virtual bool AreSchemaColumnTypesEquivalent(DBSchemaColumn actual, DBSchemaColumn expected) {
+            return actual.DataType == expected.DataType && actual.Size == expected.Size && actual.Precision == expected.Precision && actual.Scale == expected.Scale;
+        }
+        private static bool ContainsRecordKey(DBSchemaRecord record, string columnName) {
+            return Array.FindIndex(record.AllKeys, key => key != null && key.Equals(columnName, StringComparison.OrdinalIgnoreCase)) >= 0;
         }
         private static object GetDbParameterValue(object value) {
             if (value == DBNull.Value) return DBNull.Value;

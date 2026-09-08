@@ -21,6 +21,8 @@ namespace DProjects.Db.SqlServer.Tests {
             Assert.Equal(" BIGINT IDENTITY NOT NULL ", connection.GetSqlIdentityDefinition(typeof(long)));
             Assert.Equal(" uniqueidentifier NOT NULL DEFAULT newId()", connection.GetSqlIdentityDefinition(typeof(Guid)));
             Assert.Equal("VARCHAR(MAX)", connection.GetSqlTypeDefinition(DBSchemaDataType.Varchar, 0, 0, 0));
+            Assert.Equal("NVARCHAR(MAX)", connection.GetSqlTypeDefinition(DBSchemaDataType.Nvarchar, 0, 0, 0));
+            Assert.Equal("VARBINARY(MAX)", connection.GetSqlTypeDefinition(DBSchemaDataType.Varbinary, 0, 0, 0));
             Assert.Equal("DROP INDEX [table].index", connection.GetSqlDropIndex("table", "index"));
             Assert.Contains("ADD CONSTRAINT DF_table_column DEFAULT 0 FOR column", connection.GetSqlCreateDefault("table", "column", "0"));
             var sequence = new DBSchemaSequence() { Name = "sequence", InitValue = 10, IncrementBy = 2 };

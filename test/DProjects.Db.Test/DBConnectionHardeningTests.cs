@@ -3,6 +3,7 @@ using System.Collections;
 using System.Data;
 using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace DProjects.Db.Tests {
@@ -553,8 +554,10 @@ namespace DProjects.Db.Tests {
         public void BaseSchemaDataTypeEquivalence_RemainsStrict() {
             using var connection = new TestDBConnection();
 
-            Assert.True(connection.AreSchemaDataTypesEquivalentForTest(DBSchemaDataType.Timestamp, DBSchemaDataType.Timestamp));
-            Assert.False(connection.AreSchemaDataTypesEquivalentForTest(DBSchemaDataType.DateTime, DBSchemaDataType.Timestamp));
+            Assert.True(connection.AreSchemaColumnTypesEquivalentForTest(new DBSchemaColumn() { DataType = DBSchemaDataType.Timestamp },
+                new DBSchemaColumn() { DataType = DBSchemaDataType.Timestamp }));
+            Assert.False(connection.AreSchemaColumnTypesEquivalentForTest(new DBSchemaColumn() { DataType = DBSchemaDataType.DateTime },
+                new DBSchemaColumn() { DataType = DBSchemaDataType.Timestamp }));
         }
         [Fact]
         public void GetSqlTimeStampDefinition_PreservesLegacyCompatibilityValue() {
@@ -680,6 +683,64 @@ namespace DProjects.Db.Tests {
             Assert.Equal(0, connection.GetProcedureNamesCallCount);
             Assert.Equal(0, connection.GetSqlDropProcedureCallCount);
         }
+        [Theory]
+        [InlineData(false, 0)]
+        [InlineData(true, 1)]
+        public void ApplySchemaChanges_AlwaysLogsScripts_AndOnlyExecutesWhenRequested(bool applyChanges, int expectedExecutions) {
+            using var connection = new SchemaTrackingDBConnection();
+            var logger = new ListLogger();
+            var schema = new DBSchemaDatabase();
+            schema.Scripts.Add(new DBSchemaScript() { Content = "UPDATE settings SET value=1" });
+
+            connection.ApplySchemaChanges(schema, applyChanges, logger);
+
+            Assert.Contains(logger.Messages, message => message.Contains("UPDATE settings SET value=1"));
+            Assert.Equal(expectedExecutions, connection.FakeConnection.NonQueryCallCount);
+        }
+        [Fact]
+        public void ApplySchemaChanges_QuotesRecordIdentifiers_AndKeepsValuesParameterized() {
+            using var connection = new RecordDBConnection();
+            connection.FakeConnection.ScalarResult = 0;
+            var schema = CreateRecordSchema("order", "select");
+            connection.TableSchema = schema.Tables[0];
+
+            connection.ApplySchemaChanges(schema, true, NullLogger<IDBConnection>.Instance);
+
+            Assert.Contains("SELECT COUNT(*) FROM [order] WHERE [select]=@__p0", connection.FakeConnection.CommandTexts);
+            Assert.Contains("INSERT INTO [order] ([select]) VALUES (@__p0)", connection.FakeConnection.CommandTexts);
+            Assert.Equal(1, connection.FakeConnection.NonQueryCallCount);
+            Assert.Equal("value", connection.FakeConnection.LastCommand!.Parameters[0].Value);
+        }
+        [Fact]
+        public void ApplySchemaChanges_RecordWithoutPrimaryKeyThrowsInvalidOperationException() {
+            using var connection = new RecordDBConnection();
+            var schema = CreateRecordSchema("records", "id");
+            schema.Tables[0].PrimaryKey = null;
+            connection.TableSchema = schema.Tables[0];
+
+            Assert.Throws<InvalidOperationException>(() => connection.ApplySchemaChanges(schema, false, NullLogger<IDBConnection>.Instance));
+        }
+        [Fact]
+        public void ApplySchemaChanges_RecordWithMissingReferencedColumnThrowsInvalidOperationException() {
+            using var connection = new RecordDBConnection();
+            var schema = CreateRecordSchema("records", "missing");
+            schema.Tables[0].Columns.Clear();
+            connection.TableSchema = schema.Tables[0];
+
+            Assert.Throws<InvalidOperationException>(() => connection.ApplySchemaChanges(schema, false, NullLogger<IDBConnection>.Instance));
+        }
+        [Fact]
+        public void ApplySchemaChanges_RecordWithoutUsableUniqueIndexThrowsInvalidOperationException() {
+            using var connection = new RecordDBConnection();
+            var schema = CreateRecordSchema("records", "value");
+            schema.Tables[0].PrimaryKey!.Columns = ["id"];
+            schema.Tables[0].Columns.Add(new DBSchemaColumn("id") { DataType = DBSchemaDataType.Int });
+            schema.Tables[0].Columns.Add(new DBSchemaColumn("alternate") { DataType = DBSchemaDataType.Varchar, Size = 100 });
+            schema.Tables[0].Indexes.Add(new DBSchemaIndex() { Name = "ux_records_alternate", Unique = true, Columns = ["alternate"] });
+            connection.TableSchema = schema.Tables[0];
+
+            Assert.Throws<InvalidOperationException>(() => connection.ApplySchemaChanges(schema, false, NullLogger<IDBConnection>.Instance));
+        }
         [Fact]
         public void TypeMappings_AreSemanticallyConsistent() {
             using var connection = new TestDBConnection();
@@ -722,6 +783,33 @@ namespace DProjects.Db.Tests {
             DbDataReaderAsync
         }
 
+        // methods (private)
+        private static DBSchemaDatabase CreateRecordSchema(string tableName, string columnName) {
+            var schema = new DBSchemaDatabase();
+            var table = new DBSchemaTable() { Name = tableName, PrimaryKey = new DBSchemaPrimaryKey() { Name = "pk_" + tableName, Columns = [columnName] } };
+            table.Columns.Add(new DBSchemaColumn(columnName) { DataType = DBSchemaDataType.Varchar, Size = 100 });
+            table.Records.Add(new DBSchemaRecord() { [columnName] = "value" });
+            schema.Tables.Add(table);
+            return schema;
+        }
+
+        private sealed class ListLogger : ILogger<IDBConnection> {
+
+            // props
+            public List<string> Messages { get; } = [];
+
+            // methods
+            public IDisposable? BeginScope<TState>(TState state) where TState : notnull {
+                return null;
+            }
+            public bool IsEnabled(LogLevel logLevel) {
+                return true;
+            }
+            public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) {
+                Messages.Add(formatter(state, exception));
+            }
+        }
+
         private class TestDBConnection : DBConnection {
 
             // props
@@ -736,8 +824,28 @@ namespace DProjects.Db.Tests {
             }
 
             // methods
-            public bool AreSchemaDataTypesEquivalentForTest(DBSchemaDataType actual, DBSchemaDataType expected) {
-                return AreSchemaDataTypesEquivalent(actual, expected);
+            public bool AreSchemaColumnTypesEquivalentForTest(DBSchemaColumn actual, DBSchemaColumn expected) {
+                return AreSchemaColumnTypesEquivalent(actual, expected);
+            }
+        }
+
+        private sealed class RecordDBConnection : TestDBConnection {
+
+            // props
+            public DBSchemaTable? TableSchema { get; set; }
+
+            // methods
+            public override string[] GetTableNames() {
+                return TableSchema == null ? [] : [TableSchema.Name];
+            }
+            public override DBSchemaTable GetTableSchema(string table) {
+                return TableSchema ?? throw new InvalidOperationException("A table schema is required.");
+            }
+            public override string GetSqlQualifierBegin() {
+                return "[";
+            }
+            public override string GetSqlQualifierEnd() {
+                return "]";
             }
         }
 
@@ -826,6 +934,9 @@ namespace DProjects.Db.Tests {
             public int OpenCallCount { get; private set; }
             public Exception? ReaderExecutionException { get; set; }
             public Exception? ScalarExecutionException { get; set; }
+            public object? ScalarResult { get; set; } = 1;
+            public int NonQueryCallCount { get; set; }
+            public List<string> CommandTexts { get; } = [];
             public bool ThrowOnReaderDispose { get; set; }
             [AllowNull]
             public override string ConnectionString { get; set; } = "";
@@ -945,6 +1056,8 @@ namespace DProjects.Db.Tests {
             }
             public override int ExecuteNonQuery() {
                 if (((FakeDbConnection)mConnection!).NonQueryExecutionException is Exception exception) throw exception;
+                ((FakeDbConnection)mConnection!).CommandTexts.Add(CommandText);
+                ((FakeDbConnection)mConnection!).NonQueryCallCount++;
                 return 1;
             }
             public override Task<int> ExecuteNonQueryAsync(CancellationToken cancellationToken) {
@@ -954,7 +1067,8 @@ namespace DProjects.Db.Tests {
             }
             public override object? ExecuteScalar() {
                 if (((FakeDbConnection)mConnection!).ScalarExecutionException is Exception exception) throw exception;
-                return 1;
+                ((FakeDbConnection)mConnection!).CommandTexts.Add(CommandText);
+                return ((FakeDbConnection)mConnection!).ScalarResult;
             }
             public override Task<object?> ExecuteScalarAsync(CancellationToken cancellationToken) {
                 CancellationToken = cancellationToken;
