@@ -217,6 +217,47 @@ namespace DProjects.Db.Postgresql.Tests {
             Assert.Equal(DBSchemaOnUpdateRule.NoAction, foreignKey.OnUpdate);
         }
         [Theory]
+        [InlineData("hash", false, false, false, false, false, false, false, "non-btree access method")]
+        [InlineData("btree", true, false, false, false, false, false, false, "expression keys")]
+        [InlineData("btree", false, true, false, false, false, false, false, "partial predicate")]
+        [InlineData("btree", false, false, true, false, false, false, false, "INCLUDE columns")]
+        [InlineData("btree", false, false, false, true, false, false, false, "NULLS NOT DISTINCT")]
+        [InlineData("btree", false, false, false, false, true, false, false, "non-default ordering")]
+        [InlineData("btree", false, false, false, false, false, true, false, "non-default operator class")]
+        [InlineData("btree", false, false, false, false, false, false, true, "non-default collation")]
+        public void UnsupportedIndexMetadata_ThrowsWithIndexAndReason(string accessMethod, bool expressions, bool partial, bool includeColumns,
+            bool nullsNotDistinct, bool ordering, bool operatorClass, bool collation, string reason) {
+            using var connection = new TestableDBConnectionPostgresql();
+            var metadata = CreateMetadataTable(
+                ["index_name", "access_method", "has_expressions", "is_partial", "has_include_columns", "is_exclusion", "is_invalid",
+                    "nulls_not_distinct", "has_nondefault_ordering", "has_nondefault_operator_class", "has_nondefault_collation"],
+                ["ix_advanced", accessMethod, expressions, partial, includeColumns, false, false, nullsNotDistinct, ordering, operatorClass, collation]);
+
+            var exception = Assert.Throws<NotSupportedException>(() => connection.ValidateSupportedIndexesForTest("orders", metadata));
+
+            Assert.Contains("orders", exception.Message);
+            Assert.Contains("ix_advanced", exception.Message);
+            Assert.Contains(reason, exception.Message);
+        }
+        [Theory]
+        [InlineData("archive", "s", false, false, "a", "a", "cross-schema reference")]
+        [InlineData("public", "f", false, false, "a", "a", "MATCH mode")]
+        [InlineData("public", "s", true, false, "a", "a", "deferrable semantics")]
+        [InlineData("public", "s", false, false, "r", "a", "RESTRICT action")]
+        public void UnsupportedForeignKeyMetadata_ThrowsWithConstraintAndReason(string referencedSchema, string matchType, bool deferrable,
+            bool initiallyDeferred, string deleteAction, string updateAction, string reason) {
+            using var connection = new TestableDBConnectionPostgresql();
+            var metadata = CreateMetadataTable(
+                ["constraint_name", "referenced_schema", "match_type", "is_deferrable", "is_initially_deferred", "delete_action", "update_action"],
+                ["fk_advanced", referencedSchema, matchType, deferrable, initiallyDeferred, deleteAction, updateAction]);
+
+            var exception = Assert.Throws<NotSupportedException>(() => connection.ValidateSupportedForeignKeysForTest("orders", "public", metadata));
+
+            Assert.Contains("orders", exception.Message);
+            Assert.Contains("fk_advanced", exception.Message);
+            Assert.Contains(reason, exception.Message);
+        }
+        [Theory]
         [InlineData(true, "DROP NOT NULL")]
         [InlineData(false, "SET NOT NULL")]
         public void AlterColumn_UsesSeparateTypeAndNullabilityStatements(bool nullable, string nullabilityClause) {
@@ -313,6 +354,12 @@ namespace DProjects.Db.Postgresql.Tests {
             public void PopulateForeignKeysForTest(DBSchemaTable table, DBTable metadata) {
                 PopulateForeignKeys(table, metadata);
             }
+            public void ValidateSupportedIndexesForTest(string table, DBTable metadata) {
+                ValidateSupportedIndexes(table, metadata);
+            }
+            public void ValidateSupportedForeignKeysForTest(string table, string schema, DBTable metadata) {
+                ValidateSupportedForeignKeys(table, schema, metadata);
+            }
             public override string[] GetTableNames() {
                 return ["records"];
             }
@@ -329,6 +376,64 @@ namespace DProjects.Db.Postgresql.Tests {
             public override string GetSqlAlterColumn(string table, DBSchemaColumn dBSchemaColumn) {
                 GetSqlAlterColumnCallCount++;
                 return base.GetSqlAlterColumn(table, dBSchemaColumn);
+            }
+        }
+    }
+
+    [Trait("Category", "Integration")]
+    [Trait("Category", "CIProviderContract")]
+    public class DBConnectionPostgresqlSchemaDiscoveryContractTests {
+
+        // methods
+        [Fact]
+        public void GetTableSchema_DiscoversRealPostgresqlKeysAndIndexesWithoutDuplicatingPrimaryKey() {
+            var connectionString = Environment.GetEnvironmentVariable("DPROJECTS_POSTGRESQL_CI")
+                ?? throw new InvalidOperationException("DPROJECTS_POSTGRESQL_CI is required for the PostgreSQL provider contract.");
+            var suffix = Guid.NewGuid().ToString("N");
+            var parentTable = "schema_parent_" + suffix;
+            var childTable = "schema_child_" + suffix;
+            var parentPrimaryKey = "pk_parent_" + suffix;
+            var childPrimaryKey = "pk_child_" + suffix;
+            var normalIndex = "ix_parent_code_" + suffix;
+            var compositeIndex = "ux_external_ref_" + suffix;
+            var normalForeignKey = "fk_parent_code_" + suffix;
+            var compositeForeignKey = "fk_parent_key_" + suffix;
+            using var connection = new DProjects.Db.Postgresql.DBConnectionPostgresql("ci-provider-contract", connectionString);
+            try {
+                // creates an isolated schema using every production discovery category under contract
+                connection.ExecuteNonQuery($"CREATE TABLE \"{parentTable}\" (\"tenant_id\" INTEGER NOT NULL, \"id\" INTEGER NOT NULL, \"code\" INTEGER NOT NULL, CONSTRAINT \"{parentPrimaryKey}\" PRIMARY KEY (\"tenant_id\", \"id\"), CONSTRAINT \"uq_code_{suffix}\" UNIQUE (\"code\"))");
+                connection.ExecuteNonQuery($"CREATE TABLE \"{childTable}\" (\"child_id\" INTEGER NOT NULL, \"tenant_id\" INTEGER NOT NULL, \"parent_id\" INTEGER NOT NULL, \"parent_code\" INTEGER NULL, \"external_ref\" VARCHAR(40) NOT NULL, CONSTRAINT \"{childPrimaryKey}\" PRIMARY KEY (\"child_id\"), CONSTRAINT \"{normalForeignKey}\" FOREIGN KEY (\"parent_code\") REFERENCES \"{parentTable}\" (\"code\") ON DELETE SET NULL ON UPDATE CASCADE, CONSTRAINT \"{compositeForeignKey}\" FOREIGN KEY (\"tenant_id\", \"parent_id\") REFERENCES \"{parentTable}\" (\"tenant_id\", \"id\") ON DELETE CASCADE ON UPDATE NO ACTION)");
+                connection.ExecuteNonQuery($"CREATE INDEX \"{normalIndex}\" ON \"{childTable}\" (\"parent_code\")");
+                connection.ExecuteNonQuery($"CREATE UNIQUE INDEX \"{compositeIndex}\" ON \"{childTable}\" (\"tenant_id\", \"external_ref\")");
+
+                var schema = connection.GetTableSchema(childTable);
+
+                Assert.Equal(["child_id", "tenant_id", "parent_id", "parent_code", "external_ref"], schema.Columns.Select(column => column.Name));
+                Assert.NotNull(schema.PrimaryKey);
+                Assert.Equal(childPrimaryKey, schema.PrimaryKey.Name);
+                Assert.Equal(["child_id"], schema.PrimaryKey.Columns);
+                Assert.DoesNotContain(schema.Indexes, index => index.Name == childPrimaryKey);
+                var discoveredNormalIndex = Assert.Single(schema.Indexes, index => index.Name == normalIndex);
+                Assert.False(discoveredNormalIndex.Unique);
+                Assert.Equal(["parent_code"], discoveredNormalIndex.Columns);
+                var discoveredCompositeIndex = Assert.Single(schema.Indexes, index => index.Name == compositeIndex);
+                Assert.True(discoveredCompositeIndex.Unique);
+                Assert.Equal(["tenant_id", "external_ref"], discoveredCompositeIndex.Columns);
+                var discoveredNormalForeignKey = Assert.Single(schema.ForeignKeys, foreignKey => foreignKey.Name == normalForeignKey);
+                Assert.Equal(["parent_code"], discoveredNormalForeignKey.Columns);
+                Assert.Equal(parentTable, discoveredNormalForeignKey.RefTable);
+                Assert.Equal(["code"], discoveredNormalForeignKey.RefColumns);
+                Assert.Equal(DBSchemaOnDeleteRule.SetNull, discoveredNormalForeignKey.OnDelete);
+                Assert.Equal(DBSchemaOnUpdateRule.Cascade, discoveredNormalForeignKey.OnUpdate);
+                var discoveredCompositeForeignKey = Assert.Single(schema.ForeignKeys, foreignKey => foreignKey.Name == compositeForeignKey);
+                Assert.Equal(["tenant_id", "parent_id"], discoveredCompositeForeignKey.Columns);
+                Assert.Equal(parentTable, discoveredCompositeForeignKey.RefTable);
+                Assert.Equal(["tenant_id", "id"], discoveredCompositeForeignKey.RefColumns);
+                Assert.Equal(DBSchemaOnDeleteRule.Cascade, discoveredCompositeForeignKey.OnDelete);
+                Assert.Equal(DBSchemaOnUpdateRule.NoAction, discoveredCompositeForeignKey.OnUpdate);
+            } finally {
+                connection.ExecuteNonQuery($"DROP TABLE IF EXISTS \"{childTable}\"");
+                connection.ExecuteNonQuery($"DROP TABLE IF EXISTS \"{parentTable}\"");
             }
         }
     }

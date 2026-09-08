@@ -13,6 +13,23 @@ namespace DProjects.Db.SqlServer {
         public DBConnectionSqlServer(string name, string connectionString) : base(name, connectionString, new Microsoft.Data.SqlClient.SqlConnection(connectionString)) {
         }
 
+        // methods
+        protected override bool AreSchemaColumnTypesEquivalent(DBSchemaColumn actual, DBSchemaColumn expected) {
+            var actualDataType = GetCanonicalSchemaDataType(actual.DataType);
+            var expectedDataType = GetCanonicalSchemaDataType(expected.DataType);
+            if (actualDataType != expectedDataType) return false;
+            if (actualDataType == DBSchemaDataType.Char || actualDataType == DBSchemaDataType.Nchar || actualDataType == DBSchemaDataType.Binary) {
+                return GetSqlServerFixedSize(actual.Size) == GetSqlServerFixedSize(expected.Size);
+            }
+            if (actualDataType == DBSchemaDataType.Varchar || actualDataType == DBSchemaDataType.Nvarchar || actualDataType == DBSchemaDataType.Varbinary) {
+                return GetSqlServerVariableSize(actual.Size) == GetSqlServerVariableSize(expected.Size);
+            }
+            if (actualDataType == DBSchemaDataType.Decimal) {
+                return GetSqlServerNumericPrecision(actual.Precision) == GetSqlServerNumericPrecision(expected.Precision) && actual.Scale == expected.Scale;
+            }
+            return true;
+        }
+
         //DDL 
         #region "DDL table"
         public override string GetSqlQualifierBegin() {
@@ -38,7 +55,13 @@ namespace DProjects.Db.SqlServer {
             if (dataTypeName.Equals("text", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Varchar.ToString();
             if (dataTypeName.Equals("ntext", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Nvarchar.ToString();
             if (dataTypeName.Equals("uniqueidentifier", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.UniqueIdentifier.ToString();
-            if (dataTypeName.Equals("timestamp", StringComparison.OrdinalIgnoreCase) || dataTypeName.Equals("rowversion", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Varbinary.ToString();
+            if (dataTypeName.Equals("datetime", StringComparison.OrdinalIgnoreCase) || dataTypeName.Equals("smalldatetime", StringComparison.OrdinalIgnoreCase)) {
+                dataTypeName = DBSchemaDataType.DateTime.ToString();
+            }
+            if (dataTypeName.Equals("datetime2", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Timestamp.ToString();
+            else if (dataTypeName.Equals("timestamp", StringComparison.OrdinalIgnoreCase) || dataTypeName.Equals("rowversion", StringComparison.OrdinalIgnoreCase)) {
+                dataTypeName = DBSchemaDataType.Varbinary.ToString();
+            }
             if (Enum.TryParse<DBSchemaDataType>(dataTypeName, true, out var portableDataType)) dataTypeName = portableDataType.ToString();
             return base.GetDataTypeFromSqlDataTypeName(dataTypeName, length, precision, scale);
         }
@@ -113,27 +136,7 @@ namespace DProjects.Db.SqlServer {
             pk.Columns = pkColumnNames.ToArray();
             if (pkFound) dbSchemaTable.PrimaryKey = pk;
             //indexes 
-            var indexes = new List<DBSchemaIndex>();
-            foreach (var row in ExecuteTable("sys.sp_helpindex @objname = ?", [table]).Rows) {
-                if (row.Table.Columns[0].Name.Equals("RowsAffected")) {
-                    break;
-                }
-                var index = new DBSchemaIndex();
-                index.Name = row.Get("index_name", "");
-                index.Description = "";
-                index.Unique = (row.Get("index_description", "").IndexOf("unique") != -1);
-                var index_column_names = new List<string>();
-                foreach (var index_key in row.Get("index_keys", "").Replace(" ", "").Split(',')) {
-                    foreach (var dbSchemaColumn in dbSchemaTable.Columns) {
-                        if (dbSchemaColumn.Name.Equals(index_key)) {
-                            index_column_names.Add(dbSchemaColumn.Name);
-                        }
-                    }
-                }
-                index.Columns = index_column_names.ToArray();
-                indexes.Add(index);
-            }
-            dbSchemaTable.Indexes.AddRange(indexes.ToArray());
+            PopulateIndexes(dbSchemaTable, ExecuteTable("sys.sp_helpindex @objname = ?", [table]));
             //foreign keys
             var sql = new StringBuilder();
             sql.AppendLine("SELECT C.TABLE_CATALOG [PKTABLE_QUALIFIER], C.TABLE_SCHEMA [PKTABLE_OWNER], C.TABLE_NAME [PKTABLE_NAME], KCU.COLUMN_NAME [PKCOLUMN_NAME], C2.TABLE_CATALOG [FKTABLE_QUALIFIER], C2.TABLE_SCHEMA [FKTABLE_OWNER], C2.TABLE_NAME [FKTABLE_NAME], KCU2.COLUMN_NAME [FKCOLUMN_NAME], RC.UPDATE_RULE, RC.DELETE_RULE, C.CONSTRAINT_NAME [FK_NAME], C2.CONSTRAINT_NAME [PK_NAME], CAST(7 AS SMALLINT) [DEFERRABILITY] ");
@@ -357,23 +360,30 @@ namespace DProjects.Db.SqlServer {
             return "DROP SEQUENCE " + GetSqlQualifierBegin() + sequence + GetSqlQualifierEnd();
         }
         public override string GetSqlTypeDefinition(DBSchemaDataType dataType, int size, int precision, int scale) {
-            var isUnboundedSqlServerType = dataType == DBSchemaDataType.Varchar || dataType == DBSchemaDataType.Nvarchar
-                || dataType == DBSchemaDataType.Varbinary;
-            if (size == 0 && isUnboundedSqlServerType) {
-                return dataType.ToString().ToUpper() + "(MAX)";
-            } else if (dataType == DBSchemaDataType.Boolean) {
-                return "BIT";
-            } else if (dataType == DBSchemaDataType.Float ) {
-                if (size == 0) size = 24;
-                return "FLOAT(" + size + ")";
-            } else if (dataType == DBSchemaDataType.Double) {
-                if (size == 0) size = 53;
-                return "FLOAT(" + size + ")";
-            } else if (dataType == DBSchemaDataType.Timestamp) {
-                return "DATETIME2";
-            } else {
-                return base.GetSqlTypeDefinition(dataType, size, precision, scale);
-            }
+            return dataType switch {
+                DBSchemaDataType.Char => GetSqlServerSizedType("CHAR", size, false),
+                DBSchemaDataType.Varchar => GetSqlServerSizedType("VARCHAR", size, true),
+                DBSchemaDataType.Nchar => GetSqlServerSizedType("NCHAR", size, false),
+                DBSchemaDataType.Nvarchar => GetSqlServerSizedType("NVARCHAR", size, true),
+                DBSchemaDataType.Binary => GetSqlServerSizedType("BINARY", size, false),
+                DBSchemaDataType.Varbinary => GetSqlServerSizedType("VARBINARY", size, true),
+                DBSchemaDataType.Numeric => GetSqlServerNumericType("NUMERIC", precision, scale),
+                DBSchemaDataType.Decimal => GetSqlServerNumericType("DECIMAL", precision, scale),
+                DBSchemaDataType.Smallint => "SMALLINT",
+                DBSchemaDataType.TinyInt => "TINYINT",
+                DBSchemaDataType.Int => "INT",
+                DBSchemaDataType.Bigint => "BIGINT",
+                DBSchemaDataType.Float => "FLOAT(24)",
+                DBSchemaDataType.Real => "FLOAT(53)",
+                DBSchemaDataType.Double => "FLOAT(53)",
+                DBSchemaDataType.Boolean => "BIT",
+                DBSchemaDataType.Date => "DATE",
+                DBSchemaDataType.DateTime => "DATETIME",
+                DBSchemaDataType.Time => "TIME",
+                DBSchemaDataType.Timestamp => "DATETIME2",
+                DBSchemaDataType.UniqueIdentifier => "UNIQUEIDENTIFIER",
+                _ => throw new NotSupportedException($"Portable SQL data type '{dataType}' is not supported by SQL Server.")
+            };
         }
         public override string BackupDb() {
             var databaseName = StringUtils.GetConnectionStringVariable(ConnectionString, "Initial Catalog", "");
@@ -568,6 +578,52 @@ namespace DProjects.Db.SqlServer {
         }
         public override string GetSqlTempTablePrefix() {
             return "#";
+        }
+        protected static void PopulateIndexes(DBSchemaTable table, DBTable metadata) {
+            foreach (var row in metadata.Rows) {
+                if (row.Table.Columns[0].Name.Equals("RowsAffected")) break;
+                var description = row.Get("index_description", "");
+                if (description.IndexOf("primary key", StringComparison.OrdinalIgnoreCase) >= 0) continue;
+                var index = new DBSchemaIndex() {
+                    Name = row.Get("index_name", ""),
+                    Description = "",
+                    Unique = description.IndexOf("unique", StringComparison.OrdinalIgnoreCase) >= 0
+                };
+                var columns = new List<string>();
+                foreach (var indexKey in row.Get("index_keys", "").Replace(" ", "").Split(',')) {
+                    foreach (var column in table.Columns) {
+                        if (column.Name.Equals(indexKey)) columns.Add(column.Name);
+                    }
+                }
+                index.Columns = columns.ToArray();
+                table.Indexes.Add(index);
+            }
+        }
+
+        // methods (private)
+        private static DBSchemaDataType GetCanonicalSchemaDataType(DBSchemaDataType dataType) {
+            return dataType switch {
+                DBSchemaDataType.Real => DBSchemaDataType.Double,
+                DBSchemaDataType.Numeric => DBSchemaDataType.Decimal,
+                _ => dataType
+            };
+        }
+        private static int GetSqlServerFixedSize(int size) {
+            return size == 0 ? 1 : size;
+        }
+        private static int GetSqlServerVariableSize(int size) {
+            return size == int.MaxValue ? 0 : size;
+        }
+        private static string GetSqlServerSizedType(string sqlType, int size, bool supportsMax) {
+            if (supportsMax && (size == 0 || size == int.MaxValue)) return sqlType + "(MAX)";
+            return size > 0 ? sqlType + "(" + size + ")" : sqlType;
+        }
+        private static string GetSqlServerNumericType(string sqlType, int precision, int scale) {
+            if (precision == 0 && scale > 0) throw new ArgumentOutOfRangeException(nameof(precision), precision, "Precision must be greater than zero when scale is specified.");
+            return precision > 0 ? sqlType + "(" + precision + "," + scale + ")" : sqlType;
+        }
+        private static int GetSqlServerNumericPrecision(int precision) {
+            return precision == 0 ? 18 : precision;
         }
         #endregion
 

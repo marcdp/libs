@@ -248,7 +248,54 @@ namespace DProjects.Db.Postgresql {
             //    fks.Add(fk);
             //}
             //dbSchemaTable.ForeignKeys.AddRange(fks.ToArray());
-            // discover representable indexes without duplicating primary-key backing indexes
+            // rejects indexes whose semantics cannot be represented by the portable schema model
+            var unsupportedIndexMetadata = ExecuteTable(@"
+                SELECT index_class.relname AS index_name, access_method.amname AS access_method,
+                    index_definition.indexprs IS NOT NULL AS has_expressions,
+                    index_definition.indpred IS NOT NULL AS is_partial,
+                    index_definition.indnkeyatts <> index_definition.indnatts AS has_include_columns,
+                    index_definition.indisexclusion AS is_exclusion,
+                    NOT index_definition.indisvalid OR NOT index_definition.indisready OR NOT index_definition.indislive AS is_invalid,
+                    COALESCE((to_jsonb(index_definition) ->> 'indnullsnotdistinct')::boolean, false) AS nulls_not_distinct,
+                    EXISTS (SELECT 1 FROM unnest(index_definition.indoption::smallint[]) AS option(value) WHERE option.value <> 0) AS has_nondefault_ordering,
+                    EXISTS (
+                        SELECT 1 FROM unnest(index_definition.indclass::oid[]) AS operator_class(oid)
+                        INNER JOIN pg_catalog.pg_opclass operator_class_definition ON operator_class_definition.oid = operator_class.oid
+                        WHERE NOT operator_class_definition.opcdefault) AS has_nondefault_operator_class,
+                    EXISTS (
+                        SELECT 1
+                        FROM unnest(index_definition.indcollation::oid[]) WITH ORDINALITY AS index_collation(oid, ordinality)
+                        INNER JOIN unnest(index_definition.indkey::smallint[]) WITH ORDINALITY AS indexed_key(attnum, ordinality)
+                            ON indexed_key.ordinality = index_collation.ordinality
+                        INNER JOIN pg_catalog.pg_attribute indexed_attribute
+                            ON indexed_attribute.attrelid = table_class.oid AND indexed_attribute.attnum = indexed_key.attnum
+                        WHERE index_collation.oid <> 0 AND index_collation.oid <> indexed_attribute.attcollation) AS has_nondefault_collation
+                FROM pg_catalog.pg_class table_class
+                INNER JOIN pg_catalog.pg_namespace namespace ON namespace.oid = table_class.relnamespace
+                INNER JOIN pg_catalog.pg_index index_definition ON index_definition.indrelid = table_class.oid
+                INNER JOIN pg_catalog.pg_class index_class ON index_class.oid = index_definition.indexrelid
+                INNER JOIN pg_catalog.pg_am access_method ON access_method.oid = index_class.relam
+                WHERE namespace.nspname = ? AND table_class.relname = ? AND NOT index_definition.indisprimary
+                    AND (access_method.amname <> 'btree' OR index_definition.indexprs IS NOT NULL OR index_definition.indpred IS NOT NULL
+                        OR index_definition.indnkeyatts <> index_definition.indnatts
+                        OR index_definition.indisexclusion OR NOT index_definition.indisvalid OR NOT index_definition.indisready OR NOT index_definition.indislive
+                        OR COALESCE((to_jsonb(index_definition) ->> 'indnullsnotdistinct')::boolean, false)
+                        OR EXISTS (SELECT 1 FROM unnest(index_definition.indoption::smallint[]) AS option(value) WHERE option.value <> 0)
+                        OR EXISTS (
+                            SELECT 1 FROM unnest(index_definition.indclass::oid[]) AS operator_class(oid)
+                            INNER JOIN pg_catalog.pg_opclass operator_class_definition ON operator_class_definition.oid = operator_class.oid
+                            WHERE NOT operator_class_definition.opcdefault)
+                        OR EXISTS (
+                            SELECT 1
+                            FROM unnest(index_definition.indcollation::oid[]) WITH ORDINALITY AS index_collation(oid, ordinality)
+                            INNER JOIN unnest(index_definition.indkey::smallint[]) WITH ORDINALITY AS indexed_key(attnum, ordinality)
+                                ON indexed_key.ordinality = index_collation.ordinality
+                            INNER JOIN pg_catalog.pg_attribute indexed_attribute
+                                ON indexed_attribute.attrelid = table_class.oid AND indexed_attribute.attnum = indexed_key.attnum
+                            WHERE index_collation.oid <> 0 AND index_collation.oid <> indexed_attribute.attcollation))
+                ORDER BY index_class.relname", [schema, table]);
+            ValidateSupportedIndexes(table, unsupportedIndexMetadata);
+            // discovers representable indexes without duplicating primary-key backing indexes
             var indexMetadata = ExecuteTable(@"
                 SELECT index_class.relname AS index_name, index_definition.indisunique AS is_unique, attribute.attname AS column_name,
                     key_column.ordinality AS ordinal_position
@@ -279,7 +326,26 @@ namespace DProjects.Db.Postgresql {
                         WHERE index_collation.oid <> 0 AND index_collation.oid <> indexed_attribute.attcollation)
                 ORDER BY index_class.relname, key_column.ordinality", [schema, table]);
             PopulateIndexes(dbSchemaTable, indexMetadata);
-            // discover foreign keys with local and referenced columns paired by ordinal position
+            // rejects foreign keys whose semantics cannot be represented by the portable schema model
+            var unsupportedForeignKeyMetadata = ExecuteTable(@"
+                SELECT constraint_definition.conname AS constraint_name, referenced_namespace.nspname AS referenced_schema,
+                    constraint_definition.confmatchtype::text AS match_type, constraint_definition.condeferrable AS is_deferrable,
+                    constraint_definition.condeferred AS is_initially_deferred, constraint_definition.confdeltype::text AS delete_action,
+                    constraint_definition.confupdtype::text AS update_action,
+                    (to_jsonb(constraint_definition) ->> 'confdelsetcols') IS NOT NULL AS has_delete_column_list
+                FROM pg_catalog.pg_constraint constraint_definition
+                INNER JOIN pg_catalog.pg_class local_table ON local_table.oid = constraint_definition.conrelid
+                INNER JOIN pg_catalog.pg_namespace namespace ON namespace.oid = local_table.relnamespace
+                INNER JOIN pg_catalog.pg_class referenced_table ON referenced_table.oid = constraint_definition.confrelid
+                INNER JOIN pg_catalog.pg_namespace referenced_namespace ON referenced_namespace.oid = referenced_table.relnamespace
+                WHERE constraint_definition.contype = 'f' AND namespace.nspname = ? AND local_table.relname = ?
+                    AND (referenced_namespace.nspname <> namespace.nspname OR constraint_definition.confmatchtype <> 's'
+                        OR constraint_definition.condeferrable OR constraint_definition.condeferred
+                        OR constraint_definition.confdeltype = 'r' OR constraint_definition.confupdtype = 'r'
+                        OR (to_jsonb(constraint_definition) ->> 'confdelsetcols') IS NOT NULL)
+                ORDER BY constraint_definition.conname", [schema, table]);
+            ValidateSupportedForeignKeys(table, schema, unsupportedForeignKeyMetadata);
+            // discovers foreign keys with local and referenced columns paired by ordinal position
             var foreignKeyMetadata = ExecuteTable(@"
                 SELECT constraint_definition.conname AS constraint_name, local_attribute.attname AS local_column,
                     referenced_table.relname AS referenced_table, referenced_attribute.attname AS referenced_column,
@@ -699,6 +765,33 @@ namespace DProjects.Db.Postgresql {
                 referencedColumns.Add(row.Get("referenced_column", ""));
             }
             if (foreignKey != null) AddForeignKey(table, foreignKey, columns, referencedColumns);
+        }
+        protected static void ValidateSupportedIndexes(string table, DBTable metadata) {
+            if (metadata.Rows.Count == 0) return;
+            var row = metadata.Rows[0];
+            var reason = row.Get("access_method", "btree") != "btree" ? "non-btree access method"
+                : row.Get("has_expressions", false) ? "expression keys"
+                : row.Get("is_partial", false) ? "partial predicate"
+                : row.Get("has_include_columns", false) ? "INCLUDE columns"
+                : row.Get("is_exclusion", false) ? "exclusion constraint semantics"
+                : row.Get("is_invalid", false) ? "invalid or unfinished index state"
+                : row.Get("nulls_not_distinct", false) ? "NULLS NOT DISTINCT"
+                : row.Get("has_nondefault_ordering", false) ? "non-default ordering"
+                : row.Get("has_nondefault_operator_class", false) ? "non-default operator class"
+                : row.Get("has_nondefault_collation", false) ? "non-default collation"
+                : "unsupported definition";
+            throw new NotSupportedException($"PostgreSQL index '{row.Get("index_name", "")}' on table '{table}' cannot be represented: {reason}.");
+        }
+        protected static void ValidateSupportedForeignKeys(string table, string schema, DBTable metadata) {
+            if (metadata.Rows.Count == 0) return;
+            var row = metadata.Rows[0];
+            var reason = !row.Get("referenced_schema", schema).Equals(schema, StringComparison.Ordinal) ? "cross-schema reference"
+                : row.Get("match_type", "s") != "s" ? "MATCH mode"
+                : row.Get("is_deferrable", false) || row.Get("is_initially_deferred", false) ? "deferrable semantics"
+                : row.Get("delete_action", "a") == "r" || row.Get("update_action", "a") == "r" ? "RESTRICT action"
+                : row.Get("has_delete_column_list", false) ? "column-specific SET NULL/DEFAULT action"
+                : "unsupported semantics";
+            throw new NotSupportedException($"PostgreSQL foreign key '{row.Get("constraint_name", "")}' on table '{table}' cannot be represented: {reason}.");
         }
         private static void AddForeignKey(DBSchemaTable table, DBSchemaForeignKey foreignKey, List<string> columns, List<string> referencedColumns) {
             foreignKey.Columns = columns.ToArray();

@@ -742,6 +742,90 @@ namespace DProjects.Db.Tests {
             Assert.Throws<InvalidOperationException>(() => connection.ApplySchemaChanges(schema, false, NullLogger<IDBConnection>.Instance));
         }
         [Fact]
+        public void ApplySchemaChanges_DropsForeignKeyBeforeItsColumn() {
+            using var connection = new ReconciliationDBConnection();
+            var parent = CreateSchemaTable("parent", "id");
+            var child = CreateSchemaTable("child", "id", "parent_id");
+            child.ForeignKeys.Add(new DBSchemaForeignKey() { Name = "fk_child_parent", Columns = ["parent_id"], RefTable = "parent", RefColumns = ["id"] });
+            connection.ExistingSchema.Tables.Add(parent);
+            connection.ExistingSchema.Tables.Add(child);
+            var target = new DBSchemaDatabase();
+            target.Tables.Add(CreateSchemaTable("parent", "id"));
+            target.Tables.Add(CreateSchemaTable("child", "id"));
+            var logger = new ListLogger();
+
+            connection.ApplySchemaChanges(target, false, logger);
+
+            AssertSqlBefore(logger.Messages, "DROP CONSTRAINT fk_child_parent", "DROP COLUMN parent_id");
+        }
+        [Fact]
+        public void ApplySchemaChanges_DropsIndexBeforeItsColumn() {
+            using var connection = new ReconciliationDBConnection();
+            var oldTable = CreateSchemaTable("records", "id", "obsolete");
+            oldTable.Indexes.Add(new DBSchemaIndex() { Name = "ix_obsolete", Columns = ["obsolete"] });
+            connection.ExistingSchema.Tables.Add(oldTable);
+            var target = new DBSchemaDatabase();
+            target.Tables.Add(CreateSchemaTable("records", "id"));
+            var logger = new ListLogger();
+
+            connection.ApplySchemaChanges(target, false, logger);
+
+            AssertSqlBefore(logger.Messages, "DROP INDEX ix_obsolete", "DROP COLUMN obsolete");
+        }
+        [Fact]
+        public void ApplySchemaChanges_DropsForeignKeyBeforeReferencedTable() {
+            using var connection = new ReconciliationDBConnection();
+            connection.ExistingSchema.Tables.Add(CreateSchemaTable("parent", "id"));
+            var child = CreateSchemaTable("child", "id", "parent_id");
+            child.ForeignKeys.Add(new DBSchemaForeignKey() { Name = "fk_child_parent", Columns = ["parent_id"], RefTable = "parent", RefColumns = ["id"] });
+            connection.ExistingSchema.Tables.Add(child);
+            var target = new DBSchemaDatabase();
+            target.Tables.Add(CreateSchemaTable("child", "id", "parent_id"));
+            var logger = new ListLogger();
+
+            connection.ApplySchemaChanges(target, false, logger);
+
+            AssertSqlBefore(logger.Messages, "DROP CONSTRAINT fk_child_parent", "DROP TABLE parent");
+        }
+        [Fact]
+        public void ApplySchemaChanges_RemovesPrimaryKeyWhenTargetHasNone() {
+            using var connection = new ReconciliationDBConnection();
+            var oldTable = CreateSchemaTable("records", "id");
+            oldTable.PrimaryKey = new DBSchemaPrimaryKey() { Name = "pk_records", Columns = ["id"] };
+            connection.ExistingSchema.Tables.Add(oldTable);
+            var target = new DBSchemaDatabase();
+            target.Tables.Add(CreateSchemaTable("records", "id"));
+            var logger = new ListLogger();
+
+            connection.ApplySchemaChanges(target, false, logger);
+
+            Assert.Contains(logger.Messages, message => message.Contains("DROP CONSTRAINT pk_records", StringComparison.Ordinal));
+        }
+        [Fact]
+        public void ApplySchemaChanges_ReplacesPrimaryKeyAfterDroppingDependentForeignKey() {
+            using var connection = new ReconciliationDBConnection();
+            var oldParent = CreateSchemaTable("parent", "id", "replacement_id");
+            oldParent.PrimaryKey = new DBSchemaPrimaryKey() { Name = "pk_parent", Columns = ["id"] };
+            var oldChild = CreateSchemaTable("child", "id", "parent_id");
+            oldChild.ForeignKeys.Add(new DBSchemaForeignKey() { Name = "fk_child_parent", Columns = ["parent_id"], RefTable = "parent", RefColumns = ["id"] });
+            connection.ExistingSchema.Tables.Add(oldParent);
+            connection.ExistingSchema.Tables.Add(oldChild);
+            var target = new DBSchemaDatabase();
+            var newParent = CreateSchemaTable("parent", "id", "replacement_id");
+            newParent.PrimaryKey = new DBSchemaPrimaryKey() { Name = "pk_parent", Columns = ["replacement_id"] };
+            var newChild = CreateSchemaTable("child", "id", "parent_id");
+            newChild.ForeignKeys.Add(new DBSchemaForeignKey() { Name = "fk_child_parent", Columns = ["parent_id"], RefTable = "parent", RefColumns = ["replacement_id"] });
+            target.Tables.Add(newParent);
+            target.Tables.Add(newChild);
+            var logger = new ListLogger();
+
+            connection.ApplySchemaChanges(target, false, logger);
+
+            AssertSqlBefore(logger.Messages, "DROP CONSTRAINT fk_child_parent", "DROP CONSTRAINT pk_parent");
+            AssertSqlBefore(logger.Messages, "DROP CONSTRAINT pk_parent", "ADD CONSTRAINT pk_parent PRIMARY KEY");
+            AssertSqlBefore(logger.Messages, "ADD CONSTRAINT pk_parent PRIMARY KEY", "ADD CONSTRAINT fk_child_parent FOREIGN KEY");
+        }
+        [Fact]
         public void TypeMappings_AreSemanticallyConsistent() {
             using var connection = new TestDBConnection();
 
@@ -791,6 +875,18 @@ namespace DProjects.Db.Tests {
             table.Records.Add(new DBSchemaRecord() { [columnName] = "value" });
             schema.Tables.Add(table);
             return schema;
+        }
+        private static DBSchemaTable CreateSchemaTable(string tableName, params string[] columns) {
+            var table = new DBSchemaTable() { Name = tableName };
+            foreach (var column in columns) table.Columns.Add(new DBSchemaColumn(column) { DataType = DBSchemaDataType.Int });
+            return table;
+        }
+        private static void AssertSqlBefore(List<string> messages, string first, string second) {
+            var firstIndex = messages.FindIndex(message => message.Contains(first, StringComparison.Ordinal));
+            var secondIndex = messages.FindIndex(message => message.Contains(second, StringComparison.Ordinal));
+            Assert.True(firstIndex >= 0, $"SQL containing '{first}' was not generated.");
+            Assert.True(secondIndex >= 0, $"SQL containing '{second}' was not generated.");
+            Assert.True(firstIndex < secondIndex, $"Expected '{first}' before '{second}'.");
         }
 
         private sealed class ListLogger : ILogger<IDBConnection> {
@@ -906,6 +1002,23 @@ namespace DProjects.Db.Tests {
             public override string GetSqlDropProcedure(string procedure) {
                 GetSqlDropProcedureCallCount++;
                 return "DROP PROCEDURE " + procedure;
+            }
+        }
+
+        private sealed class ReconciliationDBConnection : TestDBConnection {
+
+            // props
+            public DBSchemaDatabase ExistingSchema { get; } = new DBSchemaDatabase();
+
+            // methods
+            public override string[] GetTableNames() {
+                return ExistingSchema.Tables.Select(table => table.Name).ToArray();
+            }
+            public override DBSchemaTable GetTableSchema(string table) {
+                return ExistingSchema.GetTable(table) ?? throw new InvalidOperationException("Table not found: " + table);
+            }
+            public override string GetSqlDropIndex(string table, string index) {
+                return "DROP INDEX " + index + " ON " + table;
             }
         }
 

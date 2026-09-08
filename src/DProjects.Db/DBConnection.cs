@@ -779,6 +779,79 @@ namespace DProjects.Db {
             var qb = GetSqlQualifierBegin();
             var qe = GetSqlQualifierEnd();
             var separator = GetSqlSeparator();
+            var droppedForeignKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var droppedIndexes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var droppedPrimaryKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            // removes foreign keys before the constraints, columns, and tables they depend on
+            foreach (var dbSchemaTableOld in dbSchemaOld.Tables) {
+                var dbSchemaTable = dbSchema.GetTable(dbSchemaTableOld.Name);
+                if (dbSchemaTable == null) continue;
+                foreach (var dbSchemaForeignKeyOld in dbSchemaTableOld.ForeignKeys) {
+                    var dbSchemaForeignKey = dbSchemaTable.GetForeignKey(dbSchemaForeignKeyOld.Name);
+                    var referencedTableOld = dbSchemaOld.GetTable(dbSchemaForeignKeyOld.RefTable);
+                    var referencedTable = dbSchema.GetTable(dbSchemaForeignKeyOld.RefTable);
+                    var localColumnRemoved = Array.Exists(dbSchemaForeignKeyOld.Columns, column => dbSchemaTable.GetColumn(column) == null);
+                    var referencedColumnRemoved = referencedTable != null && Array.Exists(dbSchemaForeignKeyOld.RefColumns, column => referencedTable.GetColumn(column) == null);
+                    var referencedPrimaryKeyChanged = referencedTableOld?.PrimaryKey != null && (referencedTable?.PrimaryKey == null
+                        || !referencedTableOld.PrimaryKey.GetHash().Equals(referencedTable.PrimaryKey.GetHash()));
+                    if (dbSchemaForeignKey == null || !dbSchemaForeignKeyOld.GetHash().Equals(dbSchemaForeignKey.GetHash()) || referencedTable == null
+                        || localColumnRemoved || referencedColumnRemoved || referencedPrimaryKeyChanged) {
+                        var sql = GetSqlDropForeignKey(dbSchemaTableOld.Name, dbSchemaForeignKeyOld.Name);
+                        logger.LogInformation(sql + separator);
+                        if (applyChanges) ExecuteNonQuery(sql);
+                        droppedForeignKeys.Add(GetSchemaObjectKey(dbSchemaTableOld.Name, dbSchemaForeignKeyOld.Name));
+                    }
+                }
+            }
+            // removes indexes before columns they depend on
+            foreach (var dbSchemaTableOld in dbSchemaOld.Tables) {
+                var dbSchemaTable = dbSchema.GetTable(dbSchemaTableOld.Name);
+                if (dbSchemaTable == null) continue;
+                foreach (var dbSchemaIndexOld in dbSchemaTableOld.Indexes) {
+                    var dbSchemaIndex = dbSchemaTable.GetIndex(dbSchemaIndexOld.Name);
+                    var indexedColumnRemoved = Array.Exists(dbSchemaIndexOld.Columns, column => dbSchemaTable.GetColumn(column) == null);
+                    if (dbSchemaIndex == null || !dbSchemaIndexOld.GetHash().Equals(dbSchemaIndex.GetHash()) || indexedColumnRemoved) {
+                        var sql = GetSqlDropIndex(dbSchemaTableOld.Name, dbSchemaIndexOld.Name);
+                        logger.LogInformation(sql + separator);
+                        if (applyChanges) ExecuteNonQuery(sql);
+                        droppedIndexes.Add(GetSchemaObjectKey(dbSchemaTableOld.Name, dbSchemaIndexOld.Name));
+                    }
+                }
+            }
+            // removes primary keys explicitly before dependent column changes
+            foreach (var dbSchemaTableOld in dbSchemaOld.Tables) {
+                var dbSchemaTable = dbSchema.GetTable(dbSchemaTableOld.Name);
+                if (dbSchemaTable == null || dbSchemaTableOld.PrimaryKey == null) continue;
+                if (dbSchemaTable.PrimaryKey == null || !dbSchemaTableOld.PrimaryKey.GetHash().Equals(dbSchemaTable.PrimaryKey.GetHash())) {
+                    var sql = GetSqlDropPrimaryKey(dbSchemaTableOld.Name, dbSchemaTableOld.PrimaryKey.Name);
+                    logger.LogInformation(sql + separator);
+                    if (applyChanges) ExecuteNonQuery(sql);
+                    droppedPrimaryKeys.Add(dbSchemaTableOld.Name);
+                }
+            }
+            // removes columns only after their dependent schema objects are gone
+            foreach (var dbSchemaTable in dbSchema.Tables) {
+                var dbSchemaTableOld = dbSchemaOld.GetTable(dbSchemaTable.Name);
+                if (dbSchemaTableOld == null) continue;
+                foreach (var dbSchemaColumnOld in dbSchemaTableOld.Columns) {
+                    if (dbSchemaTable.GetColumn(dbSchemaColumnOld.Name) != null) continue;
+                    if (dbSchemaColumnOld.Default != null) {
+                        var sqlDrop = GetSqlDropDefault(dbSchemaTable.Name, dbSchemaColumnOld.Name);
+                        logger.LogInformation(sqlDrop + separator);
+                        if (applyChanges) ExecuteNonQuery(sqlDrop);
+                    }
+                    var sql = GetSqlDropColumn(dbSchemaTable.Name, dbSchemaColumnOld.Name);
+                    logger.LogInformation(sql + separator);
+                    if (applyChanges) ExecuteNonQuery(sql);
+                }
+            }
+            // removes tables after foreign keys from surviving tables have been removed
+            foreach (var dbSchemaTableOld in dbSchemaOld.Tables) {
+                if (dbSchema.GetTable(dbSchemaTableOld.Name) != null) continue;
+                var sql = GetSqlDropTable(dbSchemaTableOld.Name);
+                logger.LogInformation(sql + separator);
+                if (applyChanges) ExecuteNonQuery(sql);
+            }
             //tables
             foreach (var dbSchemaTable in dbSchema.Tables) {
                 var dbSchemaTableOld = dbSchemaOld.GetTable(dbSchemaTable.Name);
@@ -842,12 +915,8 @@ namespace DProjects.Db {
                 if (dbSchemaTable.PrimaryKey != null) {
                     var dbSchemaTableOld = dbSchemaOld.GetTable(dbSchemaTable.Name);
                     var dbSchemaPrimaryKeyOld = (dbSchemaTableOld != null ? dbSchemaTableOld.PrimaryKey : null);
-                    if (dbSchemaTableOld == null || dbSchemaPrimaryKeyOld == null || !dbSchemaPrimaryKeyOld.GetHash().Equals(dbSchemaTable.PrimaryKey.GetHash())) {
-                        if (dbSchemaPrimaryKeyOld != null && !dbSchemaPrimaryKeyOld.GetHash().Equals(dbSchemaTable.PrimaryKey.GetHash())) {
-                            var sqlDrop = GetSqlDropPrimaryKey(dbSchemaTable.Name, dbSchemaPrimaryKeyOld.Name);
-                            logger.LogInformation(sqlDrop + separator);
-                            if (applyChanges) ExecuteNonQuery(sqlDrop);
-                        }
+                    if (dbSchemaTableOld == null || dbSchemaPrimaryKeyOld == null || droppedPrimaryKeys.Contains(dbSchemaTable.Name)
+                        || !dbSchemaPrimaryKeyOld.GetHash().Equals(dbSchemaTable.PrimaryKey.GetHash())) {
                         var sql = GetSqlCreatePrimaryKey(dbSchemaTable.Name, dbSchemaTable.PrimaryKey);
                         logger.LogInformation(sql + separator);
                         if (applyChanges) ExecuteNonQuery(sql);
@@ -859,12 +928,8 @@ namespace DProjects.Db {
                 var dbSchemaTableOld = dbSchemaOld.GetTable(dbSchemaTable.Name);
                 foreach (var dbSchemaIndex in dbSchemaTable.Indexes) {
                     var dbSchemaIndexOld = (dbSchemaTableOld != null ? dbSchemaTableOld.GetIndex(dbSchemaIndex.Name) : null);
-                    if (dbSchemaIndexOld == null || !dbSchemaIndexOld.GetHash().Equals(dbSchemaIndex.GetHash())) {
-                        if (dbSchemaIndexOld != null) {
-                            var sqlDrop = GetSqlDropIndex(dbSchemaTable.Name, dbSchemaIndex.Name);
-                            logger.LogInformation(sqlDrop + separator);
-                            if (applyChanges) ExecuteNonQuery(sqlDrop);
-                        }
+                    if (dbSchemaIndexOld == null || droppedIndexes.Contains(GetSchemaObjectKey(dbSchemaTable.Name, dbSchemaIndex.Name))
+                        || !dbSchemaIndexOld.GetHash().Equals(dbSchemaIndex.GetHash())) {
                         var sql = GetSqlCreateIndex(dbSchemaTable.Name, dbSchemaIndex);
                         logger.LogInformation(sql + separator);
                         if (applyChanges) ExecuteNonQuery(sql);
@@ -876,12 +941,8 @@ namespace DProjects.Db {
                 var dbSchemaTableOld = dbSchemaOld.GetTable(dbSchemaTable.Name);
                 foreach (var dbSchemaForeignKey in dbSchemaTable.ForeignKeys) {
                     var dbSchemaForeignKeyOld = (dbSchemaTableOld != null ? dbSchemaTableOld.GetForeignKey(dbSchemaForeignKey.Name) : null);
-                    if (dbSchemaForeignKeyOld == null || !dbSchemaForeignKeyOld.GetHash().Equals(dbSchemaForeignKey.GetHash())) {
-                        if (dbSchemaForeignKeyOld != null) {
-                            var sqlDrop = GetSqlDropForeignKey(dbSchemaTable.Name, dbSchemaForeignKey.Name);
-                            logger.LogInformation(sqlDrop + separator);
-                            if (applyChanges) ExecuteNonQuery(sqlDrop);
-                        }
+                    if (dbSchemaForeignKeyOld == null || droppedForeignKeys.Contains(GetSchemaObjectKey(dbSchemaTable.Name, dbSchemaForeignKey.Name))
+                        || !dbSchemaForeignKeyOld.GetHash().Equals(dbSchemaForeignKey.GetHash())) {
                         var sql = GetSqlCreateForeignKey(dbSchemaTable.Name, dbSchemaForeignKey);
                         logger.LogInformation(sql + separator);
                         if (applyChanges) ExecuteNonQuery(sql);
@@ -932,60 +993,6 @@ namespace DProjects.Db {
                         var sql = GetSqlCreateProcedure(dbSchemaProcedure);
                         logger.LogInformation(sql + separator);
                         if (applyChanges) ExecuteNonQuery(sql);
-                    }
-                }
-            }
-            //remove invalid tables
-            foreach (var dbSchemaTable in dbSchemaOld.Tables) {
-                if (dbSchema.GetTable(dbSchemaTable.Name) == null) {
-                    var sql = GetSqlDropTable(dbSchemaTable.Name);
-                    logger.LogInformation(sql + separator);
-                    if (applyChanges) ExecuteNonQuery(sql);
-                }
-            }
-            //remove invalid table columns
-            foreach (var dbSchemaTable in dbSchema.Tables) {
-                var dbSchemaTableOld = dbSchemaOld.GetTable(dbSchemaTable.Name);
-                if (dbSchemaTableOld != null) {
-                    foreach (var dbSchemaColumnOld in dbSchemaTableOld.Columns) {
-                        if (dbSchemaTable.GetColumn(dbSchemaColumnOld.Name) == null) {
-                            if (dbSchemaColumnOld.Default != null) {
-                                var sqlDrop = GetSqlDropDefault(dbSchemaTable.Name, dbSchemaColumnOld.Name);
-                                logger.LogInformation(sqlDrop + separator);
-                                if (applyChanges) ExecuteNonQuery(sqlDrop);
-                            }
-                            var sql = GetSqlDropColumn(dbSchemaTable.Name, dbSchemaColumnOld.Name);
-                            logger.LogInformation(sql + separator);
-                            if (applyChanges) ExecuteNonQuery(sql);
-                        }
-                    }
-                }
-            }
-            //remove invalid table foreign keys
-            foreach (var dbSchemaTable in dbSchema.Tables) {
-                var dbSchemaTableOld = dbSchemaOld.GetTable(dbSchemaTable.Name);
-                if (dbSchemaTableOld != null) {
-                    foreach (var dbSchemaForeignKeyOld in dbSchemaTableOld.ForeignKeys) {
-                        if (dbSchemaTable.GetForeignKey(dbSchemaForeignKeyOld.Name) == null) {
-                            var sql = GetSqlDropForeignKey(dbSchemaTable.Name, dbSchemaForeignKeyOld.Name);
-                            logger.LogInformation(sql + separator);
-                            if (applyChanges) ExecuteNonQuery(sql);
-                        }
-                    }
-                }
-            }
-            //remove invalid table indexes
-            foreach (var dbSchemaTable in dbSchema.Tables) {
-                var dbSchemaTableOld = dbSchemaOld.GetTable(dbSchemaTable.Name);
-                if (dbSchemaTableOld != null) {
-                    foreach (var dbSchemaIndexOld in dbSchemaTableOld.Indexes) {
-                        if (dbSchemaTable.GetIndex(dbSchemaIndexOld.Name) == null) {
-                            if (dbSchemaTable.PrimaryKey == null || string.Join(",", dbSchemaIndexOld.Columns) != string.Join(",", dbSchemaTable.PrimaryKey.Columns)) {
-                                var sql = GetSqlDropIndex(dbSchemaTable.Name, dbSchemaIndexOld.Name);
-                                logger.LogInformation(sql + separator);
-                                if (applyChanges) ExecuteNonQuery(sql);
-                            }
-                        }
                     }
                 }
             }
@@ -1519,6 +1526,9 @@ namespace DProjects.Db {
         }
         private static bool ContainsRecordKey(DBSchemaRecord record, string columnName) {
             return Array.FindIndex(record.AllKeys, key => key != null && key.Equals(columnName, StringComparison.OrdinalIgnoreCase)) >= 0;
+        }
+        private static string GetSchemaObjectKey(string table, string name) {
+            return table + "\0" + name;
         }
         private static object GetDbParameterValue(object value) {
             if (value == DBNull.Value) return DBNull.Value;
