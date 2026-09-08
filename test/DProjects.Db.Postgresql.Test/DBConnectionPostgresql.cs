@@ -32,6 +32,8 @@ namespace DProjects.Db.Postgresql.Tests {
             Assert.Equal(DBSchemaDataType.Varchar, connection.GetDataTypeFromSqlDataTypeName("text", 0, 0, 0));
             Assert.Equal(DBSchemaDataType.Varchar, connection.GetDataTypeFromSqlDataTypeName("character varying", 0, 0, 0));
             Assert.Equal(DBSchemaDataType.UniqueIdentifier, connection.GetDataTypeFromSqlDataTypeName("uuid", 0, 0, 0));
+            Assert.Equal(DBSchemaDataType.Json, connection.GetDataTypeFromSqlDataTypeName("json", 0, 0, 0));
+            Assert.Equal(DBSchemaDataType.Jsonb, connection.GetDataTypeFromSqlDataTypeName("jsonb", 0, 0, 0));
         }
         [Fact]
         public void SqlPrimitives_UsePostgresqlDialectBehavior() {

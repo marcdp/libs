@@ -527,17 +527,37 @@ namespace DProjects.Db.Tests {
             Assert.Throws<NotSupportedException>(() => connection.GetSqlEncodedLikeValue("value"));
         }
         [Fact]
-        public void BaseTypeNameMapping_RecognizesPortableNamesOnly() {
+        public void BaseTypeNameMapping_RecognizesPortableNamesCaseInsensitively() {
             using var connection = new TestDBConnection();
 
             Assert.Equal(DBSchemaDataType.Timestamp, connection.GetDataTypeFromSqlDataTypeName("Timestamp", 0, 0, 0));
-            Assert.Throws<NotSupportedException>(() => connection.GetDataTypeFromSqlDataTypeName("timestamp", 0, 0, 0));
+            Assert.Equal(DBSchemaDataType.Timestamp, connection.GetDataTypeFromSqlDataTypeName("timestamp", 0, 0, 0));
+            Assert.Equal(DBSchemaDataType.Timestamp, connection.GetDataTypeFromSqlDataTypeName("TIMESTAMP", 0, 0, 0));
+            Assert.Equal(DBSchemaDataType.Varchar, connection.GetDataTypeFromSqlDataTypeName("Varchar", 0, 0, 0));
+            Assert.Equal(DBSchemaDataType.Varchar, connection.GetDataTypeFromSqlDataTypeName("varchar", 0, 0, 0));
+            Assert.Equal(DBSchemaDataType.Varchar, connection.GetDataTypeFromSqlDataTypeName("VARCHAR", 0, 0, 0));
+            Assert.Equal(DBSchemaDataType.DateTime, connection.GetDataTypeFromSqlDataTypeName("DateTime", 0, 0, 0));
+            Assert.Equal(DBSchemaDataType.DateTime, connection.GetDataTypeFromSqlDataTypeName("datetime", 0, 0, 0));
+            Assert.Equal(DBSchemaDataType.DateTime, connection.GetDataTypeFromSqlDataTypeName("DATETIME", 0, 0, 0));
+            Assert.Equal(DBSchemaDataType.UniqueIdentifier, connection.GetDataTypeFromSqlDataTypeName("uniqueidentifier", 0, 0, 0));
             Assert.Throws<NotSupportedException>(() => connection.GetDataTypeFromSqlDataTypeName("bit", 0, 0, 0));
             Assert.Throws<NotSupportedException>(() => connection.GetDataTypeFromSqlDataTypeName("text", 0, 0, 0));
             Assert.Throws<NotSupportedException>(() => connection.GetDataTypeFromSqlDataTypeName("ntext", 0, 0, 0));
             Assert.Throws<NotSupportedException>(() => connection.GetDataTypeFromSqlDataTypeName("varchar2", 0, 0, 0));
             Assert.Throws<NotSupportedException>(() => connection.GetDataTypeFromSqlDataTypeName("number", 0, 0, 0));
-            Assert.Throws<NotSupportedException>(() => connection.GetDataTypeFromSqlDataTypeName("uniqueidentifier", 0, 0, 0));
+            Assert.Throws<NotSupportedException>(() => connection.GetDataTypeFromSqlDataTypeName("character varying", 0, 0, 0));
+            Assert.Throws<NotSupportedException>(() => connection.GetDataTypeFromSqlDataTypeName("rowversion", 0, 0, 0));
+        }
+        [Fact]
+        public void LegacyTimestampDefinition_PreservesCompatibilityWhileCanonicalDefinitionRemainsAvailable() {
+            using var connection = new TestDBConnection();
+
+#pragma warning disable CS0618
+            var legacyDefinition = connection.GetSqlTimeStampDefinition();
+#pragma warning restore CS0618
+
+            Assert.Equal("TIMESTAMP", legacyDefinition);
+            Assert.Equal("TIMESTAMP", connection.GetSqlTypeDefinition(DBSchemaDataType.Timestamp, 0, 0, 0));
         }
         [Fact]
         public void LikeExpressions_UseSqlWildcardSemantics() {

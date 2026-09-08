@@ -1128,6 +1128,7 @@ namespace DProjects.Db {
         public virtual string GetSqlIdentityDefinition(Type type) {
             throw new NotSupportedException("Identity columns are not supported by this database connection.");
         }
+        [Obsolete("GetSqlTimeStampDefinition is ambiguous. Use GetSqlTypeDefinition(DBSchemaDataType.Timestamp, ...) instead.")]
         public virtual string GetSqlTimeStampDefinition() {
             return "TIMESTAMP";
         }
@@ -1153,7 +1154,7 @@ namespace DProjects.Db {
             return result.ToString();
         }
         public virtual DBSchemaDataType GetDataTypeFromSqlDataTypeName(string dataTypeName, int length, int precision, int scale) {
-            if (System.Enum.TryParse<DBSchemaDataType>(dataTypeName, false, out DBSchemaDataType result)) {
+            if (System.Enum.TryParse<DBSchemaDataType>(dataTypeName, true, out DBSchemaDataType result)) {
                 return result;
             }
             throw new NotSupportedException($"SQL data type '{dataTypeName}' is not supported.");
