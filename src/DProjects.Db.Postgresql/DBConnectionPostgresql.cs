@@ -48,12 +48,14 @@ namespace DProjects.Db.Postgresql {
         public override DBSchemaDataType GetDataTypeFromSqlDataTypeName(string dataTypeName, int length, int precision, int scale) {
             if (dataTypeName.Equals("float", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Double.ToString();
             if (dataTypeName.Equals("real", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Float.ToString();
+            if (dataTypeName.Equals("text", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Varchar.ToString();
             if (dataTypeName.Equals("character varying", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Varchar.ToString();
             if (dataTypeName.Equals("timestamp without time zone", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.DateTime.ToString();
             if (dataTypeName.Equals("json", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Json.ToString();
             if (dataTypeName.Equals("jsonb", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Jsonb.ToString();
             if (dataTypeName.Equals("integer", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Int.ToString();
             if (dataTypeName.Equals("uuid", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.UniqueIdentifier.ToString();
+            if (Enum.TryParse<DBSchemaDataType>(dataTypeName, true, out var portableDataType)) dataTypeName = portableDataType.ToString();
             return base.GetDataTypeFromSqlDataTypeName(dataTypeName, length, precision, scale);
         }
         public override DBSchemaTable GetTableSchema(string table) {
@@ -232,13 +234,14 @@ namespace DProjects.Db.Postgresql {
             var qb = GetSqlQualifierBegin();
             var qe = GetSqlQualifierEnd();
             var sql = new StringBuilder();
-            sql.Append("ALTER TABLE " + qb + table + qe + " ALTER COLUMN " + qb + dBSchemaColumn.Name + qe);
-            sql.Append(" ").Append(GetSqlTypeDefinition(dBSchemaColumn.DataType, dBSchemaColumn.Size, dBSchemaColumn.Precision, dBSchemaColumn.Scale));
-            if (dBSchemaColumn.Null) {
-                sql.Append(" SET NULL ");
-            } else {
-                sql.Append(" SET NOT NULL ");
-            }
+            var qualifiedTable = qb + table + qe;
+            var qualifiedColumn = qb + dBSchemaColumn.Name + qe;
+            // changes the type and nullability with PostgreSQL's separate alter-column forms
+            sql.Append("ALTER TABLE ").Append(qualifiedTable).Append(" ALTER COLUMN ").Append(qualifiedColumn).Append(" TYPE ");
+            sql.Append(GetSqlTypeDefinition(dBSchemaColumn.DataType, dBSchemaColumn.Size, dBSchemaColumn.Precision, dBSchemaColumn.Scale));
+            sql.Append(GetSqlSeparator()).Append(Environment.NewLine);
+            sql.Append("ALTER TABLE ").Append(qualifiedTable).Append(" ALTER COLUMN ").Append(qualifiedColumn);
+            sql.Append(dBSchemaColumn.Null ? " DROP NOT NULL" : " SET NOT NULL");
             return sql.ToString();
         }
         public override string GetSqlDropDefault(string table, string column) {

@@ -34,6 +34,25 @@ namespace DProjects.Db.SqlServer.Tests {
             Assert.Contains("THROW", connection.GetSqlIfRowCountThrowError(0, 50000, "error"));
             Assert.Equal("[aáàÀAÁ][_]", connection.GetSqlEncodedLikeValue("a_"));
         }
+        [Fact]
+        public void RowVersionNamesMapToBinaryWhilePortableTimestampRendersAsDateTime() {
+            using var connection = CreateConnection();
+
+            Assert.Equal(DBSchemaDataType.Varbinary, connection.GetDataTypeFromSqlDataTypeName("timestamp", 8, 0, 0));
+            Assert.Equal(DBSchemaDataType.Varbinary, connection.GetDataTypeFromSqlDataTypeName("rowversion", 8, 0, 0));
+            Assert.Equal("DATETIME2", connection.GetSqlTypeDefinition(DBSchemaDataType.Timestamp, 0, 0, 0));
+            Assert.NotEqual("TIMESTAMP", connection.GetSqlTypeDefinition(DBSchemaDataType.Timestamp, 0, 0, 0));
+        }
+        [Fact]
+        public void SqlServerAliasesRemainProviderOwnedAndProcedureEnumerationIsUnsupported() {
+            using var connection = CreateConnection();
+
+            Assert.Equal(DBSchemaDataType.Boolean, connection.GetDataTypeFromSqlDataTypeName("bit", 0, 0, 0));
+            Assert.Equal(DBSchemaDataType.Varchar, connection.GetDataTypeFromSqlDataTypeName("text", 0, 0, 0));
+            Assert.Equal(DBSchemaDataType.Nvarchar, connection.GetDataTypeFromSqlDataTypeName("ntext", 0, 0, 0));
+            Assert.Equal(DBSchemaDataType.UniqueIdentifier, connection.GetDataTypeFromSqlDataTypeName("uniqueidentifier", 0, 0, 0));
+            Assert.Throws<NotSupportedException>(() => connection.GetProcedureNames());
+        }
 
         // methods (private)
         private static DProjects.Db.SqlServer.DBConnectionSqlServer CreateConnection() {

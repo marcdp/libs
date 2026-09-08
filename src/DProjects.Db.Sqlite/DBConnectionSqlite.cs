@@ -27,6 +27,47 @@ namespace DProjects.Db.Sqlite {
         public override string GetSqlDropIndex(string table, string index) {
             return "DROP INDEX " + GetSqlQualifierBegin() + index + GetSqlQualifierEnd();
         }
+        public override string GetSqlCreatePrimaryKey(string table, DBSchemaPrimaryKey dbSchemaPrimaryKey) {
+            throw new NotSupportedException("Adding a primary key to an existing SQLite table requires rebuilding the table.");
+        }
+        public override string GetSqlDropPrimaryKey(string table, string name) {
+            throw new NotSupportedException("Removing a primary key from an existing SQLite table requires rebuilding the table.");
+        }
+        public override string GetSqlCreateForeignKey(string table, DBSchemaForeignKey dbSchemaForeignKey) {
+            throw new NotSupportedException("Adding a foreign key to an existing SQLite table requires rebuilding the table.");
+        }
+        public override string GetSqlDropForeignKey(string table, string name) {
+            throw new NotSupportedException("Removing a foreign key from an existing SQLite table requires rebuilding the table.");
+        }
+        public override string GetSqlCreateColumn(string table, DBSchemaColumn dBSchemaColumn) {
+            if ("now".Equals(dBSchemaColumn.Default, StringComparison.OrdinalIgnoreCase)) {
+                throw new NotSupportedException("SQLite cannot add a column with a non-constant current timestamp default.");
+            }
+            return base.GetSqlCreateColumn(table, dBSchemaColumn);
+        }
+        public override string GetSqlAlterColumn(string table, DBSchemaColumn dBSchemaColumn) {
+            throw new NotSupportedException("Altering a column in SQLite requires rebuilding the table.");
+        }
+        public override string GetSqlDropColumn(string table, string column) {
+            var qb = GetSqlQualifierBegin();
+            var qe = GetSqlQualifierEnd();
+            return "ALTER TABLE " + qb + table + qe + " DROP COLUMN " + qb + column + qe;
+        }
+        public override string GetSqlCreateDefault(string table, string column, string aDefault) {
+            throw new NotSupportedException("Adding a default to an existing SQLite column requires rebuilding the table.");
+        }
+        public override string GetSqlDropDefault(string table, string column) {
+            throw new NotSupportedException("Removing a default from an existing SQLite column requires rebuilding the table.");
+        }
+        public override string GetSqlCreateSequence(DBSchemaSequence dbSchemaSequence) {
+            throw new NotSupportedException("SQLite does not support sequences.");
+        }
+        public override string GetSqlAlterSequenceIncrement(DBSchemaSequence dbSchemaSequence) {
+            throw new NotSupportedException("SQLite does not support sequences.");
+        }
+        public override string GetSqlDropSequence(string sequence) {
+            throw new NotSupportedException("SQLite does not support sequences.");
+        }
         //public override string GetSqlQualifierBegin() {
         //    return "\"";
         //}

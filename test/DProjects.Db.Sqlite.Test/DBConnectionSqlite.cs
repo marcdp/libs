@@ -33,6 +33,39 @@ namespace DProjects.Db.Sqlite.Tests
             Assert.Throws<NotSupportedException>(() => connection.GetSqlGetNextSequenceValue("sequence"));
         }
         [Fact]
+        public void UnsupportedSchemaMutationsFailExplicitly() {
+            using var connection = CreateConnection();
+            var primaryKey = new DBSchemaPrimaryKey() { Name = "pk_table", Columns = ["id"] };
+            var foreignKey = new DBSchemaForeignKey() { Name = "fk_table_parent", Columns = ["parent_id"], RefTable = "parent", RefColumns = ["id"] };
+            var sequence = new DBSchemaSequence() { Name = "sequence" };
+
+            Assert.Throws<NotSupportedException>(() => connection.GetSqlCreatePrimaryKey("table", primaryKey));
+            Assert.Throws<NotSupportedException>(() => connection.GetSqlDropPrimaryKey("table", "pk_table"));
+            Assert.Throws<NotSupportedException>(() => connection.GetSqlCreateForeignKey("table", foreignKey));
+            Assert.Throws<NotSupportedException>(() => connection.GetSqlDropForeignKey("table", "fk_table_parent"));
+            Assert.Throws<NotSupportedException>(() => connection.GetSqlAlterColumn("table", new DBSchemaColumn("column")));
+            Assert.Throws<NotSupportedException>(() => connection.GetSqlCreateDefault("table", "column", "0"));
+            Assert.Throws<NotSupportedException>(() => connection.GetSqlDropDefault("table", "column"));
+            Assert.Throws<NotSupportedException>(() => connection.GetSqlCreateSequence(sequence));
+            Assert.Throws<NotSupportedException>(() => connection.GetSqlAlterSequenceIncrement(sequence));
+            Assert.Throws<NotSupportedException>(() => connection.GetSqlDropSequence("sequence"));
+        }
+        [Fact]
+        public void SupportedColumnMutationsGenerateWorkingSql() {
+            using var connection = CreateConnection();
+            connection.ExecuteNonQuery("CREATE TABLE mutation_test (id INTEGER NOT NULL)");
+            var column = new DBSchemaColumn("value") { DataType = DBSchemaDataType.Varchar, Size = 0, Null = true };
+
+            var createSql = connection.GetSqlCreateColumn("mutation_test", column);
+            Assert.Equal("ALTER TABLE mutation_test ADD value TEXT NULL ", createSql);
+            connection.ExecuteNonQuery(createSql);
+            Assert.Equal(0L, connection.ExecuteScalar<long>("SELECT COUNT(value) FROM mutation_test"));
+
+            var dropSql = connection.GetSqlDropColumn("mutation_test", "value");
+            Assert.Equal("ALTER TABLE mutation_test DROP COLUMN value", dropSql);
+            connection.ExecuteNonQuery(dropSql);
+        }
+        [Fact]
         public async Task Lifecycle_OpenCloseReopenAndAutoOpenExecution() {
             using var connection = CreateConnection();
             connection.Open();

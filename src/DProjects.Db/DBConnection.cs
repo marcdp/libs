@@ -186,35 +186,28 @@ namespace DProjects.Db {
             int j = 0;
             int k = 0;
             var sb = new StringBuilder();
-            try {
-                //replaces the question marks (?) with the coded values of the parameters
-                if (parameters.Length > 0) {
-                    j = 0;
-                    k = 0;
-                    foreach (object? parameter in parameters) {
-                        bool allowNull = false;
-                        string value = "";
-                        Type? type = null;
-                        k = sql.IndexOf('?', j);
-                        if (k == -1) throw new Exception("Error parsing sql statement, too many parameters.");
-                        sb.Append(sql.Substring(j, k - j));
-                        if (parameter == null) {
-                            type = null;
-                        } else {
-                            type = parameter.GetType();
-                        }
-                        allowNull = (parameter == null) || (parameter == System.DBNull.Value) || (parameter is DateTime && System.Convert.ToDateTime(parameter).Equals(System.Convert.ToDateTime(null)));
-                        value = GetSqlEncodedValue(parameter, type, allowNull);
-                        sb.Append(value);
-                        j = k + 1;
+            // replaces the question marks with encoded parameter values
+            if (parameters.Length > 0) {
+                j = 0;
+                k = 0;
+                foreach (object? parameter in parameters) {
+                    bool allowNull = false;
+                    string value = "";
+                    Type? type = null;
+                    k = sql.IndexOf('?', j);
+                    sb.Append(sql.Substring(j, k - j));
+                    if (parameter == null) {
+                        type = null;
+                    } else {
+                        type = parameter.GetType();
                     }
-                    sb.Append(sql.Substring(k + 1));
-                    sql = sb.ToString();
+                    allowNull = (parameter == null) || (parameter == System.DBNull.Value) || (parameter is DateTime && System.Convert.ToDateTime(parameter).Equals(System.Convert.ToDateTime(null)));
+                    value = GetSqlEncodedValue(parameter, type, allowNull);
+                    sb.Append(value);
+                    j = k + 1;
                 }
-            } catch (ArgumentOutOfRangeException e) {
-                throw new Exception("Error parsing sql statement \'" + sql + "\'.", e);
-            } catch (Exception e) {
-                throw new Exception("Error parsing sql statement \'" + sql + "\'.", e);
+                sb.Append(sql.Substring(k + 1));
+                sql = sb.ToString();
             }
             return sql;
         }
@@ -222,36 +215,30 @@ namespace DProjects.Db {
             ValidateParameterCount(sql, parameters);
             int j = 0;
             int k = 0;
-            try {
-                command.CommandText = sql;
-                if (parameters != null && parameters.Length > 0) {
-                    var sb = new StringBuilder();
-                    j = 0;
-                    k = 0;
-                    foreach (object? parameter in parameters) {
-                        k = sql.IndexOf('?', j);
-                        if (k == -1) throw new Exception("Error parsing sql statement: too many parameters");
-                        sb.Append(sql.Substring(j, k - j));
-                        sb.Append(GetSqlParameterPlaceholder(command.Parameters.Count));
-                        j = k + 1;
-                        var dbParameter = command.CreateParameter();
-                        dbParameter.ParameterName = GetSqlParameterName(command.Parameters.Count);
-                        if (parameter == null) {
-                            dbParameter.Value = DBNull.Value;
-                        } else {
-                            dbParameter.Value = GetDbParameterValue(parameter);
-                            var dbType = GetDbType(parameter);
-                            if (dbType != System.Data.DbType.Object) dbParameter.DbType = dbType;
-                        }
-                        command.Parameters.Add(dbParameter);
+            command.CommandText = sql;
+            // replaces the question marks with native parameter placeholders
+            if (parameters != null && parameters.Length > 0) {
+                var sb = new StringBuilder();
+                j = 0;
+                k = 0;
+                foreach (object? parameter in parameters) {
+                    k = sql.IndexOf('?', j);
+                    sb.Append(sql.Substring(j, k - j));
+                    sb.Append(GetSqlParameterPlaceholder(command.Parameters.Count));
+                    j = k + 1;
+                    var dbParameter = command.CreateParameter();
+                    dbParameter.ParameterName = GetSqlParameterName(command.Parameters.Count);
+                    if (parameter == null) {
+                        dbParameter.Value = DBNull.Value;
+                    } else {
+                        dbParameter.Value = GetDbParameterValue(parameter);
+                        var dbType = GetDbType(parameter);
+                        if (dbType != System.Data.DbType.Object) dbParameter.DbType = dbType;
                     }
-                    sb.Append(sql.Substring(k + 1));
-                    command.CommandText = sb.ToString();
+                    command.Parameters.Add(dbParameter);
                 }
-            } catch (ArgumentOutOfRangeException e) {
-                throw new Exception("Error parsing sql statement \'" + sql + "\'.", e);
-            } catch (Exception e) {
-                throw new Exception("Error parsing sql statement \'" + sql + "\'.", e);
+                sb.Append(sql.Substring(k + 1));
+                command.CommandText = sb.ToString();
             }
             return command.CommandText;
         }
@@ -1109,7 +1096,7 @@ namespace DProjects.Db {
             return "%";
         }
         public virtual string GetSqlLikeOneExpression() {
-            return "SELECT 1";
+            return "_";
         }
         public virtual string GetSqlSelectTest() {
             return "SELECT 1";
@@ -1166,13 +1153,7 @@ namespace DProjects.Db {
             return result.ToString();
         }
         public virtual DBSchemaDataType GetDataTypeFromSqlDataTypeName(string dataTypeName, int length, int precision, int scale) {
-            if (dataTypeName.Equals("bit", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Boolean.ToString();
-            if (dataTypeName.Equals("text", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Varchar.ToString();
-            if (dataTypeName.Equals("ntext", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Varchar.ToString();
-            if (dataTypeName.Equals("varchar2", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Varchar.ToString();
-            if (dataTypeName.Equals("number", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Numeric.ToString();
-            if (dataTypeName.Equals("uniqueidentifier", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.UniqueIdentifier.ToString();
-            if (System.Enum.TryParse<DBSchemaDataType>(dataTypeName, true, out DBSchemaDataType result)) {
+            if (System.Enum.TryParse<DBSchemaDataType>(dataTypeName, false, out DBSchemaDataType result)) {
                 return result;
             }
             throw new NotSupportedException($"SQL data type '{dataTypeName}' is not supported.");

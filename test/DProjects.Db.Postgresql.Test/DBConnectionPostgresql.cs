@@ -13,6 +13,26 @@ namespace DProjects.Db.Postgresql.Tests {
             using var connection = new DProjects.Db.Postgresql.DBConnectionPostgresql("mapping", "Host=localhost;Database=mapping;Username=mapping;Password=mapping");
             Assert.Equal(DProjects.Db.Schema.DBSchemaDataType.DateTime, connection.GetDataTypeFromSqlDataTypeName("timestamp without time zone", 0, 0, 0));
         }
+        [Theory]
+        [InlineData(true, "DROP NOT NULL")]
+        [InlineData(false, "SET NOT NULL")]
+        public void AlterColumn_UsesSeparateTypeAndNullabilityStatements(bool nullable, string nullabilityClause) {
+            using var connection = new DProjects.Db.Postgresql.DBConnectionPostgresql("generation", "Host=localhost;Database=generation;Username=generation;Password=generation");
+            var column = new DBSchemaColumn("column") { DataType = DBSchemaDataType.Varchar, Size = 100, Null = nullable };
+
+            var expected = "ALTER TABLE \"table\" ALTER COLUMN \"column\" TYPE VARCHAR(100);" + Environment.NewLine
+                + "ALTER TABLE \"table\" ALTER COLUMN \"column\" " + nullabilityClause;
+
+            Assert.Equal(expected, connection.GetSqlAlterColumn("table", column));
+        }
+        [Fact]
+        public void PostgresqlAliasesRemainProviderOwned() {
+            using var connection = new DProjects.Db.Postgresql.DBConnectionPostgresql("mapping", "Host=localhost;Database=mapping;Username=mapping;Password=mapping");
+
+            Assert.Equal(DBSchemaDataType.Varchar, connection.GetDataTypeFromSqlDataTypeName("text", 0, 0, 0));
+            Assert.Equal(DBSchemaDataType.Varchar, connection.GetDataTypeFromSqlDataTypeName("character varying", 0, 0, 0));
+            Assert.Equal(DBSchemaDataType.UniqueIdentifier, connection.GetDataTypeFromSqlDataTypeName("uuid", 0, 0, 0));
+        }
         [Fact]
         public void SqlPrimitives_UsePostgresqlDialectBehavior() {
             var connectionString = "Host=localhost;Database=generation;Username=generation;Password=generation";

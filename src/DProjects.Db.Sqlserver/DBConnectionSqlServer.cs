@@ -34,6 +34,12 @@ namespace DProjects.Db.SqlServer {
         public override DBSchemaDataType GetDataTypeFromSqlDataTypeName(string dataTypeName, int length, int precision, int scale) {
             if (dataTypeName.Equals("float", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Double.ToString();
             if (dataTypeName.Equals("real", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Float.ToString();
+            if (dataTypeName.Equals("bit", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Boolean.ToString();
+            if (dataTypeName.Equals("text", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Varchar.ToString();
+            if (dataTypeName.Equals("ntext", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Nvarchar.ToString();
+            if (dataTypeName.Equals("uniqueidentifier", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.UniqueIdentifier.ToString();
+            if (dataTypeName.Equals("timestamp", StringComparison.OrdinalIgnoreCase) || dataTypeName.Equals("rowversion", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Varbinary.ToString();
+            if (Enum.TryParse<DBSchemaDataType>(dataTypeName, true, out var portableDataType)) dataTypeName = portableDataType.ToString();
             return base.GetDataTypeFromSqlDataTypeName(dataTypeName, length, precision, scale);
         }
         public override DBSchemaTable GetTableSchema(string table) {
@@ -350,9 +356,6 @@ namespace DProjects.Db.SqlServer {
         public override string GetSqlDropSequence(string sequence) {
             return "DROP SEQUENCE " + GetSqlQualifierBegin() + sequence + GetSqlQualifierEnd();
         }
-        public override string[] GetProcedureNames() {
-            return new string[] { };
-        }
         public override string GetSqlTypeDefinition(DBSchemaDataType dataType, int size, int precision, int scale) {
             var isUnboundedSqlServerType = dataType == DBSchemaDataType.Varchar || dataType == DBSchemaDataType.Nvarchar
                 || dataType == DBSchemaDataType.Varbinary;
@@ -366,6 +369,8 @@ namespace DProjects.Db.SqlServer {
             } else if (dataType == DBSchemaDataType.Double) {
                 if (size == 0) size = 53;
                 return "FLOAT(" + size + ")";
+            } else if (dataType == DBSchemaDataType.Timestamp) {
+                return "DATETIME2";
             } else {
                 return base.GetSqlTypeDefinition(dataType, size, precision, scale);
             }

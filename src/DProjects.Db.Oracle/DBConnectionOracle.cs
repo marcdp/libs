@@ -45,6 +45,9 @@ namespace DProjects.Db.Oracle {
         public override DBSchemaDataType GetDataTypeFromSqlDataTypeName(string dataTypeName, int length, int precision, int scale) {
             if (dataTypeName.Equals("float", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Double.ToString();
             if (dataTypeName.Equals("real", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Float.ToString();
+            if (dataTypeName.Equals("varchar2", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Varchar.ToString();
+            if (dataTypeName.Equals("number", StringComparison.OrdinalIgnoreCase)) dataTypeName = DBSchemaDataType.Numeric.ToString();
+            if (Enum.TryParse<DBSchemaDataType>(dataTypeName, true, out var portableDataType)) dataTypeName = portableDataType.ToString();
             return base.GetDataTypeFromSqlDataTypeName(dataTypeName, length, precision, scale);
         }
         public override DBSchemaTable GetTableSchema(string table) {
@@ -320,9 +323,6 @@ namespace DProjects.Db.Oracle {
         }
         public override bool ExistsSequence(string name) {
             return (ExecuteScalar<int>("select count(*) from sys.sequences where object_id = object_id(?)", [name]) > 0);
-        }
-        public override string[] GetProcedureNames() {
-            return new string[] { };
         }
         public override string GetSqlTypeDefinition(DBSchemaDataType dataType, int size, int precision, int scale) {
             if (dataType == DBSchemaDataType.Boolean) {

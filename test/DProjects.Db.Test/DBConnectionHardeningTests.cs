@@ -24,6 +24,16 @@ namespace DProjects.Db.Tests {
             Assert.Equal("SELECT 'hello'''", connection.ParseStatement("SELECT ?", ["hello'"]));
         }
         [Fact]
+        public void CommandTextConstruction_ShouldPreserveOriginalExceptionTypes() {
+            using var literalConnection = new TestDBConnection();
+            using var parameterConnection = new UnsupportedParameterDBConnection();
+
+            Assert.Throws<NotSupportedException>(() => literalConnection.ParseStatement("SELECT ?", [new Version()]));
+            Assert.Throws<NotSupportedException>(() => parameterConnection.ExecuteScalar<int>("SELECT ?", [1]));
+            Assert.True(parameterConnection.FakeConnection.LastCommand!.IsDisposed);
+            Assert.Throws<ArgumentException>(() => literalConnection.ParseStatement("SELECT ?, ?", [1]));
+        }
+        [Fact]
         public void Execution_ShouldUseNativeParametersInsteadOfRenderedLiterals() {
             using var connection = new TestDBConnection();
 
@@ -517,6 +527,26 @@ namespace DProjects.Db.Tests {
             Assert.Throws<NotSupportedException>(() => connection.GetSqlEncodedLikeValue("value"));
         }
         [Fact]
+        public void BaseTypeNameMapping_RecognizesPortableNamesOnly() {
+            using var connection = new TestDBConnection();
+
+            Assert.Equal(DBSchemaDataType.Timestamp, connection.GetDataTypeFromSqlDataTypeName("Timestamp", 0, 0, 0));
+            Assert.Throws<NotSupportedException>(() => connection.GetDataTypeFromSqlDataTypeName("timestamp", 0, 0, 0));
+            Assert.Throws<NotSupportedException>(() => connection.GetDataTypeFromSqlDataTypeName("bit", 0, 0, 0));
+            Assert.Throws<NotSupportedException>(() => connection.GetDataTypeFromSqlDataTypeName("text", 0, 0, 0));
+            Assert.Throws<NotSupportedException>(() => connection.GetDataTypeFromSqlDataTypeName("ntext", 0, 0, 0));
+            Assert.Throws<NotSupportedException>(() => connection.GetDataTypeFromSqlDataTypeName("varchar2", 0, 0, 0));
+            Assert.Throws<NotSupportedException>(() => connection.GetDataTypeFromSqlDataTypeName("number", 0, 0, 0));
+            Assert.Throws<NotSupportedException>(() => connection.GetDataTypeFromSqlDataTypeName("uniqueidentifier", 0, 0, 0));
+        }
+        [Fact]
+        public void LikeExpressions_UseSqlWildcardSemantics() {
+            using var connection = new TestDBConnection();
+
+            Assert.Equal("%", connection.GetSqlLikeAllExpression());
+            Assert.Equal("_", connection.GetSqlLikeOneExpression());
+        }
+        [Fact]
         public void ImplementedEmptyCapabilityCanBeDistinguishedFromUnsupportedCapability() {
             using var unsupported = new TestDBConnection();
             using var implemented = new EmptyCapabilityDBConnection();
@@ -585,6 +615,14 @@ namespace DProjects.Db.Tests {
             // methods
             public override string[] GetSequenceNames() {
                 return [];
+            }
+        }
+
+        private sealed class UnsupportedParameterDBConnection : TestDBConnection {
+
+            // methods (private)
+            protected override string GetSqlParameterPlaceholder(int index) {
+                throw new NotSupportedException("Parameter placeholders are not supported by this test connection.");
             }
         }
 
