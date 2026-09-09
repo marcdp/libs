@@ -3,13 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
 VisualStudioVersion = 18.5.11723.231
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "doc", "doc", "{16DDBF4F-0281-44DC-92E6-BA3F49255B3E}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{3892F25A-3EAF-4987-964A-47712DC53F67}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{977F788C-34C7-438C-AB3E-566C8687F3B2}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{09BF5EC8-12F7-4DC6-8E1D-55F20C578E72}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DProjects.Fs.Abstractions", "src\DProjects.Fs.Abstractions\DProjects.Fs.Abstractions.csproj", "{19E44DED-1950-4C29-90D0-28D78F56AAC0}"
 EndProject
