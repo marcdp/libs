@@ -26,8 +26,8 @@ namespace DProjects.MailSender {
         }
         public async Task SendAsync(MailAddress emailFrom, string emailTo, string emailSubject, byte[] emailContent, string emailSource, string emailUniqueId, CancellationToken cancellationToken) {
             var recipients = new List<MailAddress>();
-            if (string.IsNullOrEmpty(domain)) domain = emailFrom.Address.Split('@')[1];
-            var messageId = "<" + Guid.NewGuid().ToString() + "@" + domain + ">";
+            var messageDomain = string.IsNullOrEmpty(domain) ? emailFrom.Address.Split('@')[1] : domain;
+            var messageId = "<" + Guid.NewGuid().ToString() + "@" + messageDomain + ">";
             var sql = """
                 INSERT INTO MailToSend ( 
                              emailFrom
@@ -76,19 +76,22 @@ namespace DProjects.MailSender {
         }
 
         public byte[] MaiMessageToEmlBuffer(MailMessage mail) {
-            SmtpClient client = new SmtpClient(domain);
-            client.DeliveryMethod = SmtpDeliveryMethod.SpecifiedPickupDirectory;
-            var tempDirectory = System.IO.Path.Combine(System.IO.Path.GetTempPath(), System.Guid.NewGuid().ToString());
+            var tempDirectory = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "DProjects.MailSender-" + System.Guid.NewGuid().ToString());
             System.IO.Directory.CreateDirectory(tempDirectory);
-            client.PickupDirectoryLocation = tempDirectory;
-            client.Send(mail);
-            var filename = "";
-            foreach(var aux in System.IO.Directory.GetFiles(tempDirectory)) {
-                filename = aux;
+            try {
+                using (var client = new SmtpClient(domain)) {
+                    client.DeliveryMethod = SmtpDeliveryMethod.SpecifiedPickupDirectory;
+                    client.PickupDirectoryLocation = tempDirectory;
+                    client.Send(mail);
+                }
+                var filename = "";
+                foreach(var aux in System.IO.Directory.GetFiles(tempDirectory)) {
+                    filename = aux;
+                }
+                return System.IO.File.ReadAllBytes(filename);
+            } finally {
+                if (System.IO.Directory.Exists(tempDirectory)) System.IO.Directory.Delete(tempDirectory, true);
             }
-            var result = System.IO.File.ReadAllBytes(filename);
-            System.IO.Directory.Delete (tempDirectory, true);
-            return result;
         }
 
 

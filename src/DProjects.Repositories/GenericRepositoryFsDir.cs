@@ -32,23 +32,24 @@ namespace DProjects.Repositories {
             this.mFilesystem = filesystem;
             this.mPath = path;
             this.mFormat = format;
+            if (!Enum.IsDefined(typeof(Formats), format)) throw new ArgumentOutOfRangeException(nameof(format), format, "Unsupported repository format.");
             if (!mFilesystem.ExistsDirectory(mPath)) mFilesystem.CreateDirectory(mPath);
         }
 
 
         //methods   
         public async Task AddAsync(TEntity element, CancellationToken cancellationToken) {
-            var path = PathUtils.Combine(mPath, element.Id + "." + mFormat.ToString().ToLower());
+            var path = GetElementPath(element.Id?.ToString() ?? "", nameof(element));
             var text = Serialize(element);
             await mFilesystem.SaveTextFileAsync(path, text, System.Text.Encoding.UTF8, cancellationToken);            
         }
         public async Task SaveAsync(TEntity element, CancellationToken cancellationToken) {
-            var path = PathUtils.Combine(mPath, element.Id + "." + mFormat.ToString().ToLower());
+            var path = GetElementPath(element.Id?.ToString() ?? "", nameof(element));
             var text = Serialize(element);
             await mFilesystem.SaveTextFileAsync(path, text, System.Text.Encoding.UTF8, cancellationToken);
         }
         public async Task<TEntity?> GetAsync(string id, CancellationToken cancellationToken) {
-            var path = PathUtils.Combine(mPath, id + "." + mFormat.ToString().ToLower());
+            var path = GetElementPath(id, nameof(id));
             var entry = await mFilesystem.GetEntryAsync(path, cancellationToken);
             if (entry == null) return default;
             var text = await mFilesystem.LoadTextFileAsync(entry.Path, System.Text.Encoding.UTF8, cancellationToken);
@@ -57,7 +58,7 @@ namespace DProjects.Repositories {
         }
 
         public async IAsyncEnumerable<TEntity> ListAsync(string pattern, [EnumeratorCancellation] CancellationToken cancellationToken) {
-            await foreach (var entry in mFilesystem.GetEntriesAsync(mPath, DProjects.Fs.GetModes.Files, pattern + "." + mFormat.ToString().ToLower())) {
+            await foreach (var entry in mFilesystem.GetEntriesAsync(mPath, DProjects.Fs.GetModes.Files, pattern + "." + mFormat.ToString().ToLower(), cancellationToken)) {
                 var text = await mFilesystem.LoadTextFileAsync(entry.Path, System.Text.Encoding.UTF8, cancellationToken);
                 var result = Deserialize(text);
                 yield return result;
@@ -65,7 +66,7 @@ namespace DProjects.Repositories {
         }
 
         public Task RemoveAsync(string id, CancellationToken cancellationToken) {
-            var path = PathUtils.Combine(mPath, id + "." + mFormat.ToString().ToLower());
+            var path = GetElementPath(id, nameof(id));
             return mFilesystem.DeleteFileAsync(path, cancellationToken);
         }
 
@@ -114,6 +115,12 @@ namespace DProjects.Repositories {
                 return result;
             }
             throw new NotImplementedException();
+        }
+        private string GetElementPath(string id, string parameterName) {
+            if (string.IsNullOrEmpty(id) || id == "." || id == ".." || id.IndexOf('/') >= 0 || id.IndexOf('\\') >= 0) {
+                throw new ArgumentException("Repository element IDs must be non-empty file names without path segments.", parameterName);
+            }
+            return PathUtils.Combine(mPath, id + "." + mFormat.ToString().ToLower());
         }
     }
 

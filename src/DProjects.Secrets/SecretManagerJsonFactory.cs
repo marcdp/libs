@@ -18,8 +18,7 @@ namespace DProjects.Secrets {
             var (outerUrl, innerUrl) = UrlUtils.UnwrapUrl(src);
 
             var aOuterUrl = new Uri(outerUrl);
-            var aInnerUrl = new Uri(innerUrl);
-            var init = UrlUtils.GetQueryValue<bool>(aInnerUrl.Query, "init");
+            var init = UrlUtils.GetQueryValue<bool>(aOuterUrl.Query, "init");
 
             var filesystem = fsFactory.Create(innerUrl);
             return new SecretManagerJson(filesystem, aOuterUrl.AbsolutePath, init);

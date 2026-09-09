@@ -159,8 +159,7 @@ namespace DProjects.DataObjects {
                     if (target is IDictionary<string, object?>) {
                         var dict = (IDictionary<string, object?>)target;
                         if (last) {
-                            dict.Remove(part);
-                            return true;
+                            return dict.Remove(part);
                         } else {
                             target = dict[part];
                         }
@@ -200,10 +199,29 @@ namespace DProjects.DataObjects {
             }
         }
         public VO Clone() {
-            var json = System.Text.Json.JsonSerializer.Serialize(this);
-            return System.Text.Json.JsonSerializer.Deserialize<VO>(json)!;
-            //var json = DProjects.Core.Serialization.JsonSerializer.Serialize(this);
-            //return DProjects.Core.Serialization.JsonDeserializer.Deserialize<VO>(json);
+            return (VO)CloneValue(this)!;
+        }
+
+
+        // methods (private)
+        private static object? CloneValue(object? value) {
+            if (value is IDictionary<string, object?> dictionary) {
+                var result = new VO();
+                foreach (var item in dictionary) result[item.Key] = CloneValue(item.Value);
+                return result;
+            }
+            if (value is Array array) {
+                var elementType = value.GetType().GetElementType() ?? typeof(object);
+                var result = Array.CreateInstance(elementType, array.Length);
+                for (var i = 0; i < array.Length; i++) result.SetValue(CloneValue(array.GetValue(i)), i);
+                return result;
+            }
+            if (value is IList list) {
+                var result = new List<object?>();
+                foreach (var item in list) result.Add(CloneValue(item));
+                return result;
+            }
+            return value;
         }
     }
 

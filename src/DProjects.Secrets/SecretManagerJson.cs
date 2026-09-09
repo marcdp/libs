@@ -11,6 +11,7 @@ using DProjects.Fs.Extensions;
 using DProjects.Crypto;
 using DProjects.Utils;
 using System.Threading;
+using System.Security.Cryptography;
 
 namespace DProjects.Secrets {
 
@@ -45,7 +46,11 @@ namespace DProjects.Secrets {
             return Task.FromResult(mStorage == null);
         }
         public async Task<bool> Unseal(string password, CancellationToken cancellationToken) {
-            mStorage = await Load(password, cancellationToken);
+            try {
+                mStorage = await Load(password, cancellationToken);
+            } catch (CryptographicException) {
+                mStorage = null;
+            }
             return mStorage != null;
         }
         public Task Seal(CancellationToken cancellationToken) {
@@ -109,7 +114,7 @@ namespace DProjects.Secrets {
 
 
         //private methods
-        private async Task<Storage> Load(string password, CancellationToken cancellationToken) {
+        private async Task<Storage?> Load(string password, CancellationToken cancellationToken) {
             if (mStorage == null) {
                 //create file if not exists
                 if (mInit && !await mFilesystem.ExistsAsync(mPath, cancellationToken)) {
@@ -117,7 +122,7 @@ namespace DProjects.Secrets {
                     await Save(password, cancellationToken);
                 }
                 //read file
-                var aes = await mFilesystem.LoadTextFileAsync(mPath);
+                var aes = await mFilesystem.LoadTextFileAsync(mPath, System.Text.Encoding.UTF8, cancellationToken);
                 var json = "";
                 if (aes == "") {
                     //create file if empty

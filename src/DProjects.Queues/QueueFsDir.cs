@@ -20,9 +20,11 @@ namespace DProjects.Queues {
 
         //vars
         private bool mInitialized = false;
+        private readonly SemaphoreSlim mReadLock = new SemaphoreSlim(1, 1);
 
         // ctor
         public void Dispose() {
+            mReadLock.Dispose();
         }
 
 
@@ -44,19 +46,24 @@ namespace DProjects.Queues {
         public async Task<Message?> ReadAsync(int waitTimeout = 0, CancellationToken cancellationToken = default) {
             if (!mInitialized) await InitializeAsync(cancellationToken);
             var sleepMs = 1000;
-            var pathNew = PathUtils.Combine(path, "new");
-            for(var i = 0; i< waitTimeout; i += sleepMs) {
-                var mesage = await ReadNewMessage(cancellationToken);
-                if (mesage != null) return mesage;
-                await Task.Delay(sleepMs);
+            var waitedMs = 0;
+            while (true) {
+                var message = await ReadNewMessage(cancellationToken);
+                if (message != null) return message;
+                if (waitedMs >= waitTimeout) return null;
+                var delayMs = Math.Min(sleepMs, waitTimeout - waitedMs);
+                await Task.Delay(delayMs, cancellationToken);
+                waitedMs += delayMs;
             }
-            return null;
         }
         public async Task DeleteAsync(Message message, CancellationToken cancellationToken = default) {
             if (!mInitialized) await InitializeAsync(cancellationToken);
             var id = message.Headers.Get<string>(Message.HEADER_X_ID, "");
-            var pathTarget = PathUtils.Combine(path, "cur", id);
-            await filesystem.DeleteFileAsync(pathTarget, cancellationToken);
+            var pathCurrent = PathUtils.Combine(path, "cur");
+            await foreach (var entry in filesystem.GetEntriesAsync(pathCurrent, GetModes.Files, "*-" + id + FILE_EXTENSION, cancellationToken)) {
+                await filesystem.DeleteFileAsync(entry.Path, cancellationToken);
+                return;
+            }
         }
         public async Task PurgeAsync(CancellationToken cancellationToken = default) {
             if (!mInitialized) await InitializeAsync(cancellationToken);
@@ -80,18 +87,23 @@ namespace DProjects.Queues {
             mInitialized = true;
         }
         public async Task<Message?> ReadNewMessage(CancellationToken cancellationToken = default) {
-            var pathNew = PathUtils.Combine(path, "new");
-            var pathCur = PathUtils.Combine(path, "cur");
-            await foreach (var entry in filesystem.GetEntriesAsync(pathNew,GetModes.Files, "*" + FILE_EXTENSION , cancellationToken)) {
-                var pathToMoveTo = PathUtils.Combine(pathCur, entry.Name);
-                await filesystem.MoveAsync(entry.Path, pathToMoveTo, new(), logger, cancellationToken);
-                using(var stream = await filesystem.LoadReadStreamAsync(pathToMoveTo, new(), cancellationToken )) {
-                    var headers = await HeadersUtils.ReadHttpHeadersAsync(stream, System.Text.Encoding.UTF8, cancellationToken);
-                    var body = await StreamUtils.ReadBytesAsync(stream, cancellationToken);
-                    return new Message(body, headers);
+            await mReadLock.WaitAsync(cancellationToken);
+            try {
+                var pathNew = PathUtils.Combine(path, "new");
+                var pathCur = PathUtils.Combine(path, "cur");
+                await foreach (var entry in filesystem.GetEntriesAsync(pathNew,GetModes.Files, "*" + FILE_EXTENSION , cancellationToken)) {
+                    var pathToMoveTo = PathUtils.Combine(pathCur, entry.Name);
+                    await filesystem.MoveAsync(entry.Path, pathToMoveTo, new(), logger, cancellationToken);
+                    using(var stream = await filesystem.LoadReadStreamAsync(pathToMoveTo, new(), cancellationToken )) {
+                        var headers = await HeadersUtils.ReadHttpHeadersAsync(stream, System.Text.Encoding.UTF8, cancellationToken);
+                        var body = await StreamUtils.ReadBytesAsync(stream, cancellationToken);
+                        return new Message(body, headers);
+                    }
                 }
+                return null;
+            } finally {
+                mReadLock.Release();
             }
-            return null;
         }
         private string GetFileName(string id) {
             return DateTime.UtcNow.ToString("yyyyMMddhhmmssffffff-") + id + FILE_EXTENSION;
