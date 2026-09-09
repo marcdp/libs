@@ -32,7 +32,7 @@ namespace DProjects.XVault.Handlers {
             return ReplaceEncryptedTokens(body, derivedKey, MarkdownPlainPattern);
         }
         public override void Register(ConfigurationManager configurationManager) {
-            throw new NotImplementedException();
+            throw new NotSupportedException("Register is not supported for Markdown documents.");
         }
     }
 

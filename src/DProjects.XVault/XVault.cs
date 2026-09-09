@@ -23,7 +23,8 @@ namespace DProjects.XVault {
             } else if (path.EndsWith(".md", StringComparison.OrdinalIgnoreCase) || path.EndsWith(".markdown", StringComparison.OrdinalIgnoreCase)) {
                 mHandler = new MarkdownHandler(text, path, password);
             } else {
-                throw new Exception("Unable to determine vault format from file extension. Supported extensions are .json, .yaml/.yml, .xml, .env, .md/.markdown");
+                throw new NotSupportedException(
+                    "Unable to determine vault format from file extension. Supported extensions are .json/.jsonc, .yaml/.yml, .xml, .env, .md/.markdown");
             }
         } 
 

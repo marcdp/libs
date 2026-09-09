@@ -1,6 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Configuration;
 
@@ -8,54 +6,27 @@ namespace DProjects.XVault.Handlers {
     class EnvHandler(string text, string path, string? password = null) : Handler {
 
         // vars
+        private static readonly Regex MetaLineRegex = new Regex(@"^_xvault\s*=\s*(.+)$", RegexOptions.Compiled | RegexOptions.Multiline);
+        private static readonly Regex MetaCommentRegex = new Regex(@"^[ \t]*# xvault (?:meta variable \(do not modify\)|metadata\.)[^\r\n]*(?:\r?\n)?",
+            RegexOptions.Compiled | RegexOptions.Multiline);
         private static readonly Regex PlainPattern = new Regex(@"(?<!\$\{)enc:[^\r\n#""']+", RegexOptions.Compiled);
 
         // methods
         public override string Decrypt() {
-            // 1) Load ENV text into an in-memory dictionary-like structure.
-            var entries = new Dictionary<string, string>(StringComparer.Ordinal);
-            var order = new List<string>();
-            foreach (var rawLine in text.Replace("\r\n", "\n").Split('\n')) {
-                var line = rawLine.Trim();
-                if (line.Length == 0 || line.StartsWith("#")) {
-                    continue;
-                }
-                var idx = line.IndexOf('=');
-                if (idx <= 0) {
-                    continue;
-                }
-                var entryKey = line.Substring(0, idx).Trim();
-                var value = line.Substring(idx + 1);
-                entries[entryKey] = value;
-                order.Add(entryKey);
-            }
-
-            // 2) Decode _xvault metadata: xvault:<base64-json>
-            if (!entries.TryGetValue("_xvault", out var rawMeta)) {
+            // locate and validate XVault metadata
+            var metaMatch = MetaLineRegex.Match(text);
+            if (!metaMatch.Success) {
                 throw new Exception("Unable to load vault meta: _xvault field not found.");
             }
-            // 3) Derive and validate decryption key.
+            var rawMeta = metaMatch.Groups[1].Value.Trim();
             var derivedKey = ResolveAndValidateKey(password, rawMeta, path);
-
-            foreach (var keyName in order) {
-                if (string.Equals(keyName, "_xvault", StringComparison.Ordinal)) {
-                    continue;
-                }
-                entries[keyName] = DecryptPlaceholders(entries[keyName], derivedKey);
-            }
-
-            // Build plain ENV text without _xvault metadata.
-            var sb = new StringBuilder();
-            foreach (var keyName in order) {
-                if (string.Equals(keyName, "_xvault", StringComparison.Ordinal)) {
-                    continue;
-                }
-                sb.Append(keyName).Append('=').Append(entries[keyName]).Append('\n');
-            }
-            return sb.ToString();
+            // remove only XVault-owned lines and retain surrounding document content
+            var cleaned = MetaCommentRegex.Replace(text, string.Empty, 1);
+            cleaned = MetaLineRegex.Replace(cleaned, string.Empty, 1).TrimStart('\n', '\r');
+            return DecryptPlaceholders(cleaned, derivedKey);
         }
         public override void Register(ConfigurationManager configurationManager) {
-            throw new NotImplementedException();
+            throw new NotSupportedException("Register is not supported for ENV documents.");
         }
 
         // private

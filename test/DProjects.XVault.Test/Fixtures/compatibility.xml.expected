@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<settings>
+  <username>public-user</username>
+  <password>json-secret</password>
+  <nested api_key="json-api-key" />
+</settings>

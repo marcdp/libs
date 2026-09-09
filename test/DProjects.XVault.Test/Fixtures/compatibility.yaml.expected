@@ -1,0 +1,4 @@
+username: public-user
+password: yaml-secret
+nested:
+  api_key: yaml-api-key

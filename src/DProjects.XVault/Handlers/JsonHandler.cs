@@ -8,8 +8,9 @@ namespace DProjects.XVault.Handlers {
 
         // vars
         private static readonly Regex MetaKeyRegex = new Regex("\"_xvault\"\\s*:\\s*\"([^\"]+)\"\\s*,?", RegexOptions.Compiled);
+        private static readonly Regex MetaCommentRegex = new Regex(@"^[ \t]*// xvault (?:meta variable \(do not modify\)|metadata\.)[^\r\n]*(?:\r?\n)?",
+            RegexOptions.Compiled | RegexOptions.Multiline);
         private static readonly Regex JsonPlainPattern = new Regex(@"(?<!\$\{)enc:[^""\r\n]+", RegexOptions.Compiled);
-        private const string MetaComment = "// xvault meta variable (do not modify)\n";
 
         // methods
         public override string Decrypt() {  
@@ -21,7 +22,7 @@ namespace DProjects.XVault.Handlers {
             var rawMeta = match.Groups[1].Value;
             var derivedKey = ResolveAndValidateKey(password, rawMeta, path);
 
-            var cleaned = text.Replace(MetaComment, string.Empty);
+            var cleaned = MetaCommentRegex.Replace(text, string.Empty, 1);
             cleaned = MetaKeyRegex.Replace(cleaned, string.Empty, 1);
 
             var indent = DetectJsonIndentation(text);

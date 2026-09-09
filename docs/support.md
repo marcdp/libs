@@ -22,6 +22,7 @@ Maintained does not mean that every provider supports every operation or is exer
 | Log Storage | Maintained | Focused query, tail, retention, and parsing tests | Tail and retention vary; no shared provider contract suite. |
 | Factories | Maintained | Core dispatch and provider-use tests | Configuration, assembly, secret, and dependency errors are runtime concerns. |
 | Streams | Maintained | Focused behavior and lifecycle tests | Older wrappers and compositions have uneven coverage. |
+| XVault reader | Maintained | Cross-format fixtures, hostile inputs, supported registration | Read/decrypt only; no authoring or management; known versions only. |
 | Cache | Legacy / compatibility | No effective subsystem tests | Cleanup, concurrency, and provider equivalence are unverified. |
 | Crypto | Legacy / compatibility | Focused vectors and round trips | Legacy algorithms and unauthenticated encryption require care. |
 | Mail | Legacy / compatibility | Build coverage only | No delivery guarantee, contract suite, or explicit connection ownership. |
@@ -44,6 +45,7 @@ are marked as integration tests. CI adds selected live-provider validation, but 
 
 For the evidence behind these classifications, see [Repository architecture](architecture.md), [Filesystem](filesystem/index.md),
 [Database](database/index.md), [Logging](logging/index.md), [Factories](factories/index.md), [Streams](streams/index.md),
+[XVault interoperability](xvault/index.md),
 [Cache](cache/index.md), [Crypto](crypto/index.md), [Mail](mail/index.md), [Queues](queues/index.md), [Repositories](repositories/index.md),
 [Secrets](secrets/index.md), and [Utils](utils/index.md). The cross-cutting [Verification](verification.md) page explains how to interpret test and CI
 evidence.

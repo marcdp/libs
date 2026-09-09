@@ -1,0 +1,11 @@
+{
+  // xvault metadata. To view/edit secrets in this file use: pip install -e xvault; xvault edit <file>;
+  "_xvault": "xvault:eyJjcnlwdG9fdmVyc2lvbiI6IDEsICJzYWx0IjogIjAwMTEyMjMzNDQ1NTY2Nzc4ODk5YWFiYmNjZGRlZWZmIiwgImNoZWNrIjogIlBEMC1QMEJCUWtORVJVWkhYelJoLURFdzV2ajJxYmt3ck16VUFmYVJpS29VSUE9PSJ9",
+  
+  // retained application comment
+  "username": "public-user",
+  "password": "enc:JCUmJygpKissLS4vtWeDfzk-aNhxaSSPJ4JxWkhj2pCFI6VIEyjujA==",
+  "nested": {
+    "api_key": "enc:MDEyMzQ1Njc4OTo7U_oDhSzsVuZvxuhl68-7Rjl9Ci3G804YDMvhq6U="
+  }
+}

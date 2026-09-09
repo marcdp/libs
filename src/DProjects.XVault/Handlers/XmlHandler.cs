@@ -33,7 +33,7 @@ namespace DProjects.XVault.Handlers {
             return ReplaceEncryptedTokens(cleaned, derivedKey, XmlPlainPattern);
         }
         public override void Register(ConfigurationManager configurationManager) {
-            throw new NotImplementedException();
+            throw new NotSupportedException("Register is not supported for XML documents.");
         }
     }
 

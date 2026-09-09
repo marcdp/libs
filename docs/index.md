@@ -27,6 +27,7 @@ by the source and tests. For repository purpose and build commands, start with t
 - [Secrets](secrets/index.md) — identifiers versus values, providers, managers, factory substitution, and disclosure boundaries.
 - [Streams](streams/index.md) — capabilities, ownership, bounded views, transforms, composition, and cancellation.
 - [Utils](utils/index.md) — shared helper scope, transitive coupling, compatibility risks, and legacy limitations.
+- [XVault interoperability](xvault/index.md) — reading partially encrypted XVault files from .NET.
 
 ## Reading paths
 

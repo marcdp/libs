@@ -12,8 +12,9 @@ namespace DProjects.XVault.Handlers {
 
         // vars
         private static readonly Regex MetaLineRegex = new Regex(@"_xvault\s*:\s*([^""\r\n]+)", RegexOptions.Compiled);
+        private static readonly Regex MetaCommentRegex = new Regex(@"^[ \t]*# xvault (?:meta variable \(do not modify\)|metadata\.)[^\r\n]*(?:\r?\n)?",
+            RegexOptions.Compiled | RegexOptions.Multiline);
         private static readonly Regex YamlPlainPattern = new Regex(@"(?<!\$\{)enc:[^""\r\n]+", RegexOptions.Compiled);
-        private const string MetaComment = "# xvault meta variable (do not modify)\n";
 
 
         // methods
@@ -24,7 +25,7 @@ namespace DProjects.XVault.Handlers {
             }
             var rawMeta = match.Groups[1].Value.Trim(); 
             var derivedKey = ResolveAndValidateKey(password, rawMeta, path);
-            var cleaned = text.Replace(MetaComment, string.Empty);
+            var cleaned = MetaCommentRegex.Replace(text, string.Empty, 1);
             cleaned = MetaLineRegex.Replace(cleaned, string.Empty, 1).TrimStart('\n', '\r', ' ');
             return ReplaceEncryptedTokens(cleaned, derivedKey, YamlPlainPattern);
         }

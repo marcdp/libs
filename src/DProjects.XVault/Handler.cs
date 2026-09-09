@@ -85,7 +85,9 @@ namespace DProjects.XVault {
             using var metaDoc = JsonDocument.Parse(metaJson);
             var meta = metaDoc.RootElement;
             var cryptoVersion = meta.GetProperty("crypto_version").GetInt32();
-            var saltHex = meta.GetProperty("salt").GetString() ?? string.Empty;
+            var saltHex = meta.TryGetProperty("salt", out var saltNode) && saltNode.ValueKind != JsonValueKind.Null
+                ? saltNode.GetString() ?? string.Empty
+                : string.Empty;
             if (string.IsNullOrWhiteSpace(saltHex)) {
                 throw new Exception("Invalid _xvault meta: missing salt.");
             }

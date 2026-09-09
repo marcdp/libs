@@ -1,0 +1,7 @@
+{
+  "username": "public-user",
+  "password": "json-secret",
+  "nested": {
+    "api_key": "json-api-key"
+  }
+}
