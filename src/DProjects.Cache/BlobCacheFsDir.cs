@@ -34,11 +34,11 @@ namespace DProjects.Cache {
                 // set length  
                 entry.Headers.Set(HttpUtils.HEADER_CONTENT_LENGTH, tempEntry.Length.ToString());
                 // set date header
-                entry.Headers.Set(HttpUtils.HEADER_DATE, DateTime.Now.ToUniversalTime().ToString(DateTimeUtils.DATETIME_ISO8601).Replace('.', ':'));
+                entry.Headers.Set(HttpUtils.HEADER_DATE, DateTime.UtcNow.ToString(DateTimeUtils.DATETIME_ISO8601).Replace('.', ':'));
                 // set expires header
                 if (!entry.Headers.Contains(HttpUtils.HEADER_EXPIRES)) {
                     var timeSpan = TimeSpan.FromHours(1);
-                    entry.Headers.Set(HttpUtils.HEADER_EXPIRES, DateTime.Now.Add(timeSpan).ToUniversalTime().ToString(DateTimeUtils.DATETIME_ISO8601).Replace('.', ':'));
+                    entry.Headers.Set(HttpUtils.HEADER_EXPIRES, DateTime.UtcNow.Add(timeSpan).ToString(DateTimeUtils.DATETIME_ISO8601).Replace('.', ':'));
                 }
                 // write headers
                 HeadersUtils.WriteHttpHeaders(entry.Headers, tempStream2);
@@ -72,8 +72,9 @@ namespace DProjects.Cache {
             var contentLength = headers.Get<int>("Content-Length", 0);
             var limitedStream = new DProjects.Streams.LimitedInputStream(stream, contentLength);
             var blobCacheEntry = new BlobCacheEntry(key, limitedStream, headers);
-            if (blobCacheEntry.Expires < DateTime.Now || blobCacheEntry.Expires is null) {
-                stream.Dispose();
+            var expires = blobCacheEntry.Expires;
+            if (expires is null || expires.Value.ToUniversalTime() <= DateTime.UtcNow) {
+                blobCacheEntry.Dispose();
                 Remove(key);
                 return null;
             }
@@ -85,7 +86,7 @@ namespace DProjects.Cache {
             var result = Get(key);
             if (result == null) {
                 using (var blobCacheentry = func()) {
-                    blobCacheentry.Expires = DateTime.Now.Add(expiration);
+                    blobCacheentry.Expires = DateTime.UtcNow.Add(expiration);
                     Set(blobCacheentry);
                 }
                 return Get(key) ?? throw new Exception("xxx");
@@ -113,17 +114,17 @@ namespace DProjects.Cache {
                 // set length  
                 entry.Headers.Set(HttpUtils.HEADER_CONTENT_LENGTH, tempEntry.Length.ToString());
                 // set date header
-                entry.Headers.Set(HttpUtils.HEADER_DATE, DateTime.Now.ToUniversalTime().ToString(DateTimeUtils.DATETIME_ISO8601).Replace('.', ':'));
+                entry.Headers.Set(HttpUtils.HEADER_DATE, DateTime.UtcNow.ToString(DateTimeUtils.DATETIME_ISO8601).Replace('.', ':'));
                 // set expires header
                 if (!entry.Headers.Contains(HttpUtils.HEADER_EXPIRES)) {
                     var timeSpan = TimeSpan.FromHours(1);
-                    entry.Headers.Set(HttpUtils.HEADER_EXPIRES, DateTime.Now.Add(timeSpan).ToUniversalTime().ToString(DateTimeUtils.DATETIME_ISO8601).Replace('.', ':'));
+                    entry.Headers.Set(HttpUtils.HEADER_EXPIRES, DateTime.UtcNow.Add(timeSpan).ToString(DateTimeUtils.DATETIME_ISO8601).Replace('.', ':'));
                 }
                 // write headers
                 await HeadersUtils.WriteHttpHeadersAsync(entry.Headers, tempStream2, cancellationToken: cancellationToken);
                 // write content
                 using (var tempStream = await filesystem.LoadReadStreamAsync(tempPath, new(), cancellationToken)) {
-                    await tempStream.CopyToAsync(tempStream2);
+                    await tempStream.CopyToAsync(tempStream2, 81920, cancellationToken);
                 }
             }
             await filesystem.DeleteFileAsync(tempPath, cancellationToken);
@@ -151,8 +152,9 @@ namespace DProjects.Cache {
             var contentLength = headers.Get<int>("Content-Length", 0);
             var limitedStream = new DProjects.Streams.LimitedInputStream(stream, contentLength);
             var blobCacheEntry = new BlobCacheEntry(key, limitedStream, headers);
-            if (blobCacheEntry.Expires < DateTime.Now || blobCacheEntry.Expires is null) {
-                stream.Dispose();
+            var expires = blobCacheEntry.Expires;
+            if (expires is null || expires.Value.ToUniversalTime() <= DateTime.UtcNow) {
+                blobCacheEntry.Dispose();
                 await RemoveAsync(key, cancellationToken);
                 return null;
             }
@@ -164,7 +166,7 @@ namespace DProjects.Cache {
             var result = await GetAsync(key, cancellationToken);
             if (result == null) {
                 using (var blobCacheentry = await func(cancellationToken)) {
-                    blobCacheentry.Expires = DateTime.Now.Add(expiration);
+                    blobCacheentry.Expires = DateTime.UtcNow.Add(expiration);
                     await SetAsync(blobCacheentry);
                 }
                 return await GetAsync(key, cancellationToken) ?? throw new Exception("xxx");
@@ -179,19 +181,19 @@ namespace DProjects.Cache {
         }
         public async Task Clean(CancellationToken cancellationToken = default) {
             //clean expired blobs
-            await foreach (var entry in filesystem.GetEntriesAsync(path, GetModes.Files, FILE_EXTENSION, cancellationToken)) {
-                var valid = false;
+            await foreach (var entry in filesystem.GetEntriesAsync(path, GetModes.Files, "*" + FILE_EXTENSION, cancellationToken)) {
+                var expired = true;
                 using (var stream = await filesystem.LoadReadStreamAsync(entry.Path, new(), cancellationToken)) {
                     try {
                         var headers = await HeadersUtils.ReadHttpHeadersAsync(stream, cancellationToken: cancellationToken);
-                        var expires = headers.Get<DateTime>(HttpUtils.HEADER_EXPIRES, default);
-                        if (expires < DateTime.Now) valid = true;
+                        var expires = headers.Get<DateTime?>(HttpUtils.HEADER_EXPIRES, null);
+                        expired = expires is null || expires.Value.ToUniversalTime() <= DateTime.UtcNow;
                     } catch (Exception) {
                         stream.Dispose();
                         throw;
                     }
                 }
-                if (!valid) {
+                if (expired) {
                     await filesystem.DeleteFileAsync(entry.Path, cancellationToken);
                 }
             }

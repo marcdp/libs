@@ -37,16 +37,8 @@ namespace DProjects.Cache {
             return Task.FromResult<BlobCacheEntry?>(null);
         }
         public async Task<BlobCacheEntry> GetAsync(string key, TimeSpan expiration, Func<CancellationToken, Task<BlobCacheEntry>> func, CancellationToken cancellationToken = default) {
-            //get blob
-            var result = await GetAsync(key, cancellationToken);
-            if (result == null) {
-                using (var blobCacheentry = await func(cancellationToken)) {
-                    blobCacheentry.Expires = DateTime.Now.Add(expiration);
-                    await SetAsync(blobCacheentry);
-                }
-                return await GetAsync(key, cancellationToken) ?? throw new Exception("xxx");
-            }
-            return result;
+            //create without storing
+            return await func(cancellationToken);
         }
         public Task RemoveAsync(string key, CancellationToken cancellationToken = default) {
             return Task.CompletedTask;
