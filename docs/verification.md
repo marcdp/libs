@@ -1,0 +1,100 @@
+# Verification
+
+Verification in `DProjects.Libs` follows architectural boundaries rather than optimizing for a raw test count. Confidence comes from combining
+focused behavior tests, reusable contract suites, provider-specific checks, explicit integration categorization, selected live-provider CI, and a
+repository-wide build and package pass.
+
+```text
+focused semantics + shared contracts + provider differences + integrations
+                                  ↓
+                 restore → Release build → tests → pack
+```
+
+Each layer answers a different question. None is a substitute for the others.
+
+## Focused tests
+
+Focused tests isolate a public behavior or regression: parsing, boundary values, cancellation, stream ownership, disposal, serialization, security
+handling, error categories, and lifecycle. They are especially valuable where a small edge case changes a public contract, such as a partial stream
+crossing its limit or a database reader advancing through mixed read methods.
+
+Hardening tests exercise invalid and hostile inputs or resource cleanup rather than only the successful path. Their value is the behavior they pin,
+not the number of methods or classes touched.
+
+## Shared contract tests
+
+Reusable contract suites run the same observable expectations against multiple implementations. `FilesystemTests` checks common filesystem path,
+entry, mutation, and sync/async behavior. Database tests reuse `DBConnectionTests<T>` and cursor assertions to ensure reader access paths share one
+position and result-set semantics.
+
+A provider is covered by a contract only when its test fixture actually runs that suite. Inheriting or referencing a shared suite does not provide
+ordinary CI evidence if the fixture requires external infrastructure and is filtered as integration-only.
+
+## Provider-specific tests
+
+Adapters also need tests for behavior that should not become a generic promise: SQL dialect and metadata mapping, transport details, backend
+capabilities, protocol parsing, serialization quirks, and resource ownership. A provider-specific assertion documents a deliberate difference; it
+should not silently redefine the shared abstraction for every provider.
+
+The reverse distinction matters too. A unit test for generated SQL or a mocked transport does not prove that a live service accepts the request or
+implements the same lifecycle under failure.
+
+## Integration tests
+
+Tests requiring a real database, service, credentials, platform facility, or environment configuration carry the `Category=Integration` trait. This
+keeps the normal suite deterministic and credential-free while preserving executable checks for environments that can supply their dependencies.
+
+Integration filtering is an explicit evidence boundary. Passing normal CI does not prove every credential-dependent provider or external integration.
+The repository also contains families with little or no dedicated test coverage; project existence and successful compilation do not elevate those
+families to the confidence level of shared contract suites.
+
+## Current CI pipeline
+
+The GitHub Actions workflow runs on pushes and pull requests to `main`. It:
+
+1. checks out the repository and installs the SDK family selected for the solution;
+2. restores the full solution;
+3. builds the full solution in Release configuration;
+4. runs the repository-wide suite while excluding `Category=Integration`;
+5. provisions PostgreSQL and runs the selected `Category=CIProviderContract` schema-discovery checks;
+6. packs the solution without rebuilding.
+
+The PostgreSQL step is useful live-provider evidence for that selected contract. It is not evidence for every PostgreSQL behavior, other database
+servers, cloud filesystems, mail delivery, platform secret stores, or any provider requiring credentials not present in the workflow.
+
+## Local verification sequence
+
+The repository's standard local sequence mirrors the broad CI stages:
+
+```bash
+dotnet restore DProjects.Libs.sln
+
+dotnet build DProjects.Libs.sln \
+  --configuration Release \
+  --no-restore
+
+dotnet test --solution DProjects.Libs.sln \
+  --configuration Release \
+  --no-build \
+  --no-restore \
+  -- \
+  --filter-not-trait "Category=Integration" \
+  --ignore-exit-code 8
+
+dotnet pack DProjects.Libs.sln \
+  --configuration Release \
+  --no-build \
+  --output artifacts/packages
+```
+
+Focused projects should normally run first for faster feedback, followed by the broad sequence when practical. Live integration checks should run
+only when their infrastructure is available. A reported validation result should distinguish tests that passed, tests filtered out, tests skipped,
+and checks that could not be run.
+
+## Reading verification evidence
+
+Good verification demonstrates a compatibility rule, failure boundary, or provider distinction. Test counts alone do not show whether public
+contracts, cancellation, ownership, persisted formats, or security-sensitive failures are covered. Documentation therefore calls out both the
+evidence that exists and material gaps without converting every untested method into a defect list.
+
+See [Repository architecture](architecture.md), [Support and status](support.md), or return to the [documentation index](index.md).

@@ -82,8 +82,9 @@ resources beyond a single call, so tests cover lifecycle behavior alongside retu
   of returning misleading results.
 - **Contracts deserve reusable verification.** Shared test suites establish common behavior, while focused provider tests cover genuine differences.
 
-The deeper guides explain how these principles apply to [filesystem](docs/filesystem/index.md), [database](docs/database/index.md),
-[logging](docs/logging/index.md), and [factory](docs/factories/index.md) design.
+The [documentation index](docs/index.md) organizes the architecture, verification model, and curated subsystem guides. The primary guides cover
+[filesystem](docs/filesystem/index.md), [database](docs/database/index.md), [logging](docs/logging/index.md), and [factory](docs/factories/index.md)
+design; additional pages document smaller or less mature families without implying the same support level.
 
 ## Verification
 

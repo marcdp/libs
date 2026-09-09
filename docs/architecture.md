@@ -127,7 +127,17 @@ schema operation.
 - [Filesystem](filesystem/index.md): common paths and entries, reusable base classes, composition, providers, and capability differences.
 - [Database](database/index.md): connection/reader/writer contracts, portable schema, provider mappings, and live verification limits.
 - [Logging](logging/index.md): structured entries, .NET logging adapters, OpenTelemetry, serializers, and separate log storage.
+- [Cache](cache/index.md): stream values, metadata framing, expiration, filesystem storage, and limited guarantees.
+- [Crypto](crypto/index.md): algorithms, persisted formats, password handling, ownership, and conservative security boundaries.
+- [Mail](mail/index.md): asynchronous sender contract, database spooling, delivery boundaries, and lifecycle limitations.
+- [Queues](queues/index.md): filesystem claim behavior, polling, acknowledgement, and absent broker guarantees.
+- [Repositories](repositories/index.md): file-backed identified entities, serialization compatibility, and consistency limits.
+- [Secrets](secrets/index.md): lookup and management contracts, factory substitution, storage providers, and disclosure boundaries.
+- [Streams](streams/index.md): capabilities, composition, ownership, bounded views, transforms, and cancellation.
 - [Utils](utils/index.md): the broad shared helper layer, transitive coupling, compatibility risks, and legacy limitations.
+
+The cross-cutting [Verification](verification.md) guide explains how focused tests, shared contracts, provider checks, integrations, CI, and packaging
+combine to establish confidence.
 
 Architecture decision records are reserved for concrete decisions with alternatives and consequences. The current
 [decisions index](decisions/index.md) contains no ADRs; this page documents architecture evidenced by the current source rather than inventing

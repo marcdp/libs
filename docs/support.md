@@ -21,6 +21,13 @@ Maintained does not mean that every provider supports every operation or is exer
 | Logging | Maintained | Sink, serializer, adapter, lifecycle, and OpenTelemetry tests | Background logging is buffering, not durable delivery. |
 | Log Storage | Maintained | Focused query, tail, retention, and parsing tests | Tail and retention vary; no shared provider contract suite. |
 | Factories | Maintained | Core dispatch and provider-use tests | Configuration, assembly, secret, and dependency errors are runtime concerns. |
+| Streams | Maintained | Focused behavior and lifecycle tests | Older wrappers and compositions have uneven coverage. |
+| Cache | Legacy / compatibility | No effective subsystem tests | Cleanup, concurrency, and provider equivalence are unverified. |
+| Crypto | Legacy / compatibility | Focused vectors and round trips | Legacy algorithms and unauthenticated encryption require care. |
+| Mail | Legacy / compatibility | Build coverage only | No delivery guarantee, contract suite, or explicit connection ownership. |
+| Queues | Legacy / compatibility | Build coverage only | Claims lack verified acknowledgement, redelivery, ordering, and concurrency. |
+| Repositories | Legacy / compatibility | Build coverage only | One file-backed implementation; no factory, concurrency contract, or tests. |
+| Secrets | Legacy / compatibility | Factory substitution tests only | Persistence, sealing, platform behavior, and failures lack direct tests. |
 | Utils | Legacy / compatibility | Broad but uneven focused tests | Large compatibility surface; portability and completeness vary by helper. |
 
 No documented family is currently classified as Experimental. That label remains available for a future surface whose contracts are intentionally
@@ -36,6 +43,9 @@ Integration coverage also varies. The normal suite exercises reusable behavior w
 are marked as integration tests. CI adds selected live-provider validation, but that evidence should not be generalized to every backend or runtime.
 
 For the evidence behind these classifications, see [Repository architecture](architecture.md), [Filesystem](filesystem/index.md),
-[Database](database/index.md), [Logging](logging/index.md), [Factories](factories/index.md), and [Utils](utils/index.md).
+[Database](database/index.md), [Logging](logging/index.md), [Factories](factories/index.md), [Streams](streams/index.md),
+[Cache](cache/index.md), [Crypto](crypto/index.md), [Mail](mail/index.md), [Queues](queues/index.md), [Repositories](repositories/index.md),
+[Secrets](secrets/index.md), and [Utils](utils/index.md). The cross-cutting [Verification](verification.md) page explains how to interpret test and CI
+evidence.
 
 Return to the [documentation index](index.md) or [root README](../README.md).
