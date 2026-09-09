@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net.Mail;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -88,10 +90,51 @@ namespace DProjects.MailSender {
                 foreach(var aux in System.IO.Directory.GetFiles(tempDirectory)) {
                     filename = aux;
                 }
-                return System.IO.File.ReadAllBytes(filename);
+                return RemovePrivateRecipientHeaders(System.IO.File.ReadAllBytes(filename));
             } finally {
                 if (System.IO.Directory.Exists(tempDirectory)) System.IO.Directory.Delete(tempDirectory, true);
             }
+        }
+
+
+        // methods (private)
+        private static byte[] RemovePrivateRecipientHeaders(byte[] eml) {
+            // locate the header boundary without decoding or rewriting the MIME body
+            var separator = FindHeaderSeparator(eml, out var separatorLength);
+            if (separator < 0) return eml;
+            var headerText = Encoding.ASCII.GetString(eml, 0, separator);
+            var newline = headerText.Contains("\r\n") ? "\r\n" : "\n";
+            var lines = headerText.Replace("\r\n", "\n").Split('\n');
+            var retained = new List<string>();
+            var removeContinuations = false;
+            foreach (var line in lines) {
+                if (line.StartsWith("Bcc:", StringComparison.OrdinalIgnoreCase) || line.StartsWith("X-Receiver:", StringComparison.OrdinalIgnoreCase)) {
+                    removeContinuations = true;
+                    continue;
+                }
+                if (removeContinuations && (line.StartsWith(" ") || line.StartsWith("\t"))) continue;
+                removeContinuations = false;
+                retained.Add(line);
+            }
+            var sanitizedHeaders = Encoding.ASCII.GetBytes(string.Join(newline, retained));
+            var result = new byte[sanitizedHeaders.Length + separatorLength + eml.Length - separator - separatorLength];
+            Buffer.BlockCopy(sanitizedHeaders, 0, result, 0, sanitizedHeaders.Length);
+            Buffer.BlockCopy(eml, separator, result, sanitizedHeaders.Length, eml.Length - separator);
+            return result;
+        }
+        private static int FindHeaderSeparator(byte[] eml, out int separatorLength) {
+            for (var i = 0; i < eml.Length - 1; i++) {
+                if (i < eml.Length - 3 && eml[i] == '\r' && eml[i + 1] == '\n' && eml[i + 2] == '\r' && eml[i + 3] == '\n') {
+                    separatorLength = 4;
+                    return i;
+                }
+                if (eml[i] == '\n' && eml[i + 1] == '\n') {
+                    separatorLength = 2;
+                    return i;
+                }
+            }
+            separatorLength = 0;
+            return -1;
         }
 
 

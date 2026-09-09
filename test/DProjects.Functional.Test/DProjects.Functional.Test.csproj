@@ -20,7 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\DProjects.Utils\DProjects.Utils.csproj" />
+    <ProjectReference Include="..\..\src\DProjects.Functional\DProjects.Functional.csproj" />
   </ItemGroup>
 
   <ItemGroup>

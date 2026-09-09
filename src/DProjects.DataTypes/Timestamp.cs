@@ -39,7 +39,10 @@ namespace DProjects.DataTypes {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Timestamp FromUnixMilliseconds(long ms) => new(ms);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Timestamp FromDateTimeUtc(DateTime dt) => new(new DateTimeOffset(dt).ToUnixTimeMilliseconds());
+        public static Timestamp FromDateTimeUtc(DateTime dt) {
+            if (dt.Kind != DateTimeKind.Utc) throw new ArgumentException("The DateTime must have DateTimeKind.Utc.", nameof(dt));
+            return new(new DateTimeOffset(dt).ToUnixTimeMilliseconds());
+        }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Timestamp From(int year, int month, int day) => FromDateTimeUtc(new DateTime(year, month, day, 0, 0, 0, DateTimeKind.Utc));
 

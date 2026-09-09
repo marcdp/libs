@@ -206,6 +206,50 @@ namespace DProjects.Text.Json.Tests
             var person2 = deserializer.Deserialize<Person>(json);
             Assert.Equal(serializer.Serialize(person), serializer.Serialize(person2));
         }
+        [Fact]
+        public void MalformedJson_IsRejected() {
+            var deserializer = new JsonDeserializer(new());
+
+            Assert.Throws<System.Text.Json.JsonException>(() => deserializer.Deserialize<Person>("{ not json"));
+        }
+        [Fact]
+        public void NullRootAndRootCollections_HaveStableSemantics() {
+            var deserializer = new JsonDeserializer(new());
+
+            Assert.Null(deserializer.Deserialize<Person?>("null"));
+            Assert.Equal([1, 2, 3], deserializer.Deserialize<int[]>("[1,2,3]"));
+        }
+        [Fact]
+        public void DictionaryConversion_PreservesNestedCollectionsNullsAndScalarTypes() {
+            var deserializer = new JsonDeserializer(new());
+
+            var result = deserializer.Deserialize<Dictionary<string, object?>>("{\"count\":2,\"enabled\":true,\"missing\":null,\"items\":[\"a\",\"b\"]}");
+
+            Assert.Equal(2, result["count"]);
+            Assert.Equal(true, result["enabled"]);
+            Assert.Null(result["missing"]);
+            Assert.Equal(["a", "b"], Assert.IsType<List<object?>>(result["items"]));
+        }
+        [Fact]
+        public void UnknownProperties_AreIgnoredByDefault() {
+            var result = new JsonDeserializer(new()).Deserialize<Address>("{\"name\":\"known\",\"number\":7,\"futureProperty\":true}");
+
+            Assert.Equal("known", result.Name);
+            Assert.Equal(7, result.Number);
+        }
+        [Fact]
+        public void ByteArrays_RoundTripThroughTheOwnedSerializerPair() {
+            var value = new byte[] { 0, 1, 2, 127, 255 };
+            var json = new JsonSerializer(new()).Serialize(value);
+
+            Assert.Equal(value, new JsonDeserializer(new()).Deserialize<byte[]>(json));
+        }
+        [Fact]
+        public void TypeDeserialization_IsExplicitlyDisabledForSecurity() {
+            var deserializer = new JsonDeserializer(new());
+
+            Assert.Throws<NotSupportedException>(() => deserializer.Deserialize<Type>("\"System.String\""));
+        }
         private static string NormalizeLineEndings(string value) {
             return value
                 .Replace("\r\n", "\n")

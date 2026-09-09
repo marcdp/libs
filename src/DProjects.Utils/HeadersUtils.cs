@@ -55,7 +55,7 @@ namespace DProjects.Utils {
                 if (line == null || line.Length == 0) break;
                 var i = line.IndexOf(":");
                 if (i != -1) {
-                    var name = line.Substring(0, i);
+                    var name = line.Substring(0, i).TrimStart('\uFEFF');
                     var value = line.Substring(i + 1).Trim();
                     result.Set(name, value);
                 }
@@ -82,7 +82,7 @@ namespace DProjects.Utils {
                 if (line == null || line.Length == 0) break;
                 var i = line.IndexOf(":");
                 if (i != -1) {
-                    var name = line.Substring(0, i);
+                    var name = line.Substring(0, i).TrimStart('\uFEFF');
                     var value = line.Substring(i + 1).Trim();
                     result.Set(name, value);
                 }

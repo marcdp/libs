@@ -34,6 +34,23 @@ namespace DProjects.DataTypes.Tests
             i18n["en"] = "";
             Assert.Equal("Holla", i18n["en"]);
         }   
+        [Fact]
+        public void MissingLanguage_UsesTheDeterministicTrailingFallback() {
+            var i18n = new I18nString("i18n_en:Hello|i18n_es:Hola|Default");
+
+            Assert.Equal("Default", i18n["fr"]);
+            Assert.Equal("Default", i18n[""]);
+        }
+        [Fact]
+        public void UpdateAndRemove_PreserveOnlyExplicitTranslations() {
+            var i18n = new I18nString("i18n_en:Hello|i18n_es:Hola|Default");
+
+            i18n["fr"] = "Bonjour";
+            i18n["es"] = "";
+
+            Assert.Equal("Bonjour", i18n["fr"]);
+            Assert.Equal("i18n_en:Hello|i18n_fr:Bonjour", i18n.ToString());
+        }
 
     }
         

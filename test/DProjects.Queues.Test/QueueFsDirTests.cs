@@ -82,6 +82,22 @@ namespace DProjects.Queues.Tests {
             Assert.Single(results, message => message != null);
         }
         [Fact]
+        public async Task IndependentQueueInstances_CannotBothClaimTheSameMessage() {
+            using var filesystem = new FilesystemMem(false, false);
+            using var firstQueue = CreateQueue(filesystem);
+            using var secondQueue = CreateQueue(filesystem);
+            await firstQueue.WriteAsync(new Message("single cross-instance message"), TestContext.Current.CancellationToken);
+            var start = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            var firstRead = CaptureReadAfterStart(firstQueue, start.Task);
+            var secondRead = CaptureReadAfterStart(secondQueue, start.Task);
+            start.SetResult();
+            var reads = await Task.WhenAll(firstRead, secondRead);
+
+            Assert.Single(reads, result => result.Message != null);
+            Assert.All(reads, result => Assert.True(result.Message == null || result.Exception == null));
+        }
+        [Fact]
         public async Task Purge_ClearsOwnedStatesPreservesUnrelatedDataAndLeavesQueueUsable() {
             using var filesystem = new FilesystemMem(false, false);
             filesystem.CreateDirectory("/outside");
@@ -118,5 +134,18 @@ namespace DProjects.Queues.Tests {
         private static QueueFsDir CreateQueue(IFilesystem filesystem) {
             return new QueueFsDir(filesystem, "/queue", NullLogger<IFilesystem>.Instance);
         }
+        private static async Task<ReadResult> CaptureRead(QueueFsDir queue) {
+            try {
+                return new ReadResult(await queue.ReadAsync(cancellationToken: TestContext.Current.CancellationToken), null);
+            } catch (Exception exception) {
+                return new ReadResult(null, exception);
+            }
+        }
+        private static async Task<ReadResult> CaptureReadAfterStart(QueueFsDir queue, Task start) {
+            await start;
+            return await CaptureRead(queue);
+        }
+
+        private sealed record ReadResult(Message? Message, Exception? Exception);
     }
 }

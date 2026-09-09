@@ -67,21 +67,22 @@ namespace DProjects.DataTypes {
             return this == (Money)a;
         }
         public override int GetHashCode() {
-            return base.GetHashCode();
+            unchecked {
+                return (Amount.GetHashCode() * 397) ^ Currency.GetHashCode();
+            }
         }
 
 
         //logical operators
-        public static bool operator ==(Money firstValue, Money secondValue) {
-            if (((object)firstValue) == null || ((object)secondValue) == null) {
-                return false;
-            }
+        public static bool operator ==(Money? firstValue, Money? secondValue) {
+            if (ReferenceEquals(firstValue, secondValue)) return true;
+            if (firstValue is null || secondValue is null) return false;
             if (firstValue.Currency != secondValue.Currency) {
                 return false;
             }
             return firstValue.Amount == secondValue.Amount;
         }
-        public static bool operator !=(Money firstValue, Money secondValue) {
+        public static bool operator !=(Money? firstValue, Money? secondValue) {
             return !(firstValue == secondValue);
         }
         public static bool operator >(Money firstValue, Money secondValue) {

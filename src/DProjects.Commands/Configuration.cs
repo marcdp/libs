@@ -16,7 +16,19 @@ namespace DProjects.Commands {
 
         //Add commands from assembly
         public void AddGlobalFlag(char code, string name, string description, string defaultValue) {
-            
+            // add a virtual flag to every command without requiring a handler property
+            foreach (var command in Commands.Values) {
+                var flags = command.Flags.ToList();
+                flags.Add(new Schema.CmdSchemaFlag {
+                    Name = name,
+                    Char = code,
+                    Type = typeof(string),
+                    Description = description,
+                    Default = defaultValue,
+                    Required = false
+                });
+                command.Flags = flags.ToArray();
+            }
         }
         public void AddCommandsFromAssembly<TAssembly>() where TAssembly : IAssembly {
             AddCommandsFromAssembly(typeof(TAssembly).Assembly);

@@ -64,6 +64,23 @@ namespace DProjects.Secrets.Tests {
             Assert.Null(await reopened.GetAsync("app/other", TestContext.Current.CancellationToken));
         }
         [Fact]
+        public async Task Json_EncryptsTheCompleteStoredSecretPayloadAtRest() {
+            const string name = "portfolio-test-secret";
+            const string value = "NEVER-STORE-THIS-IN-PLAINTEXT-92731";
+            const string password = "SYNTHETIC-PASSWORD-18421";
+            using var filesystem = new FilesystemMem(false, false);
+            var manager = CreateJsonManager(filesystem, true);
+            Assert.True(await manager.Unseal(password, TestContext.Current.CancellationToken));
+            await manager.SetAsync(CreateSecret(name, value), TestContext.Current.CancellationToken);
+            await manager.Seal(password, TestContext.Current.CancellationToken);
+
+            var persisted = filesystem.LoadTextFile("/secrets.aes", System.Text.Encoding.UTF8);
+
+            Assert.DoesNotContain(value, persisted, StringComparison.Ordinal);
+            Assert.DoesNotContain(password, persisted, StringComparison.Ordinal);
+            Assert.DoesNotContain(name, persisted, StringComparison.Ordinal);
+        }
+        [Fact]
         public async Task Json_EmptyStoreReopensAsAnEmptyUnsealedManager() {
             using var filesystem = new FilesystemMem(false, false);
             var first = CreateJsonManager(filesystem, true);

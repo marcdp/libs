@@ -109,6 +109,35 @@ namespace DProjects.Text.Expressions.Tests
             var result = exp.Eval<string>(variables);
             Assert.Equal(expected, result.Replace(",","."));
         }
+        [Theory]
+        [InlineData("1 +")]
+        [InlineData("(1 + 2")]
+        [InlineData("unknown(1)")]
+        public void MalformedOrUnknownExpressions_AreRejected(string text) {
+            Assert.ThrowsAny<Exception>(() => new Expression(text, []).Eval());
+        }
+        [Fact]
+        public void UnknownVariable_IsRejected() {
+            Assert.ThrowsAny<Exception>(() => new Expression("missing + 1", []).Eval(new Dictionary<string, object?>()));
+        }
+        [Fact]
+        public void ReflectiveCalls_RejectUnknownMethodsWrongArityAndInvalidTypes() {
+            var variables = new Dictionary<string, object?> { ["something"] = new Something() };
+
+            Assert.ThrowsAny<Exception>(() => new Expression("call(something, 'Missing', 1)", []).Eval(variables));
+            Assert.ThrowsAny<Exception>(() => new Expression("call(something, 'MyOperation', 1)", []).Eval(variables));
+            Assert.ThrowsAny<Exception>(() => new Expression("call(something, 'MyOperation', 'bad', 2)", []).Eval(variables));
+        }
+        [Fact]
+        public void DivideByZero_IsReported() {
+            Assert.Throws<DivideByZeroException>(() => new Expression("1 / 0", []).Eval());
+        }
+        [Fact]
+        public void NullVariable_CanBeReturnedWithoutConversion() {
+            var variables = new Dictionary<string, object?> { ["value"] = null };
+
+            Assert.Null(new Expression("value", []).Eval(variables));
+        }
         private class Something() {
             public double MyOperation(double var1, double var2) {
                 return var1 * var2;

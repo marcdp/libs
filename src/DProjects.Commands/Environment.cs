@@ -99,10 +99,10 @@ namespace DProjects.Commands {
 
         // methods
         public void GetVariable(string name) {
-            throw new System.NotImplementedException();
+            throw new NotSupportedException("GetVariable cannot return a value because the preserved public contract has a void return type.");
         }
         public void SetVariable(string name, string value) {
-            throw new System.NotImplementedException();
+            throw new NotSupportedException("Environment variable mutation is not supported by this command environment contract.");
         }
         public async Task<int> ExecuteAsync(string[] args, CancellationToken cancellationToken) {
             return await mCommandsManager.ExecuteAsync(args, cancellationToken);

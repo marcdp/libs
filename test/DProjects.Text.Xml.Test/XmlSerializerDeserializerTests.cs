@@ -290,6 +290,27 @@ namespace DProjects.Text.Xml.Tests
             var person2 = deserialize.Deserialize<Person>(xml);
             Assert.Equal(xml, serializer.SerializeToStringUTF8NoBom(person2));
         }
+        [Fact]
+        public void MalformedXml_IsRejected() {
+            Assert.Throws<XmlException>(() => new XmlDeserializer(new()).Deserialize<Person>("<person>"));
+        }
+        [Fact]
+        public void UnknownFields_AreIgnoredOrRejectedAccordingToSettings() {
+            const string xml = "<person prop1=\"7\" future=\"value\" />";
+
+            Assert.Equal(7, new XmlDeserializer(new()).Deserialize<Person>(xml).Prop1);
+            Assert.ThrowsAny<Exception>(() => new XmlDeserializer(new() { RequireAllProperties = true }).Deserialize<Person>(xml));
+        }
+        [Fact]
+        public void InvalidAttributeConversion_IsRejected() {
+            Assert.ThrowsAny<Exception>(() => new XmlDeserializer(new()).Deserialize<Person>("<person prop1=\"not-an-int\" />"));
+        }
+        [Fact]
+        public void ExternalEntities_AreNotResolved() {
+            const string xml = "<!DOCTYPE person [<!ENTITY external SYSTEM 'file:///definitely-not-readable-dprojects-test'>]><person prop4=\"&external;\" />";
+
+            Assert.Throws<XmlException>(() => new XmlDeserializer(new()).Deserialize<Person>(xml));
+        }
 
         private static string NormalizeLineEndings(string value) {
             return value

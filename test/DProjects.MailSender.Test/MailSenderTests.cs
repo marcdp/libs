@@ -58,6 +58,23 @@ namespace DProjects.MailSender.Tests {
                 database.Calls.Select(call => Assert.IsType<string>(call.Parameters[1])).Order());
             Assert.Equal(5, database.Calls.Select(call => call.Parameters[7]).Distinct().Count());
         }
+        [Fact]
+        public async Task Bcc_IsRoutingMetadataAndIsNotExposedInGeneratedMessageHeaders() {
+            const string blindAddress = "private-bcc@example.net";
+            var database = RecordingDbProxy.Create();
+            var sender = new MailSenderDb(database.Connection, "queue.example");
+            using var message = CreateMessage();
+            message.Bcc.Add(blindAddress);
+
+            await sender.SendAsync(message, TestContext.Current.CancellationToken);
+
+            Assert.Contains(database.Calls, call => Assert.IsType<string>(call.Parameters[1]) == blindAddress);
+            foreach (var call in database.Calls) {
+                var eml = Encoding.UTF8.GetString(Assert.IsType<byte[]>(call.Parameters[4]));
+                Assert.DoesNotContain("Bcc:", eml, StringComparison.OrdinalIgnoreCase);
+                Assert.DoesNotContain(blindAddress, eml, StringComparison.OrdinalIgnoreCase);
+            }
+        }
         [Theory]
         [InlineData("configured.example", "configured.example")]
         [InlineData("", "example.com")]

@@ -87,7 +87,7 @@ namespace DProjects.Commands {
             // if command not found
             if (cmdSchemaDefinition == null || cmdSchemaDefinition.Handler == null) {
                 ShowHelp();
-                return -1;
+                return Errors.ERROR_COMMAND_NOT_FOUND;
             }
 
             // check if help 

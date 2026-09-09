@@ -114,6 +114,31 @@ namespace DProjects.Text.Readers.Tests
                 Assert.Equal(NormalizeLineEndings("Test\r\nLine\r\n"), NormalizeLineEndings(result));
             }
         }
+        [Theory]
+        [InlineData("")]
+        [InlineData("\r")]
+        [InlineData("\n")]
+        [InlineData("\r\n")]
+        public void EmptyAndLineEndingOnlyInputs_ReachEofDeterministically(string input) {
+            using var reader = new LineReader(new StringReader(input));
+
+            var first = reader.ReadLine();
+            var second = reader.ReadLine();
+
+            if (input.Length == 0) Assert.Null(first); else Assert.Equal("", first);
+            Assert.Null(second);
+        }
+        [Fact]
+        public void RepeatedPushback_IsReadInInsertionOrderBeforeUnderlyingInput() {
+            using var reader = new LineReader(new StringReader("source"));
+            reader.PushBackLine("first");
+            reader.PushBackLine("second");
+
+            Assert.Equal("first", reader.ReadLine());
+            Assert.Equal("second", reader.ReadLine());
+            Assert.Equal("source", reader.ReadLine());
+            Assert.Null(reader.ReadLine());
+        }
 
         private static string NormalizeLineEndings(string value)
         {

@@ -9,7 +9,7 @@ namespace DProjects.Text.Json.JsonConverters {
     public class TypeJsonConverter : JsonConverter<Type> {
 
         public override Type Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) {
-            throw new NotImplementedException(); //per motius de seguretat, ho deshabilitem
+            throw new NotSupportedException("Type deserialization is disabled because reconstructing arbitrary runtime types is unsafe.");
             //var name = reader.GetString();
             //var type = ConvertUtils.To<Type>(name);
             //return type;

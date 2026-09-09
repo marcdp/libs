@@ -21,7 +21,7 @@ namespace DProjects.Text.Yaml.YamlConverters {
         }
 
         public object? ReadYaml(IParser parser, Type type, ObjectDeserializer rootDeserializer) {
-            throw new NotImplementedException();
+            return ReadYaml(parser, type);
         }
 
         public void WriteYaml(IEmitter emitter, object? value, Type type) {
