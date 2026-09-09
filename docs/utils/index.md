@@ -1,82 +1,60 @@
 # Utils
 
-`DProjects.Utils` is a broad `netstandard2.0` package of reusable, mostly static helpers. Unlike the filesystem, database, and logging families, it
-has no abstraction/core/provider split and no factory extension mechanism. Its architectural significance comes from its wide use low in the
-dependency graph: changes to utility behavior can affect many otherwise unrelated packages.
+`DProjects.Utils` is a broad `netstandard2.0` compatibility package of mostly static helpers. It has no abstraction/core/provider split and sits low
+in the dependency graph, so a small behavioral change can affect otherwise unrelated packages.
 
-## Current scope
+## Scope and dependency cost
 
-The source groups several kinds of functionality in one assembly:
+The assembly combines three broad concerns:
 
-- value conversion, enum/reflection helpers, byte/hex/base encodings, hashes, random values, and date/time formatting;
-- strings, virtual paths, URLs, MIME types, HTML/XML/JSON, encodings, and console highlighting;
-- streams, files, ZIP/GZip, HTTP headers, network and authentication helpers;
-- sync/async collection bridges and synchronous execution of asynchronous delegates;
-- configuration variable replacement, dependency-injection/configuration helpers, and command-line processing;
-- environment, process, performance, browser, clipboard, Windows, and Linux helpers;
-- schedule-string evaluation.
+- value conversion, strings, dates, encodings, hashes, paths, URLs, and serialization helpers;
+- stream, archive, file, network, platform, and process operations;
+- sync/async bridges plus configuration, dependency-injection, command-line, and schedule helpers.
 
-The package depends on `DProjects.DataTypes` and on Microsoft configuration and dependency-injection abstractions, JSON, code-page encoding, and
-configuration-manager packages. This means it is not a dependency-free “primitives” library: a project reference to Utils imports that package set
-and the DataTypes project transitively.
+It depends on `DProjects.DataTypes` and several Microsoft configuration, dependency-injection, JSON, encoding, and configuration-manager packages.
+Utils is therefore not a dependency-free primitives layer: consumers inherit a meaningful transitive package surface.
 
-At least nineteen production projects directly reference Utils, including several `*.Abstractions` projects. Observable cross-subsystem contracts
-therefore include `PathUtils` virtual-path behavior in filesystems, `UrlUtils` parsing and redaction in factories/providers, `AsyncUtils` sync/async
-bridges, `ConvertUtils` data coercion, and string/date/hash encodings used in persistence and protocols.
+Some helpers participate in cross-subsystem contracts. `PathUtils` shapes virtual filesystem paths, `UrlUtils` supports factory and provider URL
+handling, `AsyncUtils` bridges execution models, and conversion/encoding helpers affect persisted representations. Those semantics should be changed
+with the same compatibility care as a domain contract.
 
 ## Architectural boundary
 
-A helper belongs here only when its semantics are genuinely shared and do not require a domain abstraction, provider dependency, or lifecycle of its
-own. Existing use illustrates the practical boundary:
+A helper belongs in Utils only when its semantics are genuinely shared and require no domain abstraction, provider dependency, or owned lifecycle.
+Generic path and URL mechanics fit that boundary; filesystem containment, protocol schemas, log serialization, and database type mapping remain with
+their owning subsystems.
 
-- generic slash-path manipulation is shared in `PathUtils`, while root containment and filesystem mutation remain in filesystem implementations;
-- generic URL/query operations are shared in `UrlUtils`, while each protocol factory owns its URL schema and defaults;
-- byte, stream, encoding, and hash mechanics are shared, while log serialization and database type mapping remain in their domains;
-- `AsyncUtils` provides mechanical adapters, while the filesystem and database layers define the behavioral relationship between their own sync and
-  async APIs.
-
-This boundary matters because a utility reference points inward from many packages. Moving domain policy into Utils would invert ownership: the
-shared package would become a hidden central layer that every domain must coordinate through. A small domain-local helper can be preferable when its
-meaning is specific, even if its implementation resembles code elsewhere.
+This distinction prevents a convenient shared package from becoming the repository's hidden policy layer. A domain-local helper is preferable when
+its meaning belongs to one subsystem, even if similar mechanics exist elsewhere.
 
 ## Compatibility and trade-offs
 
-All public utility methods are library API. Their edge cases—including case sensitivity, culture, time kind, path normalization, wildcard grammar,
-URL encoding, query defaults, byte order, serialization text, and exception type—may be consumed outside this repository. “Cleanup” changes can
-therefore be breaking without changing a signature.
+Public utility methods are library API. Case sensitivity, culture, time kind, path normalization, wildcard grammar, URL encoding, byte order,
+serialization text, and exception categories can all be observable. Signature-preserving cleanup can still be a breaking change.
 
-Static helpers are convenient and allocation-light for small transformations, but they make dependencies implicit and offer no provider capability
-negotiation. Environment and I/O helpers also combine cross-platform APIs with runtime-specific branches. Targeting `netstandard2.0` establishes an
-API availability floor; it does not guarantee identical behavior on every operating system or runtime.
+The main limitations are architectural rather than a catalogue of individual incomplete branches:
 
-Several current behaviors are important limitations rather than supported extension points:
+- `AsyncUtils.RunSync` and async-to-sync enumeration block a thread; they are compatibility bridges, not substitutes for native async I/O.
+- Platform, network, and I/O helpers have uneven runtime and cross-platform guarantees. Inspect the implementation and focused tests before treating
+  one as a supported portable capability.
+- Hash helpers retain MD5 and SHA-1 for compatibility alongside stronger algorithms. The weaker choices should not be selected for authentication or
+  new security-sensitive designs.
+- Coverage and completeness vary in legacy and platform-oriented helpers. Project existence and solution-wide compilation do not establish every
+  helper as a supported cross-platform abstraction.
 
-- `AsyncUtils.RunSync` and async-to-sync enumeration block a thread. They are compatibility bridges, not substitutes for native async I/O.
-- `FileUtils.ReadTextFileAsync` wraps synchronous reading in a completed task; it is not asynchronous file I/O.
-- `FileUtils` HTTP/HTTPS reads reach active `NotImplementedException` paths. HTTP reading is not a supported `FileUtils` capability.
-- `ConvertUtils.To` has active `NotImplementedException` branches for some dictionary conversions. Its broad conversion surface must not be assumed
-  total for every source/target pair.
-- hash helpers expose MD5 and SHA-1 alongside SHA-2 and HMAC. Their availability does not make the weaker hashes suitable for authentication or new
-  security-sensitive designs.
-- schedule parsing is a repository-specific string grammar and directly constructs local or UTC `DateTime` values; it is not a timezone/calendar
-  scheduling abstraction.
-
-These legacy breadth and consistency issues are reasons to inspect a helper and its tests before reusing it, not reasons to enlarge the package by
-default.
+These constraints argue for keeping Utils stable and narrow rather than adding domain policy to an already broad compatibility surface.
 
 ## Verification
 
-`DProjects.Utils.Test` contains focused tests for arrays, async adapters, authentication headers, encodings, base64, bytes, conversion, dates, enums,
-files, gzip/ZIP, hashes, hex, XML, paths, processes, reflection, schedules, streams, strings, and URLs. The strongest contract coverage is
-concentrated in conversion, strings, paths, URLs, streams, encodings, archives, and hashing. Atomic file-write tests verify replacement, create-only
-behavior, encoding, cancellation, and temporary-file cleanup.
+`DProjects.Utils.Test` provides focused coverage for core conversion, string, path, URL, stream, encoding, archive, hashing, scheduling, and file
+behaviors. Atomic file-write tests also cover replacement, create-only behavior, encoding, cancellation, and temporary-file cleanup.
 
-Coverage is uneven. Several named test classes contain no active facts or theories, including clipboard, environment, exception, HTML, HTTP, JSON,
-Linux, MIME, networking, and Windows tests. Commented tests also do not establish behavior. Platform integrations and the active unsupported branches
-above should consequently be treated as limitations even though the repository-wide non-integration suite builds and exercises their assembly.
+Coverage is less consistent around environment-dependent and platform-specific helpers. For those APIs, the relevant implementation and tests are
+the appropriate evidence; the repository-wide non-integration suite is not a portability guarantee.
 
 ## Related documentation
 
+- [Support and status](../support.md)
 - [Repository architecture](../architecture.md)
 - [Factories](../factories/index.md)
 - [Filesystem](../filesystem/index.md)

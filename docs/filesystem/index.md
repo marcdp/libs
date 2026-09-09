@@ -16,11 +16,11 @@ project and use `HttpClient` directly.
 The dependency direction is therefore:
 
 ```text
-DProjects.Fs.Abstractions
-            ↑
-      DProjects.Fs
-       ↑          ↑
 DProjects.Fs.Aws  DProjects.Fs.Http
+       ↓          ↓
+      DProjects.Fs
+            ↓
+DProjects.Fs.Abstractions
 ```
 
 ## Contract and implementation levels

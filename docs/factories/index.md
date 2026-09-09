@@ -61,16 +61,13 @@ of the shared contract, but malformed URLs, incomplete metadata, and missing dep
 creation time. Duplicate protocol names are not explicitly rejected, so registration must keep them unique. Assembly scanning also considers every
 assignable type; provider assemblies consequently expose concrete, attributed factory classes rather than relying on implicit plugin loading.
 
-## Verification and current limitations
+## Verification and limitations
 
-`DProjects.Factories.Test` verifies assembly discovery and both `IFactoryByUrl` forms. Its tests cover aliases, colon normalization, secret
-substitution, empty-URL defaults, and rejection of unknown schemes. Other subsystem contract tests exercise the mechanism with real provider
-assemblies, including filesystem, database, logging serialization, and log-storage factories.
+`DProjects.Factories.Test` verifies assembly discovery, both `IFactoryByUrl` forms, aliases, URL normalization, secret substitution, defaults, and
+unknown schemes. Filesystem, database, logging, and log-storage tests add evidence through real provider factories.
 
-The repository contains more configuration surface than the focused factory tests cover. In particular, handler lifetimes, keyed alias resolution,
-Windows-path normalization, alias query replacement, protocol metadata rendering, duplicate protocol handling, and disposal are not directly asserted
-by `DProjects.Factories.Test`. The generic `DependencyInjectionFactory<T>` exists but automatic registration is commented out, so
-`dependency-injection:` should not be treated as a generally enabled protocol.
+This coverage does not remove the runtime nature of the design: applications must still validate their registered assemblies, protocol uniqueness,
+dependency-injection services, aliases, and secrets. A factory type existing in source does not make its protocol available until it is registered.
 
 ## Related documentation
 

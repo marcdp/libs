@@ -30,10 +30,9 @@ entries or level-specific calls. `ILogClient` adds configured context, message-t
 of the same name; metadata configured on the client is copied to each entry. The `Writed` event describes the entry submitted by the client even if a
 downstream sink filters it.
 
-`Log` is the reusable sink base. It applies minimum-severity filtering before `ProcessEntry`. A sink can process synchronously or enqueue to one
-background writer thread. The queue has a fixed 10,000-entry acceptance threshold and silently declines new entries while at that threshold;
-disposal adds a sentinel and joins the writer thread. `ILog` has no flush or delivery-acknowledgement contract, so the threaded option is a throughput
-trade-off, not a durable queue.
+`Log` is the reusable sink base. It applies minimum-severity filtering before `ProcessEntry` and can process synchronously or through a bounded
+background queue. `ILog` has no flush or delivery-acknowledgement contract, and the queue can decline entries when full, so threaded logging is a
+throughput trade-off rather than durable delivery.
 
 Core sink protocols include `null`, `stdout`, `temp`, `file`, `fs-file`, and `fs-dir`. The filesystem forms either create a filesystem from the URL or
 use an injected `IFilesystem`; serializer selection is itself protocol-based. Active serializers are JSON, raw, RAT, and an OTLP JSON representation.
@@ -77,9 +76,8 @@ Storage protocols are:
   no defined active file;
 - `null`: empty statistics and query/tail streams with validated cancellation and no-op retention.
 
-Deserializer protocols include `auto`, `classic`, `json`, `rat`, and `raw`. Automatic detection recognizes supported classic/JSON/RAT forms. W3C and
-CSV branches explicitly raise `NotSupportedException`; the commented OTLP deserializer and factory are unfinished and are not registered features.
-Malformed structured records fail enumeration without exposing the complete raw record in exception messages.
+Deserializer protocols include `auto`, `classic`, `json`, `rat`, and `raw`. Automatic detection recognizes the supported structured forms; W3C and
+CSV are explicitly unavailable. Malformed structured records fail enumeration without exposing the complete raw record in exception messages.
 
 Directory retention uses provider-supplied modification timestamps, captures its cutoff at operation start, and deletes selected files best-effort.
 Cancellation or I/O failure can leave partial completion, so retry safety is part of the contract. Single-file follow assumes append-only writes.

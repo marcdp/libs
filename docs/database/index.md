@@ -51,12 +51,9 @@ also require cancellation and provider exceptions to retain their identity while
 enumerations. After the final row, row-returning calls return `null`, array-filling calls return `false`, and both `NextResult` forms use equivalent
 result-set semantics. Column count and sync/async column metadata describe the same logical result set.
 
-The core adapts `DbDataReader`, `DBTable`, CSV, raw/plain text, JSON/JSON Lines, XML, YAML, and document-oriented variants. `DBReaderView` projects,
-renames, filters, sorts, offsets, and limits another reader. Reader factories accept a `TextReader` as their second factory argument.
-
-`IDBWriter` provides value, `DBRow`, and dictionary writes plus flush and async disposal. Core writers cover CSV, JSON, JSON Lines, XML, YAML,
-Markdown, HTML, plain/raw text, and domain-specific formats. Writer factories accept a caller-owned `TextWriter`. These formats are part of the core
-data-transfer layer; they do not make a text reader a database connection.
+The core adapts ADO.NET, in-memory tables, structured text formats, and projected reader views. Reader factories accept a caller-owned `TextReader`.
+`IDBWriter` provides row-oriented writes, flush, and async disposal across corresponding text formats through factories that accept a `TextWriter`.
+These adapters belong to the data-transfer layer; they do not turn a text source into a database connection.
 
 `DBRow` is a fixed-schema ordered dictionary backed by its table columns. Value updates are permitted and mark the table changed; structural
 dictionary changes are rejected because they would diverge from the table schema.

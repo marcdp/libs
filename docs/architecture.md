@@ -1,34 +1,32 @@
 # Repository architecture
 
-`DProjects.Libs` is a solution of reusable .NET libraries rather than one deployable application. The repository contains 46 production projects and
-24 test projects on the current main branch. Package boundaries, public contracts, protocols, and persisted representations consequently matter as
-much as internal implementation structure.
+`DProjects.Libs` is a solution of dozens of reusable .NET libraries and their tests rather than one deployable application. Package boundaries,
+public contracts, protocols, and persisted representations consequently matter as much as internal implementation structure.
 
 ## Organizing model
 
 Maintained subsystem families commonly separate three roles:
 
 ```text
-Abstraction / contract
-        ↑
-Reusable core implementation
-        ↑
 Technology-specific provider
+        ↓
+Reusable core implementation
+        ↓
+Abstraction / contract
 ```
 
-The arrows show project-reference direction: concrete code depends on the contracts it implements. For example:
+Arrows indicate dependency direction: provider projects depend on reusable core projects, which depend on abstractions. For example:
 
 ```text
-DProjects.Fs.Abstractions        DProjects.Db.Abstractions
-            ↑                               ↑
-      DProjects.Fs                      DProjects.Db
-       ↑          ↑                  ↑       ↑       ↑       ↑
 DProjects.Fs.Aws  DProjects.Fs.Http  PostgreSQL  SQLite  SQL Server  Oracle
+       ↓          ↓                  ↓       ↓       ↓       ↓
+      DProjects.Fs                      DProjects.Db
+            ↓                               ↓
+DProjects.Fs.Abstractions        DProjects.Db.Abstractions
 ```
 
-This is a recurring pattern, not a claim that every project has three layers. Small foundational packages such as DataTypes and Streams stand alone;
-serialization/text packages compose several shared libraries; other families such as cache, crypto, identity, queues, repositories, secrets, and mail
-have abstraction/core pairs without a separately documented provider project.
+This is a recurring pattern, not a claim that every project has three layers. Some foundational packages stand alone, while other families use an
+abstraction/core pair without a separately packaged provider.
 
 ## Contracts and implementations
 
@@ -94,9 +92,9 @@ boundary rather than hidden behind identical method names.
 
 ## Target frameworks and package graph
 
-`global.json` selects .NET SDK 10.0.400 with latest-patch roll-forward and Microsoft.Testing.Platform. Of the 46 production projects, 43 target
-`netstandard2.0`; PostgreSQL, SQLite, and the ASP.NET Core filesystem middleware target `net10.0`. The build SDK version does not expand the API
-surface available to a `netstandard2.0` library.
+`global.json` selects the repository SDK and test runner. Most reusable libraries target `netstandard2.0`, while selected database providers and the
+ASP.NET Core filesystem middleware target a newer framework. The build SDK does not expand the API surface available to a `netstandard2.0` library;
+subsystem tables retain exact targets where those differences affect consumers.
 
 Projects carry their own package metadata and dependencies. The solution is therefore not a monolith: adding a package reference to an abstraction or
 shared utility changes the transitive dependency set for multiple consumers. Provider drivers belong in provider projects, and target frameworks or
@@ -112,7 +110,7 @@ Tests define behavioral boundaries at three scopes:
 3. provider tests cover dialect, metadata, transport, resource ownership, and explicit limitations that cannot be generalized.
 
 External-resource tests carry the `Integration` trait. CI restores and Release-builds the whole solution, runs all non-integration tests, provisions
-PostgreSQL 17 for one selected real-provider schema-discovery contract, and packs the solution. The build proves package compatibility and the normal
+PostgreSQL for one selected real-provider schema-discovery contract, and packs the solution. The build proves package compatibility and the normal
 test suite proves reusable behavior; neither proves every credential-dependent provider on every run.
 
 ```text
@@ -132,7 +130,8 @@ schema operation.
 - [Utils](utils/index.md): the broad shared helper layer, transitive coupling, compatibility risks, and legacy limitations.
 
 Architecture decision records are reserved for concrete decisions with alternatives and consequences. The current
-[decisions index](decisions/README.md) contains no ADRs; this page documents architecture evidenced by the current source rather than inventing
+[decisions index](decisions/index.md) contains no ADRs; this page documents architecture evidenced by the current source rather than inventing
 historical rationale.
 
-Return to the [documentation index](index.md) or the [root README](../README.md) for repository orientation and build commands.
+Return to the [documentation index](index.md), review [Support and status](support.md), or use the [root README](../README.md) for repository
+orientation and build commands.
