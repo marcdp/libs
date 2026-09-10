@@ -19,15 +19,15 @@ by the source and tests. For repository purpose and build commands, start with t
 
 ## Additional subsystems
 
-- [Cache](cache/index.md) — stream values, metadata framing, expiration, filesystem storage, and limited verification.
+- [Cache](cache/index.md) — stream values, metadata framing, expiration, cleanup, filesystem storage, and bounded provider guarantees.
 - [Crypto](crypto/index.md) — algorithms, password-derived formats, stream ownership, compatibility, and security limits.
 - [Identity](identity/index.md) — evolving sign-in and membership abstractions, claims-based identity, provider composition, and extension boundaries.
-- [Mail](mail/index.md) — the sender contract, database spooling, delivery boundaries, and lifecycle gaps.
+- [Mail](mail/index.md) — the sender contract, verified database spooling and EML behavior, delivery boundaries, and lifecycle limits.
 - [Queues](queues/index.md) — filesystem claim flow, polling, acknowledgement limits, and absent broker guarantees.
 - [Repositories](repositories/index.md) — identified entities, file-per-entity serialization, ownership, and consistency limits.
 - [Secrets](secrets/index.md) — identifiers versus values, providers, managers, factory substitution, and disclosure boundaries.
 - [Streams](streams/index.md) — capabilities, ownership, bounded views, transforms, composition, and cancellation.
-- [Utils](utils/index.md) — shared helper scope, transitive coupling, compatibility risks, and legacy limitations.
+- [Utils](utils/index.md) — maintained cross-cutting helpers, transitive coupling, compatibility boundaries, and platform-specific limits.
 - [XVault interoperability](xvault/index.md) — reading partially encrypted XVault files from .NET.
 
 ## Reading paths

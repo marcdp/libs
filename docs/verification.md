@@ -45,8 +45,35 @@ Tests requiring a real database, service, credentials, platform facility, or env
 keeps the normal suite deterministic and credential-free while preserving executable checks for environments that can supply their dependencies.
 
 Integration filtering is an explicit evidence boundary. Passing normal CI does not prove every credential-dependent provider or external integration.
-The repository also contains families with little or no dedicated test coverage; project existence and successful compilation do not elevate those
-families to the confidence level of shared contract suites.
+Likewise, the presence of focused tests does not turn implementation-specific behavior into a provider-independent or operational guarantee.
+
+## Subsystem evidence patterns
+
+The maintained families use different forms of evidence according to their architecture:
+
+- **Filesystem:** `FilesystemTests` is a reusable provider contract. Core providers run it in the deterministic suite; HTTP and S3 inherit the same
+  expectations in integration-classified provider projects. Focused tests add path safety, cancellation, read-only, composition, metadata, and
+  ownership checks.
+- **Database:** reusable reader and connection contracts establish cursor, lifecycle, transaction, parameter, and schema behavior. Provider projects
+  add SQL, type, and metadata checks, while CI runs one selected live PostgreSQL schema-discovery contract.
+- **Logging and log storage:** focused tests cover structured fields, scopes, `EventId`, exceptions, async-flow behavior, serializers, lifecycle,
+  query/retention behavior, and an in-process OpenTelemetry pipeline. These are focused implementation suites, not one shared storage-provider
+  contract.
+- **Cache:** filesystem-backed tests cover payload and metadata persistence, replacement, expiration and cleanup, get-or-create behavior, safe key
+  mapping, cancellation, stream ownership, null-cache behavior, and URL factories. They do not establish distributed cache coordination.
+- **Queues:** filesystem-backed tests cover write/read framing, immediate and bounded empty reads, claim and duplicate-claim prevention, deletion,
+  purge, cancellation, concurrent readers, and independent queue objects sharing one filesystem. They do not establish FIFO, redelivery, leases,
+  durable acknowledgement, or distributed operation.
+- **Secrets:** manager tests cover seal state, wrong passwords, password rotation, CRUD, pattern listing, encrypted JSON persistence,
+  plaintext-leakage assertions, corrupt data, cancellation, null behavior, and factories. External and platform-specific providers remain separate
+  evidence gaps.
+- **Repositories:** the filesystem implementation is exercised across JSON, YAML, and YAML front matter for CRUD, listing/filtering, malformed data,
+  invalid formats, ID/path safety, and cancellation. The tests do not imply transactions or stronger concurrency than the supplied filesystem.
+- **Mail:** tests verify recipient expansion into database records, EML content, BCC privacy, message-ID domain behavior, cancellation, database
+  failure propagation, temporary-resource cleanup, null behavior, and factories. They verify acceptance into the database spool path, not delivery.
+
+Other focused suites exercise commands, data objects and types, functional results, expressions, text serializers, and text readers. Their presence
+adds evidence for those specific public behaviors without creating a single repository-wide coverage metric or a uniform support classification.
 
 ## XVault interoperability fixtures
 

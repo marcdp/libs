@@ -103,7 +103,7 @@ libraries. This provides broad contract evidence without implying that every ext
 Maintained identifies a family that is actively treated as a compatibility and behavioral surface. It does not promise that every backend implements
 every optional operation, works without its required infrastructure, or receives live integration coverage in each run. Unsupported provider
 operations, credential-dependent tests, and environment-specific behavior remain explicit. The [support page](docs/support.md) records the evidence
-and limitations for each documented family and classifies the broad Utils package separately as a legacy compatibility surface.
+and limitations for each documented family, including the maintained cross-cutting Utils surface.
 
 ## Build and validation
 

@@ -29,12 +29,13 @@ boundary, subject to the atomicity and concurrency semantics of the supplied fil
 Filenames contain a timestamp and random identifier. The contract and tests do not establish ordering, and enumeration order may vary by filesystem;
 the timestamp-shaped name must not be treated as a FIFO guarantee.
 
-`ReadAsync` treats `waitTimeout` as a polling duration in milliseconds with one-second intervals. A zero timeout returns `null` without attempting a
-read, and the polling delay itself is not passed the cancellation token. This is bounded polling, not broker push delivery or a visibility timeout.
+`ReadAsync` first attempts an immediate claim, then treats `waitTimeout` as a polling duration in milliseconds with intervals of at most one second.
+A zero timeout therefore performs one immediate attempt. The polling delay observes cancellation. This is bounded polling, not broker push delivery
+or a visibility timeout.
 
-`DeleteAsync` is intended to remove a claimed message. The current claimed filename retains the timestamp and `.message` suffix, while deletion builds
-a `cur` path only from the `x-id` value. With no queue tests covering this path, successful acknowledgement/removal must not be assumed. Claimed files
-have no implemented timeout or redelivery path, so an abandoned `cur` item is not automatically made visible again.
+`DeleteAsync` finds the claimed file by its `x-id` suffix and removes it from `cur`; direct tests verify deletion of the message returned by a read.
+Claimed files still have no timeout or redelivery path, so an abandoned `cur` item is not automatically made visible again. Deletion is a filesystem
+cleanup operation, not a durable broker acknowledgement guarantee.
 
 `PurgeAsync` deletes matching files from all three directories. There is no selective purge or recovery distinction between staged, available, and
 claimed messages.
@@ -50,9 +51,12 @@ of that dependency is therefore not closed by the queue contract.
 
 ## Verification boundary
 
-The solution has no queue test project. Message framing, polling, concurrent claims, cancellation, purge, acknowledgement, recovery, ordering, and
-factory construction have no direct executable contract evidence. The implementation provides a simple filesystem workflow, not the operational
-guarantees normally associated with a managed message broker.
+`DProjects.Queues.Test` verifies body/header round trips, generated IDs, immediate and bounded empty reads, claims that prevent a second read,
+deletion, purge and continued reuse, pre-canceled operations, null-queue behavior, and factories. Concurrent readers on one queue and independent
+queue objects sharing a `FilesystemMem` instance are also tested to ensure one message is claimed once in those configurations.
+
+That evidence is specific to the filesystem workflow under test. It does not establish FIFO, leases, redelivery, exactly-once delivery, durable
+acknowledgements, crash recovery, or multi-process/distributed coordination. Ordering remains unspecified.
 
 See [Support and status](../support.md), [Filesystem](../filesystem/index.md), and [Factories](../factories/index.md). Return to the
 [documentation index](../index.md).

@@ -37,8 +37,8 @@ The selected extension and serialized representation are persisted compatibility
 naming, front-matter handling, or an ID's string representation can affect existing files. Deserialization errors propagate; the implementation does
 not provide schema migration, validation, or corrupt-entry quarantine.
 
-The constructor synchronously ensures the configured directory exists. Subsequent operations are asynchronous, but `ListAsync` does not pass its
-cancellation token to filesystem enumeration in the current implementation; it does use the token for loading each file.
+The constructor synchronously ensures the configured directory exists. Subsequent operations are asynchronous and pass their cancellation token to
+filesystem access, including list enumeration and loading each listed file.
 
 ## Factories and ownership
 
@@ -51,11 +51,13 @@ must be managed outside the repository.
 
 ## Verification and limitations
 
-There is no dedicated repositories test project and no shared repository contract suite. Add/save equivalence, identity-to-path mapping, format
-round trips, patterns, missing entries, cancellation, concurrent access, and ownership are not directly verified as repository behavior. The nearby
-`FilesystemRepository` type belongs to filesystem implementation internals and is not an implementation of this generic entity contract.
+`DProjects.Repositories.Test` verifies add/get/save/remove/list behavior across JSON, YAML, and YAML front matter, including filtered and empty lists,
+missing entries, YFM body content, malformed JSON/YAML, invalid format selection, unsafe ID/path rejection, and cancellation across all filesystem
+operations. There is no reusable multi-provider repository contract because the family currently has one filesystem-backed implementation. The
+nearby `FilesystemRepository` type belongs to filesystem implementation internals and is not an implementation of this generic entity contract.
 
-The family is therefore useful as a simple file-backed persistence adapter but has a limited verified behavioral surface. See
+The tests do not establish transactional writes, repository-level concurrency control, atomic replacement, durability, or stronger consistency than
+the supplied filesystem. See
 [Support and status](../support.md), [Filesystem](../filesystem/index.md), and [Factories](../factories/index.md).
 
 Return to the [documentation index](../index.md).

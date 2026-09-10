@@ -1,7 +1,14 @@
 # Utils
 
-`DProjects.Utils` is a broad `netstandard2.0` compatibility package of mostly static helpers. It has no abstraction/core/provider split and sits low
-in the dependency graph, so a small behavioral change can affect otherwise unrelated packages.
+`DProjects.Utils` is a maintained `netstandard2.0` package of common, intentionally simple, mostly static helpers. It is a cross-cutting library used
+throughout this repository and by other projects. It has no abstraction/core/provider split and sits low in the dependency graph, so a small
+behavioral change can affect otherwise unrelated packages.
+
+## Support status
+
+Utils is classified as **Maintained**. Its broad scope is deliberate: it centralizes reusable mechanics that do not belong to a domain-specific
+subsystem. Maintained means these public helpers are active compatibility and behavioral surfaces backed by focused tests; it does not mean every
+platform-dependent helper has identical behavior or deterministic verification on every operating system.
 
 ## Scope and dependency cost
 
@@ -39,18 +46,18 @@ The main limitations are architectural rather than a catalogue of individual inc
   one as a supported portable capability.
 - Hash helpers retain MD5 and SHA-1 for compatibility alongside stronger algorithms. The weaker choices should not be selected for authentication or
   new security-sensitive designs.
-- Coverage and completeness vary in legacy and platform-oriented helpers. Project existence and solution-wide compilation do not establish every
-  helper as a supported cross-platform abstraction.
+- Verification depth and portability vary for platform- and environment-oriented helpers. Evidence for a commonly used deterministic helper does not
+  establish the same cross-platform guarantees for every I/O, process, or network helper.
 
-These constraints argue for keeping Utils stable and narrow rather than adding domain policy to an already broad compatibility surface.
+These constraints preserve Utils as a stable cross-cutting utility surface while keeping domain policy in the subsystem that owns it.
 
 ## Verification
 
 `DProjects.Utils.Test` provides focused coverage for core conversion, string, path, URL, stream, encoding, archive, hashing, scheduling, and file
 behaviors. Atomic file-write tests also cover replacement, create-only behavior, encoding, cancellation, and temporary-file cleanup.
 
-Coverage is less consistent around environment-dependent and platform-specific helpers. For those APIs, the relevant implementation and tests are
-the appropriate evidence; the repository-wide non-integration suite is not a portability guarantee.
+Verification is less consistent around environment-dependent and platform-specific helpers. For those APIs, the relevant implementation and tests
+are the appropriate evidence; the repository-wide non-integration suite is not a portability guarantee.
 
 ## Related documentation
 

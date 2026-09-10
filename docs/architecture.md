@@ -134,7 +134,7 @@ schema operation.
 - [Repositories](repositories/index.md): file-backed identified entities, serialization compatibility, and consistency limits.
 - [Secrets](secrets/index.md): lookup and management contracts, factory substitution, storage providers, and disclosure boundaries.
 - [Streams](streams/index.md): capabilities, composition, ownership, bounded views, transforms, and cancellation.
-- [Utils](utils/index.md): the broad shared helper layer, transitive coupling, compatibility risks, and legacy limitations.
+- [Utils](utils/index.md): the maintained cross-cutting helper layer, transitive coupling, compatibility boundaries, and platform-specific limits.
 
 The cross-cutting [Verification](verification.md) guide explains how focused tests, shared contracts, provider checks, integrations, CI, and packaging
 combine to establish confidence.

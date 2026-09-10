@@ -5,7 +5,8 @@ that are documented as public architectural surfaces.
 
 The status terms are deliberately restrained:
 
-- **Maintained** means the family is treated as a deliberate compatibility and behavioral surface, with active implementation and test evidence.
+- **Maintained** means the family is treated as a deliberate compatibility and behavioral surface, with active implementation and meaningful
+  verification evidence.
 - **Experimental** means the design may still change materially and should not be assumed stable without inspecting its current contracts.
 - **Legacy / compatibility** means existing consumers and behavior matter, but breadth, historical coupling, or uneven coverage makes conservative use
   and change preferable.
@@ -22,14 +23,14 @@ Maintained does not mean that every provider supports every operation or is exer
 | Log Storage | Maintained | Focused query, tail, retention, and parsing tests | Tail and retention vary; no shared provider contract suite. |
 | Factories | Maintained | Core dispatch and provider-use tests | Configuration, assembly, secret, and dependency errors are runtime concerns. |
 | Streams | Maintained | Focused behavior and lifecycle tests | Older wrappers and compositions have uneven coverage. |
-| XVault reader | Maintained | Cross-format fixtures, hostile inputs, supported registration | Read/decrypt only; no authoring or management; known versions only. |
-| Cache | Legacy / compatibility | No effective subsystem tests | Cleanup, concurrency, and provider equivalence are unverified. |
+| XVault reader | Maintained | Canonical cross-format fixtures, hostile inputs, supported configuration registration | Read/decrypt only; no authoring or management; known versions only. |
+| Cache | Maintained | Filesystem persistence, metadata, expiration, cleanup, get-or-create, cancellation, null-provider, and factory tests | Filesystem-backed semantics; no distributed coordination, capacity, or eviction guarantees. |
 | Crypto | Legacy / compatibility | Focused vectors and round trips | V1 preserves APIs and persisted formats; new guarantees belong in v2. |
-| Mail | Legacy / compatibility | Build coverage only | No delivery guarantee, contract suite, or explicit connection ownership. |
-| Queues | Legacy / compatibility | Build coverage only | Claims lack verified acknowledgement, redelivery, ordering, and concurrency. |
-| Repositories | Legacy / compatibility | Build coverage only | One file-backed implementation; no factory, concurrency contract, or tests. |
-| Secrets | Legacy / compatibility | Manager and factory tests | Platform providers and hostile formats have limited coverage. |
-| Utils | Legacy / compatibility | Broad but uneven focused tests | Large compatibility surface; portability and completeness vary by helper. |
+| Mail | Maintained | Recipient expansion, DB enqueue, EML/BCC behavior, cancellation, failure, cleanup, null-sender, and factory tests | Database enqueue is not delivery confirmation; downstream delivery and retained connection ownership are outside the contract. |
+| Queues | Maintained | Filesystem write/read, claims, duplicate-claim prevention, delete, purge, cancellation, concurrency, null-provider, and factory tests | No FIFO, redelivery, lease, durable acknowledgement, or distributed/multi-process guarantee. |
+| Repositories | Maintained | JSON/YAML/YFM CRUD, listing/filtering, malformed data, format and ID validation, path safety, and cancellation tests | One filesystem-backed implementation; no transaction or repository-level concurrency guarantee. |
+| Secrets | Maintained | Sealing, password rotation, CRUD, encrypted JSON persistence, failure, cancellation, null-manager, and factory tests | External/platform providers are not exercised broadly; provider security properties are not uniform. |
+| Utils | Maintained | Broad focused tests across commonly used conversion, text, path, URL, stream, archive, hashing, scheduling, and file helpers | Intentional cross-cutting surface; platform and environment-dependent guarantees vary by helper. |
 
 No documented family is currently classified as Experimental. That label remains available for a future surface whose contracts are intentionally
 still evolving rather than forcing it into Maintained or Legacy / compatibility.

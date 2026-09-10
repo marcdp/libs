@@ -69,9 +69,14 @@ Provider lookup uses `null` for an absent identifier; manager operations may thr
 or inaccessible persisted data can still throw. No common exception taxonomy distinguishes missing files, invalid passwords, corrupt ciphertext,
 unsupported platforms, or parsing failures.
 
-`test/DProjects.Secrets.Test` covers manager sealing and CRUD behavior, encrypted JSON persistence and password rotation, cancellation, corrupt stored
-data, and manager factory wiring. Factory substitution is also tested in `DProjects.Factories.Test`, including successful default-value replacement.
-Platform-specific providers, every failure category, and cryptographic hostile-input behavior still lack broad direct coverage. See
+`DProjects.Secrets.Test` covers manager seal state, wrong-password behavior, password rotation, CRUD and filtered listing, rejection while sealed,
+encrypted JSON persistence across instances, empty stores, cancellation, corrupt stored data, null-manager semantics, and manager factories. The
+persisted-data assertions check that secret names, values, and descriptions are not present as plaintext, and failure assertions check that sensitive
+inputs are not disclosed. Factory substitution is also tested in `DProjects.Factories.Test`, including successful default-value replacement.
+
+This evidence directly supports `SecretManagerMem`, `SecretManagerJson`, and `SecretManagerNull`; it does not generalize the encrypted-at-rest
+property to plaintext user-secrets storage or every external/platform provider. Those providers, platform key stores, and their environment-specific
+failure categories still lack broad deterministic coverage. See
 [Support and status](../support.md).
 
 Return to the [documentation index](../index.md) or read [Factories](../factories/index.md), [Crypto](../crypto/index.md), and

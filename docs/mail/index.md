@@ -48,9 +48,14 @@ The sender does not dispose the caller's `MailMessage`. Callers remain responsib
 A successful call means the implemented work completed: for `MailSenderDb`, EML generation and the corresponding row inserts; for `MailSenderNull`,
 only a no-op completion. It does not mean an SMTP server accepted the message or a recipient received it.
 
-There is no dedicated mail test project or shared sender contract suite. Recipient expansion, MIME preservation, temporary-directory cleanup on
-failure, database schema compatibility, partial insert behavior, cancellation, factory parsing, and connection lifecycle are not directly verified.
-The family is consequently a narrow compatibility surface with limited evidence; see [Support and status](../support.md).
+`DProjects.MailSender.Test` verifies the null sender and the database-spooling implementation. It covers one persisted delivery record per To, CC,
+and Bcc recipient; EML content including HTML and attachments; BCC removal from generated message headers; generated message-ID domains; propagation
+of the caller's cancellation token and database failures; temporary pickup-directory cleanup after EML failure; and `db:`/`null:` factories.
+
+These tests use a recording database connection. They establish the enqueue call and generated message semantics, not live schema compatibility,
+transactional all-recipient insertion, downstream delivery, retry behavior, or retained connection disposal. A successful `MailSenderDb` call means
+the records were accepted by its database persistence path; it does not mean a recipient received the message. See
+[Support and status](../support.md).
 
 Return to the [documentation index](../index.md), or see [Database](../database/index.md) and [Factories](../factories/index.md) for the dependencies
 used by the database sender.

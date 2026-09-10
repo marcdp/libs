@@ -32,8 +32,8 @@ If a write has no `Expires` header, the implementation assigns an expiration one
 miss and removes the entry. The get-or-create overload sets the produced entry's expiration to the requested interval before persisting it. No locking
 or single-flight mechanism coordinates concurrent misses, so multiple callers may invoke the producer and replace the same key.
 
-`Clean` is intended to sweep files based on their stored expiration. There are no effective cache tests establishing its observable sweep behavior,
-so consumers should treat cleanup as unverified and rely on read-time expiration only where that is sufficient.
+`Clean` sweeps `.blob` files based on their stored expiration. Tests verify removal of expired and missing-expiration entries, preservation of valid
+entries and unrelated files, and fail-fast behavior for an invalid expiration value. Reads also remove expired or missing-expiration entries.
 
 ## Construction and provider behavior
 
@@ -43,9 +43,9 @@ Factories participate in `IFactoryByUrl<IBlobCache>` discovery through the packa
 - `file:` creates a filesystem through `IFactoryByUrl<IFilesystem>` and uses its root as the cache directory;
 - `null:` discards writes and returns misses.
 
-The null provider is useful for disabling storage, but it does not model the filesystem provider in every overload. Its synchronous get-or-create
-returns the producer result directly, while its asynchronous get-or-create follows a set-then-read path even though null writes are discarded. Code
-that selects `null:` should use the basic miss behavior deliberately rather than infer full provider equivalence.
+The null provider is useful for disabling storage, but it does not persist values: basic reads miss and writes, removals, and cleanup are no-ops.
+Its sync and async get-or-create overloads invoke the caller's producer and return that live entry. Tests pin these explicit null-cache semantics;
+they do not imply behavioral equivalence with filesystem persistence.
 
 ## Guarantees and verification boundary
 
@@ -53,9 +53,12 @@ The implementation establishes local key-to-file behavior, metadata framing, exp
 does not establish durability, distributed consistency, atomic invalidation, eviction policy, capacity limits, or coherent multi-process updates.
 Those properties depend on the supplied filesystem, and several are not represented by the cache contract at all.
 
-`test/DProjects.Cache.Test` currently contains a test project shell but does not reference the cache packages or contain executable cache tests.
-Factory registration, filesystem failure behavior, cancellation, concurrent producers, cleanup, and null-provider equivalence therefore lack direct
-subsystem verification. This limited evidence is reflected in [Support and status](../support.md).
+`DProjects.Cache.Test` directly verifies sync and async set/get and replacement, metadata and default/explicit expiration, missing and expired
+entries, safe key-to-file mapping, cleanup outcomes, get-or-create persistence and producer ownership, idempotent removal, cancellation at
+filesystem and payload-copy boundaries, entry stream disposal, null-cache behavior, and `fs-dir:`, `file:`, and `null:` factories.
+
+The suite uses a filesystem-backed implementation and does not establish concurrent single-flight producers, distributed consistency, durability,
+capacity, eviction, or multi-process coordination. This maintained but bounded surface is reflected in [Support and status](../support.md).
 
 Return to the [documentation index](../index.md) or review [Factories](../factories/index.md), [Filesystem](../filesystem/index.md), and
 [Streams](../streams/index.md) for the collaborating boundaries.
