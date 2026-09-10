@@ -24,6 +24,7 @@ Maintained does not mean that every provider supports every operation or is exer
 | Factories | Maintained | Core dispatch and provider-use tests | Configuration, assembly, secret, and dependency errors are runtime concerns. |
 | Streams | Maintained | Focused behavior and lifecycle tests | Older wrappers and compositions have uneven coverage. |
 | XVault reader | Maintained | Canonical cross-format fixtures, hostile inputs, supported configuration registration | Read/decrypt only; no authoring or management; known versions only. |
+| Azure | Legacy / compatibility | No substantive dedicated verification | Historical/support-only integration retained for existing consumers; not an active architectural investment area. |
 | Cache | Maintained | Filesystem persistence, metadata, expiration, cleanup, get-or-create, cancellation, null-provider, and factory tests | Filesystem-backed semantics; no distributed coordination, capacity, or eviction guarantees. |
 | Crypto | Legacy / compatibility | Compatibility vectors, malformed inputs, factories, and stream ownership | V1 preserves APIs and persisted formats; new guarantees belong in v2. |
 | Identity | Experimental | No substantive dedicated verification yet | Contracts and models are still evolving; current providers are reference/simple implementations rather than a mature identity framework. |

@@ -19,6 +19,8 @@ by the source and tests. For repository purpose and build commands, start with t
 
 ## Additional subsystems
 
+- **DProjects.Azure** — **Legacy / compatibility** integration retained for existing consumers and historical DProjects functionality; new development
+  should depend on it only when there is a concrete compatibility requirement.
 - [Cache](cache/index.md) — stream values, metadata framing, expiration, cleanup, filesystem storage, and bounded provider guarantees.
 - [Crypto](crypto/index.md) — algorithms, password-derived formats, stream ownership, compatibility, and security limits.
 - [Identity](identity/index.md) — evolving sign-in and membership abstractions, claims-based identity, provider composition, and extension boundaries.
