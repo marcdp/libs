@@ -1,5 +1,7 @@
 # DProjects.Libs
 
+[![CI](https://github.com/marcdp/libs/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/marcdp/libs/actions/workflows/ci.yml)
+
 `DProjects.Libs` is a collection of .NET libraries for DProjects applications. It provides contracts, shared implementations, and providers
 for filesystems, database access, logging, log storage, and component factories.
 

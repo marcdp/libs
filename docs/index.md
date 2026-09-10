@@ -8,7 +8,7 @@ by the source and tests. For repository purpose and build commands, start with t
 - [Repository architecture](architecture.md) — layering, dependencies, compatibility, target frameworks, and verification boundaries.
 - [Support and status](support.md) — maintained surfaces, verification evidence, and important limitations.
 - [Verification](verification.md) — focused tests, shared contracts, provider checks, integrations, CI, and local validation.
-- [Architecture decisions](decisions/index.md) — index for concrete decision records; none are currently recorded.
+- [Architecture decisions](decisions/index.md) — selected architectural decisions and their trade-offs.
 
 ## Core architectural subsystems
 
