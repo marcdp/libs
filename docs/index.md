@@ -21,6 +21,7 @@ by the source and tests. For repository purpose and build commands, start with t
 
 - [Cache](cache/index.md) — stream values, metadata framing, expiration, filesystem storage, and limited verification.
 - [Crypto](crypto/index.md) — algorithms, password-derived formats, stream ownership, compatibility, and security limits.
+- [Identity](identity/index.md) — evolving sign-in and membership abstractions, claims-based identity, provider composition, and extension boundaries.
 - [Mail](mail/index.md) — the sender contract, database spooling, delivery boundaries, and lifecycle gaps.
 - [Queues](queues/index.md) — filesystem claim flow, polling, acknowledgement limits, and absent broker guarantees.
 - [Repositories](repositories/index.md) — identified entities, file-per-entity serialization, ownership, and consistency limits.
