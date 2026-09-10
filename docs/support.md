@@ -26,14 +26,12 @@ Maintained does not mean that every provider supports every operation or is exer
 | XVault reader | Maintained | Canonical cross-format fixtures, hostile inputs, supported configuration registration | Read/decrypt only; no authoring or management; known versions only. |
 | Cache | Maintained | Filesystem persistence, metadata, expiration, cleanup, get-or-create, cancellation, null-provider, and factory tests | Filesystem-backed semantics; no distributed coordination, capacity, or eviction guarantees. |
 | Crypto | Legacy / compatibility | Focused vectors and round trips | V1 preserves APIs and persisted formats; new guarantees belong in v2. |
+| Identity | Experimental | No substantive dedicated verification yet | Contracts and models are still evolving; current providers are reference/simple implementations rather than a mature identity framework. |
 | Mail | Maintained | Recipient expansion, DB enqueue, EML/BCC behavior, cancellation, failure, cleanup, null-sender, and factory tests | Database enqueue is not delivery confirmation; downstream delivery and retained connection ownership are outside the contract. |
-| Queues | Maintained | Filesystem write/read, claims, duplicate-claim prevention, delete, purge, cancellation, concurrency, null-provider, and factory tests | No FIFO, redelivery, lease, durable acknowledgement, or distributed/multi-process guarantee. |
+| Queues | Maintained | Filesystem write/read, claims, same-instance duplicate-claim prevention, delete, purge, cancellation, null-provider, and factory tests | No FIFO, redelivery, lease, or durable acknowledgement; cross-instance and multi-process coordination depends on filesystem semantics. |
 | Repositories | Maintained | JSON/YAML/YFM CRUD, listing/filtering, malformed data, format and ID validation, path safety, and cancellation tests | One filesystem-backed implementation; no transaction or repository-level concurrency guarantee. |
 | Secrets | Maintained | Sealing, password rotation, CRUD, encrypted JSON persistence, failure, cancellation, null-manager, and factory tests | External/platform providers are not exercised broadly; provider security properties are not uniform. |
 | Utils | Maintained | Broad focused tests across commonly used conversion, text, path, URL, stream, archive, hashing, scheduling, and file helpers | Intentional cross-cutting surface; platform and environment-dependent guarantees vary by helper. |
-
-No documented family is currently classified as Experimental. That label remains available for a future surface whose contracts are intentionally
-still evolving rather than forcing it into Maintained or Legacy / compatibility.
 
 ## Interpreting provider support
 
@@ -47,7 +45,8 @@ are marked as integration tests. CI adds selected live-provider validation, but 
 For the evidence behind these classifications, see [Repository architecture](architecture.md), [Filesystem](filesystem/index.md),
 [Database](database/index.md), [Logging](logging/index.md), [Factories](factories/index.md), [Streams](streams/index.md),
 [XVault interoperability](xvault/index.md),
-[Cache](cache/index.md), [Crypto](crypto/index.md), [Mail](mail/index.md), [Queues](queues/index.md), [Repositories](repositories/index.md),
+[Cache](cache/index.md), [Crypto](crypto/index.md), [Identity](identity/index.md), [Mail](mail/index.md), [Queues](queues/index.md),
+[Repositories](repositories/index.md),
 [Secrets](secrets/index.md), and [Utils](utils/index.md). The cross-cutting [Verification](verification.md) page explains how to interpret test and CI
 evidence.
 

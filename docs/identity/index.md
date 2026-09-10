@@ -1,6 +1,6 @@
 # Identity
 
-> **Status: Under construction**
+> **Status: Experimental**
 >
 > `DProjects.Identity` is an evolving set of abstractions for simple, implementation-independent identity operations. Its current architecture
 > explores a separation between authentication (`ISignIn`), membership (`IMembership`), and standard .NET claims-based identity.

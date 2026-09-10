@@ -24,7 +24,8 @@ nack, lease renewal, delivery count, batch, priority, or transactional operation
 
 `QueueFsDir` maintains `tmp`, `new`, and `cur` directories. A write serializes headers and body into `tmp`, then moves the completed file into `new`.
 A read takes the first file returned by filesystem enumeration, moves it from `new` to `cur`, then deserializes it. That move is the implemented claim
-boundary, subject to the atomicity and concurrency semantics of the supplied filesystem.
+boundary. `QueueFsDir` serializes reads within one queue instance. Coordination between independent instances depends on the supplied filesystem and
+is not a queue-level guarantee because `IFilesystem` does not require atomic competitive moves.
 
 Filenames contain a timestamp and random identifier. The contract and tests do not establish ordering, and enumeration order may vary by filesystem;
 the timestamp-shaped name must not be treated as a FIFO guarantee.
@@ -45,15 +46,17 @@ claimed messages.
 Factories register `fs-dir:`, `file:`, and `null:` protocols. `fs-dir:` uses an injected filesystem and path; `file:` creates a filesystem and roots
 the queue at `/`; `null:` discards writes, returns no messages, and treats delete/purge as successful no-ops.
 
-Filesystem exceptions and parsing failures propagate. A move race between readers is not translated into a queue-specific empty result. `IQueue` is
-disposable, but current implementations do no disposal work and do not dispose the filesystem, including one created by the `file:` factory. Ownership
-of that dependency is therefore not closed by the queue contract.
+Filesystem exceptions and parsing failures propagate. In particular, independent readers can observe filesystem-specific move-race results because
+the filesystem contract does not define a portable exception or atomic claim result that Queue can safely normalize. `IQueue` is disposable, but
+current implementations do no disposal work and do not dispose the filesystem, including one created by the `file:` factory. Ownership of that
+dependency is therefore not closed by the queue contract.
 
 ## Verification boundary
 
 `DProjects.Queues.Test` verifies body/header round trips, generated IDs, immediate and bounded empty reads, claims that prevent a second read,
-deletion, purge and continued reuse, pre-canceled operations, null-queue behavior, and factories. Concurrent readers on one queue and independent
-queue objects sharing a `FilesystemMem` instance are also tested to ensure one message is claimed once in those configurations.
+deletion, purge and continued reuse, pre-canceled operations, null-queue behavior, and factories. Concurrent readers on one queue are tested for
+same-instance duplicate-claim prevention. Independent queue objects are tested only for sequential access to shared filesystem state; cross-instance
+claim uniqueness is not asserted.
 
 That evidence is specific to the filesystem workflow under test. It does not establish FIFO, leases, redelivery, exactly-once delivery, durable
 acknowledgements, crash recovery, or multi-process/distributed coordination. Ordering remains unspecified.

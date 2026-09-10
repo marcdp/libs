@@ -61,8 +61,9 @@ The maintained families use different forms of evidence according to their archi
   contract.
 - **Cache:** filesystem-backed tests cover payload and metadata persistence, replacement, expiration and cleanup, get-or-create behavior, safe key
   mapping, cancellation, stream ownership, null-cache behavior, and URL factories. They do not establish distributed cache coordination.
-- **Queues:** filesystem-backed tests cover write/read framing, immediate and bounded empty reads, claim and duplicate-claim prevention, deletion,
-  purge, cancellation, concurrent readers, and independent queue objects sharing one filesystem. They do not establish FIFO, redelivery, leases,
+- **Queues:** filesystem-backed tests cover write/read framing, immediate and bounded empty reads, same-instance claim and duplicate-claim prevention,
+  deletion, purge, cancellation, and sequential use of shared filesystem state by independent queue objects. Storage-backed cross-instance
+  coordination depends on filesystem move semantics and is not verified as a Queue guarantee. The tests do not establish FIFO, redelivery, leases,
   durable acknowledgement, or distributed operation.
 - **Secrets:** manager tests cover seal state, wrong passwords, password rotation, CRUD, pattern listing, encrypted JSON persistence,
   plaintext-leakage assertions, corrupt data, cancellation, null behavior, and factories. External and platform-specific providers remain separate
