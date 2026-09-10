@@ -41,6 +41,33 @@ namespace DProjects.Crypto.Tests
             Assert.Equal(expected, HexUtils.Hex(sha512.ToHash(input)));
         }
 
+        [Fact]
+        public async Task VerificationMethodsAgreeForShaAndMd5Implementations() {
+            // verify public sync, text, and async paths for ASCII and non-ASCII values
+            var algorithms = new ICryptoHash[] {
+                new CryptoHashMD5(new()),
+                new CryptoHashSHA1(new()),
+                new CryptoHashSHA256(new()),
+                new CryptoHashSHA512(new())
+            };
+            foreach (var algorithm in algorithms) {
+                using (algorithm) {
+                    var text = "hèllo 世界";
+                    var bytes = System.Text.Encoding.UTF8.GetBytes(text);
+                    using var hashInput = new MemoryStream(bytes);
+                    var hash = algorithm.ToHash(hashInput);
+                    using var correctInput = new MemoryStream(bytes);
+                    using var wrongInput = new MemoryStream(System.Text.Encoding.UTF8.GetBytes("wrong"));
+                    using var asyncInput = new MemoryStream(bytes);
+                    Assert.True(algorithm.Verify(correctInput, hash));
+                    Assert.False(algorithm.Verify(wrongInput, hash));
+                    Assert.True(algorithm.VerifyText(text, algorithm.ToHashText(text)));
+                    Assert.False(algorithm.VerifyText("wrong", algorithm.ToHashText(text)));
+                    Assert.True(await algorithm.VerifyAsync(asyncInput, hash, TestContext.Current.CancellationToken));
+                }
+            }
+        }
+
     }
 
 }

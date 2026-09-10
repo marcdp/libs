@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\DProjects.Crypto\DProjects.Crypto.csproj" />
+    <ProjectReference Include="..\..\src\DProjects.Factories\DProjects.Factories.csproj" />
   </ItemGroup>
 
   <ItemGroup>

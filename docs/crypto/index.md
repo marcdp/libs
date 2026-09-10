@@ -122,10 +122,14 @@ Repository consumers persist AES v1 data. `SecretManagerJson` stores AES-encrypt
 `.json.aes` files, and password-protected `FilesystemXml` instances encrypt their persisted XML representation. Their ability to read existing data
 depends on v1 format and credential compatibility.
 
-Focused tests pin known MD5, SHA-1, SHA-256, SHA-512, and PBKDF2 outputs, one deterministic AES representation and round trip, and a Caesar round
-trip.
-They provide compatibility evidence but do not cover bcrypt, malformed AES headers, tampering, every AES mode and encoding, factory discovery,
-cancellation, side-channel properties, or formal protocol analysis.
+Focused tests pin known MD5, SHA-1, SHA-256, SHA-512, and PBKDF2 outputs; bcrypt password/text verification; exact Base64 and binary AES v1
+representations; folded consumer configuration; password-provider version selection; the Base64 salt-marker calculation; factory discovery and documented
+option names; stream ownership; and Caesar compatibility behavior. Negative tests cover representative malformed AES headers and metadata, wrong
+passwords, corruption outcomes, invalid PBKDF2 values, malformed bcrypt hashes, and invalid Caesar keys.
+
+AES v1 rejects negative and absurd serialized allocation lengths before allocating buffers and bounds serialized iteration counts before invoking
+PBKDF2. These checks are deliberately conservative compatibility guards, not a general validation framework or an authenticity mechanism. The tests
+do not cover every AES mode and option combination, side-channel properties, or formal protocol analysis.
 
 See [Support and status](../support.md), [Secrets](../secrets/index.md), and [Streams](../streams/index.md) for related lifecycle and consumer
 boundaries.

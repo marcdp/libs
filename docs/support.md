@@ -25,7 +25,7 @@ Maintained does not mean that every provider supports every operation or is exer
 | Streams | Maintained | Focused behavior and lifecycle tests | Older wrappers and compositions have uneven coverage. |
 | XVault reader | Maintained | Canonical cross-format fixtures, hostile inputs, supported configuration registration | Read/decrypt only; no authoring or management; known versions only. |
 | Cache | Maintained | Filesystem persistence, metadata, expiration, cleanup, get-or-create, cancellation, null-provider, and factory tests | Filesystem-backed semantics; no distributed coordination, capacity, or eviction guarantees. |
-| Crypto | Legacy / compatibility | Focused vectors and round trips | V1 preserves APIs and persisted formats; new guarantees belong in v2. |
+| Crypto | Legacy / compatibility | Compatibility vectors, malformed inputs, factories, and stream ownership | V1 preserves APIs and persisted formats; new guarantees belong in v2. |
 | Identity | Experimental | No substantive dedicated verification yet | Contracts and models are still evolving; current providers are reference/simple implementations rather than a mature identity framework. |
 | Mail | Maintained | Recipient expansion, DB enqueue, EML/BCC behavior, cancellation, failure, cleanup, null-sender, and factory tests | Database enqueue is not delivery confirmation; downstream delivery and retained connection ownership are outside the contract. |
 | Queues | Maintained | Filesystem write/read, claims, same-instance duplicate-claim prevention, delete, purge, cancellation, null-provider, and factory tests | No FIFO, redelivery, lease, or durable acknowledgement; cross-instance and multi-process coordination depends on filesystem semantics. |

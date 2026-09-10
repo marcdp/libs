@@ -4,7 +4,7 @@ using DProjects.Utils;
 
 namespace DProjects.Crypto {
     [Protocol("pbkdf2", "")]
-    [ProtocolExample("pbkdf2://?[iterations=XX][&keyLength=32]", "")]
+    [ProtocolExample("pbkdf2:?iterations=1000&keyLength=32&prf=HMACSHA256", "")]
     public class CryptoKeyDerivationPBKDF2Factory : IFactoryByUrl<ICryptoKeyDerivation> {
         public ICryptoKeyDerivation Create(string src) {
             return new CryptoKeyDerivationPBKDF2(UrlUtils.Deserialize<CryptoKeyDerivationPBKDF2.Options>(src, new() {

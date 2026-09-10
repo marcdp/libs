@@ -51,6 +51,7 @@ namespace DProjects.Crypto {
         //methods
         public Stream GetStream(Stream output, string password) {
             //prepare
+            ValidateOptions();
             var salt = RandomUtils.GenerateSalt(mOptions.SaltLength);
             var iterations = (new Random()).Next(mOptions.IterationsMin, mOptions.IterationsMin + mOptions.IterationsRandomRange);
             var iterations4 = BitConverter.GetBytes(iterations);
@@ -104,10 +105,23 @@ namespace DProjects.Crypto {
                 //return
                 return cryptoStream;
             } else {
-                throw new NotImplementedException();
+                throw new ArgumentException("Invalid AES encoding.", nameof(mOptions));
             }
         }
 
+
+        // methods (private)
+        private void ValidateOptions() {
+            if (mOptions.SaltLength < 0 || mOptions.SaltLength > 1024 * 1024) throw new ArgumentOutOfRangeException(nameof(mOptions.SaltLength));
+            if (mOptions.IVLength < 0 || mOptions.IVLength > 1024) throw new ArgumentOutOfRangeException(nameof(mOptions.IVLength));
+            if (mOptions.IterationsMin <= 0 || mOptions.IterationsMin > 10000000) throw new ArgumentOutOfRangeException(nameof(mOptions.IterationsMin));
+            if (mOptions.IterationsRandomRange < 0 || mOptions.IterationsRandomRange > 10000000 - mOptions.IterationsMin) throw new ArgumentOutOfRangeException(nameof(mOptions.IterationsRandomRange));
+            if (mOptions.KeySize <= 0 || mOptions.KeySize > 1024) throw new ArgumentOutOfRangeException(nameof(mOptions.KeySize));
+            if (mOptions.BlockSize <= 0 || mOptions.BlockSize > 1024) throw new ArgumentOutOfRangeException(nameof(mOptions.BlockSize));
+            if (!Enum.IsDefined(typeof(Encoding), mOptions.Encoding)) throw new ArgumentException("Invalid AES encoding.", nameof(mOptions));
+            if (!Enum.IsDefined(typeof(CipherMode), mOptions.CipherMode)) throw new ArgumentException("Invalid AES cipher mode.", nameof(mOptions));
+            if (!Enum.IsDefined(typeof(PaddingMode), mOptions.PaddingMode)) throw new ArgumentException("Invalid AES padding mode.", nameof(mOptions));
+        }
 
     }
 

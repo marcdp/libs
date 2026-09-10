@@ -18,6 +18,30 @@ namespace DProjects.Crypto.Tests
             });
             Assert.Equal(expected, HexUtils.Hex(alg.Derive(input, salt)));
         }
+
+        [Theory]
+        [InlineData(1, 16, KeyDerivationPrf.HMACSHA1)]
+        [InlineData(2, 24, KeyDerivationPrf.HMACSHA256)]
+        [InlineData(1000, 32, KeyDerivationPrf.HMACSHA512)]
+        public void PBKDF2ExplicitOptionsAreDeterministic(int iterations, int keyLength, KeyDerivationPrf prf) {
+            // preserve deterministic parameter semantics across supported PRFs and lengths
+            var options = new CryptoKeyDerivationPBKDF2.Options() { Iterations = iterations, KeyLength = keyLength, Prf = prf };
+            using var first = new CryptoKeyDerivationPBKDF2(options);
+            using var second = new CryptoKeyDerivationPBKDF2(options);
+            var salt = new byte[] { 1, 2, 3, 4 };
+            Assert.Equal(first.Derive("password", salt), second.Derive("password", salt));
+            Assert.Equal(keyLength, first.Derive("password", salt).Length);
+        }
+        [Theory]
+        [InlineData(0, 16)]
+        [InlineData(-1, 16)]
+        [InlineData(1000, 0)]
+        [InlineData(1000, -1)]
+        public void PBKDF2InvalidNumericOptionsFail(int iterations, int keyLength) {
+            // retain deterministic rejection of invalid PBKDF2 parameters
+            using var algorithm = new CryptoKeyDerivationPBKDF2(new() { Iterations = iterations, KeyLength = keyLength });
+            Assert.ThrowsAny<ArgumentException>(() => algorithm.Derive("password", new byte[] { 1, 2, 3 }));
+        }
          
 
     }
