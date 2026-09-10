@@ -24,11 +24,11 @@ Maintained does not mean that every provider supports every operation or is exer
 | Streams | Maintained | Focused behavior and lifecycle tests | Older wrappers and compositions have uneven coverage. |
 | XVault reader | Maintained | Cross-format fixtures, hostile inputs, supported registration | Read/decrypt only; no authoring or management; known versions only. |
 | Cache | Legacy / compatibility | No effective subsystem tests | Cleanup, concurrency, and provider equivalence are unverified. |
-| Crypto | Legacy / compatibility | Focused vectors and round trips | Legacy algorithms and unauthenticated encryption require care. |
+| Crypto | Legacy / compatibility | Focused vectors and round trips | V1 preserves APIs and persisted formats; new guarantees belong in v2. |
 | Mail | Legacy / compatibility | Build coverage only | No delivery guarantee, contract suite, or explicit connection ownership. |
 | Queues | Legacy / compatibility | Build coverage only | Claims lack verified acknowledgement, redelivery, ordering, and concurrency. |
 | Repositories | Legacy / compatibility | Build coverage only | One file-backed implementation; no factory, concurrency contract, or tests. |
-| Secrets | Legacy / compatibility | Factory substitution tests only | Persistence, sealing, platform behavior, and failures lack direct tests. |
+| Secrets | Legacy / compatibility | Manager and factory tests | Platform providers and hostile formats have limited coverage. |
 | Utils | Legacy / compatibility | Broad but uneven focused tests | Large compatibility surface; portability and completeness vary by helper. |
 
 No documented family is currently classified as Experimental. That label remains available for a future surface whose contracts are intentionally

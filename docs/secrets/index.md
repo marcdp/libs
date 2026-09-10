@@ -44,9 +44,13 @@ because it calls the Windows credential API; its async method wraps synchronous 
 - `SecretManagerUserSecrets`, a cached plaintext string dictionary stored through `IFilesystem`;
 - `SecretManagerNull`, which remains sealed, returns no secrets, and discards mutations.
 
-The JSON manager uses the repository's AES format and retains the password so later mutations can be saved automatically. Its guarantees are
-therefore bounded by the [Crypto](../crypto/index.md) implementation, including the lack of authenticated encryption. User-secrets storage is plain
-JSON; the name does not imply encryption. Memory sealing controls API access to the dictionary but does not erase values from managed memory.
+The JSON manager uses the repository's AES v1 format and retains the password so later mutations can be saved automatically. Its persisted-format
+compatibility and security guarantees are therefore bounded by the [Crypto v1](../crypto/index.md) contract, including the lack of authenticated
+encryption or ciphertext integrity. Successful unsealing is not proof that persisted ciphertext was authentic or untampered. Future Crypto v2
+security work is separate from this existing persisted-format contract and would require an explicit migration design.
+
+User-secrets storage is plain JSON; the name does not imply encryption. Memory sealing controls API access to the dictionary but does not erase
+values from managed memory.
 
 ## Factory protocols and lifecycle
 
@@ -65,9 +69,10 @@ Provider lookup uses `null` for an absent identifier; manager operations may thr
 or inaccessible persisted data can still throw. No common exception taxonomy distinguishes missing files, invalid passwords, corrupt ciphertext,
 unsupported platforms, or parsing failures.
 
-`test/DProjects.Secrets.Test` is a project shell that neither references the secrets packages nor contains executable secret tests. Factory
-substitution itself is tested in `DProjects.Factories.Test`, including successful default-value replacement, but manager sealing, persistence,
-platform providers, cancellation, missing values, and hostile formats lack direct subsystem coverage. See [Support and status](../support.md).
+`test/DProjects.Secrets.Test` covers manager sealing and CRUD behavior, encrypted JSON persistence and password rotation, cancellation, corrupt stored
+data, and manager factory wiring. Factory substitution is also tested in `DProjects.Factories.Test`, including successful default-value replacement.
+Platform-specific providers, every failure category, and cryptographic hostile-input behavior still lack broad direct coverage. See
+[Support and status](../support.md).
 
 Return to the [documentation index](../index.md) or read [Factories](../factories/index.md), [Crypto](../crypto/index.md), and
 [Filesystem](../filesystem/index.md) for collaborating boundaries.
