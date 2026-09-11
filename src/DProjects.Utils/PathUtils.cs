@@ -102,6 +102,51 @@ namespace DProjects.Utils {
             }
             return path;
         }
+        public static string NormalizeStrict(string path) {
+            if (string.IsNullOrWhiteSpace(path)) {
+                throw new ArgumentException("Path cannot be null, empty, or whitespace.", nameof(path));
+            }
+            if (!path.StartsWith("/", StringComparison.Ordinal)) {
+                throw new ArgumentException("Path must be absolute.", nameof(path));
+            }
+            if (path.IndexOf('\\') != -1) {
+                throw new ArgumentException("Path cannot contain '\\'.", nameof(path));
+            }
+            if (path.IndexOf("//", StringComparison.Ordinal) != -1) {
+                throw new ArgumentException("Path cannot contain empty segments.", nameof(path));
+            }
+
+            // Allow a trailing slash; Normalize will remove it.
+            string pathToValidate = path;
+            if (pathToValidate.Length > 1 && pathToValidate.EndsWith("/", StringComparison.Ordinal)) {
+                pathToValidate = pathToValidate.Substring(0, pathToValidate.Length - 1);
+            }
+
+            if (pathToValidate != "/") {
+                string[] segments = pathToValidate.Substring(1).Split('/');
+
+                foreach (string segment in segments) {
+                    if (segment.Length == 0 || segment == "." || segment == "..") {
+                        throw new ArgumentException(
+                            "Path cannot contain empty, '.' or '..' segments.",
+                            nameof(path));
+                    }
+                }
+            }
+
+            return Normalize(path);
+        }
+        public static void ValidateSegment(string segment, string? paramName = null) {            
+            if (segment is "." or ".." || segment.Contains("/") || segment.Contains("\\")) {
+                throw new ArgumentException($"'{segment}' is not a valid virtual path segment.", paramName);
+            }
+        }
+        public static bool IsWithin(string path, string parentPath) {
+            string normalizedPath = PathUtils.NormalizeStrict(path);
+            string normalizedParentPath = PathUtils.NormalizeStrict(parentPath);
+            return normalizedParentPath == "/" || StringComparer.Ordinal.Equals(normalizedPath, normalizedParentPath) ||
+                normalizedPath.StartsWith(normalizedParentPath + "/", StringComparison.Ordinal);
+        }
         public static string Uncombine(string prefix, string path, StringComparison stringComparison = StringComparison.CurrentCulture) {
             //get path unprefixed
             if (prefix != "/") {
