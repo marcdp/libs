@@ -32,7 +32,7 @@ namespace DProjects.Commands {
                 commandNameLength = Math.Max(commandNameLength, command.Name.Length);
             }
             foreach (var command in configuration.Commands.Values) {
-                sb.AppendLine($"  {command.Name.Replace("-", " ").PadRight(commandNameLength+5)} {(command.Description.Length>0? "# " : "") + command.Description}");
+                sb.AppendLine($"  {command.Name.PadRight(commandNameLength+5)} {(command.Description.Length>0? "# " : "") + command.Description}");
             }
             sb.AppendLine();
             //
