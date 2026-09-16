@@ -1,0 +1,31 @@
+﻿{
+    // app
+    "app.name": "sameple-app",
+    "app.label": "Sample app",
+    "app.version": "0.1.0",
+    "app.copyright": "",
+    "app.icon": "",
+    // module x
+    "modules.x.src": "url:/modules/x/module.jsonc",
+    "modules.x-debugger.src": "url:/modules/x-debugger/module.jsonc",
+    "modules.x-help.src": "url:/modules/x-help/module.jsonc",
+    // module 1
+    "modules.module111.src": "url:./modules/module1/module.jsonc",
+    "modules.module111.params.var1": "11111",
+    "modules.module111.params.var2": "2222",
+    // module 2
+    "modules.module2.src": "url:./modules/module2/module.jsonc",
+    // xshell
+    "xshell.debug": true,
+    // xshell identity    
+    "xshell.identity.provider": "config",
+    "xshell.identity.params.id": "123",
+    "xshell.identity.params.name": "login1",
+    "xshell.identity.params.roles": ["role1","role2"],
+    "xshell.identity.params.claims": {"xxxxxxxxxxx":"yyyyyyyyyyyyyy","aaaaaaaaaa":"bbbbbbbbbbbbb","cccccccccc":"ddddddddddd"},
+    // xshell areas
+    "xshell.areas.main.label": "Main area",
+    "xshell.areas.main.icon": "x-bell"
+    //"xshell.areas.main.home": "/module111/pages/page0.html"
+    
+}

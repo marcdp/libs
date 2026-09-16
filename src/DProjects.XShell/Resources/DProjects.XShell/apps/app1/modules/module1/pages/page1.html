@@ -1,0 +1,191 @@
+﻿<html>
+<head>
+    <title>Page 1</title>
+    <meta name="description"    content="This is the description" />
+    <meta name="author"         content="marc" />
+</head>
+<body>
+
+    <script type="application/json">
+        {
+            "val1": {"value": true},
+            "val2": {"value": false},
+            "val3": {"value": true}
+        }
+    </script>    
+        
+    Use Amazon S3 Block public access settings to control the settings that allow public access to your data.
+    
+    
+    <div class="pepe" x-class:cccc1="state.val1" x-class:cccc2="state.val2" x-class:cccc3="state.val3">aaa</div>
+
+    <x-datetime datetime="2025-01-04T10:48:39.847Z" format="time"></x-datetime>
+    <x-time-ms value="120"></x-time-ms>
+    <x-json value="{}"></x-json>
+    <x-html value="<b>hello world</b>"></x-html>
+    <x-file-size value="123123"></x-file-size>
+
+    <ul>
+        <li><a href="page2.html">Page 2</a></li>
+        <li><x-anchor href="page2.html" qs-var1="hello" qs-var2="world">Page 2 (with qs vars)</x-anchor></li>
+        <li><x-anchor href="page2.html" qs-var1="hello" title="Lucas grijander">Page 2 (with title)</x-anchor></li>
+        <li><x-anchor href="page2.html" qs-var1="hello" breadcrumb>Page 2 (with breadcrumb)</x-anchor></li>
+        <li><x-anchor href="page2.html" qs-var1="hello" breadcrumb title="Lucas grijander">Page 2 (with breadcrumb and title)</x-anchor></li>
+        <li><x-anchor href="page2.html" qs-var1="hello" qs-var2="world" open="top">Page 2 top (with qs vars) top</x-anchor></li>
+        <li><x-anchor href="page2.html" disabled>Page 2 disabled</x-anchor></li>
+        <li><x-anchor href="page2.html" open="stack">Page 2 stack</x-anchor></li>
+        <li><x-anchor href="page2.html" open="dialog">Page 2 dialog</x-anchor></li>
+        <li><x-anchor href="page2.html" open="embed" outlet="myoutlet1">Page 2 embeded</x-anchor></li>
+        <li><x-anchor href="page2.html" replace>Page 2 replace</x-anchor></li>
+    </ul>
+
+    <x-page  layout="embed" outlet="myoutlet1" style="border:1px red solid"></x-page>
+
+    <hr/>
+
+    
+
+    <x-toolbar>
+        <x-button disabled label="hello"></x-button>
+        <x-button class="submit" disabled label="hello"></x-button>
+        <x-button class="cancel" disabled label="hello"></x-button>
+        <x-button class="anchor" disabled label="hello"></x-button>        
+        <x-button class="submit" label="Hello world 22" command="mycommand">
+            <x-contextmenu class="">
+                <x-menuitem class="" label="Subopció 1" command="aaaaa"></x-menuitem>
+                <x-menuitem class="" label="Subopció 2"></x-menuitem>
+                <x-menuitem class="" label="Subopció 3"></x-menuitem>
+                <x-menuitem class="" label="label3.3 asdf asdf  asdf MARC">
+                    <x-menuitem label="label3.3.1"></x-menuitem>
+                    <x-menuitem label="label3.3.2"></x-menuitem>
+                </x-menuitem>
+            </x-contextmenu>
+        </x-button>
+    </x-toolbar>
+
+    <x-card>
+        <details>
+            <summary>Details</summary>
+            Something small enough to escape casual notice.
+        </details>    
+    </x-card>
+
+    <x-toolbar>
+        <x-button disabled label="hello"></x-button>
+        <x-button class="" label="show working" command="show-working"></x-button>
+        <x-button class="" label="by"></x-button>
+        <x-button class="" label="by" icon="x-bell"></x-button>
+        <x-button class="" icon="x-bell"></x-button>
+        <x-divider></x-divider>
+        <x-button class="" icon="x-bell" label="More options"></x-button>
+        <x-divider></x-divider>
+        <x-button class="" icon="x-settings"></x-button>
+        <x-button class="" label="Lorem Ipsum"></x-button>
+        <x-button class="" label="Hello world 11">
+            <x-contextmenu class="">
+                <x-menuitem class="" label="Subopció 1" command="aaaaa"></x-menuitem>
+                <x-menuitem class="" label="Subopció 2"></x-menuitem>
+                <x-menuitem class="" label="Subopció 3"></x-menuitem>
+                <x-menuitem class="" label="label3.3 asdf asdf  asdf MARC">
+                    <x-menuitem label="label3.3.1" command="aaaaa"></x-menuitem>
+                    <x-menuitem label="label3.3.2"></x-menuitem>
+                </x-menuitem>
+            </x-contextmenu>
+        </x-button>
+        <x-button class="" label="Hello world 22" command="mycommand">
+            <x-contextmenu class="">
+                <x-menuitem class="" label="Subopció 1" command="aaaaa"></x-menuitem>
+                <x-menuitem class="" label="Subopció 2"></x-menuitem>
+                <x-menuitem class="" label="Subopció 3"></x-menuitem>
+                <x-menuitem class="" label="label3.3 asdf asdf  asdf MARC">
+                    <x-menuitem label="label3.3.1" command="aaaaa"></x-menuitem>
+                    <x-menuitem label="label3.3.2"></x-menuitem>
+                </x-menuitem>
+            </x-contextmenu>
+        </x-button>
+
+        <x-button slot="toolbar" class="" icon="x-settings"></x-button>
+    </x-toolbar>
+
+    
+    <x-clock></x-clock>
+
+    <x-accordion>
+        <x-accordion-panel label="Item 1">
+            <p>Content 1</p>
+        </x-accordion-panel>
+        <x-accordion-panel label="Item 2">
+            <p>Content 2</p>
+        </x-accordion-panel>
+        <x-accordion-panel label="Item 3">
+            <p>Content 3</p>
+        </x-accordion-panel>
+    </x-accordion>
+
+    <x-notice type="info" label="This is a label" message=""></x-notice>
+    <x-notice type="warning" label="This is a label" message="this is a message"></x-notice>
+    <x-notice type="error" label="This is a label" message="this is a message"></x-notice>
+    <x-notice type="success" label="This is a label" message="this is a message"></x-notice>
+
+    <x-badge value="123"></x-badge>
+    <x-badge value="999+"></x-badge>
+
+    <x-badge value="2" class="plain"></x-badge>
+
+    <x-avatar initials="MD" label="Lucas" message="ASdas dsa das das"></x-avatar>
+
+    <x-card>
+        Lorem ipsum
+    </x-card>
+
+    <x-tabs selected-index="1">
+        <x-tab label="First tab">
+            This is the content of first tab
+        </x-tab>
+        <x-tab label="Second tab">
+            Second content
+        </x-tab>
+        <x-tab label="Third tab">
+            <x-page src="/pages/page2.html" loading="lazy"></x-page>
+        </x-tab>
+    </x-tabs>
+
+
+    <x-dropdown class="input-dropdown">
+        <div><x-datafield type="text"></x-datafield></div>
+        <span slot="dropdown">This is the popup content ot the drop down</span>
+    </x-dropdown>
+
+    <x-dropdown class="popover">
+        <x-button label="mybutton"></x-button>
+        <span slot="dropdown">This is the popup content</span>
+    </x-dropdown>
+    
+
+    <x-spinner></x-spinner>
+
+    <x-wizard>
+        <x-wizard-panel label="First tab" message="Lorem ipsum asldfkjh aslkjfa hlfkja sdf asdf sa">
+            This is the content of first tab
+        </x-wizard-panel>
+        <x-wizard-panel label="Second tab" icon="x-bell" message="ASdasd asd">
+            Second content
+        </x-wizard-panel>
+        <x-wizard-panel label="Third tab">
+            Third content            
+        </x-wizard-panel>
+    </x-wizard>
+
+
+    <!--
+        <x-form>
+            <x-datafields columns="3">
+                <x-datafield label="hola" type="text" x-model="state.var1"></x-datafield>
+                <x-datafield label="hola" type="date"></x-datafield>
+                <x-datafield label="hola" type="text"></x-datafield>
+            </x-datafields>
+            <x-button icon="x-add" label="add"></x-button>
+        </x-form>
+    -->
+</body>
+</html>

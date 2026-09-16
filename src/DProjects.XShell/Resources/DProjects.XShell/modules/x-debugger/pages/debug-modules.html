@@ -1,0 +1,121 @@
+
+<title>Modules</title>
+
+<script type="module">
+    import xshell from "xshell";
+    import XController from "x-controller";
+
+    xshell.pages.createController(new XController({
+        state: {
+            modules: [],
+            name: "",
+            label: "",
+            path: "",
+            src: "",
+            version: "",
+            type: "",
+            loadTime: "",
+            loadSize: "",
+            status: ""
+        },
+        async onCommand(command, args, page) {
+            if (command == "load") {
+                //refresh
+                page.bindEvent(this.state, "change:name", "refresh");
+                page.bindEvent(this.state, "change:label", "refresh");
+                page.bindEvent(this.state, "change:path", "refresh");
+                page.bindEvent(this.state, "change:src", "refresh");
+                page.bindEvent(this.state, "change:version", "refresh");
+                page.bindEvent(this.state, "change:type", "refresh");
+                page.bindEvent(this.state, "change:loadTime", "refresh");
+                page.bindEvent(this.state, "change:loadSize", "refresh");
+                page.bindEvent(this.state, "change:status", "refresh");
+                await this.onCommand("refresh");
+
+            } else if (command == "refresh") {
+                //refresh
+                let modules = [];
+                for(let target of xshell.config.getAsObjects("modules")) {
+                    let module = xshell.modules.getModule(target.name);
+                    let valid = true;
+                    if (this.state.name && target.name.indexOf(this.state.name) == -1 ) valid = false;
+                    if (this.state.label && (target.label || "").indexOf(this.state.label) == -1 ) valid = false;
+                    if (this.state.path && (target.path || "").indexOf(this.state.path) == -1 ) valid = false;
+                    if (this.state.src && (target.src || "").indexOf(this.state.src) == -1 ) valid = false;
+                    if (this.state.version && (target.version || "").indexOf(this.state.version) == -1 ) valid = false;
+                    if (this.state.type && (target.type || "").indexOf(this.state.type) == -1 ) valid = false;
+                    if (this.state.loadTime && ((module && module.stats ? module.stats.loadTime : -1) + "").indexOf(this.state.loadTime) == -1 ) valid = false;
+                    if (this.state.loadSize && ((module && module.stats ? module.stats.loadSize : -1) + "").indexOf(this.state.loadSize) == -1 ) valid = false;
+                    if (this.state.status && (target.status || "").indexOf(this.state.status) == -1 ) valid = false;
+                    if (valid) {
+                        modules.push({
+                            name: target.name,
+                            label: target.label || target.name || "",
+                            description: target.description || "",
+                            logo: target.logo || "x-module",
+                            path: target.path || "",
+                            type: target.type || "",
+                            src: target.src || "",
+                            loadTime: (module && module.stats ? module.stats.loadTime : -1),
+                            loadSize: (module && module.stats ? module.stats.loadSize : -1),
+                            version: target.version || "",
+                            status: target.status || "",
+                        });
+                    }
+                };
+                this.state.modules = modules;
+            }
+        }
+    }));
+</script>
+
+<template>
+
+    <x-listview view="details">
+        <div slot="column">
+            <x-datafield type="search" x-model="state.name" placeholder="Module"></x-datafield>
+        </div>
+        <div slot="column">
+            <x-datafield type="search" x-model="state.label" placeholder="Label"></x-datafield>
+        </div>
+        <div slot="column">
+            <x-datafield type="search" x-model="state.path" placeholder="Path"></x-datafield>
+        </div>
+        <div slot="column">
+            <x-datafield type="search" x-model="state.src" placeholder="Source"></x-datafield>
+        </div>
+        <div slot="column">
+            <x-datafield type="search" x-model="state.version" placeholder="Version"></x-datafield>
+        </div>
+        <div slot="column">
+            <x-datafield type="search" x-model="state.type" placeholder="Type"></x-datafield>
+        </div>
+        <div slot="column">
+            <x-datafield type="search" x-model="state.loadTime" placeholder="Load T."></x-datafield>
+        </div>
+        <div slot="column">
+            <x-datafield type="search" x-model="state.loadSize" placeholder="Size"></x-datafield>
+        </div>
+        <div slot="column">
+            <x-datafield type="search" x-model="state.status" placeholder="Status"></x-datafield>
+        </div>
+        <x-listview-item 
+            x-for="module in state.modules"
+            x-attr:label="module.name"
+            x-attr:description="module.description"
+            x-attr:icon="module.logo"
+            target="#root"
+        >
+            <div>{{ module.label }}</div>
+            <div>{{ module.path }}</div>
+            <div>{{ module.src }}</div>
+            <div>{{ module.version }}</div>
+            <div>{{ module.type }}</div>
+            <x-time-ms x-prop:value="module.loadTime"></x-time-ms>
+            <x-file-size x-prop:value="module.loadSize"></x-file-size>
+            <div>{{ module.status }}</div>
+            
+        </x-listview-item>
+    </x-listview>       
+    
+</template>

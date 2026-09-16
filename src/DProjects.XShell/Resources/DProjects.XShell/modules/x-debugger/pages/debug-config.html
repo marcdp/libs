@@ -1,0 +1,52 @@
+<script type="module">
+    import xshell from "xshell";
+    import XController from "x-controller";
+
+    xshell.pages.createController(new XController({
+        state: {
+            data: null,
+            key: "",
+            value: "",
+        },
+        async onCommand(command, args, page) {
+            if (command == "load") {
+                //load
+                page.bindEvent(xshell.bus, "config:change", "refresh");
+                page.bindEvent(this.state, "change:key", "refresh");
+                page.bindEvent(this.state, "change:value", "refresh");
+                //refresh
+                await this.onCommand("refresh");
+
+            } else if (command == "refresh") {
+                //refresh
+                let data = {};
+                for(let key of Object.keys(xshell.config.config).sort()) {
+                    let value = xshell.config.config[key];
+                    let valid = true;
+                    if (this.state.key && key.indexOf(this.state.key) == -1 ) valid = false;
+                    if (this.state.value && ("" + value).indexOf(this.state.value) == -1 ) valid = false;
+                    if (valid) {
+                        data[key] = JSON.stringify(value);
+                    }
+                }
+                this.state.data = data;
+            }
+        }
+    }));
+</script>
+
+<template>
+
+    <x-listview view="details">
+        <div slot="column" style="width:20em;">
+            <x-datafield type="search" x-model="state.key" placeholder="Key"></x-datafield>
+        </div>
+        <div slot="column">
+            <x-datafield type="search" x-model="state.value" placeholder="Value"></x-datafield>
+        </div>
+        <x-listview-item x-for="item in state.data" x-attr:label="item" icon="x-settings">
+            <x-json x-prop:value="state.data[item]"></x-json>
+        </x-listview-item>
+    </x-listview>    
+
+</template>
