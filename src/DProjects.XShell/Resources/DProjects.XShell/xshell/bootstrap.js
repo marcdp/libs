@@ -1,17 +1,18 @@
+// utils
+function stripJsonComments(s) { let o = "", i = 0, n = s.length; for (; i < n;) { let c = s[i]; if (c == '"' || c == "'") { let q = c; o += c; i++; while (i < n) { if (s[i] == "\\") { o += s[i++] + s[i++]; } else if (s[i] == q) { o += s[i++]; break; } else { o += s[i++]; } } continue; } if (c == '/' && s[i + 1] == '/') { i += 2; while (i < n && s[i] != "\n" && s[i] != "\r") i++; continue; } if (c == '/' && s[i + 1] == '*') { i += 2; while (i < n && !(s[i] == '*' && s[i + 1] == '/')) i++; i += 2; continue; } o += c; i++; }; return o; }
+function combineUrls(t, n) { if (-1 != t.indexOf("?") && (t = t.substring(0, t.indexOf("?"))), -1 != n.indexOf(":")) return n; if (n.startsWith("/")) { if (-1 != t.indexOf("://")) { let i = t.indexOf("/", t.indexOf("://") + 3); return -1 != i && (t = t.substring(0, i)), t + n } return n } if (n.startsWith("./") || "." == n) return t.endsWith("/") ? t = t.substring(0, t.length - 1) : t.length > 0 && (t = t.substring(0, t.lastIndexOf("/"))), t + n.substring(1); if (n.startsWith("../")) { t.endsWith("/") ? t = t.substring(0, t.length - 1) : t.length > 0 && (t = t.substring(0, t.lastIndexOf("/"))); let i = t + "/" + n; if (i.startsWith("/")) { i = new URL(i, window.location.origin).pathname } else i = new URL(i).toString(); return i } return t.endsWith("/") || -1 != t.indexOf("/") && (t = t.substring(0, t.lastIndexOf("/") + 1)), t + n }
+function normalizeUrls(key, obj, path) { if (typeof (obj) == "string") { if (obj.startsWith("url:")) { obj = obj.substring(4).trim(); if (obj.startsWith("/") || obj.startsWith("./") || obj.startsWith("../") || obj == ".") { obj = combineUrls(path, obj); } } else if (obj.startsWith("/")) { obj = path + obj; if (obj.startsWith(document.location.origin)) obj = obj.substring(document.location.origin.length); } else if (obj.startsWith("./") || obj.startsWith("../") || obj == ".") { obj = combineUrls(path + "/", obj); if (obj.startsWith(document.location.origin)) obj = obj.substring(document.location.origin.length); } if (obj.indexOf("=/") != -1) { let parts = obj.split(";"); for (let i = 1; i < parts.length; i++) { if (parts[i].indexOf("=/") != -1) { let subparts = parts[i].split("="); parts[i] = subparts[0] + "=" + normalizeUrls("", subparts[1].trim(), path); } } obj = parts.join(";"); } } else if (Array.isArray(obj)) { for (let i = 0; i < obj.length; i++) { obj[i] = normalizeUrls(i, obj[i], path); } } else if (obj instanceof Object) { for (let subkey in obj) { obj[subkey] = normalizeUrls(subkey, obj[subkey], path); } } return obj; }
+function meta(name) { return document.head.querySelector(`meta[name="${name}"]`)?.content; }
+
+
 // consts
-const meta = name => document.head.querySelector(`meta[name="${name}"]`)?.content;
 const configUrl = meta("xshell.app_config_url");
 const swUrl = meta("xshell.sw_url");
 const appUrl = document.location.origin + document.location.pathname;
-const appUrlDir = appUrl.substring(0, appUrl.lastIndexOf("/") + 1)  ;
-const appUrlBase = appUrlDir.substring(0, appUrlDir.length - 1);
+const appBaseUrl = document.location.origin + meta("xshell.app_base_url");
 const bootstrapUrl = new URL(document.currentScript.src);
 const bootstrapUrlDir = bootstrapUrl.href.substring(0, bootstrapUrl.href.lastIndexOf("/") );
 
-// utils
-function stripJsonComments(s) {let o="",i=0,n=s.length;for(;i<n;){let c=s[i];if(c=='"'||c=="'"){let q=c;o+=c;i++;while(i<n){if(s[i]=="\\"){o+=s[i++]+s[i++];}else if(s[i]==q){o+=s[i++];break;}else{o+=s[i++];}}continue;}if(c=='/'&&s[i+1]=='/'){i+=2;while(i<n&&s[i]!="\n"&&s[i]!="\r")i++;continue;}if(c=='/'&&s[i+1]=='*'){i+=2;while(i<n&&!(s[i]=='*'&&s[i+1]=='/'))i++;i+=2;continue;}o+=c;i++;};return o;}
-function combineUrls(t,n){if(-1!=t.indexOf("?")&&(t=t.substring(0,t.indexOf("?"))),-1!=n.indexOf(":"))return n;if(n.startsWith("/")){if(-1!=t.indexOf("://")){let i=t.indexOf("/",t.indexOf("://")+3);return-1!=i&&(t=t.substring(0,i)),t+n}return n}if(n.startsWith("./")||"."==n)return t.endsWith("/")?t=t.substring(0,t.length-1):t.length>0&&(t=t.substring(0,t.lastIndexOf("/"))),t+n.substring(1);if(n.startsWith("../")){t.endsWith("/")?t=t.substring(0,t.length-1):t.length>0&&(t=t.substring(0,t.lastIndexOf("/")));let i=t+"/"+n;if(i.startsWith("/")){i=new URL(i,window.location.origin).pathname}else i=new URL(i).toString();return i}return t.endsWith("/")||-1!=t.indexOf("/")&&(t=t.substring(0,t.lastIndexOf("/")+1)),t+n}
-function normalizeUrls(key, obj, path) {if (typeof(obj) == "string") {if (obj.startsWith("url:")) {obj = obj.substring(4).trim();if (obj.startsWith("/") || obj.startsWith("./") || obj.startsWith("../") || obj == ".") {obj = combineUrls(path, obj);}} else if (obj.startsWith("/")) {obj = path + obj;if (obj.startsWith(document.location.origin)) obj = obj.substring(document.location.origin.length);} else if (obj.startsWith("./") || obj.startsWith("../") || obj == ".") {obj = combineUrls(path + "/", obj);if (obj.startsWith(document.location.origin)) obj = obj.substring(document.location.origin.length);}if (obj.indexOf("=/") != -1) {let parts = obj.split(";");for (let i = 1; i < parts.length; i++) {if (parts[i].indexOf("=/") != -1) {let subparts = parts[i].split("=");parts[i] = subparts[0] + "=" + normalizeUrls("", subparts[1].trim(), path);}}obj = parts.join(";");}} else if (Array.isArray(obj)) {for (let i = 0; i < obj.length; i++) {obj[i] = normalizeUrls(i, obj[i], path);}} else if (obj instanceof Object) {for (let subkey in obj) {obj[subkey] = normalizeUrls(subkey, obj[subkey], path);}}return obj;}
 
 // bootstrap methods
 async function loadXShellConfig(config) {
@@ -34,11 +35,11 @@ async function loadAppConfig(config) {
     const url = new URL(configUrl, document.baseURI).href;
     const json = stripJsonComments(await (await fetch(url)).text());
     const appConfig = JSON.parse(json);
-    normalizeUrls("", appConfig, appUrlDir);
+    normalizeUrls("", appConfig, url);
     for(var key in appConfig) {
         config[key] = appConfig[key];
     }
-    config["app.base"] = appUrlBase;
+    config["app.base"] = appBaseUrl;
     return config;
 }
 async function loadModulesConfig(config) {
@@ -108,9 +109,9 @@ async function installServiceWorker(config) {
     // install service worker
     console.log("bootstrap: installing service worker ...");
     const bootstrapUrlRaw = bootstrapUrl.toString();
-    const realSwUrl = bootstrapUrlRaw.substring(0, bootstrapUrlRaw.lastIndexOf("/")) + "/sw.js";
-    const reg = await navigator.serviceWorker.register(swUrl + "?" + encodeURIComponent(realSwUrl), {
-        scope: document.location.pathname
+    //const realSwUrl = bootstrapUrlRaw.substring(0, bootstrapUrlRaw.lastIndexOf("/")) + "/sw.js";
+    const reg = await navigator.serviceWorker.register(swUrl, {
+        scope: appBaseUrl + "/"
     });
     // creates rules to send to service worker
     const xshellVersion = config["xshell.version"];
@@ -172,14 +173,14 @@ async function bootstrap() {
     // installServiceWorker
     if (!await installServiceWorker(config)){
         return;
-    }
+    }    
     // create importmap
     let imports = {};
     for (let key in config) {
         if (key.startsWith("resolver.import:")) {
             let importName = key.substring(key.indexOf(":") + 1);
             let importSrc = config[key].split(";")[0].trim();
-            imports[importName] = (importSrc.indexOf(":")!=-1 ? importSrc : appUrlDir + importSrc.substring(1));
+            imports[importName] = (importSrc.indexOf(":") != -1 ? importSrc : appBaseUrl + importSrc);
         }
     }
     const importMap = document.createElement("script");
