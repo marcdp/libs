@@ -13,6 +13,9 @@
     <ItemGroup>
         <FrameworkReference Include="Microsoft.AspNetCore.App" />
     </ItemGroup>
-    
+
+    <ItemGroup>
+        <AssemblyMetadata Include="ProjectDirectory" Value="$(MSBuildProjectDirectory)" /> <!-- we need that to allow accessing the project directory at runtime -->
+    </ItemGroup>
 
 </Project>
