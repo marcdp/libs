@@ -1,8 +1,8 @@
-using Microsoft.JSInterop;
+
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Builder;
 
-namespace DProjects.XShell;
+namespace DProjects.XShell.Extensions;
 
 public static class X3Web {
 
