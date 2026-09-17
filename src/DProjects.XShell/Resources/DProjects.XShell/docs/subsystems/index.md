@@ -9,6 +9,7 @@ Draft.
 ## Documents
 
 - [Authentication](authentication.md) — Identity-provider selection and login/logout orchestration.
+- [Areas](areas.md) — Top-level navigation groups, default homes, and their relationship to main menus.
 - [Identity](identity.md) — The identity object exposed to runtime services.
 - [Internationalization](i18n.md) — Language metadata, localized text selection, and date/time formatting.
 

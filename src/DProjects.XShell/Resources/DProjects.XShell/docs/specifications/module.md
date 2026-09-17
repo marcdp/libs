@@ -12,7 +12,24 @@ Bootstrap discovers module sources from the application configuration, parses ea
 
 ## Confirmed fields
 
-Checked-in modules use `name`, `label`, `icon`, `version`, `depends`, `styles`, and optional `handler`. They also configure page and component engines, menus, dialog pages, resolver entries, and other global values.
+No field in this table has a formally specified required status yet. Bootstrap currently supplies defaults for several fields, but that does not establish
+a published schema requirement.
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `name` | String | Not yet specified | Present in checked-in modules. Bootstrap replaces the merged value with the application-side module alias. |
+| `label` | String | Not yet specified | Module display label. Defaults to an empty string during bootstrap; the runtime module record falls back to its name. |
+| `icon` | String | Not yet specified | Module icon name. Bootstrap currently defaults it to `x-file`. |
+| `version` | String | Not yet specified | Used in the module's service-worker rewrite rule. Defaults to an empty string. |
+| `depends` | Array of strings | Not yet specified | Defaults to an empty array. No runtime dependency ordering or enforcement was found. |
+| `styles` | Array of strings | Not yet specified | Stylesheets resolved and loaded before module handler load commands run. Defaults to an empty array. |
+| `handler` | String | Not yet specified | Module-relative JavaScript handler loaded through the generated `module:` resolver. |
+| `page.renderEngine` | String | Not yet specified | Module-level page render-engine override. |
+| `page.stateEngine` | String | Not yet specified | Module-level page state-engine override. |
+| `component.renderEngine` | String | Not yet specified | Module-level component render-engine override. |
+| `component.stateEngine` | String | Not yet specified | Module-level component state-engine override. |
+| `menus.<menu>[.<area>]` | Array | Not yet specified | Menu items consumed by the Menus service, optionally associated with an area. |
+| `global.*` | String in current bootstrap paths | Not yet specified | Contribution copied to the shared configuration after removing `global.`; resolver contributions gain module metadata. |
 
 ## Global contributions
 
@@ -22,7 +39,7 @@ Keys prefixed with `global.` are merged into the global configuration after remo
 
 TODO: Define dependency semantics, handler commands, menu schema, override precedence, extension points, and compatibility rules before publishing a formal schema.
 
-## Sample app.jsonc file
+## Sample module.jsonc file
 
 ```
 {
@@ -72,4 +89,4 @@ TODO: Define dependency semantics, handler commands, menu schema, override prece
 - [Specifications](index.md)
 - [Application Specification](application.md)
 - [Modules](../architecture/modules.md)
-
+- [Configuration Architecture](../architecture/configuration.md)

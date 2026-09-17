@@ -1,6 +1,6 @@
 # Architecture
 
-This section introduces the major XShell runtime responsibilities and the flow from logical resources to loaded browser assets.
+This section introduces the XShell startup path and the runtime flow from configuration and logical resource references to concrete browser results.
 
 ## Status
 
@@ -8,19 +8,25 @@ Draft.
 
 ## Overview
 
-At a high level, bootstrap loads the XShell, application, and module JSONC configuration; module configuration contributes resolver definitions; the resolver maps logical resource names to URLs and loader metadata; and the loader dispatches each URL to a resource-specific loader. A service worker rewrites the stable asset namespace to the configured source locations.
+The ASP.NET host generates an HTML entry point containing the application base, configuration URL, service-worker URL, and bootstrap script. Bootstrap
+combines framework, application, and module configuration, initializes stable asset rewrites and the import map, then creates runtime services, initializes
+modules, and starts navigation. Resource loading continues through a separate resolver and loader pipeline.
+
+```text
+host HTML -> bootstrap -> combined configuration -> service worker/import map -> runtime services -> modules -> navigation
+                                                                                                  |
+logical resource -> resolver -> resolved URL and metadata -> loader -> type-specific loader -> optional engine -> runtime result
+```
 
 ## Documents
 
+- [Bootstrap](bootstrap.md) — Host integration, configuration loading, service-worker/import-map setup, and runtime initialization.
+- [Configuration](configuration.md) — Runtime configuration sources, precedence, URL normalization, and global module contributions.
 - [Modules](modules.md) — Module configuration, initialization, styles, and handlers.
 - [Resolvers](resolvers.md) — Logical resource patterns and URL resolution.
 - [Loaders](loaders.md) — Resource loading, caching, and type-specific handlers.
 - [Service Worker](service-worker.md) — Asset URL rewriting performed by the service worker.
 - [Navigation](navigation.md) — Current hash navigation and the incomplete path-mode branch.
-
-## Open questions
-
-TODO: Add a verified end-to-end sequence diagram after the bootstrap and loader contracts are covered by tests.
 
 ## Related documentation
 

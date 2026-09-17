@@ -14,9 +14,27 @@ Bootstrap obtains the application configuration URL from the `xshell.app_config_
 
 The sample application uses `app.*` metadata, `modules.<name>.src` module references, module parameters, XShell debugging and identity settings, and area configuration. These examples do not yet constitute a complete schema.
 
+## Confirmed fields
+
+No field in this table has a formally specified required status yet.
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `app.name` | String | Not yet specified | Application identifier present in the checked-in sample; no runtime enforcement was found. |
+| `app.label` | String | Not yet specified | Display label consumed by navigation title updates and the main layout. |
+| `app.icon` | String | Not yet specified | Application icon consumed by the main layout. |
+| `modules.<name>.src` | String URL | Not yet specified | Source of the module JSONC document fetched by bootstrap. The runtime expects one for each discovered module name. |
+| `modules.<name>.params.*` | Any JSON value | Not yet specified | Values projected into the parameter object passed to the module handler's `load` command. |
+| `xshell.debug` | Boolean | Not yet specified | Debug flag consumed by the core layout; the framework default is `false`. |
+| `xshell.identity.provider` | String | Not yet specified | Logical identity-provider name loaded as `idp:<name>`; the framework default is `anonymous`. |
+| `xshell.identity.params.*` | Any JSON value | Not yet specified | Values passed to the selected identity provider's `resolve` method. |
+| `xshell.areaDefault` | String | Not yet specified | Name used to select the default area; the framework default is `main`. |
+| `xshell.areas.<name>.*` | Dotted field group | Not yet specified | Defines runtime area values such as label, icon, home, order, and default. See [Areas](../subsystems/areas.md). |
+
 ## URL values
 
-The current normalizer gives special treatment to values prefixed with `url:` and to root-relative or dot-relative strings. The precise normalization contract remains a TODO.
+The current normalizer gives special treatment to values prefixed with `url:` and to root-relative or dot-relative strings. The verified loading and
+normalization flow is described in [Configuration Architecture](../architecture/configuration.md).
 
 ## TODO
 

@@ -11,7 +11,7 @@ Draft.
 ## Documentation
 
 - [Architecture](architecture/) — How XShell is designed: runtime structure, resource resolution, loading, service-worker rewriting, and navigation.
-- [Components](components/) — Components
+- [Components](components/) — The XShell Web Component programming model, manifests, properties, state, events, and lifecycle.
 - [Subsystems](subsystems/) — Runtime services including authentication, identity, and internationalization.
 - [Extensions](extensions/) — Optional capabilities layered on XShell, including X Templates.
 - [Specifications](specifications/) — Formal application and module configuration contracts.
