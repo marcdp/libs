@@ -30,6 +30,7 @@ by the source and tests. For repository purpose and build commands, start with t
 - [Secrets](secrets/index.md) — identifiers versus values, providers, managers, factory substitution, and disclosure boundaries.
 - [Streams](streams/index.md) — capabilities, ownership, bounded views, transforms, composition, and cancellation.
 - [Utils](utils/index.md) — maintained cross-cutting helpers, transitive coupling, compatibility boundaries, and platform-specific limits.
+- [XShell](../src/DProjects.XShell/Resources/DProjects.XShell/docs/index.md) — XShell is a modular application framework built around Web Components, declarative templates, resource resolution, and pluggable loading.
 - [XVault interoperability](xvault/index.md) — reading partially encrypted XVault files from .NET.
 
 ## Reading paths

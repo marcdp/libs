@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "DProjects.XShell": {
+      "commandName": "Project",
+      "commandLineArgs": "server"
+    }
+  }
+}

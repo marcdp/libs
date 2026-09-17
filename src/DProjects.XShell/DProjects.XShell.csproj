@@ -19,4 +19,8 @@
         <AssemblyMetadata Include="ProjectDirectory" Value="$(MSBuildProjectDirectory)" /> <!-- we need that to allow accessing the project directory at runtime -->
     </ItemGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\DProjects.Commands\DProjects.Commands.csproj" />
+    </ItemGroup>
+
 </Project>

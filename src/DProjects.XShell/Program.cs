@@ -1,38 +1,39 @@
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
+
+using DProjects.Commands;
 
 namespace DProjects.XShell {
 
     public static class Program {
 
         public static async Task<int> Main(string[] args) {
+             
+            // create host builder
+            var builder = Host.CreateApplicationBuilder(args);
 
-            // builder
-            var builder = WebApplication.CreateBuilder(args);
+            // x3 home
+            var x3HomePath = System.Environment.GetEnvironmentVariable("X3_HOME");
+            if (string.IsNullOrWhiteSpace(x3HomePath)) {
+                x3HomePath = Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile), ".x3");
+            }
 
-            // add services
-            builder.Services.AddXShell();
-
-            // build app
-            var app = builder.Build();
-
-            // use XShell
-            var appBase = "";
-            var resourceBase = "";
-            app.UseXShell( new Extensions.Configuration {
-                AppBase = appBase,
-                AppConfig = (args.Length > 0) ? args[0] : resourceBase + Extensions.RequestPath + "/samples/sample1/app.jsonc",
-                ResourcesBase = resourceBase
+            // commands manager
+            builder.Services.AddCommandsManager(cfg => {
+                // add commands
+                cfg.AddCommandsFromAssembly(DProjects.XShell.Assembly.Instance);
             });
 
-            // run app
-            await app.RunAsync();
+            //  Build App 
+            var app = builder.Build();
 
-            // return
-            return 0;
+            // Execute
+            var commandManager = app.Services.GetRequiredService<CommandsManager>();
+            int result = await commandManager.ExecuteAsync(args, CancellationToken.None);
+
+            // Return
+            return result;
+
         }
     }
 }
