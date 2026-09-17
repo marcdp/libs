@@ -2,6 +2,10 @@ import XElement from "x-element";
 
 // class
 export default XElement.define("x-layout-dialog", {
+    meta: {
+        renderEngine: "x",
+        stateEngine: "proxy"
+    },
     style:`
         dialog {
             max-width:90vw;

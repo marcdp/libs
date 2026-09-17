@@ -101,15 +101,18 @@ See [Configuration](configuration.md).
 
 Bootstrap installs the application Service Worker before XShell starts.
 
-The Service Worker provides uniform access to module resources through the /_assets namespace.
+The Service Worker provides a uniform client-side namespace for module resources:
 
 ```text
-/_assets
+/_assets/<module>/...
 ```
 
-It maps those runtime asset URLs to the actual framework and module resource locations.
+It translates those URLs to the actual location of each module resource, which may be local or hosted on a remote server.
+
+This keeps module resource access consistent from the browser regardless of where the module is physically stored.
 
 See [Service Worker](service-worker.md).
+
 
 ## Import map
 

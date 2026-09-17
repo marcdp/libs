@@ -2,6 +2,10 @@ import XElement from "x-element";
 
 // class
 export default XElement.define("x-layout-embed", {
+    meta: {
+        renderEngine: "x",
+        stateEngine: "proxy"
+    },
     style: `
         :host {
             display:block;

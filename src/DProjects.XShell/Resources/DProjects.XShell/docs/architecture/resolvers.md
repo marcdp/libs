@@ -58,7 +58,7 @@ name = icon1
 and resolves to:
 
 ```text
-/_assets/x/icons/icon1.svg
+/_assets/modules/x/icons/icon1.svg
 ```
 
 ## Result
@@ -86,7 +86,7 @@ icon:x-icon1
     ↓
 resolver.icon:x-{name}
     ↓
-/_assets/x/icons/icon1.svg
+/_assets/modules/x/icons/icon1.svg
     +
 loader=icon-svg
 ```

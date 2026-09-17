@@ -2,7 +2,11 @@ import XElement from "x-element";
 import xshell from "xshell";
 
 // class
-export default XElement.define("x-layout-stack", {
+export default {
+    meta: {
+        renderEngine: "x",
+        stateEngine: "proxy"
+    },
     style:`
         x-loading {
             position:fixed;
@@ -87,43 +91,45 @@ export default XElement.define("x-layout-stack", {
         </div>
     `,
     state: {
-        expanded: false,
-        status: ""
+        expanded: { value: false, attr:true },
+        status: { value: "", attr: true }
     },
-    methods: {
-        onCommand(command) {
-            if (command == "load") {
-                //load
-                this.bindEvent(this.page, "load", "refresh");
-                this.onCommand("refresh");
-                this.shadowRoot.addEventListener("transitionend", ()=>this.onCommand("transition-end"));
-                this.render();
-                const msSinceLoad = xshell.runtime.uptimeMs;
-                if (msSinceLoad < 500) {
-                    this.state.expanded = true;    
-                } else {
-                    setTimeout(()=>{
-                        this.state.expanded = true;    
-                    }, 50);
-                }                
+    script({ state, events, bus, getPage }) {
+        return {
+            onCommand(command) {
+                if (command == "load") {
+                    //load
+                    events.on(bus, "xshell:page:load", "refresh");
+                    this.onCommand("refresh");
+                    this.shadowRoot.addEventListener("transitionend", () => this.onCommand("transition-end"));
+                    //this.render();
+                    const msSinceLoad = xshell.runtime.uptimeMs;
+                    if (msSinceLoad < 500) {
+                        state.expanded = true;
+                    } else {
+                        setTimeout(() => {
+                            state.expanded = true;
+                        }, 50);
+                    }
 
-            } else if (command == "query-close") {
-                //query close
-                this.dispatchEvent(new CustomEvent("query-close", { composed: true }));
+                } else if (command == "query-close") {
+                    //query close
+                    this.dispatchEvent(new CustomEvent("query-close", { composed: true }));
 
-            } else if (command == "transition-end") {
-                //transition end
-                if (!this.state.expanded) {
-                    this.page.remove();
+                } else if (command == "transition-end") {
+                    //transition end
+                    if (!state.expanded) {
+                        let page = getPage();
+                        page.close();
+                    }
+
+                } else if (command == "unload") {
+                    //unload
+                    return () => {
+                        state.expanded = false;
+                    };
                 }
-
-            } else if (command == "unload") {
-                //unload
-                return () => {
-                    this.state.expanded = false;    
-                };   
             }
         }
-
     }
-});
+}

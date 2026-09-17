@@ -1,34 +1,110 @@
 # Architecture
 
-This section introduces the XShell startup path and the runtime flow from configuration and logical resource references to concrete browser results.
+XShell is a modular application framework built around configuration, modules, resource resolution, loading, Web Components, and browser navigation.
 
+At a high level:
+
+```text
+Initial HTML
+    ↓
+Bootstrap
+    ↓
+Runtime configuration
+    ↓
+Modules
+    ↓
+Service Worker + /_assets
+    ↓
+Resolvers
+    ↓
+Loaders
+    ↓
+Components / Pages
+    ↓
+Navigation
+```
 
 ## Overview
 
-The ASP.NET host generates an HTML entry point containing the application base, configuration URL, service-worker URL, and bootstrap script. Bootstrap
-combines framework, application, and module configuration, initializes stable asset rewrites and the import map, then creates runtime services, initializes
-modules, and starts navigation. Resource loading continues through a separate resolver and loader pipeline.
+The host page loads `bootstrap.js` and provides the initial XShell configuration.
+
+Bootstrap then:
 
 ```text
-host HTML -> bootstrap -> combined configuration -> service worker/import map -> runtime services -> modules -> navigation
-                                                                                                  |
-logical resource -> resolver -> resolved URL and metadata -> loader -> type-specific loader -> optional engine -> runtime result
+loads configuration
+    ↓
+loads module definitions
+    ↓
+assembles the flat runtime configuration
+    ↓
+installs the Service Worker
+    ↓
+creates the import map
+    ↓
+imports XShell
+    ↓
+initializes services, modules, navigation, and menus
+```
+
+Applications are composed from modules:
+
+```text
+Application = Module 1 + Module 2 + ... + Module N
+```
+
+Each module contributes configuration and static resources.
+
+Module resources are exposed to the browser through a uniform namespace:
+
+```text
+/_assets/<module>/...
+```
+
+The Service Worker hides where those resources are physically stored.
+
+Resource loading then follows the standard pipeline:
+
+```text
+logical resource
+    ↓
+Resolver
+    ↓
+URL + loader metadata
+    ↓
+Loader
+    ↓
+resource-specific loader
+    ↓
+runtime result
+```
+
+Components and Pages use the same component programming model.
+
+Conceptually:
+
+```text
+Component
+    ├── regular UI component
+    └── Page
+            +
+        Navigation
 ```
 
 ## Documents
 
-- [Bootstrap](bootstrap.md) — Host integration, configuration loading, service-worker/import-map setup, and runtime initialization.
-- [Configuration](configuration.md) — Runtime configuration sources, precedence, URL normalization, and global module contributions.
-- [Modules](modules.md) — Module configuration, initialization, styles, and handlers.
-- [Components](components.md) — Runtime component resolution, loading, state/render engines, and custom-element registration.
-- [Pages](pages.md) — Page resolution, loading, lifecycle, state/render engines, and navigation integration.
-- [Resolvers](resolvers.md) — Logical resource patterns and URL resolution.
-- [Loaders](loaders.md) — Resource loading, caching, and type-specific handlers.
-- [Service Worker](service-worker.md) — Asset URL rewriting performed by the service worker.
-- [Navigation](navigation.md) — Current hash navigation and the incomplete path-mode branch.
+* [Bootstrap](bootstrap.md) — How the browser starts XShell and initializes the runtime.
+* [Configuration](configuration.md) — The flat, read-only runtime configuration assembled during bootstrap.
+* [Modules](modules.md) — How modules compose an application and contribute configuration and resources.
+* [Components](components.md) — The Web Component declaration and implementation model.
+* [Pages](pages.md) — Components used as navigation destinations, including query-string properties.
+* [Resolvers](resolvers.md) — Conversion of logical resource names into concrete resource URLs and loader metadata.
+* [Loaders](loaders.md) — Dispatching resolved resources to resource-specific loaders.
+* [Service Worker](service-worker.md) — Uniform access to module resources through the `/_assets` namespace.
+* [Navigation](navigation.md) — Path and hash navigation.
 
 ## Related documentation
 
-- [XShell documentation](../)
-- [Specifications](../specifications/)
-- [Asset URL Namespace](../adr/0001-asset-url-namespace.md)
+* [XShell documentation](../)
+* [Specifications](../specifications/)
+* [Subsystems](../subsystems/)
+* [Asset URL Namespace](../adr/0001-asset-url-namespace.md)
