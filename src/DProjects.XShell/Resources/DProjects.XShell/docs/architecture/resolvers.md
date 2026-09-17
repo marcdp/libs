@@ -11,7 +11,7 @@ icon:x-icon1
 can resolve to something like:
 
 ```text
-http://localhost:5000/modules/x/icons/icon1.svg
+http://localhost:5000/_assets/modules/x/icons/icon1.svg
 ```
 
 ## Resolver rules
@@ -23,8 +23,8 @@ They use configuration keys such as:
 ```text
 resolver.icon:x-{name}
 resolver.component:x-{name}
-resolver.page:/_cdn/x/{path}.js
-resolver.module:/_cdn/x/{path}.js
+resolver.page:/_assets/x/{path}.js
+resolver.module:/_assets/x/{path}.js
 ```
 
 Each rule maps a logical resource pattern to a concrete resource path.
@@ -34,7 +34,7 @@ For example:
 ```text
 resolver.icon:x-{name}
     =
-/_cdn/x/icons/{name}.svg; loader=icon-svg;
+/_assets/x/icons/{name}.svg; loader=icon-svg;
 ```
 
 With that rule:
@@ -58,7 +58,7 @@ name = icon1
 and resolves to:
 
 ```text
-/_cdn/x/icons/icon1.svg
+/_assets/x/icons/icon1.svg
 ```
 
 ## Result
@@ -86,7 +86,7 @@ icon:x-icon1
     ↓
 resolver.icon:x-{name}
     ↓
-/_cdn/x/icons/icon1.svg
+/_assets/x/icons/icon1.svg
     +
 loader=icon-svg
 ```

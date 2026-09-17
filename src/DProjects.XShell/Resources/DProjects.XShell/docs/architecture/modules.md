@@ -146,7 +146,7 @@ For example:
 for module `module1` becomes a runtime resource such as:
 
 ```text
-/_cdn/module1/css/styles.css
+/_assets/module1/css/styles.css
 ```
 
 The same applies to pages, components, icons, libraries, handlers, and other module-owned static files.

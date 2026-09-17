@@ -1,4 +1,4 @@
-# Components Architecture
+# Components
 
 An XShell component is a standalone JavaScript file that exports a Web Component implementation.
 

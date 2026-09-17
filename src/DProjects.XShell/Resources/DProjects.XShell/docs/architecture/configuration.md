@@ -1,4 +1,4 @@
-# Configuration Architecture
+# Configuration
 
 XShell runtime configuration is a single flat key/value map assembled during bootstrap.
 

@@ -2,9 +2,6 @@
 
 XShell bootstrap initializes the runtime from the host page to the first application navigation.
 
-## Status
-
-Draft.
 
 ## Initial HTML
 
@@ -45,8 +42,6 @@ For example:
 - /_resources/DProjects.XShell/modules/x/module.jsonc
 
 The important startup inputs are:
-
-The important inputs are:
 
 ```text
 xshell.app_base_url
@@ -106,7 +101,7 @@ See [Configuration](configuration.md).
 
 Bootstrap installs the application Service Worker before XShell starts.
 
-The Service Worker intercepts and caches requests under the configured asset namespace, for example:
+The Service Worker provides uniform access to module resources through the /_assets namespace.
 
 ```text
 /_assets

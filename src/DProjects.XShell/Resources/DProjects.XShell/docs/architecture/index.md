@@ -2,9 +2,6 @@
 
 This section introduces the XShell startup path and the runtime flow from configuration and logical resource references to concrete browser results.
 
-## Status
-
-Draft.
 
 ## Overview
 

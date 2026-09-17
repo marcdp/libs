@@ -13,7 +13,6 @@ The Loader is responsible for:
 * asking the Resolver to resolve a logical resource;
 * selecting the resource-specific loader;
 * invoking that loader with the resolved URL and context;
-* caching resources when configured;
 * returning the loaded runtime result.
 
 The resource-specific loader is responsible for understanding the resource format.
@@ -57,7 +56,7 @@ Loading an icon:
 ```text
 icon:x-bell
     ↓
-/_cdn/x/icons/bell.svg
+/_assets/x/icons/bell.svg
 loader=icon-svg
     ↓
 SVG element
@@ -66,9 +65,9 @@ SVG element
 Loading an ES module:
 
 ```text
-module:/_cdn/module1/module.js
+module:/_assets/module1/module.js
     ↓
-/_cdn/module1/module.js
+/_assets/module1/module.js
 loader=module-js
     ↓
 ES module export
@@ -79,7 +78,7 @@ Loading a component:
 ```text
 component:x-button
     ↓
-/_cdn/x/components/x-button.js
+/_assets/x/components/x-button.js
 loader=component-js
     ↓
 Web Component class
@@ -88,9 +87,9 @@ Web Component class
 Loading a page:
 
 ```text
-page:/_cdn/module1/pages/page1.js
+page:/_assets/module1/pages/page1.js
     ↓
-/_cdn/module1/pages/page1.js
+/_assets/module1/pages/page1.js
 loader=page-js
     ↓
 Page component
@@ -144,7 +143,7 @@ flowchart LR
     A["Logical resource<br/>icon:x-bell"]
         --> B[Resolver]
 
-    B --> C["Resolved URL<br/>/_cdn/x/icons/bell.svg<br/>loader=icon-svg"]
+    B --> C["Resolved URL<br/>/_assets/x/icons/bell.svg<br/>loader=icon-svg"]
 
     C --> D[Loader]
 
