@@ -1,4 +1,3 @@
-import Api from "./api.js";
 import Areas from "./areas.js";
 import Auth from "./auth.js";
 import Binds from "./binds.js";
@@ -15,8 +14,6 @@ import Page from "./page.js";
 import Resolver from "./resolver.js";
 import Runtime from "./runtime.js";
 import Services from "./services.js";
-import Settings from "./settings.js";
-import Storage from "./storage.js";
 import Tabs from "./tabs.js";
 import UrlRewriter from "./urlRewriter.js";
 import XPage from "./x-page.js";
@@ -25,7 +22,6 @@ import XPage from "./x-page.js";
 class XShell {
 
     //fields
-    _api = null;
     _areas = null;
     _auth = null;
     _bus = null;
@@ -41,9 +37,7 @@ class XShell {
     _navigation = null;
     _resolver = null;
     _runtime = null;
-    _settings = null;
     _services = null;
-    _storage = null;
     _tabs = null;
     _urlRewriter = null;
     
@@ -52,7 +46,6 @@ class XShell {
     }
 
     //props
-    get api() { return this._api; }
     get areas() { return this._areas; }
     get auth() { return this._auth; }
     get bus() { return this._bus; }
@@ -68,9 +61,7 @@ class XShell {
     get navigation() { return this._navigation; }
     get resolver() { return this._resolver; }
     get runtime() { return this._runtime; }
-    get settings() { return this._settings; }
     get services() { return this._services; }
-    get storage() { return this._storage; }
     get tabs() { return this._tabs; }
     get urlRewriter() { return this._urlRewriter; }
 
@@ -80,7 +71,6 @@ class XShell {
         this._bus = new Bus();
         this._debug = new Debug();
         this._config = new Config({ debug: this._debug, bus: this._bus, value: value });
-        this._api = new Api( { config: this._config} );
         this._areas = new Areas( { bus: this._bus, config: this._config } );
         this._container = document.body;
         this._resolver = new Resolver( { debug: this._debug, config: this._config } );
@@ -89,8 +79,6 @@ class XShell {
         this._i18n = new I18n();
         this._modules = new Modules( { bus: this._bud, config: this._config, loader: this._loader, resolver: this._resolver } );
         this._navigation = new Navigation( { areas: this._areas, bus: this._bus, config: this._config, container: this._container });
-        this._settings = new Settings();
-        this._storage = new Storage( {config: this.config } );
         this._tabs = new Tabs( { bus: this._bus } );
         this._menus = new Menus( { bus: this._bus, config: this._config, modules: this._modules, navigation: this._navigation } );
         this._services = new Services();
@@ -98,7 +86,6 @@ class XShell {
         this._dialog = new Dialog( { config: this._config, navigation: this._navigation, i18n: this._i18n } );
         this._runtime = new Runtime();
         // services
-        this._services.register("api", this._api);
         this._services.register("areas", this._areas);
         this._services.register("auth", this._auth);
         this._services.register("bus", this._bus);
@@ -113,9 +100,7 @@ class XShell {
         this._services.register("navigation", this._navigation);
         this._services.register("resolver", this._resolver);
         this._services.register("runtime", this._runtime);
-        this._services.register("settings", this._settings);
         this._services.register("services", this._services);
-        this._services.register("storage", this._storage);
         this._services.register("tabs", this._tabs);
         this._services.register("urlRewriter", this._urlRewriter);
         // auth

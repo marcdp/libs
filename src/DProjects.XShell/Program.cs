@@ -19,13 +19,14 @@ namespace DProjects.XShell {
             // build app
             var app = builder.Build();
 
-            // default app to server
-            var appBase = "/prefix";
-            var appConfig = (args.Length > 0) ? args[0] : appBase + Extensions.RequestPath + "/apps/app1/app.jsonc";
-            var unhandledPrefixes = new string[] { "/api", "/_" };
-
             // use XShell
-            app.UseXShell(appBase, appConfig, unhandledPrefixes);
+            var appBase = "/prefix";
+            var resourceBase = "/prefix2";
+            app.UseXShell( new Extensions.Configuration {
+                AppBase = appBase,
+                AppConfig = (args.Length > 0) ? args[0] : resourceBase + Extensions.RequestPath + "/samples/sample1/app.jsonc",
+                ResourcesBase = resourceBase
+            });
 
             // run app
             await app.RunAsync();

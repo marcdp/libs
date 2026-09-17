@@ -1,7 +1,9 @@
 // export
 export default function createStateEngineFactoryProxy(stateSkeleton, stateDefinition) {
+	
 	// init state definition json
 	const stateSkeletonJson = JSON.stringify(stateSkeleton || {});
+
 	// returns a state instance factory
 	return {
 		create: (handler) => {

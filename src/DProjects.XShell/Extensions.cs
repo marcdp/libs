@@ -12,10 +12,15 @@ namespace DProjects.XShell {
 
     public static class Extensions {
 
-        // inner class
-        //public class Configuration {
 
-        //}
+        // inner class
+        public class Configuration {
+            public string AppBase { get; init; } = "";
+            public string AppConfig { get; init; }  = "";
+            public string ResourcesBase { get; init; } = "";
+            public string Favicon { get; init; } = "";
+            public string[] UnhandledPrefixes { get; init; } = new string[] {"/_", "/api"};
+        }
         
 
         // constants
@@ -28,7 +33,7 @@ namespace DProjects.XShell {
         public static void AddXShell(this IServiceCollection services) {
             // register XShell services here when needed
         }
-        public static void UseXShell(this WebApplication app, string appBase, string appConfig, string[] unhandledPrefixes) {
+        public static void UseXShell(this WebApplication app, Configuration config) {
 
             // config webapplication
             var assembly = typeof(Extensions).Assembly;
@@ -54,7 +59,7 @@ namespace DProjects.XShell {
             var fileProvider = new PhysicalFileProvider(resourcePath);
             app.UseStaticFiles(new StaticFileOptions {
                 FileProvider = fileProvider,
-                RequestPath = appBase + RequestPath,
+                RequestPath = config.ResourcesBase + RequestPath,
                 ContentTypeProvider = contentTypeProvider,
                 OnPrepareResponse = context => {
                     if (isDevelopment) {
@@ -72,14 +77,15 @@ namespace DProjects.XShell {
                     <head>
                         <meta charset="utf-8">
                         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                        <link href="{config.Favicon}" rel="icon">
 
-                        <!-- config meta tags for xshell -->
-                        <meta name="xshell.app_base_url" content="{appBase}">
-                        <meta name="xshell.app_config_url" content="{appConfig}">
-                        <meta name="xshell.sw_url" content="{appBase}/sw.js">
+                        <!-- config xshell -->
+                        <meta name="xshell.app_base_url" content="{config.AppBase}">
+                        <meta name="xshell.app_config_url" content="{config.AppConfig}">
+                        <meta name="xshell.sw_url" content="{config.AppBase}/sw.js">
 
-                        <!-- bootstrap -->
-                        <script src="{appBase}/_resources/DProjects.XShell/xshell/bootstrap.js"></script>
+                        <!-- bootstrap xshell -->
+                        <script src="{config.ResourcesBase}/_resources/DProjects.XShell/xshell/bootstrap.js"></script>
 
                     </head>
                     <body>
@@ -88,17 +94,22 @@ namespace DProjects.XShell {
                     """;
             var swJs = $"""
                     // import real service worker script from xshell cdn
-                    importScripts("{appBase + ServiceWorkerRequestPath}"); 
+                    importScripts("{config.ResourcesBase + ServiceWorkerRequestPath}"); 
                     """;
 
             // redirect canonical base URL
             app.Use(async (context, next) => {
-                if (context.Request.Path == appBase) {
-                    context.Response.Redirect(appBase + "/");
+                if (context.Request.Path == config.AppBase) {
+                    context.Response.Redirect(config.AppBase + "/");
                     return;
-                } else if (appBase.Length > 0 && !context.Request.Path.StartsWithSegments(appBase)) {
-                    context.Response.Redirect(appBase + "/");
-                    return;
+                } else if (config.AppBase.Length > 0 && !context.Request.Path.StartsWithSegments(config.AppBase)) {
+                    if (config.ResourcesBase.Length > 0 && context.Request.Path.StartsWithSegments(config.ResourcesBase)) {
+
+                    } else {
+                        context.Response.Redirect(config.AppBase + "/");
+                        return;
+
+                    }
                 }
                 await next();
             });
@@ -107,7 +118,7 @@ namespace DProjects.XShell {
             app.UseRouting();
 
             // service worker
-            app.MapGet(appBase + "/sw.js", async context => {
+            app.MapGet(config.AppBase + "/sw.js", async context => {
                 context.Response.ContentType = "text/javascript";
                 await context.Response.WriteAsync(swJs);
             });
@@ -122,7 +133,7 @@ namespace DProjects.XShell {
                 }
 
                 // only handle requests inside appBase
-                if (!context.Request.Path.StartsWithSegments(appBase, out var remaining)) {
+                if (!context.Request.Path.StartsWithSegments(config.AppBase, out var remaining)) {
                     await next();
                     return;
                 }
@@ -130,7 +141,7 @@ namespace DProjects.XShell {
                 var slug = remaining.Value ?? "";
 
                 // reserved prefixes must continue through the pipeline
-                foreach (var unhandledPrefix in unhandledPrefixes) {
+                foreach (var unhandledPrefix in config.UnhandledPrefixes) {
                     if (slug.StartsWith(unhandledPrefix, StringComparison.OrdinalIgnoreCase)) {
                         await next();
                         return;
