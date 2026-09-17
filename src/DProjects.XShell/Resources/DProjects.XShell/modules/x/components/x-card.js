@@ -1,4 +1,3 @@
-import XElement from "x-element";
 
 // class
 export default {

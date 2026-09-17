@@ -1,5 +1,45 @@
+// interface
+export const interface = {
+    description: "Datafield",
+    events: {
+        move: {
+            description: "Raised when the field is moved.",
+            detail: {
+                direction: { type: "string" }
+            }
+        },
+        edit: {
+            description: "Raised when the field is edited."
+        },
+        remove: {
+            description: "Raised when the field is removed."
+        }
+    },
+    properties: {
+        label:      {type:"string", default:"", attr:true},
+        message:    {type:"string", default:"", attr:true},
+        columns:    {type:"number", default:2, attr:true},
+        remove:     {type:"boolean", default:false, attr:true},
+        move:       {type:"boolean", default:false, attr:true},
+        edit:       {type:"boolean", default:false, attr:true}
+    },
+    methods: {
+        method1: {
+            description: "method 1 does something",
+            arguments: [
+                {name: "param1", type: "string", description: "The first parameter"},
+                {name: "param2", type: "number", description: "The second parameter"}
+            ],
+            returns: {
+                description: "Returns xxx",
+                type: "string"
+            }
+        }
+    }
+}
 
-// class
+
+// implementation
 export default {
     style: `
         :host {
@@ -69,14 +109,8 @@ export default {
             </div>
         </div>
     `,
-    state: {
-        label:   {value:"", attr:true},
-        message: {value:"", attr:true},
-        columns: {value:2, attr:true},
-        remove: {value:false, attr:true},
-        move:   {value:false, attr:true},
-        edit:   {value:false, attr:true}
-    },
+    
+    state: {},
     script({ }) {
         return {
             onCommand(command, params){
