@@ -25,5 +25,4 @@ TODO: Define caching, upgrades, offline behavior, and error recovery. Existing c
 ## Related documentation
 
 - [Architecture](index.md)
-- [Asset URL Namespace](../adr/asset-url-namespace.md)
-
+- [Asset URL Namespace](../adr/0001-asset-url-namespace.md)

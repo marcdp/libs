@@ -26,5 +26,4 @@ TODO: Define required fields, allowed types, unknown-key handling, environment o
 
 - [Specifications](index.md)
 - [Module Specification](module.md)
-- [JSONC Specifications ADR](../adr/jsonc-specifications.md)
-
+- [JSONC Specifications ADR](../adr/0002-jsonc-specifications.md)

@@ -30,5 +30,4 @@ TODO: Verify object expansion, dynamic names, modifier combinations, multi-selec
 
 - [X Templates](index.md)
 - [Syntax](syntax.md)
-- [Component Events](../components/events.md)
-
+- [Component Events](../../subsystems/components/events.md)

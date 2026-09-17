@@ -1,4 +1,4 @@
-# Navigation
+# ADR-0003: Navigation
 
 This record captures design considerations for hash-based and path-based XShell navigation.
 
@@ -30,4 +30,3 @@ TODO: Do not select or recommend a mode until path mode is implemented and both 
 
 - [Navigation Architecture](../architecture/navigation.md)
 - [Application Specification](../specifications/application.md)
-

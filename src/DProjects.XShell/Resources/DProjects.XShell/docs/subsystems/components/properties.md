@@ -29,4 +29,4 @@ TODO: Define type conversion, nullability, attribute naming, reflection, and the
 - [Components](index.md)
 - [State](state.md)
 - [Component Manifest](manifest.md)
-- [Properties and State ADR](../adr/properties-and-state.md)
+- [Properties and State ADR](../../adr/0004-properties-and-state.md)

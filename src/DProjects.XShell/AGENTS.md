@@ -19,7 +19,7 @@ Do not apply these rules to other projects in the `marcdp/libs` repository unles
 XShell is a modular application framework built around:
 
 * Web Components
-* declarative X templates
+* optional declarative X Templates extension
 * modules
 * resource resolution
 * pluggable loaders
@@ -307,7 +307,7 @@ If the property/state model changes, update both the implementation and the corr
 
 ## X template language
 
-X templates are an XShell-owned language.
+X Templates are an optional XShell-owned extension. They integrate with the core component model but are not part of it.
 
 Do not assume syntax or semantics from:
 
@@ -468,17 +468,21 @@ Resources/DProjects.XShell/docs/
 ├── index.md
 ├── architecture/
 │   └── index.md
-├── components/
-│   └── index.md
-├── templates/
-│   └── index.md
-├── specifications/
-│   └── index.md
 ├── subsystems/
+│   ├── index.md
+│   └── components/
+│       └── index.md
+├── extensions/
+│   ├── index.md
+│   └── x-templates/
+│       └── index.md
+├── specifications/
 │   └── index.md
 └── adr/
     └── index.md
 ```
+
+`architecture/` documents system design. `subsystems/` documents core XShell runtime capabilities, including the component model under `subsystems/components/`. `extensions/` documents optional capabilities; X Templates live under `extensions/x-templates/` and are not part of the core component model. `specifications/` contains formal configuration contracts, and `adr/` records architectural decisions.
 
 Use relative Markdown links.
 
@@ -587,7 +591,7 @@ When making a significant architectural change:
 2. update it or add a new decision document when appropriate;
 3. keep implementation and architectural documentation consistent.
 
-Do not assign ADR numbers unless the documentation convention explicitly adopts numbered ADRs.
+ADR filenames use stable four-digit numeric prefixes in the form `NNNN-short-description.md`. Assign the next sequential number to new ADRs; never reuse or renumber existing ADR numbers.
 
 ## Service worker and reserved URLs
 

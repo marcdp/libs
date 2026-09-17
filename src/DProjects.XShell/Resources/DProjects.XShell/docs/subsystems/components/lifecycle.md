@@ -30,5 +30,4 @@ TODO: Define reconnection behavior, error propagation, command ordering guarante
 
 - [Components](index.md)
 - [State](state.md)
-- [Loaders](../architecture/loaders.md)
-
+- [Loaders](../../architecture/loaders.md)

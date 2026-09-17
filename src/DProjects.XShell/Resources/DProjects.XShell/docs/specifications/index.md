@@ -1,6 +1,6 @@
 # Specifications
 
-This section is the future home of the configuration formats consumed by XShell bootstrap.
+This section documents the formal configuration formats and contracts consumed by XShell bootstrap.
 
 ## Status
 
@@ -22,6 +22,5 @@ TODO: Produce formal schemas only after field ownership, validation, defaults, c
 ## Related documentation
 
 - [XShell documentation](../)
-- [JSONC Specifications ADR](../adr/jsonc-specifications.md)
+- [JSONC Specifications ADR](../adr/0002-jsonc-specifications.md)
 - [Modules](../architecture/modules.md)
-

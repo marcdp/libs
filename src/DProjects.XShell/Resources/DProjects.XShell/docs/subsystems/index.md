@@ -1,6 +1,6 @@
 # Subsystems
 
-This section introduces supporting XShell services without attempting to document every class or internal API.
+This section introduces core XShell runtime capabilities without attempting to document every class or internal API.
 
 ## Status
 
@@ -8,6 +8,7 @@ Draft.
 
 ## Documents
 
+- [Components](components/) — The core Web Component model: declarations, properties, state, events, and lifecycle.
 - [Authentication](authentication.md) — Identity-provider selection and login/logout orchestration.
 - [Identity](identity.md) — The identity object exposed to runtime services.
 - [Internationalization](i18n.md) — Language metadata, localized text selection, and date/time formatting.
@@ -20,4 +21,3 @@ These pages describe the current architectural roles. Security guarantees, provi
 
 - [XShell documentation](../)
 - [Application Specification](../specifications/application.md)
-

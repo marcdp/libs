@@ -8,17 +8,18 @@ Draft.
 
 ## Records
 
-- [Properties and State](properties-and-state.md) — Separating public component properties from internal reactive state.
-- [JSONC Specifications](jsonc-specifications.md) — Evaluating JSONC for human-authored application and module files.
-- [Navigation](navigation.md) — Considering hash-based and path-based browser navigation.
-- [Asset URL Namespace](asset-url-namespace.md) — Providing stable application URLs for service-worker-managed assets.
+- [ADR-0001: Asset URL Namespace](0001-asset-url-namespace.md) — Providing stable application URLs for service-worker-managed assets.
+- [ADR-0002: JSONC Specifications](0002-jsonc-specifications.md) — Evaluating JSONC for human-authored application and module files.
+- [ADR-0003: Navigation](0003-navigation.md) — Considering hash-based and path-based browser navigation.
+- [ADR-0004: Properties and State](0004-properties-and-state.md) — Separating public component properties from internal reactive state.
 
 ## Conventions
 
-These records are not numbered yet. Each record states its decision status explicitly; a draft record must not be treated as a final architectural decision.
+New ADRs receive the next sequential number. ADR numbers are permanent: they are never reused, and accepted or superseded ADRs are not renumbered. Filenames use `NNNN-short-description.md`.
+
+Each record states its decision status explicitly; a draft record must not be treated as a final architectural decision.
 
 ## Related documentation
 
 - [XShell documentation](../)
 - [Architecture](../architecture/)
-

@@ -1,7 +1,6 @@
 # XShell
 
-XShell is a modular application framework built around Web Components,
-declarative templates, resource resolution, and pluggable loading.
+XShell is a modular application framework built around Web Components, resource resolution, and pluggable loading. Optional extensions, including X Templates, add capabilities on top of that core.
 
 This documentation area provides a conservative map of the framework and its design direction. Detailed contracts remain TODOs until they can be verified against runtime code and tests.
 
@@ -11,12 +10,11 @@ Draft.
 
 ## Documentation
 
-- [Architecture](architecture/) — Runtime structure, resource resolution, loading, service-worker rewriting, and navigation.
-- [Components](components/) — Web Component declarations, public properties, internal state, events, and lifecycle.
-- [X Templates](templates/) — The current declarative template syntax and compiler.
-- [Specifications](specifications/) — Application and module JSONC configuration formats.
-- [Subsystems](subsystems/) — Authentication, identity, and internationalization.
-- [Architecture Decision Records](adr/) — Design questions and architectural direction that should remain visible over time.
+- [Architecture](architecture/) — How XShell is designed: runtime structure, resource resolution, loading, service-worker rewriting, and navigation.
+- [Subsystems](subsystems/) — Core XShell capabilities, including Components, authentication, identity, and internationalization.
+- [Extensions](extensions/) — Optional capabilities layered on XShell, including X Templates.
+- [Specifications](specifications/) — Formal application and module configuration contracts.
+- [Architecture Decision Records](adr/) — Architectural decisions and their rationale.
 
 ## Scope
 
@@ -25,4 +23,3 @@ These pages establish the documentation structure and record only behavior confi
 ## Source of truth
 
 The implementation under `src/DProjects.XShell/Resources/DProjects.XShell` remains authoritative while these documents are drafts.
-

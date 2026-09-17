@@ -26,5 +26,4 @@ TODO: Define stable reconciliation semantics, DOM identity guarantees, duplicate
 
 - [X Templates](index.md)
 - [Syntax](syntax.md)
-- [Loaders](../architecture/loaders.md)
-
+- [Loaders](../../architecture/loaders.md)

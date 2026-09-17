@@ -25,5 +25,4 @@ TODO: Specify history behavior, query-value typing, malformed navigation metadat
 ## Related documentation
 
 - [Architecture](index.md)
-- [Navigation ADR](../adr/navigation.md)
-
+- [Navigation ADR](../adr/0003-navigation.md)

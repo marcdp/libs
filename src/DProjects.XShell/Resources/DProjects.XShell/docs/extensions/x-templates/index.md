@@ -1,6 +1,6 @@
 # X Templates
 
-This section documents the declarative template language used by XShell's `x` render engine.
+This section documents X Templates, an optional XShell extension that provides the declarative template language used by the `x` render engine. It integrates with XShell Components but is not part of the core component model.
 
 ## Status
 
@@ -19,6 +19,5 @@ The initial outline is based on the current `x-template.js` compiler and templat
 
 ## Related documentation
 
-- [XShell documentation](../)
-- [Components](../components/)
-
+- [Extensions](../)
+- [XShell Components](../../subsystems/components/)

@@ -1,4 +1,4 @@
-# Properties and State
+# ADR-0004: Properties and State
 
 This record captures the intended distinction between a component's public properties and its internal reactive state.
 
@@ -28,6 +28,6 @@ TODO: Finalize the metadata name, mapping semantics, attribute interaction, migr
 
 ## Related documentation
 
-- [Properties](../components/properties.md)
-- [State](../components/state.md)
-- [Component Manifest](../components/manifest.md)
+- [Properties](../subsystems/components/properties.md)
+- [State](../subsystems/components/state.md)
+- [Component Manifest](../subsystems/components/manifest.md)

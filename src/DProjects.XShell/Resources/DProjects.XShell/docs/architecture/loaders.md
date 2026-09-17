@@ -30,5 +30,4 @@ TODO: Specify clone behavior, retry behavior, and the exact ordering of results 
 
 - [Architecture](index.md)
 - [Resolvers](resolvers.md)
-- [Component Lifecycle](../components/lifecycle.md)
-
+- [Component Lifecycle](../subsystems/components/lifecycle.md)

@@ -26,5 +26,4 @@ TODO: Add a verified end-to-end sequence diagram after the bootstrap and loader 
 
 - [XShell documentation](../)
 - [Specifications](../specifications/)
-- [Asset URL Namespace](../adr/asset-url-namespace.md)
-
+- [Asset URL Namespace](../adr/0001-asset-url-namespace.md)

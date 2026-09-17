@@ -29,4 +29,4 @@ TODO: Specify state-engine guarantees, nested mutation semantics, initialization
 - [Components](index.md)
 - [Properties](properties.md)
 - [Lifecycle](lifecycle.md)
-- [Properties and State ADR](../adr/properties-and-state.md)
+- [Properties and State ADR](../../adr/0004-properties-and-state.md)

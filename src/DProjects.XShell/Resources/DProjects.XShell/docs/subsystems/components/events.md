@@ -1,6 +1,6 @@
 # Component Events
 
-This document introduces events emitted by components and event handling inside X templates.
+This document introduces events emitted by core XShell components.
 
 ## Status
 
@@ -12,9 +12,9 @@ Current component declaration metadata can list named events, descriptions, and 
 
 For example, `x-datafields` declares `move`, `edit`, and `remove`; its implementation dispatches those events and includes a `direction` detail for `move`.
 
-## Template handlers
+## Optional X Templates integration
 
-The X template compiler recognizes `x-on:<event>` and the `@<event>` shorthand. The compiled handler forwards the command name and browser event to the component's command handler.
+The optional X Templates extension recognizes `x-on:<event>` and the `@<event>` shorthand. Its compiled handler forwards the command name and browser event to the component's command handler. Components do not depend on that extension to emit or handle standard DOM events.
 
 ## Modifiers
 
@@ -23,6 +23,5 @@ Runtime event attachment parses dot-separated modifier names. TODO: Verify and t
 ## Related documentation
 
 - [Components](index.md)
-- [Template Bindings](../templates/bindings.md)
+- [X Template Bindings](../../extensions/x-templates/bindings.md)
 - [Component Manifest](manifest.md)
-

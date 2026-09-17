@@ -1,4 +1,4 @@
-# JSONC Specifications
+# ADR-0002: JSONC Specifications
 
 This record examines JSON with comments as the format for XShell application and module specifications.
 
@@ -37,4 +37,3 @@ TODO: Decide whether JSONC is the normative format and select a documented parse
 - [Specifications](../specifications/)
 - [Application Specification](../specifications/application.md)
 - [Module Specification](../specifications/module.md)
-

@@ -1,4 +1,4 @@
-# Asset URL Namespace
+# ADR-0001: Asset URL Namespace
 
 This record describes the architectural role of a stable URL namespace for assets managed by the XShell service worker.
 
@@ -29,4 +29,3 @@ TODO: Define prefix validation, collision handling, deployment beneath non-root 
 - [Service Worker](../architecture/service-worker.md)
 - [Modules](../architecture/modules.md)
 - [Resolvers](../architecture/resolvers.md)
-
