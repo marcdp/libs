@@ -1,91 +1,165 @@
 # Configuration Architecture
 
-This document explains how runtime configuration is assembled and exposed. It does not define every valid application or module field; those contracts
-belong in the [Application Specification](../specifications/application.md) and [Module Specification](../specifications/module.md).
+XShell runtime configuration is a single flat key/value map assembled during bootstrap.
 
 ## Status
 
 Draft.
 
-## Sources and precedence
+## Configuration model
 
-Bootstrap builds a single flat map whose keys commonly use dotted namespaces.
+Keys use naming conventions to group related settings:
 
-| Stage | Source | Effect |
-| --- | --- | --- |
-| 1 | Framework `xshell.jsonc` | Supplies navigation, engine, resolver, identity, and other defaults. |
-| 2 | Application JSONC | Replaces framework values with the same key and declares modules through `modules.<name>.*`. |
-| 3 | Each module JSONC in turn | Writes ordinary fields under `modules.<name>.*` and removes `global.` from global contributions. |
-| 4 | Resolvers generated immediately for that module | Adds its conventional icon, layout, component, page, and module mappings. |
+```text
+app.*
+xshell.*
+navigation.*
+page.*
+component.*
+modules.<name>.*
+resolver.*
+```
 
-Assignment is direct: a value written by a later stage replaces an existing value with the same key. Modules are processed in the order in which their names
-are first encountered while iterating the assembled application configuration. A later module contribution can replace the same key written by an earlier
-module, including an earlier generated resolver. This iteration order is current behavior, not a declared dependency or override contract.
+For example:
 
-The `depends` module field is defaulted but is not used to order configuration loading or runtime initialization.
+```json
+{
+    "navigation.mode": "hash",
+    "page.renderEngine": "plain",
+    "component.stateEngine": "plain",
+    "app.name": "sample-app",
+    "modules.x.page.renderEngine": "x"
+}
+```
 
-## Application and module namespaces
+The configuration namespace is flat. Dots are part of the key and express logical grouping; they do not represent nested objects.
 
-The application configuration supplies application-wide values and module entries. `modules.<name>.src` points to a module JSONC document, while
-`modules.<name>.params.*` remains in the combined map and is passed to the module handler's `load` command.
+Values may still be any JSON-compatible value, including arrays and objects.
 
-For a discovered module named `catalog`, a module field such as `styles` becomes `modules.catalog.styles`. Bootstrap sets the merged module `name` to the
-alias discovered from the application configuration, regardless of the module document's original `name` value.
+## Sources
 
-A module key such as `global.page.layout.main` becomes `page.layout.main`. A key such as `global.resolver.import:library` becomes
-`resolver.import:library`; resolver contributions are also augmented with the contributing module name and module asset path. Consequently, module
-contributions can be consumed through the same global configuration, resolver, and import-map mechanisms as framework and application values.
+Bootstrap assembles the final configuration from:
+
+1. framework configuration from `xshell.jsonc`;
+2. application configuration from `app.jsonc`;
+3. each configured `module.jsonc`;
+4. values generated during bootstrap, such as module resolvers and runtime paths.
+
+```mermaid
+flowchart LR
+    A[xshell.jsonc] --> D[Runtime Config]
+    B[app.jsonc] --> D
+    C[module.jsonc files] --> D
+    E[Bootstrap-generated values] --> D
+```
+
+Later values replace earlier values with the same key.
+
+## Module configuration
+
+Module-local fields are stored under:
+
+```text
+modules.<name>.*
+```
+
+For example:
+
+```text
+page.renderEngine
+→ modules.x.page.renderEngine
+
+styles
+→ modules.x.styles
+```
+
+Fields beginning with `global.` are promoted into the shared configuration by removing that prefix:
+
+```text
+global.xshell.areas.main.home
+→ xshell.areas.main.home
+```
+
+## Resolvers
+
+Resolver entries use keys of the form:
+
+```text
+resolver.<kind>:<name-or-pattern>
+```
+
+Examples:
+
+```text
+resolver.import:xshell
+resolver.component:x-{name}
+resolver.page:/_assets/x/{path}.html
+```
+
+Bootstrap also generates conventional resolver entries for module icons, layouts, components, pages, and JavaScript modules.
+
+See [Resolvers](resolvers.md).
 
 ## URL normalization
 
-Normalization walks strings recursively through objects and arrays before a source is merged. Its base differs by source:
+URLs are normalized before values are merged.
 
-- framework defaults use `/<assetsPrefix>/xshell`;
-- application values use the resolved application JSONC URL;
-- module values use `/<assetsPrefix>/<module-name>`.
+The normalization base depends on the source:
 
-The current normalizer treats values as follows:
+* framework values use the XShell asset path;
+* application values are resolved relative to `app.jsonc`;
+* module values are resolved relative to that module's asset path.
 
-| Form | Current treatment |
-| --- | --- |
-| `url:<value>` | Removes `url:` and resolves root- or dot-relative values with the current base. |
-| `/value` | Prefixes the current normalization base. In module JSONC this produces a module-relative asset URL. |
-| `./value`, `../value`, or `.` | Combines the value with the current base. |
-| Other strings | Leaves the main value unchanged. |
+Leading-slash module values therefore become module-relative runtime asset paths.
 
-It also normalizes semicolon-delimited attribute values that contain `=/`. Resolver definitions use this form when metadata embeds a URL-like value.
+## Final configuration
 
-The distinction between `url:` and an unmarked leading slash is significant. For example, the sample application uses
-`url:../../modules/x/module.jsonc` to resolve a module source against `app.jsonc`, while module documents use `/pages/...` and `/css/...` values that are
-placed beneath that module's asset path.
+After bootstrap, the resulting configuration may look like:
 
-See [ADR-0002](../adr/0002-jsonc-specifications.md) for the current JSONC format decision and its unresolved compatibility questions.
+```json
+{
+    "navigation.mode": "hash",
+    "page.renderEngine": "plain",
+    "page.stateEngine": "plain",
+    "component.renderEngine": "plain",
+    "component.stateEngine": "plain",
+
+    "xshell.assetsPrefix": "_assets",
+    "xshell.areaDefault": "main",
+
+    "app.name": "sample-app",
+    "app.label": "Sample app",
+    "app.base": "http://localhost:5000",
+
+    "modules.x.src": "http://localhost:5000/modules/x/module.jsonc",
+    "modules.x.name": "x",
+    "modules.x.page.renderEngine": "x",
+    "modules.x.component.renderEngine": "x",
+
+    "xshell.areas.main.home": "/_assets/module1/pages/page0.html",
+
+    "resolver.import:xshell": "/_assets/xshell/xshell.js",
+    "resolver.component:x-{name}": "/_assets/x/components/x-{name}.js; loader=component-js; cache=true; module=x;",
+    "resolver.page:/_assets/x/{path}.html": "/_assets/x/{path}.html; loader=page-html; cache=true; module=x;"
+}
+```
+
+This is the assembled runtime configuration, not the contents of any single JSONC file.
+
+Once created, the runtime configuration is **read-only**. `Config` freezes the assembled top-level map before exposing it to the rest of XShell.
+
+Runtime services and modules consume configuration values; they do not modify the configuration after bootstrap.
 
 ## Runtime availability
 
-All framework, application, module, global, and generated resolver values are assembled before the import map is created and before `xshell` is imported.
-The runtime then wraps the map in `Config`, freezes the top-level map, and supplies that service to the other runtime objects.
+The complete configuration is assembled before the import map is created and before `xshell` is initialized.
 
-Module handlers see the final map when their `load` command runs. A module's non-global fields are available through `modules.<name>.*`; a `global.*`
-contribution is already visible at its prefix-free key.
-
-`Config` provides exact lookup, prefix enumeration, and projections such as `getAsObject` and `getAsObjects`. These projections do not perform another
-merge or normalization pass.
-
-## Architecture versus specification
-
-This page documents loading, normalization, precedence, and runtime visibility. Field names, types, and requirement status are documented conservatively in
-the [Application Specification](../specifications/application.md) and [Module Specification](../specifications/module.md).
-
-## TODO
-
-TODO: Define a stable collision policy and ordering contract for multiple modules that contribute the same global key.
-
-TODO: Specify validation and diagnostics for missing module sources, non-string `global.*` contributions, and malformed JSONC.
+The runtime exposes the resulting read-only map through the `Config` service.
 
 ## Related documentation
 
-- [Bootstrap](bootstrap.md)
-- [Modules](modules.md)
-- [Resolvers](resolvers.md)
-- [JSONC Specifications ADR](../adr/0002-jsonc-specifications.md)
+* [Bootstrap](bootstrap.md)
+* [Modules](modules.md)
+* [Resolvers](resolvers.md)
+* [Application Specification](../specifications/application.md)
+* [Module Specification](../specifications/module.md)

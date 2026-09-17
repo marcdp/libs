@@ -7,8 +7,6 @@
     "app.icon": "",
     // module x
     "modules.x.src": "url:../../modules/x/module.jsonc",
-    "modules.x-debugger.src": "url:../../modules/x-debugger/module.jsonc",
-    "modules.x-help.src": "url:../../modules/x-help/module.jsonc",
     // module 1
     "modules.module111.src": "url:./modules/module1/module.jsonc",
     "modules.module111.params.var1": "11111",

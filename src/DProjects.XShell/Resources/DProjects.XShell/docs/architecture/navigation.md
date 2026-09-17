@@ -1,28 +1,128 @@
-# Navigation Architecture
+# Navigation
 
-This document summarizes the navigation service that maps browser URLs to XShell page stacks.
+XShell supports two navigation modes:
 
-## Status
+```text
+path
+hash
+```
 
-Draft.
+Both modes use the same Page and navigation infrastructure.
 
-## Current mode
+## Path navigation
 
-The default configuration selects hash navigation with the `#!` prefix. Hash changes are parsed into a root page and optional stack entries, then synchronized with top-level `x-page` elements.
+Path navigation uses normal browser URLs.
 
-## Navigation targets
+For example:
 
-The service currently recognizes top, stack, dialog, and embedded page targets, with `auto` selecting a target from the current page context.
+```text
+/orders/123
+/settings/profile
+```
 
-## Path mode
+This mode requires server collaboration.
 
-The configuration and URL-building code mention path mode, but initialization currently throws an error because path mode is not implemented.
+When the browser requests one of these URLs directly, the server must return the XShell host application so that client-side navigation can continue from that path.
 
-## TODO
+Conceptually:
 
-TODO: Specify history behavior, query-value typing, malformed navigation metadata, and page-stack restoration after those behaviors have tests.
+```text
+/orders/123
+    ↓
+server
+    ↓
+XShell host page
+    ↓
+Navigation
+    ↓
+Page
+```
+
+Path navigation produces clean application URLs and integrates with the browser history.
+
+## Hash navigation
+
+Hash navigation stores the navigation path after `#`.
+
+For example:
+
+```text
+/#/orders/123
+/#/settings/profile
+```
+
+Everything before the hash identifies the host page, while XShell handles everything after it.
+
+This mode does not require special server routing and is therefore always available.
+
+Conceptually:
+
+```text
+/#/orders/123
+    ↓
+XShell Navigation
+    ↓
+Page
+```
+
+Hash navigation is mainly provided for compatibility and environments where server-side routing cannot be configured.
+
+## Navigation mode
+
+The navigation mode is selected through configuration.
+
+For example:
+
+```text
+navigation.mode = path
+```
+
+or:
+
+```text
+navigation.mode = hash
+```
+
+The rest of the application does not need to depend on the selected mode.
+
+Navigation converts the browser URL into the corresponding Page resource and loads it through the standard XShell Resolver and Loader infrastructure.
+
+```mermaid
+flowchart LR
+    A[Browser URL] --> B[Navigation]
+
+    B --> C{Mode}
+
+    C -->|Path| D["/orders/123"]
+    C -->|Hash| E["/#/orders/123"]
+
+    D --> F[Resolve Page]
+    E --> F
+
+    F --> G[Load Page]
+    G --> H[Mount Page]
+```
+
+## Summary
+
+The two navigation modes are:
+
+```text
+Path
+    clean URLs
+    requires server collaboration
+
+Hash
+    URLs after #
+    no server routing required
+    always available
+```
+
+Both ultimately resolve, load, and display the same XShell Pages.
 
 ## Related documentation
 
-- [Architecture](index.md)
-- [Navigation ADR](../adr/0003-navigation.md)
+* [Pages](pages.md)
+* [Resolvers](resolvers.md)
+* [Loaders](loaders.md)
+* [Configuration](configuration.md)

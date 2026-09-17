@@ -1,103 +1,150 @@
 # Bootstrap
 
-This document describes the verified startup path from the ASP.NET Core host to the first XShell navigation.
+XShell bootstrap initializes the runtime from the host page to the first application navigation.
 
 ## Status
 
 Draft.
 
-## Host page and bootstrap inputs
+## Initial HTML
 
-`Extensions.UseXShell` serves the XShell resources and generates the SPA host HTML. The host page provides three values as metadata:
+The initial HTML page contains the XShell startup configuration as meta elements and includes the bootstrap script.
 
-- `xshell.app_base_url` from `Extensions.Configuration.AppBase`;
-- `xshell.app_config_url` from `Extensions.Configuration.AppConfig`;
-- `xshell.sw_url`, built from the application base and `/sw.js`.
+A typical host page looks like:
 
-The page then loads `xshell/bootstrap.js` from the configured resource base. The command-line server uses the checked-in sample `app.jsonc` when no
-application configuration path is supplied, but an embedding application can provide another URL through `Extensions.Configuration`.
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-`bootstrap.js` reads the application configuration URL from the `xshell.app_config_url` meta element and resolves it with
-`new URL(..., document.baseURI)`. It uses `document.currentScript.src` to locate the framework configuration beside the bootstrap script.
+    <!-- XShell configuration -->
+    <meta name="xshell.app_base_url" content="">
+    <meta
+        name="xshell.app_config_url"
+        content="/_resources/DProjects.XShell/samples/sample1/app.jsonc">
+    <meta name="xshell.sw_url" content="/sw.js">
 
-## Configuration assembly
-
-Bootstrap assembles one flat configuration map in this order:
-
-1. It fetches `xshell.jsonc`, removes comments, parses it, normalizes its URLs, records its URL as `xshell.src`, and copies its framework defaults.
-2. It fetches the application JSONC URL, removes comments, parses it, normalizes its URLs, and copies its keys over the framework values. It also sets
-   `app.base` from the host metadata.
-3. It discovers module names from keys beginning with `modules.`, using the second dotted segment as the module name.
-4. It fetches each `modules.<name>.src` concurrently and parses the returned `module.jsonc` document.
-5. For each module, it assigns current defaults for `icon`, `label`, `version`, `depends`, and `styles`, normalizes module-relative URLs,
-   and merges the result.
-6. It adds conventional resolver definitions for that module's icons, layouts, components, pages, and JavaScript modules.
-
-Ordinary module fields become `modules.<name>.<field>`. A `global.*` field has the prefix removed and is written into the shared configuration. A
-global resolver contribution also receives the module name and module asset path as resolver metadata. See [Configuration](configuration.md) for precedence
-and normalization details.
-
-## Service worker and import map
-
-After configuration assembly, bootstrap registers the application service worker and sends it rewrite rules for the framework and every configured module.
-Each rule maps the stable `/<assetsPrefix>/...` namespace to the source directory from which the corresponding JSONC file was loaded. Bootstrap waits for
-service-worker readiness and reloads if the current page is not yet controlled.
-
-Once the service worker acknowledges its initialization message, bootstrap builds an import map from the assembled `resolver.import:*` entries. It then
-imports the `xshell` mapping and calls `xshell.init(config)`.
-
-## Runtime initialization
-
-`xshell.init` constructs the configuration, resolver, loader, navigation, module, menu, authentication, and other runtime services, then registers them in
-the service registry. The `Config` service receives the fully assembled map and freezes that top-level map before other runtime services consume it.
-
-Initialization then proceeds as follows:
-
-1. Authentication resolves the configured identity provider and registers the resulting identity.
-2. Module initialization starts each configured stylesheet load and, when `handler` is present, loads the handler through `module:<handler>`.
-3. After those tasks complete, every module controller receives `onCommand("load", params)`. The parameters are the values under
-   `modules.<name>.params.*`.
-4. Navigation initializes. In hash mode it restores the URL stack or navigates to the default area's `home` value when no hash is present.
-5. Menus are built from the merged module configuration.
-
-Module handlers therefore run after their handler module and styles have loaded, and before initial navigation is started. A handler can use
-already-registered XShell services, as the `x-debugger` handler does when registering a dynamic menu source.
-
-Navigation initialization creates the initial `x-page`, which begins its own asynchronous resolver/loader flow. `xshell.init` does not wait for that
-page's `load` event. Its completion means runtime service, module, navigation, and menu initialization has returned, not that the first page has finished
-rendering.
-
-## End-to-end flow
-
-```text
-ASP.NET Core host
-    -> generated host HTML and XShell meta values
-    -> bootstrap.js
-    -> xshell.jsonc framework defaults
-    -> application JSONC overrides
-    -> module discovery and parallel module.jsonc loading
-    -> URL normalization, module/global merge, and generated resolvers
-    -> service-worker rules and import map
-    -> XShell services and identity
-    -> module styles, handlers, and handler load commands
-    -> navigation initialization and initial x-page load starts
-    -> menu initialization
+    <!-- XShell bootstrap -->
+    <script src="/_resources/DProjects.XShell/xshell/bootstrap.js"></script>
+</head>
+<body>
+</body>
+</html>
 ```
 
-## Development and production hosting
+XShell static resources are exposed by the ASP.NET host under URLs such as:
 
-In development, or while a debugger is attached, the ASP.NET host serves resources directly from the project's `Resources/DProjects.XShell` directory and
-adds no-cache response headers. In production it serves the copied resources beside the built assembly. The browser bootstrap sequence itself is the same
-in both modes.
+- /_resources/DProjects.XShell/...
 
-## TODO
+For example:
 
-TODO: Define a public readiness signal, if one is intended, and specify bootstrap failure/recovery behavior. The current implementation exposes neither a
-ready event nor a documented retry contract beyond the service-worker control reload.
+- /_resources/DProjects.XShell/xshell/bootstrap.js
+- /_resources/DProjects.XShell/xshell/xshell.jsonc
+- /_resources/DProjects.XShell/modules/x/module.jsonc
+
+The important startup inputs are:
+
+The important inputs are:
+
+```text
+xshell.app_base_url
+xshell.app_config_url
+xshell.sw_url
+```
+
+and the inclusion of:
+
+```text
+xshell/bootstrap.js
+```
+
+## Bootstrap flow
+
+`bootstrap.js` performs these main steps:
+
+```mermaid
+flowchart TD
+    A[Initial HTML] --> B[XShell meta configuration]
+    A --> C[bootstrap.js]
+
+    C --> D[Load configuration]
+
+    D --> D1[xshell.jsonc]
+    D --> D2[app.jsonc]
+    D --> D3[module.jsonc files]
+
+    D1 --> E[Assemble flat runtime config]
+    D2 --> E
+    D3 --> E
+
+    E --> F[Install Service Worker]
+    F --> G[Create Import Map]
+    G --> H[Import xshell.js]
+    H --> I[xshell.init config]
+
+    I --> J[Initialize services]
+    J --> K[Initialize modules]
+    K --> L[Initialize navigation]
+    L --> M[Initialize menus]
+```
+
+## Load configuration
+
+Bootstrap loads configuration from:
+
+1. `xshell.jsonc`;
+2. the application `app.jsonc`;
+3. each configured module's `module.jsonc`.
+
+These sources are normalized and merged into one flat runtime configuration.
+
+See [Configuration](configuration.md).
+
+## Service Worker
+
+Bootstrap installs the application Service Worker before XShell starts.
+
+The Service Worker intercepts and caches requests under the configured asset namespace, for example:
+
+```text
+/_assets
+```
+
+It maps those runtime asset URLs to the actual framework and module resource locations.
+
+See [Service Worker](service-worker.md).
+
+## Import map
+
+Bootstrap creates the browser import map from configured `resolver.import:*` entries.
+
+## XShell initialization
+
+Bootstrap then imports `xshell.js` and calls:
+
+```js
+await xshell.init(config);
+```
+
+Initialization performs the main runtime setup:
+
+```text
+init services
+    ↓
+init modules
+    ↓
+init navigation
+    ↓
+init menus
+```
+
+The completed configuration is read-only when passed to the runtime.
 
 ## Related documentation
 
-- [Architecture](index.md)
-- [Configuration](configuration.md)
-- [Modules](modules.md)
-- [Service Worker](service-worker.md)
+* [Configuration](configuration.md)
+* [Modules](modules.md)
+* [Navigation](navigation.md)
+* [Service Worker](service-worker.md)

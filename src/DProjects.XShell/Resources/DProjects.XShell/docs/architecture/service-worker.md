@@ -1,28 +1,141 @@
 # Service Worker
 
-This document outlines how the XShell service worker maps stable application asset URLs to framework and module source locations.
+XShell always installs a Service Worker as part of bootstrap.
 
-## Status
+Its main responsibility is to provide a uniform way for the browser tab to access module resources, independently of where those resources are actually stored.
 
-Draft.
+## Resource namespace
 
-## Registration
+Module resources are exposed through a stable URL prefix such as:
 
-Bootstrap registers the configured service-worker script at the application base scope, waits for it to become ready and control the page, and sends rewrite rules through a message channel.
+```text
+/_assets
+```
 
-## Rewrite rules
+For example:
 
-Rules associate an application-visible source prefix with a destination directory and include module name, version, and exception data. Fetch handling applies the matching rule before requesting the destination resource.
+```text
+/_assets/x/components/x-button.js
+/_assets/x/pages/home.js
+/_assets/x/icons/menu.svg
+```
 
-## Current namespace
+From the client application's point of view, module resources are always accessed through this namespace.
 
-The checked-in XShell configuration sets `xshell.assetsPrefix` to `_assets`. Bootstrap therefore constructs paths such as `/_assets/xshell` and `/_assets/<module>` relative to the application base.
+## Why the Service Worker exists
 
-## TODO
+Modules may come from different physical locations.
 
-TODO: Define caching, upgrades, offline behavior, and error recovery. Existing cache-related code is not sufficient to claim an offline contract.
+For example, a module may be served:
+
+```text
+local application
+remote server
+remote CDN
+```
+
+and in the future:
+
+```text
+ZIP package
+```
+
+The browser should not need to know how each module is physically distributed.
+
+Conceptually:
+
+```text
+Client tab
+    ↓
+/_assets/<module>/<resource>
+    ↓
+Service Worker
+    ↓
+actual module location
+```
+
+The Service Worker provides the translation between the uniform XShell resource URL and the actual resource source.
+
+## Remote modules
+
+A module can be hosted independently on another server.
+
+For example, the application may request:
+
+```text
+/_assets/module1/components/button.js
+```
+
+while the real resource is located at:
+
+```text
+https://modules.example.com/module1/components/button.js
+```
+
+The Service Worker intercepts the `/_assets/...` request and resolves it to the appropriate remote module resource.
+
+This keeps resource URLs inside the application consistent even when modules come from different servers.
+
+## Packaged modules
+
+A future module distribution model is to load modules from ZIP packages.
+
+Conceptually:
+
+```text
+/_assets/module1/pages/home.js
+    ↓
+Service Worker
+    ↓
+module1.zip
+    ↓
+pages/home.js
+```
+
+ZIP-backed modules are not implemented yet.
+
+The important architectural idea is that the client-facing URL does not change.
+
+Whether the module comes from individual remote files or a package is hidden behind the Service Worker.
+
+## Flow
+
+```mermaid
+flowchart LR
+    A["Client tab"]
+        --> B["/_assets/module/resource"]
+
+    B --> C["Service Worker"]
+
+    C --> D{"Module source"}
+
+    D --> E["Local files"]
+    D --> F["Remote server"]
+    D --> G["Remote CDN"]
+    D --> H["ZIP package<br/>(planned)"]
+
+    E --> I["Resource response"]
+    F --> I
+    G --> I
+    H --> I
+
+    I --> A
+```
+
+## Summary
+
+The Service Worker acts as a resource virtualization layer for modules.
+
+It gives the application one consistent way to access module resources:
+
+```text
+/_assets/<module>/...
+```
+
+while hiding where and how those resources are actually stored.
 
 ## Related documentation
 
-- [Architecture](index.md)
-- [Asset URL Namespace](../adr/0001-asset-url-namespace.md)
+* [Bootstrap](bootstrap.md)
+* [Modules](modules.md)
+* [Resolvers](resolvers.md)

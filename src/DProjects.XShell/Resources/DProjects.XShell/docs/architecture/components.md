@@ -1,177 +1,337 @@
 # Components Architecture
 
-This document describes how XShell resolves, loads, constructs, registers, and instantiates Web Components at runtime.
+An XShell component is a standalone JavaScript file that exports a Web Component implementation.
 
-It complements the author-facing [Components](../components/) documentation, which describes manifests/declarations, properties, state, events, and lifecycle from the component author's perspective.
-
-## Status
-
-Draft.
-
-## Overview
-
-XShell Components are standard browser custom elements whose classes can be produced dynamically from module resources.
-
-Modules receive conventional component resolver definitions during bootstrap. A component request is resolved to its JavaScript source, dispatched through the generic `Loader`, and handled by the `component-js` loader.
-
-For runtime definition objects, the component loader selects state and render engines, loads render-engine dependencies, creates an `HTMLElement` subclass, and registers that class with `customElements`.
+A component can be provided in two forms:
 
 ```text
-logical component reference
+component.js
     ↓
-Resolver
-    ↓
-resolved JavaScript source + component metadata
-    ↓
-Loader
-    ↓
-component-js
-    ↓
-runtime component definition
-    ↓
-state engine + render engine
-    ↓
-HTMLElement subclass
-    ↓
-customElements.define()
-    ↓
-component instance
+default export
+    ├── class  → Web Component class
+    └── object → Web Component definition
 ```
 
-A component module may also export an existing class directly. In that case the loader returns that class instead of constructing one from a runtime definition.
+## Component as a class
 
-## Module component resolution
+If the default export is a JavaScript class, XShell considers it to be the component class and returns it directly.
 
-Bootstrap creates a conventional resolver for each configured module.
+For example:
 
-For a module named `catalog`, the generated component pattern is conceptually:
-
-```text
-component:catalog-{name}
+```js
+export default class MyComponent extends HTMLElement {
+    connectedCallback() {
+        this.innerHTML = "Hello";
+    }
+}
 ```
 
-and maps to:
+In this case the component provides its own Web Component implementation.
+
+## Component as a definition
+
+If the default export is an object, XShell considers it to be a Web Component definition.
+
+A component file can then contain two separate parts:
 
 ```text
-/<assetsPrefix>/catalog/components/catalog-{name}.js
+declaration
+    public interface
+
+default export
+    implementation
 ```
 
-with metadata including:
+For example:
 
-```text
-loader=component-js
-cache=true
-module=catalog
-modulePath=/<assetsPrefix>/catalog
+```js
+// declaration
+export const declaration = {
+    description: "Provides a layout and action controls for a group of data fields.",
+
+    events: {
+        move: {
+            description: "Raised when the field is moved.",
+            detail: {
+                direction: { type: "string" }
+            }
+        },
+
+        edit: {
+            description: "Raised when the field is edited."
+        },
+
+        remove: {
+            description: "Raised when the field is removed."
+        }
+    },
+
+    properties: {
+        label:   { type: "string",  default: "",    attr: true, state: true },
+        message: { type: "string",  default: "",    attr: true, state: true },
+        columns: { type: "number",  default: 2,     attr: true, state: true },
+        remove:  { type: "boolean", default: false, attr: true, state: true },
+        move:    { type: "boolean", default: false, attr: true, state: true },
+        edit:    { type: "boolean", default: false, attr: true, state: true }
+    },
+
+    methods: {}
+};
+
+// implementation
+export default {
+    style: `
+        :host {
+            display: block;
+        }
+
+        div.body {
+            display: grid;
+            gap: 1em;
+        }
+    `,
+
+    template: `
+        <label x-if="state.label" x-text="state.label"></label>
+
+        <div class="body">
+            <slot></slot>
+        </div>
+
+        <x-button
+            x-if="state.edit"
+            icon="x-edit"
+            x-on:click="edit">
+        </x-button>
+    `,
+
+    state: {},
+
+    script({ }) {
+        return {
+            onCommand(command, params) {
+                if (command == "edit") {
+                    this.dispatchEvent(
+                        new CustomEvent("edit", {
+                            bubbles: true,
+                            composed: false
+                        })
+                    );
+                }
+            }
+        };
+    }
+};
 ```
 
-This means a logical reference such as:
+## Declaration
+
+The optional named `declaration` export describes the public interface of the component.
+
+It can describe:
 
 ```text
-component:catalog-product
+description
+events
+properties
+methods
 ```
 
-can resolve to the JavaScript file that implements the `catalog-product` custom element.
+For example:
 
-Layouts use the same `component-js` loader through a separate generated `layout:` resolver.
+```js
+export const declaration = {
+    description: "A sample component.",
 
-See [Resolvers](resolvers.md) for the generic resolution model and [Configuration](configuration.md) for generated module resolver configuration.
+    events: {
+        change: {
+            description: "Raised when the value changes."
+        }
+    },
 
-## Loader dispatch
+    properties: {
+        value: {
+            type: "string",
+            default: "",
+            attr: true,
+            state: true,
+            description: "Current value."
+        }
+    },
 
-The generic XShell `Loader` owns resolution, dispatch, caching, events, and load coordination.
-
-After `Resolver` identifies a component resource, `Loader` selects `component-js` from the resolved definition and passes the resolved source together with resource context.
-
-The component-specific loader then owns the component import and class-construction behavior.
-
-This separation is important:
-
-```text
-Resolver
-    determines where the component resource is
-
-Loader
-    dispatches the resolved resource
-
-component-js
-    understands how an XShell component module becomes a class
+    methods: {}
+};
 ```
 
-See [Loaders](loaders.md) for the generic loader pipeline.
+The declaration describes how other code can interact with the component.
 
-## Component module shapes
+It is separate from the runtime implementation.
 
-The current component loader supports two main runtime forms.
+## Implementation
 
-### Existing class
+The default exported object contains the runtime implementation of the component.
 
-If the module's default export is a JavaScript class, `component-js` returns that class directly.
-
-In this case XShell does not construct a new component class from the declarative runtime definition.
-
-### Runtime definition object
-
-Otherwise the default export is treated as an XShell component definition.
-
-The loader currently consumes runtime fields including:
+Typical fields are:
 
 ```text
-meta
 style
 template
 state
 script
 ```
 
-If `meta.name` is missing, the loader derives the custom-element name from the JavaScript filename.
-
-The runtime definition is frozen and sealed before class construction.
-
-## Public declaration versus runtime definition
-
-Many XShell components also expose a named `declaration` describing their intended public contract.
-
-That declaration can describe concepts such as:
-
-* public properties;
-* events;
-* methods;
-* descriptions;
-* type information.
-
-The current `component-js` loader does **not** consume the named declaration when constructing the custom element. It consumes the module's default runtime definition instead.
-
-The two concepts therefore currently have different roles:
+Conceptually:
 
 ```text
-declaration 
-    public component contract
+declaration
+    ↓
+public contract
 
 implementation
-    component implementation consumed by component-js
+    ↓
+style + template + state + behavior
 ```
 
-The relationship between these representations is not yet a complete runtime contract.
+The implementation object is not itself a browser Web Component class.
 
-See [Component Manifest](../components/manifest.md).
+It must first be converted into one.
 
-## State construction
+## Component loader
 
-For a runtime definition, `component-js` builds an initial state skeleton from `definition.state`.
+Components are loaded through the `component-js` loader.
 
-Each state entry currently supports runtime metadata such as:
+Conceptually:
 
 ```text
-value
-type
-attr
-prop
-reflect
+component.js
+    ↓
+component-js loader
+    ↓
+default export
+    ↓
+class?
+    ├── yes → return class
+    └── no
+         ↓
+       component definition
+         ↓
+       build Web Component class
+         ↓
+       customElements.define(...)
 ```
 
-Defaults are applied when some of these fields are absent.
+For definition-based components, `component-js`:
 
-The loader also derives information used for:
+1. imports the component JavaScript file;
+2. reads its default export;
+3. creates the component state;
+4. selects the configured state engine;
+5. selects the configured render engine;
+6. builds an `HTMLElement` subclass;
+7. connects attributes and properties to state;
+8. connects lifecycle and rendering behavior;
+9. registers the resulting class with `customElements`.
 
-* observed at
+The result is a standard browser Web Component.
+
+## State and rendering
+
+A definition-based component can use:
+
+```text
+component.stateEngine
+component.renderEngine
+```
+
+with module or component-specific overrides.
+
+The selected state and render engines are used while converting the definition into the final Web Component class.
+
+For example:
+
+```text
+component definition
+    ↓
+state engine
+    +
+render engine
+    ↓
+HTMLElement subclass
+```
+
+X Templates can be used as a render engine, but they are not required by the component model.
+
+## Component resources
+
+Modules normally expose components from their `components/` directory.
+
+For example:
+
+```text
+module1/
+└── components/
+    ├── module1-button.js
+    ├── module1-form.js
+    └── module1-field.js
+```
+
+Bootstrap creates conventional component resolvers for each module.
+
+A logical component reference such as:
+
+```text
+component:module1-button
+```
+
+can therefore resolve to the corresponding JavaScript component file.
+
+See [Resolvers](resolvers.md) and [Loaders](loaders.md).
+
+## Summary
+
+The main XShell component model is:
+
+```text
+one component
+    =
+one JavaScript file
+```
+
+That file can export:
+
+```text
+optional declaration
+    +
+default implementation
+```
+
+and the default implementation is either:
+
+```text
+Web Component class
+```
+
+or:
+
+```text
+Web Component definition object
+    ↓
+component-js
+    ↓
+Web Component class
+```
+
+The declaration describes the public interface.
+
+The default export provides the runtime implementation.
+
+## Related documentation
+
+* [Components](../components/)
+* [Component Manifest](../components/manifest.md)
+* [Properties](../components/properties.md)
+* [State](../components/state.md)
+* [Lifecycle](../components/lifecycle.md)
+* [Resolvers](resolvers.md)
+* [Loaders](loaders.md)
+* [X Templates](../extensions/x-templates/)

@@ -1,87 +1,167 @@
 # Loaders
 
-This document describes XShell's dispatcher for resolved resources, its type-specific loader modules, and the concrete engine delegation used by pages
-and components.
+Loaders are responsible for loading resources after they have been resolved.
 
-## Status
+The Resolver decides **where** a resource is and **which loader** should handle it.
 
-Draft.
+The Loader coordinates the actual load.
 
-## Responsibility and pipeline
+## Responsibilities
 
-`Loader` accepts one logical reference or an array of references. For each reference it asks `Resolver` for a source and definition, locates or imports
-the definition's loader, and invokes that loader with the source plus resource and application context.
+The Loader is responsible for:
+
+* asking the Resolver to resolve a logical resource;
+* selecting the resource-specific loader;
+* invoking that loader with the resolved URL and context;
+* caching resources when configured;
+* returning the loaded runtime result.
+
+The resource-specific loader is responsible for understanding the resource format.
+
+For example:
 
 ```text
-logical resource reference
-    -> Resolver.resolve()
-    -> source URL + resource definition/loader metadata
-    -> Loader dispatch
-    -> resource-specific loader
-    -> render/state engine when that loader uses one
-    -> class, module value, or DOM node
+icon-svg
+    → fetch SVG and return an SVG element
+
+module-js
+    → import an ES module
+
+component-js
+    → load or build a Web Component class
+
+page-js
+    → load or build a Page component
 ```
 
-The resolver does no I/O. `Loader` owns dispatch and coordination, while the selected resource-specific loader owns the concrete fetch, dynamic import,
-parsing, or class construction.
+## Flow
 
-## Current loader types
+```text
+logical resource
+    ↓
+Resolver
+    ↓
+URL + loader metadata
+    ↓
+Loader
+    ↓
+resource-specific loader
+    ↓
+runtime result
+```
 
-The repository contains loaders for component JavaScript, SVG icons, JavaScript modules, and JavaScript, HTML, and Markdown pages. Resolver configuration
-selects the loader by name. Built-in names are imported from `xshell/loaders/<name>.js`; definitions may also identify a loader by URL or path.
+## Examples
 
-The concrete results differ by loader:
+Loading an icon:
 
-- `icon-svg` fetches SVG text and returns its first DOM node;
-- `module-js` dynamically imports a module and returns its default export;
-- `page-js` imports a page definition and returns a `Page` subclass, or returns an exported class directly;
-- `page-html` parses HTML into a page definition and delegates class creation to the `page-js` helper;
-- `page-md` extracts simple front matter, marks the definition for Markdown rendering, and delegates class creation to the `page-js` helper;
-- `component-js` imports a component definition and returns or constructs a custom-element class.
+```text
+icon:x-bell
+    ↓
+/_cdn/x/icons/bell.svg
+loader=icon-svg
+    ↓
+SVG element
+```
 
-## Loader engines
+Loading an ES module:
 
-There is no single generic loader-engine interface across every resource type. Page and component class creation select concrete state and render engines
-from the assembled configuration and load them as `state-engine:<name>` and `render-engine:<name>` resources. A render-engine factory may report component
-dependencies; the page/component loader asks the same `Loader` to load those dependencies before initializing the factory.
+```text
+module:/_cdn/module1/module.js
+    ↓
+/_cdn/module1/module.js
+loader=module-js
+    ↓
+ES module export
+```
 
-The checked-in render engines are `plain`, `markdown`, and `x`; the checked-in state engines are `none`, `plain`, and `proxy`. X Templates are therefore
-one optional render-engine implementation, not the core loader or component model.
+Loading a component:
 
-## Worked example: an XShell Help Markdown page
+```text
+component:x-button
+    ↓
+/_cdn/x/components/x-button.js
+loader=component-js
+    ↓
+Web Component class
+```
 
-The XShell Help module provides `/pages/index.md`, which becomes the virtual asset path `/_assets/x-help/pages/index.md` during module configuration
-normalization.
+Loading a page:
 
-1. Navigation creates an `x-page` for that path. `x-page` requests `page:/_assets/x-help/pages/index.md`.
-2. The module-generated page resolver matches the `.md` path and returns the source URL with `loader=page-md`, `module=x-help`, and the module
-   asset path.
-3. `Loader` imports the built-in `page-md` loader and dispatches the resolved source and context to it.
-4. `page-md` fetches the Markdown, extracts its simple front matter, sets `meta.renderEngine` to `markdown`, and passes the definition to
-   `createPageClassFromJsDefinition`.
-5. The class builder loads the configured state engine and `render-engine:markdown`. The Markdown engine uses the `marked` import-map entry contributed by
-   the core `x` module, converts Markdown to HTML, discovers any custom-element dependencies, and rewrites document URLs with module context.
-6. The loader returns a `Page` subclass. `x-page` instantiates it, then its render engine mounts the concrete DOM content.
+```text
+page:/_cdn/module1/pages/page1.js
+    ↓
+/_cdn/module1/pages/page1.js
+loader=page-js
+    ↓
+Page component
+```
 
-This example is the full resolver -> loader -> specialized engine path. Simpler loaders, such as `icon-svg`, return a result without an engine.
+## Loader vs resource-specific loader
 
-## Cache and registry
+It is useful to distinguish the two responsibilities:
 
-Definitions marked with `cache=true` reuse the stored load promise for the same logical reference. Returned DOM nodes are cloned when possible, and values
-with a `clone()` method are cloned. The loader also maintains a read-only projection of resource, source, and status entries for diagnostic use.
+```text
+Loader
+    coordinates loading
 
-## Errors and events
+resource-specific loader
+    knows how to load a particular resource type
+```
 
-The loader waits for its dispatched or reused load tasks with `Promise.allSettled`. Load failures are converted to resource errors and collected into an
-aggregate loader error, while the event bus receives fetch, loaded, and error notifications.
+The generic Loader does not need to know how SVG, JavaScript, Components, or Pages are implemented.
 
-## TODO
+It only dispatches the resolved resource to the appropriate loader.
 
-TODO: Specify retry behavior and the exact ordering guarantees for mixed cached and newly loaded resource arrays.
+## Engines
+
+Some resource-specific loaders use additional engines.
+
+For example, Components and Pages can use:
+
+```text
+state engine
+render engine
+```
+
+Conceptually:
+
+```text
+Loader
+    ↓
+component-js / page-js
+    ↓
+state engine + render engine
+    ↓
+runtime component
+```
+
+Not every loader needs an engine.
+
+## Diagram
+
+```mermaid
+flowchart LR
+    A["Logical resource<br/>icon:x-bell"]
+        --> B[Resolver]
+
+    B --> C["Resolved URL<br/>/_cdn/x/icons/bell.svg<br/>loader=icon-svg"]
+
+    C --> D[Loader]
+
+    D --> E{Resource-specific loader}
+
+    E --> F["icon-svg<br/>SVG element"]
+    E --> G["module-js<br/>ES module"]
+    E --> H["component-js<br/>Web Component"]
+    E --> I["page-js<br/>Page Component"]
+
+    H --> J["State engine<br/>+ Render engine"]
+    I --> J
+```
 
 ## Related documentation
 
-- [Architecture](index.md)
-- [Resolvers](resolvers.md)
-- [Component Lifecycle](../components/lifecycle.md)
-- [Bootstrap](bootstrap.md)
+* [Resolvers](resolvers.md)
+* [Components](components.md)
+* [Pages](pages.md)
+* [Configuration](configuration.md)

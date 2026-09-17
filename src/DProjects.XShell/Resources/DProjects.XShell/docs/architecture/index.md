@@ -23,8 +23,8 @@ logical resource -> resolver -> resolved URL and metadata -> loader -> type-spec
 - [Bootstrap](bootstrap.md) — Host integration, configuration loading, service-worker/import-map setup, and runtime initialization.
 - [Configuration](configuration.md) — Runtime configuration sources, precedence, URL normalization, and global module contributions.
 - [Modules](modules.md) — Module configuration, initialization, styles, and handlers.
-- [Components](components.md) — Components.
-- [Pages](pages.md) — Pages.
+- [Components](components.md) — Runtime component resolution, loading, state/render engines, and custom-element registration.
+- [Pages](pages.md) — Page resolution, loading, lifecycle, state/render engines, and navigation integration.
 - [Resolvers](resolvers.md) — Logical resource patterns and URL resolution.
 - [Loaders](loaders.md) — Resource loading, caching, and type-specific handlers.
 - [Service Worker](service-worker.md) — Asset URL rewriting performed by the service worker.
