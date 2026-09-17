@@ -1,5 +1,14 @@
 
-// export
+// declaration
+export const declaration = {
+    description: "Displays the main menu for the current page.",
+    events: {},
+    properties: {},
+    methods: {}
+};
+
+
+// implementation
 export default {
     style: `
         :host {display:block; border:1px red solid;}

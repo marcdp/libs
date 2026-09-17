@@ -1,5 +1,14 @@
 
-// export
+// declaration
+export const declaration = {
+    description: "Displays the current page breadcrumb.",
+    events: {},
+    properties: {},
+    methods: {}
+};
+
+
+// implementation
 export default {
     style: `
         ul {margin:0; padding:0; display: flex; align-items:center; box-sizing: border-box;}

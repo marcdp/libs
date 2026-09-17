@@ -1,6 +1,18 @@
 import XElement from "x-element";
 
-// class
+// declaration
+export const declaration = {
+    description: "Arranges list-view items and optionally scrolls to the latest item.",
+    events: {},
+    properties: {
+        view:       {type:"string", default:"list", attr:true, state:true, description:""},
+        autoScroll: {type:"boolean", default:false, attr:true, state:true, description:""}
+    },
+    methods: {}
+};
+
+
+// implementation
 export default XElement.define("x-listview", {
     style: `
         :host {display:block;}

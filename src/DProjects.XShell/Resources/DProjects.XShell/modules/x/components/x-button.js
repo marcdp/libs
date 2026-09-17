@@ -1,5 +1,29 @@
 
-// class
+// declaration
+export const declaration = {
+    description: "Renders a button or navigation link and can emit a command.",
+    events: {
+        command: {
+            description: "Raised when a configured button command is invoked.",
+            detail: {
+                command: {type:"string"},
+                data: {type:"object"}
+            }
+        }
+    },
+    properties: {
+        icon:      {type:"string", default:"", attr:true, state:true, description:""},
+        label:     {type:"string", default:"", attr:true, state:true, description:""},
+        message:   {type:"string", default:"", attr:true, state:true, description:""},
+        command:   {type:"string", default:"", attr:true, state:true, description:""},
+        href:      {type:"string", default:"", attr:true, state:true, description:""},
+        autofocus: {type:"boolean", default:false, attr:true, state:true, description:""}
+    },
+    methods: {}
+};
+
+
+// implementation
 export default {
     style: `
         :host {position:relative; display:inline-flex;}

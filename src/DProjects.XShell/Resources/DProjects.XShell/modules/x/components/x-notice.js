@@ -1,6 +1,20 @@
 import XElement from "x-element";
 
-// class
+// declaration
+export const declaration = {
+    description: "Displays a dismissible status notice.",
+    events: {},
+    properties: {
+        type:    {type:"string", default:"info", attr:true, state:true, description:""},
+        label:   {type:"string", default:"", attr:true, state:true, description:""},
+        message: {type:"string", default:"", attr:true, state:true, description:""},
+        visible: {type:"boolean", default:true, attr:true, state:true, description:""}
+    },
+    methods: {}
+};
+
+
+// implementation
 export default {
     style: `
         :host {display:block;}

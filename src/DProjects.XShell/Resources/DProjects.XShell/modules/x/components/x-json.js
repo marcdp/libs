@@ -23,7 +23,19 @@ function syntaxHighlight(json) {
     });
 }
 
-// export
+// declaration
+export const declaration = {
+    description: "Displays syntax-highlighted JSON source.",
+    events: {},
+    properties: {
+        value:     {type:"string", default:"", attr:true, state:true, description:""},
+        colorized: {type:"string", default:"", attr:true, state:true, description:""}
+    },
+    methods: {}
+};
+
+
+// implementation
 export default {
     style:`
         :host {}

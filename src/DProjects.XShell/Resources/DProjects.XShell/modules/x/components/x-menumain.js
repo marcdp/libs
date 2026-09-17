@@ -1,7 +1,19 @@
 import XElement from "x-element";
 import xshell from "xshell";
 
-// class
+// declaration
+export const declaration = {
+    description: "Renders the application's main navigation menu.",
+    events: {},
+    properties: {
+        menu:     {type:"array", default:null, attr:true, state:true, description:""},
+        selected: {type:"string", default:null, attr:true, state:true, description:""}
+    },
+    methods: {}
+};
+
+
+// implementation
 export default XElement.define("x-menumain", {
     style: `
         ul {margin:0; padding:0;}

@@ -1,5 +1,14 @@
 
-// class
+// declaration
+export const declaration = {
+    description: "Provides a styled container for contextual menu content.",
+    events: {},
+    properties: {},
+    methods: {}
+};
+
+
+// implementation
 export default {
     style: `
         :host {

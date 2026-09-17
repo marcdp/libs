@@ -1,5 +1,29 @@
 
-// class
+// declaration
+export const declaration = {
+    description: "Displays an avatar with optional identity details and command action.",
+    events: {
+        command: {
+            description: "Raised when the avatar is clicked with a command configured.",
+            detail: {
+                command: {type:"string"},
+                data: {type:"object"}
+            }
+        }
+    },
+    properties: {
+        initials: {type:"string", default:"", attr:true, state:true, description:""},
+        icon:     {type:"string", default:"", attr:true, state:true, description:""},
+        image:    {type:"string", default:"", attr:true, state:true, description:""},
+        label:    {type:"string", default:"", attr:true, state:true, description:""},
+        message:  {type:"string", default:"", attr:true, state:true, description:""},
+        command:  {type:"string", default:"", attr:true, state:true, description:""}
+    },
+    methods: {}
+};
+
+
+// implementation
 export default {
     style: `
         :host {display:flex; flex-direction:row; user-select:none;}

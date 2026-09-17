@@ -1,6 +1,30 @@
 import XElement from "x-element";
 
-// class
+// declaration
+export const declaration = {
+    description: "Provides an Ace code editor with configurable presentation and editing options.",
+    events: {
+        change: {
+            description: "Raised when the editor value changes.",
+            detail: {
+                oldValue: {type:"string"},
+                newValue: {type:"string"}
+            }
+        }
+    },
+    properties: {
+        value:    {type:"string", default:"", attr:true, state:true, description:""},
+        mode:     {type:"string", default:"", attr:true, state:true, description:""},
+        theme:    {type:"string", default:"chrome", attr:true, state:true, description:""},
+        wrap:     {type:"boolean", default:false, attr:true, state:true, description:""},
+        readonly: {type:"boolean", default:false, attr:true, state:true, description:""},
+        ready:    {type:"boolean", default:false, attr:true, state:true, description:""}
+    },
+    methods: {}
+};
+
+
+// implementation
 export default {
     style: `
         :host {display:flex; height:10em; flex-direction:column; align-items:center; justify-content:center;}

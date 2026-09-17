@@ -1,6 +1,28 @@
 import XElement from "x-element";
 
-// class
+// declaration
+export const declaration = {
+    description: "Displays a menu item with optional nested menu content.",
+    events: {},
+    properties: {
+        icon:        {type:"string", default:"", attr:true, state:true, description:""},
+        label:       {type:"string", default:"", attr:true, state:true, description:""},
+        href:        {type:"string", default:"", attr:true, state:true, description:""},
+        suffix:      {type:"string", default:"", attr:true, state:true, description:""},
+        command:     {type:"string", default:"", attr:true, state:true, description:""},
+        selected:    {type:"boolean", default:false, attr:true, state:true, description:""},
+        checked:     {type:"boolean", default:false, attr:true, state:true, description:""},
+        disabled:    {type:"boolean", default:false, attr:true, state:true, description:""},
+        expanded:    {type:"boolean", default:false, attr:true, state:true, description:""},
+        hasChilds:   {type:"boolean", default:false, attr:true, state:true, description:""},
+        menuitem:    {type:"object", default:null, attr:true, state:true, description:""},
+        childsRight: {type:"boolean", default:true, attr:true, state:true, description:""}
+    },
+    methods: {}
+};
+
+
+// implementation
 export default XElement.define("x-menuitem", {
     style: `
         :host {display:flex; position:relative; box-sizing:border-box; flex-direction:column}

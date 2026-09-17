@@ -1,5 +1,14 @@
 
-// class
+// declaration
+export const declaration = {
+    description: "Provides a styled card container with header, body, and footer slots.",
+    events: {},
+    properties: {},
+    methods: {}
+};
+
+
+// implementation
 export default {
     style: `
         :host {

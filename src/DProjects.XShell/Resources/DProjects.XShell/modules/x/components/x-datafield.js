@@ -6,7 +6,74 @@ const urlPattern = /^(https?:\/\/)?(www\.)?([a-zA-Z0-9-]+)\.([a-zA-Z]{2,})(\/[a-
 const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 const telPattern = /^(\+?\d{1,3}[-.\s]?)?(\(?\d{3}\)?[-.\s]?)?\d{3}[-.\s]?\d{4,7}$/;
 
-// class
+// declaration
+export const declaration = {
+    description: "Renders and validates an editable form field.",
+    events: {
+        change: {
+            description: "Raised when the field value changes.",
+            detail: {
+                oldValue: {type:"any"},
+                newValue: {type:"any"}
+            }
+        },
+        "datafield:change": {
+            description: "Raised when the field value changes for form validation.",
+            detail: {
+                oldValue: {type:"any"},
+                newValue: {type:"any"}
+            }
+        }
+    },
+    properties: {
+        label:          {type:"string", default:"", attr:true, state:true, description:""},
+        labelMode:      {type:"string", default:"auto", attr:true, state:true, description:""},
+        description:    {type:"string", default:"", attr:true, state:true, description:""},
+        labelSecondary: {type:"string", default:"", attr:true, state:true, description:""},
+        message:        {type:"string", default:"", attr:true, state:true, description:""},
+        type:           {type:"string", default:"", attr:true, state:true, description:""},
+        placeholder:    {type:"string", default:"", attr:true, state:true, description:""},
+        disabled:       {type:"boolean", default:false, attr:true, state:true, description:""},
+        readonly:       {type:"boolean", default:false, attr:true, state:true, description:""},
+        min:            {type:"any", default:null, attr:true, state:true, description:""},
+        max:            {type:"any", default:null, attr:true, state:true, description:""},
+        minlength:      {type:"any", default:null, attr:true, state:true, description:""},
+        maxlength:      {type:"any", default:null, attr:true, state:true, description:""},
+        multiple:       {type:"boolean", default:false, attr:true, state:true, description:""},
+        pattern:        {type:"any", default:null, attr:true, state:true, description:""},
+        required:       {type:"boolean", default:false, attr:true, state:true, description:""},
+        step:           {type:"any", default:null, attr:true, state:true, description:""},
+        autofocus:      {type:"boolean", default:false, attr:true, state:true, description:""},
+        autocomplete:   {type:"any", default:null, attr:true, state:true, description:""},
+        domain:         {type:"any", default:null, attr:true, state:true, description:""},
+        value:          {type:"any", default:null, attr:true, state:true, description:""},
+        valueOriginal:  {type:"any", default:null, attr:true, state:true, description:""},
+        accept:         {type:"any", default:null, attr:true, state:true, description:""},
+        lang:           {type:"any", default:null, attr:true, state:true, description:""},
+        spellcheck:     {type:"string", default:"true", attr:true, state:true, description:""},
+        langs:          {type:"array", default:[], attr:true, state:true, description:""},
+        langIndex:      {type:"number", default:0, attr:true, state:true, description:""},
+        errors:         {type:"array", default:[], attr:true, state:true, description:""},
+        validated:      {type:"boolean", default:false, attr:true, state:true, description:""},
+        inputId:        {type:"string", default:"input", attr:true, state:true, description:""},
+        add:            {type:"boolean", default:false, attr:true, state:true, description:""}
+    },
+    methods: {
+        validate: {
+            description: "Validates the field and returns its validation errors.",
+            arguments: [
+                {name:"detail", type:"boolean", description:"Whether to include the field path in each error."}
+            ],
+            returns: {
+                description: "The validation errors found for the field.",
+                type: "array"
+            }
+        }
+    }
+};
+
+
+// implementation
 export default XElement.define("x-datafield", {
     style: `
         :host {display:block; position:relative; }

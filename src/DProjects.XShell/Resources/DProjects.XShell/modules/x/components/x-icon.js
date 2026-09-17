@@ -2,7 +2,18 @@
 // cache
 const svgCache = new Map(); // key: url, value: Promise<SVGElement>
 
-// class
+// declaration
+export const declaration = {
+    description: "Loads and displays an SVG icon.",
+    events: {},
+    properties: {
+        icon: {type:"string", default:"", attr:true, state:true, description:""}
+    },
+    methods: {}
+};
+
+
+// implementation
 export default {
     style: `
         :host {display:inline; }

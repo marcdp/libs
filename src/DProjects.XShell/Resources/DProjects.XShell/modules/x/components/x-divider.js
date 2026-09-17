@@ -1,5 +1,14 @@
 
-// class
+// declaration
+export const declaration = {
+    description: "Renders a visual divider.",
+    events: {},
+    properties: {},
+    methods: {}
+};
+
+
+// implementation
 export default {
     style: `
         :host {display:block;}

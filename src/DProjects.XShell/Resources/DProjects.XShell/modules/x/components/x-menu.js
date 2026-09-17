@@ -1,5 +1,16 @@
 
-// class
+// declaration
+export const declaration = {
+    description: "Renders menu data as menu items.",
+    events: {},
+    properties: {
+        menu: {type:"array", default:null, attr:false, state:true, description:""}
+    },
+    methods: {}
+};
+
+
+// implementation
 export default {
     style: `
         :host(.horizontal) {display:flex; align-items:center;}

@@ -1,5 +1,16 @@
 
-// class
+// declaration
+export const declaration = {
+    description: "Displays a short badge value.",
+    events: {},
+    properties: {
+        value: {type:"string", default:"", attr:true, state:true, description:""}
+    },
+    methods: {}
+};
+
+
+// implementation
 export default  {
     style: `
         :host {}

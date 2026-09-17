@@ -1,5 +1,14 @@
 
-// export
+// declaration
+export const declaration = {
+    description: "Displays the current page title.",
+    events: {},
+    properties: {},
+    methods: {}
+};
+
+
+// implementation
 export default {
     style: ``,
     template: `{{ state.label }}`,

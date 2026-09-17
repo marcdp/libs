@@ -1,6 +1,30 @@
 import XElement from "x-element";
 
-// class
+// declaration
+export const declaration = {
+    description: "Displays a selectable, expandable item in a tree view.",
+    events: {
+        toggle: {
+            description: "Raised when the item expansion state changes."
+        }
+    },
+    properties: {
+        indent:      {type:"number", default:0, attr:true, state:true, description:""},
+        icon:        {type:"string", default:"x-file", attr:true, state:true, description:""},
+        label:       {type:"string", default:"", attr:true, state:true, description:""},
+        description: {type:"string", default:"", attr:true, state:true, description:""},
+        href:        {type:"string", default:"", attr:true, state:true, description:""},
+        target:      {type:"string", default:"", attr:true, state:true, description:""},
+        hasChilds:   {type:"boolean", default:false, attr:true, state:true, description:""},
+        expanded:    {type:"boolean", default:false, attr:true, state:true, description:""},
+        selected:    {type:"boolean", default:false, attr:true, state:true, description:""},
+        index:       {type:"number", default:0, attr:true, state:true, description:""}
+    },
+    methods: {}
+};
+
+
+// implementation
 export default XElement.define("x-treeview-item", {
     style: `
         :host {

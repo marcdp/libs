@@ -1,6 +1,17 @@
 import XElement from "x-element";
 
-// class
+// declaration
+export const declaration = {
+    description: "Provides keyboard navigation and selection for a tree of tree-view items.",
+    events: {},
+    properties: {
+        multiple: {type:"boolean", default:false, attr:true, state:true, description:""}
+    },
+    methods: {}
+};
+
+
+// implementation
 export default XElement.define("x-treeview", {
     style: `
         :host {

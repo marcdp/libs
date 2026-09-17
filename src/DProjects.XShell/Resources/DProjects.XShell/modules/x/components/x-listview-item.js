@@ -1,6 +1,25 @@
 import XElement from "x-element";
 
-// class
+// declaration
+export const declaration = {
+    description: "Displays one item in a list view.",
+    events: {},
+    properties: {
+        icon:        {type:"string", default:"", attr:true, state:true, description:""},
+        label:       {type:"string", default:"", attr:true, state:true, description:""},
+        breadcrumb:  {type:"boolean", default:false, attr:true, state:true, description:""},
+        description: {type:"string", default:"", attr:true, state:true, description:""},
+        category:    {type:"string", default:"", attr:true, state:true, description:""},
+        href:        {type:"string", default:"", attr:true, state:true, description:""},
+        target:      {type:"string", default:"", attr:true, state:true, description:""},
+        open:        {type:"string", default:"", attr:true, state:true, description:""},
+        view:        {type:"string", default:"list", attr:true, state:true, description:""}
+    },
+    methods: {}
+};
+
+
+// implementation
 export default XElement.define("x-listview-item", {
     style: `
         :host {}

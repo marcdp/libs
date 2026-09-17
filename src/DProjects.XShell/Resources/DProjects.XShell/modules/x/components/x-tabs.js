@@ -1,5 +1,17 @@
 
-// class
+// declaration
+export const declaration = {
+    description: "Displays tab headers and the selected tab panel.",
+    events: {},
+    properties: {
+        selectedIndex: {type:"number", default:0, attr:true, state:true, description:""},
+        selectedHash:  {type:"string", default:"", attr:true, state:true, description:""}
+    },
+    methods: {}
+};
+
+
+// implementation
 export default {
     style: `
         :host {display:block; margin-bottom:1.5em;}

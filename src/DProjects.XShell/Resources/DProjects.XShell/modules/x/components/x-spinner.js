@@ -1,5 +1,16 @@
 
-// export
+// declaration
+export const declaration = {
+    description: "Displays a spinner with an optional message.",
+    events: {},
+    properties: {
+        message: {type:"string", default:"", attr:true, state:true, description:""}
+    },
+    methods: {}
+};
+
+
+// implementation
 export default {
     template: `
         <div class="loader"></div>

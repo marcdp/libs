@@ -1,6 +1,21 @@
 import XElement from "x-element";
 
-// export
+// declaration
+export const declaration = {
+    description: "Displays an error code, message, source, module, and stack trace.",
+    events: {},
+    properties: {
+        code:    {type:"number", default:0, attr:true, state:true, description:""},
+        message: {type:"string", default:"", attr:true, state:true, description:""},
+        src:     {type:"string", default:"", attr:true, state:true, description:""},
+        module:  {type:"string", default:"", attr:true, state:true, description:""},
+        stack:   {type:"string", default:"", attr:true, state:true, description:""}
+    },
+    methods: {}
+};
+
+
+// implementation
 export default {
     style: `
         table {

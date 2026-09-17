@@ -1,5 +1,26 @@
 
-// export
+// declaration
+export const declaration = {
+    description: "Renders a navigation link handled by the XShell navigation service.",
+    events: {},
+    properties: {
+        href:       {type:"string", default:"", attr:true, state:true, description:""},
+        open:       {type:"string", default:"auto", attr:true, state:true, description:""},
+        qs:         {type:"object", default:{}, attr:true, state:true, description:""},
+        breadcrumb: {type:"boolean", default:false, attr:true, state:true, description:""},
+        title:      {type:"string", default:null, attr:true, state:true, description:""},
+        icon:       {type:"string", default:null, attr:true, state:true, description:""},
+        disabled:   {type:"boolean", default:false, attr:true, state:true, description:""},
+        target:     {type:"string", default:null, attr:true, state:true, description:""},
+        outlet:     {type:"string", default:null, attr:true, state:true, description:""},
+        rel:        {type:"string", default:null, attr:true, state:true, description:""},
+        replace:    {type:"boolean", default:false, attr:true, state:true, description:""}
+    },
+    methods: {}
+};
+
+
+// implementation
 export default {
     meta: {
         renderEngine: "x",

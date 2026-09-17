@@ -1,6 +1,15 @@
 import XElement from "x-element";
 
-// export
+// declaration
+export const declaration = {
+    description: "Provides a draggable visual splitter.",
+    events: {},
+    properties: {},
+    methods: {}
+};
+
+
+// implementation
 export default XElement.define("x-splitter", {
     style:`
         :host {

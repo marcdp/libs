@@ -1,7 +1,16 @@
 import XElement from "x-element";
 import xshell from "xshell";
 
-// class
+// declaration
+export const declaration = {
+    description: "Lazily activates and loads dependencies for its slotted content.",
+    events: {},
+    properties: {},
+    methods: {}
+};
+
+
+// implementation
 export default {
     style: `
         :host {display:inline;}
@@ -53,4 +62,3 @@ export default {
     }
 }
 
-   

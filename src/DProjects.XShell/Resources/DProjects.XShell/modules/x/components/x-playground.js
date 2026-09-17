@@ -1,6 +1,17 @@
 import XElement from "x-element";
 
-// class
+// declaration
+export const declaration = {
+    description: "Shows editable component markup alongside its rendered result.",
+    events: {},
+    properties: {
+        html: {type:"string", default:"", attr:true, state:true, description:""}
+    },
+    methods: {}
+};
+
+
+// implementation
 export default XElement.define("x-playground", {
     style: `
         :host {

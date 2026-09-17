@@ -1,4 +1,13 @@
-// export
+// declaration
+export const declaration = {
+    description: "Displays the current local time.",
+    events: {},
+    properties: {},
+    methods: {}
+};
+
+
+// implementation
 export default {
     style: `
         :host {border:1px solid black; display:inline-block; padding:10px;}

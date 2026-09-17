@@ -2,7 +2,19 @@ import XElement from "x-element";
 import xshell from "xshell";
 import { findFocusableElement, getDeepActiveElement, isDescendantOfElement } from "../utils/dom.js";
 
-// class
+// declaration
+export const declaration = {
+    description: "Displays slotted content in an expandable dropdown panel.",
+    events: {},
+    properties: {
+        expanded:       {type:"boolean", default:false, attr:true, state:true, description:""},
+        collapseOnClick:{type:"boolean", default:false, attr:true, state:true, description:""}
+    },
+    methods: {}
+};
+
+
+// implementation
 export default XElement.define("x-dropdown", {
     style: `
         :host {display:inline-block; position:relative;}

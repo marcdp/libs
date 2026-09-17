@@ -7,7 +7,18 @@ function formatMilliseconds(ms) {
     return `${ms} ms`;
 }
 
-// export
+// declaration
+export const declaration = {
+    description: "Formats and displays a duration in milliseconds.",
+    events: {},
+    properties: {
+        value: {type:"number", default:0, attr:true, state:true, description:""}
+    },
+    methods: {}
+};
+
+
+// implementation
 export default {
     template: `
         {{ state.valueFormatted || ''}}

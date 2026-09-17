@@ -1,5 +1,14 @@
 
-// definition
+// declaration
+export const declaration = {
+    description: "Provides a flexible element that fills available layout space.",
+    events: {},
+    properties: {},
+    methods: {}
+};
+
+
+// implementation
 export default {
     style: `
         :host {

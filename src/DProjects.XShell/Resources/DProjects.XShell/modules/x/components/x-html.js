@@ -51,7 +51,18 @@ function colorize(html) {
     return result.join("");
 }
 
-// export
+// declaration
+export const declaration = {
+    description: "Displays syntax-highlighted HTML source.",
+    events: {},
+    properties: {
+        value: {type:"string", default:"", attr:true, state:true, description:""}
+    },
+    methods: {}
+};
+
+
+// implementation
 export default {
     style:`
         :host {}

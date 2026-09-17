@@ -1,5 +1,22 @@
 
-// class
+// declaration
+export const declaration = {
+    description: "Displays a collapsible accordion section.",
+    events: {
+        toggle: {
+            description: "Raised when the panel expansion state changes."
+        }
+    },
+    properties: {
+        label:    {type:"string", default:"", attr:true, state:true, description:""},
+        icon:     {type:"string", default:"", attr:true, state:true, description:""},
+        expanded: {type:"boolean", default:false, attr:true, state:true, description:""}
+    },
+    methods: {}
+};
+
+
+// implementation
 export default {
     style: `
         :host {display:block;}

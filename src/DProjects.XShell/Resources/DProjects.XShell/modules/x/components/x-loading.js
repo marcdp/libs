@@ -1,5 +1,14 @@
 
-// definition
+// declaration
+export const declaration = {
+    description: "Displays a loading indicator.",
+    events: {},
+    properties: {},
+    methods: {}
+};
+
+
+// implementation
 export default {
     style: `
         :host {

@@ -2,7 +2,19 @@ import XElement from "x-element";
 import xshell from "xshell";
 import {marked} from "marked";
 
-// class
+// declaration
+export const declaration = {
+    description: "Renders Markdown text or Markdown loaded from a source URL.",
+    events: {},
+    properties: {
+        value: {type:"string", default:"", attr:true, state:true, description:""},
+        src:   {type:"string", default:"", attr:true, state:true, description:""}
+    },
+    methods: {}
+};
+
+
+// implementation
 export default XElement.define("x-markdown", {
     style: `
         :host {display:block;}

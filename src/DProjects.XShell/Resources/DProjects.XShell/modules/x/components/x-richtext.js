@@ -1,6 +1,27 @@
 import XElement from "x-element";
 
-// class
+// declaration
+export const declaration = {
+    description: "Provides a rich-text editor with formatting controls.",
+    events: {
+        change: {
+            description: "Raised when the editor content changes.",
+            detail: {
+                oldValue: {type:"string"},
+                newValue: {type:"string"}
+            }
+        }
+    },
+    properties: {
+        value:      {type:"string", default:"", attr:true, state:true, description:""},
+        lang:       {type:"string", default:"", attr:true, state:true, description:""},
+        spellcheck: {type:"string", default:"true", attr:true, state:true, description:""}
+    },
+    methods: {}
+};
+
+
+// implementation
 export default XElement.define("x-richtext", {
     style: `
         .editor {

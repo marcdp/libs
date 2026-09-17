@@ -1,6 +1,25 @@
 import XElement from "x-element";
 
-// class
+// declaration
+export const declaration = {
+    description: "Displays wizard progress and allows navigation to completed panels.",
+    events: {
+        "index-set": {
+            description: "Raised when a completed wizard panel is selected.",
+            detail: {
+                index: {type:"number"}
+            }
+        }
+    },
+    properties: {
+        index:  {type:"number", default:0, attr:true, state:true, description:""},
+        panels: {type:"array", default:[], attr:true, state:true, description:""}
+    },
+    methods: {}
+};
+
+
+// implementation
 export default XElement.define("x-wizard-header", {
     style: `
         :host {display:block;}

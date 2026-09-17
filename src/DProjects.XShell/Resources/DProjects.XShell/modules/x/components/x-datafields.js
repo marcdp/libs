@@ -1,6 +1,6 @@
-// interface
-export const interface = {
-    description: "Datafield",
+// declaration
+export const declaration = {
+    description: "Provides a layout and action controls for a group of data fields.",
     events: {
         move: {
             description: "Raised when the field is moved.",
@@ -16,26 +16,14 @@ export const interface = {
         }
     },
     properties: {
-        label:      {type:"string", default:"", attr:true},
-        message:    {type:"string", default:"", attr:true},
-        columns:    {type:"number", default:2, attr:true},
-        remove:     {type:"boolean", default:false, attr:true},
-        move:       {type:"boolean", default:false, attr:true},
-        edit:       {type:"boolean", default:false, attr:true}
+        label:      {type:"string", default:"", attr:true, state:true, description:""},
+        message:    {type:"string", default:"", attr:true, state:true, description:""},
+        columns:    {type:"number", default:2, attr:true, state:true, description:""},
+        remove:     {type:"boolean", default:false, attr:true, state:true, description:""},
+        move:       {type:"boolean", default:false, attr:true, state:true, description:""},
+        edit:       {type:"boolean", default:false, attr:true, state:true, description:""}
     },
-    methods: {
-        method1: {
-            description: "method 1 does something",
-            arguments: [
-                {name: "param1", type: "string", description: "The first parameter"},
-                {name: "param2", type: "number", description: "The second parameter"}
-            ],
-            returns: {
-                description: "Returns xxx",
-                type: "string"
-            }
-        }
-    }
+    methods: {}
 }
 
 
