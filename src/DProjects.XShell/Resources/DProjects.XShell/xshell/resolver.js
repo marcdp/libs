@@ -69,6 +69,7 @@ export default class Resolver {
         return false;
     }
     resolve(resource) {        
+        
         if (resource.indexOf("#") != -1) resource = resource.split("#")[0];
         if (resource.indexOf("?") != -1) resource = resource.split("?")[0];
         for(let i = 0; i < this._definitions.length ; i++) {

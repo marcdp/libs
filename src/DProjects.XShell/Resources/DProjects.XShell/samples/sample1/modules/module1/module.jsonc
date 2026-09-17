@@ -4,7 +4,7 @@
     "label": "Module 1 title",
     "icon": "module1-add",
     "version": "0.1.5",
-    "handler": "./module.js",
+    "handler": "/module.js",
     "depends": [],
     "styles": ["/css/styles.css"],
 

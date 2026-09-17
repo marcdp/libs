@@ -64,7 +64,7 @@ export default class Loader {
         this._config = config;
         this._debug = debug;
         this._resolver = resolver;
-        this._appBase = new URL(this._config.get("app.base")).pathname;
+        this._appBase = this._config.get("app.base");
         this._assetsPrefix = this._config.get("xshell.assetsPrefix");
         this._navigationMode = config.get("navigation.mode");
         this._navigationHashPrefix = config.get("navigation.hashPrefix");

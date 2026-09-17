@@ -20,8 +20,8 @@ namespace DProjects.XShell {
             var app = builder.Build();
 
             // use XShell
-            var appBase = "/prefix";
-            var resourceBase = "/prefix2";
+            var appBase = "";
+            var resourceBase = "";
             app.UseXShell( new Extensions.Configuration {
                 AppBase = appBase,
                 AppConfig = (args.Length > 0) ? args[0] : resourceBase + Extensions.RequestPath + "/samples/sample1/app.jsonc",

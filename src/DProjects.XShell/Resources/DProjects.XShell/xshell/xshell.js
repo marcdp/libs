@@ -77,7 +77,7 @@ class XShell {
         this._loader = new Loader({ bus: this._bus, config: this._config, debug: this._debug, resolver: this._resolver });
         this._auth = new Auth({ config: this._config, loader: this._loader });
         this._i18n = new I18n();
-        this._modules = new Modules( { bus: this._bud, config: this._config, loader: this._loader, resolver: this._resolver } );
+        this._modules = new Modules( { bus: this._bus, config: this._config, loader: this._loader, resolver: this._resolver } );
         this._navigation = new Navigation( { areas: this._areas, bus: this._bus, config: this._config, container: this._container });
         this._tabs = new Tabs( { bus: this._bus } );
         this._menus = new Menus( { bus: this._bus, config: this._config, modules: this._modules, navigation: this._navigation } );

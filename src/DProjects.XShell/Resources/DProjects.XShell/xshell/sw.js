@@ -74,7 +74,7 @@ async function handleRequest(request) {
     
     // if request is outside scope, just fetch
     if (!request.url.startsWith(self.registration.scope)) {
-        //console.log("url is: " + request.url)
+        console.log("url is: " + request.url)
         return fetch(request, { cache: "no-store" });
     }    
 

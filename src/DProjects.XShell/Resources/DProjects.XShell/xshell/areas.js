@@ -21,7 +21,6 @@ export default class Areas {
         });
         // create areas
         let areas = [];
-        const assetsPrefix = config.get("xshell.assetsPrefix");
         for(let areaName of config.getSubKeys("xshell.areas")) {
             let area = config.getAsObject(`xshell.areas.${areaName}`);
             area.id = areaName;

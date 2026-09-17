@@ -25,13 +25,13 @@
     // xshell
     "xshell.build": "2025-12-06",
     "xshell.debug": false,
-    "xshell.assetsPrefix": "_cdn",  // assets prefix to use in url
-    "xshell.component.lazy": "",    //web component to render markdown
-    "xshell.component.error": "",   //web component to render errors
-    "xshell.dialog.confirm": null,    // dialog page for confirm
-    "xshell.dialog.message": null,    // dialog page for message
-    "xshell.dialog.prompt": null,     // dialog page for prompt
-    "xshell.dialog.picker": null,     // dialog page for picker
+    "xshell.assetsPrefix": "_assets",   // assets prefix to use in url
+    "xshell.component.lazy": "",        // web component to lazy load contents
+    "xshell.component.error": "",       // web component to render errors
+    "xshell.dialog.confirm": null,      // dialog page for confirm
+    "xshell.dialog.message": null,      // dialog page for message
+    "xshell.dialog.prompt": null,       // dialog page for prompt
+    "xshell.dialog.picker": null,       // dialog page for picker
     "xshell.areaDefault": "main",
     "xshell.version": "0.9.0",
     "xshell.identity.provider": "anonymous"
