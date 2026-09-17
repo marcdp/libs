@@ -20,6 +20,6 @@ Component modules currently export a default runtime definition. Many checked-in
 
 ## Related documentation
 
-- [XShell documentation](../../)
-- [X Templates extension](../../extensions/x-templates/) — An optional integration layer for component rendering and event handlers.
-- [Properties and State ADR](../../adr/0004-properties-and-state.md)
+- [XShell documentation](../)
+- [X Templates extension](../extensions/x-templates/) — An optional integration layer for component rendering and event handlers.
+- [Properties and State ADR](../adr/0004-properties-and-state.md)

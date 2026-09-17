@@ -8,7 +8,6 @@ Draft.
 
 ## Documents
 
-- [Components](components/) — The core Web Component model: declarations, properties, state, events, and lifecycle.
 - [Authentication](authentication.md) — Identity-provider selection and login/logout orchestration.
 - [Identity](identity.md) — The identity object exposed to runtime services.
 - [Internationalization](i18n.md) — Language metadata, localized text selection, and date/time formatting.

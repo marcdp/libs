@@ -54,6 +54,7 @@ namespace DProjects.XShell {
             // register content type provider for .jsonc files
             var contentTypeProvider = new FileExtensionContentTypeProvider();
             contentTypeProvider.Mappings[".jsonc"] = "application/json";
+            contentTypeProvider.Mappings[".md"] = "text/markdown";
 
             // map /_resources/DProjects.XShell
             var fileProvider = new PhysicalFileProvider(resourcePath);

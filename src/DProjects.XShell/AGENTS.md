@@ -468,10 +468,10 @@ Resources/DProjects.XShell/docs/
 ├── index.md
 ├── architecture/
 │   └── index.md
+├── components/
+│   └── index.md
 ├── subsystems/
-│   ├── index.md
-│   └── components/
-│       └── index.md
+│   └── index.md
 ├── extensions/
 │   ├── index.md
 │   └── x-templates/
@@ -482,7 +482,7 @@ Resources/DProjects.XShell/docs/
     └── index.md
 ```
 
-`architecture/` documents system design. `subsystems/` documents core XShell runtime capabilities, including the component model under `subsystems/components/`. `extensions/` documents optional capabilities; X Templates live under `extensions/x-templates/` and are not part of the core component model. `specifications/` contains formal configuration contracts, and `adr/` records architectural decisions.
+`architecture/` documents system design. `components/` documents the core Web Component model. `subsystems/` documents runtime services such as authentication, identity, and i18n. `extensions/` documents optional capabilities; X Templates live under `extensions/x-templates/` and are not part of the core component model. `specifications/` contains formal configuration contracts, and `adr/` records architectural decisions.
 
 Use relative Markdown links.
 

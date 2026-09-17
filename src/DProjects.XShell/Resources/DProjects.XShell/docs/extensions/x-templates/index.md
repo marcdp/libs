@@ -20,4 +20,4 @@ The initial outline is based on the current `x-template.js` compiler and templat
 ## Related documentation
 
 - [Extensions](../)
-- [XShell Components](../../subsystems/components/)
+- [XShell Components](../../components/)

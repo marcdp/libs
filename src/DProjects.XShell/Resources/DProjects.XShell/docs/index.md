@@ -11,7 +11,8 @@ Draft.
 ## Documentation
 
 - [Architecture](architecture/) — How XShell is designed: runtime structure, resource resolution, loading, service-worker rewriting, and navigation.
-- [Subsystems](subsystems/) — Core XShell capabilities, including Components, authentication, identity, and internationalization.
+- [Components](components/) — Components
+- [Subsystems](subsystems/) — Runtime services including authentication, identity, and internationalization.
 - [Extensions](extensions/) — Optional capabilities layered on XShell, including X Templates.
 - [Specifications](specifications/) — Formal application and module configuration contracts.
 - [Architecture Decision Records](adr/) — Architectural decisions and their rationale.

@@ -23,5 +23,5 @@ Runtime event attachment parses dot-separated modifier names. TODO: Verify and t
 ## Related documentation
 
 - [Components](index.md)
-- [X Template Bindings](../../extensions/x-templates/bindings.md)
+- [X Template Bindings](../extensions/x-templates/bindings.md)
 - [Component Manifest](manifest.md)
