@@ -1,7 +1,7 @@
 import XElement from "x-element";
 
-// declaration
-export const declaration = {
+// contract
+export const contract = {
     description: "Provides an Ace code editor with configurable presentation and editing options.",
     events: {
         change: {

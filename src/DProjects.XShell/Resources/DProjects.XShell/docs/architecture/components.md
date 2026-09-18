@@ -45,8 +45,8 @@ default export
 For example:
 
 ```js
-// declaration
-export const declaration = {
+// contract
+export const contract = {
     description: "Provides a layout and action controls for a group of data fields.",
 
     events: {
@@ -140,7 +140,7 @@ methods
 For example:
 
 ```js
-export const declaration = {
+export const contract = {
     description: "A sample component.",
 
     events: {

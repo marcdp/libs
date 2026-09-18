@@ -1,6 +1,7 @@
 
-// declaration
-export const declaration = {
+
+// contract
+export const contract = {
     description: "Displays the current page breadcrumb.",
     events: {},
     properties: {},

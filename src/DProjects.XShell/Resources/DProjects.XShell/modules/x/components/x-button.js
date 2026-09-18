@@ -1,6 +1,6 @@
 
-// declaration
-export const declaration = {
+// contract
+export const contract = {
     description: "Renders a button or navigation link and can emit a command.",
     events: {
         command: {

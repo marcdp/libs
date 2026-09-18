@@ -1,8 +1,8 @@
 import XElement from "x-element";
 import xshell from "xshell";
 
-// declaration
-export const declaration = {
+// contract
+export const contract = {
     description: "Lazily activates and loads dependencies for its slotted content.",
     events: {},
     properties: {},

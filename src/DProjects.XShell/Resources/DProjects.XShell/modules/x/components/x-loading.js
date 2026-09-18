@@ -1,6 +1,6 @@
 
-// declaration
-export const declaration = {
+// contract
+export const contract = {
     description: "Displays a loading indicator.",
     events: {},
     properties: {},

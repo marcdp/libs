@@ -49,7 +49,6 @@ TODO: Define dependency semantics, handler commands, menu schema, override prece
     "icon": "module1-add",
     "version": "0.1.5",
     "handler": "/module.js",
-    "depends": [],
     "styles": ["/css/styles.css"],
 
     "page.renderEngine": "x",

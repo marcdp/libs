@@ -1,7 +1,7 @@
 import XElement from "x-element";
 
-// declaration
-export const declaration = {
+// contract
+export const contract = {
     description: "Provides keyboard navigation and selection for a tree of tree-view items.",
     events: {},
     properties: {

@@ -1,7 +1,18 @@
-import XElement from "x-element";
 import xshell from "xshell";
 
-// class
+// contract
+export const contract = {
+    description: "Layout for a default page.",
+    events: {},
+    properties: {
+        expanded: { type: "boolean", default: false, attr: true, state: true, description: "" },
+        status: { type: "string", default: "", attr: true, state: true, description: "" },
+    },
+    methods: {}
+};
+
+
+// implementation
 export default {
     meta: {
         renderEngine: "x",

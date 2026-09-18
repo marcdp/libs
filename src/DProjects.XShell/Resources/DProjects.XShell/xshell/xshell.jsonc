@@ -1,39 +1,81 @@
 {
-    // navigation
-    "navigation.mode": "hash", // hash | path
-    "navigation.hashPrefix": "#!",
-    // page layout
-    "page.layout.default": null,
-    "page.layout.dialog": null,
-    "page.layout.main": null,
-    "page.layout.stack": null,
-    "page.layout.embed": null,
-    // page render engine
-    "page.renderEngine": "plain",
-    // page state engine
-    "page.stateEngine": "plain",
-    // component render engine
-    "component.renderEngine": "plain",
-    // component state engine
-    "component.stateEngine": "plain",
-    // resolver    
-    "resolver.component:x-page": "/x-page.js; loader=module-js; cache=true;",
-    "resolver.import:xshell": "/xshell.js",  
-    "resolver.idp:{name}": "/idp/{name}.js; loader=module-js;",
-    "resolver.render-engine:{name}": "/render-engines/{name}.js; loader=module-js;",
-    "resolver.state-engine:{name}": "/state-engines/{name}.js; loader=module-js;",
     // xshell
-    "xshell.build": "2025-12-06",
-    "xshell.debug": false,
-    "xshell.assetsPrefix": "_assets",   // assets prefix to use in url
-    "xshell.component.lazy": "",        // web component to lazy load contents
-    "xshell.component.error": "",       // web component to render errors
-    "xshell.dialog.confirm": null,      // dialog page for confirm
-    "xshell.dialog.message": null,      // dialog page for message
-    "xshell.dialog.prompt": null,       // dialog page for prompt
-    "xshell.dialog.picker": null,       // dialog page for picker
-    "xshell.areaDefault": "main",
-    "xshell.version": "0.9.0",
-    "xshell.identity.provider": "anonymous"
+    "xshell": {
+
+        // core
+        "build": "2025-12-06",
+        "debug": false,
+        "version": "0.9.0",
+
+        // defaults
+        "page": {
+            "layout": {
+                "default": null,
+                "dialog": null,
+                "main": null,
+                "stack": null,
+                "embed": null
+            },
+            "renderEngine": "plain",
+            "stateEngine": "plain"
+        },
+        "dialog": {
+            "confirm": null,
+            "message": null,
+            "prompt": null,
+            "picker": null
+        },
+        "component": {
+            "lazy": "",
+            "error": "",
+            "renderEngine": "plain",
+            "stateEngine": "plain"
+        },
+        "identity": {
+            "provider": "anonymous"
+        },
+        "assetsPrefix": "_assets",
+        "areaDefault": "main",
+
+        // navigation
+        "navigation": {
+            // "mode": "path",
+            "mode": "hash",
+            "hashPrefix": "#!"
+        },
+
+        // resolver
+        "resolver": {
+            "component": {
+                "x-page": {
+                    "url": "/x-page.js",
+                    "loader": "module-js",
+                    "cache": true
+                }
+            },
+            "import": {
+                "xshell": {
+                    "url": "/xshell.js"
+                }
+            },
+            "idp": {
+                "{name}": {
+                    "url": "/idp/{name}.js",
+                    "loader": "module-js"
+                }
+            },
+            "render-engine": {
+                "{name}": {
+                    "url": "/render-engines/{name}.js",
+                    "loader": "module-js"
+                }
+            },
+            "state-engine": {
+                "{name}": {
+                    "url": "/state-engines/{name}.js",
+                    "loader": "module-js"
+                }
+            }
+        }
+    }
 }
-            

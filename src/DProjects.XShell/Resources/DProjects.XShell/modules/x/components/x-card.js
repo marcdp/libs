@@ -1,6 +1,6 @@
 
-// declaration
-export const declaration = {
+// contract
+export const contract = {
     description: "Provides a styled card container with header, body, and footer slots.",
     events: {},
     properties: {},

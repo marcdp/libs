@@ -1,5 +1,5 @@
-// declaration
-export const declaration = {
+// contract
+export const contract = {
     description: "Displays the current local time.",
     events: {},
     properties: {},

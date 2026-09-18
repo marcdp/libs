@@ -33,8 +33,8 @@ A definition-based Page can also export a `declaration` describing its public in
 For example:
 
 ```js
-// declaration
-export const declaration = {
+// contract
+export const contract = {
     description: "Shows a customer.",
 
     properties: {
@@ -203,7 +203,7 @@ A Page can therefore declare navigation inputs as properties instead of introduc
 For example:
 
 ```js
-export const declaration = {
+export const contract = {
     properties: {
         customerId: {
             type: "string",

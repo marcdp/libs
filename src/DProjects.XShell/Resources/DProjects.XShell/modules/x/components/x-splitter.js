@@ -1,7 +1,7 @@
 import XElement from "x-element";
 
-// declaration
-export const declaration = {
+// contract
+export const contract = {
     description: "Provides a draggable visual splitter.",
     events: {},
     properties: {},
@@ -20,8 +20,7 @@ export default XElement.define("x-splitter", {
         }
     `,
     template: ``,
-    state: {
-    },
+    state: { },
     methods: {
         onCommand(command) {
             if (command == "init"){

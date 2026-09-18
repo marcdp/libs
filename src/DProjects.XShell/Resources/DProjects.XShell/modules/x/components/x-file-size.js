@@ -11,8 +11,8 @@ function formatFileSize(bytes) {
     return `${formattedSize} ${sizes[i]}`;
 }
 
-// declaration
-export const declaration = {
+// contract
+export const contract = {
     description: "Formats and displays a byte count.",
     events: {},
     properties: {

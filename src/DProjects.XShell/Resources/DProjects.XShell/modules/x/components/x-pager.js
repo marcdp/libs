@@ -1,7 +1,7 @@
 import XElement from "x-element";
 
-// declaration
-export const declaration = {
+// contract
+export const contract = {
     description: "Displays pagination controls and emits requested page changes.",
     events: {
         change: {

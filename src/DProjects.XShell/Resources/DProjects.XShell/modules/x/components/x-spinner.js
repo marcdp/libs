@@ -1,6 +1,6 @@
 
-// declaration
-export const declaration = {
+// contract
+export const contract = {
     description: "Displays a spinner with an optional message.",
     events: {},
     properties: {

@@ -1,7 +1,7 @@
 import XElement from "x-element";
 
-// declaration
-export const declaration = {
+// contract
+export const contract = {
     description: "Displays a selectable, expandable item in a tree view.",
     events: {
         toggle: {

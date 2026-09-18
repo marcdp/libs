@@ -1,7 +1,7 @@
 import XElement from "x-element";
 
-// declaration
-export const declaration = {
+// contract
+export const contract = {
     description: "Displays wizard progress and allows navigation to completed panels.",
     events: {
         "index-set": {

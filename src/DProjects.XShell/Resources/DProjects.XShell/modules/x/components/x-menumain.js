@@ -1,8 +1,8 @@
 import XElement from "x-element";
 import xshell from "xshell";
 
-// declaration
-export const declaration = {
+// contract
+export const contract = {
     description: "Renders the application's main navigation menu.",
     events: {},
     properties: {

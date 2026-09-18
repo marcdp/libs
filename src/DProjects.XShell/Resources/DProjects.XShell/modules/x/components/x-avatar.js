@@ -1,6 +1,6 @@
 
-// declaration
-export const declaration = {
+// contract
+export const contract = {
     description: "Displays an avatar with optional identity details and command action.",
     events: {
         command: {

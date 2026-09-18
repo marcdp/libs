@@ -1,7 +1,8 @@
 import XElement from "x-element";
 
-// declaration
-export const declaration = {
+
+// contract
+export const contract = {
     description: "Defines a labeled column in a tree view.",
     events: {},
     properties: {

@@ -1,7 +1,18 @@
-import XElement from "x-element";
+// contract
+export const contract = {
+    description: "Layout for a dialog page.",
+    events: {},
+    properties: {
+        label: { type: "boolean", default: false, attr: true, state: true, description: "" },
+        status: { type: "string", default: "", attr: true, state: true, description: "" },
+        opened: { type: "boolean", default: false, attr: true, state: true, description: "" }
+    },
+    methods: {}
+};
 
-// class
-export default XElement.define("x-layout-dialog", {
+
+// implementation
+export default {
     meta: {
         renderEngine: "x",
         stateEngine: "proxy"
@@ -74,29 +85,31 @@ export default XElement.define("x-layout-dialog", {
         status: "",
         opened: false
     },
-    methods: {
-        onCommand(command, args) {
-            if (command == "load") {
-                //load
-                this.bindEvent(this.page, "load", "refresh");
-                this.onCommand("refresh");
-                setTimeout(()=>{
-                    this.shadowRoot.querySelector("DIALOG").showModal();
-                    setTimeout(()=>{
-                        this.state.opened = true;
+    script({ state, events, bus, getPage }) {
+        return {
+            onCommand(command) {
+                if (command == "load") {
+                    //load
+                    events.on(bus, "xshell:page:load", "refresh");
+                    this.onCommand("refresh");
+                    setTimeout(() => {
+                        this.shadowRoot.querySelector("DIALOG").showModal();
+                        setTimeout(() => {
+                            state.opened = true;
+                        }, 0);
                     }, 0);
-                }, 0);
 
-            } else if (command == "refresh") {
-                //refresh
-                this.label = this.page.label;
+                } else if (command == "refresh") {
+                    //refresh
+                    const page = getPage();
+                    state.label = .page.label;
 
-            } else if (command == "query-close") {
-                //query close
-                args.event.preventDefault();
-                this.dispatchEvent(new CustomEvent("query-close", { composed: true }));
+                } else if (command == "query-close") {
+                    //query close
+                    args.event.preventDefault();
+                    this.dispatchEvent(new CustomEvent("query-close", { composed: true }));
+                }
             }
         }
-
     }
-});
+};

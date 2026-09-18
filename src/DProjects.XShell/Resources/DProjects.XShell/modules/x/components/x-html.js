@@ -51,8 +51,8 @@ function colorize(html) {
     return result.join("");
 }
 
-// declaration
-export const declaration = {
+// contract
+export const contract = {
     description: "Displays syntax-highlighted HTML source.",
     events: {},
     properties: {

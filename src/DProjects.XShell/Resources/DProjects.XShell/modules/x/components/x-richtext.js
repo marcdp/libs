@@ -1,7 +1,8 @@
 import XElement from "x-element";
 
-// declaration
-export const declaration = {
+
+// contract
+export const contract = {
     description: "Provides a rich-text editor with formatting controls.",
     events: {
         change: {
@@ -65,9 +66,6 @@ export default XElement.define("x-richtext", {
         </x-toolbar>
         <div class="editor" contenteditable="true" x-html="state.value" x-attr:lang="state.lang" x-attr:spellcheck="state.spellcheck"></div>
     `,
-    //settings:{
-    //    observedAttributes: ["value", "lang", "spellcheck"]
-    //},
     methods:{
         onCommand(command, args){
             if (command == "load"){

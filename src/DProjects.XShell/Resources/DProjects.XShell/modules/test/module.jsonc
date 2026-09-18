@@ -1,0 +1,47 @@
+{
+    // app
+    "app": {
+        "name": "test-app",
+        "label": "test app",
+        "version": "0.1.0",
+        "copyright": "",
+        "icon": ""
+    },
+
+    // module
+    "modules": {
+        "test": {
+            "label": "test module",
+            "version": "1.0.0",
+            "styles": [ "/css/styles.css" ],
+            "icon": "",
+            "imports": {
+                "x": {
+                    "url": "url:../x/module.jsonc",
+                    "params": {
+                        "var1": 1111,
+                        "var2": 2222
+                    }
+                },
+                "x2": {
+                    "url": "url:../x/module.jsonc",
+                    "params": {
+                        "var1": 333,
+                        "var2": 4444
+                    }
+                }
+            }
+        }
+    },
+
+    // xshell 
+    "xshell": {
+        "areas": {
+            "main": {
+                "label": "Main area",
+                "icon": "x-bell"
+            }
+        }
+    }
+
+}

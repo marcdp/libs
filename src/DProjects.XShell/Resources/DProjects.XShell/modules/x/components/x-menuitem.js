@@ -1,7 +1,7 @@
 import XElement from "x-element";
 
-// declaration
-export const declaration = {
+// contract
+export const contract = {
     description: "Displays a menu item with optional nested menu content.",
     events: {},
     properties: {

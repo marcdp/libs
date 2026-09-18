@@ -2,8 +2,9 @@ import XElement from "x-element";
 import xshell from "xshell";
 import {marked} from "marked";
 
-// declaration
-export const declaration = {
+
+// contract
+export const contract = {
     description: "Renders Markdown text or Markdown loaded from a source URL.",
     events: {},
     properties: {

@@ -1,6 +1,6 @@
 
-// declaration
-export const declaration = {
+// contract
+export const contract = {
     description: "Displays slotted content only on desktop-sized viewports.",
     events: {},
     properties: {},

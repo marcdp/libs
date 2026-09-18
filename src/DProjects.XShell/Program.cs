@@ -12,12 +12,6 @@ namespace DProjects.XShell {
             // create host builder
             var builder = Host.CreateApplicationBuilder(args);
 
-            // x3 home
-            var x3HomePath = System.Environment.GetEnvironmentVariable("X3_HOME");
-            if (string.IsNullOrWhiteSpace(x3HomePath)) {
-                x3HomePath = Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile), ".x3");
-            }
-
             // commands manager
             builder.Services.AddCommandsManager(cfg => {
                 // add commands

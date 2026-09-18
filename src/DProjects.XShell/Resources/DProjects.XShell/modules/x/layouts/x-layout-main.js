@@ -2,8 +2,26 @@ import xshell from "xshell";
 import { probablyPhone } from "../utils/dom.js";
 import { findObjectsPath } from "../utils/object.js";
 
+// contract
+export const contract = {
+    description: "Main layout.",
+    events: {},
+    properties: {
+        status: { type:"string", value: "", attr: true, state: true, description: "" },
+        appIcon: { type: "string", value: xshell.config.get("app.icon"), state: true, description: "" },
+        appLabel: { type: "string", value: xshell.config.get("app.label"), state: true, description: "" },
+        appBase: { type: "string", value: xshell.config.get("app.base"), state: true, description: "" },
+        userName: { type: "string", value: "", state: true, description: "" },
+        userInitials: { type: "string", value: "", state: true, description: "" },
+        toggled: { type: "boolean", value: false, state: true, description: "" },
+        keyword: { type: "string", value: "", state: true, description: "" },
+        shellDebug: { type: "boolean", value: xshell.config.get("xshell.debug"), state: true, description: "" },
+    },
+    methods: {}
+};
 
-// class
+
+// implementation
 export default {
     meta: {
         renderEngine: "x",

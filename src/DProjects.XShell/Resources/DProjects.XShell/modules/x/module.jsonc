@@ -1,42 +1,70 @@
-
 {
     // module
-    "name": "x",
-    "label": "X module",
-    "version": "1.0.0",
-    "depends": [],
-    "styles": ["/css/styles.css"],
-    "icon": "",
-
-    // page defaults
-    "page.renderEngine": "x",
-    "page.stateEngine": "proxy",
-    "component.renderEngine": "x",
-    "component.stateEngine": "proxy",
-    
-    // dialogs
-    "page.dialog.confirm": null,
-    "page.dialog.message": null,
-    "page.dialog.prompt": null,
+    "modules": {
+        "x": {
+            "label": "X module",
+            "version": "1.0.0",
+            "styles": [ "/css/styles.css" ],
+            "icon": "",
+            "page": {
+                "renderEngine": "x",
+                "stateEngine": "proxy",
+                "dialog": {
+                    "confirm": null,
+                    "message": null,
+                    "prompt": null
+                }
+            },
+            "component": {
+                "renderEngine": "x",
+                "stateEngine": "proxy"
+            }
+        }
+    },
 
     // resolver
-    "global.resolver.component:ace-editor":"https://unpkg.com/ace-custom-element@latest/dist/index.min.js; loader=module-js;",
-    "global.resolver.import:marked":"/vendor/marked/marked.esm.js",
-    "global.resolver.import:x-element": "/controllers/x-element.js",
-    
-    // global pages
-    "global.page.layout.default": "x-layout-default",
-    "global.page.layout.dialog": "x-layout-dialog",
-    "global.page.layout.main": "x-layout-main",
-    "global.page.layout.stack": "x-layout-stack",
-    "global.page.layout.embed": "x-layout-embed",
+    "xshell": {
+        // resolver
+        "resolver": {
+            "component": {
+                "ace-editor": {
+                    "url": "https://unpkg.com/ace-custom-element@latest/dist/index.min.js",
+                    "loader": "module-js"
+                }
+            },
+            "import": {
+                "marked": {
+                    "url": "/vendor/marked/marked.esm.js"
+                },
+                "x-element": {
+                    "url": "/controllers/x-element.js"
+                }
+            }
+        },
 
-    // global xshell
-    "global.xshell.component.lazy": "x-lazy",
-    "global.xshell.component.error": "x-error",
-    "global.xshell.dialog.confirm": "/pages/dialog-confirm.js",    
-    "global.xshell.dialog.message": "/pages/dialog-message.js",    
-    "global.xshell.dialog.prompt": "/pages/dialog-prompt.js",     
-    "global.xshell.dialog.picker": "/pages/dialog-picker.js"     
+        // pages
+        "page": {
+            "layout": {
+                "default": "x-layout-default",
+                "dialog": "x-layout-dialog",
+                "main": "x-layout-main",
+                "stack": "x-layout-stack",
+                "embed": "x-layout-embed"
+            }
+        },
 
+        // components
+        "component": {
+            "lazy": "x-lazy",
+            "error": "x-error"
+        },
+
+        // dialogs
+        "dialog": {
+            "confirm": "/pages/dialog-confirm.js",
+            "message": "/pages/dialog-message.js",
+            "prompt": "/pages/dialog-prompt.js",
+            "picker": "/pages/dialog-picker.js"
+        }
+    }
 }

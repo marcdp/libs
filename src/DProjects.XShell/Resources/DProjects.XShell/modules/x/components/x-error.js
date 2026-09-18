@@ -1,7 +1,7 @@
 import XElement from "x-element";
 
-// declaration
-export const declaration = {
+// contract
+export const contract = {
     description: "Displays an error code, message, source, module, and stack trace.",
     events: {},
     properties: {

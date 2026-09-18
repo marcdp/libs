@@ -1,5 +1,5 @@
-// declaration
-export const declaration = {
+// contract
+export const contract = {
     description: "Provides a layout and action controls for a group of data fields.",
     events: {
         move: {

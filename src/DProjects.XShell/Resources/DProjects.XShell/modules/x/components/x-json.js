@@ -23,8 +23,8 @@ function syntaxHighlight(json) {
     });
 }
 
-// declaration
-export const declaration = {
+// contract
+export const contract = {
     description: "Displays syntax-highlighted JSON source.",
     events: {},
     properties: {

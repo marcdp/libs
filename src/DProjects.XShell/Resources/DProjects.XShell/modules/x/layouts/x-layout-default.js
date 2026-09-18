@@ -1,7 +1,14 @@
-import XElement from "x-element";
+// contract
+export const contract = {
+    description: "Layout for a default page.",
+    events: {},
+    properties: {},
+    methods: {}
+};
 
-// class
-export default XElement.define("x-layout-default", {
+
+// implementation
+export default {
     meta: {
         renderEngine: "x",
         stateEngine: "proxy"
@@ -19,4 +26,4 @@ export default XElement.define("x-layout-default", {
     state: {
         status: ""
     },    
-});
+};

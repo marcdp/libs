@@ -1,6 +1,6 @@
 
-// declaration
-export const declaration = {
+// contract
+export const contract = {
     description: "Renders a navigation link handled by the XShell navigation service.",
     events: {},
     properties: {

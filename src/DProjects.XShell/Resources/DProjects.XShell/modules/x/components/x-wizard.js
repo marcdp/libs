@@ -1,7 +1,7 @@
 import XElement from "x-element";
 
-// declaration
-export const declaration = {
+// contract
+export const contract = {
     description: "Displays wizard panels with previous and next navigation controls.",
     events: {},
     properties: {

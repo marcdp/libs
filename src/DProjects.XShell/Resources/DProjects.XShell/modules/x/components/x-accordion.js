@@ -1,6 +1,7 @@
 
-// declaration
-export const declaration = {
+
+// contract
+export const contract = {
     description: "Groups accordion panels and keeps only the expanded panel active.",
     events: {},
     properties: {

@@ -1,6 +1,5 @@
-
-// declaration
-export const declaration = {
+// contract
+export const contract = {
     description: "Renders menu data as menu items.",
     events: {},
     properties: {

@@ -1,6 +1,6 @@
 
-// declaration
-export const declaration = {
+// contract
+export const contract = {
     description: "Provides a flexible element that fills available layout space.",
     events: {},
     properties: {},

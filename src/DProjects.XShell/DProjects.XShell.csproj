@@ -23,4 +23,9 @@
       <ProjectReference Include="..\DProjects.Commands\DProjects.Commands.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Resources\DProjects.XShell\modules\test\components\" />
+      <Folder Include="Resources\DProjects.XShell\modules\test\pages\" />
+    </ItemGroup>
+
 </Project>

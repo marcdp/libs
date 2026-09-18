@@ -1,6 +1,6 @@
 
-// declaration
-export const declaration = {
+// contract
+export const contract = {
     description: "Defines one tab panel for an x-tabs component.",
     events: {},
     properties: {

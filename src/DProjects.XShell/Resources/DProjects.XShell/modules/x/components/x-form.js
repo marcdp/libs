@@ -1,10 +1,11 @@
 import XElement from "x-element";
 
+
 // constants
 const inputTypesThatAcceptsEnters = ["text", "password", "number", "date", "datetime-local", "time", "week", "month", "url", "email", "phone", "search"];
 
-// declaration
-export const declaration = {
+// contract
+export const contract = {
     description: "Coordinates data-field validation, submission, loading state, and wizard navigation.",
     events: {
         command: {

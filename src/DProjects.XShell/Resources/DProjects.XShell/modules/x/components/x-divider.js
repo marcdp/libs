@@ -1,6 +1,6 @@
 
-// declaration
-export const declaration = {
+// contract
+export const contract = {
     description: "Renders a visual divider.",
     events: {},
     properties: {},

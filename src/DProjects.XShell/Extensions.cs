@@ -17,6 +17,7 @@ namespace DProjects.XShell {
         public class Configuration {
             public string AppBase { get; init; } = "";
             public string AppConfig { get; init; }  = "";
+            public Dictionary<string,string> AppArgs { get; init; } = new();
             public string ResourcesBase { get; init; } = "";
             public string Favicon { get; init; } = "";
             public string[] UnhandledPrefixes { get; init; } = new string[] {"/_", "/api"};

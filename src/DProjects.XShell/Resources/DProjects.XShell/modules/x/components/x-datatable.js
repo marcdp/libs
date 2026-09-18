@@ -1,6 +1,6 @@
 
-// declaration
-export const declaration = {
+// contract
+export const contract = {
     description: "Provides a container for data table content.",
     events: {},
     properties: {},

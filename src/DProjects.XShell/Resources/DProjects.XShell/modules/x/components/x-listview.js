@@ -1,7 +1,7 @@
 import XElement from "x-element";
 
-// declaration
-export const declaration = {
+// contract
+export const contract = {
     description: "Arranges list-view items and optionally scrolls to the latest item.",
     events: {},
     properties: {

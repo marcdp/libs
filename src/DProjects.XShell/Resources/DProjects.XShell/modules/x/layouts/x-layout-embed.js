@@ -1,7 +1,16 @@
-import XElement from "x-element";
+// contract
+export const contract = {
+    description: "Layout for an embedded page.",
+    events: {},
+    properties: {
+        status: { type: "string", default: "", attr: true, state: true, description: "" },
+    },
+    methods: {}
+};
 
-// class
-export default XElement.define("x-layout-embed", {
+
+// implementation
+export default {
     meta: {
         renderEngine: "x",
         stateEngine: "proxy"
@@ -31,4 +40,4 @@ export default XElement.define("x-layout-embed", {
     state: {
         status: ""
     }
-});
+};

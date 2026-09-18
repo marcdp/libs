@@ -2,8 +2,8 @@ import XElement from "x-element";
 import xshell from "xshell";
 import { findFocusableElement, getDeepActiveElement, isDescendantOfElement } from "../utils/dom.js";
 
-// declaration
-export const declaration = {
+// contract
+export const contract = {
     description: "Displays slotted content in an expandable dropdown panel.",
     events: {},
     properties: {

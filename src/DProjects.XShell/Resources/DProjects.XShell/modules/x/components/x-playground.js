@@ -1,7 +1,8 @@
 import XElement from "x-element";
 
-// declaration
-export const declaration = {
+
+// contract
+export const contract = {
     description: "Shows editable component markup alongside its rendered result.",
     events: {},
     properties: {
