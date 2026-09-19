@@ -1,102 +1,26 @@
 # Resolvers
 
-Resolvers convert logical resource names into concrete resource URLs.
+A Resolver maps a logical resource such as `icon:x-bell` to a concrete URL and loader metadata. The Loader then obtains the resource. They are
+separate responsibilities.
 
-For example:
+The intended nested rule shape is:
 
-```text
-icon:x-icon1
+```jsonc
+{
+    "xshell": {
+        "resolver": {
+            "icon": {
+                "x-{name}": { "url": "/_assets/x/icons/{name}.svg", "loader": "icon-svg" }
+            }
+        }
+    }
+}
 ```
 
-can resolve to something like:
+Bootstrap generates conventional rules for module icons, layouts, components, pages, and JavaScript modules. The checked-in default prefix is
+`/_assets`. Rules for a shared module definition should be generated once, regardless of the number of live imports.
 
-```text
-http://localhost:5000/_assets/modules/x/icons/icon1.svg
-```
+**Current gap:** `resolver.js` reads dotted `resolver.*` keys and parses encoded semicolon strings, while bootstrap now generates nested rule objects.
+Structured rule dispatch is not yet implemented in that service.
 
-## Resolver rules
-
-Resolver rules are built from the XShell configuration.
-
-They use configuration keys such as:
-
-```text
-resolver.icon:x-{name}
-resolver.component:x-{name}
-resolver.page:/_assets/x/{path}.js
-resolver.module:/_assets/x/{path}.js
-```
-
-Each rule maps a logical resource pattern to a concrete resource path.
-
-For example:
-
-```text
-resolver.icon:x-{name}
-    =
-/_assets/x/icons/{name}.svg; loader=icon-svg;
-```
-
-With that rule:
-
-```text
-icon:x-icon1
-```
-
-matches:
-
-```text
-x-{name}
-```
-
-where:
-
-```text
-name = icon1
-```
-
-and resolves to:
-
-```text
-/_assets/modules/x/icons/icon1.svg
-```
-
-## Result
-
-A resolver returns the resolved URL together with metadata from the rule, such as the loader to use.
-
-Conceptually:
-
-```text
-logical resource
-    ↓
-resolver rules from config
-    ↓
-match pattern
-    ↓
-replace placeholders
-    ↓
-resolved URL + loader metadata
-```
-
-For example:
-
-```text
-icon:x-icon1
-    ↓
-resolver.icon:x-{name}
-    ↓
-/_assets/modules/x/icons/icon1.svg
-    +
-loader=icon-svg
-```
-
-The Resolver only determines where the resource is and how it should be loaded.
-
-The actual loading is handled by the [Loader](loaders.md).
-
-## Related documentation
-
-* [Configuration](configuration.md)
-* [Loaders](loaders.md)
-* [Modules](modules.md)
+See [Configuration](configuration.md) and [Loaders](loaders.md).

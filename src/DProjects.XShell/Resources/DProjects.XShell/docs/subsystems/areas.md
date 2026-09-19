@@ -26,9 +26,9 @@ is marked, the first sorted area.
 | `xshell.areas.<name>.icon` | Is exposed on the area object and used by the checked-in area-selection page. |
 | `xshell.areas.<name>.description` | Is exposed on the area object and used by the checked-in area-selection page. |
 
-Application configuration can define these keys directly. A module can contribute them globally, for example
-`global.xshell.areas.help.home`; bootstrap removes `global.`, substitutes the module name where requested, and normalizes a leading-slash value beneath
-the module's asset path.
+The intended nested configuration places area contributions under `xshell.areas` in a root or imported module fragment. For example,
+`{ "xshell": { "areas": { "help": { "home": "/pages/help.js" } } } }` can contribute a home page; bootstrap normalizes
+module-relative resource paths. The current Areas service still reads dotted keys, so nested contributions are not consumed end to end.
 
 ## Initial and current area navigation
 

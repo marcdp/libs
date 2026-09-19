@@ -1,128 +1,33 @@
 # Navigation
 
-XShell supports two navigation modes:
+One Navigation subsystem maps browser location to Pages. It has a working hash mode and an intended path mode; both are designed to share the same
+page infrastructure.
+
+## Hash mode (current)
+
+The checked-in default is `xshell.navigation.mode = "hash"` with `hashPrefix = "#!"`. Navigation listens for hash changes, decodes the page stack, and
+updates `x-page` elements. Because the destination is in the fragment, the server need only serve the host page.
 
 ```text
-path
-hash
+host page#!/orders/123 → Navigation → Page
 ```
 
-Both modes use the same Page and navigation infrastructure.
+## Path mode (planned)
 
-## Path navigation
+Path mode would use browser paths and history with the same Pages. Direct deep links require the server to return the XShell host page.
+`Navigation.init()` currently throws `Path mode is not implemented yet`; history-writing branches alone do not make it usable.
 
-Path navigation uses normal browser URLs.
-
-For example:
-
-```text
-/orders/123
-/settings/profile
+```jsonc
+{ "xshell": { "navigation": { "mode": "hash", "hashPrefix": "#!" } } }
 ```
 
-This mode requires server collaboration.
+The nested names match `xshell.jsonc`. The runtime `Navigation` service still reads older dotted keys, so this nested setting is not yet consumed
+correctly.
 
-When the browser requests one of these URLs directly, the server must return the XShell host application so that client-side navigation can continue from that path.
+## Intents
 
-Conceptually:
+A public navigation intent identifies a capability, for example `customer.detail` with `customerId`. The owning module maps it to a private
+page/route. Other modules should request the intent through XShell rather than depend on a menu item or raw page URL. Intent registration and dispatch
+are not yet implemented; current navigation accepts page `href` values.
 
-```text
-/orders/123
-    ↓
-server
-    ↓
-XShell host page
-    ↓
-Navigation
-    ↓
-Page
-```
-
-Path navigation produces clean application URLs and integrates with the browser history.
-
-## Hash navigation
-
-Hash navigation stores the navigation path after `#`.
-
-For example:
-
-```text
-/#/orders/123
-/#/settings/profile
-```
-
-Everything before the hash identifies the host page, while XShell handles everything after it.
-
-This mode does not require special server routing and is therefore always available.
-
-Conceptually:
-
-```text
-/#/orders/123
-    ↓
-XShell Navigation
-    ↓
-Page
-```
-
-Hash navigation is mainly provided for compatibility and environments where server-side routing cannot be configured.
-
-## Navigation mode
-
-The navigation mode is selected through configuration.
-
-For example:
-
-```text
-navigation.mode = path
-```
-
-or:
-
-```text
-navigation.mode = hash
-```
-
-The rest of the application does not need to depend on the selected mode.
-
-Navigation converts the browser URL into the corresponding Page resource and loads it through the standard XShell Resolver and Loader infrastructure.
-
-```mermaid
-flowchart LR
-    A[Browser URL] --> B[Navigation]
-
-    B --> C{Mode}
-
-    C -->|Path| D["/orders/123"]
-    C -->|Hash| E["/#/orders/123"]
-
-    D --> F[Resolve Page]
-    E --> F
-
-    F --> G[Load Page]
-    G --> H[Mount Page]
-```
-
-## Summary
-
-The two navigation modes are:
-
-```text
-Path
-    clean URLs
-    requires server collaboration
-
-Hash
-    URLs after #
-    no server routing required
-    always available
-```
-
-Both ultimately resolve, load, and display the same XShell Pages.
-
-## Related documentation
-
-* [Pages](pages.md)
-* [Resolvers](resolvers.md)
-* [Loaders](loaders.md)
-* [Configuration](configuration.md)
+See [Pages](pages.md) and [ADR-0003](../adr/0003-navigation.md).

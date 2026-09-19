@@ -236,14 +236,14 @@ The result is a standard browser Web Component.
 
 ## State and rendering
 
-A definition-based component can use:
+A definition-based component uses engine defaults in nested configuration:
 
-```text
-component.stateEngine
-component.renderEngine
+```jsonc
+{ "xshell": { "component": { "stateEngine": "plain", "renderEngine": "plain" } } }
 ```
 
-with module or component-specific overrides.
+Module definitions may provide their own nested `component` overrides. Current `component-js` still reads legacy dotted keys, so nested
+engine selection is not yet wired through the runtime.
 
 The selected state and render engines are used while converting the definition into the final Web Component class.
 

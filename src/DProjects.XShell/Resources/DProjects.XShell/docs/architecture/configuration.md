@@ -1,165 +1,54 @@
 # Configuration
 
-XShell runtime configuration is a single flat key/value map assembled during bootstrap.
+XShell configuration is authored as JSONC with ordinary nested objects. The application is its root module; imported module definitions and framework
+defaults contribute to one **effective configuration**.
 
-## Status
-
-Draft.
-
-## Configuration model
-
-Keys use naming conventions to group related settings:
-
-```text
-app.*
-xshell.*
-navigation.*
-page.*
-component.*
-modules.<name>.*
-resolver.*
-```
-
-For example:
-
-```json
+```jsonc
 {
-    "navigation.mode": "hash",
-    "page.renderEngine": "plain",
-    "component.stateEngine": "plain",
-    "app.name": "sample-app",
-    "modules.x.page.renderEngine": "x"
+    "app": { "name": "test-app", "label": "Test app", "version": "0.1.0" },
+    "modules": {
+        "test": { "label": "Test module", "imports": { "x": { "url": "url:../x/module.jsonc" } } }
+    },
+    "xshell": { "navigation": { "mode": "hash" } }
 }
 ```
 
-The configuration namespace is flat. Dots are part of the key and express logical grouping; they do not represent nested objects.
+The example is a root module fragment, not a separate application file format. `app` holds root/application metadata; `modules` holds canonical
+definitions keyed by their real identity; `xshell` holds framework settings and module contributions. Import keys and params describe prospective live
+instances, not extra canonical definitions. The resolved `url` on a definition records its source location.
 
-Values may still be any JSON-compatible value, including arrays and objects.
+## Merge and precedence
 
-## Sources
+| Earlier and later values | Result |
+| --- | --- |
+| Plain object + plain object | Recursively merge properties |
+| Array + array | Concatenate in order |
+| Scalar or other value | Later value replaces earlier value |
 
-Bootstrap assembles the final configuration from:
+Order: framework defaults, deepest imported dependencies, their importers, then the root module. Dependencies contribute first; importers may override
+them. A definition contributes once even when multiple imports reference it. Cycles must produce a bounded failure. **Current bootstrap** implements
+the three value rules and URL deduplication, but its registration-order merge does not guarantee dependency-first precedence or report cycles.
 
-1. framework configuration from `xshell.jsonc`;
-2. application configuration from `app.jsonc`;
-3. each configured `module.jsonc`;
-4. values generated during bootstrap, such as module resolvers and runtime paths.
+## URLs, resolvers, and immutability
 
-```mermaid
-flowchart LR
-    A[xshell.jsonc] --> D[Runtime Config]
-    B[app.jsonc] --> D
-    C[module.jsonc files] --> D
-    E[Bootstrap-generated values] --> D
-```
+Bootstrap resolves `url:` references against their JSONC source and maps module-relative resource paths into the configured asset namespace (currently
+`/_assets`). Resolver entries are structured objects:
 
-Later values replace earlier values with the same key.
-
-## Module configuration
-
-Module-local fields are stored under:
-
-```text
-modules.<name>.*
-```
-
-For example:
-
-```text
-page.renderEngine
-→ modules.x.page.renderEngine
-
-styles
-→ modules.x.styles
-```
-
-Fields beginning with `global.` are promoted into the shared configuration by removing that prefix:
-
-```text
-global.xshell.areas.main.home
-→ xshell.areas.main.home
-```
-
-## Resolvers
-
-Resolver entries use keys of the form:
-
-```text
-resolver.<kind>:<name-or-pattern>
-```
-
-Examples:
-
-```text
-resolver.import:xshell
-resolver.component:x-{name}
-resolver.page:/_assets/x/{path}.html
-```
-
-Bootstrap also generates conventional resolver entries for module icons, layouts, components, pages, and JavaScript modules.
-
-See [Resolvers](resolvers.md).
-
-## URL normalization
-
-URLs are normalized before values are merged.
-
-The normalization base depends on the source:
-
-* framework values use the XShell asset path;
-* application values are resolved relative to `app.jsonc`;
-* module values are resolved relative to that module's asset path.
-
-Leading-slash module values therefore become module-relative runtime asset paths.
-
-## Final configuration
-
-After bootstrap, the resulting configuration may look like:
-
-```json
+```jsonc
 {
-    "navigation.mode": "hash",
-    "page.renderEngine": "plain",
-    "page.stateEngine": "plain",
-    "component.renderEngine": "plain",
-    "component.stateEngine": "plain",
-
-    "xshell.assetsPrefix": "_assets",
-    "xshell.areaDefault": "main",
-
-    "app.name": "sample-app",
-    "app.label": "Sample app",
-    "app.base": "http://localhost:5000",
-
-    "modules.x.src": "http://localhost:5000/modules/x/module.jsonc",
-    "modules.x.name": "x",
-    "modules.x.page.renderEngine": "x",
-    "modules.x.component.renderEngine": "x",
-
-    "xshell.areas.main.home": "/_assets/module1/pages/page0.html",
-
-    "resolver.import:xshell": "/_assets/xshell/xshell.js",
-    "resolver.component:x-{name}": "/_assets/x/components/x-{name}.js; loader=component-js; cache=true; module=x;",
-    "resolver.page:/_assets/x/{path}.html": "/_assets/x/{path}.html; loader=page-html; cache=true; module=x;"
+    "xshell": {
+        "resolver": {
+            "component": {
+                "ace-editor": { "url": "https://example.com/ace.js", "loader": "module-js" }
+            }
+        }
+    }
 }
 ```
 
-This is the assembled runtime configuration, not the contents of any single JSONC file.
+The resolver chooses a URL and loader; the loader performs loading. The final merged configuration should be validated as one object with JSON Schema
+in debug/development mode, then deeply frozen before XShell receives it. JSONC is the authoring format; browsers do not provide native JSON Schema
+validation. There is currently no schema or `schemes` directory, no validation step, and no deep freeze. `Config` freezes only its top-level object
+and retains dotted-key lookup methods, while several services use those methods. The nested model is therefore partially migrated.
 
-Once created, the runtime configuration is **read-only**. `Config` freezes the assembled top-level map before exposing it to the rest of XShell.
-
-Runtime services and modules consume configuration values; they do not modify the configuration after bootstrap.
-
-## Runtime availability
-
-The complete configuration is assembled before the import map is created and before `xshell` is initialized.
-
-The runtime exposes the resulting read-only map through the `Config` service.
-
-## Related documentation
-
-* [Bootstrap](bootstrap.md)
-* [Modules](modules.md)
-* [Resolvers](resolvers.md)
-* [Application Specification](../specifications/application.md)
-* [Module Specification](../specifications/module.md)
+See [Module Specification](../specifications/module.md), [Resolvers](resolvers.md), and [ADR-0002](../adr/0002-jsonc-specifications.md).

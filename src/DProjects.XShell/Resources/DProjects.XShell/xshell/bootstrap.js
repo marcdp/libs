@@ -96,7 +96,7 @@ async function loadConfig() {
     const rootModuleConfig = await rootModuleConfigTask;
     const rootModule = Object.values(rootModuleConfig.modules)[0];
     const rootModuleName = Object.keys(rootModuleConfig.modules)[0];
-    rootModule.src = rootModuleUrl;
+    rootModule.url = rootModuleUrl;
     absolutizePrefixedUrl("", rootModuleConfig, rootModuleUrl);    
     relativizePaths("", rootModuleConfig, "/" + assetsPrefix + "/modules/" + rootModuleName);
     
@@ -133,7 +133,7 @@ async function loadConfig() {
                 registeredItem.config = await registeredItem.task;
                 const registeredModule = Object.values(registeredItem.config.modules)[0];
                 const registeredModuleName = Object.keys(registeredItem.config.modules)[0];
-                registeredModule.src = registeredItem.url;
+                registeredModule.url = registeredItem.url;
                 absolutizePrefixedUrl("", registeredItem.config, registeredItem.url);    
                 relativizePaths("", registeredItem.config, "/" + assetsPrefix + "/modules/" + registeredModuleName);
                 delete registeredItem.task;
@@ -179,31 +179,29 @@ async function loadConfig() {
     // console
     console.log("Config:", configMerged);
 
+    // return
+    return configMerged;
 }
-
 async function installServiceWorker(config) {
 
     // install service worker
     console.log("bootstrap: installing service worker ...");
     const bootstrapUrlRaw = bootstrapUrl.toString();
-    //const realSwUrl = bootstrapUrlRaw.substring(0, bootstrapUrlRaw.lastIndexOf("/")) + "/sw.js";
     const reg = await navigator.serviceWorker.register(swUrl, {
         scope: appBaseUrl + "/"
     });
 
     // creates rules to send to service worker
-    const xshellVersion = config["xshell.version"];
-    const assetsPrefix = config["xshell.assetsPrefix"];
+    const xshellVersion = config.xshell.version;
+    const assetsPrefix = config.xshell.assetsPrefix;
     let rules = [];
     rules.push({ src: combineUrls(appUrl, "./" + assetsPrefix + "/xshell"), dst: bootstrapUrlDir, version: xshellVersion, name:"xshell", exceptions:[bootstrapUrlDir + "/xshell.jsonc"]});
-    for(var key in config) {
-        if (key.startsWith("modules.") && key.endsWith(".src")) {
-            const moduleName = key.split(".")[1];
-            const moduleSrc = config[key];
-            const moduleSrcDir = moduleSrc.substring(0, moduleSrc.lastIndexOf("/"));
-            const moduleVersion = config[`modules.${moduleName}.version`];
-            rules.push({ src: combineUrls(appUrl, "./" + assetsPrefix + "/" + moduleName), dst: moduleSrcDir, version: moduleVersion, name: moduleName, exceptions: [moduleSrc]});
-        }
+    for(var moduleId of Object.keys(config.modules)) {
+        const module = config.modules[moduleId];
+        const moduleUrl = module.url;
+        const moduleUrlDir = moduleUrl.substring(0, moduleUrl.lastIndexOf("/"));
+        const moduleVersion = module.version;
+        rules.push({ src: combineUrls(appUrl, "./" + assetsPrefix + "/" + moduleId), dst: moduleUrlDir, version: moduleVersion, name: moduleId, exceptions: [moduleUrl]});
     }
 
     // wait for ready
@@ -247,38 +245,31 @@ async function loadXShell(config) {
 }
 async function bootstrap() {
     
+    // load config
     let config = await loadConfig();
     
-    // load xshell config
-    //config = await loadXShellConfig(config);
-    //config = await loadModulesConfigModern(config);
-    
-    // load app config
-    //config = await loadAppConfig(config);
-    // load modules config
-    //config = await loadModulesConfig(config);
-
     // installServiceWorker
     if (!await installServiceWorker(config)){
         return;
     }    
+
     // create importmap
     let imports = {};
-    for (let key in config) {
-        if (key.startsWith("resolver.import:")) {
-            let importName = key.substring(key.indexOf(":") + 1);
-            let importSrc = config[key].split(";")[0].trim();
-            imports[importName] = (importSrc.indexOf(":") != -1 ? importSrc : appBaseUrl + importSrc);
-        }
+    for (let resolverImportName of Object.keys(config.xshell.resolver.import)) {
+        let resolverImportUrl = config.xshell.resolver.import[resolverImportName].url;
+        imports[resolverImportName] = (resolverImportUrl.indexOf(":") != -1 ? resolverImportUrl : appBaseUrl + resolverImportUrl);
     }
-    debugger;
     const importMap = document.createElement("script");
     importMap.type = "importmap";
     importMap.textContent = JSON.stringify({ imports }, null, 2);
     document.head.appendChild(importMap);
-    // load xshell
-    let xshell = await loadXShell(config);
+
+    // import xshell ES6 module
+    console.log("bootstrap: loading xshell ...");
+    let xshell = (await import("xshell")).default;
+    
     // init xshell
+    debugger;
     await xshell.init(config);
 }
 

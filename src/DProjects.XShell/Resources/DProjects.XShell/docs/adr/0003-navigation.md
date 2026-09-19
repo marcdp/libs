@@ -1,32 +1,25 @@
 # ADR-0003: Navigation
 
-This record captures design considerations for hash-based and path-based XShell navigation.
-
 ## Status
 
-Draft; hash mode is implemented and configured by default, while path mode is incomplete.
+Partially implemented: hash mode is current; path mode and public intents are planned.
 
 ## Context
 
-XShell maps browser location to one or more page elements and encodes optional navigation metadata and stacked pages in the URL.
+XShell maps browser location to Pages. One Navigation subsystem should serve hash and path URL modes through the same page infrastructure. Earlier
+architecture prose described path mode as available, but `Navigation.init()` still throws for it.
 
-## Hash-based navigation
+## Decision
 
-The current implementation listens for hash changes, defaults to the `#!` prefix, and synchronizes a parsed page stack with the DOM. Hash routing can operate without server fallback configuration but places application location after the fragment marker.
+Keep hash navigation as the current mode. Its default prefix is `#!`; it needs no server route fallback. Path mode should use browser paths and
+history and requires server fallback for deep links. It must not be reported as operational until initialization and history restoration work.
 
-## Path-based navigation
+Public navigation intents should let modules request capabilities such as `customer.detail` without depending on another module's page URL or menu
+configuration. Intent registration and dispatch are not implemented yet.
 
-URL construction contains path-mode branches and history API calls, but navigation initialization currently throws `Path mode is not implemented yet`. Server fallback, refresh, base-path, and popstate behavior remain unresolved.
+## Open work
 
-## Decision considerations
+Specify path-mode base paths, direct loads, refresh, and `popstate` behavior. Define intent mapping and missing-target failures. Keep layout
+presentation choices separate from route resolution.
 
-The eventual choice must cover hosting requirements, deep links, browser history, application base paths, query and fragment semantics, and compatibility with existing URLs.
-
-## TODO
-
-TODO: Do not select or recommend a mode until path mode is implemented and both modes have equivalent navigation contract tests.
-
-## Related documentation
-
-- [Navigation Architecture](../architecture/navigation.md)
-- [Application Specification](../specifications/application.md)
+See [Navigation](../architecture/navigation.md) and [Pages](../architecture/pages.md).

@@ -1,110 +1,35 @@
 # Architecture
 
-XShell is a modular application framework built around configuration, modules, resource resolution, loading, Web Components, and browser navigation.
-
-At a high level:
+XShell starts from a root module definition and recursively discovers module imports. The desired flow is:
 
 ```text
-Initial HTML
-    ↓
-Bootstrap
-    ↓
-Runtime configuration
-    ↓
-Modules
-    ↓
-Service Worker + /_assets
-    ↓
-Resolvers
-    ↓
-Loaders
-    ↓
-Components / Pages
-    ↓
-Navigation
+HTML/bootstrap inputs → root module → recursive imports → canonical module definitions
+    → URL normalization and Service Worker resource mappings
+    → dependency-first merge → nested effective configuration (app, modules, xshell)
+    → validation in development → freeze → XShell
+    → live module instances → navigation and services
 ```
 
-## Overview
+`config.modules` contains declarative definitions. `xshell.modules` is the runtime service for live instances. Two imports may refer to one definition
+while carrying separate params and runtime state. The current implementation has gaps in this flow; each document identifies the relevant ones.
 
-The host page loads `bootstrap.js` and provides the initial XShell configuration.
-
-Bootstrap then:
-
-```text
-loads configuration
-    ↓
-loads module definitions
-    ↓
-assembles the flat runtime configuration
-    ↓
-installs the Service Worker
-    ↓
-creates the import map
-    ↓
-imports XShell
-    ↓
-initializes services, modules, navigation, and menus
-```
-
-Applications are composed from modules:
-
-```text
-Application = Module 1 + Module 2 + ... + Module N
-```
-
-Each module contributes configuration and static resources.
-
-Module resources are exposed to the browser through a uniform namespace:
-
-```text
-/_assets/<module>/...
-```
-
-The Service Worker hides where those resources are physically stored.
-
-Resource loading then follows the standard pipeline:
-
-```text
-logical resource
-    ↓
-Resolver
-    ↓
-URL + loader metadata
-    ↓
-Loader
-    ↓
-resource-specific loader
-    ↓
-runtime result
-```
-
-Components and Pages use the same component programming model.
-
-Conceptually:
-
-```text
-Component
-    ├── regular UI component
-    └── Page
-            +
-        Navigation
-```
+Module resources use `/_assets/<module>/...` with the checked-in `_assets` prefix. The Service Worker maps that namespace to source files. Resource
+resolution selects a URL and loader; the loader obtains the resource. A Page uses the normal Component model plus Navigation.
 
 ## Documents
 
-* [Bootstrap](bootstrap.md) — How the browser starts XShell and initializes the runtime.
-* [Configuration](configuration.md) — The flat, read-only runtime configuration assembled during bootstrap.
-* [Modules](modules.md) — How modules compose an application and contribute configuration and resources.
-* [Components](components.md) — The Web Component declaration and implementation model.
-* [Pages](pages.md) — Components used as navigation destinations, including query-string properties.
-* [Resolvers](resolvers.md) — Conversion of logical resource names into concrete resource URLs and loader metadata.
-* [Loaders](loaders.md) — Dispatching resolved resources to resource-specific loaders.
-* [Service Worker](service-worker.md) — Uniform access to module resources through the `/_assets` namespace.
-* [Navigation](navigation.md) — Path and hash navigation.
+- [Bootstrap](bootstrap.md) — Startup and preparation versus runtime initialization.
+- [Configuration](configuration.md) — Nested effective configuration and merge rules.
+- [Modules](modules.md) — Definitions, imports, live instances, and communication.
+- [Components](components.md) — The Web Component model.
+- [Pages](pages.md) — Pages and layouts.
+- [Resolvers](resolvers.md) — Logical resource resolution.
+- [Loaders](loaders.md) — Resource loading.
+- [Service Worker](service-worker.md) — Resource virtualization.
+- [Navigation](navigation.md) — Hash navigation and planned path navigation.
 
 ## Related documentation
 
-* [XShell documentation](../)
-* [Specifications](../specifications/)
-* [Subsystems](../subsystems/)
-* [Asset URL Namespace](../adr/0001-asset-url-namespace.md)
+- [Specifications](../specifications/)
+- [Subsystems](../subsystems/)
+- [Asset URL Namespace](../adr/0001-asset-url-namespace.md)

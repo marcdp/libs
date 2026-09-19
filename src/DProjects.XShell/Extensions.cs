@@ -17,7 +17,7 @@ namespace DProjects.XShell {
         public class Configuration {
             public string AppBase { get; init; } = "";
             public string AppConfig { get; init; }  = "";
-            public Dictionary<string,string> AppArgs { get; init; } = new();
+            public Dictionary<string,string> AppParams { get; init; } = new();
             public string ResourcesBase { get; init; } = "";
             public string Favicon { get; init; } = "";
             public string[] UnhandledPrefixes { get; init; } = new string[] {"/_", "/api"};
@@ -84,6 +84,7 @@ namespace DProjects.XShell {
                         <!-- config xshell -->
                         <meta name="xshell.app_base_url" content="{config.AppBase}">
                         <meta name="xshell.app_config_url" content="{config.AppConfig}">
+                        <meta name="xshell.app_params" content="{string.Join("&", config.AppParams.Select(kv => kv.Key + "=" + kv.Value))}">
                         <meta name="xshell.sw_url" content="{config.AppBase}/sw.js">
 
                         <!-- bootstrap xshell -->

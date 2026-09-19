@@ -1,288 +1,66 @@
 # Modules
 
-An XShell application is composed from one or more modules.
+The application is a **root module**. Its `module.jsonc` imports other modules recursively. A module can provide configuration, components, pages,
+layouts, styles, icons, and an optional `module.js` implementation.
 
-Conceptually:
+## Definition, import, instance
 
-```text
-Application = Module 1 + Module 2 + ... + Module N
-```
-
-Each module contributes configuration and static resources to the application.
-
-## Module structure
-
-A module consists of:
-
-```text
-module = module.jsonc + static resources
-```
-
-A typical module can contain:
-
-* `components/`
-* `pages/`
-* `layouts/`
-* `icons/`
-* `css/`
-* `libs/`
-* `utils/`
-* an optional ES module handler such as `module.js`
-
-## Module configuration
-
-A module is described by a `module.jsonc` file.
-
-For example:
+| Concept | Location | Meaning |
+| --- | --- | --- |
+| Module definition | `config.modules` | Canonical declarative data from one `module.jsonc`, keyed by real module identity. |
+| Module import | A definition's `imports` | A local name, URL, and optional params identifying a desired live instance. |
+| Live module instance | `xshell.modules` | Runtime object with separate params and mutable state. |
 
 ```jsonc
 {
-    // module
-    "name": "module1",
-    "label": "Module 1 title",
-    "icon": "module1-add",
-    "version": "0.1.5",
-    "handler": "/module.js",
-    "depends": [],
-    "styles": ["/css/styles.css"],
-
-    // page defaults
-    "page.renderEngine": "x",
-    "page.stateEngine": "proxy",
-
-    // menus
-    "menus.main.main": [{
-        "label": "Amazon S3",
-        "href": "/pages/page0.html",
-        "children": [
-            {
-                "label": "Page 1",
-                "href": "/pages/page1.html"
-            },
-            {
-                "label": "Page 2",
-                "href": "/pages/page2.html"
+    "modules": {
+        "test": {
+            "imports": {
+                "x": { "url": "url:../x/module.jsonc", "params": { "var1": 1111 } },
+                "x2": { "url": "url:../x/module.jsonc", "params": { "var1": 333 } }
             }
-        ]
-    }],
-
-    "menus.tools": [
-        {
-            "label": "My things",
-            "href": "/pages/page1.html",
-            "aicon": "x-bell"
-        },
-        {
-            "label": "Your things",
-            "href": "/pages/page2.html"
-        }
-    ],
-
-    // global areas
-    "global.xshell.areas.main.home": "/pages/page0.html"
-}
-```
-
-## Module-local configuration
-
-Normal module fields are added to the runtime configuration under:
-
-```text
-modules.<module>.*
-```
-
-For example:
-
-```text
-page.renderEngine → modules.module1.page.renderEngine
-styles            → modules.module1.styles
-version           → modules.module1.version
-handler           → modules.module1.handler
-```
-
-This keeps module-specific configuration isolated by module name.
-
-## Global contributions
-
-A module can also contribute configuration to the shared application namespace.
-
-Keys beginning with:
-
-```text
-global.
-```
-
-have that prefix removed when the final runtime configuration is assembled.
-
-For example:
-
-```text
-global.page.layout.main
-→ page.layout.main
-
-global.xshell.dialog.confirm
-→ xshell.dialog.confirm
-
-global.resolver.import:marked
-→ resolver.import:marked
-```
-
-This allows a module to extend or configure application-wide behavior.
-
-See [Configuration](configuration.md).
-
-## Module resources
-
-All resource paths beginning with `/` are relative to that module.
-
-For example:
-
-```jsonc
-"styles": [
-    "/css/styles.css"
-]
-```
-
-for module `module1` becomes a runtime resource such as:
-
-```text
-/_assets/module1/css/styles.css
-```
-
-The same applies to pages, components, icons, libraries, handlers, and other module-owned static files.
-
-## Module handler
-
-A module can optionally define a JavaScript handler through:
-
-```jsonc
-"handler": "/module.js"
-```
-
-The handler is an ES module whose default export is a module controller.
-
-For example:
-
-```js
-export default class Module1Module {
-    onCommand(command, params) {
-        if (command == "load") {
-            // module load
         }
     }
 }
 ```
 
-During module initialization, XShell loads the handler and sends it lifecycle commands.
+Both imports refer to the single canonical `config.modules.x` definition. The intended runtime has `xshell.modules.x` and `xshell.modules.x2` as
+separate live instances. Their source files and `/_assets/x/...` resources are shared. Instance separation applies to params and state, not static
+assets. `url` on the definition records the resolved source of `module.jsonc`.
 
-The `load` command is called after the module handler and styles have been loaded and before initial navigation starts.
+**Current state:** bootstrap deduplicates definition URLs and merges `modules.x` once. `Modules.init()` still reads dotted config keys, iterates
+definitions rather than imports, and creates no separate instance for `x2`. The `xshell.modules` property exposes a `Modules` service rather than the
+proposed keyed instance map. Repeated imports with distinct params are not implemented end to end.
 
-Module parameters from:
+## Configuration and implementation
 
-```text
-modules.<name>.params.*
-```
+Definitions may contribute nested `xshell` settings directly. Dependency contributions should merge before their importers; current bootstrap does not
+guarantee that order. Imports must be cycle-safe; current URL deduplication prevents endless fetching but does not report a cycle.
 
-are passed to the handler's `load` command.
+A module may have a constructable implementation in `module.js`. A single source class can create separate live objects with separate runtime state.
+The checked-in sample exports a class and current `Modules` creates it with `new`, then calls `onCommand("load", ...)`. That command is current
+behavior, not a settled instance lifecycle API. Creation, start, stop, and disposal responsibilities remain to be specified.
 
-Conceptually:
+## Public module contract and communication
 
-```text
-module.jsonc
-    ↓
-handler: /module.js
-    ↓
-load ES module
-    ↓
-create module controller
-    ↓
-onCommand("load", params)
-```
+The intended `module.jsonc` contract is declarative and separate from metadata such as label, version, icon, description, and tags. Its four public
+boundaries are:
 
-## Generated resolvers
-
-Bootstrap generates conventional resolvers for each module.
-
-These provide standard locations for:
+| Contract part | Meaning |
+| --- | --- |
+| `params` | Accepted inputs when a live instance is created, including documented types, defaults, or required status where needed. Params belong to the import/instance. |
+| `events` | Public notifications emitted by an instance onto the XShell-wide Bus, distinct from internal DOM events. |
+| `methods` | Public operations requested through XShell, which resolves, validates, and dispatches to a target instance; async calls should be possible. |
+| `intents` | Public navigation capabilities such as `customer.detail` with `customerId`, independent of private URLs and menu items. |
 
 ```text
-icons
-layouts
-components
-pages
-JavaScript modules
+instance A ──event──────────────→ Bus
+instance A ──method request─────→ XShell mediator → instance B
+instance A ──navigation intent──→ Navigation → owning module/page
 ```
 
-For example, a module named `x` can expose resources through logical references such as:
+XShell mediation can provide target resolution, contract checks, consistent failures, logging, and future policy without direct cross-module object
+references. Menus remain presentation configuration owned by a module or application. The Bus currently supports `emit` and listeners; method and
+intent dispatch and module contract enforcement are planned. Exact invocation names, validation rules, and errors remain TODOs.
 
-```text
-icon:x-{name}
-layout:x-layout-{name}
-component:x-{name}
-```
-
-and page resources under the module asset namespace.
-
-See [Resolvers](resolvers.md).
-
-## Application composition
-
-The application configuration selects which modules participate in the application.
-
-For example:
-
-```jsonc
-{
-    "modules.x.src": "url:../../modules/x/module.jsonc",
-    "modules.orders.src": "url:./modules/orders/module.jsonc",
-    "modules.admin.src": "url:./modules/admin/module.jsonc"
-}
-```
-
-Bootstrap loads each module definition and combines them into the final runtime configuration.
-
-Conceptually:
-
-```text
-app.jsonc
-    ↓
-modules.x.src
-modules.orders.src
-modules.admin.src
-    ↓
-load module.jsonc files
-    ↓
-merge module configuration
-    ↓
-register module resources
-    ↓
-Application
-```
-
-## Runtime initialization
-
-After configuration is assembled, XShell initializes the configured modules.
-
-A module can contribute:
-
-* stylesheets;
-* configuration;
-* global configuration;
-* resolvers;
-* pages;
-* components;
-* areas and menus;
-* icons;
-* JavaScript modules;
-* an optional module handler.
-
-Module handlers and styles are initialized before initial navigation starts.
-
-## Related documentation
-
-* [Bootstrap](bootstrap.md)
-* [Configuration](configuration.md)
-* [Components](components.md)
-* [Pages](pages.md)
-* [Resolvers](resolvers.md)
-* [Module Specification](../specifications/module.md)
+See [Module Specification](../specifications/module.md), [Configuration](configuration.md), and [Navigation](navigation.md).

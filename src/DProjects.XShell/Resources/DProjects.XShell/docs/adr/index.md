@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-This section records significant XShell design questions, their context, and the direction under consideration.
+This section records significant XShell design decisions, their context, and implementation status.
 
 ## Status
 
@@ -9,8 +9,8 @@ Draft.
 ## Records
 
 - [ADR-0001: Asset URL Namespace](0001-asset-url-namespace.md) — Providing stable application URLs for service-worker-managed assets.
-- [ADR-0002: JSONC Specifications](0002-jsonc-specifications.md) — Evaluating JSONC for human-authored application and module files.
-- [ADR-0003: Navigation](0003-navigation.md) — Considering hash-based and path-based browser navigation.
+- [ADR-0002: JSONC Specifications](0002-jsonc-specifications.md) — JSONC authoring, nested composition, and planned final-config validation.
+- [ADR-0003: Navigation](0003-navigation.md) — Current hash mode, planned path mode, and public intents.
 - [ADR-0004: Properties and State](0004-properties-and-state.md) — Separating public component properties from internal reactive state.
 
 ## Conventions

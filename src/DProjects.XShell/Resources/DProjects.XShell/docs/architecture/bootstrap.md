@@ -1,148 +1,38 @@
 # Bootstrap
 
-XShell bootstrap initializes the runtime from the host page to the first application navigation.
-
-
-## Initial HTML
-
-The initial HTML page contains the XShell startup configuration as meta elements and includes the bootstrap script.
-
-A typical host page looks like:
+The host HTML supplies `xshell.app_config_url` (the root module JSONC URL), `xshell.app_base_url`, and `xshell.sw_url`, then loads
+`xshell/bootstrap.js`. The meta name `app_config_url` is retained in the host API; it does not imply a separate application configuration model.
 
 ```html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <!-- XShell configuration -->
-    <meta name="xshell.app_base_url" content="">
-    <meta
-        name="xshell.app_config_url"
-        content="/_resources/DProjects.XShell/samples/sample1/app.jsonc">
-    <meta name="xshell.sw_url" content="/sw.js">
-
-    <!-- XShell bootstrap -->
-    <script src="/_resources/DProjects.XShell/xshell/bootstrap.js"></script>
-</head>
-<body>
-</body>
-</html>
+<meta name="xshell.app_base_url" content="">
+<meta name="xshell.app_config_url" content="/_resources/DProjects.XShell/modules/test/module.jsonc">
+<meta name="xshell.sw_url" content="/sw.js">
+<script src="/_resources/DProjects.XShell/xshell/bootstrap.js"></script>
 ```
 
-XShell static resources are exposed by the ASP.NET host under URLs such as:
+The host exposes framework and module files under `/_resources/DProjects.XShell/...`. The example points to the checked-in nested `test` root module;
+the server command's current default still points to the legacy `samples/sample1/app.jsonc`.
 
-- /_resources/DProjects.XShell/...
-
-For example:
-
-- /_resources/DProjects.XShell/xshell/bootstrap.js
-- /_resources/DProjects.XShell/xshell/xshell.jsonc
-- /_resources/DProjects.XShell/modules/x/module.jsonc
-
-The important startup inputs are:
+## Preparation and execution
 
 ```text
-xshell.app_base_url
-xshell.app_config_url
-xshell.sw_url
+bootstrap: load xshell.jsonc defaults and root module.jsonc
+    → discover imported module.jsonc files recursively
+    → normalize URLs and prepare /_assets mappings
+    → merge dependency contributions before importers, root last
+    → validate final effective configuration in development (planned)
+    → deeply freeze effective configuration (planned)
+    → install/initialize Service Worker and create import map
+    → import xshell.js
+runtime: initialize services → create live module instances → navigation → menus
 ```
 
-and the inclusion of:
+The current bootstrap loads framework defaults and the root concurrently, discovers imports by URL, normalizes paths, merges nested objects, installs
+the Service Worker, creates an import map from `xshell.resolver.import`, and calls `xshell.init(config)`. It registers a URL only once, so repeated
+imports fetch one definition. The Service Worker is required before XShell starts; an uncontrolled first page is reloaded.
 
-```text
-xshell/bootstrap.js
-```
+**Current gaps:** merge iteration puts the root before its dependencies, so importer precedence is not guaranteed. No cycle error or dependency-order
+traversal exists. The bootstrap does not validate against JSON Schema or freeze the config. `Config` later freezes only its top-level copy. Runtime
+services still expect dotted keys, so the nested bootstrap output is not yet fully consumable.
 
-## Bootstrap flow
-
-`bootstrap.js` performs these main steps:
-
-```mermaid
-flowchart TD
-    A[Initial HTML] --> B[XShell meta configuration]
-    A --> C[bootstrap.js]
-
-    C --> D[Load configuration]
-
-    D --> D1[xshell.jsonc]
-    D --> D2[app.jsonc]
-    D --> D3[module.jsonc files]
-
-    D1 --> E[Assemble flat runtime config]
-    D2 --> E
-    D3 --> E
-
-    E --> F[Install Service Worker]
-    F --> G[Create Import Map]
-    G --> H[Import xshell.js]
-    H --> I[xshell.init config]
-
-    I --> J[Initialize services]
-    J --> K[Initialize modules]
-    K --> L[Initialize navigation]
-    L --> M[Initialize menus]
-```
-
-## Load configuration
-
-Bootstrap loads configuration from:
-
-1. `xshell.jsonc`;
-2. the application `app.jsonc`;
-3. each configured module's `module.jsonc`.
-
-These sources are normalized and merged into one flat runtime configuration.
-
-See [Configuration](configuration.md).
-
-## Service Worker
-
-Bootstrap installs the application Service Worker before XShell starts.
-
-The Service Worker provides a uniform client-side namespace for module resources:
-
-```text
-/_assets/<module>/...
-```
-
-It translates those URLs to the actual location of each module resource, which may be local or hosted on a remote server.
-
-This keeps module resource access consistent from the browser regardless of where the module is physically stored.
-
-See [Service Worker](service-worker.md).
-
-
-## Import map
-
-Bootstrap creates the browser import map from configured `resolver.import:*` entries.
-
-## XShell initialization
-
-Bootstrap then imports `xshell.js` and calls:
-
-```js
-await xshell.init(config);
-```
-
-Initialization performs the main runtime setup:
-
-```text
-init services
-    ↓
-init modules
-    ↓
-init navigation
-    ↓
-init menus
-```
-
-The completed configuration is read-only when passed to the runtime.
-
-## Related documentation
-
-* [Configuration](configuration.md)
-* [Modules](modules.md)
-* [Navigation](navigation.md)
-* [Service Worker](service-worker.md)
+See [Configuration](configuration.md), [Modules](modules.md), and [Service Worker](service-worker.md).
