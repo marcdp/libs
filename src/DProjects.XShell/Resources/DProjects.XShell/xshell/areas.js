@@ -20,25 +20,28 @@ export default class Areas {
             }
         });
         // create areas
-        let areas = [];
-        for(let areaId in config.xshell.areas) {
-            let area = { ...config.xshell.areas[areaId] };
-            area.id = areaId;
-            area.default = area.default || (config.xshell.areaDefault == areaId);
-            area.label = area.label || areaId;
-            area.order = area.order || 0;
-            area.prefixes = [];
-            area.prefixes.push("/" + areaId + "/");
-            areas.push(area);
+        const areasConfig = config.xshell.areas;
+        for (const [areaId, areaConfig] of Object.entries(areasConfig.definitions)) {
+            const area = {
+                id: areaId,
+                label: areaConfig.label || areaId,
+                icon: areaConfig.icon || null,
+                prefix: areaConfig.prefix || "",
+                home: areaConfig.home || null,
+                modules: areaConfig.modules || [],
+                order: areaConfig.order || 0,
+                default: areasConfig.default === areaId
+            };
+            this._areas.push(Object.freeze(area));
         }
         // sort areas by default, order, label
-        areas.sort( (a,b) => {
+        this._areas.sort( (a,b) => {
             if (a.default != b.default) return a.default ? -1 : 1;
             if (a.order == b.order) return a.label.localeCompare(b.label);
             return (a.order - b.order);
         });
         // freeze areas
-        this._areas = Object.freeze(areas);
+        this._areas = Object.freeze(this._areas);
     }
 
     // get areas
@@ -55,7 +58,7 @@ export default class Areas {
         // get area id by src
         // search by prefixes
         for (const area of this._areas) {
-            for(const prefix of area.prefixes) {
+            for(const prefix of [area.prefix]) {
                 if (src.startsWith(prefix)) {
                     return area.id;
                 }
