@@ -41,15 +41,17 @@ export async function createPageClassFromJsDefinition(src, context, definition) 
         if (propDefinition.qs === true && propDefinition.reflect) stateReflectedQsNames.push(propName);
         if (propDefinition.context === true) stateContextNames.push(propName);
     }
+    // modules
+    const moduleConfig = xshell.config.modules[context.resourceDefinition.moduleId];
     // state engine
     const stateEngineXShell = xshell.config.xshell.page.stateEngine;
-    const stateEngineModule = xshell.config.modules[context.resourceDefinition.module].page.stateEngine || stateEngineXShell;
+    const stateEngineModule = moduleConfig.page?.stateEngine || stateEngineXShell;
     const stateEnginePage = definition.meta.stateEngine || stateEngineModule;
     const stateEngineFactoryCreator = await xshell.loader.load("state-engine:" + stateEnginePage);
     const stateEngineFactory = new stateEngineFactoryCreator(stateSkeleton, context);
     // render engine
     const renderEngineXShell = xshell.config.xshell.page.renderEngine;
-    const renderEngineModule = xshell.config.modules[context.resourceDefinition.module].page.renderEngine || renderEngineXShell;
+    const renderEngineModule = moduleConfig.page?.renderEngine || renderEngineXShell;
     const renderEnginePage = definition.meta.renderEngine || renderEngineModule;
     const renderEngineFactoryCreator = await xshell.loader.load("render-engine:" + renderEnginePage);
     const renderEngineFactory = new renderEngineFactoryCreator(definition.template + style.join(""), context);

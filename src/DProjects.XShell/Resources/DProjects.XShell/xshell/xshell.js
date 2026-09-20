@@ -80,7 +80,7 @@ class XShell {
         this._modules = new Modules( { bus: this._bus, config: config, loader: this._loader, resolver: this._resolver, document: document, services: this._services } );
         this._navigation = new Navigation( { areas: this._areas, bus: this._bus, config: config, container: this._container });
         this._tabs = new Tabs( { bus: this._bus } );
-        this._menus = new Menus( { bus: this._bus, config: config, modules: this._modules, navigation: this._navigation } );
+        this._menus = new Menus( { bus: this._bus, areas: this._areas, modules: this._modules, navigation: this._navigation } );
         this._urlRewriter = new UrlRewriter();
         this._dialog = new Dialog( { config: config, navigation: this._navigation, i18n: this._i18n } );
         this._runtime = new Runtime();

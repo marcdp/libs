@@ -236,7 +236,7 @@ export default {
 
         <!-- breadcrumb -->
         <nav class="header breadcrumb">
-            <div x-if="state.menuMain">
+            <div x-if="state.menuNavigation">
                 <x-icon icon="x-menu" x-on:click="toggle-menu" class="toggle" x-class:toggled="state.toggled"></x-icon>
             </div>
             <x-page-breadcrumb></x-page-breadcrumb>
@@ -253,7 +253,7 @@ export default {
                     <x-button class="anchor" icon="x-keyboard-arrow-left" x-on:click="toggle-menu"></x-button>
                     <x-button class="anchor" icon="x-close" x-on:click="toggle-menu"></x-button>
                     <x-page-menu></x-page-menu>
-                    <x-menumain x-prop:menu="state.menuMain"></x-menumain>
+                    <x-menumain x-prop:menu="state.menuNavigation"></x-menumain>
                 </div>
             </nav>
             <div class="divider"></div>
@@ -276,7 +276,7 @@ export default {
         appBase:        {value: xshell.config.app.base},
         userName:       {value: ""},
         userInitials:   {value: ""},
-        menuMain:       {value: null},
+        menuNavigation:       {value: null},
         menuTools:      {value: null},
         menuProfile:    {value: null},
         toggled:        {value: false},
@@ -316,23 +316,23 @@ export default {
                         let moduleId = modules.resolveModuleId(page.src);
                         if (!moduleId) {
                             //no module defined 
-                            state.menuMain = null;
+                            state.menuNavigation = null;
                         } else if (page.breadcrumb && page.breadcrumb.length){
                             //get module
                             moduleId = modules.resolveModuleId(page.src);
                             //show menu main and tools
-                            state.menuMain = menus.getMenu("main");
+                            state.menuNavigation = menus.getMenu("navigation");
                             state.menuTools = menus.getMenu("tools");
                             state.menuProfile = menus.getMenu("profile");
                         } else { 
                             // not found breadcrumb in page
                             // show menu main and tools
-                            state.menuMain = menus.getMenu("main");
+                            state.menuNavigation = menus.getMenu("navigation");
                             state.menuTools = menus.getMenu("tools");
                             state.menuProfile = menus.getMenu("profile");
                             //breadcrumb
-                            if (state.menuMain) {
-                                let menuitems = findObjectsPath(state.menuMain, 'href', page.href);
+                            if (state.menuNavigation) {
+                                let menuitems = findObjectsPath(state.menuNavigation, 'href', page.href);
                             }
                         }
                     }
@@ -344,7 +344,7 @@ export default {
                 } else if (command == "toggle-menu") {
                     //toggle-menu
                     state.toggled = !state.toggled;
-                    settings.setItem("x-layout-main.toggled", state.toggled);
+                    //settings.setItem("x-layout-main.toggled", state.toggled);
 
                 } else if (command == "search") {
                     //search

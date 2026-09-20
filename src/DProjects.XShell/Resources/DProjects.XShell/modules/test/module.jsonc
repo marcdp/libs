@@ -25,9 +25,10 @@
             "menus":{
                 "navigation":[{
                     "label": "Amazon S3",
-                    "href": "/pages/page0.html",
+                    "href": "/pages/page0.js",
                     "children": [
-                        { "label": "Page 1", "href": "/pages/test1.js" }
+                        { "label": "Page 1", "href": "/pages/test1.js" },
+                        { "label": "Page 2", "href": "/pages/test2.js" }
                     ]
                 }],
                 "tools": [

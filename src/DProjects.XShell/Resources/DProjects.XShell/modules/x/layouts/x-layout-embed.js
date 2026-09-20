@@ -38,6 +38,6 @@ export default {
         <slot></slot>
     `,
     state: {
-        status: ""
+        status: { type: "string", default: "" }
     }
 };

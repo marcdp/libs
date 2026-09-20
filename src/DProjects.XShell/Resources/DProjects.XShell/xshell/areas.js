@@ -88,6 +88,7 @@ export default class Areas {
 
         return null;
     }
+    
 
     // private
     _setCurrentArea(areaId) {

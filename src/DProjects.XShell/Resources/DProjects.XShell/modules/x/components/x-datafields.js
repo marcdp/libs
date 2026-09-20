@@ -115,7 +115,8 @@ export default {
                 } else if (command == "remove") {
                     //remove
                     this.dispatchEvent(new CustomEvent("remove", {bubbles: true, composed: false}));
+                }
             }
         }
     }
-};
+}
