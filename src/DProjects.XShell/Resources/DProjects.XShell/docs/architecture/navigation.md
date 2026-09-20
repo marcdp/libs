@@ -21,8 +21,7 @@ Path mode would use browser paths and history with the same Pages. Direct deep l
 { "xshell": { "navigation": { "mode": "hash", "hashPrefix": "#!" } } }
 ```
 
-The nested names match `xshell.jsonc`. The runtime `Navigation` service still reads older dotted keys, so this nested setting is not yet consumed
-correctly.
+The nested names match `xshell.jsonc`; the runtime `Navigation` constructor reads `config.xshell.navigation.mode` and `hashPrefix`.
 
 ## Intents
 

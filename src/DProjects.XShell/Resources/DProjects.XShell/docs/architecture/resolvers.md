@@ -18,9 +18,9 @@ The intended nested rule shape is:
 ```
 
 Bootstrap generates conventional rules for module icons, layouts, components, pages, and JavaScript modules. The checked-in default prefix is
-`/_assets`. Rules for a shared module definition should be generated once, regardless of the number of live imports.
+`/_assets`. Rules for a canonical module definition are generated once, regardless of repeated imports.
 
-**Current gap:** `resolver.js` reads dotted `resolver.*` keys and parses encoded semicolon strings, while bootstrap now generates nested rule objects.
-Structured rule dispatch is not yet implemented in that service.
+`resolver.js` reads nested `config.xshell.resolver` rule objects. Bootstrap adds defaults for each canonical module id after merging. Resolver
+matching and loader dispatch still require the usual resource URL and loader metadata.
 
 See [Configuration](configuration.md) and [Loaders](loaders.md).

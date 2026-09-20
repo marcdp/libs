@@ -1,66 +1,70 @@
 # Modules
 
-The application is a **root module**. Its `module.jsonc` imports other modules recursively. A module can provide configuration, components, pages,
-layouts, styles, icons, and an optional `module.js` implementation.
+The application is the **root module**. Its `module.jsonc` imports dependencies recursively. A module definition can contribute metadata,
+configuration, menus, resolvers, pages, styles, components, icons, and an optional module script. These declarative contributions belong to the
+canonical definition and are not duplicated by repeated imports.
 
-## Definition, import, instance
+## Definition, import, and instance
 
 | Concept | Location | Meaning |
 | --- | --- | --- |
-| Module definition | `config.modules` | Canonical declarative data from one `module.jsonc`, keyed by real module identity. |
-| Module import | A definition's `imports` | A local name, URL, and optional params identifying a desired live instance. |
-| Live module instance | `xshell.modules` | Runtime object with separate params and mutable state. |
+| Module definition | `config.modules.<module-id>` | Canonical declarative data keyed by stable module id. |
+| Module import | A definition's `imports` array | Dependency URL and optional params for the target module. |
+| Live module instance | `xshell.modules` service | One runtime record per canonical module id. |
 
 ```jsonc
 {
     "modules": {
         "test": {
-            "imports": {
-                "x": { "url": "url:../x/module.jsonc", "params": { "var1": 1111 } },
-                "x2": { "url": "url:../x/module.jsonc", "params": { "var1": 333 } }
-            }
+            "imports": [
+                { "url": "url:../x/module.jsonc", "params": { "mode": "normal", "debug": false } },
+                { "url": "url:../x/module.jsonc", "params": { "mode": "compact" } }
+            ]
         }
     }
 }
 ```
 
-Both imports refer to the single canonical `config.modules.x` definition. The intended runtime has `xshell.modules.x` and `xshell.modules.x2` as
-separate live instances. Their source files and `/_assets/x/...` resources are shared. Instance separation applies to params and state, not static
-assets. `url` on the definition records the resolved source of `module.jsonc`.
+Bootstrap registers the resolved definition URL once and fetches its JSONC once. In this example, the first registered import gives
+`config.modules.x.params` the values `{ "mode": "normal", "debug": false }`. The later import does not override or merge them. Runtime
+creates one live `x` instance from `config.modules.x`. Registration order depends on bootstrap's discovery order across the import graph.
 
-**Current state:** bootstrap deduplicates definition URLs and merges `modules.x` once. `Modules.init()` still reads dotted config keys, iterates
-definitions rather than imports, and creates no separate instance for `x2`. The `xshell.modules` property exposes a `Modules` service rather than the
-proposed keyed instance map. Repeated imports with distinct params are not implemented end to end.
+The resolved `url` on a definition records its `module.jsonc` source. Static resources use `/_assets/<module-id>/...`, such as
+`/_assets/x/css/styles.css` and `/_assets/test/pages/home.js`. The Service Worker maps these stable URLs to physical locations. If more
+runtime objects are needed, modules can create component instances, sessions, connections, or other objects below module level.
 
-## Configuration and implementation
+## Module script and startup
 
-Definitions may contribute nested `xshell` settings directly. Dependency contributions should merge before their importers; current bootstrap does not
-guarantee that order. Imports must be cycle-safe; current URL deduplication prevents endless fetching but does not report a cycle.
+A definition may specify `"script": "./js/module.js"`. The script's default export must be a constructable ES class with `start()`:
 
-A module may have a constructable implementation in `module.js`. A single source class can create separate live objects with separate runtime state.
-The checked-in sample exports a class and current `Modules` creates it with `new`, then calls `onCommand("load", ...)`. That command is current
-behavior, not a settled instance lifecycle API. Creation, start, stop, and disposal responsibilities remain to be specified.
+```js
+export default class {
+    constructor({ navigation, bus, config, params }) {
+        this.navigation = navigation;
+        this.bus = bus;
+        this.config = config;
+        this.params = params;
+    }
 
-## Public module contract and communication
-
-The intended `module.jsonc` contract is declarative and separate from metadata such as label, version, icon, description, and tags. Its four public
-boundaries are:
-
-| Contract part | Meaning |
-| --- | --- |
-| `params` | Accepted inputs when a live instance is created, including documented types, defaults, or required status where needed. Params belong to the import/instance. |
-| `events` | Public notifications emitted by an instance onto the XShell-wide Bus, distinct from internal DOM events. |
-| `methods` | Public operations requested through XShell, which resolves, validates, and dispatches to a target instance; async calls should be possible. |
-| `intents` | Public navigation capabilities such as `customer.detail` with `customerId`, independent of private URLs and menu items. |
-
-```text
-instance A ──event──────────────→ Bus
-instance A ──method request─────→ XShell mediator → instance B
-instance A ──navigation intent──→ Navigation → owning module/page
+    async start() {
+    }
+}
 ```
 
-XShell mediation can provide target resolution, contract checks, consistent failures, logging, and future policy without direct cross-module object
-references. Menus remain presentation configuration owned by a module or application. The Bus currently supports `emit` and listeners; method and
-intent dispatch and module contract enforcement are planned. Exact invocation names, validation rules, and errors remain TODOs.
+`Modules.init()` iterates `config.modules` once. It schedules style and script loads concurrently, constructs each script controller with a
+service-provider proxy, then awaits all loads and calls controller `start()` methods in parallel. The proxy supplies `params` from the final
+module config; other requested names are resolved through XShell's registered services, including `navigation`, `bus`, and `config`.
+The runtime does not resolve repeated-import precedence.
+
+The proxy also has `definition` and `timer` branches that currently reference unavailable identifiers; their injection behavior is not
+established. A script-free definition receives a fallback controller with no `start()`, so startup can fail. The current module lifecycle calls
+`start()`; legacy sample code using `onCommand("load", ...)` does not represent this lifecycle. No stop or disposal call is wired into
+`Modules.init()`.
+
+## Public communication contract
+
+The Bus supports events and listeners. A declarative module contract for accepted params, public events, methods, and navigation intents has been
+proposed but is not parsed or enforced by the runtime. Exact syntax, validation, dispatch, and errors remain TODOs. Menus remain declarative
+contributions; they are not module imports or extra module instances.
 
 See [Module Specification](../specifications/module.md), [Configuration](configuration.md), and [Navigation](navigation.md).

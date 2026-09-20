@@ -5,17 +5,17 @@ of where their source files reside.
 
 The checked-in `xshell.assetsPrefix` is `_assets`, producing URLs such as `/_assets/x/components/x-button.js`. Bootstrap sends a mapping for each
 canonical module definition and the XShell framework files. The worker rewrites matching requests to the source directory and fetches the resource.
-Multiple live instances of one definition share the same mapping and static files.
+Repeated imports of a definition share one mapping; they do not create additional live module instances.
 
 ```text
-client: /_assets/<module>/<resource>
+client: /_assets/<module-id>/<resource>
     → Service Worker mapping
     → source directory or remote URL
     → resource response
 ```
 
-Sources can be local files or remote servers/CDNs, subject to browser fetch and host policies. ZIP-backed package loading is planned and not
-implemented. The worker's role is resource delivery; module creation, configuration merge, methods, intents, and navigation belong to bootstrap and
-XShell runtime.
+The namespace is intended to support local files, remote hosts/CDNs, and future ZIP-backed packages. Current worker code rewrites to the mapped
+source URL but fetches with `mode: "same-origin"`; cross-origin sources are therefore not established as working. ZIP-backed package loading is not
+implemented. The worker's role is resource delivery; module creation and configuration merge belong to bootstrap and XShell runtime.
 
 See [Asset URL Namespace ADR](../adr/0001-asset-url-namespace.md) and [Modules](modules.md).

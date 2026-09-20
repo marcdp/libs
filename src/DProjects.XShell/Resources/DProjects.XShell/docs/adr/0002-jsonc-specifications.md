@@ -2,12 +2,12 @@
 
 ## Status
 
-Accepted as an authoring and composition direction; final schema validation remains planned.
+Accepted for JSONC authoring and nested composition; final schema validation remains planned.
 
 ## Context
 
 XShell's human-authored configuration benefits from comments. Earlier checked-in application and module files used flat dotted keys and a separate
-`app.jsonc` convention. The newer root and core module definitions use nested objects, while runtime consumers are still being migrated.
+`app.jsonc` convention. Current root and core module definitions use nested objects. That legacy context is not the current configuration model.
 
 ## Decision
 
@@ -16,12 +16,13 @@ effective configuration. Merge plain objects recursively, concatenate arrays, an
 precede importers, with the root last.
 
 Use JSON Schema as the intended validation language for the final merged object in debug/development mode. Fragments may be partial; the effective
-configuration is the main validation boundary. Freeze it before handing it to XShell. No browser-native schema validator is assumed.
+configuration is the main validation boundary. Deeply freeze it before handing it to XShell. No browser-native schema validator is assumed.
 
 ## Consequences and current status
 
-Bootstrap parses JSONC and merges nested data, but it currently merges in registration order. It performs no JSON Schema validation or deep freeze.
-The `Config`, `Resolver`, and other services still expect dotted keys. The legacy sample and server default still point to `app.jsonc`. These must be
-reconciled before the nested model is an end-to-end runtime contract.
+Bootstrap parses JSONC, deduplicates imported definitions by URL, and merges nested data in reverse registration order. The first registered
+import retains its params; later imports do not replace or merge them. Reverse registration order does not guarantee dependency-first precedence
+for every graph. Bootstrap deeply freezes the merged configuration before XShell receives it, but performs no JSON Schema validation. The legacy
+sample and server default still point to `app.jsonc` and need migration.
 
 See [Configuration](../architecture/configuration.md) and [Specifications](../specifications/).

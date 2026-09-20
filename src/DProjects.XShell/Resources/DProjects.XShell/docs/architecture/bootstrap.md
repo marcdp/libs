@@ -1,7 +1,8 @@
 # Bootstrap
 
 The host HTML supplies `xshell.app_config_url` (the root module JSONC URL), `xshell.app_base_url`, and `xshell.sw_url`, then loads
-`xshell/bootstrap.js`. The meta name `app_config_url` is retained in the host API; it does not imply a separate application configuration model.
+`xshell/bootstrap.js`. The historical meta name `app_config_url` points to `module.jsonc`, not a separate application model. The optional
+`xshell.app_params` meta value supplies URL query parameters for the root module.
 
 ```html
 <meta name="xshell.app_base_url" content="">
@@ -13,26 +14,35 @@ The host HTML supplies `xshell.app_config_url` (the root module JSONC URL), `xsh
 The host exposes framework and module files under `/_resources/DProjects.XShell/...`. The example points to the checked-in nested `test` root module;
 the server command's current default still points to the legacy `samples/sample1/app.jsonc`.
 
-## Preparation and execution
+## Phase 1: configuration
 
 ```text
-bootstrap: load xshell.jsonc defaults and root module.jsonc
-    → discover imported module.jsonc files recursively
-    → normalize URLs and prepare /_assets mappings
-    → merge dependency contributions before importers, root last
-    → validate final effective configuration in development (planned)
-    → deeply freeze effective configuration (planned)
-    → install/initialize Service Worker and create import map
-    → import xshell.js
-runtime: initialize services → create live module instances → navigation → menus
+host HTML → bootstrap.js → load xshell.jsonc and root module.jsonc concurrently
+    → identify root module id → discover imports recursively
+    → load available imported JSONC files concurrently → deduplicate definitions by URL
+    → retain params from first registered import → normalize URLs and resource paths
+    → merge into app, modules, xshell → generate default resolvers
 ```
 
-The current bootstrap loads framework defaults and the root concurrently, discovers imports by URL, normalizes paths, merges nested objects, installs
-the Service Worker, creates an import map from `xshell.resolver.import`, and calls `xshell.init(config)`. It registers a URL only once, so repeated
-imports fetch one definition. The Service Worker is required before XShell starts; an uncontrolled first page is reloaded.
+Bootstrap takes the first key in the root file's `modules` object as the root id and stores it in `xshell.module.root`. It assigns parsed
+`xshell.app_params` to the root definition's `params`. The default `xshell.module.rootParams` remains unpopulated by bootstrap. A module does not
+need a `root` flag. Registration follows discovery order; the first registered occurrence of a URL keeps its params, even if later imports differ.
 
-**Current gaps:** merge iteration puts the root before its dependencies, so importer precedence is not guaranteed. No cycle error or dependency-order
-traversal exists. The bootstrap does not validate against JSON Schema or freeze the config. `Config` later freezes only its top-level copy. Runtime
-services still expect dotted keys, so the nested bootstrap output is not yet fully consumable.
+The intended merge precedence is defaults, dependencies, their importers, then root. Bootstrap actually merges framework defaults followed by
+definitions in **reverse registration order**. This is not a topological sort and does not guarantee dependency-first precedence for every graph.
+URL deduplication prevents repeated fetching, but cycles are not diagnosed. There is no JSON Schema validation step.
+
+## Phase 2: runtime resources
+
+Bootstrap installs and initializes the Service Worker, creates an import map from `xshell.resolver.import`, imports `xshell.js`, and calls
+`xshell.init(deepFreeze(config))`. The effective configuration is deeply frozen before XShell receives it, although the import occurs first.
+An uncontrolled first page is reloaded. `Modules.init()` schedules module
+scripts and styles as concurrent load tasks. This is separate from JSONC discovery.
+
+## Phase 3: startup
+
+Runtime creates one module record per `config.modules` entry. Once resource tasks finish, it calls controller `start()` methods in parallel,
+attaches loaded styles, then starts navigation and menus. A script-free module currently receives a fallback controller without `start()`, so
+that startup path can fail.
 
 See [Configuration](configuration.md), [Modules](modules.md), and [Service Worker](service-worker.md).

@@ -8,7 +8,7 @@ Draft.
 
 ## Runtime model
 
-The `Areas` service discovers names from keys beneath `xshell.areas`. For each name it projects the remaining keys into an area object, adds `id`, and
+The `Areas` service reads entries beneath `xshell.areas`. For each id it copies the entry into an area object, adds `id`, and
 applies defaults for `label`, `order`, and `default`. It also creates the path prefix `/<area-name>/` used by the current area-resolution implementation.
 
 Areas are sorted with the default area first, then by numeric `order`, then by `label`. `getDefaultArea()` returns the area marked as default or, if none
@@ -28,7 +28,7 @@ is marked, the first sorted area.
 
 The intended nested configuration places area contributions under `xshell.areas` in a root or imported module fragment. For example,
 `{ "xshell": { "areas": { "help": { "home": "/pages/help.js" } } } }` can contribute a home page; bootstrap normalizes
-module-relative resource paths. The current Areas service still reads dotted keys, so nested contributions are not consumed end to end.
+module-relative resource paths. The current Areas service reads these nested entries.
 
 ## Initial and current area navigation
 
@@ -47,9 +47,6 @@ without an explicit area segment defaults to area `main`.
 This relationship is configuration-driven: Areas does not build menus, and Menus does not choose the default area's home page.
 
 ## TODO
-
-TODO: Reconcile `id` and `name` in current-area resolution. The constructor assigns `area.id`, but `resolveAreaName()` and `getCurrentArea()` currently
-read `area.name`, so reliable current-area tracking cannot yet be documented as a stable contract.
 
 TODO: Reconcile the emitted `xshell:area:change` event with the checked-in area page, which listens for `xshell:area:changed`.
 

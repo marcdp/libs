@@ -21,8 +21,7 @@ Layouts are presentation containers for Pages. They do not resolve routes. Check
 `embed`, configured under `xshell.page.layout`. `x-page` currently uses `embed` when no layout is supplied; Navigation assigns `main` to the root page
 and `stack` to additional pages. Dialog and embed are also navigation opening modes.
 
-The intended selection precedence is application/XShell default, module override, then page override. Current `x-page` reads a legacy dotted
-`page.layout.<name>` key, so this nested precedence is not implemented end to end. Stack rendering exists, but its full history contract remains to be
-specified.
+The intended selection precedence is application/XShell default, module override, then page override. Current `x-page` reads nested
+`xshell.page.layout` settings. Stack rendering exists, but its full history contract remains to be specified.
 
 See [Navigation](navigation.md), [Configuration](configuration.md), and [Loaders](loaders.md).

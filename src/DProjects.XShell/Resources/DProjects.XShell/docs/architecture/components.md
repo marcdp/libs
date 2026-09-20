@@ -242,8 +242,8 @@ A definition-based component uses engine defaults in nested configuration:
 { "xshell": { "component": { "stateEngine": "plain", "renderEngine": "plain" } } }
 ```
 
-Module definitions may provide their own nested `component` overrides. Current `component-js` still reads legacy dotted keys, so nested
-engine selection is not yet wired through the runtime.
+Module definitions may provide their own nested `component` overrides. Current `component-js` reads both nested XShell defaults and the
+module's nested component settings for engine selection.
 
 The selected state and render engines are used while converting the definition into the final Web Component class.
 

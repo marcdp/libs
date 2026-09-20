@@ -1,7 +1,8 @@
 # Module Specification
 
-A `module.jsonc` file is declarative JSONC. Its `modules` object contains canonical module definitions; a root module may also provide `app` metadata.
-A file may contribute nested `xshell` settings. Bootstrap records a resolved `url` on loaded definitions as source provenance.
+A `module.jsonc` file is declarative JSONC. Its `modules` object contains canonical definitions keyed by module id. A root file may also
+provide `app` metadata. Any module file may contribute nested `xshell` settings. Bootstrap records each loaded definition's resolved
+`url` as source provenance; the module id does not need a duplicate `name` field.
 
 ```jsonc
 {
@@ -10,46 +11,32 @@ A file may contribute nested `xshell` settings. Bootstrap records a resolved `ur
             "label": "Orders",
             "version": "1.0.0",
             "styles": ["/css/orders.css"],
-            "imports": {
-                "customer": {
-                    "url": "url:../customer/module.jsonc",
-                    "params": { "region": "eu" }
-                }
-            },
-            "contract": {
-                "params": { "region": { "type": "string" } },
-                "events": { "orderSaved": {} },
-                "methods": { "refresh": {} },
-                "intents": { "order.detail": { "params": { "orderId": { "type": "string" } } } }
-            }
+            "script": "./js/module.js",
+            "imports": [
+                { "url": "url:../customer/module.jsonc", "params": { "region": "eu" } }
+            ]
         }
     }
 }
 ```
 
-The `contract` block illustrates the intended communication categories; its exact JSONC field syntax is **provisional**, and the runtime does not
-parse or enforce it. Do not treat the example as a supported schema.
+An import declares a dependency on the definition at `url` and may provide params for that target module. Imports are array entries, not
+local instance names. Bootstrap registers a resolved URL once, loads its JSONC once, and retains params from the **first registered import**.
+Later imports of the same URL do not override or merge params. Discovery order determines which import registers first. One URL contributes one
+canonical `config.modules` entry and one live runtime instance for its module id.
 
-## Definition and import
+Definition metadata and contributions, including menus, resolvers, pages, and styles, belong to the canonical definition. Import params are
+runtime input, not definition metadata. Module-relative static paths normalize into `/_assets/<module-id>/...`; the Service Worker maps those
+virtual URLs to the definition's physical resource location.
 
-A definition holds metadata such as `label`, `version`, `icon`, `description`, and `tags`; resources and settings such as `styles`; imports; and
-optionally a public contract. These are configuration data, not live runtime objects. The import key is a local instance name, not necessarily the
-target definition identity. Two imports can point to one definition URL and supply different params. The definition should contribute once to
-effective configuration.
-
-Module-relative static paths use the checked-in `/_assets/<module>/...` namespace after normalization. The source `url` identifies the module
-definition location. Both live instances share static resources.
+The optional `script` points to a module script whose default export is a constructable class. Runtime requests named XShell services through
+its constructor argument, supplies `params` from the final module config, and calls `start()` after script and style loads. See
+[Modules](../architecture/modules.md) for current injection and script-free startup limits.
 
 ## Public module contract (planned)
 
-- **params** specify accepted inputs at live instance creation. They may describe names, simple types, defaults, and required status; values belong to
-  the import/instance.
-- **events** name public notifications emitted onto the XShell Bus. Local DOM events are a separate component concern.
-- **methods** name operations requested on an instance through XShell mediation. Dispatch should support asynchronous results.
-- **intents** name public navigation capabilities, such as `customer.detail` with `customerId`, leaving URLs and menus private to the owning module.
-
-The exact descriptor syntax, type vocabulary, method dispatch API, intent mapping, validation, and failure behavior remain TODOs. Current
-`Modules.init()` instead uses a `handler` class and `onCommand("load", ...)` from legacy dotted configuration; the checked-in sample demonstrates it.
-The desired instance lifecycle is not yet settled.
+A declarative contract for accepted params, Bus events, methods, and navigation intents remains a proposal. Its JSONC descriptor syntax, type
+vocabulary, validation, dispatch, and failure behavior are TODOs; the runtime does not parse or enforce such a contract. Do not treat those
+categories as supported schema fields yet.
 
 See [Modules](../architecture/modules.md), [Configuration](../architecture/configuration.md), and [Root Module](application.md).
