@@ -5,6 +5,7 @@ are optional.
 
 The application is the **root module**. Bootstrap discovers its imports, prepares one nested effective configuration, installs resource mappings, then
 starts XShell services, live modules, and navigation. See [Architecture](architecture/) for the flow and implementation limits.
+The root composes navigation Areas from reusable module menu contributions; each canonical module still has one live runtime instance.
 
 ## Documentation
 

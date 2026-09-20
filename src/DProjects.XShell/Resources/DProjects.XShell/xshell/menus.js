@@ -11,8 +11,7 @@ export default class Menus {
     // dynamic menu sources registered by modules
     _sources = {};
 
-    // effective menus by area:
-    // _cache[areaId][menuName] = [...]
+    // effective menus by area: _cache[areaId][menuName] = [...]
     _cache = {};
 
     // ctor
@@ -44,10 +43,7 @@ export default class Menus {
                 for (const [menuName, menuItems] of Object.entries(module.config.menus || {})) {
                     if (!Array.isArray(menuItems)) continue;
                     areaMenus[menuName] ??= [];
-                    areaMenus[menuName].push(...menuItems.map(menuitem =>
-                            this._cloneMenuitem(menuitem, module, area)
-                        )
-                    );
+                    areaMenus[menuName].push(...menuItems.map(menuitem => this._cloneMenuitem(menuitem, module, area)));
                 }
             }
             cache[area.id] = areaMenus;
@@ -107,9 +103,10 @@ export default class Menus {
     _cloneMenuitem(menuitem, module, area) {
         const result = {
             label: menuitem.label,
-            href: this._buildHref(menuitem.href, module, area),
+            href: this._buildHref(menuitem.href, area),
             icon: menuitem.icon || null,
             module: module.id,
+            default: menuitem.default || false,
             area: area.id,
             children: []
         };
@@ -150,25 +147,15 @@ export default class Menus {
         return Object.freeze(result);
     }
 
-    _buildHref(href, module, area) {
+    _buildHref(href, area) {
         if (!href) return null;
         // absolute/external URL
         if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(href)) {
             return href;
         }
-        // module-relative URL:
-        // /pages/page.js -> /_assets/<module>/pages/page.js
-        const moduleHref = (href.startsWith("/") ? href : "/" + href);
-        // area navigation prefix:
-        // /_assets/reports/pages/page.js
-        // -> /customers/_assets/reports/pages/page.js
-        if (area.prefix === "/") {
-            return moduleHref;
-        }
-        // return
-        return area.prefix + moduleHref;
+        const path = href.startsWith("/") ? href : "/" + href;
+        return area.prefix + path;
     }
-
     _getHrefVariants(href) {
         const result = [href];
         const hashIndex = href.indexOf("#");

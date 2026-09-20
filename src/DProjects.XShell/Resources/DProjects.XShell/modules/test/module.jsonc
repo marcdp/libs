@@ -17,17 +17,14 @@
             "icon": "",
             "script": "/js/module.js",
             "imports": [
-                {
-                    "url": "url:../x/module.jsonc", 
-                    "params": {"aaa":123, "bbb":456}
-                }
+                {"url": "url:../x/module.jsonc", "params": {"aaa":123, "bbb":456}}
             ],
             "menus":{
                 "navigation":[{
                     "label": "Amazon S3",
                     "href": "/pages/page0.js",
                     "children": [
-                        { "label": "Page 1", "href": "/pages/test1.js" },
+                        { "label": "Page 1", "href": "/pages/test1.js", "default": true },
                         { "label": "Page 2", "href": "/pages/test2.js" }
                     ]
                 }],
@@ -47,7 +44,12 @@
                     "prefix": "",
                     "label": "Main area",
                     "icon": "x-bell",
-                    "home": "/pages/test1.js",
+                    "modules": [ "test" ]
+                },
+                "advanced": {
+                    "prefix": "advanced",
+                    "label": "Advanced area",
+                    "icon": "x-file",
                     "modules": [ "test" ]
                 }
             }

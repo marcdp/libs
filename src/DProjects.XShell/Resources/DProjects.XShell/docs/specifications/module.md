@@ -14,7 +14,11 @@ provide `app` metadata. Any module file may contribute nested `xshell` settings.
             "script": "./js/module.js",
             "imports": [
                 { "url": "url:../customer/module.jsonc", "params": { "region": "eu" } }
-            ]
+            ],
+            "menus": {
+                "navigation": [{ "label": "Orders", "href": "/pages/orders.js" }],
+                "tools": [{ "label": "New order", "href": "/pages/new-order.js" }]
+            }
         }
     }
 }
@@ -29,6 +33,12 @@ Definition metadata and contributions, including menus, resolvers, pages, and st
 runtime input, not definition metadata. Module-relative static paths normalize into `/_assets/<module-id>/...`; the Service Worker maps those
 virtual URLs to the definition's physical resource location.
 
+`modules.<module-id>.menus.<menu-name>` is an area-independent contribution to a named menu slot. The root application selects participating
+modules through `xshell.areas.definitions.<area-id>.modules`; a child module does not declare Area membership. One module can contribute to multiple
+Areas without creating another runtime module instance. Menu entries are navigation data, not imports or route declarations. Bootstrap normalizes
+authored module-relative hrefs such as `/pages/orders.js` into the module asset namespace before Menus applies an Area prefix. Non-empty Area
+prefix routing has [current limits](../subsystems/areas.md#current-implementation-limits).
+
 The optional `script` points to a module script whose default export is a constructable class. Runtime requests named XShell services through
 its constructor argument, supplies `params` from the final module config, and calls `start()` after script and style loads. See
 [Modules](../architecture/modules.md) for current injection and script-free startup limits.
@@ -39,4 +49,5 @@ A declarative contract for accepted params, Bus events, methods, and navigation 
 vocabulary, validation, dispatch, and failure behavior are TODOs; the runtime does not parse or enforce such a contract. Do not treat those
 categories as supported schema fields yet.
 
-See [Modules](../architecture/modules.md), [Configuration](../architecture/configuration.md), and [Root Module](application.md).
+See [Modules](../architecture/modules.md), [Configuration](../architecture/configuration.md), [Root Module](application.md), and
+[Areas](../subsystems/areas.md).

@@ -1,60 +1,82 @@
 # Areas
 
-Areas group top-level navigation destinations and the main-menu entries associated with them.
+An Area is a top-level navigation context. The root application composes Areas: it chooses their prefixes, homes, and participating modules.
+A reusable module contributes menus without choosing an Area. One module can participate in several Areas, or none, while `Modules` creates one live
+runtime instance for its canonical module id.
 
-## Status
+## Configuration and ownership
 
-Draft.
+```jsonc
+{
+    "modules": {
+        "reports": {
+            "menus": {
+                "navigation": [{ "label": "Reports", "href": "/pages/report.js" }],
+                "tools": [{ "label": "Export", "href": "/pages/export.js" }]
+            }
+        }
+    },
+    "xshell": {
+        "areas": {
+            "default": "customers",
+            "definitions": {
+                "customers": { "prefix": "/customers", "label": "Customers", "home": "/pages/home.js", "modules": ["customers", "reports"] },
+                "inventory": { "prefix": "/inventory", "label": "Inventory", "modules": ["inventory", "reports"] }
+            }
+        }
+    }
+}
+```
 
-## Runtime model
+This example expresses the **intended composition**; see the non-empty prefix limits below before using it as a working configuration. Each
+`xshell.areas.definitions.<id>` entry may set `prefix`, `label`, `icon`, `home`, `modules`, and `order`. The `modules` array determines participation
+and menu contribution order. Root ownership is an architectural rule, not a runtime restriction: bootstrap merges `xshell` fragments from imported
+configurations too. Arrays, including `area.modules`, concatenate during that merge.
 
-The `Areas` service reads entries beneath `xshell.areas`. For each id it copies the entry into an area object, adds `id`, and
-applies defaults for `label`, `order`, and `default`. It also creates the path prefix `/<area-name>/` used by the current area-resolution implementation.
+`Areas` creates runtime entries with `id`, `label` (defaulting to id), `icon` and `home` (defaulting to null), normalized `prefix`, a copied `modules`
+array, `order` (defaulting to zero), and `default`. The configured `xshell.areas.default` is compared with area ids; an unknown non-empty id throws.
+Duplicate normalized prefixes also throw. Areas are presented with the default first, then by `order`, then by `label`. `getDefaultArea()` falls back
+to the first sorted Area if no default is configured; `getCurrentArea()` starts there.
 
-Areas are sorted with the default area first, then by numeric `order`, then by `label`. `getDefaultArea()` returns the area marked as default or, if none
-is marked, the first sorted area.
+## Navigation context and resources
 
-## Confirmed configuration
+An Area prefix identifies a navigation context; `/_assets/<module-id>/...` identifies a module resource. The latter does not change ownership when
+the same module participates in another Area. `Areas` adds a leading slash to a configured prefix if needed and removes a trailing slash except
+for `/`. An empty prefix becomes `/`. `resolveAreaId(href)` matches complete prefix segments, trying longer prefixes first, so `/admin/tools`
+takes precedence over `/admin`.
 
-| Key | Current use |
-| --- | --- |
-| `xshell.areaDefault` | Names the default area when the area's own `default` value is not truthy. The framework default is `main`. |
-| `xshell.areas.<name>.default` | Marks an area as the default. |
-| `xshell.areas.<name>.label` | Supplies its display label and final sort key. Defaults to the area name. |
-| `xshell.areas.<name>.order` | Supplies its numeric sort order. Defaults to `0`. |
-| `xshell.areas.<name>.home` | Supplies the initial navigation target when this is the default area and the browser has no navigation hash. |
-| `xshell.areas.<name>.icon` | Is exposed on the area object and used by the checked-in area-selection page. |
-| `xshell.areas.<name>.description` | Is exposed on the area object and used by the checked-in area-selection page. |
+In hash mode, Navigation starts at the default Area's `home` when the browser has no hash. When a root page finishes loading, Navigation emits
+`xshell:navigation:end` with its `src`. Areas resolves that source to an Area and, if it differs from the current one, emits
+`xshell:area:change`. If no prefix matches, it retains the current Area. `getAreas()`, `getArea(id)`, `getDefaultArea()`, `getCurrentArea()`, and
+`resolveAreaId(href)` expose the Area model.
 
-The intended nested configuration places area contributions under `xshell.areas` in a root or imported module fragment. For example,
-`{ "xshell": { "areas": { "help": { "home": "/pages/help.js" } } } }` can contribute a home page; bootstrap normalizes
-module-relative resource paths. The current Areas service reads these nested entries.
+## Effective menus
 
-## Initial and current area navigation
+Modules own area-independent contributions under `modules.<module-id>.menus.<menu-name>`, for example `navigation` and `tools`. Menus builds an
+effective menu for each Area and each named slot by resolving `area.modules` in declared order and appending each module's items. It recursively
+copies items with their module id, Area id, and effective href. Unknown module ids cause a warning and are skipped. A module in two Areas produces
+two effective menu contributions, not two module instances.
 
-In hash mode, navigation restores the current hash when one exists. Otherwise it gets the default area and navigates to that area's `home` value. The
-current implementation therefore expects a usable home value for the selected default area, although no formal validation or required-field schema exists.
+`xshell.menus.getMenu("navigation")` and `getMenu("tools")` use the current Area; `getMenu("navigation", "inventory")` selects one explicitly.
+`getMenuitemBreadcrumb(href, areaId = null)` searches the selected Area's effective menus, defaulting to the current Area. The intended lookup
+sequence is navigation URL → Area → that Area's menus → breadcrumb. Menus emits `xshell:menus:changed` on `xshell:area:change` for menu UIs.
+There is no framework-special main menu slot.
 
-After a top-level page loads, navigation emits `xshell:navigation:end`. The Areas service listens for that event, attempts to match the page source against
-area prefixes, and emits an area-change event when the resolved name changes.
+For dynamic children, `registerSource(name, source)` accepts a source with `resolve()` and optional Bus event dependencies. The registered source
+can refresh its children; when an event-triggered `refresh()` reports a change, Menus emits `xshell:menus:changed`.
 
-## Menus
+## Current implementation limits
 
-Module menu keys use the shape `menus.<menu-name>.<area-name>`. During menu construction, the area segment is copied to each menu item. For the `main`
-menu, `Menus.getMenuMain()` obtains the current page's menu breadcrumb and returns entries whose area matches the breadcrumb's area. A `menus.main` entry
-without an explicit area segment defaults to area `main`.
+- Bootstrap recursively treats every leading-slash string in a module configuration as a module-relative resource. A root-authored prefix such as
+  `/customers` is therefore rewritten to `/_assets/<root-module-id>/customers`; the intended navigation prefix does not survive unchanged.
+- Menus adds the Area prefix to an already-normalized menu href. A conceptual URL such as
+  `/customers/_assets/reports/pages/report.js` has no corresponding generated page resolver rule: rules match `/_assets/<module-id>/...`, and neither
+  Navigation nor `x-page` strips the Area prefix before calling Loader. Non-empty prefix page loading is not fully implemented.
+- `x-page` looks up its breadcrumb while loading, before Navigation emits `xshell:navigation:end` for that page. On an Area change, the current Area
+  may therefore still be the previous one during breadcrumb lookup.
+- The checked-in Area selection page listens for `xshell:area:changed`, while Areas emits `xshell:area:change`. That listener is stale. The
+  checked-in `x-page-menu` component requests the old `"main"` slot rather than `"navigation"` and does not listen for menu changes.
 
-This relationship is configuration-driven: Areas does not build menus, and Menus does not choose the default area's home page.
-
-## TODO
-
-TODO: Reconcile the emitted `xshell:area:change` event with the checked-in area page, which listens for `xshell:area:changed`.
-
-TODO: Define validation for missing default-area `home` values and clarify whether area prefixes are configurable.
-
-## Related documentation
-
-- [Subsystems](index.md)
-- [Navigation Architecture](../architecture/navigation.md)
-- [Configuration Architecture](../architecture/configuration.md)
-- [Application Specification](../specifications/application.md)
+See [Navigation](../architecture/navigation.md), [Configuration](../architecture/configuration.md),
+[Module Specification](../specifications/module.md),
+and [ADR-0005](../adr/0005-area-menu-composition.md).

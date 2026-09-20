@@ -33,6 +33,21 @@ The resolved `url` on a definition records its `module.jsonc` source. Static res
 `/_assets/x/css/styles.css` and `/_assets/test/pages/home.js`. The Service Worker maps these stable URLs to physical locations. If more
 runtime objects are needed, modules can create component instances, sessions, connections, or other objects below module level.
 
+## Menu contributions and Areas
+
+A module can declare reusable named menu contributions, independent of the application Area:
+
+```jsonc
+{ "modules": { "reports": { "menus": {
+    "navigation": [{ "label": "Reports", "href": "/pages/report.js" }],
+    "tools": [{ "label": "Export", "href": "/pages/export.js" }]
+} } } }
+```
+
+The root application lists module ids in `xshell.areas.definitions.<area-id>.modules`. Modules do not choose their Area. A module may be listed in
+zero, one, or several Areas. Menus composes separate effective menus for those Areas in the listed order; participation does not create routes,
+imports, or additional module instances. See [Areas](../subsystems/areas.md) for prefix and page-loading limits.
+
 ## Module script and startup
 
 A definition may specify `"script": "./js/module.js"`. The script's default export must be a constructable ES class with `start()`:
@@ -67,4 +82,4 @@ The Bus supports events and listeners. A declarative module contract for accepte
 proposed but is not parsed or enforced by the runtime. Exact syntax, validation, dispatch, and errors remain TODOs. Menus remain declarative
 contributions; they are not module imports or extra module instances.
 
-See [Module Specification](../specifications/module.md), [Configuration](configuration.md), and [Navigation](navigation.md).
+See [Module Specification](../specifications/module.md), [Configuration](configuration.md), [Navigation](navigation.md), and [Areas](../subsystems/areas.md).

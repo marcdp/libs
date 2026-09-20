@@ -32,6 +32,12 @@ The intended merge precedence is defaults, dependencies, their importers, then r
 definitions in **reverse registration order**. This is not a topological sort and does not guarantee dependency-first precedence for every graph.
 URL deduplication prevents repeated fetching, but cycles are not diagnosed. There is no JSON Schema validation step.
 
+Bootstrap recursively calls `relativizePaths()` on each configuration fragment before merging. Authored module menu hrefs such as
+`/pages/report.js` and Area homes such as `/pages/home.js` become `/_assets/<module-id>/pages/...` paths. Menus subsequently adds the Area
+prefix to those normalized menu hrefs; it does not prepend `module.path` again. The same generic normalization also treats an Area's
+leading-slash `prefix` as a module-relative resource, although the prefix is navigation metadata. A configured `/customers` in the root
+fragment becomes `/_assets/<root-module-id>/customers`. This is a [current limit](../subsystems/areas.md#current-implementation-limits).
+
 ## Phase 2: runtime resources
 
 Bootstrap installs and initializes the Service Worker, creates an import map from `xshell.resolver.import`, imports `xshell.js`, and calls
@@ -42,7 +48,8 @@ scripts and styles as concurrent load tasks. This is separate from JSONC discove
 ## Phase 3: startup
 
 Runtime creates one module record per `config.modules` entry. Once resource tasks finish, it calls controller `start()` methods in parallel,
-attaches loaded styles, then starts navigation and menus. A script-free module currently receives a fallback controller without `start()`, so
+attaches loaded styles, then starts navigation and composes Menus per Area. Area participation does not create another module record.
+A script-free module currently receives a fallback controller without `start()`, so
 that startup path can fail.
 
 See [Configuration](configuration.md), [Modules](modules.md), and [Service Worker](service-worker.md).

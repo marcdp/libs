@@ -18,15 +18,12 @@ export default class Areas {
         const areas = [];
 
         for (const [areaId, areaConfig] of Object.entries(definitions)) {
-            const prefix = this._normalizePrefix(areaConfig.prefix);
-
             areas.push(Object.freeze({
                 ...areaConfig,
                 id: areaId,
                 label: areaConfig.label || areaId,
                 icon: areaConfig.icon || null,
-                prefix,
-                home: areaConfig.home || null,
+                prefix: (!areaConfig.prefix ? "" : "/" + areaConfig.prefix),
                 modules: Object.freeze([...(areaConfig.modules || [])]),
                 order: areaConfig.order || 0,
                 default: areaId === defaultAreaId
@@ -75,11 +72,8 @@ export default class Areas {
     // resolve area from navigation URL
     resolveAreaId(href) {
         if (!href) return null;
-
         // longest prefix first, so /admin/tools wins over /admin
-        const areas = [...this._areas]
-            .sort((a, b) => b.prefix.length - a.prefix.length);
-
+        const areas = [...this._areas].sort((a, b) => b.prefix.length - a.prefix.length);
         for (const area of areas) {
             if (this._matchesPrefix(href, area.prefix)) {
                 return area.id;
@@ -101,35 +95,20 @@ export default class Areas {
         this._bus.emit("xshell:area:change", { areaId });
     }
 
-    _normalizePrefix(prefix) {
-        prefix = prefix || "/";
-
-        if (!prefix.startsWith("/")) prefix = "/" + prefix;
-        if (prefix.length > 1 && prefix.endsWith("/")) prefix = prefix.slice(0, -1);
-
-        return prefix;
-    }
-
     _matchesPrefix(href, prefix) {
-        if (prefix === "/") return href.startsWith("/");
-
-        return href === prefix ||
-               href.startsWith(prefix + "/") ||
-               href.startsWith(prefix + "?");
+        if (prefix === "") return href.startsWith("/");
+        return href === prefix || href.startsWith(prefix + "/") || href.startsWith(prefix + "?");
     }
 
     _validateAreas(areas, defaultAreaId) {
         if (defaultAreaId && !areas.some(area => area.id === defaultAreaId)) {
             throw new Error(`Default area '${defaultAreaId}' is not defined`);
         }
-
         const prefixes = new Set();
-
         for (const area of areas) {
             if (prefixes.has(area.prefix)) {
                 throw new Error(`Duplicate area prefix '${area.prefix}'`);
             }
-
             prefixes.add(area.prefix);
         }
     }
