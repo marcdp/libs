@@ -35,5 +35,5 @@
     ],
 
     // global areas
-    "global.xshell.areas.main.home": "/pages/page0.html"
+    //"global.xshell.areas.main.home": "/pages/page0.html"
 }
