@@ -5,6 +5,7 @@
             "label": "X module",
             "version": "1.0.0",
             "styles": [ "/css/styles.css" ],
+            "imports": [],
             "icon": "",
             "page": {
                 "renderEngine": "x",
@@ -18,7 +19,8 @@
             "component": {
                 "renderEngine": "x",
                 "stateEngine": "proxy"
-            }
+            },
+            "script": "./js/module.js"
         }
     },
 

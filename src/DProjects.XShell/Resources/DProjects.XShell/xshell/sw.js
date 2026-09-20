@@ -108,35 +108,10 @@ async function handleRequest(request) {
         return fetch(request, { cache: "no-store" });
     }
 
-    // check cache
-    //const cache = await caches.open(rule.src + ".v" + rule.version);
-    //if (state.mode == "production") {
-    //    const cached = await cache.match(request);
-    //    if (cached) {
-    //        return cached;
-    //    }
-    //}
-
     // url to fetch
     let url = new URL(request.url.replace(rule.src, rule.dst));
 
-    // read commands __xshell__ 
-    let commands = [];
-    const keysToDelete = [];
-    for (const [key, value] of url.searchParams.entries()) {
-        if (key.startsWith("__xshell__")){
-            let keyParts = key.split("__");
-            let command = keyParts[2];
-            let args = keyParts.slice(3);
-            commands.push({ command, args, value });
-            keysToDelete.push(key);
-        }
-    }
-    for (const k of keysToDelete) url.searchParams.delete(k);
-
     // fetch the real file
-    //const path = request.url.substring(rule.src.length);
-    //const dstUrl = rule.dst + path;
     const response = await fetch(url, {
         method: request.method,
         headers: request.headers,
@@ -151,33 +126,8 @@ async function handleRequest(request) {
     headers.delete("Location");
     headers.delete("Content-Location");
 
-    // process commands __xshell__ 
-    for (const cmd of commands) {
-        if (cmd.command === "replace" && cmd.args.length === 1) {
-            // ex: ...?__xshell__replace__XXXX=1234
-            const searchValue = cmd.args[0];
-            const replaceValue = cmd.value;
-            let text = await response.text();
-            text = text.split(searchValue).join(replaceValue);
-            return new Response(text, {
-                status: response.status,
-                headers: headers
-            });
-        }
-    }
-
     // body
     const body = response.body;
-
-    // add to cache
-    //if (state.mode == "production" && response.ok && response.type === "basic") {
-    //    try {
-    //        cache.put(request, response.clone());
-    //    } catch (cacheErr) {
-    //        console.warn("[SW] Cache error:", cacheErr);
-    //    }
-    //}
-
     // return the response
     return new Response(body, {
         status: response.status,

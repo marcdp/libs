@@ -1,19 +1,5 @@
 
 // LoaderException
-/*
-class LoaderExceptionOld extends Error {
-    constructor(message, opts={}) {
-        super(message, ( opts.cause ? { cause: opts.cause } : undefined )); // Call the parent constructor (Error)
-        this.name = this.constructor.name; // Set the error name
-        if (opts.code) this.code = opts.code// Custom error code
-        if (opts.details) this.details = opts.details; // Custom property for additional info
-        if (opts.errors) this.errors = opts.errors || []; // Array of LoaderExption of {message...}
-        if (Error.captureStackTrace) {
-            Error.captureStackTrace(this, this.constructor);
-        }
-    }
-}
-*/
 class ResourceLoadError extends Error {
     constructor(resource, message, opts = {}) {
         super(message, { cause: opts.cause });
@@ -46,7 +32,6 @@ export default class Loader {
 
     //vars
     _bus = null;
-    _config = null;
     _debug = null;
     _resolver = null;
     _appBase = null;
@@ -61,14 +46,13 @@ export default class Loader {
     //ctor
     constructor( {bus, config, debug, resolver} ) {
         this._bus = bus;
-        this._config = config;
         this._debug = debug;
         this._resolver = resolver;
-        this._appBase = this._config.get("app.base");
-        this._assetsPrefix = this._config.get("xshell.assetsPrefix");
-        this._navigationMode = config.get("navigation.mode");
-        this._navigationHashPrefix = config.get("navigation.hashPrefix");
-        this._componentLazy = config.get("xshell.component.lazy");
+        this._appBase = config.app.base;
+        this._assetsPrefix = config.xshell.assetsPrefix;
+        this._navigationMode = config.xshell.navigation.mode;
+        this._navigationHashPrefix = config.xshell.navigation.hashPrefix;
+        this._componentLazy = config.xshell.component.lazy;
     }
 
     //props
@@ -89,7 +73,7 @@ export default class Loader {
         if (typeof(resources) == "string") resources = [resources];
         //load resources
         let result = [];
-        let srcs = [];
+        let urls = [];
         let paths = [];
         let tasks = [];
         for(let resource of resources) {            
@@ -99,8 +83,8 @@ export default class Loader {
             if (!definitionObject) {
                 throw new LoaderException([new Error(`Resource not found: ${resource}`)]);
             }
-            let {definition, src, path} = definitionObject;
-            srcs.push(src);
+            let {definition, url, path} = definitionObject;
+            urls.push(url);
             paths.push(path);
             // get or load handler
             let loader = loaders[definition.loader];
@@ -130,14 +114,14 @@ export default class Loader {
                 result.push(window.customElements.get(name));
             } else {
                 // load
-                this._debug.log(`loader: load '${resource}' from ${src} ...`);
+                this._debug.log(`loader: load '${resource}' from ${url} ...`);
                 let promise = (async () => {
                     let value = null;
-                    let registryItem = {resource, definition, src, status: "pending"};
+                    let registryItem = {resource, definition, url, status: "pending"};
                     this._registry.push(registryItem);                    
-                    await this._bus.emit("xshell:loader:resource:fetch", {resource, src});
+                    await this._bus.emit("xshell:loader:resource:fetch", {resource, url});
                     try {
-                        value = await loader.load(src, {
+                        value = await loader.load(url, {
                             resourceName: name, 
                             resourcePath:path, 
                             resourceDefinition: definition, 
@@ -147,10 +131,10 @@ export default class Loader {
                             componentLazy: this._componentLazy
                         });
                         registryItem.status = "loaded";
-                        await this._bus.emit("xshell:loader:resource:loaded", {resource, src});
+                        await this._bus.emit("xshell:loader:resource:loaded", {resource, url});
                     } catch (exception) {
                         registryItem.status = "error";
-                        await this._bus.emit("xshell:loader:resource:error", {resource, src});
+                        await this._bus.emit("xshell:loader:resource:error", {resource, url});
                         throw exception;
                     }                    
                     return value;
@@ -187,7 +171,7 @@ export default class Loader {
                         exception.message, 
                         {
                             code: (exception.message.indexOf("Failed to fetch") != -1 ? 404 : 500),
-                            src: srcs[i],
+                            url: urls[i],
                             path: paths[i],
                             cause: exception
                         }
@@ -198,7 +182,8 @@ export default class Loader {
         }
         // throw exception if errors
         if (errors.length) {
-            throw new LoaderException(errors, "Some resources failed");
+            let message = errors.map(error => error.message + " (" + error.code + ")" + (error.path ? " at " + error.path : "") + (error.line ? " at line " + error.line : "") + (error.cause ? " Caused by: " + error.cause : "")).join("; ");
+            throw new LoaderException(errors, "Some resources failed: " + message);
         }
         // result
         if (isString) {

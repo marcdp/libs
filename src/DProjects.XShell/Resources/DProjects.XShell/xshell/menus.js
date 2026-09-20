@@ -28,6 +28,11 @@ export default class Menus {
     init() {
         // build menus from config
         let cache = {};
+        debugger
+        for(let moduleId of Object.keys(this._modules.getModules())) { 
+            
+        }
+        
         for(let key in this._config.config) {
             if (key.startsWith("modules.") && key.indexOf(".menus.") != -1) {
                 const keyParts = key.split(".");

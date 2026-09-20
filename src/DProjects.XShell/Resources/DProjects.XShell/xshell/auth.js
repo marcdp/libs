@@ -15,8 +15,8 @@ export default class Auth {
 
     // methods
     async login() {
-        let identityConfig = this._config.getAsObject("xshell.identity");
-        let identityConfigParams = this._config.getAsObject("xshell.identity.params") || {};
+        let identityConfig = this._config.xshell.identity;
+        let identityConfigParams = this._config.xshell.identity.params || {};
         let identityProviderClass = await this._loader.load("idp:" + identityConfig.provider);
         let identityProvider = new identityProviderClass();
         let identityResolveResult = await identityProvider.resolve(identityConfigParams);
@@ -29,7 +29,7 @@ export default class Auth {
     }
     async logout() {
         this._identity = null;
-        let identityConfig = this._config.getAsObject("xshell.identity");
+        let identityConfig = this._config.xshell.identity;
         let identityProvider = await this._loader.load("idp:" + identityConfig.provider);
         await identityProvider.logout();
     }   

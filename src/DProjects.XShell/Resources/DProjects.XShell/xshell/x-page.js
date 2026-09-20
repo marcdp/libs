@@ -187,7 +187,7 @@ class XPage extends HTMLElement {
         // layout
         let layoutName = this._layout;
         if (!layoutName) layoutName = "embed";
-        let layout = xshell.config.get("page.layout." + layoutName);
+        let layout = xshell.config.xshell.page.layout[layoutName];
         let layoutClass = await xshell.loader.load("layout:" + layout);
         if (layoutElement == null || layoutElement.localName != layout) {
             if (layoutElement) layoutElement.remove();
@@ -198,8 +198,8 @@ class XPage extends HTMLElement {
         }        
         this._layout = layoutName;
         // load module 
-        let moduleName = await xshell.modules.resolveModuleName(src);
-        this.setAttribute("module", moduleName ?? "");
+        let moduleId = await xshell.modules.resolveModuleId(src);
+        this.setAttribute("module", moduleId ?? "");
         // fetch page
         let page = null;
         try {
@@ -313,7 +313,7 @@ class XPage extends HTMLElement {
     }
     async showError({code, message, src, module, stack, errors}) {
         // show error
-        let name = xshell.config.get("xshell.component.error");
+        let name = xshell.config.xshell.component.error;
         const errorCoomponentClass = await xshell.loader.load("component:" + name);
         const errorComponent = new errorCoomponentClass();
         errorComponent.code = code;

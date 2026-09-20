@@ -8,78 +8,114 @@ export default class Modules {
     _loader = null;
     _resolver = null;
     _modules = null;
+    _document = null;
+    _services = null;
+    
     
     // ctor
-    constructor( { bus, config, loader, resolver } ) {
+    constructor( { bus, config, loader, resolver, document, services } ) {
         this._bus = bus;
         this._config = config;
         this._loader = loader;
         this._resolver = resolver;
-
+        this._document = document;
+        this._services = services;
+        this._modules = [];
     }
 
     // method
     async init() {
+        // init modules instances
+        const assetsPrefix = this._config.xshell.assetsPrefix;
+
+        // create modules
         let tasks = [];
-        this._modules = [];
-        const assetsPrefix = this._config.get("xshell.assetsPrefix");
-        for (let module of this._config.getAsObjects("modules")) {
-            // load stylesheets
-            let styles = this._config.get("modules." + module.name + ".styles", []);
-            for (let style of styles) {
-                let styleUrl = this._resolver.resolveUrl(style);
-                tasks.push(this._loadStyleSheet(styleUrl));
-            }
-            // init module
-            let instance = {
-                name: module.name,
-                label: module.label || module.name,
-                path: "/" + assetsPrefix + "/" + module.name,
+        for(var moduleId of Object.keys(this._config.modules)) {
+            const moduleConfig = this._config.modules[moduleId];
+            // instance
+            let module = {
+                id: moduleId,
+                config: moduleConfig,
+                label: moduleConfig.label || moduleId,
+                path: "/" + assetsPrefix + "/" + moduleId,
+                params: moduleConfig.params,
+                styles: [],
                 controller: {
                     onCommand: function() {}
                 }
             };
-            if (module.handler) {
+            // styles
+            for (let style of moduleConfig.styles || []) {
+                let styleUrl = this._resolver.resolveUrl(style);
                 tasks.push((async() => {
-                    let moduleClass = await this._loader.load("module:" + module.handler);
-                    instance.controller = new moduleClass();
+                    let moduleStyleSheet = await this._loader.load("style:" + styleUrl);
+                    module.styles.push(moduleStyleSheet);
+                })());
+            }    
+            // script
+            if (moduleConfig.script) {
+                tasks.push((async() => {
+                    const moduleClass = await this._loader.load("module:" + moduleConfig.script);
+                    const servicesProvider = new Proxy({}, {
+                        get: (obj, prop) => {
+                            if (prop == "definition") {
+                                // definition of component
+                                return definition;
+                            } else if (prop == "params") {
+                                // module params
+                                return moduleConfig.params;
+                            } else if (prop == "timer") {
+                                // timer helper
+                                return new Timer( (command) => {self.onCommand(command);} );
+                            } else {
+                                // resolve from services
+                                return this._services.resolve(prop);
+                            }                    
+                        }
+                    });
+                    module.controller = new moduleClass(servicesProvider);
                 })());
             }
-            this._modules.push(instance);
+            this._modules.push(module);
         }
         await Promise.all(tasks);
-        // dispatch module-load
+
+        // dispatch module-load to all instances
         tasks = [];
-        for (let instance of this._modules) {
-            tasks.push(instance.controller.onCommand("load", { 
-                name: instance.name,
-                path: instance.path,
-                ... this._config.getAsObject("modules." + instance.name + ".params")
-            }));
+        for (let module of this._modules) {
+            tasks.push(module.controller.start());
         }
         await Promise.all(tasks); 
+
+        // add styles to document header
+        for (let module of this._modules) {
+            for (let styleSheet of module.styles) {
+                this._document.adoptedStyleSheets.push(styleSheet);
+            }
+        }
     }
 
+
     // modules
-    resolveModuleName(src) {
+    resolveModuleId(src) {
         //get module name by src
         if (!src) debugger;
         for (let module of this._modules) {
             if (src.startsWith(module.path + "/")) {
-                return module.name;
+                return module.id;
             }
         }
         return null;
     }
     getModuleBySrc(src) {
         //get module by src
-        const name = this.resolveModuleName(src);
-        return (name ? this.getModule(name) : null);
+        const id = this.resolveModuleId(src);
+        return (id ? this.getModuleById(id) : null);
     }
-    getModule(name) {
-        //get module by name
+    getModuleById(id) {
+        //get module by id
         for (let module of this._modules) {
-            if (module.name == name) {
+            if (module.id == id) {
                 return module;
             }
         }
@@ -89,21 +125,5 @@ export default class Modules {
         return this._modules;
     }
 
-    //styles
-    async _loadStyleSheet(src) {
-        //load stylesheet
-        let resolve = null;
-        let link = document.createElement("link");
-        link.setAttribute("rel", "stylesheet");
-        link.setAttribute("href", src);
-        link.addEventListener("load", () => {
-            resolve();
-        });
-        document.head.appendChild(link);
-        return new Promise((resolv) => {
-            resolve = resolv;
-        });
-    }
-    
 }
 

@@ -21,16 +21,14 @@ export default class Areas {
         });
         // create areas
         let areas = [];
-        for(let areaName of config.getSubKeys("xshell.areas")) {
-            let area = config.getAsObject(`xshell.areas.${areaName}`);
-            area.id = areaName;
-            area.default = area.default || (config.get(`xshell.areaDefault`) == areaName);
-            area.label = area.label || areaName;
+        for(let areaId in config.xshell.areas) {
+            let area = { ...config.xshell.areas[areaId] };
+            area.id = areaId;
+            area.default = area.default || (config.xshell.areaDefault == areaId);
+            area.label = area.label || areaId;
             area.order = area.order || 0;
-
             area.prefixes = [];
-            area.prefixes.push("/" + areaName + "/");
-
+            area.prefixes.push("/" + areaId + "/");
             areas.push(area);
         }
         // sort areas by default, order, label
@@ -50,8 +48,8 @@ export default class Areas {
     getDefaultArea() {
         return this._areas.find( area => area.default ) || this._areas[0];
     }
-    getCurrentArea(){
-        return this._areas.find(area => area.name === this._currentAreaName) || this.getDefaultArea();
+    getCurrentArea() {
+        return this._areas.find(area => area.id === this._currentAreaName) || this.getDefaultArea();
     }
     resolveAreaName(src) {
         //get area name by src
@@ -59,7 +57,7 @@ export default class Areas {
         for (const area of this._areas) {
             for(const prefix of area.prefixes) {
                 if (src.startsWith(prefix)) {
-                    return area.name;
+                    return area.id;
                 }
             }
         }

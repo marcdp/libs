@@ -15,22 +15,13 @@
             "version": "1.0.0",
             "styles": [ "/css/styles.css" ],
             "icon": "",
-            "imports": {
-                "x": {
-                    "url": "url:../x/module.jsonc",
-                    "params": {
-                        "var1": 1111,
-                        "var2": 2222
-                    }
-                },
-                "x2": {
-                    "url": "url:../x/module.jsonc",
-                    "params": {
-                        "var1": 333,
-                        "var2": 4444
-                    }
+            "script": "/js/module.js",
+            "imports": [
+                {
+                    "url": "url:../x/module.jsonc", 
+                    "params": {"aaa":123, "bbb":456}
                 }
-            }
+            ]
         }
     },
 
@@ -38,8 +29,10 @@
     "xshell": {
         "areas": {
             "main": {
+                "prefix": "",
                 "label": "Main area",
-                "icon": "x-bell"
+                "icon": "x-bell",
+                "home": "/pages/test1.js"
             }
         }
     }

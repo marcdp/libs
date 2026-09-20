@@ -1,4 +1,17 @@
 {
+    // app
+    "app": {
+        "name": "",
+        "label": "",
+        "copyright": "",
+        "icon": "",
+        "version": "0.1.0",
+        "base": "/"
+    },
+
+    // modules
+    "modules": {},
+
     // xshell
     "xshell": {
 
@@ -8,6 +21,10 @@
         "version": "0.9.0",
 
         // defaults
+        "module": {
+            "root":null,
+            "rootParams": {}
+        },
         "page": {
             "layout": {
                 "default": null,

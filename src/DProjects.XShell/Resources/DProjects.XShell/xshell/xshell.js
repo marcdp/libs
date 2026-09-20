@@ -2,7 +2,6 @@ import Areas from "./areas.js";
 import Auth from "./auth.js";
 import Binds from "./binds.js";
 import Bus from "./bus.js";
-import Config from "./config.js";
 import Debug from "./debug.js";
 import Dialog from "./dialog.js";
 import I18n from "./i18n.js";
@@ -33,7 +32,7 @@ class XShell {
     _identity = null;
     _loader = null;
     _menus = null;
-    _modules = [];
+    _modules = null;
     _navigation = null;
     _resolver = null;
     _runtime = null;
@@ -66,24 +65,24 @@ class XShell {
     get urlRewriter() { return this._urlRewriter; }
 
     //methods
-    async init(value) {
+    async init(config) {
         // init
         this._bus = new Bus();
         this._debug = new Debug();
-        this._config = new Config({ debug: this._debug, bus: this._bus, value: value });
-        this._areas = new Areas( { bus: this._bus, config: this._config } );
-        this._container = document.body;
-        this._resolver = new Resolver( { debug: this._debug, config: this._config } );
-        this._loader = new Loader({ bus: this._bus, config: this._config, debug: this._debug, resolver: this._resolver });
-        this._auth = new Auth({ config: this._config, loader: this._loader });
-        this._i18n = new I18n();
-        this._modules = new Modules( { bus: this._bus, config: this._config, loader: this._loader, resolver: this._resolver } );
-        this._navigation = new Navigation( { areas: this._areas, bus: this._bus, config: this._config, container: this._container });
-        this._tabs = new Tabs( { bus: this._bus } );
-        this._menus = new Menus( { bus: this._bus, config: this._config, modules: this._modules, navigation: this._navigation } );
         this._services = new Services();
+        this._config = config;
+        this._areas = new Areas( { bus: this._bus, config: config } );
+        this._container = document.body;
+        this._resolver = new Resolver( { debug: this._debug, config: config } );
+        this._loader = new Loader({ bus: this._bus, config: config, debug: this._debug, resolver: this._resolver });
+        this._auth = new Auth({ config: config, loader: this._loader });
+        this._i18n = new I18n();
+        this._modules = new Modules( { bus: this._bus, config: config, loader: this._loader, resolver: this._resolver, document: document, services: this._services } );
+        this._navigation = new Navigation( { areas: this._areas, bus: this._bus, config: config, container: this._container });
+        this._tabs = new Tabs( { bus: this._bus } );
+        this._menus = new Menus( { bus: this._bus, config: config, modules: this._modules, navigation: this._navigation } );
         this._urlRewriter = new UrlRewriter();
-        this._dialog = new Dialog( { config: this._config, navigation: this._navigation, i18n: this._i18n } );
+        this._dialog = new Dialog( { config: config, navigation: this._navigation, i18n: this._i18n } );
         this._runtime = new Runtime();
         // services
         this._services.register("areas", this._areas);

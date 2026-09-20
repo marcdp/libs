@@ -19,18 +19,6 @@ export default class Services {
         if (result == undefined) throw new Error(`Service not found: ${name}`);
         return result;
     }
-    /*
-    createProvider(callback) {
-        let target = {};
-        return new Proxy(target, {
-            get: (obj, prop) => {
-                let result = this._cache.get(prop);
-                if (result == undefined) result = callback(prop);
-                if (result == undefined) throw new Error(`Service not found: ${prop}`);
-                return result;
-            }
-        });
-    }*/
 
 };
 

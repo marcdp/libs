@@ -7,15 +7,15 @@ export const contract = {
     description: "Main layout.",
     events: {},
     properties: {
-        status: { type:"string", value: "", attr: true, state: true, description: "" },
-        appIcon: { type: "string", value: xshell.config.get("app.icon"), state: true, description: "" },
-        appLabel: { type: "string", value: xshell.config.get("app.label"), state: true, description: "" },
-        appBase: { type: "string", value: xshell.config.get("app.base"), state: true, description: "" },
-        userName: { type: "string", value: "", state: true, description: "" },
-        userInitials: { type: "string", value: "", state: true, description: "" },
-        toggled: { type: "boolean", value: false, state: true, description: "" },
-        keyword: { type: "string", value: "", state: true, description: "" },
-        shellDebug: { type: "boolean", value: xshell.config.get("xshell.debug"), state: true, description: "" },
+        status: { type:"string", default: "", attr: true, state: true, description: "" },
+        appIcon: { type: "string", default: "", state: true, description: "" },
+        appLabel: { type: "string", default: "", state: true, description: "" },
+        appBase: { type: "string", default: "", state: true, description: "" },
+        userName: { type: "string", default: "", state: true, description: "" },
+        userInitials: { type: "string", default: "", state: true, description: "" },
+        toggled: { type: "boolean", default: false, state: true, description: "" },
+        keyword: { type: "string", default: "", state: true, description: "" },
+        shellDebug: { type: "boolean", default: false, state: true, description: "" },
     },
     methods: {}
 };
@@ -271,9 +271,9 @@ export default {
     `,
     state: {
         status:         {value: "", attr:true},
-        appIcon:        {value: xshell.config.get("app.icon")},
-        appLabel:       {value: xshell.config.get("app.label")},
-        appBase:        {value: xshell.config.get("app.base")},
+        appIcon:        {value: xshell.config.app.icon},
+        appLabel:       {value: xshell.config.app.label},
+        appBase:        {value: xshell.config.app.base},
         userName:       {value: ""},
         userInitials:   {value: ""},
         menuMain:       {value: null},
@@ -281,7 +281,7 @@ export default {
         menuProfile:    {value: null},
         toggled:        {value: false},
         keyword:        {value: ""},
-        shellDebug:     {value: xshell.config.get("xshell.debug")}
+        shellDebug:     {value: xshell.config.xshell.debug}
     },
     script({ state, events, navigation, modules, menus, bus, getPage }) {
         return {
@@ -313,13 +313,13 @@ export default {
                     //refresh
                     const page  = getPage();
                     if (page) {
-                        let module = modules.resolveModuleName(page.src);
-                        if (!module) {
+                        let moduleId = modules.resolveModuleId(page.src);
+                        if (!moduleId) {
                             //no module defined 
                             state.menuMain = null;
                         } else if (page.breadcrumb && page.breadcrumb.length){
                             //get module
-                            module = modules.resolveModuleName(page.src);
+                            moduleId = modules.resolveModuleId(page.src);
                             //show menu main and tools
                             state.menuMain = menus.getMenu("main");
                             state.menuTools = menus.getMenu("tools");

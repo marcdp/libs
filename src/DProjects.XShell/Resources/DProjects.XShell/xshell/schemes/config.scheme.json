@@ -1,0 +1,400 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xshell.dev/schemes/config.scheme.json",
+  "title": "XShell Configuration",
+  "description": "Schema for the final merged and normalized XShell configuration.",
+  "type": "object",
+  "required": ["app", "modules", "xshell"],
+  "properties": {
+    "app": {
+      "$ref": "#/$defs/app"
+    },
+    "modules": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/module"
+      }
+    },
+    "xshell": {
+      "$ref": "#/$defs/xshell"
+    }
+  },
+  "additionalProperties": false,
+
+  "$defs": {
+    "app": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "label": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "copyright": {
+          "type": "string"
+        },
+        "icon": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "module": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "icon": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+
+        "styles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+
+        "imports": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/moduleImport"
+          }
+        },
+
+        "page": {
+          "$ref": "#/$defs/modulePage"
+        },
+
+        "component": {
+          "$ref": "#/$defs/moduleComponent"
+        },
+
+        "contract": {
+          "$ref": "#/$defs/moduleContract"
+        }
+      },
+
+      "additionalProperties": true
+    },
+
+    "moduleImport": {
+      "type": "object",
+      "required": ["url"],
+      "properties": {
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "params": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "modulePage": {
+      "type": "object",
+      "properties": {
+        "renderEngine": {
+          "type": ["string", "null"]
+        },
+        "stateEngine": {
+          "type": ["string", "null"]
+        },
+        "dialog": {
+          "$ref": "#/$defs/dialog"
+        }
+      },
+      "additionalProperties": true
+    },
+
+    "moduleComponent": {
+      "type": "object",
+      "properties": {
+        "renderEngine": {
+          "type": ["string", "null"]
+        },
+        "stateEngine": {
+          "type": ["string", "null"]
+        }
+      },
+      "additionalProperties": true
+    },
+
+    "moduleContract": {
+      "type": "object",
+      "properties": {
+        "params": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/contractMember"
+          }
+        },
+
+        "events": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/contractMember"
+          }
+        },
+
+        "methods": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/contractMember"
+          }
+        },
+
+        "intents": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/contractMember"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "contractMember": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "default": {}
+      },
+      "additionalProperties": true
+    },
+
+    "xshell": {
+      "type": "object",
+      "properties": {
+        "debug": {
+          "type": "boolean"
+        },
+
+        "version": {
+          "type": "string"
+        },
+
+        "build": {
+          "type": "string"
+        },
+
+        "assetsPrefix": {
+          "type": "string"
+        },
+
+        "areaDefault": {
+          "type": "string"
+        },
+
+        "areas": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/area"
+          }
+        },
+
+        "navigation": {
+          "$ref": "#/$defs/navigation"
+        },
+
+        "resolver": {
+          "$ref": "#/$defs/resolver"
+        },
+
+        "page": {
+          "$ref": "#/$defs/page"
+        },
+
+        "component": {
+          "$ref": "#/$defs/component"
+        },
+
+        "dialog": {
+          "$ref": "#/$defs/dialog"
+        },
+
+        "identity": {
+          "$ref": "#/$defs/identity"
+        }
+      },
+
+      "additionalProperties": true
+    },
+
+    "area": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "icon": {
+          "type": "string"
+        },
+        "home": {
+          "type": ["string", "null"]
+        },
+        "order": {
+          "type": "number"
+        },
+        "default": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
+    },
+
+    "navigation": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["hash", "path"]
+        },
+        "hashPrefix": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+
+    "resolver": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": {
+          "$ref": "#/$defs/resolverEntry"
+        }
+      }
+    },
+
+    "resolverEntry": {
+      "type": "object",
+      "required": ["url"],
+      "properties": {
+        "url": {
+          "type": "string"
+        },
+        "loader": {
+          "type": "string"
+        },
+        "cache": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
+    },
+
+    "page": {
+      "type": "object",
+      "properties": {
+        "renderEngine": {
+          "type": ["string", "null"]
+        },
+        "stateEngine": {
+          "type": ["string", "null"]
+        },
+
+        "layout": {
+          "type": "object",
+          "properties": {
+            "default": {
+              "type": ["string", "null"]
+            },
+            "main": {
+              "type": ["string", "null"]
+            },
+            "dialog": {
+              "type": ["string", "null"]
+            },
+            "stack": {
+              "type": ["string", "null"]
+            },
+            "embed": {
+              "type": ["string", "null"]
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+
+    "component": {
+      "type": "object",
+      "properties": {
+        "renderEngine": {
+          "type": ["string", "null"]
+        },
+        "stateEngine": {
+          "type": ["string", "null"]
+        },
+        "lazy": {
+          "type": ["string", "null"]
+        },
+        "error": {
+          "type": ["string", "null"]
+        }
+      },
+      "additionalProperties": true
+    },
+
+    "dialog": {
+      "type": "object",
+      "properties": {
+        "confirm": {
+          "type": ["string", "null"]
+        },
+        "message": {
+          "type": ["string", "null"]
+        },
+        "prompt": {
+          "type": ["string", "null"]
+        },
+        "picker": {
+          "type": ["string", "null"]
+        }
+      },
+      "additionalProperties": true
+    },
+
+    "identity": {
+      "type": "object",
+      "properties": {
+        "provider": {
+          "type": "string"
+        },
+        "params": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    }
+  }
+}

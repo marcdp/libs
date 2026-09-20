@@ -34,7 +34,7 @@ function findClosestXPage(element) {
 
 
 // create page class from js definition
-export async function createComponentClassFromJsDefinition(src, context, definition) {
+export async function createComponentClassFromJsDefinition(src, context, definition, contract) {
     // stylesheets
     const stylesheets = []
     if (typeof(definition.style) == "string") {
@@ -66,14 +66,14 @@ export async function createComponentClassFromJsDefinition(src, context, definit
         if (propDefinition.value && typeof(propDefinition.value) === "object" && !Array.isArray(propDefinition.value) && Object.keys(propDefinition.value).length === 0) stateMapAttributeNames.push(propName);
     }
     // state engine
-    const stateEngineXShell = xshell.config.get(`component.stateEngine`);
-    const stateEngineModule = xshell.config.get(`modules.${context.resourceDefinition.module}.component.stateEngine`, stateEngineXShell);
+    const stateEngineXShell = xshell.config.xshell.component.stateEngine;
+    const stateEngineModule = xshell.config.modules[context.resourceDefinition.moduleId].component.stateEngine;
     const stateEngineComponent = definition.meta.stateEngine || stateEngineModule;
     const stateEngineFactoryCreator = await xshell.loader.load("state-engine:" + stateEngineComponent);
     const stateEngineFactory = new stateEngineFactoryCreator(stateSkeleton, definition.state, context);
     // render engine
-    const renderEngineXShell = xshell.config.get(`component.renderEngine`);
-    const renderEngineModule = xshell.config.get(`modules.${context.resourceDefinition.module}.component.renderEngine`, renderEngineXShell);
+    const renderEngineXShell = xshell.config.xshell.component.renderEngine;
+    const renderEngineModule = xshell.config.modules[context.resourceDefinition.moduleId].component.renderEngine || renderEngineXShell;
     const renderEngineComponent = definition.meta.renderEngine || renderEngineModule;
     const renderEngineFactoryCreator = await xshell.loader.load("render-engine:" + renderEngineComponent);
     const renderEngineFactory = new renderEngineFactoryCreator(definition.template, context);
@@ -270,6 +270,7 @@ export default class LoaderComponentJs {
         // import
         const module = await import(src);
         let definition = module.default;
+        let contract = module.contract;
         // check if its a promise
         if (typeof(definition) === "object" && typeof(definition.then) === "function") {
             definition = await definition;
@@ -287,6 +288,6 @@ export default class LoaderComponentJs {
         }
         definition = Object.seal(Object.freeze(definition));
         // create class definition
-        return await createComponentClassFromJsDefinition(src, context, definition);        
+        return await createComponentClassFromJsDefinition(src, context, definition, contract);        
     }
 };

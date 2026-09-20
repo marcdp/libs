@@ -22,15 +22,14 @@ export default class Navigation {
         this._bus = bus;
         this._config = config;
         this._container = container;
-        this._mode = config.get("navigation.mode") || "hash";
-        this._hashPrefix = config.get("navigation.hashPrefix");
-        this._appBase = this._config.get("app.base");        
+        this._mode = config.xshell.navigation.mode;
+        this._hashPrefix = config.xshell.navigation.hashPrefix;
+        this._appBase = config.app.base;       
     }
 
     // props
     get mode() { return this._mode; }
     get src() { 
-        debugger;
         this._stack[0].href;
         let xpage = this.getXPage();
         return (xpage ? xpage.src : null);
@@ -354,7 +353,7 @@ export default class Navigation {
                     let xpages = this.getXPages();
                     if (xpages.indexOf(event.target) == 0) {
                         var label = event.target.label;
-                        if (label) document.title = label + " / " + this._config.get("app.label");
+                        if (label) document.title = label + " / " + this._config.app.label;
                     }
                 });
                 xpage.addEventListener("replace", (event) => {
@@ -371,7 +370,7 @@ export default class Navigation {
                     let xpages = this.getXPages();
                     if (xpages.indexOf(event.target) == 0) {
                         var label = event.target.label;
-                        if (label) document.title = label + " / " + this._config.get("app.label");
+                        if (label) document.title = label + " / " + this._config.app.label;
                         this._bus.emit("xshell:navigation:end", { src: event.target.src, id: event.target.page.id});
                     }
                 });
