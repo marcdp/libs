@@ -39,14 +39,15 @@ A module can declare reusable named menu contributions, independent of the appli
 
 ```jsonc
 { "modules": { "reports": { "menus": {
-    "navigation": [{ "label": "Reports", "href": "/pages/report.js" }],
+    "navigation": [{ "label": "Reports", "href": "/pages/report.js", "default": true }],
     "tools": [{ "label": "Export", "href": "/pages/export.js" }]
 } } } }
 ```
 
 The root application lists module ids in `xshell.areas.definitions.<area-id>.modules`. Modules do not choose their Area. A module may be listed in
-zero, one, or several Areas. Menus composes separate effective menus for those Areas in the listed order; participation does not create routes,
-imports, or additional module instances. See [Areas](../subsystems/areas.md) for prefix and page-loading limits.
+zero, one, or several Areas. Areas composes separate effective menus for those Areas in the listed order; the first top-level navigation item
+marked `default: true` provides each Area's home. Participation does not create routes, imports, or additional module instances.
+See [Areas](../subsystems/areas.md) for prefix and resource ownership.
 
 ## Module script and startup
 
@@ -79,7 +80,7 @@ established. A script-free definition receives a fallback controller with no `st
 ## Public communication contract
 
 The Bus supports events and listeners. A declarative module contract for accepted params, public events, methods, and navigation intents has been
-proposed but is not parsed or enforced by the runtime. Exact syntax, validation, dispatch, and errors remain TODOs. Menus remain declarative
+proposed but is not parsed or enforced by the runtime. Module menu contributions remain declarative
 contributions; they are not module imports or extra module instances.
 
 See [Module Specification](../specifications/module.md), [Configuration](configuration.md), [Navigation](navigation.md), and [Areas](../subsystems/areas.md).

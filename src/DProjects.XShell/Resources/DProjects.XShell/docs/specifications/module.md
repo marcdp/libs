@@ -16,7 +16,7 @@ provide `app` metadata. Any module file may contribute nested `xshell` settings.
                 { "url": "url:../customer/module.jsonc", "params": { "region": "eu" } }
             ],
             "menus": {
-                "navigation": [{ "label": "Orders", "href": "/pages/orders.js" }],
+                "navigation": [{ "label": "Orders", "href": "/pages/orders.js", "default": true }],
                 "tools": [{ "label": "New order", "href": "/pages/new-order.js" }]
             }
         }
@@ -36,8 +36,8 @@ virtual URLs to the definition's physical resource location.
 `modules.<module-id>.menus.<menu-name>` is an area-independent contribution to a named menu slot. The root application selects participating
 modules through `xshell.areas.definitions.<area-id>.modules`; a child module does not declare Area membership. One module can contribute to multiple
 Areas without creating another runtime module instance. Menu entries are navigation data, not imports or route declarations. Bootstrap normalizes
-authored module-relative hrefs such as `/pages/orders.js` into the module asset namespace before Menus applies an Area prefix. Non-empty Area
-prefix routing has [current limits](../subsystems/areas.md#current-implementation-limits).
+authored module-relative hrefs such as `/pages/orders.js` into the module asset namespace before Areas applies an Area prefix. The first
+top-level navigation item marked `default: true` in Area module order determines that Area's home; absent such an item, home is null.
 
 The optional `script` points to a module script whose default export is a constructable class. Runtime requests named XShell services through
 its constructor argument, supplies `params` from the final module config, and calls `start()` after script and style loads. See

@@ -7,7 +7,6 @@ import Dialog from "./dialog.js";
 import I18n from "./i18n.js";
 import Loader from "./loader.js";
 import Navigation from "./navigation.js";
-import Menus from "./menus.js";
 import Modules from "./modules.js";
 import Page from "./page.js";
 import Resolver from "./resolver.js";
@@ -31,7 +30,6 @@ class XShell {
     _i18n = null;
     _identity = null;
     _loader = null;
-    _menus = null;
     _modules = null;
     _navigation = null;
     _resolver = null;
@@ -55,7 +53,6 @@ class XShell {
     get i18n() { return this._i18n; }
     get identity() { return this._identity; }
     get loader() { return this._loader; }
-    get menus() { return this._menus; }
     get modules() { return this._modules; }
     get navigation() { return this._navigation; }
     get resolver() { return this._resolver; }
@@ -80,7 +77,6 @@ class XShell {
         this._modules = new Modules( { bus: this._bus, config: config, loader: this._loader, resolver: this._resolver, document: document, services: this._services } );
         this._navigation = new Navigation( { areas: this._areas, bus: this._bus, config: config, container: this._container });
         this._tabs = new Tabs( { bus: this._bus } );
-        this._menus = new Menus( { bus: this._bus, areas: this._areas, modules: this._modules, navigation: this._navigation } );
         this._urlRewriter = new UrlRewriter();
         this._dialog = new Dialog( { config: config, navigation: this._navigation, i18n: this._i18n } );
         this._runtime = new Runtime();
@@ -94,7 +90,6 @@ class XShell {
         this._services.register("dialog", this._dialog);
         this._services.register("i18n", this._i18n);
         this._services.register("loader", this._loader);
-        this._services.register("menus", this._menus);
         this._services.register("modules", this._modules);
         this._services.register("navigation", this._navigation);
         this._services.register("resolver", this._resolver);
@@ -107,10 +102,10 @@ class XShell {
         this._services.register("identity", this._identity);
         // modules
         await this._modules.init();               
+        // compose area menus and homes before navigation starts
+        this._areas.init({ modules: this._modules });
         // navigation
         await this._navigation.init();
-        // menus
-        await this._menus.init();
     }   
 }
 

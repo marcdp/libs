@@ -8,6 +8,7 @@ XShell authors nested JSONC. Framework defaults, the root module, and imported m
     "modules": {
         "test": {
             "label": "Test module",
+            "menus": { "navigation": [{ "label": "Home", "href": "/pages/home.js", "default": true }] },
             "imports": [
                 { "url": "url:../x/module.jsonc", "params": { "mode": "compact" } }
             ]
@@ -18,7 +19,7 @@ XShell authors nested JSONC. Framework defaults, the root module, and imported m
         "areas": {
             "default": "main",
             "definitions": {
-                "main": { "prefix": "", "home": "/pages/home.js", "modules": ["test"] }
+                "main": { "prefix": "", "modules": ["test"] }
             }
         }
     }
@@ -30,7 +31,8 @@ contributions. This is a root `module.jsonc` fragment, not a separate applicatio
 `url` and params on its `modules.<module-id>` entry. The module id is the key; a duplicate `name` field is unnecessary.
 
 `modules.<id>.menus.<name>` holds reusable, area-independent menu contributions. `xshell.areas.default` selects a default Area and
-`xshell.areas.definitions.<id>` describes application composition, including `prefix`, `home`, and the participating `modules` array.
+`xshell.areas.definitions.<id>` describes application composition, including `prefix` and the participating `modules` array. Areas derives
+`home` from the first top-level navigation item marked `default: true`; it does not use a configured Area home.
 Root ownership of Area composition is an architectural convention; imported fragments can technically contribute `xshell` settings.
 
 ## Merge and precedence
@@ -55,10 +57,10 @@ no Area-specific replacement rule.
 
 Bootstrap resolves `url:` references against each JSONC source and maps module-relative paths into the configured asset namespace, currently
 `/_assets/<module-id>/...`. Resolver entries are nested objects; the resolver selects a URL and loader, and the loader obtains the resource.
-This recursive normalization also rewrites leading-slash Area prefixes as module-relative resource paths, a
-[current implementation limit](../subsystems/areas.md#current-implementation-limits).
+Area prefixes are preserved as navigation metadata during this normalization.
 
 Bootstrap deeply freezes the effective configuration before passing it to XShell. Configuration is distinct from mutable runtime state. JSON
-Schema validation in development remains intended but unimplemented; no validation step or schema exists.
+Schema validation in development remains intended but unimplemented. A checked-in schema exists under `xshell/schemes/`, but bootstrap does not
+run it.
 
 See [Module Specification](../specifications/module.md), [Resolvers](resolvers.md), and [ADR-0002](../adr/0002-jsonc-specifications.md).

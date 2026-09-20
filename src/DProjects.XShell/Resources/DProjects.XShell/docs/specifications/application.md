@@ -23,7 +23,7 @@ imports compose the application; there is no separate application specification.
         "areas": {
             "default": "customers",
             "definitions": {
-                "customers": { "prefix": "/customers", "label": "Customers", "home": "/pages/home.js", "modules": ["customers", "reports"] },
+                "customers": { "prefix": "/customers", "label": "Customers", "modules": ["customers", "reports"] },
                 "inventory": { "prefix": "/inventory", "label": "Inventory", "modules": ["inventory", "reports"] }
             }
         }
@@ -33,8 +33,9 @@ imports compose the application; there is no separate application specification.
 
 `app` contains application metadata. `modules.app` is the root's canonical definition and `xshell` composes Areas. The two Areas select
 the same `reports` module, yielding separate effective menus but one live `reports` instance. Child modules provide named menu contributions;
-they do not choose their Area. This example shows the **intended composition**. Current bootstrap rewrites the leading-slash Area prefixes,
-and prefixed page URLs do not resolve to module resources yet. See [Areas](../subsystems/areas.md#current-implementation-limits).
+they do not choose their Area. The imported reports module can declare a top-level navigation item marked `default: true`; Areas derives each
+home from its first such contribution in module order. Bootstrap preserves Area prefixes, and `x-page` removes them for module resource
+resolution. See [Areas](../subsystems/areas.md).
 
 Bootstrap uses the first key of the root file's `modules` object as `xshell.module.root`. The optional `xshell.app_params` host meta value becomes the
 root definition's `params`. The framework default `xshell.module.rootParams` exists but bootstrap does not fill it from that value. Root

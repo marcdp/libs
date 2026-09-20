@@ -56,6 +56,7 @@ export default class Navigation {
                 this._stackToDom();
             } else {
                 let defaultArea = this._areas.getDefaultArea();
+                if (!defaultArea?.home) throw new Error("Default area has no navigation item marked default");
                 this._stackToBrowser([this.parseUrl(defaultArea.home)], { replace: false });
             }
         } else if (this._mode == "path") {

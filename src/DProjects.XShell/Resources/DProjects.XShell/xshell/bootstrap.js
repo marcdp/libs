@@ -5,6 +5,13 @@ function meta(name) { return document.head.querySelector(`meta[name="${name}"]`)
 function deepFreeze(obj) {if (obj === null || typeof obj !== "object") {return obj;} Object.freeze(obj); for (const value of Object.values(obj)) {deepFreeze(value);} return obj;}
 function absolutizePrefixedUrl(key, obj, url) {return typeof obj === "string" ? (obj.startsWith("url:") ? ((obj = obj.substring(4).trim()), (obj.startsWith("/") || obj.startsWith("./") || obj.startsWith("../") || obj === ".") ? combineUrls(url, obj) : obj) : obj) : Array.isArray(obj) ? (obj.forEach((v, i) => obj[i] = absolutizePrefixedUrl(i, v, url)), obj) : obj instanceof Object ? (Object.keys(obj).forEach(k => obj[k] = absolutizePrefixedUrl(k, obj[k], url)), obj) : obj;}
 function relativizePaths(key, obj, path) { return typeof obj === "string" ? (obj.startsWith("/") ? ((obj = path + obj), obj.startsWith(document.location.origin) ? obj.substring(document.location.origin.length) : obj) : (obj.startsWith("./") || obj.startsWith("../") || obj === ".") ? ((obj = combineUrls(path + "/", obj)), obj.startsWith(document.location.origin) ? obj.substring(document.location.origin.length) : obj) : obj) : Array.isArray(obj) ? (obj.forEach((v, i) => obj[i] = relativizePaths(i, v, path)), obj) : obj instanceof Object ? (Object.keys(obj).forEach(k => obj[k] = relativizePaths(k, obj[k], path)), obj) : obj; }
+function relativizeModulePaths(config, path) {
+    // area prefixes are navigation metadata, not module resource paths
+    const definitions = config.xshell?.areas?.definitions || {};
+    const prefixes = Object.fromEntries(Object.entries(definitions).filter(([, area]) => Object.hasOwn(area, "prefix")).map(([id, area]) => [id, area.prefix]));
+    relativizePaths("", config, path);
+    for (const [id, prefix] of Object.entries(prefixes)) definitions[id].prefix = prefix;
+}
 async function loadJsonWithComments(url) {const request = await fetch(url);if (!request.ok) throw new Error(`Failed to json file: ${result.url}`);let json = await request.text();return JSON.parse(stripJsonComments(json));}
  
 
@@ -53,7 +60,7 @@ async function loadConfig() {
     const xshellConfig = await xshellConfigTask;
     const assetsPrefix = xshellConfig.xshell.assetsPrefix;
     xshellConfig.app.base = appBaseUrl;
-    relativizePaths("", xshellConfig, "/" + assetsPrefix + "/xshell");
+    relativizeModulePaths(xshellConfig, "/" + assetsPrefix + "/xshell");
     
     // get root module config
     const rootModuleConfig = await rootModuleConfigTask;
@@ -63,7 +70,7 @@ async function loadConfig() {
     rootModule.params = Object.fromEntries(new URLSearchParams(appParams));
     xshellConfig.xshell.module.root = rootModuleId;
     absolutizePrefixedUrl("", rootModuleConfig, rootModuleUrl);    
-    relativizePaths("", rootModuleConfig, "/" + assetsPrefix + "/" + rootModuleId);
+    relativizeModulePaths(rootModuleConfig, "/" + assetsPrefix + "/" + rootModuleId);
     
     // load referenced modules
     const registered = {}
@@ -103,7 +110,7 @@ async function loadConfig() {
                 registeredModule.url = registeredItem.url;
                 registeredModule.params = registeredItem.params;
                 absolutizePrefixedUrl("", registeredItem.config, registeredItem.url);    
-                relativizePaths("", registeredItem.config, "/" + assetsPrefix + "/" + registeredModuleName);
+                relativizeModulePaths(registeredItem.config, "/" + assetsPrefix + "/" + registeredModuleName);
                 delete registeredItem.task;
             }
         }

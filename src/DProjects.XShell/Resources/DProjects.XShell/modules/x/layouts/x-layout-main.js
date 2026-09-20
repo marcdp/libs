@@ -283,7 +283,7 @@ export default {
         keyword:        {value: ""},
         shellDebug:     {value: xshell.config.xshell.debug}
     },
-    script({ state, events, navigation, modules, menus, bus, getPage }) {
+    script({ state, events, navigation, areas, bus, getPage }) {
         return {
             async onCommand(command, params) {
                 if (command == "load") {
@@ -313,23 +313,23 @@ export default {
                     //refresh
                     const page  = getPage();
                     if (page) {
-                        let moduleId = modules.resolveModuleId(page.src);
+                        let moduleId = page.host?.getAttribute("module");
                         if (!moduleId) {
                             //no module defined 
                             state.menuNavigation = null;
                         } else if (page.breadcrumb && page.breadcrumb.length){
                             //get module
-                            moduleId = modules.resolveModuleId(page.src);
+                            moduleId = page.host?.getAttribute("module");
                             //show menu main and tools
-                            state.menuNavigation = menus.getMenu("navigation");
-                            state.menuTools = menus.getMenu("tools");
-                            state.menuProfile = menus.getMenu("profile");
+                            state.menuNavigation = areas.getMenu("navigation");
+                            state.menuTools = areas.getMenu("tools");
+                            state.menuProfile = areas.getMenu("profile");
                         } else { 
                             // not found breadcrumb in page
                             // show menu main and tools
-                            state.menuNavigation = menus.getMenu("navigation");
-                            state.menuTools = menus.getMenu("tools");
-                            state.menuProfile = menus.getMenu("profile");
+                            state.menuNavigation = areas.getMenu("navigation");
+                            state.menuTools = areas.getMenu("tools");
+                            state.menuProfile = areas.getMenu("profile");
                             //breadcrumb
                             if (state.menuNavigation) {
                                 let menuitems = findObjectsPath(state.menuNavigation, 'href', page.href);

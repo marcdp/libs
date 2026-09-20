@@ -197,13 +197,15 @@ class XPage extends HTMLElement {
             layoutElement.setAttribute("status", "loading");
         }        
         this._layout = layoutName;
-        // load module 
-        let moduleId = await xshell.modules.resolveModuleId(src);
+        // remove navigation context before resolving the module resource
+        const area = xshell.areas.getArea(xshell.areas.resolveAreaId(src));
+        const resourceSrc = area?.prefix ? src.substring(area.prefix.length) : src;
+        let moduleId = xshell.modules.resolveModuleId(resourceSrc);
         this.setAttribute("module", moduleId ?? "");
         // fetch page
         let page = null;
         try {
-            const pageClass = await xshell.loader.load("page:" + src);
+            const pageClass = await xshell.loader.load("page:" + resourceSrc);
             page = new pageClass( { src, context: this._context } );
         } catch(exception) {
             page = new Page({ src });
@@ -235,7 +237,7 @@ class XPage extends HTMLElement {
             searchParams.delete("nav");
         }
         // breadcrumb
-        let breadcrumb = xshell.menus.getMenuitemBreadcrumb(src.split("?")[0]);
+        let breadcrumb = xshell.areas.getMenuitemBreadcrumb(src.split("?")[0], area?.id);
         if (nav && nav.breadcrumb) {
             breadcrumb = nav.breadcrumb;
         }

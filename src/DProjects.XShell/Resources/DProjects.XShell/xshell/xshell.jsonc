@@ -59,7 +59,6 @@
                     "prefix": "",
                     "label": "Main area",
                     "icon": "x-bell",
-                    "home": null,
                     "modules": [ ]
                 }
             }

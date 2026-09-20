@@ -37,7 +37,7 @@ export default {
         keyword: {value:"", attr:true},
         results: {value:[]}
     },
-    script({ state, events, bus, modules, areas, menus, config }) {
+    script({ state, events, bus, modules, areas, config }) {
         return {
             onCommand(command, params) {
                 if (command == "load") {
@@ -64,7 +64,7 @@ export default {
                         }
                         // search current area
                         const currentArea = areas.getCurrentArea();
-                        const menu = menus.getMenu(currentArea.id);
+                        const menu = areas.getMenu("navigation", currentArea.id);
                         for(let menuitem of menu) searchRecursive(menuitem);
                         // search other areas
                         // todo ...

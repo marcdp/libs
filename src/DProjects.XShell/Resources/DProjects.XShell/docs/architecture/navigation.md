@@ -27,14 +27,13 @@ Path mode would use browser paths and history with the same Pages. Direct deep l
 
 The nested names match `xshell.jsonc`; the runtime `Navigation` constructor reads `config.xshell.navigation.mode` and `hashPrefix`.
 
-On a fresh hash-mode load with no hash, Navigation uses the default Area's `home` as its initial target. With an existing hash, it restores the
-encoded page stack. When the root page finishes loading, Navigation emits `xshell:navigation:end` with its source; Areas then resolves the current
-Area from that source's longest matching prefix. Effective menu and breadcrumb lookup is scoped to that Area. The current `x-page` breadcrumb
-lookup occurs before that navigation-end event, so an Area transition can use the previous Area for that lookup.
+On a fresh hash-mode load with no hash, Navigation uses the default Area's `home`, derived from its first top-level navigation item marked
+`default: true`. Startup fails clearly if that home is absent. With an existing hash, Navigation restores the encoded page stack. When the root
+page finishes loading, it emits `xshell:navigation:end`; Areas resolves the current Area from the longest matching prefix. `x-page` selects its
+breadcrumb Area from the URL itself so lookup does not depend on the later navigation-end event.
 
-The intended non-empty Area prefix would wrap the navigation path, for example `#!/customers/_assets/reports/pages/report.js`.
-Current bootstrap path normalization and page resolution do not yet support that end-to-end; see
-[Areas](../subsystems/areas.md#current-implementation-limits). The `/_assets/reports/...` segment still denotes the resource owner.
+A non-empty Area prefix wraps the navigation path, for example `#!/customers/_assets/reports/pages/report.js`. `x-page` removes the Area
+prefix before resolving the module resource. The `/_assets/reports/...` segment still denotes the resource owner.
 
 ## Intents
 

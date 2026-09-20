@@ -53,11 +53,13 @@ export default {
         src:   {value: ""},
         menu: {value: null}
     },
-    script({ events, bus, state, getPage, menus }) {
+    script({ events, bus, state, getPage, areas }) {
         return {
             onCommand(command, ...args) {
                 if (command == "load") {
                     // load
+                    events.on(bus, "xshell:area:change", "refresh");
+                    events.on(bus, "xshell:menus:changed", "refresh");
                     events.on(bus, "xshell:page:load", (event)=>{
                         if (event.detail.id == getPage()?.id) {
                             this.onCommand("refresh");
@@ -70,7 +72,7 @@ export default {
 
                 } else if (command == "refresh") {
                     //refresh
-                    state.menu = menus.getMenu("main");;
+                    state.menu = areas.getMenu("navigation");
                 }
             }
         }

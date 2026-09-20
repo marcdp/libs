@@ -208,14 +208,18 @@
           "type": "string"
         },
 
-        "areaDefault": {
-          "type": "string"
-        },
-
         "areas": {
           "type": "object",
-          "additionalProperties": {
-            "$ref": "#/$defs/area"
+          "properties": {
+            "default": {
+              "type": "string"
+            },
+            "definitions": {
+              "type": "object",
+              "additionalProperties": {
+                "$ref": "#/$defs/area"
+              }
+            }
           }
         },
 
@@ -256,14 +260,15 @@
         "icon": {
           "type": "string"
         },
-        "home": {
-          "type": ["string", "null"]
+        "prefix": {
+          "type": "string"
+        },
+        "modules": {
+          "type": "array",
+          "items": { "type": "string" }
         },
         "order": {
           "type": "number"
-        },
-        "default": {
-          "type": "boolean"
         }
       },
       "additionalProperties": true

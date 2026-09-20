@@ -25,7 +25,7 @@ export default {
             onCommand(command, params) {
                 if (command == "load") {
                     // load
-                    events.on(bus, "xshell:area:changed", "refresh");
+                    events.on(bus, "xshell:area:change", "refresh");
                     state.areas = areas.getAreas();
                     
                 } else if (command == "refresh") {

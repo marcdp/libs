@@ -9,7 +9,7 @@ Draft.
 ## Documents
 
 - [Authentication](authentication.md) — Identity-provider selection and login/logout orchestration.
-- [Areas](areas.md) — Application navigation contexts and effective menus composed from module contributions.
+- [Areas](areas.md) — Navigation contexts, effective menus, and homes composed from module contributions.
 - [Identity](identity.md) — The identity object exposed to runtime services.
 - [Internationalization](i18n.md) — Language metadata, localized text selection, and date/time formatting.
 
