@@ -13,10 +13,10 @@ export default class Areas {
         // listen to navigation end to track current area
         bus.addEventListener("xshell:navigation:end", (evt) => {
             const src = evt.detail.src;
-            const areaName = this.resolveAreaName(src);
-            if (this._currentAreaName != areaName) {
-                this._currentAreaName = areaName;
-                bus.emit("xshell:area:change", { area: areaName } );
+            const areaId = this.resolveAreaId(src);
+            if (this._currentAreaName != areaId) {
+                this._currentAreaName = areaId;
+                bus.emit("xshell:area:change", { areaId: areaId } );
             }
         });
         // create areas
@@ -51,8 +51,8 @@ export default class Areas {
     getCurrentArea() {
         return this._areas.find(area => area.id === this._currentAreaName) || this.getDefaultArea();
     }
-    resolveAreaName(src) {
-        //get area name by src
+    resolveAreaId(src) {
+        // get area id by src
         // search by prefixes
         for (const area of this._areas) {
             for(const prefix of area.prefixes) {

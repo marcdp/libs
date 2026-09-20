@@ -23,31 +23,16 @@
                 }
             ],
             "menus":{
-                "main": {
-                    "main":[{
-                        "label": "Amazon S3",
-                        "href": "/pages/page0.html",
-                        "children": [
-                            { "label": "Block Public Access settings for this account BIG", "href": "/pages/page1.html" },
-                            { "label": "Page 2", "href": "/pages/page2.html" },
-                            { "label": "Page 3", "href": "/pages/page3.html" },
-                            { "label": "Page 4", "href": "/pages/page4.html" },
-                            { "label": "Objects", "href": "/pages/page5.html", "children":[
-                                { "label": "Es un hecho establecido hace ", "href": "/pages/page6.html" }
-                            ] },                
-                            { "label": "-"},
-                            { "label": "Page 7", "href": "/pages/page7.js" },
-                            { "label": "Page 8", "href": "/pages/page8.js" },
-                            { "label": "Page Not found", "href": "/pages/page-not-found.html" }                
-                        ]
-                    }]
-                },
-                "tools": {
-                    "main": [
-                        { "label": "My things", "href": "/pages/page1.html", "aicon":"x-bell" },
-                        { "label": "Your things", "href": "/pages/page2.html"  }
+                "navigation":[{
+                    "label": "Amazon S3",
+                    "href": "/pages/page0.html",
+                    "children": [
+                        { "label": "Page 1", "href": "/pages/test1.js" }
                     ]
-                }
+                }],
+                "tools": [
+                    { "label": "My things", "href": "/pages/test1.js"}
+                ]
             }
         }
     },
@@ -55,11 +40,15 @@
     // xshell 
     "xshell": {
         "areas": {
-            "main": {
-                "prefix": "",
-                "label": "Main area",
-                "icon": "x-bell",
-                "home": "/pages/test1.js"
+            "default": "main",
+            "definitions": {
+                "main": {
+                    "prefix": "",
+                    "label": "Main area",
+                    "icon": "x-bell",
+                    "home": "/pages/test1.js",
+                    "modules": [ "test" ]
+                }
             }
         }
     }

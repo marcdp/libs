@@ -87,6 +87,11 @@ export default class Modules {
         }
         await Promise.all(tasks); 
 
+        // freeze modules
+        for (let module of this._modules) {
+            Object.freeze(module);
+        }
+
         // add styles to document header
         for (let module of this._modules) {
             for (let styleSheet of module.styles) {

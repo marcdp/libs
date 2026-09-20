@@ -11,8 +11,10 @@ export default class Menus {
     _config = null;
     _navigation = null;
     _modules = null;
+
     // sources of menu items registered by modules
     _sources = {};
+    
     // cached menus
     _cache = null;
 
@@ -28,9 +30,12 @@ export default class Menus {
     init() {
         // build menus from config
         let cache = {};
+        /*
         debugger
         for(let moduleId of Object.keys(this._modules.getModules())) { 
-            
+            const menuName = keyParts[3];
+            const menuArea = keyParts[4] || (menuName == MENU_MAIN ? "main" : "");
+            const menuItems = this._config.config[key];
         }
         
         for(let key in this._config.config) {
@@ -46,11 +51,12 @@ export default class Menus {
                     cache[menuName].push(menuitem);
                 }
             }
-        }
+        }*/
         this._cache = cache;
     }
     getMenu(name) {
         // get menu 
+        debugger;
         if (name == MENU_MAIN) {
             return this.getMenuMain();
         }
@@ -58,6 +64,7 @@ export default class Menus {
     }
     getMenuMain() {
         // get main menu (by area)
+        debugger;
         let result =  [];
         const breadcrum = this.getMenuitemBreadcrumb(this._navigation.stack[0].href);
         if (breadcrum) {
@@ -71,6 +78,7 @@ export default class Menus {
     }
     getMenuitemBreadcrumb(href) {
         // get menuitem breadcrumb
+        debugger;
         let hrefs = [];
         hrefs.push(href);
         if (href.indexOf("#")!=-1) {

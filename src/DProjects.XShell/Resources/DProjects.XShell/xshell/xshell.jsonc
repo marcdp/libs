@@ -52,12 +52,22 @@
             "provider": "anonymous"
         },
         "assetsPrefix": "_assets",
-        "areaDefault": "main",
+        "areas": {
+            "default": "main",
+            "definitions": {
+                "main": {
+                    "prefix": "",
+                    "label": "Main area",
+                    "icon": "x-bell",
+                    "home": null,
+                    "modules": [ ]
+                }
+            }
+        },
 
         // navigation
         "navigation": {
-            // "mode": "path",
-            "mode": "hash",
+            "mode": "hash", // | "path"
             "hashPrefix": "#!"
         },
 
