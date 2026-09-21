@@ -53,9 +53,9 @@ export default class Modules {
                 })());
             }    
             // script
-            if (moduleConfig.script) {
+            if (moduleConfig.controller) {
                 tasks.push((async() => {
-                    const moduleClass = await this._loader.load("module:" + moduleConfig.script);
+                    const moduleClass = await this._loader.load("module:" + moduleConfig.controller);
                     const servicesProvider = new Proxy({}, {
                         get: (obj, prop) => {
                             if (prop == "definition") {
@@ -81,11 +81,7 @@ export default class Modules {
         await Promise.all(tasks);
 
         // dispatch module-load to all instances
-        tasks = [];
-        for (let module of this._modules) {
-            tasks.push(module.controller.start());
-        }
-        await Promise.all(tasks); 
+        await this.start();
 
         // freeze modules
         for (let module of this._modules) {
@@ -98,6 +94,22 @@ export default class Modules {
                 this._document.adoptedStyleSheets.push(styleSheet);
             }
         }
+    }
+
+    // start/stop
+    async start() {
+        const tasks = [];
+        for (let module of this._modules) {
+            tasks.push(module.controller.start());
+        }
+        await Promise.all(tasks); 
+    } 
+    async stop() {
+        const tasks = [];
+        for (let module of this._modules) {
+            tasks.push(module.controller.stop());
+        }
+        await Promise.all(tasks); 
     }
 
 

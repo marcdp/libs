@@ -136,7 +136,7 @@ export default class Areas {
         };
         for (const event of source.dependsOn || []) {
             this._bus.addEventListener(event, () => {
-                if (source.refresh()) this._bus.emit("xshell:menus:changed", {});
+                if (source.refresh()) this._bus.emit("xshell:menus:change", {});
             });
         }
     }

@@ -48,7 +48,7 @@ export default class LoaderPageHtml {
         if (scripts.length == 1) {
             let script = scripts[0];
             let scriptSrc = script.getAttribute("src");
-            scriptSrc = normalizeModuleResourceUrl(scriptSrc, context.appBase + context.resourceDefinition.modulePath, src);
+            scriptSrc = normalizeModuleResourceUrl(scriptSrc, context.appBasePath + context.resourceDefinition.modulePath, src);
             script.parentNode.removeChild(script);  
             let module = await import(scriptSrc);
             let moduleDefinition = module.default;

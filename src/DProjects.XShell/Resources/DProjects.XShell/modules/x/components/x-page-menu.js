@@ -11,7 +11,7 @@ export const contract = {
 // implementation
 export default {
     style: `
-        :host {display:block; border:1px red solid;}
+        :host {display:block; }
         ul {margin:0; padding:0;}
         li {list-style:none; }
         li > x-anchor {display:block; margin-bottom:.7em;}
@@ -51,7 +51,7 @@ export default {
     `,
     state: {
         src:   {value: ""},
-        menu: {value: null}
+        menu:  {value: null}
     },
     script({ events, bus, state, getPage, areas }) {
         return {
@@ -59,12 +59,18 @@ export default {
                 if (command == "load") {
                     // load
                     events.on(bus, "xshell:area:change", "refresh");
-                    events.on(bus, "xshell:menus:changed", "refresh");
+                    events.on(bus, "xshell:menus:change", "refresh");
                     events.on(bus, "xshell:page:load", (event)=>{
                         if (event.detail.id == getPage()?.id) {
                             this.onCommand("refresh");
                         }
                     });
+                    events.on(bus, "xshell:navigation:end", (event) => {
+                        let href = event.detail.src;
+                        if (href.indexOf("#")!=-1) href = href.substring(0, href.indexOf("#"));
+                        if (href.indexOf("?")!=-1) href = href.substring(0, href.indexOf("?"));
+                        state.selected = href;
+                    })
 
                 } else if (command == "mount") {
                     // mount

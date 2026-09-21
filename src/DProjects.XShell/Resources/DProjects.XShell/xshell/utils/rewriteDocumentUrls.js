@@ -52,9 +52,9 @@ export function rewrite( el, attr, type, url, context ) {
         return url;
     } else if (type == "resource") {
         if (url.startsWith("/")) {
-            return context.appBase + context.resourceDefinition.modulePath + url;
+            return context.appBasePath + context.resourceDefinition.modulePath + url;
         } else{
-            return context.appBase + combineUrls(context.resourcePath, url);
+            return context.appBasePath + combineUrls(context.resourcePath, url);
         }
     } else if (type == "navigation") {
         let virtualUrl = null;
@@ -69,7 +69,7 @@ export function rewrite( el, attr, type, url, context ) {
         if (context.navigationMode == "hash") {
             realUrl = context.navigationHashPrefix + virtualUrl;
         } else {
-            realUrl = context.appBase + virtualUrl;
+            realUrl = context.appBasePath + virtualUrl;
         }
         return realUrl;
     } else if (type == "virtual_navigation") {

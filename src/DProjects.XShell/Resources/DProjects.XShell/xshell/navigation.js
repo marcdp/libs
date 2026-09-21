@@ -12,7 +12,7 @@ export default class Navigation {
 
     _mode = ""; //hash|path
     _hashPrefix = "";
-    _appBase = "";
+    _appBasePath = "";
 
     _stack = [];
     
@@ -24,7 +24,7 @@ export default class Navigation {
         this._container = container;
         this._mode = config.xshell.navigation.mode;
         this._hashPrefix = config.xshell.navigation.hashPrefix;
-        this._appBase = config.app.base;       
+        this._appBasePath = config.app.basePath;
     }
 
     // props
@@ -97,9 +97,9 @@ export default class Navigation {
     buildUrlAbsolute(...params){
         let href = this.buildUrl(...params);
         if (this._mode == "hash") {
-            href = this._appBase + "/" + this._hashPrefix + href;
+            href = this._appBasePath + "/" + this._hashPrefix + href;
         } else {
-            href = this._appBase + href;
+            href = this._appBasePath + href;
         }
         return href;
     }
@@ -260,9 +260,9 @@ export default class Navigation {
             }            
         } else if (this._mode === "path") {
             if (replace) {
-                history.replaceState(null, "", this._appBase + url);
+                history.replaceState(null, "", this._appBasePath + url);
             } else {
-                history.pushState(null, "", this._appBase + url);
+                history.pushState(null, "", this._appBasePath + url);
             }
         }
     }

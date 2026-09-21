@@ -11,10 +11,10 @@ namespace DProjects.XShell.Commands {
 
 
         // Arguments
-        [Flag('a', "App base url", "")]
-        public string AppBase { get; init; } = "";
+        [Flag('a', "Base path", "")]
+        public string AppBasePath { get; init; } = "";
         [Flag('c', "App config file path", "")]
-        public string AppConfig { get; init; } = "";
+        public string AppConfigPath { get; init; } = "";
         [Flag('r', "Resource base url", "")]
         public string ResourceBase { get; init; } = "";
         [Flag('p', "Parameter", "")]
@@ -35,8 +35,8 @@ namespace DProjects.XShell.Commands {
 
             // use XShell
             app.UseXShell(new Extensions.Configuration {
-                AppBase = AppBase,
-                AppConfig = (string.IsNullOrEmpty(AppConfig) ? ResourceBase + "/_resources/DProjects.XShell/samples/sample1/app.jsonc" : AppConfig),
+                AppBasePath = AppBasePath,
+                AppConfigPath = (string.IsNullOrEmpty(AppConfigPath) ? ResourceBase + "/_resources/DProjects.XShell/modules/test/module.jsonc" : AppConfigPath),
                 AppParams = Param.ToDictionary(p => p.Split('=')[0], p => p.Split('=')[1]),
                 ResourcesBase = ResourceBase
             });

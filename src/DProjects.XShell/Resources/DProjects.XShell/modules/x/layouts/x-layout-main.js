@@ -10,7 +10,7 @@ export const contract = {
         status: { type:"string", default: "", attr: true, state: true, description: "" },
         appIcon: { type: "string", default: "", state: true, description: "" },
         appLabel: { type: "string", default: "", state: true, description: "" },
-        appBase: { type: "string", default: "", state: true, description: "" },
+        appBasePath: { type: "string", default: "", state: true, description: "" },
         userName: { type: "string", default: "", state: true, description: "" },
         userInitials: { type: "string", default: "", state: true, description: "" },
         toggled: { type: "boolean", default: false, state: true, description: "" },
@@ -208,7 +208,7 @@ export default {
         <!-- shell header -->
         <nav class="header shell">
 
-            <a class="logo" x-attr:href="state.appBase" x-if="state.appIcon">
+            <a class="logo" x-attr:href="state.appBasePath" x-if="state.appIcon">
                 <img x-attr:src="state.appIcon" x-attr:title="state.appLabel">
             </a>
             
@@ -253,7 +253,6 @@ export default {
                     <x-button class="anchor" icon="x-keyboard-arrow-left" x-on:click="toggle-menu"></x-button>
                     <x-button class="anchor" icon="x-close" x-on:click="toggle-menu"></x-button>
                     <x-page-menu></x-page-menu>
-                    <x-menumain x-prop:menu="state.menuNavigation"></x-menumain>
                 </div>
             </nav>
             <div class="divider"></div>
@@ -273,7 +272,7 @@ export default {
         status:         {value: "", attr:true},
         appIcon:        {value: xshell.config.app.icon},
         appLabel:       {value: xshell.config.app.label},
-        appBase:        {value: xshell.config.app.base},
+        appBasePath:    {value: xshell.config.app.basePath},
         userName:       {value: ""},
         userInitials:   {value: ""},
         menuNavigation:       {value: null},
@@ -301,7 +300,7 @@ export default {
                     });
                     events.on(bus, "xshell:navigation:end", "refresh");
                     // bind refresh
-                    events.on(bus, "xshell:menus:changed", "refresh")
+                    events.on(bus, "xshell:menus:change", "refresh")
                     // bind search
                     events.on(state, "change:keyword", "search");
                     

@@ -24,6 +24,6 @@ imports. Area membership does not create module imports or routes.
 
 The runtime constructs canonical modules first, then Areas composes effective menus and homes before Navigation starts. Bootstrap preserves Area
 prefixes and `x-page` strips a matched prefix only for module resource lookup. Breadcrumb lookup uses the URL's Area before Navigation emits an
-Area change. Dynamic menu updates retain `xshell:menus:changed`; Area changes use `xshell:area:change`.
+Area change. Dynamic menu updates retain `xshell:menus:change`; Area changes use `xshell:area:change`.
 
 See [Areas](../subsystems/areas.md), [Navigation](../architecture/navigation.md), and [Configuration](../architecture/configuration.md).

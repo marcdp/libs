@@ -69,7 +69,7 @@ test("Area changes emit only the Area event and use the longest prefix", () => {
     bus.emit("xshell:navigation:end", { src: "/advanced/_assets/test/pages/test0.js" });
     assert.equal(areas.getCurrentArea().id, "advanced");
     assert.equal(events.filter(event => event.name === "xshell:area:change").length, 1);
-    assert.equal(events.filter(event => event.name === "xshell:menus:changed").length, 0);
+    assert.equal(events.filter(event => event.name === "xshell:menus:change").length, 0);
 });
 
 test("home uses the first top-level default in Area module order", () => {
@@ -155,7 +155,7 @@ test("dynamic children refresh every Area copy", () => {
     assert.equal(areas.getMenu("navigation", "main")[0].children[0].label, "Page 1");
     assert.equal(areas.getMenu("navigation", "main")[0].children.at(-1).label, "Second");
     assert.equal(areas.getMenu("navigation", "advanced")[0].children.at(-1).href, "/advanced/_assets/test/pages/test2.js");
-    assert.equal(events.filter(event => event.name === "xshell:menus:changed").length, 1);
+    assert.equal(events.filter(event => event.name === "xshell:menus:change").length, 1);
     listeners.get("updated")();
-    assert.equal(events.filter(event => event.name === "xshell:menus:changed").length, 1);
+    assert.equal(events.filter(event => event.name === "xshell:menus:change").length, 1);
 });

@@ -15,12 +15,12 @@ namespace DProjects.XShell {
 
         // inner class
         public class Configuration {
-            public string AppBase { get; init; } = "";
-            public string AppConfig { get; init; }  = "";
+            public string AppBasePath { get; init; } = "";
+            public string AppConfigPath { get; init; }  = "";
             public Dictionary<string,string> AppParams { get; init; } = new();
             public string ResourcesBase { get; init; } = "";
             public string Favicon { get; init; } = "";
-            public string[] UnhandledPrefixes { get; init; } = new string[] {"/_", "/api"};
+            public string[] UnhandledPrefixes { get; init; } = new string[] {"/_", "/api"};            
         }
         
 
@@ -82,10 +82,10 @@ namespace DProjects.XShell {
                         {(!string.IsNullOrEmpty(config.Favicon) ? "<link href=\"" + config.Favicon + "\" rel=\"icon\">" : "")}
 
                         <!-- config xshell -->
-                        <meta name="xshell.app_base_url" content="{config.AppBase}">
-                        <meta name="xshell.app_config_url" content="{config.AppConfig}">
-                        <meta name="xshell.app_params" content="{string.Join("&", config.AppParams.Select(kv => kv.Key + "=" + kv.Value))}">
-                        <meta name="xshell.sw_url" content="{config.AppBase}/sw.js">
+                        <meta name="xshell:app.basePath"    content="{config.AppBasePath}">
+                        <meta name="xshell:app.configPath"  content="{config.AppConfigPath}">
+                        <meta name="xshell:app.params"  content="{string.Join("&", config.AppParams.Select(kv => kv.Key + "=" + kv.Value))}">
+                        <meta name="xshell:xshell.environment" content="{(isDevelopment ? "development" : "production")}">
 
                         <!-- bootstrap xshell -->
                         <script src="{config.ResourcesBase}/_resources/DProjects.XShell/xshell/bootstrap.js"></script>
@@ -102,14 +102,14 @@ namespace DProjects.XShell {
 
             // redirect canonical base URL
             app.Use(async (context, next) => {
-                if (context.Request.Path == config.AppBase) {
-                    context.Response.Redirect(config.AppBase + "/");
+                if (context.Request.Path == config.AppBasePath) {
+                    context.Response.Redirect(config.AppBasePath + "/");
                     return;
-                } else if (config.AppBase.Length > 0 && !context.Request.Path.StartsWithSegments(config.AppBase)) {
+                } else if (config.AppBasePath.Length > 0 && !context.Request.Path.StartsWithSegments(config.AppBasePath)) {
                     if (config.ResourcesBase.Length > 0 && context.Request.Path.StartsWithSegments(config.ResourcesBase)) {
 
                     } else {
-                        context.Response.Redirect(config.AppBase + "/");
+                        context.Response.Redirect(config.AppBasePath + "/");
                         return;
 
                     }
@@ -121,7 +121,7 @@ namespace DProjects.XShell {
             app.UseRouting();
 
             // service worker
-            app.MapGet(config.AppBase + "/sw.js", async context => {
+            app.MapGet(config.AppBasePath + "/sw.js", async context => {
                 context.Response.ContentType = "text/javascript";
                 await context.Response.WriteAsync(swJs);
             });
@@ -135,8 +135,8 @@ namespace DProjects.XShell {
                     return;
                 }
 
-                // only handle requests inside appBase
-                if (!context.Request.Path.StartsWithSegments(config.AppBase, out var remaining)) {
+                // only handle requests inside xshell.asePath
+                if (!context.Request.Path.StartsWithSegments(config.AppBasePath, out var remaining)) {
                     await next();
                     return;
                 }

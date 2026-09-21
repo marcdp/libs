@@ -48,7 +48,7 @@ searched. If none is marked, `home` is null. On a fresh hash-mode load with no U
 `xshell.areas.getMenu("navigation")` selects the current Area; `getMenu("navigation", "inventory")` selects one explicitly.
 `getMenuitemBreadcrumb(href, areaId = null)` searches only that Area's effective menus, defaulting to the current Area.
 `registerSource(name, source)` supports dynamic children. When a dependency event refreshes effective content, Areas emits
-`xshell:menus:changed`.
+`xshell:menus:change`.
 
 ## Navigation context
 
@@ -58,7 +58,7 @@ longest prefix first. Bootstrap preserves Area prefixes as navigation metadata. 
 module resource resolution while retaining the prefixed URL for navigation and breadcrumbs.
 
 When Navigation emits `xshell:navigation:end`, Areas resolves the current Area from the URL. A change emits `xshell:area:change`.
-Menu UIs should refresh on that event; `xshell:menus:changed` is reserved for dynamic menu-content updates.
+Menu UIs should refresh on that event; `xshell:menus:change` is reserved for dynamic menu-content updates.
 
 ## Current implementation limits
 

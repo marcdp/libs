@@ -27,6 +27,7 @@ export default {
                     // load
                     events.on(bus, "xshell:area:change", "refresh");
                     state.areas = areas.getAreas();
+                    this.onCommand("refresh");
                     
                 } else if (command == "refresh") {
                     // refresh selected area
