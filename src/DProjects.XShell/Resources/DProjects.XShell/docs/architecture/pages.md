@@ -18,10 +18,10 @@ events.
 ## Layouts
 
 Layouts are presentation containers for Pages. They do not resolve routes. Checked-in layout names are `default`, `main`, `stack`, `dialog`, and
-`embed`, configured under `xshell.page.layout`. `x-page` currently uses `embed` when no layout is supplied; Navigation assigns `main` to the root page
+`embed`, configured under `xshell.defaults.page.layout`. `x-page` currently uses `embed` when no layout is supplied; Navigation assigns `main` to the root page
 and `stack` to additional pages. Dialog and embed are also navigation opening modes.
 
 The intended selection precedence is application/XShell default, module override, then page override. Current `x-page` reads nested
-`xshell.page.layout` settings. Stack rendering exists, but its full history contract remains to be specified.
+`xshell.defaults.page.layout` settings. Stack rendering exists, but its full history contract remains to be specified.
 
 See [Navigation](navigation.md), [Configuration](configuration.md), and [Loaders](loaders.md).

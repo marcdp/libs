@@ -4,15 +4,11 @@
   "title": "XShell Effective Configuration",
   "description": "Schema for the final merged and normalized XShell configuration passed to xshell.init().",
   "type": "object",
-  "required": [
-    "app",
-    "modules",
-    "xshell"
-  ],
+  "required": ["app", "modules", "xshell"],
   "properties": {
     "app": {"$ref": "#/$defs/app"},
-    "modules": {"type": "object", "additionalProperties": { "$ref": "#/$defs/module" } },
-    "xshell": {"$ref": "#/$defs/xshell" }
+    "modules": {"type": "object", "additionalProperties": {"$ref": "#/$defs/module"}},
+    "xshell": {"$ref": "#/$defs/xshell"}
   },
   "additionalProperties": false,
   "$defs": {
@@ -25,7 +21,7 @@
         "copyright": {"type": "string"},
         "icon": {"type": "string"},
         "basePath": {"type": "string"},
-        "params": { "type": "object", "additionalProperties": true}
+        "params": {"type": "object", "additionalProperties": true}
       },
       "required": ["name", "label", "version", "copyright", "icon", "basePath", "params"],
       "additionalProperties": false
@@ -37,16 +33,17 @@
         "version": {"type": "string"},
         "copyright": {"type": "string"},
         "icon": {"type": "string"},
-        "url": {"type": "string", "format": "uri"},        
-        "params": {"type": "object","additionalProperties": true},
-        "styles": {"type": "array", "items": {"type": "string" }},
-        "controller": {"type": [ "string"]},
-        "imports": { "type": "array", "items": { "$ref": "#/$defs/moduleImport"}},
-        "menus": { "$ref": "#/$defs/menus"},
-        "page": { "$ref": "#/$defs/modulePage" },
-        "component": { "$ref": "#/$defs/moduleComponent" }
+        "url": {"type": "string", "format": "uri"},
+        "params": {"type": "object", "additionalProperties": true},
+        "styles": {"type": "array", "items": {"type": "string"}},
+        "controller": {"type": "string"},
+        "imports": {"type": "array", "items": {"$ref": "#/$defs/moduleImport"}},
+        "menus": {"$ref": "#/$defs/menus"},
+        "page": {"$ref": "#/$defs/modulePage"},
+        "component": {"$ref": "#/$defs/moduleComponent"},
+        "defaults": {"$ref": "#/$defs/defaults"}
       },
-      "required": [ "label", "version", "copyright", "icon", "url"],
+      "required": ["label", "version", "copyright", "icon", "url"],
       "additionalProperties": false
     },
     "moduleImport": {
@@ -58,395 +55,154 @@
       },
       "additionalProperties": false
     },
-    "menus": {
-      "type": "object",
-      "additionalProperties": { "type": "array", "items": { "$ref": "#/$defs/menuItem"}}
-    },
+    "menus": {"type": "object", "additionalProperties": {"type": "array", "items": {"$ref": "#/$defs/menuItem"}}},
     "menuItem": {
       "type": "object",
-      "required": [
-        "label"
-      ],
+      "required": ["label"],
       "properties": {
-        "label": { "type": "string"},
-        "href": { "type": [ "string", "null" ]},
+        "label": {"type": "string"},
+        "href": {"type": ["string", "null"]},
         "icon": {"type": ["string", "null"]},
         "default": {"type": "boolean"},
-        "children": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/menuItem"
-          }
-        },
-        "childrenSource": {
-          "type": "string"
-        }
+        "children": {"type": "array", "items": {"$ref": "#/$defs/menuItem"}},
+        "childrenSource": {"type": "string"}
       },
       "additionalProperties": false
     },
     "modulePage": {
       "type": "object",
       "properties": {
-        "renderEngine": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "stateEngine": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "dialog": {
-          "$ref": "#/$defs/dialog"
-        }
+        "renderEngine": {"type": ["string", "null"]},
+        "stateEngine": {"type": ["string", "null"]},
+        "dialog": {"$ref": "#/$defs/dialog"}
       },
       "additionalProperties": false
     },
     "moduleComponent": {
       "type": "object",
       "properties": {
-        "renderEngine": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "stateEngine": {
-          "type": [
-            "string",
-            "null"
-          ]
-        }
+        "renderEngine": {"type": ["string", "null"]},
+        "stateEngine": {"type": ["string", "null"]}
       },
       "additionalProperties": false
     },
     "xshell": {
       "type": "object",
-      "required": [
-        "build",
-        "debug",
-        "version",
-        "module",
-        "page",
-        "dialog",
-        "component",
-        "identity",
-        "assetsPrefix",
-        "areas",
-        "navigation",
-        "resolver"
-      ],
+      "required": ["build", "debug", "version", "environment", "identity", "assetsPrefix", "areas", "navigation", "resolver", "defaults"],
       "properties": {
-        "build": {
-          "type": "string"
-        },
-        "debug": {
-          "type": "boolean"
-        },
-        "version": {
-          "type": "string"
-        },
-        "module": {
-          "$ref": "#/$defs/xshellModule"
-        },
-        "page": {
-          "$ref": "#/$defs/page"
-        },
-        "dialog": {
-          "$ref": "#/$defs/dialog"
-        },
-        "component": {
-          "$ref": "#/$defs/component"
-        },
-        "identity": {
-          "$ref": "#/$defs/identity"
-        },
-        "assetsPrefix": {
-          "type": "string"
-        },
-        "areas": {
-          "$ref": "#/$defs/areas"
-        },
-        "navigation": {
-          "$ref": "#/$defs/navigation"
-        },
-        "resolver": {
-          "$ref": "#/$defs/resolver"
-        }
-      },
-      "additionalProperties": false
-    },
-    "xshellModule": {
-      "type": "object",
-      "required": [
-        "root",
-        "rootParams"
-      ],
-      "properties": {
-        "root": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "rootParams": {
-          "type": "object",
-          "additionalProperties": true
-        }
+        "build": {"type": "string"},
+        "debug": {"type": "boolean"},
+        "version": {"type": "string"},
+        "environment": {"type": "string"},
+        "defaults": {"$ref": "#/$defs/defaults"},
+        "identity": {"$ref": "#/$defs/identity"},
+        "assetsPrefix": {"type": "string"},
+        "areas": {"$ref": "#/$defs/areas"},
+        "navigation": {"$ref": "#/$defs/navigation"},
+        "resolver": {"$ref": "#/$defs/resolver"}
       },
       "additionalProperties": false
     },
     "areas": {
       "type": "object",
-      "required": [
-        "default",
-        "definitions"
-      ],
+      "required": ["default", "definitions"],
       "properties": {
-        "default": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "definitions": {
-          "type": "object",
-          "additionalProperties": {
-            "$ref": "#/$defs/area"
-          }
-        }
+        "default": {"type": ["string", "null"]},
+        "definitions": {"type": "object", "additionalProperties": {"$ref": "#/$defs/area"}}
       },
       "additionalProperties": false
     },
     "area": {
       "type": "object",
       "properties": {
-        "prefix": {
-          "type": "string"
-        },
-        "label": {
-          "type": "string"
-        },
-        "description": {
-          "type": "string"
-        },
-        "icon": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "modules": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "order": {
-          "type": "number"
-        }
+        "prefix": {"type": "string"},
+        "label": {"type": "string"},
+        "description": {"type": "string"},
+        "icon": {"type": ["string", "null"]},
+        "modules": {"type": "array", "items": {"type": "string"}},
+        "order": {"type": "number"}
       },
       "additionalProperties": false
     },
     "navigation": {
       "type": "object",
-      "required": [
-        "mode",
-        "hashPrefix"
-      ],
+      "required": ["mode", "hashPrefix"],
       "properties": {
-        "mode": {
-          "type": "string",
-          "enum": [
-            "hash",
-            "path"
-          ]
-        },
-        "hashPrefix": {
-          "type": "string"
-        }
+        "mode": {"type": "string", "enum": ["hash", "path"]},
+        "hashPrefix": {"type": "string"}
       },
       "additionalProperties": false
     },
-    "page": {
+
+    "defaults": {
       "type": "object",
-      "required": [
-        "layout",
-        "renderEngine",
-        "stateEngine"
-      ],
+      "required": [],
+      "properties": {
+        "page": {"$ref": "#/$defs/pageDefaults"},
+        "dialog": {"$ref": "#/$defs/dialogDefaults"},
+        "component": {"$ref": "#/$defs/componentDefaults"}
+      },
+      "additionalProperties": false
+    },
+    "pageDefaults": {
+      "type": "object",
       "properties": {
         "layout": {
           "type": "object",
           "properties": {
-            "default": {
-              "type": [
-                "string",
-                "null"
-              ]
-            },
-            "dialog": {
-              "type": [
-                "string",
-                "null"
-              ]
-            },
-            "main": {
-              "type": [
-                "string",
-                "null"
-              ]
-            },
-            "stack": {
-              "type": [
-                "string",
-                "null"
-              ]
-            },
-            "embed": {
-              "type": [
-                "string",
-                "null"
-              ]
-            }
+            "default": {"type": ["string", "null"]},
+            "dialog": {"type": ["string", "null"]},
+            "main": {"type": ["string", "null"]},
+            "stack": {"type": ["string", "null"]},
+            "embed": {"type": ["string", "null"]}
           },
-          "additionalProperties": {
-            "type": [
-              "string",
-              "null"
-            ]
-          }
+          "additionalProperties": {"type": ["string", "null"]}
         },
-        "renderEngine": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "stateEngine": {
-          "type": [
-            "string",
-            "null"
-          ]
-        }
+        "renderEngine": {"type": ["string", "null"]},
+        "stateEngine": {"type": ["string", "null"]}
+      },
+      "additionalProperties": false
+    },    
+    "componentDefaults": {
+      "type": "object",
+      "required": ["lazy", "error", "renderEngine", "stateEngine"],
+      "properties": {
+        "lazy": {"type": ["string", "null"]},
+        "error": {"type": ["string", "null"]},
+        "renderEngine": {"type": ["string", "null"]},
+        "stateEngine": {"type": ["string", "null"]}
       },
       "additionalProperties": false
     },
-    "component": {
-      "type": "object",
-      "required": [
-        "lazy",
-        "error",
-        "renderEngine",
-        "stateEngine"
-      ],
-      "properties": {
-        "lazy": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "error": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "renderEngine": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "stateEngine": {
-          "type": [
-            "string",
-            "null"
-          ]
-        }
-      },
-      "additionalProperties": false
-    },
-    "dialog": {
+    "dialogDefaults": {
       "type": "object",
       "properties": {
-        "confirm": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "message": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "prompt": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "picker": {
-          "type": [
-            "string",
-            "null"
-          ]
-        }
+        "confirm": {"type": ["string", "null"]},
+        "message": {"type": ["string", "null"]},
+        "prompt": {"type": ["string", "null"]},
+        "picker": {"type": ["string", "null"]}
       },
       "additionalProperties": false
     },
     "identity": {
       "type": "object",
-      "required": [
-        "provider"
-      ],
+      "required": ["provider"],
       "properties": {
-        "provider": {
-          "type": "string"
-        },
-        "params": {
-          "type": "object",
-          "additionalProperties": true
-        }
+        "provider": {"type": "string"},
+        "params": {"type": "object", "additionalProperties": true}
       },
       "additionalProperties": false
     },
-    "resolver": {
-      "type": "object",
-      "additionalProperties": {
-        "type": "object",
-        "additionalProperties": {
-          "$ref": "#/$defs/resolverEntry"
-        }
-      }
-    },
+    "resolver": {"type": "object", "additionalProperties": {"type": "object", "additionalProperties": {"$ref": "#/$defs/resolverEntry"}}},
     "resolverEntry": {
       "type": "object",
-      "required": [
-        "url"
-      ],
+      "required": ["url"],
       "properties": {
-        "url": {
-          "type": "string"
-        },
-        "loader": {
-          "type": "string"
-        },
-        "cache": {
-          "type": "boolean"
-        },
-        "moduleId": {
-          "type": "string"
-        },
-        "modulePath": {
-          "type": "string"
-        }
+        "url": {"type": "string"},
+        "loader": {"type": "string"},
+        "cache": {"type": "boolean"},
+        "moduleId": {"type": "string"},
+        "modulePath": {"type": "string"}
       },
       "additionalProperties": false
     }

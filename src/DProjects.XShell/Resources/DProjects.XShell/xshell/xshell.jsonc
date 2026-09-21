@@ -5,8 +5,8 @@
         "label": "",
         "copyright": "",
         "icon": "",
-        "version": "0.1.0"
-        
+        "version": "0.1.0",
+        "basePath": ""        
     },
 
     // modules
@@ -20,40 +20,41 @@
         "debug": false,
         "version": "0.9.0",
         "environment": "development",
-        "base": "",
+        "assetsPrefix": "_assets",
 
         // defaults
-        "module": {
-            "root":null,
-            "rootParams": {}
-        },
-        "page": {
-            "layout": {
-                "default": null,
-                "dialog": null,
-                "main": null,
-                "stack": null,
-                "embed": null
+        "defaults": {
+            "page": {
+                "layout": {
+                    "default": null,
+                    "dialog": null,
+                    "main": null,
+                    "stack": null,
+                    "embed": null
+                },
+                "renderEngine": "plain",
+                "stateEngine": "plain"
             },
-            "renderEngine": "plain",
-            "stateEngine": "plain"
+            "dialog": {
+                "confirm": null,
+                "message": null,
+                "prompt": null,
+                "picker": null
+            },
+            "component": {
+                "lazy": "",
+                "error": "",
+                "renderEngine": "plain",
+                "stateEngine": "plain"
+            }
         },
-        "dialog": {
-            "confirm": null,
-            "message": null,
-            "prompt": null,
-            "picker": null
-        },
-        "component": {
-            "lazy": "",
-            "error": "",
-            "renderEngine": "plain",
-            "stateEngine": "plain"
-        },
+
+        // identity
         "identity": {
             "provider": "anonymous"
         },
-        "assetsPrefix": "_assets",
+
+        // areas
         "areas": {
             "default": "main",
             "definitions": {
@@ -75,34 +76,19 @@
         // resolver
         "resolver": {
             "component": {
-                "x-page": {
-                    "url": "/x-page.js",
-                    "loader": "module-js",
-                    "cache": true
-                }
+                "x-page": {"url": "/x-page.js", "loader": "module-js", "cache": true}
             },
             "import": {
-                "xshell": {
-                    "url": "/xshell.js"
-                }
+                "xshell": {"url": "/xshell.js"}
             },
             "idp": {
-                "{name}": {
-                    "url": "/idp/{name}.js",
-                    "loader": "module-js"
-                }
+                "{name}": {"url": "/idp/{name}.js", "loader": "module-js"}
             },
             "render-engine": {
-                "{name}": {
-                    "url": "/render-engines/{name}.js",
-                    "loader": "module-js"
-                }
+                "{name}": {"url": "/render-engines/{name}.js","loader": "module-js"}
             },
             "state-engine": {
-                "{name}": {
-                    "url": "/state-engines/{name}.js",
-                    "loader": "module-js"
-                }
+                "{name}": {"url": "/state-engines/{name}.js","loader": "module-js"}
             }
         }
     }

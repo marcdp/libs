@@ -68,7 +68,6 @@ async function loadConfig() {
     const rootModuleId = Object.keys(rootModuleConfig.modules)[0];
     rootModule.url = rootModuleUrl;
     rootModule.params = Object.fromEntries(new URLSearchParams(appParams));
-    xshellConfig.xshell.module.root = rootModuleId;
     xshellConfig.app.params = rootModule.params;
     absolutizePrefixedUrl("", rootModuleConfig, rootModuleUrl);    
     relativizeModulePaths(rootModuleConfig, "/" + assetsPrefix + "/" + rootModuleId);

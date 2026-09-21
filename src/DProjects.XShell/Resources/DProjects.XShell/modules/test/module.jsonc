@@ -15,6 +15,7 @@
             "version": "1.0.0",
             "styles": [ "/css/styles.css" ],
             "icon": "",
+            "copyright": "",
             "controller": "/js/module.js",
             "imports": [
                 {"url": "url:../x/module.jsonc", "params": {"aaa":123, "bbb":456}}

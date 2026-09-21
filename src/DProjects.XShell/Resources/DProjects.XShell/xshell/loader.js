@@ -52,7 +52,7 @@ export default class Loader {
         this._assetsPrefix = config.xshell.assetsPrefix;
         this._navigationMode = config.xshell.navigation.mode;
         this._navigationHashPrefix = config.xshell.navigation.hashPrefix;
-        this._componentLazy = config.xshell.component.lazy;
+        this._componentLazy = config.xshell.defaults.component.lazy;
     }
 
     //props

@@ -66,15 +66,15 @@ export async function createComponentClassFromJsDefinition(src, context, definit
         if (propDefinition.value && typeof(propDefinition.value) === "object" && !Array.isArray(propDefinition.value) && Object.keys(propDefinition.value).length === 0) stateMapAttributeNames.push(propName);
     }
     // state engine
-    const stateEngineXShell = xshell.config.xshell.component.stateEngine;
-    const stateEngineModule = xshell.config.modules[context.resourceDefinition.moduleId].component.stateEngine;
-    const stateEngineComponent = definition.meta.stateEngine || stateEngineModule;
+    const stateEngineXShell = xshell.config.xshell.defaults.component.stateEngine;
+    const stateEngineModule = xshell.config.modules[context.resourceDefinition.moduleId].defaults?.component?.stateEngine;
+    const stateEngineComponent = definition.meta.stateEngine || stateEngineModule || stateEngineXShell;
     const stateEngineFactoryCreator = await xshell.loader.load("state-engine:" + stateEngineComponent);
     const stateEngineFactory = new stateEngineFactoryCreator(stateSkeleton, definition.state, context);
     // render engine
-    const renderEngineXShell = xshell.config.xshell.component.renderEngine;
-    const renderEngineModule = xshell.config.modules[context.resourceDefinition.moduleId].component.renderEngine || renderEngineXShell;
-    const renderEngineComponent = definition.meta.renderEngine || renderEngineModule;
+    const renderEngineXShell = xshell.config.xshell.defaults.component.renderEngine;
+    const renderEngineModule = xshell.config.modules[context.resourceDefinition.moduleId].defaults?.component?.renderEngine;
+    const renderEngineComponent = definition.meta.renderEngine || renderEngineModule || renderEngineXShell;
     const renderEngineFactoryCreator = await xshell.loader.load("render-engine:" + renderEngineComponent);
     const renderEngineFactory = new renderEngineFactoryCreator(definition.template, context);
     // render engine dependencies

@@ -5,20 +5,19 @@
             "label": "X module",
             "version": "1.0.0",
             "styles": [ "/css/styles.css" ],
+            "copyright": "",
             "imports": [],
             "icon": "",
-            "page": {
-                "renderEngine": "x",
-                "stateEngine": "proxy",
+            "defaults": {
+                "page": {
+                    "renderEngine": "x",
+                    "stateEngine": "proxy"
+                },
                 "dialog": {
                     "confirm": null,
                     "message": null,
                     "prompt": null
                 }
-            },
-            "component": {
-                "renderEngine": "x",
-                "stateEngine": "proxy"
             },
             "controller": "./js/module.js"
         }
@@ -47,29 +46,30 @@
             }
         },
 
-        // pages
-        "page": {
-            "layout": {
-                "default": "x-layout-default",
-                "dialog": "x-layout-dialog",
-                "main": "x-layout-main",
-                "stack": "x-layout-stack",
-                "embed": "x-layout-embed"
+        // defaults
+        "defaults": {
+            "page": {
+                "layout": {
+                    "default": "x-layout-default",
+                    "dialog": "x-layout-dialog",
+                    "main": "x-layout-main",
+                    "stack": "x-layout-stack",
+                    "embed": "x-layout-embed"
+                }
+            },
+            "dialog": {
+                "confirm": "/pages/dialog-confirm.js",
+                "message": "/pages/dialog-message.js",
+                "prompt": "/pages/dialog-prompt.js",
+                "picker": "/pages/dialog-picker.js"
+            },
+            "component": {
+                "renderEngine": "x",
+                "stateEngine": "proxy",
+                "lazy": "x-lazy",
+                "error": "x-error"
             }
-        },
-
-        // components
-        "component": {
-            "lazy": "x-lazy",
-            "error": "x-error"
-        },
-
-        // dialogs
-        "dialog": {
-            "confirm": "/pages/dialog-confirm.js",
-            "message": "/pages/dialog-message.js",
-            "prompt": "/pages/dialog-prompt.js",
-            "picker": "/pages/dialog-picker.js"
         }
+        
     }
 }
