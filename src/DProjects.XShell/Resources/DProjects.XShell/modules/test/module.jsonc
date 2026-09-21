@@ -43,7 +43,7 @@
             "default": "main",
             "definitions": {
                 "main": {
-                    "prefix": "",
+                    "prefix": "main",
                     "label": "Main area",
                     "icon": "x-bell",
                     "modules": [ "test" ]

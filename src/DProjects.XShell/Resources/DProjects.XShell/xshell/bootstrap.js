@@ -23,7 +23,6 @@ const xshellEnvironment = meta("xshell:xshell.environment");
 const bootstrapUrl = new URL(document.currentScript.src);
 const bootstrapUrlDir = bootstrapUrl.href.substring(0, bootstrapUrl.href.lastIndexOf("/") );
 
-
 // methods
 async function loadModuleConfig(url) {
     // load module config from the given URL
@@ -173,13 +172,13 @@ async function installServiceWorker(config) {
     const xshellVersion = config.xshell.version;
     const assetsPrefix = config.xshell.assetsPrefix;
     let rules = [];
-    rules.push({ src: combineUrls(appBasePath, "/" + assetsPrefix + "/xshell"), dst: bootstrapUrlDir, version: xshellVersion, name:"xshell", exceptions:[bootstrapUrlDir + "/xshell.jsonc"]});
+    rules.push({ src: combineUrls( (appBasePath ? appBasePath + "/" : ""), "./" + assetsPrefix + "/xshell"), dst: bootstrapUrlDir, version: xshellVersion, name:"xshell", exceptions:[bootstrapUrlDir + "/xshell.jsonc"]});
     for(var moduleId of Object.keys(config.modules)) {
         const module = config.modules[moduleId];
         const moduleUrl = module.url;
         const moduleUrlDir = moduleUrl.substring(0, moduleUrl.lastIndexOf("/"));
         const moduleVersion = module.version;
-        rules.push({ src: combineUrls(appBasePath, "/" + assetsPrefix + "/" + moduleId), dst: moduleUrlDir, version: moduleVersion, name: moduleId, exceptions: [moduleUrl]});
+        rules.push({ src: combineUrls((appBasePath ? appBasePath + "/" : ""), "./" + assetsPrefix + "/" + moduleId), dst: moduleUrlDir, version: moduleVersion, name: moduleId, exceptions: [moduleUrl]});
     }
 
     // wait for ready

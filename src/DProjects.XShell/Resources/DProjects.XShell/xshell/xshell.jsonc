@@ -69,7 +69,7 @@
 
         // navigation
         "navigation": {
-            "mode": "hash", // | "path"
+            "mode": "path", 
             "hashPrefix": "#!"
         },
 

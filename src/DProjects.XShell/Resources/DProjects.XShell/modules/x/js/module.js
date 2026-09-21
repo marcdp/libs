@@ -12,7 +12,7 @@ export default class {
 
     // methods
     async start() {
-        const schema = await fetch("/_assets/xshell/schemes/config.scheme.json").then(res => res.json());
+        const schema = await fetch("/prefix/_assets/xshell/schemas/config.schema.json").then(res => res.json());
         const validator = new Validator(schema, "2020-12");
         const result = validator.validate(this._config);
         if (!result.valid) {

@@ -10,7 +10,7 @@ export default class Navigation {
     _config = null;
     _container = null;
 
-    _mode = ""; //hash|path
+    _mode = ""; 
     _hashPrefix = "";
     _appBasePath = "";
 
@@ -24,7 +24,7 @@ export default class Navigation {
         this._container = container;
         this._mode = config.xshell.navigation.mode;
         this._hashPrefix = config.xshell.navigation.hashPrefix;
-        this._appBasePath = config.app.basePath;
+        this._appBasePath = new URL(config.app.basePath).pathname;
     }
 
     // props
@@ -61,13 +61,24 @@ export default class Navigation {
             }
         } else if (this._mode == "path") {
             // path mode
-            // todo ...
-            //window.addEventListener("popstate", async () => {
-            //    this._stack = this._browserUrlToStack(document.location.pathname + document.location.search);
-            //    this._syncDomWithStack();
-            //});
+            window.addEventListener("popstate", async () => {
+                let url = document.location.pathname + document.location.search;
+                if (url.startsWith(this._appBasePath)) url = url.substring(this._appBasePath.length);
+                this._stack = this._browserUrlToStack(url);
+                this._stackToDom();
+            });
             // init
-            throw new Error("Path mode is not implemented yet");
+            let url = document.location.pathname + document.location.search;
+            if (url.startsWith(this._appBasePath)) url = url.substring(this._appBasePath.length);
+            if (url != "/") {
+                this._stack = this._browserUrlToStack(url);
+                this._stackToDom();
+            } else {
+                let defaultArea = this._areas.getDefaultArea();
+                if (!defaultArea?.home) throw new Error("Default area has no navigation item marked default");
+                url = this.parseUrl(defaultArea.home);
+                this._stackToBrowser([url], { replace: false });                
+            }
         }
     }
 
@@ -226,7 +237,7 @@ export default class Navigation {
                     outletElement.setAttribute("src", hrefAbsolute);
                 }
             }
-        }
+        }  
     }
 
 
@@ -264,6 +275,9 @@ export default class Navigation {
             } else {
                 history.pushState(null, "", this._appBasePath + url);
             }
+            this._stack = stack;
+            //this._browserUrlToStack(url);
+            this._stackToDom();
         }
     }
     _browserUrlToStack(url) {
@@ -275,8 +289,13 @@ export default class Navigation {
             if (url.startsWith(this._hashPrefix)) {
                 url = url.substring(this._hashPrefix.length);
             }
+        } 
+        // remove app base ir needed
+        if (this._mode === "path") {
+            if (url.startsWith(this._appBasePath)) {
+                debugger; // This should not happend never!!!
+            }
         }
-
         // parse root page normally
         const rootParsed = this.parseUrl(url);
         const stack = [];

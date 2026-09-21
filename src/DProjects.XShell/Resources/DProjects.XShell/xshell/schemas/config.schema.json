@@ -107,10 +107,10 @@
     },
     "navigation": {
       "type": "object",
-      "required": ["mode", "hashPrefix"],
+      "required": ["mode"],
       "properties": {
         "mode": {"type": "string", "enum": ["hash", "path"]},
-        "hashPrefix": {"type": "string"}
+        "hashPrefix": {"type": ["string", "null"]}
       },
       "additionalProperties": false
     },

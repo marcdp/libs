@@ -211,7 +211,7 @@ class XPage extends HTMLElement {
             page = new Page({ src });
             page.onCommand = (command, params) => {
                 if (command == "mount") {
-                    debugger;
+                    //debugger;
                     this.showError(exception);
                 }
             }

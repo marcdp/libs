@@ -46,10 +46,15 @@ export default class Modules {
             };
             // styles
             for (let style of moduleConfig.styles || []) {
-                let styleUrl = this._resolver.resolveUrl(style);
+                let styleUrl = this._resolver.resolveUrl("style:" + style);
                 tasks.push((async() => {
-                    let moduleStyleSheet = await this._loader.load("style:" + styleUrl);
-                    module.styles.push(moduleStyleSheet);
+                    let response = await fetch(styleUrl);
+                    if (!response.ok) throw new Error(`Error ${response.status}: ${response.statusText}: ${styleUrl}`);
+                    let css = await response.text();
+                    //alert(styleUrl + "\n" +css)
+                    let styleSheet = new CSSStyleSheet();
+                    await styleSheet.replace(css);
+                    module.styles.push(styleSheet);
                 })());
             }    
             // script

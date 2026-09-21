@@ -6,11 +6,12 @@ export default class Resolver {
     //vars
     _debug = null;
     _definitions = [];
-    
+    _appBasePath = "";
 
     //ctor
     constructor( {debug, config}) {
         this._debug = debug;
+        this._appBasePath = config.app.basePath;
         for(let type in config.xshell.resolver) {
             for(let pattern in config.xshell.resolver[type]) {
                 const value = config.xshell.resolver[type][pattern]; 
@@ -67,7 +68,7 @@ export default class Resolver {
                 }
                 const path = url;
                 if (url.indexOf(":")==-1) {
-                    url = (document.location.pathname + url).replaceAll("//", "/");
+                    url = (this._appBasePath + url);
                 }
                 return { definition, url, path };
             }

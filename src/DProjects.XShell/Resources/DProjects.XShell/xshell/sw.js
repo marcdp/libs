@@ -74,7 +74,7 @@ async function handleRequest(request) {
     
     // if request is outside scope, just fetch
     if (!request.url.startsWith(self.registration.scope)) {
-        console.log("url is: " + request.url)
+        console.log("sw: ignoring: " + request.url)
         return fetch(request, { cache: "no-store" });
     }    
 
@@ -105,11 +105,14 @@ async function handleRequest(request) {
     }
     if (!rule) {
         // no matching rule, just fetch
+        console.log("sw: no rule : " + request.url)
         return fetch(request, { cache: "no-store" });
     }
 
     // url to fetch
     let url = new URL(request.url.replace(rule.src, rule.dst));
+
+    console.log("sw: fetching: " + url)
 
     // fetch the real file
     const response = await fetch(url, {
