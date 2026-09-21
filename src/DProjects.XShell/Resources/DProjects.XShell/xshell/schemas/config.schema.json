@@ -39,8 +39,6 @@
         "controller": {"type": "string"},
         "imports": {"type": "array", "items": {"$ref": "#/$defs/moduleImport"}},
         "menus": {"$ref": "#/$defs/menus"},
-        "page": {"$ref": "#/$defs/modulePage"},
-        "component": {"$ref": "#/$defs/moduleComponent"},
         "defaults": {"$ref": "#/$defs/defaults"}
       },
       "required": ["label", "version", "copyright", "icon", "url"],
@@ -66,23 +64,6 @@
         "default": {"type": "boolean"},
         "children": {"type": "array", "items": {"$ref": "#/$defs/menuItem"}},
         "childrenSource": {"type": "string"}
-      },
-      "additionalProperties": false
-    },
-    "modulePage": {
-      "type": "object",
-      "properties": {
-        "renderEngine": {"type": ["string", "null"]},
-        "stateEngine": {"type": ["string", "null"]},
-        "dialog": {"$ref": "#/$defs/dialog"}
-      },
-      "additionalProperties": false
-    },
-    "moduleComponent": {
-      "type": "object",
-      "properties": {
-        "renderEngine": {"type": ["string", "null"]},
-        "stateEngine": {"type": ["string", "null"]}
       },
       "additionalProperties": false
     },

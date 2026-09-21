@@ -11,7 +11,11 @@ provide `app` metadata. Any module file may contribute nested `xshell` settings.
             "label": "Orders",
             "version": "1.0.0",
             "styles": ["/css/orders.css"],
-            "script": "./js/module.js",
+            "controller": "./js/module.js",
+            "defaults": {
+                "page": { "renderEngine": "x", "stateEngine": "proxy" },
+                "component": { "renderEngine": "x", "stateEngine": "proxy" }
+            },
             "imports": [
                 { "url": "url:../customer/module.jsonc", "params": { "region": "eu" } }
             ],
@@ -39,9 +43,18 @@ Areas without creating another runtime module instance. Menu entries are navigat
 authored module-relative hrefs such as `/pages/orders.js` into the module asset namespace before Areas applies an Area prefix. The first
 top-level navigation item marked `default: true` in Area module order determines that Area's home; absent such an item, home is null.
 
-The optional `script` points to a module script whose default export is a constructable class. Runtime requests named XShell services through
-its constructor argument, supplies `params` from the final module config, and calls `start()` after script and style loads. See
-[Modules](../architecture/modules.md) for current injection and script-free startup limits.
+The optional `controller` points to a JavaScript module loaded through `module:<controller>`. Its default export must be constructable. Runtime
+requests named XShell services through its constructor argument, supplies `params` from the final module config, and calls `start()` after controller
+and style loads. `Modules.stop()` can call controller `stop()`, but no automatic application-shutdown lifecycle currently invokes it. See
+[Modules](../architecture/modules.md) for current injection and controller-free startup limits.
+
+`defaults.page`, `defaults.dialog`, and `defaults.component` are allowed module defaults in the checked-in schema. Component render/state engines
+consume `defaults.component`. The checked-in Page loader still consumes legacy top-level `page` rather than `defaults.page`, despite the X module
+already authoring the new location. Dialog operations consume only `xshell.defaults.dialog`. These are current migration limitations, not additional
+supported precedence rules.
+
+The effective-configuration schema still accepts legacy top-level module `page` and `component` objects. It also contains a stale
+`$defs/modulePage` reference to missing `#/$defs/dialog`; therefore it is not yet a finalized module contract.
 
 ## Public module contract (planned)
 

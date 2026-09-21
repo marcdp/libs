@@ -1,18 +1,24 @@
 # Bootstrap
 
-The host HTML supplies `xshell.app_config_url` (the root module JSONC URL), `xshell.app_base_url`, and `xshell.sw_url`, then loads
-`xshell/bootstrap.js`. The historical meta name `app_config_url` points to `module.jsonc`, not a separate application model. The optional
-`xshell.app_params` meta value supplies URL query parameters for the root module.
+The ASP.NET host writes four configuration values as HTML meta elements, then loads `xshell/bootstrap.js`. `xshell:` is the HTML meta namespace;
+the remainder of each name identifies the corresponding effective-configuration concept.
 
 ```html
-<meta name="xshell.app_base_url" content="">
-<meta name="xshell.app_config_url" content="/_resources/DProjects.XShell/modules/test/module.jsonc">
-<meta name="xshell.sw_url" content="/sw.js">
+<meta name="xshell:app.basePath" content="">
+<meta name="xshell:app.configPath" content="/_resources/DProjects.XShell/modules/test/module.jsonc">
+<meta name="xshell:app.params" content="mode=compact">
+<meta name="xshell:xshell.environment" content="development">
 <script src="/_resources/DProjects.XShell/xshell/bootstrap.js"></script>
 ```
 
-The host exposes framework and module files under `/_resources/DProjects.XShell/...`. The example points to the checked-in nested `test` root module;
-the server command's current default still points to the legacy `samples/sample1/app.jsonc`.
+`app.configPath` identifies the root module JSONC. Bootstrap constructs `app.basePath` as `document.location.origin` plus the value of
+`xshell:app.basePath`. It parses `xshell:app.params` as a query string. The host writes `xshell:xshell.environment` as `development` when the ASP.NET
+environment is development or a debugger is attached, and as `production` otherwise; bootstrap copies it to `xshell.environment`. No runtime
+behavior is currently gated by that value.
+
+There is no Service Worker URL meta setting. Bootstrap registers `appBasePath + "/sw.js"`, and the ASP.NET host maps that URL to the framework worker.
+The host exposes framework and module files under `/_resources/DProjects.XShell/...`. With no explicit application config, the server command uses
+`/_resources/DProjects.XShell/modules/test/module.jsonc` (prefixed by the configured resource base).
 
 ## Phase 1: configuration
 
@@ -24,13 +30,16 @@ host HTML → bootstrap.js → load xshell.jsonc and root module.jsonc concurren
     → merge into app, modules, xshell → generate default resolvers
 ```
 
-Bootstrap takes the first key in the root file's `modules` object as the root id and stores it in `xshell.module.root`. It assigns parsed
-`xshell.app_params` to the root definition's `params`. The default `xshell.module.rootParams` remains unpopulated by bootstrap. A module does not
-need a `root` flag. Registration follows discovery order; the first registered occurrence of a URL keeps its params, even if later imports differ.
+Bootstrap treats the first key in the root file's `modules` object as the root module id. It assigns parsed `xshell:app.params` to that module's
+`params` and to `app.params`. It does not persist a separate root id or root-params object in the effective configuration; there is no
+`xshell.module` section. A module does not need a `root` flag. Registration follows discovery order; the first registered occurrence of a URL keeps
+its params, even if later imports differ.
 
 The intended merge precedence is defaults, dependencies, their importers, then root. Bootstrap actually merges framework defaults followed by
 definitions in **reverse registration order**. This is not a topological sort and does not guarantee dependency-first precedence for every graph.
-URL deduplication prevents repeated fetching, but cycles are not diagnosed. There is no JSON Schema validation step.
+URL deduplication prevents repeated fetching, but cycles are not diagnosed. Bootstrap does not validate against JSON Schema. Later, the checked-in
+X module controller fetches `/_assets/xshell/schemes/config.scheme.json` during `start()`, validates the effective configuration, and writes failures
+to `console.error`. That validation is not conditional on `xshell.environment`.
 
 Bootstrap recursively normalizes module resource paths in each configuration fragment before merging. Authored module menu hrefs such as
 `/pages/report.js` become `/_assets/<module-id>/pages/report.js`. Area prefixes are preserved because they are navigation metadata. Areas
@@ -38,16 +47,16 @@ subsequently adds the Area prefix to the already-normalized menu href; it does n
 
 ## Phase 2: runtime resources
 
-Bootstrap installs and initializes the Service Worker, creates an import map from `xshell.resolver.import`, imports `xshell.js`, and calls
+Bootstrap always installs and initializes the Service Worker, creates an import map from `xshell.resolver.import`, imports `xshell.js`, and calls
 `xshell.init(deepFreeze(config))`. The effective configuration is deeply frozen before XShell receives it, although the import occurs first.
-An uncontrolled first page is reloaded. `Modules.init()` schedules module
-scripts and styles as concurrent load tasks. This is separate from JSONC discovery.
+An uncontrolled first page is reloaded. `Modules.init()` schedules module controllers and styles as concurrent load tasks. This is separate from
+JSONC discovery.
 
 ## Phase 3: startup
 
 Runtime creates one module record per `config.modules` entry. Once resource tasks finish, it calls controller `start()` methods in parallel,
 attaches loaded styles, then Areas composes menus and homes before Navigation starts. Area participation does not create another module record.
-A script-free module currently receives a fallback controller without `start()`, so
-that startup path can fail.
+A module without a configured controller currently receives a fallback object containing only `onCommand()`, so startup can fail when it calls the
+missing `start()` method. `Modules.stop()` calls controller `stop()` methods, but no automatic application-shutdown path invokes it.
 
 See [Configuration](configuration.md), [Modules](modules.md), and [Service Worker](service-worker.md).

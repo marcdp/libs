@@ -1,7 +1,7 @@
 # Modules
 
 The application is the **root module**. Its `module.jsonc` imports dependencies recursively. A module definition can contribute metadata,
-configuration, menus, resolvers, pages, styles, components, icons, and an optional module script. These declarative contributions belong to the
+configuration, menus, resolvers, pages, styles, components, icons, and an optional module controller. These declarative contributions belong to the
 canonical definition and are not duplicated by repeated imports.
 
 ## Definition, import, and instance
@@ -49,9 +49,10 @@ zero, one, or several Areas. Areas composes separate effective menus for those A
 marked `default: true` provides each Area's home. Participation does not create routes, imports, or additional module instances.
 See [Areas](../subsystems/areas.md) for prefix and resource ownership.
 
-## Module script and startup
+## Module controller and startup
 
-A definition may specify `"script": "./js/module.js"`. The script's default export must be a constructable ES class with `start()`:
+A definition may specify `"controller": "./js/module.js"`. `Modules` loads it as `module:<controller>`. The JavaScript module's default export must
+be constructable and provide `start()`:
 
 ```js
 export default class {
@@ -67,15 +68,15 @@ export default class {
 }
 ```
 
-`Modules.init()` iterates `config.modules` once. It schedules style and script loads concurrently, constructs each script controller with a
+`Modules.init()` iterates `config.modules` once. It schedules style and controller loads concurrently, constructs each controller with a
 service-provider proxy, then awaits all loads and calls controller `start()` methods in parallel. The proxy supplies `params` from the final
 module config; other requested names are resolved through XShell's registered services, including `navigation`, `bus`, and `config`.
 The runtime does not resolve repeated-import precedence.
 
 The proxy also has `definition` and `timer` branches that currently reference unavailable identifiers; their injection behavior is not
-established. A script-free definition receives a fallback controller with no `start()`, so startup can fail. The current module lifecycle calls
-`start()`; legacy sample code using `onCommand("load", ...)` does not represent this lifecycle. No stop or disposal call is wired into
-`Modules.init()`.
+established. A controller-free definition receives a fallback object with `onCommand()` but no `start()`, so startup can fail. The current module
+lifecycle calls `start()`; legacy sample code using `onCommand("load", ...)` does not represent this lifecycle. `Modules.stop()` calls `stop()` on
+each controller, but no automatic application-shutdown lifecycle currently invokes it.
 
 ## Public communication contract
 
@@ -83,4 +84,5 @@ The Bus supports events and listeners. A declarative module contract for accepte
 proposed but is not parsed or enforced by the runtime. Module menu contributions remain declarative
 contributions; they are not module imports or extra module instances.
 
-See [Module Specification](../specifications/module.md), [Configuration](configuration.md), [Navigation](navigation.md), and [Areas](../subsystems/areas.md).
+See [Module Specification](../specifications/module.md), [Configuration](configuration.md), [Navigation](navigation.md), and
+[Areas](../subsystems/areas.md).

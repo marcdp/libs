@@ -1,4 +1,6 @@
 {
+    //"$schema": "../../xshell/schemes/config.scheme.json",
+
     // module
     "modules": {
         "x": {

@@ -35,7 +35,7 @@ If the default export is an object, XShell considers it to be a Web Component de
 A component file can then contain two separate parts:
 
 ```text
-declaration
+contract
     public interface
 
 default export
@@ -124,9 +124,9 @@ export default {
 };
 ```
 
-## Declaration
+## Contract
 
-The optional named `declaration` export describes the public interface of the component.
+The optional named `contract` export describes the public interface of the component.
 
 It can describe:
 
@@ -163,9 +163,12 @@ export const contract = {
 };
 ```
 
-The declaration describes how other code can interact with the component.
+The contract describes how other code can interact with the component.
 
 It is separate from the runtime implementation.
+
+The current loader reads `module.contract`, but it does not substantially use the object after passing it into component-class construction. The
+metadata therefore documents an intended public surface without current runtime validation or enforcement.
 
 ## Implementation
 
@@ -183,7 +186,7 @@ script
 Conceptually:
 
 ```text
-declaration
+contract
     ↓
 public contract
 
@@ -239,11 +242,11 @@ The result is a standard browser Web Component.
 A definition-based component uses engine defaults in nested configuration:
 
 ```jsonc
-{ "xshell": { "component": { "stateEngine": "plain", "renderEngine": "plain" } } }
+{ "xshell": { "defaults": { "component": { "stateEngine": "plain", "renderEngine": "plain" } } } }
 ```
 
-Module definitions may provide their own nested `component` overrides. Current `component-js` reads both nested XShell defaults and the
-module's nested component settings for engine selection.
+Module definitions may provide `defaults.component` overrides. Current `component-js` selects render and state engines in this order: XShell
+`defaults.component`, module `defaults.component`, then component `meta`.
 
 The selected state and render engines are used while converting the definition into the final Web Component class.
 
@@ -300,7 +303,7 @@ one JavaScript file
 That file can export:
 
 ```text
-optional declaration
+optional contract
     +
 default implementation
 ```
@@ -321,14 +324,14 @@ component-js
 Web Component class
 ```
 
-The declaration describes the public interface.
+The optional `contract` export describes the public interface.
 
 The default export provides the runtime implementation.
 
 ## Related documentation
 
 * [Components](../components/)
-* [Component Manifest](../components/manifest.md)
+* [Component Contract](../components/manifest.md)
 * [Properties](../components/properties.md)
 * [State](../components/state.md)
 * [Lifecycle](../components/lifecycle.md)

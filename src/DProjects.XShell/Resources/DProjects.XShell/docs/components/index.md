@@ -8,7 +8,7 @@ Draft.
 
 ## Documents
 
-- [Component Manifest](manifest.md) — Declarative metadata and the current declaration/implementation split.
+- [Component Contract](manifest.md) — Current contract metadata and the future manifest concept.
 - [Properties](properties.md) — Public component API values.
 - [State](state.md) — Internal reactive data and rendering invalidation.
 - [Events](events.md) — DOM events emitted by components.
@@ -16,7 +16,9 @@ Draft.
 
 ## Current implementation boundary
 
-Component modules currently export a default runtime definition. Many checked-in components also export a named `declaration` describing their intended public contract. The runtime loader consumes the default definition; a complete integration contract for declaration metadata is still a TODO.
+Component modules currently export a default runtime definition. Representative checked-in components also export a named `contract` describing
+their intended public surface. The runtime loader reads that export but does not substantially apply it while building the custom element; a complete
+integration contract is still a TODO.
 
 ## Related documentation
 
