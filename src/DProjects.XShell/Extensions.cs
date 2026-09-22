@@ -40,10 +40,6 @@ namespace DProjects.XShell {
             var assembly = typeof(Extensions).Assembly;
             var environment = app.Environment.EnvironmentName;
             var isDevelopment = app.Environment.IsDevelopment();
-            if (System.Diagnostics.Debugger.IsAttached) {
-                environment = "Development";
-                isDevelopment = true;
-            }
             string resourcePath;
             if (isDevelopment) {
                 var projectDirectory = assembly.GetCustomAttributes<AssemblyMetadataAttribute>().FirstOrDefault(x => x.Key == "ProjectDirectory")?.Value;
