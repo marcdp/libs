@@ -14,6 +14,36 @@ function camelToKebab(str) {
       .replace(/([a-z])([A-Z])/g, '$1-$2') 
       .toLowerCase();                      
 }
+function cloneDefaultValue(value) {
+    if (Array.isArray(value)) {
+        return value.map(cloneDefaultValue);
+    }
+    if (value && typeof(value) === "object" && Object.getPrototypeOf(value) === Object.prototype) {
+        return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, cloneDefaultValue(item)]));
+    }
+    return value;
+}
+function isEmptyPlainObject(value) {
+    return value && typeof(value) === "object" && !Array.isArray(value) && Object.getPrototypeOf(value) === Object.prototype && Object.keys(value).length === 0;
+}
+function convertAttributeValue(property, value) {
+    switch (property.type) {
+        case "boolean":
+            return value !== null;
+        case "number":
+            return value === null ? null : Number(value);
+        case "array":
+        case "object":
+            if (value === null) return null;
+            try {
+                return JSON.parse(value);
+            } catch {
+                return value;
+            }
+        default:
+            return value;
+    }
+}
 function findClosestXPage(element) {
     let current = element;
     while (current) {
@@ -49,28 +79,41 @@ export async function createComponentClassFromJsDefinition(src, context, definit
         }
     }
     // state skeleton
-    let stateSkeleton = {};
-    let stateAttributeNames = []
-    let stateReflectedAttributeNames = []
-    let stateMapAttributeNames = []
-    for(let propName in definition.state) {
-        const propDefinition = definition.state[propName];
-        if (typeof(propDefinition.value) == "undefined") propDefinition.value = null;
-        if (typeof(propDefinition.type) == "undefined") propDefinition.type = "string";
-        if (typeof(propDefinition.attr) == "undefined") propDefinition.attr = false;
-        if (typeof(propDefinition.prop) == "undefined") propDefinition.prop = (propDefinition.attr ? true : false);
-        if (typeof(propDefinition.reflect) == "undefined") propDefinition.reflect = false;
-        stateSkeleton[propName] = propDefinition.value; 
-        if (propDefinition.attr === true) stateAttributeNames.push(propName);
-        if (propDefinition.attr === true && propDefinition.reflect) stateReflectedAttributeNames.push(propName);
-        if (propDefinition.value && typeof(propDefinition.value) === "object" && !Array.isArray(propDefinition.value) && Object.keys(propDefinition.value).length === 0) stateMapAttributeNames.push(propName);
+    const properties = contract?.properties || {};
+    const internalState = definition.state || {};
+    const stateSkeleton = {};
+    const propertyAttributeNames = [];
+    const reflectedPropertyNames = [];
+    const stateMapAttributes = [];
+    for (const [propName, property] of Object.entries(properties)) {
+        if (property.state === true) {
+            stateSkeleton[propName] = property.default;
+        }
+        if (property.attr === true) {
+            propertyAttributeNames.push(camelToKebab(propName));
+        }
+        if (property.reflect === true) {
+            reflectedPropertyNames.push(propName);
+        }
+        if (property.state === true && property.attr === true && isEmptyPlainObject(property.default)) {
+            stateMapAttributes.push({ attributePrefix: camelToKebab(propName) + "-", stateName: propName });
+        }
+    }
+    for (const [stateName, value] of Object.entries(internalState)) {
+        if (Object.prototype.hasOwnProperty.call(stateSkeleton, stateName)) {
+            throw new Error(`Component '${definition.meta?.name || src}' declares state '${stateName}' in both contract.properties and definition.state.`);
+        }
+        stateSkeleton[stateName] = value;
+        if (isEmptyPlainObject(value)) {
+            stateMapAttributes.push({ attributePrefix: camelToKebab(stateName) + "-", stateName });
+        }
     }
     // state engine
     const stateEngineXShell = xshell.config.xshell.defaults.component.stateEngine;
     const stateEngineModule = xshell.config.modules[context.resourceDefinition.moduleId].defaults?.component?.stateEngine;
     const stateEngineComponent = definition.meta.stateEngine || stateEngineModule || stateEngineXShell;
     const stateEngineFactoryCreator = await xshell.loader.load("state-engine:" + stateEngineComponent);
-    const stateEngineFactory = new stateEngineFactoryCreator(stateSkeleton, definition.state, context);
+    const stateEngineFactory = new stateEngineFactoryCreator(stateSkeleton, context);
     // render engine
     const renderEngineXShell = xshell.config.xshell.defaults.component.renderEngine;
     const renderEngineModule = xshell.config.modules[context.resourceDefinition.moduleId].defaults?.component?.renderEngine;
@@ -87,11 +130,13 @@ export async function createComponentClassFromJsDefinition(src, context, definit
     const WebComponent = class extends HTMLElement {
         // vars
         _state = null;
+        _properties = null;
         _stateChanges = [];
         _disposables = [];
+        _reflectingAttributes = new Set();
         // static
         static get observedAttributes() { 
-            return stateAttributeNames;
+            return propertyAttributeNames;
         }
         // ctor
         constructor() {
@@ -110,6 +155,12 @@ export async function createComponentClassFromJsDefinition(src, context, definit
                     self.invalidate(path);
                 }
             });
+            this._properties = {};
+            for (const [propName, property] of Object.entries(properties)) {
+                if (property.state !== true) {
+                    this._properties[propName] = cloneDefaultValue(property.default);
+                }
+            }
             // services provider
             const servicesProvider = new Proxy({}, {
                 get: (obj, prop) => {
@@ -146,33 +197,31 @@ export async function createComponentClassFromJsDefinition(src, context, definit
             // bind methods to the instance
             Object.assign(this, methods);
             // attribute mutation observer (listen for changes in attributes that starts with state map attribute names, ex: qs-*)
-            if (stateMapAttributeNames.length) {
+            if (stateMapAttributes.length) {
                 const mutationObserver = new MutationObserver((mutationsList) => {
                     for (let mutation of mutationsList) {
                         if (mutation.type === "attributes") {
                             const attrName = mutation.attributeName;
-                            const propName = stateMapAttributeNames.find(name => attrName.startsWith(name + "-"));
-                            if (propName) {
-                                const subPropName = kebabToCamel(attrName.substring(propName.length + 1));
+                            const stateMapAttribute = stateMapAttributes.find(item => attrName.startsWith(item.attributePrefix));
+                            if (stateMapAttribute) {
+                                const subPropName = kebabToCamel(attrName.substring(stateMapAttribute.attributePrefix.length));
                                 const attrValue = this.getAttribute(attrName);
-                                const propValue = this._state[propName] || {};
+                                const propValue = this._state[stateMapAttribute.stateName] || {};
                                 propValue[subPropName] = attrValue;
-                                this._state[propName] = propValue;
+                                this._state[stateMapAttribute.stateName] = propValue;
                             }
                         }
                     }
                 });
                 mutationObserver.observe(this, { attributes: true });
                 // init state from attributes
-                for(let attrName of stateMapAttributeNames) {                    
-                    const attrPrefix = attrName + "-";
+                for (const stateMapAttribute of stateMapAttributes) {
                     for(let attr of this.attributes) {
-                        if (attr.name.startsWith(attrPrefix)) {
-                            const propName = kebabToCamel(attrName);
-                            const subPropName = kebabToCamel(attr.name.substring(attrPrefix.length));
-                            const propValue = this._state[propName] || {};
+                        if (attr.name.startsWith(stateMapAttribute.attributePrefix)) {
+                            const subPropName = kebabToCamel(attr.name.substring(stateMapAttribute.attributePrefix.length));
+                            const propValue = this._state[stateMapAttribute.stateName] || {};
                             propValue[subPropName] = attr.value;
-                            this._state[propName] = propValue;
+                            this._state[stateMapAttribute.stateName] = propValue;
                         }
                     }
                 }
@@ -182,16 +231,11 @@ export async function createComponentClassFromJsDefinition(src, context, definit
         }
         // attributeChangedCallback
         attributeChangedCallback(name, oldValue, newValue) {
-            let prop = kebabToCamel(name);
-            let oldPropValue = this._state[prop];
-            if (typeof(oldPropValue) == "boolean") {
-                newValue = (newValue != null);
-            } else if (typeof(oldPropValue) == "number") {
-                newValue = Number(newValue);
-            }
-            if (oldPropValue != newValue) {
-                this._state[prop] = newValue;
-            }
+            if (this._reflectingAttributes.has(name)) return;
+            const propName = kebabToCamel(name);
+            const property = properties[propName];
+            if (!property || property.attr !== true) return;
+            this[propName] = convertAttributeValue(property, newValue);
         }
         // connected/disconnected
         connectedCallback() {
@@ -216,13 +260,8 @@ export async function createComponentClassFromJsDefinition(src, context, definit
         stateChange(prop, oldValue, newValue) {
             this._stateChanges.push({prop, oldValue, newValue});
             // reflect to attribute if needed
-            if (stateReflectedAttributeNames.includes(prop)) {
-                const attrName = camelToKebab(prop);
-                if (newValue === false || newValue === null) {
-                    this.removeAttribute(attrName);
-                } else {
-                    this.setAttribute(attrName, (newValue === true ? "" : newValue));
-                }
+            if (reflectedPropertyNames.includes(prop)) {
+                this.reflectPropertyToAttribute(prop, newValue);
             }
         }
         // invalidate
@@ -239,22 +278,43 @@ export async function createComponentClassFromJsDefinition(src, context, definit
         // onCommand
         onCommand(command, params) {
         }
+        // reflectPropertyToAttribute
+        reflectPropertyToAttribute(propName, value) {
+            const attrName = camelToKebab(propName);
+            this._reflectingAttributes.add(attrName);
+            try {
+                if (value === false || value === null) {
+                    this.removeAttribute(attrName);
+                } else {
+                    this.setAttribute(attrName, value === true ? "" : value);
+                }
+            } finally {
+                this._reflectingAttributes.delete(attrName);
+            }
+        }
     };
     // add properties
-    for(const propName in definition.state) {
-        const propDefinition = definition.state[propName];
-        if (propDefinition.prop) {
-            Object.defineProperty(WebComponent.prototype, propName, {
-                get() {
-                    return this._state[propName];
-                },
-                set(newValue) {
+    for (const [propName, property] of Object.entries(properties)) {
+        Object.defineProperty(WebComponent.prototype, propName, {
+            get() {
+                return property.state === true ? this._state[propName] : this._properties[propName];
+            },
+            set(newValue) {
+                if (property.state === true) {
                     this._state[propName] = newValue;
-                },
-                enumerable: true,
-                configurable: false
-            });
-        }
+                } else {
+                    const oldValue = this._properties[propName];
+                    if (oldValue !== newValue) {
+                        this._properties[propName] = newValue;
+                        if (property.reflect === true) {
+                            this.reflectPropertyToAttribute(propName, newValue);
+                        }
+                    }
+                }
+            },
+            enumerable: true,
+            configurable: false
+        });
     }
     // register
     if (!window.customElements.get(definition.meta.name)) {
