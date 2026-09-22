@@ -269,18 +269,9 @@ export default {
 
     `,
     state: {
-        status:         {value: "", attr:true},
-        appIcon:        {value: xshell.config.app.icon},
-        appLabel:       {value: xshell.config.app.label},
-        appBasePath:    {value: xshell.config.app.basePath},
-        userName:       {value: ""},
-        userInitials:   {value: ""},
-        menuNavigation:       {value: null},
-        menuTools:      {value: null},
-        menuProfile:    {value: null},
-        toggled:        {value: false},
-        keyword:        {value: ""},
-        shellDebug:     {value: xshell.config.xshell.debug}
+        menuNavigation:  null,
+        menuTools:       null,
+        menuProfile:     null
     },
     script({ state, events, navigation, areas, bus, getPage }) {
         return {

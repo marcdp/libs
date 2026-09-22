@@ -80,11 +80,6 @@ export default {
         </dialog>
 
     `,
-    state: {
-        label: "",
-        status: "",
-        opened: false
-    },
     script({ state, events, bus, getPage }) {
         return {
             onCommand(command) {

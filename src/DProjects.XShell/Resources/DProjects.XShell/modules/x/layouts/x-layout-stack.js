@@ -101,10 +101,6 @@ export default {
             <div>
         </div>
     `,
-    state: {
-        expanded: { value: false, attr:true },
-        status: { value: "", attr: true }
-    },
     script({ state, events, bus, getPage }) {
         return {
             onCommand(command) {
