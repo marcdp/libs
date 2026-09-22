@@ -4,8 +4,10 @@ using System.Security.Cryptography;
 namespace DProjects.XShell.Services {
 
     public sealed class ModuleFilesIndexer {
-        
-        
+
+        // consts
+        public const string ModuleFilesJson = "module.files.json";
+
         // inner classes
         private sealed record FileIndexItem(string Path, long Size, string Hash);
         
@@ -15,7 +17,7 @@ namespace DProjects.XShell.Services {
             // scan
             var files = new List<FileIndexItem>();
             foreach (var file in Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories)) {
-                if (Path.GetFileName(file).Equals("index.files.json", StringComparison.OrdinalIgnoreCase)) {
+                if (Path.GetFileName(file).Equals(ModuleFilesJson, StringComparison.OrdinalIgnoreCase)) {
                     continue;
                 }
                 await using var stream = File.OpenRead(file);

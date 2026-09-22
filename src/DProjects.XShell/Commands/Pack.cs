@@ -46,7 +46,7 @@ namespace DProjects.XShell.Commands {
                 CopyDirectory(sourcePath, stagingPath);
 
                 // create index
-                var indexPath = Path.Combine(stagingPath, "index.files.json");
+                var indexPath = Path.Combine(stagingPath, Services.ModuleFilesIndexer.ModuleFilesJson);
                 if (File.Exists(indexPath)) File.Delete(indexPath);
                 var moduleFilesIndexer = new ModuleFilesIndexer();
                 var json = await moduleFilesIndexer.CreateJsonAsync(stagingPath);

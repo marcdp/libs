@@ -21,7 +21,7 @@ expanded directories. Although the model allows a future package URL and remote/
 worker fetches with `mode: "same-origin"`, so cross-origin sources are not established as working.
 
 The worker stores bootstrap's initialization payload in IndexedDB and reloads it when handling requests after its in-memory state has been lost. It
-does not load `module.files.json` or `index.files.json` during startup. A module file manifest is a physical inventory to be loaded on demand by
+does not load `module.files.json` or `modules.files.json` during startup. A module file manifest is a physical inventory to be loaded on demand by
 future mechanisms that need package information. The worker's role is resource delivery; module creation and configuration merge belong to
 bootstrap and XShell runtime.
 

@@ -70,8 +70,9 @@ self.addEventListener("fetch", event => {
 
 
 // methods
-async function handleRequest(request) {
-    
+async function handleRequestOld(request) {
+    const requestUrl = new URL(request.url);
+
     // if request is outside scope, just fetch
     if (!request.url.startsWith(self.registration.scope)) {
         // console.log("sw: ignoring: " + request.url)
@@ -134,5 +135,78 @@ async function handleRequest(request) {
     return new Response(body, {
         status: response.status,
         headers: headers
+    });
+}
+async function handleRequest(request) {
+
+    // if request is outside scope, just fetch
+    if (!request.url.startsWith(self.registration.scope)) {
+        return fetch(request, { cache: "no-store" });
+    }
+
+    // if no rules, just fetch
+    if (!state || state.rules.length == 0) {
+        return fetch(request, { cache: "no-store" });
+    }
+
+    const requestUrl = new URL(request.url);
+
+    // determine the rule to use
+    let rule = null;
+    let ruleSrcUrl = null;
+
+    for (const targetRule of state.rules) {
+        const srcUrl = new URL(targetRule.src);
+
+        if (
+            requestUrl.origin === srcUrl.origin &&
+            (
+                requestUrl.pathname === srcUrl.pathname ||
+                requestUrl.pathname.startsWith(srcUrl.pathname + "/")
+            )
+        ) {
+            rule = targetRule;
+            ruleSrcUrl = srcUrl;
+            break;
+        }
+    }
+
+    // no matching rule
+    if (!rule) {
+        return fetch(request, { cache: "no-store" });
+    }
+
+    // resolve virtual /_assets/... path against the physical assetsUrl
+    const relativePath = requestUrl.pathname
+        .substring(ruleSrcUrl.pathname.length)
+        .replace(/^\//, "");
+
+    const baseUrl = rule.dst.endsWith("/") ? rule.dst : rule.dst + "/";
+    const url = new URL(relativePath, baseUrl);
+
+    // preserve query string
+    url.search = requestUrl.search;
+
+    // fetch the real resource
+    const response = await fetch(url, {
+        method: request.method,
+        headers: request.headers,
+        body: request.method !== "GET" && request.method !== "HEAD"
+            ? request.body
+            : undefined,
+        mode: "same-origin",
+        credentials: "same-origin",
+        redirect: "manual"
+    });
+
+    // prevent physical resource URL from leaking through redirect-related headers
+    const headers = new Headers(response.headers);
+    headers.delete("Location");
+    headers.delete("Content-Location");
+
+    return new Response(response.body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers
     });
 }

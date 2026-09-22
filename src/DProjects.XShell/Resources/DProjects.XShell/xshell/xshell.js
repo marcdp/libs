@@ -15,6 +15,8 @@ import Services from "./services.js";
 import Tabs from "./tabs.js";
 import UrlRewriter from "./urlRewriter.js";
 import XPage from "./x-page.js";
+import { Validator } from "./vendor/json-schema/json-schema.js"
+import ConfigSchema from "./schemas/config.schema.json" with { type: "json" };
 
 // class
 class XShell {
@@ -63,6 +65,8 @@ class XShell {
 
     //methods
     async init(config) {
+        // validate config
+        await this.validateConfig(config);
         // init
         this._bus = new Bus();
         this._debug = new Debug();
@@ -107,6 +111,18 @@ class XShell {
         // navigation
         await this._navigation.init();
     }   
+    async validateConfig(config) {
+        // validate
+        const validator = new Validator(ConfigSchema, "2020-12");
+        const result = validator.validate(config);
+        if (!result.valid) {
+            const message = result.errors.map(error => error.message).join("\n");
+            throw new Error(
+                `Invalid XShell configuration:\n${message}`,
+                { cause: result.errors }
+            );
+        }
+    }
 }
 
 // creates a default instance

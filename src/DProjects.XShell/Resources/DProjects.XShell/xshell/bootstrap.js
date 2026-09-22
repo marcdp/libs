@@ -78,7 +78,7 @@ async function loadConfig() {
     // load referenced modules
     const registered = {}
     registered[rootModuleUrl] = {
-        url: rootModuleUrl,
+        configUrl: rootModuleUrl,
         config: rootModuleConfig
     }
     while (true) {        
@@ -164,6 +164,8 @@ async function loadConfig() {
     // return
     return configMerged;
 }
+
+
 async function installServiceWorker(config) {
 
     // install service worker

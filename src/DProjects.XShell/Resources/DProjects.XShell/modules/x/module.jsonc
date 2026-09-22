@@ -42,7 +42,6 @@
             },
             "import": {
                 "marked": { "url": "/vendor/marked/marked.esm.js" },
-                "json-schema": { "url": "/vendor/json-schema/json-schema.js"},
                 "x-element": {"url": "/controllers/x-element.js"}
             }
         },

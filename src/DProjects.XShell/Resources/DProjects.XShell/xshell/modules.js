@@ -63,15 +63,9 @@ export default class Modules {
                     const moduleClass = await this._loader.load("module:" + moduleConfig.controller);
                     const servicesProvider = new Proxy({}, {
                         get: (obj, prop) => {
-                            if (prop == "definition") {
-                                // definition of component
-                                return definition;
-                            } else if (prop == "params") {
+                            if (prop == "params") {
                                 // module params
                                 return moduleConfig.params;
-                            } else if (prop == "timer") {
-                                // timer helper
-                                return new Timer( (command) => {self.onCommand(command);} );
                             } else {
                                 // resolve from services
                                 return this._services.resolve(prop);
@@ -103,22 +97,37 @@ export default class Modules {
 
     // start/stop
     async start() {
-        const tasks = [];
-        for (let module of this._modules) {
-            tasks.push(module.controller.start());
+        const started = [];
+        try {
+            for (const module of [...this._modules].reverse()) {
+                if (module.controller?.start) {
+                    await module.controller.start();
+                }
+                started.push(module);
+            }
+        } catch (error) {
+            for (const module of started.reverse()) {
+                try {
+                    if (module.controller?.stop) {
+                        await module.controller.stop();
+                    }
+                } catch {
+                    // Keep the original startup error.
+                }
+            }
+            throw error;
         }
-        await Promise.all(tasks); 
     } 
     async stop() {
-        const tasks = [];
-        for (let module of this._modules) {
-            tasks.push(module.controller.stop());
+        for (const module of this._modules) {
+            if (module.controller?.stop) {
+                await module.controller.stop();
+            }
         }
-        await Promise.all(tasks); 
     }
 
 
-    // modules
+    // methods
     resolveModuleId(src) {
         //get module name by src
         if (!src) debugger;

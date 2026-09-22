@@ -1,29 +1,14 @@
-import { Validator } from "json-schema"
 
 export default class {
 
     // vars
-    _config = null;
-    _loader = null;
 
     // ctor
-    constructor({ config, loader }) {
-        this._config = config;
-        this._loader = loader;
+    constructor({ }) {
     }
 
     // methods
     async start() {
-        const schema = await this._loader.load("schema:config.schema.json");
-        const validator = new Validator(schema, "2020-12");
-        const result = validator.validate(this._config);
-        if (!result.valid) {
-            const message = result.errors.map(e => e.message).join("\n");
-            debugger;
-            throw new Error("Invalid XShell configuration: " + message, {
-                cause: result.errors
-            });
-        }
     }
     async stop() {
     }

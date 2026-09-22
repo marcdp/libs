@@ -13,7 +13,7 @@ The source must exist and contain exactly one of `module.json` or `module.jsonc`
 properties. The command then:
 
 1. copies the complete source directory to a temporary staging directory;
-2. generates `index.files.json` in staging;
+2. generates `modules.files.json` in staging;
 3. ZIPs the staging contents without an enclosing base directory;
 4. computes the lowercase SHA-256 hash of the ZIP bytes;
 5. writes or reuses `<id>-<version>-<sha256>.zip` in the output directory; and
@@ -24,7 +24,7 @@ and the existing path is reported.
 
 ## Module file manifest
 
-`ModuleFilesIndexer` records every file below the module directory except a file named `index.files.json`, case-insensitively. Each entry contains:
+`ModuleFilesIndexer` records every file below the module directory except a file named `modules.files.json`, case-insensitively. Each entry contains:
 
 ```json
 {
@@ -44,8 +44,8 @@ package contents; it is not module semantic configuration and is not automatical
 on demand only when the containing directory has `module.json` or `module.jsonc`, and it adds no-cache headers to development resources. A debugger
 attached to the ASP.NET host forces this development behavior even when the configured ASP.NET environment is not Development.
 
-There is a current filename inconsistency: development exposes the virtual name `module.files.json`, while `pack` writes `index.files.json`, and the
-indexer excludes only `index.files.json`. Treat both as implementations of the same module file manifest concept, not as a finalized universal
+There is a current filename inconsistency: development exposes the virtual name `module.files.json`, while `pack` writes `modules.files.json`, and the
+indexer excludes only `modules.files.json`. Treat both as implementations of the same module file manifest concept, not as a finalized universal
 filename.
 
 ## Future work
