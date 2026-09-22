@@ -100,7 +100,7 @@ export default {
         }
 
         .footer {display:flex; align-items:end; margin-top:1em; }
-        .footer x-button {min-width: var(--x-button-width-wide); aflex:1; }
+        .footer x-button {min-width: var(--x-button-width-wide); }
         .footer > div {display:flex; justify-content:flex-end; gap:.25em; margin-left:.25em; padding-top:1em; flex:1;}
         .footer ::slotted(x-button) {min-width: var(--x-button-width-wide);}
 
@@ -277,7 +277,7 @@ export default {
                 } else if (command === "submit") {
                     //submit
                     this.onCommand("validate");
-                    if (this.errors.length == 0) {
+                    if (state.errors.length == 0) {
                         this.dispatchEvent(new CustomEvent("command", {detail: {command: state.command, data: this.dataset}, bubbles: true, composed: false}));
                     }
 

@@ -1,4 +1,20 @@
-// export page
+// contract
+export const contract = {
+    description: "Shows a prompt dialog.",
+    events: {},
+    properties: {
+        title: {type:"string", default:"", state:true, description:"The title of the prompt dialog."},
+        message: {type:"string", default:"", state:true, description:"The message to display in the prompt dialog."},
+        defaultValue: {type:"any", default:null, state:true, description:"The default value of the prompt."},
+        inputType: {type:"string", default:"text", state:true, enum:["text","number","password"], description:"The type of input for the prompt."},
+        placeholder: {type:"string", default:"", state:true, description:"The placeholder text for the prompt."},
+        required: {type:"boolean", default:false, state:true, description:"Whether the prompt is required."},
+        value: {type:"any", default:null, state:true, description:"The current value of the prompt."}
+    },
+    methods: {}
+};
+
+// implementation
 export default {
     template: `
         <x-form command="submit">            

@@ -1,4 +1,13 @@
-// export page
+// contract
+export const contract = {
+    description: "Shows the available areas for navigation.",
+    events: {},
+    properties: {},
+    methods: {}
+};
+
+
+// implementation
 export default {
     template: `
         <p>

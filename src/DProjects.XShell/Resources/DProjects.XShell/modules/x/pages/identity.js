@@ -1,4 +1,12 @@
-// export page
+// contract
+export const contract = {
+    description: "Shows an identity page.",
+    events: {},
+    properties: {},
+    methods: {}
+};
+
+// implementation
 export default {
     template: `
     

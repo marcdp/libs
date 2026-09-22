@@ -87,7 +87,7 @@ export default {
     },
     script({ state, events }) {
         return {
-            onCommand(command, params){
+            onCommand(command, params) {
                 if (command == "load") {
                     //load
                     events.on(state, "change:value", (event) => {

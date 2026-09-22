@@ -51,6 +51,7 @@ export default {
 
                 } else if (command == "unload") {
                     //unload                
+                    this.mutationObserver?.disconnect();
                     delete this.mutationObserver;
 
                 } else if (command == "keydown") {

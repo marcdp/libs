@@ -108,9 +108,6 @@ export default {
             </li>
         </ul>
     `,
-    //settings: {
-    //    observedAttributes: ["index"],
-    //},
     script({ state }) {
         return {
             onCommand(command, args) {

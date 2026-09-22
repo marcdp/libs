@@ -1,4 +1,16 @@
-// export page
+// contract
+export const contract = {
+    description: "Shows a message dialog with various types and an OK button.",
+    events: {},
+    properties: {
+        title: {type:"string", default:"", state:true, description:"The title of the message dialog."},
+        message: {type:"string", default:"", state:true, description:"The message to display in the message dialog."},
+        type: {type:"string", default:"info", state:true, enum:["info","success","warning","error"], description:"The type of message dialog to display."},
+    },
+    methods: {}
+};
+
+// implementation
 export default {
     template: `
         <x-form command="submit">            

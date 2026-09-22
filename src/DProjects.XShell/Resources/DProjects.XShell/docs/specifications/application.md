@@ -25,7 +25,7 @@ application; there is no separate application specification.
         }
     },
     "xshell": {
-        "environment": "development",
+        "environment": "Development",
         "areas": {
             "default": "customers",
             "definitions": {

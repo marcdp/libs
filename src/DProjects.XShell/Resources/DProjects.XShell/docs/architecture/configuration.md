@@ -27,7 +27,7 @@ XShell authors nested JSONC. Framework defaults, the root module, and imported m
         }
     },
     "xshell": {
-        "environment": "development",
+        "environment": "Development",
         "defaults": {
             "page": {
                 "layout": {

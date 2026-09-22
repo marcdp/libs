@@ -57,9 +57,6 @@ export default {
         size:  {value:20, type:"number", attr:true, prop:true},
         label: {value:"records", type:"string", attr:true, prop:true}
     },
-    //settings: {
-    //    observedAttributes: ["total", "index", "size", "label"]
-    //},
     script({ state }) {
         return {
             onCommand(command, args) {

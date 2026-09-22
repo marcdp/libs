@@ -38,7 +38,12 @@ namespace DProjects.XShell {
 
             // config webapplication
             var assembly = typeof(Extensions).Assembly;
-            var isDevelopment = app.Environment.IsDevelopment() || System.Diagnostics.Debugger.IsAttached;
+            var environment = app.Environment.EnvironmentName;
+            var isDevelopment = app.Environment.IsDevelopment();
+            if (System.Diagnostics.Debugger.IsAttached) {
+                environment = "Development";
+                isDevelopment = true;
+            }
             string resourcePath;
             if (isDevelopment) {
                 var projectDirectory = assembly.GetCustomAttributes<AssemblyMetadataAttribute>().FirstOrDefault(x => x.Key == "ProjectDirectory")?.Value;
@@ -52,25 +57,11 @@ namespace DProjects.XShell {
             }
             if (!Directory.Exists(resourcePath)) throw new DirectoryNotFoundException($"XShell resources directory not found: {resourcePath}");
 
-            // register content type provider for .jsonc files
-            var contentTypeProvider = new FileExtensionContentTypeProvider();
-            contentTypeProvider.Mappings[".jsonc"] = "application/json";
-            contentTypeProvider.Mappings[".md"] = "text/markdown";
-
-            // map /_resources/DProjects.XShell
-            var fileProvider = new PhysicalFileProvider(resourcePath);
-            app.UseStaticFiles(new StaticFileOptions {
-                FileProvider = fileProvider,
-                RequestPath = config.ResourcesBase + RequestPath,
-                ContentTypeProvider = contentTypeProvider,
-                OnPrepareResponse = context => {
-                    if (isDevelopment) {
-                        context.Context.Response.Headers.CacheControl = "no-cache, no-store, must-revalidate";
-                        context.Context.Response.Headers.Pragma = "no-cache";
-                        context.Context.Response.Headers.Expires = "0";
-                    }
-                }
-            });
+            // register _resources
+            app.UseMiddleware<Middlewares.ResourcesMiddleware>(
+                resourcePath,
+                config.ResourcesBase + RequestPath,
+                isDevelopment);
 
             // map routes /
             var indexHtml = $"""
@@ -85,7 +76,7 @@ namespace DProjects.XShell {
                         <meta name="xshell:app.basePath"    content="{config.AppBasePath}">
                         <meta name="xshell:app.configPath"  content="{config.AppConfigPath}">
                         <meta name="xshell:app.params"  content="{string.Join("&", config.AppParams.Select(kv => kv.Key + "=" + kv.Value))}">
-                        <meta name="xshell:xshell.environment" content="{(isDevelopment ? "development" : "production")}">
+                        <meta name="xshell:xshell.environment" content="{(environment)}">
 
                         <!-- bootstrap xshell -->
                         <script src="{config.ResourcesBase}/_resources/DProjects.XShell/xshell/bootstrap.js"></script>
@@ -135,7 +126,7 @@ namespace DProjects.XShell {
                     return;
                 }
 
-                // only handle requests inside xshell.asePath
+                // only handle requests inside app.basePath
                 if (!context.Request.Path.StartsWithSegments(config.AppBasePath, out var remaining)) {
                     await next();
                     return;

@@ -1,4 +1,12 @@
-// export page
+// contract
+export const contract = {
+    description: "Shows a search page.",
+    events: {},
+    properties: {},
+    methods: {}
+};
+
+// implementation
 export default {
     template: `
         <x-datafields>

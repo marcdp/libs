@@ -19,7 +19,7 @@
         "build": "2026-09-21",
         "debug": false,
         "version": "0.9.0",
-        "environment": "development",
+        "environment": "Development",
         "assetsPrefix": "_assets",
 
         // defaults

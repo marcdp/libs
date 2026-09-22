@@ -102,7 +102,7 @@ export default {
                 } else if (command == "refresh") {
                     //refresh
                     const page = getPage();
-                    state.label = .page.label;
+                    state.label = page.label;
 
                 } else if (command == "query-close") {
                     //query close

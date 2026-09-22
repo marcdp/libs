@@ -7,7 +7,7 @@ the remainder of each name identifies the corresponding effective-configuration 
 <meta name="xshell:app.basePath" content="">
 <meta name="xshell:app.configPath" content="/_resources/DProjects.XShell/modules/test/module.jsonc">
 <meta name="xshell:app.params" content="mode=compact">
-<meta name="xshell:xshell.environment" content="development">
+<meta name="xshell:xshell.environment" content="Development">
 <script src="/_resources/DProjects.XShell/xshell/bootstrap.js"></script>
 ```
 
