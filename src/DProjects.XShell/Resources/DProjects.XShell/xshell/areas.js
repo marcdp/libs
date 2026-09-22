@@ -53,6 +53,14 @@ export default class Areas {
     // methods
     init({ modules }) {
         // compose effective menus after canonical modules exist
+        const findDefaultHref = (items) => {
+            for (const item of items || []) {
+                if (item.default) return item.href || null;
+                const href = findDefaultHref(item.children);
+                if (href) return href;
+            }
+            return null;
+        };
         for (const area of this._areas) {
             const menus = {};
             for (const moduleId of area.modules) {
@@ -69,7 +77,7 @@ export default class Areas {
             }
             for (const items of Object.values(menus)) Object.freeze(items);
             area.menus = Object.freeze(menus);
-            area.home = menus.navigation?.find(item => item.default)?.href || null;
+            area.home = findDefaultHref(menus.navigation);
             Object.freeze(area);
         }
     }

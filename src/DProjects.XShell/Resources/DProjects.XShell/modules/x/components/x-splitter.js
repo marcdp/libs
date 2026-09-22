@@ -1,5 +1,3 @@
-import XElement from "x-element";
-
 // contract
 export const contract = {
     description: "Provides a draggable visual splitter.",
@@ -10,7 +8,7 @@ export const contract = {
 
 
 // implementation
-export default XElement.define("x-splitter", {
+export default {
     style:`
         :host {
             display:block;
@@ -21,27 +19,29 @@ export default XElement.define("x-splitter", {
     `,
     template: ``,
     state: { },
-    methods: {
-        onCommand(command) {
-            if (command == "init"){
-                //init
-                let mouseMove = () => {
-                    console.log("mouse move");
-                };
-                let mouseUp = () => {
-                    console.log("mouse up");
-                    document.removeEventListener("mousemove", mouseMove);
-                    document.removeEventListener("mouseup", mouseUp);
-                };
-                this.addEventListener("mousedown", () => {
-                    document.addEventListener("mousemove", mouseMove);
-                    document.addEventListener("mouseup", mouseUp);
-                });
+    script({}) {
+        return {
+            onCommand(command) {
+                if (command == "load"){
+                    //init
+                    let mouseMove = () => {
+                        console.log("mouse move");
+                    };
+                    let mouseUp = () => {
+                        console.log("mouse up");
+                        document.removeEventListener("mousemove", mouseMove);
+                        document.removeEventListener("mouseup", mouseUp);
+                    };
+                    this.addEventListener("mousedown", () => {
+                        document.addEventListener("mousemove", mouseMove);
+                        document.addEventListener("mouseup", mouseUp);
+                    });
 
-            } else if (command == "resize") {
-                //resize
+                } else if (command == "resize") {
+                    //resize
 
+                }
             }
-        }
+        };
     }                
-});
+};

@@ -89,6 +89,9 @@
             },
             "state-engine": {
                 "{name}": {"url": "/state-engines/{name}.js","loader": "module-js"}
+            },
+            "schema": {
+                "{name}.json": {"url": "/schemas/{name}.json","loader": "object-json"}
             }
         }
     }

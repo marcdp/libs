@@ -39,7 +39,8 @@
         "controller": {"type": "string"},
         "imports": {"type": "array", "items": {"$ref": "#/$defs/moduleImport"}},
         "menus": {"$ref": "#/$defs/menus"},
-        "defaults": {"$ref": "#/$defs/defaults"}
+        "defaults": {"$ref": "#/$defs/defaults"},
+        "contract": {"$ref": "#/$defs/moduleContract"}
       },
       "required": ["label", "version", "copyright", "icon", "url"],
       "additionalProperties": false
@@ -50,6 +51,93 @@
       "properties": {
         "url": {"type": "string", "format": "uri"},
         "params": {"type": "object", "additionalProperties": true}
+      },
+      "additionalProperties": false
+    },
+    "moduleContract": {
+      "type": "object",
+      "properties": {
+        "events": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "description": {"type": "string"},
+              "detail": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "type": {"type": "string", "enum": ["string", "number", "integer", "boolean", "object", "array"]},
+                    "description": {"type": "string"},
+                    "required": {"type": "boolean"},
+                    "default": {}
+                  },
+                  "required": ["type"],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "actions": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "description": {"type": "string"},
+              "input": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "type": {"type": "string", "enum": ["string", "number", "integer", "boolean", "object", "array"]},
+                    "description": {"type": "string"},
+                    "required": {"type": "boolean"},
+                    "default": {}
+                  },
+                  "required": ["type"],
+                  "additionalProperties": false
+                }
+              },
+              "output": {
+                "type": "object",
+                "properties": {
+                  "type": {"type": "string", "enum": ["string", "number", "integer", "boolean", "object", "array"]},
+                  "description": {"type": "string"}
+                },
+                "required": ["type"],
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "intents": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "description": {"type": "string"},
+              "input": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "object",
+                  "properties": {
+                    "type": {"type": "string", "enum": ["string", "number", "integer", "boolean", "object", "array"]},
+                    "description": {"type": "string"},
+                    "required": {"type": "boolean"},
+                    "default": {}
+                  },
+                  "required": ["type"],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        }
       },
       "additionalProperties": false
     },

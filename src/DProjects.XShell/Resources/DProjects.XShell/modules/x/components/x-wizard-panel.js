@@ -1,5 +1,3 @@
-import XElement from "x-element";
-
 // contract
 export const contract = {
     description: "Provides a panel container for a wizard.",
@@ -10,12 +8,11 @@ export const contract = {
 
 
 // implementation
-export default XElement.define("x-wizard-panel", {
+export default {
     style: `
         :host {display:block;}
     `,
     template: `
         <slot></slot>
     `
-});
-
+};

@@ -1,6 +1,3 @@
-import XElement from "x-element";
-import xshell from "xshell";
-
 // contract
 export const contract = {
     description: "Lazily activates and loads dependencies for its slotted content.",
@@ -31,10 +28,10 @@ export default {
                     //intersection observer
                     const onIntersection = (entries, observer) => {
                         entries.forEach(entry => {
-                        if (entry.isIntersecting) {
-                            observer.disconnect(); // Stop observing once loaded
-                            this.onCommand("activate");
-                        }
+                            if (entry.isIntersecting) {
+                                observer.disconnect(); // Stop observing once loaded
+                                this.onCommand("activate");
+                            }
                         });
                     };
                     // set up the IntersectionObserver

@@ -62,7 +62,7 @@ export default {
         </nav>        
         <slot x-on:slotchange="refresh"></slot>
     `, 
-    script({ state, events }) {
+    script({ state, events, getPage }) {
         return {
             onCommand(command, params) {
                 if (command == "load") {
@@ -111,7 +111,7 @@ export default {
                     //hash
                     let tab = tabs[state.selectedIndex];
                     if (tab && tab.hash) {
-                        this.page.replace("#" + tab.hash);
+                        getPage().replace("#" + tab.hash);
                     }
                     
                 }

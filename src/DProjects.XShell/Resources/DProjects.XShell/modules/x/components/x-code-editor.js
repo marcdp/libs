@@ -1,5 +1,3 @@
-import XElement from "x-element";
-
 // contract
 export const contract = {
     description: "Provides an Ace code editor with configurable presentation and editing options.",
@@ -63,7 +61,7 @@ export default {
         return {
             onCommand(command, params){
                 if (command == "load") {
-                //load
+                    //load
 
                 } else if(command == "ready") {
                     //ready
@@ -82,7 +80,7 @@ export default {
                     console.log("change");
                     clearTimeout(this._inputTimeoutId);
                     let target = this.shadowRoot.querySelector(".editor");
-                    let oldValue = this.state.value;
+                    let oldValue = state.value;
                     let newValue = target.value ?? "";
                     state.value = newValue;
                     this.dispatchEvent(new CustomEvent("change", {detail: {oldValue, newValue}, bubbles: true, composed: false}));

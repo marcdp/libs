@@ -1,5 +1,3 @@
-import XElement from "x-element";
-
 // contract
 export const contract = {
     description: "Arranges list-view items and optionally scrolls to the latest item.",
@@ -13,7 +11,7 @@ export const contract = {
 
 
 // implementation
-export default XElement.define("x-listview", {
+export default {
     style: `
         :host {display:block;}
 
@@ -47,28 +45,30 @@ export default XElement.define("x-listview", {
         </div>        
     `,
     state: {
-        view: "list",
-        autoScroll: false
+        view:       {value:"list", type:"string", attr:true, prop:true},
+        autoScroll: {value:false, type:"boolean", attr:true, prop:true}
     },
-    methods: {
-        async onCommand(command) {
-            if (command == "load") {
-                //load               
-                this.bindEvent(this.state, "change:view", "refresh");
+    script({ state, events }) {
+        return {
+            async onCommand(command) {
+                if (command == "load") {
+                    //load
+                    events.on(state, "change:view", "refresh");
 
-            } else if (command == "refresh") {
-                //slotchange
-                let view = this.state.view;
-                let lastElement = null;
-                this.shadowRoot.querySelector("slot:not([name])").assignedElements().forEach((item) => {
-                    item.view = view;
-                    lastElement = item;
-                });
-                if (lastElement && this.state.autoScroll && this.checkVisibility()) {
-                    lastElement.scrollIntoView({ block: "end", behavior: "smooth" });
+                } else if (command == "refresh") {
+                    //slotchange
+                    let view = state.view;
+                    let lastElement = null;
+                    this.shadowRoot.querySelector("slot:not([name])").assignedElements().forEach((item) => {
+                        item.view = view;
+                        lastElement = item;
+                    });
+                    if (lastElement && state.autoScroll && this.checkVisibility()) {
+                        lastElement.scrollIntoView({ block: "end", behavior: "smooth" });
+                    }
                 }
             }
-        }
+        };
     }
-});
+};
 

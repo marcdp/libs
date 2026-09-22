@@ -28,7 +28,7 @@ export default {
     template: `
         <slot></slot>
     `,
-    script({ state, navigation, getPage }) {
+    script({}) {
         return {
             onCommand(command, params){
                 if (command == "load") {

@@ -1,5 +1,3 @@
-import XElement from "x-element";
-
 // utils
 function formatFileSize(bytes) {
     if (bytes === -1) return '';

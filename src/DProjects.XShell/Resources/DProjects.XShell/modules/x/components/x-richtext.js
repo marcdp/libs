@@ -1,6 +1,3 @@
-import XElement from "x-element";
-
-
 // contract
 export const contract = {
     description: "Provides a rich-text editor with formatting controls.",
@@ -23,7 +20,7 @@ export const contract = {
 
 
 // implementation
-export default XElement.define("x-richtext", {
+export default {
     style: `
         .editor {
             min-height: 10em;
@@ -36,9 +33,9 @@ export default XElement.define("x-richtext", {
         }
     `,
     state: {
-        value:"",
-        lang:"",
-        spellcheck: "true"
+        value:      {value:"", type:"string", attr:true, prop:true},
+        lang:       {value:"", type:"string", attr:true, prop:true},
+        spellcheck: {value:"true", type:"string", attr:true, prop:true}
     },
     template: `
         <x-toolbar>
@@ -66,32 +63,33 @@ export default XElement.define("x-richtext", {
         </x-toolbar>
         <div class="editor" contenteditable="true" x-html="state.value" x-attr:lang="state.lang" x-attr:spellcheck="state.spellcheck"></div>
     `,
-    methods:{
-        onCommand(command, args){
-            if (command == "load"){
-                //load
-                this.addEventListener("focusout", (event) => {
-                    this.onCommand("change", {event});
-                });
+    script({ state }) {
+        return {
+            onCommand(command, args){
+                if (command == "load"){
+                    //load
+                    this.addEventListener("focusout", (event) => {
+                        this.onCommand("change", {event});
+                    });
 
-            } else if (command == "action") {
-                //action
-                let event = args.event;
-                let action = event.target.dataset.action;
-                document.execCommand(action, false, null);
+                } else if (command == "action") {
+                    //action
+                    let event = args.event;
+                    let action = event.target.dataset.action;
+                    document.execCommand(action, false, null);
 
-            } else if (command == "change") {
-                //change
-                let target = this.shadowRoot.querySelector(".editor");
-                let oldValue = this.state.value;
-                let newValue = target.innerHTML;
-                if (newValue == "<br>") newValue = "";
-                this.state.value = newValue;
-                this.dispatchEvent(new CustomEvent("change", {detail: {oldValue, newValue}, bubbles: true, composed: false}));
-                
+                } else if (command == "change") {
+                    //change
+                    let target = this.shadowRoot.querySelector(".editor");
+                    let oldValue = state.value;
+                    let newValue = target.innerHTML;
+                    if (newValue == "<br>") newValue = "";
+                    state.value = newValue;
+                    this.dispatchEvent(new CustomEvent("change", {detail: {oldValue, newValue}, bubbles: true, composed: false}));
+                    
+                }
             }
-        }
-
+        };
     }
-});
+};
 

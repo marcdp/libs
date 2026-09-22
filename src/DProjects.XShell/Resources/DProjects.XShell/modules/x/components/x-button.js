@@ -144,7 +144,7 @@ export default {
         expanded: {value:false},
         forceRight: {value:""},
     },
-    script({ state, events }) {
+    script({ state, events, navigation, getPage }) {
         return {
             onCommand(command, args) {
                 if (command == "load") {
@@ -222,7 +222,7 @@ export default {
                     }
                     // href
                     if (state.href) {
-                        state.realHref = xshell.navigation.getHref(state.href, this.page, { breadcrumb: state.breadcrumb });
+                        state.realHref = navigation.getHref(state.href, getPage(), { breadcrumb: state.breadcrumb });
                     } else {
                         state.realHref = null;
                     }

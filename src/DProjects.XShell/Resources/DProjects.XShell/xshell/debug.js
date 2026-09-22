@@ -10,7 +10,7 @@ export default class Debug {
     //methods
     log(message, ...params) {
         this.emit("log:info", { message: message, ...params });
-        console.log(message, ...params);
+        //console.log(message, ...params);
     }
     warn(message, ...params) {
         this.emit("log:warn", { message: message, ...params });
@@ -21,7 +21,7 @@ export default class Debug {
         console.error(message, ...params);
     }
     emit(event, detail) {
-        console.log(" .... ", event, detail);
+        //console.log(" .... ", event, detail);
     }
 
 };

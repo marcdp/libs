@@ -1,5 +1,3 @@
-import XElement from "x-element";
-
 // utils
 function formatMilliseconds(ms) {
     if (ms === -1) return '';

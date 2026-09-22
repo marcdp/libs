@@ -63,14 +63,14 @@ export default {
         message:{value:"", attr:true},
         command:{value:"", attr:true},
     },
-    script({ }) {
+    script({ state }) {
         return {
             onCommand(command, params){
                 if (command == "load") {
                     //load
                     this.addEventListener("click", ()=>{
-                        if (this.state.command) {
-                            this.dispatchEvent(new CustomEvent("command", {detail: {command: this.state.command, data: this.dataset}, bubbles: true, composed: false}));
+                        if (state.command) {
+                            this.dispatchEvent(new CustomEvent("command", {detail: {command: state.command, data: this.dataset}, bubbles: true, composed: false}));
                         }
                     });
                 } 

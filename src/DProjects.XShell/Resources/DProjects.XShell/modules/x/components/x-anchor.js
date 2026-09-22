@@ -5,7 +5,7 @@ export const contract = {
     events: {},
     properties: {
         href:       {type:"string", default:"", attr:true, state:true, description:""},
-        open:       {type:"string", default:"auto", attr:true, state:true, description:""},
+        open:       {type:"string", default:"auto", attr:true, state:true, description:"", enum: ["auto","top","dialog","stack","embed"]},
         qs:         {type:"object", default:{}, attr:true, state:true, description:""},
         breadcrumb: {type:"boolean", default:false, attr:true, state:true, description:""},
         title:      {type:"string", default:null, attr:true, state:true, description:""},
@@ -13,7 +13,7 @@ export const contract = {
         disabled:   {type:"boolean", default:false, attr:true, state:true, description:""},
         target:     {type:"string", default:null, attr:true, state:true, description:""},
         outlet:     {type:"string", default:null, attr:true, state:true, description:""},
-        rel:        {type:"string", default:null, attr:true, state:true, description:""},
+        rel:        {type:"string", default:null, attr:true, state:true, description:"", reflect:true},
         replace:    {type:"boolean", default:false, attr:true, state:true, description:""}
     },
     methods: {}

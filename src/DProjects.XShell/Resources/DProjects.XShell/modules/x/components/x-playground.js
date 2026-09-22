@@ -1,6 +1,3 @@
-import XElement from "x-element";
-
-
 // contract
 export const contract = {
     description: "Shows editable component markup alongside its rendered result.",
@@ -13,7 +10,7 @@ export const contract = {
 
 
 // implementation
-export default XElement.define("x-playground", {
+export default {
     style: `
         :host {
             display:flex; 
@@ -47,21 +44,22 @@ export default XElement.define("x-playground", {
         <div class="result" x-html="state.html"></div>
     `,
     state: {
-        html:""
-
+        html: {value:"", type:"string", attr:true, prop:true}
     },
-    methods:{
-        onCommand(command, args) {
-            if (command == "load") {
-                //debugger;
-                this.state.html = this.innerHTML;
+    script({ state }) {
+        return {
+            onCommand(command, args) {
+                if (command == "load") {
+                    //debugger;
+                    state.html = this.innerHTML;
 
-            } else if (command == "change") {
-                //change
-                let event = args.event;
-                this.state.html = event.target.value;
+                } else if (command == "change") {
+                    //change
+                    let event = args.event;
+                    state.html = event.target.value;
+                }
             }
-        }
+        };
     }
-});
+};
 

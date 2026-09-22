@@ -8,8 +8,8 @@ export const contract = {
         }
     },
     properties: {
-        label:    {type:"string", default:"", attr:true, state:true, description:""},
-        icon:     {type:"string", default:"", attr:true, state:true, description:""},
+        label:    {type:"string",  default:"",    attr:true, state:true, description:""},
+        icon:     {type:"string",  default:"",    attr:true, state:true, description:""},
         expanded: {type:"boolean", default:false, attr:true, state:true, description:""}
     },
     methods: {}
@@ -64,7 +64,7 @@ export default {
         icon:  {value:"", attr:true},
         expanded: {value:false, attr:true},
     },
-    script({ state, navigation, getPage }) {
+    script({ state }) {
         return {
             onCommand(command, params){
                 if (command == "load") {

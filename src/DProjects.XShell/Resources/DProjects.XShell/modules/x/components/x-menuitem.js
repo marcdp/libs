@@ -1,5 +1,3 @@
-import XElement from "x-element";
-
 // contract
 export const contract = {
     description: "Displays a menu item with optional nested menu content.",
@@ -23,7 +21,7 @@ export const contract = {
 
 
 // implementation
-export default XElement.define("x-menuitem", {
+export default {
     style: `
         :host {display:flex; position:relative; box-sizing:border-box; flex-direction:column}
         
@@ -73,18 +71,18 @@ export default XElement.define("x-menuitem", {
         }
     `,
     state: {
-        icon: "",
-        label: "",
-        href: "",
-        suffix: "",
-        command: "",
-        selected: false,
-        checked: false,
-        disabled: false,
-        expanded: false,
-        hasChilds:false,
-        menuitem: null,
-        childsRight: true
+        icon:        {value:"", type:"string", attr:true, prop:true},
+        label:       {value:"", type:"string", attr:true, prop:true},
+        href:        {value:"", type:"string", attr:true, prop:true},
+        suffix:      {value:"", type:"string", attr:true, prop:true},
+        command:     {value:"", type:"string", attr:true, prop:true},
+        selected:    {value:false, type:"boolean", attr:true, prop:true},
+        checked:     {value:false, type:"boolean", attr:true, prop:true},
+        disabled:    {value:false, type:"boolean", attr:true, prop:true},
+        expanded:    {value:false, type:"boolean", attr:true, prop:true},
+        hasChilds:   {value:false, type:"boolean", attr:true, prop:true},
+        menuitem:    {value:null, type:"any", attr:true, prop:true},
+        childsRight: {value:true, type:"boolean", attr:true, prop:true}
     },
     template: `
         <hr x-if="state.label=='-'" />
@@ -99,45 +97,46 @@ export default XElement.define("x-menuitem", {
             <slot x-on:slotchange="refresh"></slot>
         </x-contextmenu>
     `,
-    methods: {
-        onCommand(command, args){
-            if (command == "load") {
-                //load
-                this.addEventListener("mouseenter", ()=>{
-                    if (this.classList.contains("inline")) {
-                    } else {
-                        this.state.expanded = true;
-                        this.onCommand("refresh");    
-                    }
-                });
-                this.addEventListener("mouseleave", ()=>{
-                    if (this.classList.contains("inline")) {
-                    } else {
-                        this.state.expanded = false;
-                        this.onCommand("refresh");    
-                    }
-                });
-                this.addEventListener("click", (event) => {
-                    this.shadowRoot.querySelector("x-anchor").focus();
-                    if (this.classList.contains("inline")) {                        
-                        this.state.expanded = !this.state.expanded;
-                        this.onCommand("refresh");    
-                        event.preventDefault();
-                        event.stopPropagation();
-                    }
-                });
-                this.onCommand("refresh");
+    script({ state }) {
+        return {
+            onCommand(command, args){
+                if (command == "load") {
+                    //load
+                    this.addEventListener("mouseenter", ()=>{
+                        if (this.classList.contains("inline")) {
+                        } else {
+                            state.expanded = true;
+                            this.onCommand("refresh");    
+                        }
+                    });
+                    this.addEventListener("mouseleave", ()=>{
+                        if (this.classList.contains("inline")) {
+                        } else {
+                            state.expanded = false;
+                            this.onCommand("refresh");    
+                        }
+                    });
+                    this.addEventListener("click", (event) => {
+                        this.shadowRoot.querySelector("x-anchor").focus();
+                        if (this.classList.contains("inline")) {                        
+                            state.expanded = !state.expanded;
+                            this.onCommand("refresh");    
+                            event.preventDefault();
+                            event.stopPropagation();
+                        }
+                    });
+                    this.onCommand("refresh");
 
-            } else if (command == "refresh") {
-                //refresh
-                this.state.hasChilds = (this.firstElementChild != null);
-                if (this.state.hasChilds) {
-                    let rect = this.getBoundingClientRect();
-                    let right = rect.left + rect.width * 2.5;
-                    this.state.childsRight = right > window.innerWidth;
+                } else if (command == "refresh") {
+                    //refresh
+                    state.hasChilds = (this.firstElementChild != null);
+                    if (state.hasChilds) {
+                        let rect = this.getBoundingClientRect();
+                        let right = rect.left + rect.width * 2.5;
+                        state.childsRight = right > window.innerWidth;
+                    }
                 }
             }
-        }
+        };
     }
-});
-
+};

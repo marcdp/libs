@@ -1,6 +1,3 @@
-import XElement from "x-element";
-
-
 // constants
 const inputTypesThatAcceptsEnters = ["text", "password", "number", "date", "datetime-local", "time", "week", "month", "url", "email", "phone", "search"];
 
@@ -61,7 +58,7 @@ export const contract = {
 
 
 // implementation
-export default XElement.define("x-form", {
+export default {
     style: `
         :host {display:block;}
 
@@ -172,137 +169,138 @@ export default XElement.define("x-form", {
 
     `,
     state: {
-        wizard: false,
-        wizardDirection: "",
-        wizardIndex: 0, 
-        wizardPanels: [],
-        validated: false,
-        command: "submit",
-        errors: [],
-        loading: false,
-        loadingLabel: "Working",
-        loadingMessage: "Please wait...",
-        wizardStyle: ""
+        wizard:         {value:false, type:"boolean", attr:true, prop:true},
+        wizardDirection:{value:"", type:"string", attr:true, prop:true},
+        wizardIndex:    {value:0, type:"number", attr:true, prop:true},
+        wizardPanels:   {value:[], type:"array", attr:true, prop:true},
+        validated:      {value:false, type:"boolean", attr:true, prop:true},
+        command:        {value:"submit", type:"string", attr:true, prop:true},
+        errors:         {value:[], type:"array", attr:true, prop:true},
+        loading:        {value:false, type:"boolean", attr:true, prop:true},
+        loadingLabel:   {value:"Working", type:"string", attr:true, prop:true},
+        loadingMessage: {value:"Please wait...", type:"string", attr:true, prop:true},
+        wizardStyle:    {value:"", type:"string", attr:true, prop:true}
     },
-    methods: {
-        validate() {
-            this.onCommand("validate");
-            return this.state.errors;
-        },
-        showLoading({label, message}) {
-            this.state.loading = true;
-            if (label) this.state.loadingLabel = label;
-            if (message) this.state.loadingMessage = message;
-        },
-        hideLoading() {
-            this.state.loading = false;
-        },
-        onCommand(command, args) {
-            if (command === "load") {
-                //load
-                this.shadowRoot.addEventListener("command", (event) => {
-                    if (event.detail.command == "submit") {
-                        this.onCommand(event.detail.command);
-                        event.stopPropagation();
-                    }
-                });
-                this.shadowRoot.addEventListener("datafield:change", () => {
-                    if (this.state.validated) {
-                        this.onCommand("validate");
-                    }
-                });
-                this.shadowRoot.addEventListener("keypress", (event) => {
-                    if (event.keyCode == 13) {
-                        var type = event.target.type;
-                        if (inputTypesThatAcceptsEnters.indexOf(type) != -1) {
+    script({ state }) {
+        return {
+            validate() {
+                this.onCommand("validate");
+                return state.errors;
+            },
+            showLoading({label, message}) {
+                state.loading = true;
+                if (label) state.loadingLabel = label;
+                if (message) state.loadingMessage = message;
+            },
+            hideLoading() {
+                state.loading = false;
+            },
+            onCommand(command, args) {
+                if (command === "load") {
+                    //load
+                    this.shadowRoot.addEventListener("command", (event) => {
+                        if (event.detail.command == "submit") {
+                            this.onCommand(event.detail.command);
                             event.stopPropagation();
-                            setTimeout(()=>{this.onCommand("submit");}, 0);
                         }
-                    }
-                });
-                this.onCommand("refresh");
-
-            } else if (command == "wizard-set") {
-                //wizard-set
-                let index = args.event.detail.index;
-                this.state.wizardIndex = index;
-                this.onCommand("refresh");
-                
-            } else if (command == "wizard-prev") {
-                //wizard-prev
-                this.state.errors = [];
-                this.state.wizardIndex--;
-                this.onCommand("refresh");
-
-            } else if (command == "wizard-next") {
-                //wizard-next
-                //get current wizard panel
-                let wizardPanel = this.state.wizardPanels[this.state.wizardIndex];
-                let wizardPanelElement = this.querySelector(`:scope > *:nth-child(${ wizardPanel.index })`);
-                //validate errors in current wizard panel
-                let errors = [];
-                wizardPanelElement.querySelectorAll("x-datafield").forEach((element) => {
-                    for(let error of element.validate(true)) {
-                        errors.push(error);
-                    }                    
-                });
-                //show errors
-                this.state.errors = errors;
-                this.state.validated = true;
-                //if not error, advance to next panel
-                if (this.state.errors.length == 0) {
-                    this.state.wizardIndex++;
+                    });
+                    this.shadowRoot.addEventListener("datafield:change", () => {
+                        if (state.validated) {
+                            this.onCommand("validate");
+                        }
+                    });
+                    this.shadowRoot.addEventListener("keypress", (event) => {
+                        if (event.keyCode == 13) {
+                            var type = event.target.type;
+                            if (inputTypesThatAcceptsEnters.indexOf(type) != -1) {
+                                event.stopPropagation();
+                                setTimeout(()=>{this.onCommand("submit");}, 0);
+                            }
+                        }
+                    });
                     this.onCommand("refresh");
-                }
 
-            } else if (command === "validate") {
-                //validate
-                let errors = [];
-                if (this.state.wizard) {
-                    let wizardPanel = this.state.wizardPanels[this.state.wizardIndex];
+                } else if (command == "wizard-set") {
+                    //wizard-set
+                    let index = args.event.detail.index;
+                    state.wizardIndex = index;
+                    this.onCommand("refresh");
+                    
+                } else if (command == "wizard-prev") {
+                    //wizard-prev
+                    state.errors = [];
+                    state.wizardIndex--;
+                    this.onCommand("refresh");
+
+                } else if (command == "wizard-next") {
+                    //wizard-next
+                    //get current wizard panel
+                    let wizardPanel = state.wizardPanels[state.wizardIndex];
                     let wizardPanelElement = this.querySelector(`:scope > *:nth-child(${ wizardPanel.index })`);
+                    //validate errors in current wizard panel
+                    let errors = [];
                     wizardPanelElement.querySelectorAll("x-datafield").forEach((element) => {
                         for(let error of element.validate(true)) {
                             errors.push(error);
                         }                    
                     });
-                } else {
-                    this.querySelectorAll("x-datafield").forEach((element) => {
-                        for(let error of element.validate(true)) {
-                            errors.push(error);
-                        }                    
-                    });
-                }
-                this.state.errors = errors;
-                this.state.validated = true;
+                    //show errors
+                    state.errors = errors;
+                    state.validated = true;
+                    //if not error, advance to next panel
+                    if (state.errors.length == 0) {
+                        state.wizardIndex++;
+                        this.onCommand("refresh");
+                    }
 
-            } else if (command === "submit") {
-                //submit
-                this.onCommand("validate");
-                if (this.errors.length == 0) {
-                    this.dispatchEvent(new CustomEvent("command", {detail: {command: this.state.command, data: this.dataset}, bubbles: true, composed: false}));
-                }
+                } else if (command === "validate") {
+                    //validate
+                    let errors = [];
+                    if (state.wizard) {
+                        let wizardPanel = state.wizardPanels[state.wizardIndex];
+                        let wizardPanelElement = this.querySelector(`:scope > *:nth-child(${ wizardPanel.index })`);
+                        wizardPanelElement.querySelectorAll("x-datafield").forEach((element) => {
+                            for(let error of element.validate(true)) {
+                                errors.push(error);
+                            }                    
+                        });
+                    } else {
+                        this.querySelectorAll("x-datafield").forEach((element) => {
+                            for(let error of element.validate(true)) {
+                                errors.push(error);
+                            }                    
+                        });
+                    }
+                    state.errors = errors;
+                    state.validated = true;
 
-            } else if (command == "refresh") {
-                //refresh
-                if (this.state.wizard) {
-                    let wizardPanels = [];
-                    this.querySelectorAll(":scope > *[label]").forEach((panel) => {
-                        if (!panel.hasAttribute("slot")) {
-                            wizardPanels.push({
-                                label: panel.getAttribute("label"),
-                                message: panel.getAttribute("message"),
-                                icon: panel.getAttribute("icon") || "",
-                                index: Array.from(panel.parentNode.children).indexOf(panel) + 1
-                            });
-                        }
-                    });
-                    this.state.wizardPanels = wizardPanels;
-                    this.state.wizardStyle = `:host([wizard]) .body ::slotted(*:nth-child(${ wizardPanels[this.state.wizardIndex].index })) {display:block;}`;
+                } else if (command === "submit") {
+                    //submit
+                    this.onCommand("validate");
+                    if (this.errors.length == 0) {
+                        this.dispatchEvent(new CustomEvent("command", {detail: {command: state.command, data: this.dataset}, bubbles: true, composed: false}));
+                    }
+
+                } else if (command == "refresh") {
+                    //refresh
+                    if (state.wizard) {
+                        let wizardPanels = [];
+                        this.querySelectorAll(":scope > *[label]").forEach((panel) => {
+                            if (!panel.hasAttribute("slot")) {
+                                wizardPanels.push({
+                                    label: panel.getAttribute("label"),
+                                    message: panel.getAttribute("message"),
+                                    icon: panel.getAttribute("icon") || "",
+                                    index: Array.from(panel.parentNode.children).indexOf(panel) + 1
+                                });
+                            }
+                        });
+                        state.wizardPanels = wizardPanels;
+                        state.wizardStyle = `:host([wizard]) .body ::slotted(*:nth-child(${ wizardPanels[state.wizardIndex].index })) {display:block;}`;
+                    }
                 }
             }
-
-        }
+        };
     }
-});
+};
 

@@ -1,5 +1,3 @@
-import XElement from "x-element";
-
 // contract
 export const contract = {
     description: "Provides a flexible toolbar container.",
@@ -10,7 +8,7 @@ export const contract = {
 
 
 // implementation
-export default XElement.define("x-toolbar", {
+export default {
     style: `
         :host {display:flex; align-items:center; gap:.2em; position:relative; flex-wrap:wrap;}
     `,
@@ -19,5 +17,5 @@ export default XElement.define("x-toolbar", {
     `,
     state: {
     }
-});
+};
 

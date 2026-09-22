@@ -1,5 +1,3 @@
-import XElement from "x-element";
-
 // contract
 export const contract = {
     description: "Displays a selectable, expandable item in a tree view.",
@@ -25,7 +23,7 @@ export const contract = {
 
 
 // implementation
-export default XElement.define("x-treeview-item", {
+export default {
     style: `
         :host {
             display:block;
@@ -80,58 +78,60 @@ export default XElement.define("x-treeview-item", {
         </div>
     `,
     state: {
-        indent: 0,
-        icon: "x-file",
-        label: "",
-        description: "",
-        href: "",
-        target: "",
-        hasChilds: false,
-        expanded: false,
-        selected: false,
-        index: 0
+        indent:      {value:0, type:"number", attr:true, prop:true},
+        icon:        {value:"x-file", type:"string", attr:true, prop:true},
+        label:       {value:"", type:"string", attr:true, prop:true},
+        description: {value:"", type:"string", attr:true, prop:true},
+        href:        {value:"", type:"string", attr:true, prop:true},
+        target:      {value:"", type:"string", attr:true, prop:true},
+        hasChilds:   {value:false, type:"boolean", attr:true, prop:true},
+        expanded:    {value:false, type:"boolean", attr:true, prop:true},
+        selected:    {value:false, type:"boolean", attr:true, prop:true},
+        index:       {value:0, type:"number", attr:true, prop:true}
     },
-    methods: {
-        async onCommand(command) {
-            if (command == "load") {
-                //load                
-                this.onCommand("refresh");
-    
-            } else if (command == "toggle") {
-                //toggle
-                if (this.state.expanded) {
-                    this.onCommand("collapse");
-                } else {
-                    this.onCommand("expand");
-                }
+    script({ state }) {
+        return {
+            async onCommand(command) {
+                if (command == "load") {
+                    //load                
+                    this.onCommand("refresh");
+        
+                } else if (command == "toggle") {
+                    //toggle
+                    if (state.expanded) {
+                        this.onCommand("collapse");
+                    } else {
+                        this.onCommand("expand");
+                    }
 
-            } else if (command == "expand") {
-                //expand
-                if (this.state.hasChilds) {
-                    this.state.expanded = true;
-                    this.dispatchEvent(new CustomEvent("toggle", {bubbles: true}));    
-                }
+                } else if (command == "expand") {
+                    //expand
+                    if (state.hasChilds) {
+                        state.expanded = true;
+                        this.dispatchEvent(new CustomEvent("toggle", {bubbles: true}));    
+                    }
 
-            } else if (command == "collapse") {
-                //collapse
-                if (this.state.expanded) {
-                    this.state.expanded = false;
-                    this.dispatchEvent(new CustomEvent("toggle", {bubbles: true}));    
-                }
+                } else if (command == "collapse") {
+                    //collapse
+                    if (state.expanded) {
+                        state.expanded = false;
+                        this.dispatchEvent(new CustomEvent("toggle", {bubbles: true}));    
+                    }
 
-            } else if (command == "refresh") {
-                //refresh
-                this.state.hasChilds = (this.querySelectorAll(':scope > :not([slot])').length > 0);
-                //indent
-                let element = this;
-                let indent = 0;
-                while (element && element.localName !== "x-treeview") {
-                    element = element.parentElement; // Move directly to the parent
-                    if (element.localName == "x-treeview-item") indent++;
+                } else if (command == "refresh") {
+                    //refresh
+                    state.hasChilds = (this.querySelectorAll(':scope > :not([slot])').length > 0);
+                    //indent
+                    let element = this;
+                    let indent = 0;
+                    while (element && element.localName !== "x-treeview") {
+                        element = element.parentElement; // Move directly to the parent
+                        if (element.localName == "x-treeview-item") indent++;
+                    }
+                    state.indent = indent;
                 }
-                this.state.indent = indent;
             }
-        }
+        };
     }
-});
+};
 

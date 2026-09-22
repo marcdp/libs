@@ -1,5 +1,3 @@
-import XElement from "x-element";
-
 // contract
 export const contract = {
     description: "Displays wizard progress and allows navigation to completed panels.",
@@ -20,7 +18,7 @@ export const contract = {
 
 
 // implementation
-export default XElement.define("x-wizard-header", {
+export default {
     style: `
         :host {display:block;}
         
@@ -92,8 +90,8 @@ export default XElement.define("x-wizard-header", {
 
     `,
     state: {
-        index: 0,
-        panels: []
+        index:  {value:0, type:"number", attr:true, prop:true},
+        panels: {value:[], type:"array", attr:true, prop:true}
     },
     template: `        
         <ul>
@@ -113,33 +111,35 @@ export default XElement.define("x-wizard-header", {
     //settings: {
     //    observedAttributes: ["index"],
     //},
-    methods:{
-        onCommand(command, args) {
-            if (command == "load") {
-                //load
-                this.onCommand("refresh");
+    script({ state }) {
+        return {
+            onCommand(command, args) {
+                if (command == "load") {
+                    //load
+                    this.onCommand("refresh");
 
-            } else if (command == "click") {
-                //click
-                let index = parseInt(args.event.currentTarget.dataset.index);
-                if (index < this.state.index) {
-                    this.dispatchEvent(new CustomEvent("index-set", {detail: {index: index}, bubbles: false, composed: false}));
-                }
+                } else if (command == "click") {
+                    //click
+                    let index = parseInt(args.event.currentTarget.dataset.index);
+                    if (index < state.index) {
+                        this.dispatchEvent(new CustomEvent("index-set", {detail: {index: index}, bubbles: false, composed: false}));
+                    }
 
-            } else if (command == "refresh") {
-                //refresh
-                let panels = [];
-                this.querySelectorAll(":scope > *").forEach((panel, index) => {
-                    panels.push({
-                        label: panel.getAttribute("label"),
-                        message: panel.getAttribute("message"),
-                        icon: panel.getAttribute("icon") || "",
-                        index: index + 1
+                } else if (command == "refresh") {
+                    //refresh
+                    let panels = [];
+                    this.querySelectorAll(":scope > *").forEach((panel, index) => {
+                        panels.push({
+                            label: panel.getAttribute("label"),
+                            message: panel.getAttribute("message"),
+                            icon: panel.getAttribute("icon") || "",
+                            index: index + 1
+                        });
                     });
-                });
-                this.state.panels = panels;
+                    state.panels = panels;
+                }
             }
-        }
+        };
     }
-});
+};
 

@@ -1,5 +1,4 @@
-import XElement, {utils} from "x-element";
-import xshell from "xshell";
+import {utils} from "x-element";
 
 // utils
 const urlPattern = /^(https?:\/\/)?(www\.)?([a-zA-Z0-9-]+)\.([a-zA-Z]{2,})(\/[a-zA-Z0-9#-]+\/?)*$/;
@@ -74,7 +73,7 @@ export const contract = {
 
 
 // implementation
-export default XElement.define("x-datafield", {
+export default {
     style: `
         :host {display:block; position:relative; }
         :host input,select,textarea {display:block; width:100%; resize: none;}
@@ -449,296 +448,294 @@ export default XElement.define("x-datafield", {
         </div>
     `,
     state: {
-        label:"",
-        labelMode: "auto",
-        description:"",
-        labelSecondary:"",
-        message: "",
-        type: "",
-        placeholder: "",
-        disabled: false,
-        readonly: false,
-        min: null,
-        max: null,
-        minlength: null,
-        maxlength: null,
-        multiple: false,
-        pattern: null,
-        required: false,
-        step: null,
-        autofocus: false,
-        autocomplete: null,
-        domain: null,
-        value: null,
-        valueOriginal: null,
-        accept: null,
-        lang: null,
-        spellcheck: "true",
-        langs: [],
-        langIndex: 0,
-        errors: [],
-        validated: false,
-        inputId: "input",
-        add: false
+        label:          {value:"", type:"string", attr:true, prop:true},
+        labelMode:      {value:"auto", type:"string", attr:true, prop:true},
+        description:    {value:"", type:"string", attr:true, prop:true},
+        labelSecondary: {value:"", type:"string", attr:true, prop:true},
+        message:        {value:"", type:"string", attr:true, prop:true},
+        type:           {value:"", type:"string", attr:true, prop:true},
+        placeholder:    {value:"", type:"string", attr:true, prop:true},
+        disabled:       {value:false, type:"boolean", attr:true, prop:true},
+        readonly:       {value:false, type:"boolean", attr:true, prop:true},
+        min:            {value:null, type:"any", attr:true, prop:true},
+        max:            {value:null, type:"any", attr:true, prop:true},
+        minlength:      {value:null, type:"any", attr:true, prop:true},
+        maxlength:      {value:null, type:"any", attr:true, prop:true},
+        multiple:       {value:false, type:"boolean", attr:true, prop:true},
+        pattern:        {value:null, type:"any", attr:true, prop:true},
+        required:       {value:false, type:"boolean", attr:true, prop:true},
+        step:           {value:null, type:"any", attr:true, prop:true},
+        autofocus:      {value:false, type:"boolean", attr:true, prop:true},
+        autocomplete:   {value:null, type:"any", attr:true, prop:true},
+        domain:         {value:null, type:"any", attr:true, prop:true},
+        value:          {value:null, type:"any", attr:true, prop:true},
+        valueOriginal:  {value:null, type:"any", attr:true, prop:true},
+        accept:         {value:null, type:"any", attr:true, prop:true},
+        lang:           {value:null, type:"any", attr:true, prop:true},
+        spellcheck:     {value:"true", type:"string", attr:true, prop:true},
+        langs:          {value:[], type:"array", attr:true, prop:true},
+        langIndex:      {value:0, type:"number", attr:true, prop:true},
+        errors:         {value:[], type:"array", attr:true, prop:true},
+        validated:      {value:false, type:"boolean", attr:true, prop:true},
+        inputId:        {value:"input", type:"string", attr:true, prop:true},
+        add:            {value:false, type:"boolean", attr:true, prop:true}
     },
-    methods: {
-        postRender() {
-            if (this.state.autofocus && this._renderCount == 1) {
-                let element = this.shadowRoot.querySelector(".input");
-                if (element && element.focus) {
-                    setTimeout(() => {
-                        element.focus();
-                    }, 25);                    
-                }
-            }
-        },
-        async onCommand(command, args) {
-            if (command == "init") {
-                // load
-                this.state.inputId = utils.getFreeId();
-                this.bindEvent(this.state, "change", (event) => {
-                    let prop = event.prop;
-                    let newValue = event.newValue;
-                    let oldValue = event.oldValue;
-                    if (prop == "domain") {
-                        //transform domain if required
-                        if (typeof newValue == "string") {
-                            let domain = [];
-                            for(let item of newValue.split("|")){
-                                let i = item.indexOf("=");
-                                if (i!=-1) {
-                                    let itemValue = item.substring(0, i);
-                                    let itemLabel = item.substring(i+1);
-                                    domain.push({value: itemValue, label: itemLabel});
+    script({ state, events, timer, navigation, i18n }) {
+        return {
+            async onCommand(command, args) {
+                if (command == "load") {
+                    // load
+                    state.inputId = utils.getFreeId();
+                    events.on(state, ["change:domain", "change:type", "change:required", "change:min", "change:max", "change:minlength", "change:maxlength", "change:pattern", "change:value"], (event) => {
+                        let prop = event.prop;
+                        let newValue = event.newValue;
+                        let oldValue = event.oldValue;
+                        if (prop == "domain") {
+                            //transform domain if required
+                            if (typeof newValue == "string") {
+                                let domain = [];
+                                for(let item of newValue.split("|")){
+                                    let i = item.indexOf("=");
+                                    if (i!=-1) {
+                                        let itemValue = item.substring(0, i);
+                                        let itemLabel = item.substring(i+1);
+                                        domain.push({value: itemValue, label: itemLabel});
+                                    }
+                                }
+                                state.domain = domain;
+                            } 
+                        } else if (prop == "type" || prop == "required" || prop == "min" || prop == "max" || prop == "minlength" || prop == "maxlength" || prop == "pattern") {
+                            //value changed
+                            this.onCommand("validate");
+            
+                        } else if (prop == "value") {
+                            //value changed
+                            if (this.isConnected) {
+                                this.onCommand("validate");
+                                this.dispatchEvent(new CustomEvent("change", {detail: {oldValue, newValue}, bubbles: true, composed: false}));
+                                this.dispatchEvent(new CustomEvent("datafield:change", {detail: {oldValue, newValue}, bubbles: true, composed: false}));
+                            } else {
+                                state.validated =false;
+                            }
+                        }                    
+                    });
+
+                } else if (command == "mount") {
+                    //load
+                    if (state.autofocus) {
+                        timer.setTimeout(25, () => {
+                            let element = this.shadowRoot.querySelector(".input");
+                            if (element && element.focus) element.focus();
+                        });
+                    }
+                    if (!state.validated) {
+                        this.onCommand("validate");
+                    }                
+                    state.hasChilds = (this.firstElementChild != null);
+
+                } else if (command == "slotchange") {
+                    //slotchange
+                    state.hasChilds = (this.firstElementChild != null);
+
+                } else if (command == "lang-add") {
+                    //lang-add
+                    let lang = await navigation.showDialog({ src: "/x/pages/lang-picker.html?disabled=" + state.langs.join(",")});
+                    if (lang) {
+                        state.langs.push(lang);
+                        state.langIndex = state.langs.length - 1;
+                        this.invalidate();
+                    }
+
+                } else if (command == "lang-changed") {
+                    //lang-changed
+                    let lang = args.event.target.dataset.lang;
+                    state.langIndex = state.langs.indexOf(lang);
+
+                } else if (command == "object-changed"){
+                    //object-changed
+                    if (state.value) {
+                        state.valueOriginal = state.value;
+                        state.value = null;
+                    } else {
+                        state.value = state.valueOriginal;
+                    }
+                    
+                } else if (command == "file-changed"){
+                    // file-changed
+                    var files = args.event.target.files;
+                    // ... todo
+
+                } else if (command == "list-add") {
+                    // list-add
+                    state.value = state.value.concat({});
+
+                } else if (command == "list-edit"){
+                    // list-edit
+
+                } else if (command == "list-move"){
+                    // list-move
+                    let event = args.event;
+                    let index = Array.from(event.target.parentNode.children).indexOf(event.target);
+                    let newIndex = (event.detail.direction == "up" ? index - 1 : index + 1);
+                    let value = [...state.value];
+                    let aux = value.splice(index, 1)[0]; // Remove the item from the array
+                    value.splice(newIndex, 0, aux); // Insert it at the new index
+                    state.value = value;
+                    event.stopPropagation();
+
+                } else if (command == "list-remove"){
+                    // list-remove
+                    let event = args.event;
+                    let index = Array.from(event.target.parentNode.children).indexOf(event.target);
+                    state.value = state.value.filter((item, i) => i != index);
+                    event.stopPropagation();
+
+                } else if (command == "checkbox-changed"){
+                    // checkbox-changed
+                    let value = [];
+                    this.shadowRoot.querySelectorAll("input:checked").forEach((element)=>{
+                        value.push(element.value);
+                    });
+                    state.value = value.join(",");
+                    
+                } else if (command == "text_i18n-changed") {
+                    // text_i18n-changed
+                    let value = args.event.target.value;
+                    let lang = args.event.target.lang;
+                    let parts = [];
+                    for(let targetLang of state.langs) {
+                        if (targetLang == lang) { 
+                            if (value.length) parts.push("i18n:" + lang + "=" + value.replaceAll("|", "&#124;"));
+                        } else {
+                            let partValue = "";
+                            for(let aux of state.value.split("|")) {
+                                if (aux.startsWith("i18n:" + targetLang + "=")) {
+                                    partValue = aux.substring(aux.indexOf("=")+1);
+                                    break;
                                 }
                             }
-                            this.state.domain = domain;
-                        } 
-                    } else if (prop == "type" || prop == "required" || prop == "min" || prop == "max" || prop == "minlength" || prop == "maxlength" || prop == "pattern") {
-                        //value changed
-                        this.onCommand("validate");
-        
-                    } else if (prop == "value") {
-                        //value changed
-                        if (this._connected) {
-                            this.onCommand("validate");
-                            this.dispatchEvent(new CustomEvent("change", {detail: {oldValue, newValue}, bubbles: true, composed: false}));
-                            this.dispatchEvent(new CustomEvent("datafield:change", {detail: {oldValue, newValue}, bubbles: true, composed: false}));
-                        } else {
-                            this.state.validated =false;
+                            if (partValue.length) parts.push("i18n:" + targetLang + "=" + partValue.replaceAll("|", "&#124;"));
                         }
-                    }                    
-                });
+                    }
+                    if (parts.length == 0) {
+                        parts.push("i18n:" + i18n.getDefaultLang() + "=");
+                    }
+                    state.value = parts.join("|");
 
-            } else if (command == "load") {
-                //load
-                if (!this.state.validated) {
-                    this.onCommand("validate");
-                }                
-                this.state.hasChilds = (this.firstElementChild != null);
+                } else if (command == "search-input") {
+                    //search-input
+                    state.value = args.event.target.value;
 
-            } else if (command == "slotchange") {
-                //slotchange
-                this.state.hasChilds = (this.firstElementChild != null);
+                } else if (command == "pick") {
+                    // pick
+                    alert("pick");
 
-            } else if (command == "lang-add") {
-                //lang-add
-                let lang = await xshell.navigation.showDialog({ src: "/x/pages/lang-picker.html?disabled=" + this.state.langs.join(",")});
-                if (lang) {
-                    this.state.langs.push(lang);
-                    this.state.langIndex = this.state.langs.length - 1;
-                    this.invalidate();
+                } else if (command == "validate") {
+                    // validate
+                    state.errors = this.validate();
+                    state.validated = true;
                 }
-
-            } else if (command == "lang-changed") {
-                //lang-changed
-                let lang = args.event.target.dataset.lang;
-                this.state.langIndex = this.state.langs.indexOf(lang);
-
-            } else if (command == "object-changed"){
-                //object-changed
-                if (this.state.value) {
-                    this.state.valueOriginal = this.state.value;
-                    this.state.value = null;
-                } else {
-                    this.state.value = this.state.valueOriginal;
-                }
-                
-            } else if (command == "file-changed"){
-                // file-changed
-                var files = args.event.target.files;
-                // ... todo
-
-            } else if (command == "list-add") {
-                // list-add
-                this.state.value = this.state.value.concat({});
-
-            } else if (command == "list-edit"){
-                // list-edit
-
-            } else if (command == "list-move"){
-                // list-move
-                let event = args.event;
-                let index = Array.from(event.target.parentNode.children).indexOf(event.target);
-                let newIndex = (event.detail.direction == "up" ? index - 1 : index + 1);
-                let value = [...this.state.value];
-                let aux = value.splice(index, 1)[0]; // Remove the item from the array
-                value.splice(newIndex, 0, aux); // Insert it at the new index
-                this.state.value = value;
-                event.stopPropagation();
-
-            } else if (command == "list-remove"){
-                // list-remove
-                let event = args.event;
-                let index = Array.from(event.target.parentNode.children).indexOf(event.target);
-                this.state.value = this.state.value.filter((item, i) => i != index);
-                event.stopPropagation();
-
-            } else if (command == "checkbox-changed"){
-                // checkbox-changed
-                let value = [];
-                this.shadowRoot.querySelectorAll("input:checked").forEach((element)=>{
-                    value.push(element.value);
-                });
-                this.state.value = value.join(",");
-                
-            } else if (command == "text_i18n-changed") {
-                // text_i18n-changed
-                let value = args.event.target.value;
-                let lang = args.event.target.lang;
-                let parts = [];
-                for(let targetLang of this.state.langs) {
-                    if (targetLang == lang) { 
-                        if (value.length) parts.push("i18n:" + lang + "=" + value.replaceAll("|", "&#124;"));
-                    } else {
-                        let partValue = "";
-                        for(let aux of this.state.value.split("|")) {
-                            if (aux.startsWith("i18n:" + targetLang + "=")) {
-                                partValue = aux.substring(aux.indexOf("=")+1);
-                                break;
+            },
+            validate(detail) {
+                let result = [];
+                //langs                    
+                if (state.type.endsWith("_i18n")) {
+                    let langs = i18n.getMainLangs();
+                    if (state.value) {
+                        for(let aux of state.value.split("|")) {
+                            if (aux.startsWith("i18n:") && aux.length > 7) {
+                                let lang = aux.substring(5, 7);
+                                if (!langs.includes(lang)) langs.push(lang);
                             }
                         }
-                        if (partValue.length) parts.push("i18n:" + targetLang + "=" + partValue.replaceAll("|", "&#124;"));
                     }
+                    state.langs = langs;
+                    if (state.langIndex >= langs.length) state.langIndex = 0;
                 }
-                if (parts.length == 0) {
-                    parts.push("i18n:" + xshell.i18n.getDefaultLang() + "=");
-                }
-                this.state.value = parts.join("|");
-
-            } else if (command == "search-input") {
-                //search-input
-                this.state.value = args.event.target.value;
-
-            } else if (command == "pick") {
-                // pick
-                alert("pick");
-
-            } else if (command == "validate") {
-                // validate
-                this.state.errors = this.validate();
-                this.state.validated = true;
-            }
-        },
-        validate(detail) {
-            let result = [];
-            //langs                    
-            if (this.state.type.endsWith("_i18n")) { 
-                let langs = xshell.i18n.getMainLangs();
-                if (this.state.value) {
-                    for(let aux of this.state.value.split("|")) {
-                        if (aux.startsWith("i18n:") && aux.length > 7) {
-                            let lang = aux.substring(5, 7);
-                            if (!langs.includes(lang)) langs.push(lang);
-                        }
-                    }
-                }
-                this.state.langs = langs;
-                if (this.state.langIndex >= langs.length) this.state.langIndex = 0;
-            }
-            //errors
-            if (this.state.required && !this.state.value) {
-                result.push({type:"error", label: this.label, message:"Required"});
-            } else if (this.state.type == "text" || this.state.type == "textarea") {
-                if (this.state.value) {
-                    if (this.state.minlength && this.state.value.length < this.state.minlength) {
-                        result.push({type:"error", label: this.label, message:"Too short"});
-                    } else if (this.state.maxlength && this.state.value.length > this.state.maxlength) {
-                        result.push({type:"error", label: this.label, message:"Too long"});
-                    }
-                    if (this.state.pattern) {
-                        let re = new RegExp(this.state.pattern);
-                        if (!re.test(this.state.value)) {
-                            result.push({type:"error", label: this.label, message:"Invalid format"});
-                        }
-                    }
-                    }
-            } else if (this.state.type == "number") {
-                if (this.state.value && isNaN(this.state.value)) {
-                    result.push({type:"error", label: this.label, message:"Invalid number"});
-                } else if (this.state.min && this.state.value < parseInt(this.state.min)) {
-                    result.push({type:"error", label: this.label, message:"Value too low"});
-                } else if (this.state.max && this.state.value > parseInt(this.state.max)) {
-                    result.push({type:"error", label: this.label, message:"Value too high"});
-                }
-            } else if (this.state.type == "url") {
-                if (this.state.value) {
-                    if (!urlPattern.test(this.state.value)) {
-                        result.push({type:"error", label: this.label, message:"Invalid url"});
-                    }
-                }
-            } else if (this.state.type == "email") {
-                if (this.state.value) {
-                    if (!emailPattern.test(this.state.value)) {
-                        result.push({type:"error", label: this.label, message:"Invalid email"});
-                    }
-                }
-            } else if (this.state.type == "tel") {
-                if (this.state.value) {
-                    if (!telPattern.test(this.state.value)) {
-                        result.push({type:"error", label: this.label, message:"Invalid phone number"});
-                    }
-                }
-            } else if (this.state.type.endsWith("_i18n")) {
-                if (this.state.value) {
-                    let hasMainValue = false;
-                    for(let lang of this.state.langs) {
-                        let value = xshell.i18n.formatText(this.state.value, lang);
-                        if (value && lang == this.state.langs[0]) hasMainValue = true;
-
-                    }
-                    if (this.state.required && !hasMainValue) {  
-                        result.push({type:"error", label: this.label, message:"Required"});
-                    }
-                }
-            } else if (this.state.type == "list") {
-                if (this.state.required && (!this.state.value || this.state.value.length == 0)) {
+                //errors
+                if (state.required && !state.value) {
                     result.push({type:"error", label: this.label, message:"Required"});
-                } else if (this.state.value && this.state.minlength && this.state.value.length < this.state.minlength) {
-                    result.push({type:"error", label: this.label, message:"Too few items"});
-                } else if (this.state.value && this.state.maxlength && this.state.value.length > this.state.maxlength) {
-                    result.push({type:"error", label: this.label, message:"Too many items"});
-                }
-            }
-            //path
-            if (detail) {
-                let path = [];
-                let element = this;
-                while (element.parentNode) {
-                    element = element.parentNode;
-                    if (element.localName == "x-datafield" || element.localName == "x-datafields" || element.localName == "x-tab") {
-                        if (element.label) path.push(element.label);
+                } else if (state.type == "text" || state.type == "textarea") {
+                    if (state.value) {
+                        if (state.minlength && state.value.length < state.minlength) {
+                            result.push({type:"error", label: this.label, message:"Too short"});
+                        } else if (state.maxlength && state.value.length > state.maxlength) {
+                            result.push({type:"error", label: this.label, message:"Too long"});
+                        }
+                        if (state.pattern) {
+                            let re = new RegExp(state.pattern);
+                            if (!re.test(state.value)) {
+                                result.push({type:"error", label: this.label, message:"Invalid format"});
+                            }
+                        }
+                        }
+                } else if (state.type == "number") {
+                    if (state.value && isNaN(state.value)) {
+                        result.push({type:"error", label: this.label, message:"Invalid number"});
+                    } else if (state.min && state.value < parseInt(state.min)) {
+                        result.push({type:"error", label: this.label, message:"Value too low"});
+                    } else if (state.max && state.value > parseInt(state.max)) {
+                        result.push({type:"error", label: this.label, message:"Value too high"});
                     }
-                    if (element.localName == "x-form") break;
+                } else if (state.type == "url") {
+                    if (state.value) {
+                        if (!urlPattern.test(state.value)) {
+                            result.push({type:"error", label: this.label, message:"Invalid url"});
+                        }
+                    }
+                } else if (state.type == "email") {
+                    if (state.value) {
+                        if (!emailPattern.test(state.value)) {
+                            result.push({type:"error", label: this.label, message:"Invalid email"});
+                        }
+                    }
+                } else if (state.type == "tel") {
+                    if (state.value) {
+                        if (!telPattern.test(state.value)) {
+                            result.push({type:"error", label: this.label, message:"Invalid phone number"});
+                        }
+                    }
+                } else if (state.type.endsWith("_i18n")) {
+                    if (state.value) {
+                        let hasMainValue = false;
+                        for(let lang of state.langs) {
+                            let value = i18n.formatText(state.value, lang);
+                            if (value && lang == state.langs[0]) hasMainValue = true;
+
+                        }
+                        if (state.required && !hasMainValue) {
+                            result.push({type:"error", label: this.label, message:"Required"});
+                        }
+                    }
+                } else if (state.type == "list") {
+                    if (state.required && (!state.value || state.value.length == 0)) {
+                        result.push({type:"error", label: this.label, message:"Required"});
+                    } else if (state.value && state.minlength && state.value.length < state.minlength) {
+                        result.push({type:"error", label: this.label, message:"Too few items"});
+                    } else if (state.value && state.maxlength && state.value.length > state.maxlength) {
+                        result.push({type:"error", label: this.label, message:"Too many items"});
+                    }
                 }
-                path = path.reverse().join(" / ");
-                for(let error of result) {
-                    error.path = path;
+                //path
+                if (detail) {
+                    let path = [];
+                    let element = this;
+                    while (element.parentNode) {
+                        element = element.parentNode;
+                        if (element.localName == "x-datafield" || element.localName == "x-datafields" || element.localName == "x-tab") {
+                            if (element.label) path.push(element.label);
+                        }
+                        if (element.localName == "x-form") break;
+                    }
+                    path = path.reverse().join(" / ");
+                    for(let error of result) {
+                        error.path = path;
+                    }
                 }
+                //return
+                return result;
             }
-            //return
-            return result;
-        }
+        };
     }
-});
+};
 

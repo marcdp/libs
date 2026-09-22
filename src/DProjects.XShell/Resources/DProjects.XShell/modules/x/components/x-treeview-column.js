@@ -1,6 +1,3 @@
-import XElement from "x-element";
-
-
 // contract
 export const contract = {
     description: "Defines a labeled column in a tree view.",
@@ -13,7 +10,7 @@ export const contract = {
 
 
 // implementation
-export default XElement.define("x-treeview-column", {
+export default {
     style: `
         :host {
             display:block; 
@@ -25,7 +22,7 @@ export default XElement.define("x-treeview-column", {
         {{state.label}}
     `,
     state: {
-        label: ""        
+        label: {value:"", type:"string", attr:true, prop:true}
     }
-});
+};
 

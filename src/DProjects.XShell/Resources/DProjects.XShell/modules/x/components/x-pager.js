@@ -1,5 +1,3 @@
-import XElement from "x-element";
-
 // contract
 export const contract = {
     description: "Displays pagination controls and emits requested page changes.",
@@ -23,7 +21,7 @@ export const contract = {
 
 
 // implementation
-export default XElement.define("x-pager", {
+export default {
     style: `
         :host {
             display:flex;
@@ -54,29 +52,31 @@ export default XElement.define("x-pager", {
         <x-button class="short plain next" x-on:click="next" icon="x-keyboard-arrow-right"  x-attr:disabled="state.index == Math.floor(state.total/state.size) - 1"></x-button>
     `,
     state: {
-        total: 0,
-        index: 0,
-        size: 20,
-        label: "records"
+        total: {value:0, type:"number", attr:true, prop:true},
+        index: {value:0, type:"number", attr:true, prop:true},
+        size:  {value:20, type:"number", attr:true, prop:true},
+        label: {value:"records", type:"string", attr:true, prop:true}
     },
     //settings: {
     //    observedAttributes: ["total", "index", "size", "label"]
     //},
-    methods:{
-        onCommand(command, args) {
-            if (command === "load") {
-                //load
-                
+    script({ state }) {
+        return {
+            onCommand(command, args) {
+                if (command === "load") {
+                    //load
+                    
 
-            } else if (command == "prev") {
-                //prev
-                this.dispatchEvent(new CustomEvent("change", {detail: {index: this.state.index - 1, size: this.state.size}}));
+                } else if (command == "prev") {
+                    //prev
+                    this.dispatchEvent(new CustomEvent("change", {detail: {index: state.index - 1, size: state.size}}));
 
-            } else if (command == "next") {
-                //next
-                this.dispatchEvent(new CustomEvent("change", {detail: {index: this.state.index + 1, size: this.state.size}}));
+                } else if (command == "next") {
+                    //next
+                    this.dispatchEvent(new CustomEvent("change", {detail: {index: state.index + 1, size: state.size}}));
+                }
             }
-        }
+        };
     }
-});
+};
 

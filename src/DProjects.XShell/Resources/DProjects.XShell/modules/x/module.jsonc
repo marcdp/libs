@@ -21,7 +21,12 @@
                     "prompt": null
                 }
             },
-            "controller": "./js/module.js"
+            "controller": "./js/module.js",
+            "contract": {
+                "events": {},
+                "actions": {},
+                "intents": {}
+            }
         }
     },
 

@@ -1,5 +1,3 @@
-import XElement from "x-element";
-
 // contract
 export const contract = {
     description: "Provides the header container for tree-view columns.",
@@ -10,7 +8,7 @@ export const contract = {
 
 
 // implementation
-export default XElement.define("x-treeview-head", {
+export default {
     style: `
         :host {
             display:flex; 
@@ -27,5 +25,5 @@ export default XElement.define("x-treeview-head", {
         ::slotted(x-treeview-column:nth-child(9)) {width:var(--x-treeview-column-width-9); }
     `,
     template: `<slot></slot>`,    
-});
+};
 

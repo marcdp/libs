@@ -1,5 +1,3 @@
-import XElement from "x-element";
-
 // contract
 export const contract = {
     description: "Displays a dismissible status notice.",
@@ -63,18 +61,18 @@ export default {
         message:    {value:"", attr:true},
         visible:    {value:true, attr:true}
     },
-    script({}) {
+    script({ state }) {
         return {
-            onCommand:(command)=>{
+            onCommand(command) {
                 if (command == "load") {
-                //load  
+                    //load
 
-            } else if (command == "close") {
-                //close
-                this.state.visible = false;
+                } else if (command == "close") {
+                    //close
+                    state.visible = false;
+                }
             }
-            }
-        }
+        };
     }
 };
 

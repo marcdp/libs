@@ -1,5 +1,3 @@
-import XElement from "x-element";
-
 // contract
 export const contract = {
     description: "Displays wizard panels with previous and next navigation controls.",
@@ -14,7 +12,7 @@ export const contract = {
 
 
 // implementation
-export default XElement.define("x-wizard", {
+export default {
     style: `
         :host {display:block;}
 
@@ -33,9 +31,9 @@ export default XElement.define("x-wizard", {
 
     `,
     state: {
-        index: 0,
-        panels: [],
-        style: ""
+        index:  {value:0, type:"number", attr:true, prop:true},
+        panels: {value:[], type:"array", attr:true, prop:true},
+        style:  {value:"", type:"string", attr:true, prop:true}
     },
     template: `        
 
@@ -59,43 +57,45 @@ export default XElement.define("x-wizard", {
             <slot name="buttons" x-if="state.index == state.panels.length - 1"></slot>
         </div>
     `,
-    methods:{
-        onCommand(command) {
-            if (command == "load") {
-                //load
-                this.onCommand("refresh");
+    script({ state }) {
+        return {
+            onCommand(command, args) {
+                if (command == "load") {
+                    //load
+                    this.onCommand("refresh");
 
-            } else if (command == "set") {
-                //set
-                let index = args.event.detail.index;
-                this.state.index = index;
-                this.onCommand("refresh");
+                } else if (command == "set") {
+                    //set
+                    let index = args.event.detail.index;
+                    state.index = index;
+                    this.onCommand("refresh");
 
-            } else if (command == "prev") {
-                //prev
-                this.state.index--;
-                this.onCommand("refresh");
+                } else if (command == "prev") {
+                    //prev
+                    state.index--;
+                    this.onCommand("refresh");
 
-            } else if (command == "next") {
-                //next
-                this.state.index++;
-                this.onCommand("refresh");
+                } else if (command == "next") {
+                    //next
+                    state.index++;
+                    this.onCommand("refresh");
 
-            } else if (command == "refresh") {
-                //refresh
-                let panels = [];
-                this.querySelectorAll(":scope > x-wizard-panel").forEach((panel, index) => {
-                    panels.push({
-                        label: panel.getAttribute("label"),
-                        message: panel.getAttribute("message"),
-                        icon: panel.getAttribute("icon") || "",
-                        index: index + 1
+                } else if (command == "refresh") {
+                    //refresh
+                    let panels = [];
+                    this.querySelectorAll(":scope > x-wizard-panel").forEach((panel, index) => {
+                        panels.push({
+                            label: panel.getAttribute("label"),
+                            message: panel.getAttribute("message"),
+                            icon: panel.getAttribute("icon") || "",
+                            index: index + 1
+                        });
                     });
-                });
-                this.state.panels = panels;
-                this.state.style = `::slotted(x-wizard-panel:nth-child(${parseInt(this.state.index) + 1})) {display:block;}`;
+                    state.panels = panels;
+                    state.style = `::slotted(x-wizard-panel:nth-child(${parseInt(state.index) + 1})) {display:block;}`;
+                }
             }
-        }
+        };
     }
-});
+};
 

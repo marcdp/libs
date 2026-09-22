@@ -1,5 +1,3 @@
-import XElement from "x-element";
-
 // contract
 export const contract = {
     description: "Displays one item in a list view.",
@@ -20,7 +18,7 @@ export const contract = {
 
 
 // implementation
-export default XElement.define("x-listview-item", {
+export default {
     style: `
         :host {}
 
@@ -67,22 +65,24 @@ export default XElement.define("x-listview-item", {
         <slot></slot>
     `,
     state: {
-        icon: "",
-        label: "",
-        breadcrumb: false,
-        description: "",
-        category: "",
-        href: "",
-        target: "",
-        open: "",
-        view: "list",
+        icon:        {value:"", type:"string", attr:true, prop:true},
+        label:       {value:"", type:"string", attr:true, prop:true},
+        breadcrumb:  {value:false, type:"boolean", attr:true, prop:true},
+        description: {value:"", type:"string", attr:true, prop:true},
+        category:    {value:"", type:"string", attr:true, prop:true},
+        href:        {value:"", type:"string", attr:true, prop:true},
+        target:      {value:"", type:"string", attr:true, prop:true},
+        open:        {value:"", type:"string", attr:true, prop:true},
+        view:        {value:"list", type:"string", attr:true, prop:true}
     },
-    methods: {
-        async onCommand(command) {
-            if (command == "load") {
-                //load                
+    script({}) {
+        return {
+            async onCommand(command) {
+                if (command == "load") {
+                    //load
+                }
             }
-        }
+        };
     }
-});
+};
 
