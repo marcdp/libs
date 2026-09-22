@@ -45,18 +45,7 @@ export default {
         <a part="a" x-attr:href="state.hrefReal" x-attr:disabled="state.disabled" x-attr:target="state.target" x-attr:rel="state.rel" x-on:click="click"><slot></slot></a>
     `,
     state: {
-        href:       {value: "",     attr:true, prop:true},
-        open:       {value: "auto", attr:true, enum: ["auto","top","dialog","stack","embed"]},
-        qs:         {value: {},     attr:true},
-        breadcrumb: {value: false,  attr:true},
-        title:      {value: null,   attr:true},
-        icon:       {value: null,   attr:true},
-        disabled:   {value: false,  attr:true},
-        target:     {value: null,   attr:true},
-        outlet:     {value: null,   attr:true},
-        rel:        {value: null,   attr:true, reflect:true},
-        replace:    {value: false,  attr:true},
-        hrefReal:   {value: null}
+        hrefReal: null
     },
     script({ state, navigation, getPage }) {
         return {

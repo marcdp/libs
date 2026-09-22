@@ -23,7 +23,6 @@ export default {
         </nav>        
     `,
     state: {
-        menu: {value:null, prop:true}
     },
 };
 

@@ -56,10 +56,6 @@ export default {
         </div>
     `,
     state: {
-        type:       {value:"info", attr:true, enum:["info","warning","error","success"]},
-        label:      {value:"", attr:true},
-        message:    {value:"", attr:true},
-        visible:    {value:true, attr:true}
     },
     script({ state }) {
         return {

@@ -69,8 +69,6 @@ export default {
         <pre><code x-html="state.colorized"></code></pre>
     `,
     state: {
-        value:    {value:"", attr:true},
-        colorized:{value:"", attr:true}
     },
     script({ state, events }) {
         return {

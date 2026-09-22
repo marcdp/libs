@@ -132,17 +132,11 @@ export default {
         </div>
     `,
     state: {
-        icon: {value:"", attr:true},
-        label: {value:"", attr:true},
-        message: {value:"", attr:true},
-        command: {value:"", attr:true},
-        href: {value:"", attr:true},
-        realHref: {value:null},
-        breadcrumb: {value:false},
-        autofocus: {value:false, attr:true},
-        childs: {value:false},
-        expanded: {value:false},
-        forceRight: {value:""},
+        realHref: null,
+        breadcrumb: false,
+        childs: false,
+        expanded: false,
+        forceRight: ""
     },
     script({ state, events, navigation, getPage }) {
         return {

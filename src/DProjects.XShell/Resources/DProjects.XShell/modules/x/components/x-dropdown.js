@@ -98,9 +98,7 @@ export default {
             </div>
         </div>
     `,
-    state:{
-        expanded:        {value:false, type:"boolean", attr:true, prop:true},
-        collapseOnClick: {value:false, type:"boolean", attr:true, prop:true}
+    state: {
     },
     script({ state, events, bus }) {
         return {

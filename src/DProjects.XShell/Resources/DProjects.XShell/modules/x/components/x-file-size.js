@@ -26,8 +26,7 @@ export default {
         {{ state.valueFormatted || ''}}
     `,
     state: {
-        value: {value:0, attr:true, type:"int"},
-        valueFormatted: {value:null}
+        valueFormatted: null
     },
     script({ state, events }) {
         return {

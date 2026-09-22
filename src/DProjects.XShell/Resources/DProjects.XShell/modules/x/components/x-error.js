@@ -61,11 +61,6 @@ export default {
         </x-notice>
     `,
     state: {
-        code:       {value: 0,  attr:true, prop:true},
-        message:    {value: "", attr:true, prop:true},
-        src:        {value: "", attr:true, prop:true},
-        module:     {value: "", attr:true, prop:true},
-        stack:      {value: "", attr:true, prop:true}
     }
 };
 

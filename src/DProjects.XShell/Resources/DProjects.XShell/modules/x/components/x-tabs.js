@@ -43,9 +43,7 @@ export default {
 
     `,
     state: {
-        selectedIndex: {value:0, attr:true},
-        selectedHash:  {value:"", attr:true},
-        tabs: {value:[]}
+        tabs: []
     },
     template: `
         <style x-html="state.style"></style>

@@ -48,6 +48,5 @@ export default {
         }
     `,
     state: {
-        message: {value:"", attr:true}
-    },   
+    },
 };

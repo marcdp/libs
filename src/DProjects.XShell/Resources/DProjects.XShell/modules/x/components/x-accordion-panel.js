@@ -60,9 +60,6 @@ export default {
         </div>
     `,
     state: {
-        label: {value:"", attr:true},
-        icon:  {value:"", attr:true},
-        expanded: {value:false, attr:true},
     },
     script({ state }) {
         return {

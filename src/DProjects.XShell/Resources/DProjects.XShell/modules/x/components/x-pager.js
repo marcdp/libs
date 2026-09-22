@@ -52,10 +52,6 @@ export default {
         <x-button class="short plain next" x-on:click="next" icon="x-keyboard-arrow-right"  x-attr:disabled="state.index == Math.floor(state.total/state.size) - 1"></x-button>
     `,
     state: {
-        total: {value:0, type:"number", attr:true, prop:true},
-        index: {value:0, type:"number", attr:true, prop:true},
-        size:  {value:20, type:"number", attr:true, prop:true},
-        label: {value:"records", type:"string", attr:true, prop:true}
     },
     script({ state }) {
         return {

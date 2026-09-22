@@ -16,7 +16,7 @@ export default {
         {{ state.time }}
     `,
     state: {
-        time: {value:null, type:"date"}
+        time: null
     },
     script: ({ state, timer }) => {
         return {

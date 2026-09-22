@@ -65,15 +65,6 @@ export default {
         <slot></slot>
     `,
     state: {
-        icon:        {value:"", type:"string", attr:true, prop:true},
-        label:       {value:"", type:"string", attr:true, prop:true},
-        breadcrumb:  {value:false, type:"boolean", attr:true, prop:true},
-        description: {value:"", type:"string", attr:true, prop:true},
-        category:    {value:"", type:"string", attr:true, prop:true},
-        href:        {value:"", type:"string", attr:true, prop:true},
-        target:      {value:"", type:"string", attr:true, prop:true},
-        open:        {value:"", type:"string", attr:true, prop:true},
-        view:        {value:"list", type:"string", attr:true, prop:true}
     },
     script({}) {
         return {

@@ -29,7 +29,6 @@ export default {
         </div>
     `,
     state: {
-        multiple: {value:false, type:"boolean", attr:true, prop:true}
     },
     script({ state, events }) {
         return {

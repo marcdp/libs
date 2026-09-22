@@ -71,18 +71,6 @@ export default {
         }
     `,
     state: {
-        icon:        {value:"", type:"string", attr:true, prop:true},
-        label:       {value:"", type:"string", attr:true, prop:true},
-        href:        {value:"", type:"string", attr:true, prop:true},
-        suffix:      {value:"", type:"string", attr:true, prop:true},
-        command:     {value:"", type:"string", attr:true, prop:true},
-        selected:    {value:false, type:"boolean", attr:true, prop:true},
-        checked:     {value:false, type:"boolean", attr:true, prop:true},
-        disabled:    {value:false, type:"boolean", attr:true, prop:true},
-        expanded:    {value:false, type:"boolean", attr:true, prop:true},
-        hasChilds:   {value:false, type:"boolean", attr:true, prop:true},
-        menuitem:    {value:null, type:"any", attr:true, prop:true},
-        childsRight: {value:true, type:"boolean", attr:true, prop:true}
     },
     template: `
         <hr x-if="state.label=='-'" />

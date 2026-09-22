@@ -13,7 +13,7 @@ export default {
     style: ``,
     template: `{{ state.description }}`,
     state: {
-        description: {value: ""},
+        description: ""
     },
     script({ events, bus, state, getPage }) {
         return {

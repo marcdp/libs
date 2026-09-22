@@ -45,8 +45,6 @@ export default {
         </div>        
     `,
     state: {
-        view:       {value:"list", type:"string", attr:true, prop:true},
-        autoScroll: {value:false, type:"boolean", attr:true, prop:true}
     },
     script({ state, events }) {
         return {

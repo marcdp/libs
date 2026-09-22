@@ -37,7 +37,6 @@ export default  {
         <span class="message" x-text="state.value" ></span>
     `,
     state: {
-        value: {value:"", attr:true}
     }
 };
 

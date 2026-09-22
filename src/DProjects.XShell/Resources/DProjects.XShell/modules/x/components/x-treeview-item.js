@@ -78,16 +78,6 @@ export default {
         </div>
     `,
     state: {
-        indent:      {value:0, type:"number", attr:true, prop:true},
-        icon:        {value:"x-file", type:"string", attr:true, prop:true},
-        label:       {value:"", type:"string", attr:true, prop:true},
-        description: {value:"", type:"string", attr:true, prop:true},
-        href:        {value:"", type:"string", attr:true, prop:true},
-        target:      {value:"", type:"string", attr:true, prop:true},
-        hasChilds:   {value:false, type:"boolean", attr:true, prop:true},
-        expanded:    {value:false, type:"boolean", attr:true, prop:true},
-        selected:    {value:false, type:"boolean", attr:true, prop:true},
-        index:       {value:0, type:"number", attr:true, prop:true}
     },
     script({ state }) {
         return {

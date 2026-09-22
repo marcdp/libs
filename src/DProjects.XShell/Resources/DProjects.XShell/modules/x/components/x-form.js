@@ -169,17 +169,6 @@ export default {
 
     `,
     state: {
-        wizard:         {value:false, type:"boolean", attr:true, prop:true},
-        wizardDirection:{value:"", type:"string", attr:true, prop:true},
-        wizardIndex:    {value:0, type:"number", attr:true, prop:true},
-        wizardPanels:   {value:[], type:"array", attr:true, prop:true},
-        validated:      {value:false, type:"boolean", attr:true, prop:true},
-        command:        {value:"submit", type:"string", attr:true, prop:true},
-        errors:         {value:[], type:"array", attr:true, prop:true},
-        loading:        {value:false, type:"boolean", attr:true, prop:true},
-        loadingLabel:   {value:"Working", type:"string", attr:true, prop:true},
-        loadingMessage: {value:"Please wait...", type:"string", attr:true, prop:true},
-        wizardStyle:    {value:"", type:"string", attr:true, prop:true}
     },
     script({ state }) {
         return {

@@ -56,12 +56,6 @@ export default {
         </div>
     `,
     state: {
-        initials: {value:"", attr:true}, 
-        icon:{value:"", attr:true},
-        image:{value:"", attr:true},
-        label:{value:"", attr:true},
-        message:{value:"", attr:true},
-        command:{value:"", attr:true},
     },
     script({ state }) {
         return {

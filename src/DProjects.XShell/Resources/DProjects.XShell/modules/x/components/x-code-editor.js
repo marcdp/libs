@@ -31,12 +31,6 @@ export default {
         :host x-spinner + x-lazy {visibility:hidden; height:0}
     `,
     state: {
-        value: {value:"", attr:true},
-        mode:  {value:"", attr:true},
-        theme: {value:"chrome", attr:true},
-        wrap:  {value:false, attr:true},
-        readonly: {value:false, attr:true},
-        ready: {value:false, attr:true},
     },
     template: `
         <x-spinner x-if="!state.ready"></x-spinner>

@@ -33,9 +33,6 @@ export default {
         }
     `,
     state: {
-        value:      {value:"", type:"string", attr:true, prop:true},
-        lang:       {value:"", type:"string", attr:true, prop:true},
-        spellcheck: {value:"true", type:"string", attr:true, prop:true}
     },
     template: `
         <x-toolbar>

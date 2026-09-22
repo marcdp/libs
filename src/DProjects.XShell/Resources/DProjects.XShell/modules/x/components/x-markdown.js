@@ -22,8 +22,6 @@ export default {
         <slot></slot>
     `,
     state: {
-        value: {value:"", type:"string", attr:true, prop:true},
-        src:   {value:"", type:"string", attr:true, prop:true}
     },
     script({ state, events, loader }) {
         return {

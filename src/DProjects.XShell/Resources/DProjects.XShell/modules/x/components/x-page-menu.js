@@ -50,8 +50,8 @@ export default {
         </nav>
     `,
     state: {
-        src:   {value: ""},
-        menu:  {value: null}
+        src: "",
+        menu: null
     },
     script({ events, bus, state, getPage, areas }) {
         return {

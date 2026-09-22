@@ -22,7 +22,6 @@ export default {
         {{state.label}}
     `,
     state: {
-        label: {value:"", type:"string", attr:true, prop:true}
     }
 };
 

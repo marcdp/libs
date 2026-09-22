@@ -47,7 +47,7 @@ export default {
         </ul>
     `,
     state: {
-        breadcrumb: {value: []}
+        breadcrumb: []
     },
     script({ events, bus, state, getPage }) {
         return {

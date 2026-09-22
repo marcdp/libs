@@ -16,6 +16,5 @@ export default {
         {{ i18n.translate(state.text) }}
     `,
     state: {
-        text: {value:"", attr:true}
     }
 }

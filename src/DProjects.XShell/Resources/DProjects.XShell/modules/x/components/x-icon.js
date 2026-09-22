@@ -25,8 +25,7 @@ export default {
         <svg x-else></svg>
     `,
     state: {
-        icon: {value:"", attr:true},
-        svg:  {value:null}
+        svg: null
     },
     script({ state, events, loader }) {
         return {

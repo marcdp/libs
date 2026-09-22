@@ -44,7 +44,6 @@ export default {
         <div class="result" x-html="state.html"></div>
     `,
     state: {
-        html: {value:"", type:"string", attr:true, prop:true}
     },
     script({ state }) {
         return {

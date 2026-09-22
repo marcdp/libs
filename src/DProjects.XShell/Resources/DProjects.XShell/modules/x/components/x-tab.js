@@ -20,8 +20,5 @@ export default {
         <slot></slot>
     `,
     state: {
-        label: {value:"", attr:true},
-        hash:  {value:"", attr:true}
     }
 };
-

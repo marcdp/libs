@@ -22,8 +22,7 @@ export default {
         }
     `,
     state: {
-        selectedIndex: {value:0, attr:true},
-        tabs: {value:[]}
+        tabs: []
     },
     template: `
         <slot></slot>

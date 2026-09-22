@@ -18,7 +18,7 @@ export default {
         <x-spinner x-else></x-spinner>
     `,
     state: {
-        activated: {value:false}
+        activated: false
     },
     script({ state, loader }) {
         return {

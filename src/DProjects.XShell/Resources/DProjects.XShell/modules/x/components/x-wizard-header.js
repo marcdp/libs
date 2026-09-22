@@ -90,8 +90,6 @@ export default {
 
     `,
     state: {
-        index:  {value:0, type:"number", attr:true, prop:true},
-        panels: {value:[], type:"array", attr:true, prop:true}
     },
     template: `        
         <ul>
