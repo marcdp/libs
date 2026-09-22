@@ -1,39 +1,45 @@
 # Navigation
 
-One Navigation subsystem maps browser location to Pages. It has a working hash mode and an intended path mode; both are designed to share the same
-page infrastructure.
+One Navigation subsystem maps browser location to Pages. Hash and path modes are both implemented on the same Page and stack model.
 
 An Area is a navigation context within a mode. Its `xshell.areas.definitions.<id>.prefix` identifies that context, while a module's
 `/_assets/<module-id>/...` URL identifies a page resource. Navigation mode, Area, and resource ownership are separate. The hash-mode
 `hashPrefix = "#!"` marks the browser fragment; it is not an Area prefix.
 
-## Hash mode (current)
+## Hash mode
 
-The checked-in default is `xshell.navigation.mode = "hash"` with `hashPrefix = "#!"`. Navigation listens for hash changes, decodes the page stack, and
-updates `x-page` elements. Because the destination is in the fragment, the server need only serve the host page.
+Navigation listens for hash changes, decodes the page stack, and updates `x-page` elements. The configured `hashPrefix` is `#!`. Because the
+destination is in the fragment, the server needs no path fallback for deep links.
 
 ```text
 host page#!/_assets/test/pages/test1.js → Navigation → x-page → page resource
 ```
 
-## Path mode (planned)
+## Path mode
 
-Path mode would use browser paths and history with the same Pages. Direct deep links require the server to return the XShell host page.
-`Navigation.init()` currently throws `Path mode is not implemented yet`; history-writing branches alone do not make it usable.
+Path mode uses `history.pushState()`, `history.replaceState()`, and `popstate` with the same Pages and encoded stack data as hash mode. It removes the
+configured application base path before interpreting the browser URL. Direct loads and refreshes require host collaboration so a deep application
+path returns the XShell host page. `Extensions.UseXShell()` provides that SPA fallback within `AppBasePath`, while allowing configured reserved
+prefixes and already-selected ASP.NET endpoints to continue through the pipeline.
 
 ```jsonc
-{ "xshell": { "navigation": { "mode": "hash", "hashPrefix": "#!" } } }
+{ "xshell": { "navigation": { "mode": "path", "hashPrefix": "#!" } } }
 ```
 
-The nested names match `xshell.jsonc`; the runtime `Navigation` constructor reads `config.xshell.navigation.mode` and `hashPrefix`.
+The nested names match `xshell.jsonc`; its checked-in default is currently `path`. The runtime `Navigation` constructor reads
+`config.xshell.navigation.mode` and `hashPrefix`.
 
-On a fresh hash-mode load with no hash, Navigation uses the default Area's `home`, derived from its first top-level navigation item marked
-`default: true`. Startup fails clearly if that home is absent. With an existing hash, Navigation restores the encoded page stack. When the root
-page finishes loading, it emits `xshell:navigation:end`; Areas resolves the current Area from the longest matching prefix. `x-page` selects its
+On a fresh load at the mode's empty/root URL, Navigation uses the default Area's `home`, derived from the first depth-first navigation item marked
+`default: true`. Startup fails clearly if that home is absent. With an existing URL, Navigation restores the encoded page stack. When the root page
+finishes loading, it emits `xshell:navigation:end`; Areas resolves the current Area from the longest matching prefix. `x-page` selects its
 breadcrumb Area from the URL itself so lookup does not depend on the later navigation-end event.
 
-A non-empty Area prefix wraps the navigation path, for example `#!/customers/_assets/reports/pages/report.js`. `x-page` removes the Area
-prefix before resolving the module resource. The `/_assets/reports/...` segment still denotes the resource owner.
+A non-empty Area prefix wraps the navigation path, for example `#!/customers/_assets/reports/pages/report.js` in hash mode or
+`/customers/_assets/reports/pages/report.js` in path mode. `x-page` removes the Area prefix before resolving the module resource. The
+`/_assets/reports/...` segment still denotes the resource owner.
+
+TODO: The `x-page` `replace` and `navigate` event handlers in `Navigation._stackToDom()` remain debugger-marked and manipulate hash state directly.
+Normal Navigation API and browser-history paths work, but those legacy event paths still need mode-neutral completion.
 
 ## Intents
 

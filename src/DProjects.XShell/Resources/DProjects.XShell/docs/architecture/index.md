@@ -17,20 +17,21 @@ initialization. See [Bootstrap](bootstrap.md).
 Module resources use `/_assets/<module>/...` with the checked-in `_assets` prefix. The Service Worker maps that namespace to source files. Resource
 resolution selects a URL and loader; the loader obtains the resource. A Page uses the normal Component model plus Navigation.
 An Area is a navigation context composed from participating modules, including their effective menus. Modules define reusable menu contributions;
-Areas define application composition. The first top-level navigation item marked `default: true` provides the Area home. This composition does not
-duplicate module instances.
+Areas define application composition. The first navigation item marked `default: true` in depth-first traversal provides the Area home. This
+composition does not duplicate module instances.
 
 ## Documents
 
 - [Bootstrap](bootstrap.md) — Startup and preparation versus runtime initialization.
 - [Configuration](configuration.md) — Nested effective configuration and merge rules.
 - [Modules](modules.md) — Definitions, imports, params, and live instances.
+- [Packaging](packaging.md) — Development manifests and immutable module ZIP creation.
 - [Components](components.md) — The Web Component model.
 - [Pages](pages.md) — Pages and layouts.
 - [Resolvers](resolvers.md) — Logical resource resolution.
 - [Loaders](loaders.md) — Resource loading.
 - [Service Worker](service-worker.md) — Resource virtualization.
-- [Navigation](navigation.md) — Hash navigation, planned path navigation, and Area context.
+- [Navigation](navigation.md) — Hash and path navigation plus Area context.
 
 ## Related documentation
 

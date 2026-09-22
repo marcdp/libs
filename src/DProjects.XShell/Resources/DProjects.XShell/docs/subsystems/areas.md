@@ -42,8 +42,9 @@ effective item has its module id, Area id, label, icon, children, and effective 
 participation creates no additional module instances. Unknown module ids cause a warning and are skipped.
 
 Bootstrap first maps module-relative menu hrefs into `/_assets/<module-id>/...`. Areas then adds the Area prefix to local hrefs, leaving external
-scheme URLs unchanged. The Area home is the effective href of the first **top-level** `navigation` item marked `"default": true`. Children are not
-searched. If none is marked, `home` is null. On a fresh hash-mode load with no URL, Navigation requires the default Area to have a home.
+scheme URLs unchanged. The Area home is the effective href of the first `navigation` item marked `"default": true` in depth-first traversal.
+Children are searched. If none is marked, `home` is null. On a fresh load at the selected mode's empty/root URL, Navigation requires the default
+Area to have a home.
 
 `xshell.areas.getMenu("navigation")` selects the current Area; `getMenu("navigation", "inventory")` selects one explicitly.
 `getMenuitemBreadcrumb(href, areaId = null)` searches only that Area's effective menus, defaulting to the current Area.
@@ -62,7 +63,7 @@ Menu UIs should refresh on that event; `xshell:menus:change` is reserved for dyn
 
 ## Current implementation limits
 
-Path-mode navigation is still unimplemented. Bootstrap's generic configuration merge can accept Area definitions from imported fragments even
+Both hash and path navigation apply Area prefixes. Bootstrap's generic configuration merge can accept Area definitions from imported fragments even
 though Area composition belongs to the root application. Dynamic menu children are mutable so registered sources can refresh them.
 
 See [Navigation](../architecture/navigation.md), [Configuration](../architecture/configuration.md),

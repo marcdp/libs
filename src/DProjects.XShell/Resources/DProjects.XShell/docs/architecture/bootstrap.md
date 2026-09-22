@@ -12,9 +12,10 @@ the remainder of each name identifies the corresponding effective-configuration 
 ```
 
 `app.configPath` identifies the root module JSONC. Bootstrap constructs `app.basePath` as `document.location.origin` plus the value of
-`xshell:app.basePath`. It parses `xshell:app.params` as a query string. The host writes `xshell:xshell.environment` as `development` when the ASP.NET
-environment is development or a debugger is attached, and as `production` otherwise; bootstrap copies it to `xshell.environment`. No runtime
-behavior is currently gated by that value.
+`xshell:app.basePath`. It parses `xshell:app.params` as a query string. The host normally copies the ASP.NET environment name verbatim. When a
+debugger is attached, `Extensions.UseXShell()` overrides the effective name to `Development` and also selects development resource behavior, even
+if the ASP.NET environment has another value. Bootstrap copies that name to `xshell.environment`; the browser runtime does not otherwise gate
+behavior on it. ASP.NET environment, Debug/Release build configuration, and `dotnet publish` are separate concepts.
 
 There is no Service Worker URL meta setting. Bootstrap registers `appBasePath + "/sw.js"`, and the ASP.NET host maps that URL to the framework worker.
 The host exposes framework and module files under `/_resources/DProjects.XShell/...`. With no explicit application config, the server command uses
@@ -38,8 +39,8 @@ its params, even if later imports differ.
 The intended merge precedence is defaults, dependencies, their importers, then root. Bootstrap actually merges framework defaults followed by
 definitions in **reverse registration order**. This is not a topological sort and does not guarantee dependency-first precedence for every graph.
 URL deduplication prevents repeated fetching, but cycles are not diagnosed. Bootstrap does not validate against JSON Schema. Later, the checked-in
-X module controller fetches `/_assets/xshell/schemes/config.scheme.json` during `start()`, validates the effective configuration, and writes failures
-to `console.error`. That validation is not conditional on `xshell.environment`.
+X module controller loads `schema:config.schema.json`, which resolves through the canonical `xshell/schemas/config.schema.json` resource, and throws
+if the effective configuration is invalid. That validation is not conditional on `xshell.environment`.
 
 Bootstrap recursively normalizes module resource paths in each configuration fragment before merging. Authored module menu hrefs such as
 `/pages/report.js` become `/_assets/<module-id>/pages/report.js`. Area prefixes are preserved because they are navigation metadata. Areas
@@ -47,10 +48,12 @@ subsequently adds the Area prefix to the already-normalized menu href; it does n
 
 ## Phase 2: runtime resources
 
-Bootstrap always installs and initializes the Service Worker, creates an import map from `xshell.resolver.import`, imports `xshell.js`, and calls
-`xshell.init(deepFreeze(config))`. The effective configuration is deeply frozen before XShell receives it, although the import occurs first.
-An uncontrolled first page is reloaded. `Modules.init()` schedules module controllers and styles as concurrent load tasks. This is separate from
-JSONC discovery.
+Bootstrap assigns `configUrl` to each resolved module and defaults its `assetsUrl` to the configuration document's directory when it is omitted.
+These values have different roles: `configUrl` identifies configuration provenance, while `assetsUrl` identifies the physical asset container.
+Bootstrap always installs and initializes the Service Worker, maps each stable `/_assets/<module-id>/...` namespace to its `assetsUrl`, creates an
+import map from `xshell.resolver.import`, imports `xshell.js`, and calls `xshell.init(deepFreeze(config))`. The effective configuration is deeply
+frozen before XShell receives it, although the import occurs first. An uncontrolled first page is reloaded. `Modules.init()` schedules module
+controllers and styles as concurrent load tasks. This is separate from JSONC discovery.
 
 ## Phase 3: startup
 

@@ -16,11 +16,15 @@ application; there is no separate application specification.
     },
     "modules": {
         "app": {
+            "label": "Application module",
+            "version": "0.1.0",
+            "copyright": "",
+            "icon": "",
             "controller": "/js/module.js",
             "imports": [
-                { "url": "url:../customers/module.jsonc" },
-                { "url": "url:../inventory/module.jsonc" },
-                { "url": "url:../reports/module.jsonc" }
+                { "configUrl": "url:../customers/module.jsonc" },
+                { "configUrl": "url:../inventory/module.jsonc" },
+                { "configUrl": "url:../reports/module.jsonc" }
             ]
         }
     },
@@ -49,7 +53,9 @@ Bootstrap treats the first key of the root file's `modules` object as the root i
 separate root id or root-params object, and there is no `xshell.module` section. Root status is application composition information, not a
 `modules.app.root` flag.
 
-The checked-in `modules/test/module.jsonc` follows this nested shape. Required fields and validation rules are not finalized. The server command
-defaults to `/_resources/DProjects.XShell/modules/test/module.jsonc` when no explicit application config is supplied.
+The checked-in `modules/test/module.jsonc` follows this nested shape. The canonical effective-configuration schema is
+`xshell/schemas/config.schema.json`; bootstrap adds host-derived and resolved fields such as `app.basePath`, `app.params`, `configUrl`, and
+`assetsUrl` before validation. The server command defaults to `/_resources/DProjects.XShell/modules/test/module.jsonc` when no explicit application
+config is supplied.
 
 See [Module Specification](module.md), [Bootstrap](../architecture/bootstrap.md), and [Areas](../subsystems/areas.md).

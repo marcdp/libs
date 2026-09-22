@@ -177,13 +177,21 @@ async function installServiceWorker(config) {
     const xshellVersion = config.xshell.version;
     const assetsPrefix = config.xshell.assetsPrefix;
     let rules = [];
-    rules.push({ src: combineUrls( (appBasePath ? appBasePath + "/" : ""), "./" + assetsPrefix + "/xshell"), dst: bootstrapUrlDir, version: xshellVersion, name:"xshell", exceptions:[bootstrapUrlDir + "/xshell.jsonc"]});
+    rules.push({ 
+        src: combineUrls( (appBasePath ? appBasePath + "/" : ""), "./" + assetsPrefix + "/xshell"), 
+        dst: config.xshell.assetsUrl, 
+        version: xshellVersion, 
+        name:"xshell", 
+        exceptions:[config.xshell.configUrl]});
     for(var moduleId of Object.keys(config.modules)) {
         const module = config.modules[moduleId];
-        const moduleUrl = module.configUrl;
-        const moduleUrlDir = moduleUrl.substring(0, moduleUrl.lastIndexOf("/"));
-        const moduleVersion = module.version;
-        rules.push({ src: combineUrls((appBasePath ? appBasePath + "/" : ""), "./" + assetsPrefix + "/" + moduleId), dst: moduleUrlDir, version: moduleVersion, name: moduleId, exceptions: [moduleUrl]});
+        rules.push({ 
+            src: combineUrls((appBasePath ? appBasePath + "/" : ""), "./" + assetsPrefix + "/" + moduleId), 
+            dst: module.assetsUrl, 
+            version: module.version, 
+            name: moduleId, 
+            exceptions: [module.configUrl]
+        });
     }
 
     // wait for ready

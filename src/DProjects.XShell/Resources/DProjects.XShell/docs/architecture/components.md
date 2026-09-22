@@ -245,8 +245,8 @@ A definition-based component uses engine defaults in nested configuration:
 { "xshell": { "defaults": { "component": { "stateEngine": "plain", "renderEngine": "plain" } } } }
 ```
 
-Module definitions may provide `defaults.component` overrides. Current `component-js` selects render and state engines in this order: XShell
-`defaults.component`, module `defaults.component`, then component `meta`.
+Module definitions may provide `defaults.component` overrides. Current `component-js` precedence is component `meta`, then module
+`defaults.component`, then XShell `defaults.component`.
 
 The selected state and render engines are used while converting the definition into the final Web Component class.
 

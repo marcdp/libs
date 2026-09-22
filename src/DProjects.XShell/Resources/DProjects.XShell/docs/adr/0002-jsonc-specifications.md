@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted for JSONC authoring and nested composition; validation and schema finalization remain incomplete.
+Accepted for JSONC authoring, nested composition, and effective-configuration schema validation; runtime contract dispatch remains incomplete.
 
 ## Context
 
@@ -23,8 +23,8 @@ boundary. Deeply freeze it before handing it to XShell. No browser-native schema
 Bootstrap parses JSONC, deduplicates imported definitions by URL, and merges nested data in reverse registration order. The first registered
 import retains its params; later imports do not replace or merge them. Reverse registration order does not guarantee dependency-first precedence
 for every graph. Bootstrap deeply freezes the merged configuration before XShell receives it, but performs no JSON Schema validation. The X module
-controller currently validates during `start()` and logs errors, without an environment gate. The schema remains transitional: it accepts module
-`defaults` and legacy module `page`/`component` fields, and `$defs/modulePage` references a missing `$defs/dialog`. The server default now points to
-the checked-in `modules/test/module.jsonc` root module.
+controller validates during `start()` and throws on errors, without an environment gate. The canonical schema is
+`xshell/schemas/config.schema.json`; it defines module defaults and `contract.events`/`actions`/`intents`. Its `$id` still uses the stale
+`https://xshell.dev/schemes/config.scheme.json` identifier. The server default points to the checked-in `modules/test/module.jsonc` root module.
 
 See [Configuration](../architecture/configuration.md) and [Specifications](../specifications/).

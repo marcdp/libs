@@ -4,19 +4,25 @@ Bootstrap always installs the XShell Service Worker. It provides resource virtua
 of where their source files reside.
 
 The checked-in `xshell.assetsPrefix` is `_assets`, producing URLs such as `/_assets/x/components/x-button.js`. Bootstrap sends a mapping for each
-canonical module definition and the XShell framework files. The worker rewrites matching requests to the source directory and fetches the resource.
-Repeated imports of a definition share one mapping; they do not create additional live module instances.
+canonical module definition and the XShell framework files. Each rule maps the virtual prefix to `assetsUrl` and excludes `configUrl`, keeping the
+configuration document distinct from the asset namespace. The worker rewrites matching requests and fetches the physical resource. Repeated imports
+of a definition share one mapping; they do not create additional live module instances.
 
 ```text
 client: /_assets/<module-id>/<resource>
     → Service Worker mapping
-    → source directory or remote URL
+    → assetsUrl (currently an expanded directory)
     → resource response
 ```
 
-The namespace is intended to support local files, remote hosts/CDNs, and future ZIP-backed packages. Current worker code rewrites to the mapped
-source URL but fetches with `mode: "same-origin"`; cross-origin sources are therefore not established as working. ZIP-backed package loading is not
-implemented. The worker stores bootstrap's initialization payload in IndexedDB and reloads it when handling requests after its in-memory state has
-been lost. The worker's role is resource delivery; module creation and configuration merge belong to bootstrap and XShell runtime.
+`configUrl` identifies a module configuration document. `assetsUrl` identifies the physical directory or package holding its assets. Normal clients
+must use `/_assets/<module-id>/...` and remain independent of whether storage is expanded or packaged. Current mapping and fetch behavior supports
+expanded directories. Although the model allows a future package URL and remote/CDN locations, ZIP-backed loading is not implemented, and the
+worker fetches with `mode: "same-origin"`, so cross-origin sources are not established as working.
+
+The worker stores bootstrap's initialization payload in IndexedDB and reloads it when handling requests after its in-memory state has been lost. It
+does not load `module.files.json` or `index.files.json` during startup. A module file manifest is a physical inventory to be loaded on demand by
+future mechanisms that need package information. The worker's role is resource delivery; module creation and configuration merge belong to
+bootstrap and XShell runtime.
 
 See [Asset URL Namespace ADR](../adr/0001-asset-url-namespace.md) and [Modules](modules.md).

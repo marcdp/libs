@@ -55,7 +55,7 @@
         "defaults": {"$ref": "#/$defs/defaults", "description": "Defaults contributed by the module."},
         "contract": {"$ref": "#/$defs/moduleContract", "description": "Public contract exposed by the module."}
       },
-      "required": ["label", "version", "copyright", "icon", "configUrl"],
+      "required": ["label", "version", "copyright", "icon", "configUrl", "assetsUrl"],
       "additionalProperties": false,
       "description": "Effective configuration of a resolved XShell module."
     },

@@ -2,7 +2,7 @@
 
 ## Status
 
-Implemented for hash-mode navigation; path mode remains planned.
+Implemented for hash and path navigation.
 
 ## Context
 
@@ -13,8 +13,8 @@ The earlier Area-keyed menu shape coupled module definitions to one application'
 
 The root application owns `xshell.areas.default` and `xshell.areas.definitions.<id>`. Each Area defines a navigation prefix and lists
 participating canonical module ids. A module owns reusable contributions to arbitrary named menu slots under
-`modules.<module-id>.menus.<menu-name>`. Areas assembles effective menus for each Area in the listed module order. The first top-level navigation
-item marked `default: true` determines its home. A module may participate in multiple Areas while retaining one runtime module instance.
+`modules.<module-id>.menus.<menu-name>`. Areas assembles effective menus for each Area in the listed module order. The first navigation item marked
+`default: true` in depth-first traversal determines its home. A module may participate in multiple Areas while retaining one runtime module instance.
 An Area prefix denotes navigation context; `/_assets/<module-id>/...` denotes the resource namespace.
 
 Root ownership is a composition convention rather than an enforced fragment boundary: the configuration merger accepts `xshell` settings from
