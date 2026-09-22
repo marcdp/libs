@@ -11,7 +11,7 @@
             "imports": [],
             "icon": "",
             "defaults": {
-                "page": {
+                "page": { 
                     "renderEngine": "x",
                     "stateEngine": "proxy"
                 },

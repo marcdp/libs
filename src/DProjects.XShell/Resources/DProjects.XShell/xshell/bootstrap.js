@@ -59,13 +59,17 @@ async function loadConfig() {
     const assetsPrefix = xshellConfig.xshell.assetsPrefix;
     xshellConfig.app.basePath = appBasePath;
     xshellConfig.xshell.environment = xshellEnvironment;
+    xshellConfig.xshell.configUrl = xshellConfigUrl;
+    xshellConfig.xshell.assetsUrl = xshellConfig.xshell.assetsUrl || "url:./";
+    absolutizePrefixedUrl("", xshellConfig, xshellConfigUrl);    
     relativizeModulePaths(xshellConfig, "/" + assetsPrefix + "/xshell");
     
     // get root module config
     const rootModuleConfig = await rootModuleConfigTask;
     const rootModule = Object.values(rootModuleConfig.modules)[0];
     const rootModuleId = Object.keys(rootModuleConfig.modules)[0];
-    rootModule.url = rootModuleUrl;
+    rootModule.configUrl = rootModuleUrl;
+    rootModule.assetsUrl = rootModule.assetsUrl || "url:./";
     rootModule.params = Object.fromEntries(new URLSearchParams(appParams));
     xshellConfig.app.params = rootModule.params;
     absolutizePrefixedUrl("", rootModuleConfig, rootModuleUrl);    
@@ -83,11 +87,11 @@ async function loadConfig() {
                 for (let moduleConfig of Object.values(registeredItem.config.modules)) {
                     if (moduleConfig.imports) {
                         for(let importItem of Object.values(moduleConfig.imports)) {
-                            let importItemUrl = importItem.url;
+                            let importItemUrl = importItem.configUrl;
                             let importItemParams = importItem.params;
                             if (!registered[importItemUrl]) {
                                 registered[importItemUrl] = { 
-                                    url: importItemUrl,
+                                    configUrl: importItemUrl,
                                     params: importItemParams,
                                     task: loadModuleConfig(importItemUrl) 
                                 };
@@ -106,9 +110,10 @@ async function loadConfig() {
                 registeredItem.config = await registeredItem.task;
                 const registeredModule = Object.values(registeredItem.config.modules)[0];
                 const registeredModuleId = Object.keys(registeredItem.config.modules)[0];
-                registeredModule.url = registeredItem.url;
+                registeredModule.configUrl = registeredItem.configUrl;
+                registeredModule.assetsUrl = registeredModule.assetsUrl || "url:./";
                 registeredModule.params = registeredItem.params;
-                absolutizePrefixedUrl("", registeredItem.config, registeredItem.url);    
+                absolutizePrefixedUrl("", registeredItem.config, registeredItem.configUrl);    
                 relativizeModulePaths(registeredItem.config, "/" + assetsPrefix + "/" + registeredModuleId);
                 delete registeredItem.task;
             }
@@ -175,7 +180,7 @@ async function installServiceWorker(config) {
     rules.push({ src: combineUrls( (appBasePath ? appBasePath + "/" : ""), "./" + assetsPrefix + "/xshell"), dst: bootstrapUrlDir, version: xshellVersion, name:"xshell", exceptions:[bootstrapUrlDir + "/xshell.jsonc"]});
     for(var moduleId of Object.keys(config.modules)) {
         const module = config.modules[moduleId];
-        const moduleUrl = module.url;
+        const moduleUrl = module.configUrl;
         const moduleUrlDir = moduleUrl.substring(0, moduleUrl.lastIndexOf("/"));
         const moduleVersion = module.version;
         rules.push({ src: combineUrls((appBasePath ? appBasePath + "/" : ""), "./" + assetsPrefix + "/" + moduleId), dst: moduleUrlDir, version: moduleVersion, name: moduleId, exceptions: [moduleUrl]});

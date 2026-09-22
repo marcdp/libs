@@ -2,57 +2,72 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://xshell.dev/schemes/config.scheme.json",
   "title": "XShell Effective Configuration",
-  "description": "Schema for the final merged and normalized XShell configuration passed to xshell.init().",
   "type": "object",
   "required": ["app", "modules", "xshell"],
   "properties": {
-    "app": {"$ref": "#/$defs/app"},
-    "modules": {"type": "object", "additionalProperties": {"$ref": "#/$defs/module"}},
-    "xshell": {"$ref": "#/$defs/xshell"}
+    "app": {"$ref": "#/$defs/app", "description": "Application metadata and runtime parameters."},
+    "modules": {
+      "type": "object",
+      "additionalProperties": {"$ref": "#/$defs/module"},
+      "description": "Resolved modules participating in the application."
+    },
+    "xshell": {"$ref": "#/$defs/xshell", "description": "XShell runtime configuration."}
   },
   "additionalProperties": false,
   "$defs": {
     "app": {
       "type": "object",
       "properties": {
-        "name": {"type": "string"},
-        "label": {"type": "string"},
-        "version": {"type": "string"},
-        "copyright": {"type": "string"},
-        "icon": {"type": "string"},
-        "basePath": {"type": "string"},
-        "params": {"type": "object", "additionalProperties": true}
+        "name": {"type": "string", "description": "Application identifier."},
+        "label": {"type": "string", "description": "Human-readable application label."},
+        "version": {"type": "string", "description": "Application version."},
+        "copyright": {"type": "string", "description": "Application copyright notice."},
+        "icon": {"type": "string", "description": "Application icon resource."},
+        "basePath": {"type": "string", "description": "Base URL path under which the application is hosted."},
+        "params": {"type": "object", "additionalProperties": true, "description": "Application-specific parameters."}
       },
       "required": ["name", "label", "version", "copyright", "icon", "basePath", "params"],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Application metadata, base path, and application parameters."
     },
     "module": {
       "type": "object",
       "properties": {
-        "label": {"type": "string"},
-        "version": {"type": "string"},
-        "copyright": {"type": "string"},
-        "icon": {"type": "string"},
-        "url": {"type": "string", "format": "uri"},
-        "params": {"type": "object", "additionalProperties": true},
-        "styles": {"type": "array", "items": {"type": "string"}},
-        "controller": {"type": "string"},
-        "imports": {"type": "array", "items": {"$ref": "#/$defs/moduleImport"}},
-        "menus": {"$ref": "#/$defs/menus"},
-        "defaults": {"$ref": "#/$defs/defaults"},
-        "contract": {"$ref": "#/$defs/moduleContract"}
+        "label": {"type": "string", "description": "Human-readable module label."},
+        "version": {"type": "string", "description": "Module version."},
+        "copyright": {"type": "string", "description": "Module copyright notice."},
+        "icon": {"type": "string", "description": "Module icon resource."},
+        "configUrl": {"type": "string", "format": "uri", "description": "URL of the module configuration document."},
+        "params": {"type": "object", "additionalProperties": true, "description": "Parameters supplied to the module."},
+        "styles": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Style resources loaded for the module."
+        },
+        "assetsUrl": {"type": "string", "format": "uri", "description": "URL of the directory or package containing the module assets."},
+        "controller": {"type": "string", "description": "Module controller resource."},
+        "imports": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/moduleImport"},
+          "description": "Modules imported by this module."
+        },
+        "menus": {"$ref": "#/$defs/menus", "description": "Menu contributions exposed by the module."},
+        "defaults": {"$ref": "#/$defs/defaults", "description": "Defaults contributed by the module."},
+        "contract": {"$ref": "#/$defs/moduleContract", "description": "Public contract exposed by the module."}
       },
-      "required": ["label", "version", "copyright", "icon", "url"],
-      "additionalProperties": false
+      "required": ["label", "version", "copyright", "icon", "configUrl"],
+      "additionalProperties": false,
+      "description": "Effective configuration of a resolved XShell module."
     },
     "moduleImport": {
       "type": "object",
-      "required": ["url"],
+      "required": ["configUrl"],
       "properties": {
-        "url": {"type": "string", "format": "uri"},
-        "params": {"type": "object", "additionalProperties": true}
+        "configUrl": {"type": "string", "format": "uri", "description": "URL of the imported module configuration document."},
+        "params": {"type": "object", "additionalProperties": true, "description": "Parameters supplied to the imported module."}
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Reference to another module configuration and optional import parameters."
     },
     "moduleContract": {
       "type": "object",
@@ -62,44 +77,49 @@
           "additionalProperties": {
             "type": "object",
             "properties": {
-              "description": {"type": "string"},
               "detail": {
                 "type": "object",
                 "additionalProperties": {
                   "type": "object",
                   "properties": {
                     "type": {"type": "string", "enum": ["string", "number", "integer", "boolean", "object", "array"]},
-                    "description": {"type": "string"},
                     "required": {"type": "boolean"},
-                    "default": {}
+                    "default": {},
+                    "description": {"type": "string"}
                   },
                   "required": ["type"],
-                  "additionalProperties": false
-                }
-              }
+                  "additionalProperties": false,
+                  "description": "Definition of an event detail field."
+                },
+                "description": "Fields carried in the event detail payload."
+              },
+              "description": {"type": "string"}
             },
-            "additionalProperties": false
-          }
+            "additionalProperties": false,
+            "description": "Definition of a module event."
+          },
+          "description": "Events published by the module."
         },
         "actions": {
           "type": "object",
           "additionalProperties": {
             "type": "object",
             "properties": {
-              "description": {"type": "string"},
               "input": {
                 "type": "object",
                 "additionalProperties": {
                   "type": "object",
                   "properties": {
                     "type": {"type": "string", "enum": ["string", "number", "integer", "boolean", "object", "array"]},
-                    "description": {"type": "string"},
                     "required": {"type": "boolean"},
-                    "default": {}
+                    "default": {},
+                    "description": {"type": "string"}
                   },
                   "required": ["type"],
-                  "additionalProperties": false
-                }
+                  "additionalProperties": false,
+                  "description": "Definition of an action input field."
+                },
+                "description": "Named input fields accepted by the action."
               },
               "output": {
                 "type": "object",
@@ -108,110 +128,146 @@
                   "description": {"type": "string"}
                 },
                 "required": ["type"],
-                "additionalProperties": false
-              }
+                "additionalProperties": false,
+                "description": "Value returned by the action."
+              },
+              "description": {"type": "string"}
             },
-            "additionalProperties": false
-          }
+            "additionalProperties": false,
+            "description": "Definition of a module action."
+          },
+          "description": "Request-response actions exposed by the module."
         },
         "intents": {
           "type": "object",
           "additionalProperties": {
             "type": "object",
             "properties": {
-              "description": {"type": "string"},
               "input": {
                 "type": "object",
                 "additionalProperties": {
                   "type": "object",
                   "properties": {
                     "type": {"type": "string", "enum": ["string", "number", "integer", "boolean", "object", "array"]},
-                    "description": {"type": "string"},
                     "required": {"type": "boolean"},
-                    "default": {}
+                    "default": {},
+                    "description": {"type": "string"}
                   },
                   "required": ["type"],
-                  "additionalProperties": false
-                }
-              }
+                  "additionalProperties": false,
+                  "description": "Definition of an intent input field."
+                },
+                "description": "Named input fields accepted by the intent."
+              },
+              "description": {"type": "string"}
             },
-            "additionalProperties": false
-          }
+            "additionalProperties": false,
+            "description": "Definition of a module intent."
+          },
+          "description": "Fire-and-forget intents accepted by the module."
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Public events, actions, and intents exposed by a module."
     },
-    "menus": {"type": "object", "additionalProperties": {"type": "array", "items": {"$ref": "#/$defs/menuItem"}}},
+    "menus": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": {"$ref": "#/$defs/menuItem"},
+        "description": "Menu items for a named menu slot."
+      },
+      "description": "Named menu collections contributed by a module."
+    },
     "menuItem": {
       "type": "object",
       "required": ["label"],
       "properties": {
-        "label": {"type": "string"},
-        "href": {"type": ["string", "null"]},
-        "icon": {"type": ["string", "null"]},
-        "default": {"type": "boolean"},
-        "children": {"type": "array", "items": {"$ref": "#/$defs/menuItem"}},
-        "childrenSource": {"type": "string"}
+        "label": {"type": "string", "description": "Human-readable menu item label."},
+        "href": {"type": ["string", "null"], "description": "Navigation target associated with the menu item."},
+        "icon": {"type": ["string", "null"], "description": "Optional icon associated with the menu item."},
+        "default": {"type": "boolean", "description": "Whether this item is the default navigation target."},
+        "children": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/menuItem"},
+          "description": "Nested menu items."
+        },
+        "childrenSource": {"type": "string", "description": "Resource used to populate child menu items dynamically."}
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "A navigable menu item with optional children."
     },
     "xshell": {
       "type": "object",
-      "required": ["build", "debug", "version", "environment", "identity", "assetsPrefix", "areas", "navigation", "resolver", "defaults"],
+      "required": ["build", "debug", "version", "environment", "identity", "assetsPrefix", "areas", "navigation", "resolver", "defaults", "configUrl", "assetsUrl"],
       "properties": {
-        "build": {"type": "string"},
-        "debug": {"type": "boolean"},
-        "version": {"type": "string"},
-        "environment": {"type": "string"},
-        "defaults": {"$ref": "#/$defs/defaults"},
-        "identity": {"$ref": "#/$defs/identity"},
-        "assetsPrefix": {"type": "string"},
-        "areas": {"$ref": "#/$defs/areas"},
-        "navigation": {"$ref": "#/$defs/navigation"},
-        "resolver": {"$ref": "#/$defs/resolver"}
+        "build": {"type": "string", "description": "XShell build identifier."},
+        "debug": {"type": "boolean", "description": "Whether XShell debug behavior is enabled."},
+        "version": {"type": "string", "description": "XShell runtime version."},
+        "environment": {"type": "string", "description": "Runtime environment name."},
+        "defaults": {"$ref": "#/$defs/defaults", "description": "Global defaults inherited by XShell resources."},
+        "identity": {"$ref": "#/$defs/identity", "description": "Identity subsystem configuration."},
+        "assetsPrefix": {"type": "string", "description": "Virtual URL prefix used for module assets."},
+        "areas": {"$ref": "#/$defs/areas", "description": "Application area configuration."},
+        "navigation": {"$ref": "#/$defs/navigation", "description": "Navigation configuration."},
+        "resolver": {"$ref": "#/$defs/resolver", "description": "Logical resource resolver configuration."},
+        "configUrl": {"type": "string", "format": "uri", "description": "URL of the xshell configuration document"},
+        "assetsUrl": {"type": "string", "format": "uri", "description": "URL of the directory or package containing the xshell assets."}
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Core XShell runtime configuration."
     },
     "areas": {
       "type": "object",
       "required": ["default", "definitions"],
       "properties": {
-        "default": {"type": ["string", "null"]},
-        "definitions": {"type": "object", "additionalProperties": {"$ref": "#/$defs/area"}}
+        "default": {"type": ["string", "null"], "description": "Identifier of the default area."},
+        "definitions": {
+          "type": "object",
+          "additionalProperties": {"$ref": "#/$defs/area"},
+          "description": "Area definitions keyed by area identifier."
+        }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Application areas and the default active area."
     },
     "area": {
       "type": "object",
       "properties": {
-        "prefix": {"type": "string"},
-        "label": {"type": "string"},
-        "description": {"type": "string"},
-        "icon": {"type": ["string", "null"]},
-        "modules": {"type": "array", "items": {"type": "string"}},
-        "order": {"type": "number"}
+        "prefix": {"type": "string", "description": "URL prefix assigned to the area."},
+        "label": {"type": "string", "description": "Human-readable area label."},
+        "icon": {"type": ["string", "null"], "description": "Optional icon associated with the area."},
+        "modules": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Modules composed into the area, in composition order."
+        },
+        "order": {"type": "number", "description": "Optional ordering value for the area."},
+        "description": {"type": "string", "description": "Human-readable area description."}
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Configuration of a navigation area."
     },
     "navigation": {
       "type": "object",
       "required": ["mode"],
       "properties": {
-        "mode": {"type": "string", "enum": ["hash", "path"]},
-        "hashPrefix": {"type": ["string", "null"]}
+        "mode": {"type": "string", "enum": ["hash", "path"], "description": "Navigation strategy used by the application."},
+        "hashPrefix": {"type": ["string", "null"], "description": "Prefix used for hash-based navigation."}
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Application navigation mode and related options."
     },
-
     "defaults": {
       "type": "object",
       "required": [],
       "properties": {
-        "page": {"$ref": "#/$defs/pageDefaults"},
-        "dialog": {"$ref": "#/$defs/dialogDefaults"},
-        "component": {"$ref": "#/$defs/componentDefaults"}
+        "page": {"$ref": "#/$defs/pageDefaults", "description": "Defaults applied to pages."},
+        "dialog": {"$ref": "#/$defs/dialogDefaults", "description": "Defaults applied to standard dialogs."},
+        "component": {"$ref": "#/$defs/componentDefaults", "description": "Defaults applied to components."}
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Default values inherited by pages, dialogs, and components."
     },
     "pageDefaults": {
       "type": "object",
@@ -219,61 +275,76 @@
         "layout": {
           "type": "object",
           "properties": {
-            "default": {"type": ["string", "null"]},
-            "dialog": {"type": ["string", "null"]},
-            "main": {"type": ["string", "null"]},
-            "stack": {"type": ["string", "null"]},
-            "embed": {"type": ["string", "null"]}
+            "default": {"type": ["string", "null"], "description": "Default page layout."},
+            "dialog": {"type": ["string", "null"], "description": "Default dialog page layout."},
+            "main": {"type": ["string", "null"], "description": "Default main page layout."},
+            "stack": {"type": ["string", "null"], "description": "Default stacked page layout."},
+            "embed": {"type": ["string", "null"], "description": "Default embedded page layout."}
           },
-          "additionalProperties": {"type": ["string", "null"]}
+          "additionalProperties": {"type": ["string", "null"]},
+          "description": "Default layouts available to pages."
         },
-        "renderEngine": {"type": ["string", "null"]},
-        "stateEngine": {"type": ["string", "null"]}
+        "renderEngine": {"type": ["string", "null"], "description": "Default render engine used by pages."},
+        "stateEngine": {"type": ["string", "null"], "description": "Default state engine used by pages."}
       },
-      "additionalProperties": false
-    },    
+      "additionalProperties": false,
+      "description": "Default settings applied to pages."
+    },
     "componentDefaults": {
       "type": "object",
       "required": ["lazy", "error", "renderEngine", "stateEngine"],
       "properties": {
-        "lazy": {"type": ["string", "null"]},
-        "error": {"type": ["string", "null"]},
-        "renderEngine": {"type": ["string", "null"]},
-        "stateEngine": {"type": ["string", "null"]}
+        "lazy": {"type": ["string", "null"], "description": "Component used for lazy-loading placeholders."},
+        "error": {"type": ["string", "null"], "description": "Component used to render component loading errors."},
+        "renderEngine": {"type": ["string", "null"], "description": "Default render engine used by components."},
+        "stateEngine": {"type": ["string", "null"], "description": "Default state engine used by components."}
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Default settings applied to components."
     },
     "dialogDefaults": {
       "type": "object",
       "properties": {
-        "confirm": {"type": ["string", "null"]},
-        "message": {"type": ["string", "null"]},
-        "prompt": {"type": ["string", "null"]},
-        "picker": {"type": ["string", "null"]}
+        "confirm": {"type": ["string", "null"], "description": "Page used for confirmation dialogs."},
+        "message": {"type": ["string", "null"], "description": "Page used for message dialogs."},
+        "prompt": {"type": ["string", "null"], "description": "Page used for prompt dialogs."},
+        "picker": {"type": ["string", "null"], "description": "Page used for picker dialogs."}
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Default page resources used for standard dialogs."
     },
     "identity": {
       "type": "object",
       "required": ["provider"],
       "properties": {
-        "provider": {"type": "string"},
-        "params": {"type": "object", "additionalProperties": true}
+        "provider": {"type": "string", "description": "Identity provider identifier."},
+        "params": {"type": "object", "additionalProperties": true, "description": "Provider-specific identity parameters."}
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Identity provider configuration."
     },
-    "resolver": {"type": "object", "additionalProperties": {"type": "object", "additionalProperties": {"$ref": "#/$defs/resolverEntry"}}},
+    "resolver": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": {"$ref": "#/$defs/resolverEntry"},
+        "description": "Resolver entries for a logical resource category."
+      },
+      "description": "Resolver tables used to translate logical resources into concrete resources."
+    },
     "resolverEntry": {
       "type": "object",
       "required": ["url"],
       "properties": {
-        "url": {"type": "string"},
-        "loader": {"type": "string"},
-        "cache": {"type": "boolean"},
-        "moduleId": {"type": "string"},
-        "modulePath": {"type": "string"}
+        "url": {"type": "string", "description": "Concrete resource URL or URL template."},
+        "loader": {"type": "string", "description": "Loader used to load the resolved resource."},
+        "cache": {"type": "boolean", "description": "Whether the resolved resource may be cached."},
+        "moduleId": {"type": "string", "description": "Identifier of the module that owns the resource."},
+        "modulePath": {"type": "string", "description": "Virtual asset path of the module that owns the resource."}
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "Resolution rule for a concrete resource."
     }
-  }
+  },
+  "description": "Schema for the final merged and normalized XShell configuration passed to xshell.init()."
 }

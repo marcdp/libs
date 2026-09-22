@@ -18,7 +18,9 @@ export default class {
         const validator = new Validator(schema, "2020-12");
         const result = validator.validate(this._config);
         if (!result.valid) {
-            throw new Error("Invalid XShell configuration", {
+            const message = result.errors.map(e => e.message).join("\n");
+            debugger;
+            throw new Error("Invalid XShell configuration: " + message, {
                 cause: result.errors
             });
         }

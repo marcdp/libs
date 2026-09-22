@@ -8,6 +8,8 @@ namespace DProjects.XShell.Middlewares {
 
     public sealed class ResourcesMiddleware {
 
+        // consts
+        private const string ModuleFilesJson = "module.files.json";
         // fields
         private readonly RequestDelegate mPipeline;
 
@@ -38,13 +40,13 @@ namespace DProjects.XShell.Middlewares {
                         return;
                     }
                     var relativePath = remaining.Value ?? "";
-                    if (!relativePath.EndsWith("/index.files.json", StringComparison.OrdinalIgnoreCase)) {
+                    if (!relativePath.EndsWith("/" + ModuleFilesJson, StringComparison.OrdinalIgnoreCase)) {
                         await nextMiddleware();
                         return;
                     }
 
                     // index.files.json represents its containing directory
-                    var relativeDirectory = relativePath[..^"/index.files.json".Length].TrimStart('/');
+                    var relativeDirectory = relativePath[..^("/" + ModuleFilesJson).Length].TrimStart('/');
                     var directory = Path.GetFullPath(Path.Combine(physicalPath, relativeDirectory.Replace('/', Path.DirectorySeparatorChar)));
 
                     // prevent path traversal

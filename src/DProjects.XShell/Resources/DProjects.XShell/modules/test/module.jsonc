@@ -18,7 +18,7 @@
             "copyright": "",
             "controller": "/js/module.js",
             "imports": [
-                {"url": "url:../x/module.jsonc", "params": {"aaa":123, "bbb":456}}
+                {"configUrl": "url:../x/module.jsonc", "params": {"aaa":123, "bbb":456}}
             ],
             "contract": {
                 "events": {},
