@@ -2,7 +2,7 @@
   "profiles": {
     "DProjects.XShell": {
       "commandName": "Project",
-      "commandLineArgs": "server --app-base-path /prefix --app-config-path /_resources/DProjects.XShell/modules/x-demo/module.jsonc --param a=123 --param b=456",
+      "commandLineArgs": "server  --app-config-path /_resources/DProjects.XShell/modules/x-demo/module.jsonc --param a=123 --param b=456",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }

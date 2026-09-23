@@ -25,6 +25,7 @@ export default class Navigation {
         this._mode = config.xshell.navigation.mode;
         this._hashPrefix = config.xshell.navigation.hashPrefix;
         this._appBasePath = new URL(config.app.basePath).pathname;
+        if (this._appBasePath == "/") this._appBasePath = "";
     }
 
     // props
@@ -70,7 +71,7 @@ export default class Navigation {
             // init
             let url = document.location.pathname + document.location.search;
             if (url.startsWith(this._appBasePath)) url = url.substring(this._appBasePath.length);
-            if (url != "/") {
+            if (url != "" && url != "/") {
                 this._stack = this._browserUrlToStack(url);
                 this._stackToDom();
             } else {
@@ -214,7 +215,7 @@ export default class Navigation {
                 this._stackToBrowser(stack, { replace } );                
             } else {
                 // dialog or embed 
-                const hrefFinal = this._buildUrlFinal(hrefAbsolute);
+                const hrefFinal = this._buildUrlFinal(this.parseUrl(hrefAbsolute));
                 xpage.setAttribute("src", hrefFinal);
             }
         } else if (open == "top") {
@@ -235,7 +236,7 @@ export default class Navigation {
                 const xpage = page.host;
                 const outletElement = xpage.querySelector(`x-page[outlet="${outlet}"]`);
                 if (outletElement) {
-                    const hrefFinal = this._buildUrlFinal(hrefAbsolute);
+                    const hrefFinal = this._buildUrlFinal(this.parseUrl(hrefAbsolute));
                     outletElement.setAttribute("src", hrefFinal);
                 }
             }
@@ -427,7 +428,8 @@ export default class Navigation {
         //show page dialog
         let resolveFunc = null;
         let xpage = document.createElement("x-page");
-        xpage.setAttribute("src", href);
+        const hrefFinal = this._buildUrlFinal(this.parseUrl(href));
+        xpage.setAttribute("src", hrefFinal);
         xpage.setAttribute("layout", "dialog");
         xpage.addEventListener("close", (event) => {
             resolveFunc(event.target.result);
