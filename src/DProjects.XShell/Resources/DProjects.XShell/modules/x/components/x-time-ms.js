@@ -26,13 +26,11 @@ export default {
     },
     script({ state, events }) {
         return {
-            onCommand(command) {
-                if (command == "load"){
-                    //load
-                    events.on(state, "change:value", (event)=>{
-                        state.valueFormatted = formatMilliseconds(event.newValue);
-                    });
-                }
+            load() {
+                //load
+                events.on(state, "change:value", (event)=>{
+                    state.valueFormatted = formatMilliseconds(event.newValue);
+                });
             }
         }
     }

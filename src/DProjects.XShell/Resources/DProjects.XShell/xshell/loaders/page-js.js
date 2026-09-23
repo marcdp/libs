@@ -69,6 +69,7 @@ export async function createPageClassFromJsDefinition(src, context, definition) 
         _renderEngine = null;
         _renderPending = false;
         _disposables = [];
+        _script = null;
         // ctor
         constructor({ src, context }) {
             super({ src, context });
@@ -145,10 +146,8 @@ export async function createPageClassFromJsDefinition(src, context, definition) 
                     }
                 }
             });            
-            // set methods
-            const methods = definition.script?.(servicesProvider) ?? {};
-            // bind methods to the instance
-            Object.assign(this, methods);
+            // author script
+            this._script = definition.script?.(servicesProvider) ?? {};
         }
         // mount/unmount
         async mount({ host }) {

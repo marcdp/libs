@@ -50,18 +50,18 @@ export default {
     },
     script({ state, context }) {
         return {
-            onCommand(command, params) {
-                if (command == "load") {
-                    // load
+            load(params) {
+                // load
+            },
 
-                } else if (command == "submit") {
-                    //ok
-                    this.close(state.value);
+            submit(params) {
+                //ok
+                this.close(state.value);
+            },
 
-                } else if (command == "cancel") {
-                    //cancel
-                    this.close(null);
-                }                
+            cancel(params) {
+                //cancel
+                this.close(null);
             }
         };
     }

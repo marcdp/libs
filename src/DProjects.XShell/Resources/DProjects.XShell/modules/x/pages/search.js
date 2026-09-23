@@ -47,38 +47,37 @@ export default {
     },
     script({ state, events, bus, modules, areas, config }) {
         return {
-            onCommand(command, params) {
-                if (command == "load") {
-                    // load
-                    events.on(bus, "xshell:search", (event) => {
-                        state.keyword = event.detail.keyword
-                    });                
-                    events.on(state, "change:keyword", "search");
+            load(params) {
+                // load
+                events.on(bus, "xshell:search", (event) => {
+                    state.keyword = event.detail.keyword
+                });
+                events.on(state, "change:keyword", "search");
+            },
 
-                } else if (command == "search") {
-                    // search
-                    let keyword = state.keyword.toLowerCase();
-                    let results = [];
-                    if (keyword.length > 2) {
-                        const searchRecursive = function(menuitem) {
-                            if (menuitem.label.toLowerCase().indexOf(keyword) >= 0 && menuitem.href) {
-                                results.push(menuitem);
-                            }
-                            if (menuitem.children) {
-                                for (let child of menuitem.children) {
-                                    searchRecursive(child);
-                                }
+            search(params) {
+                // search
+                let keyword = state.keyword.toLowerCase();
+                let results = [];
+                if (keyword.length > 2) {
+                    const searchRecursive = function(menuitem) {
+                        if (menuitem.label.toLowerCase().indexOf(keyword) >= 0 && menuitem.href) {
+                            results.push(menuitem);
+                        }
+                        if (menuitem.children) {
+                            for (let child of menuitem.children) {
+                                searchRecursive(child);
                             }
                         }
-                        // search current area
-                        const currentArea = areas.getCurrentArea();
-                        const menu = areas.getMenu("navigation", currentArea.id);
-                        for(let menuitem of menu) searchRecursive(menuitem);
-                        // search other areas
-                        // todo ...
                     }
-                    state.results = results;
-                }                
+                    // search current area
+                    const currentArea = areas.getCurrentArea();
+                    const menu = areas.getMenu("navigation", currentArea.id);
+                    for(let menuitem of menu) searchRecursive(menuitem);
+                    // search other areas
+                    // todo ...
+                }
+                state.results = results;
             }
         };
     }

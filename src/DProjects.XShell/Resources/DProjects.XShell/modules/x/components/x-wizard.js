@@ -56,41 +56,43 @@ export default {
     `,
     script({ state }) {
         return {
-            onCommand(command, args) {
-                if (command == "load") {
-                    //load
-                    this.onCommand("refresh");
+            load(args) {
+                //load
+                this.onCommand("refresh");
+            },
 
-                } else if (command == "set") {
-                    //set
-                    let index = args.event.detail.index;
-                    state.index = index;
-                    this.onCommand("refresh");
+            set(args) {
+                //set
+                let index = args.event.detail.index;
+                state.index = index;
+                this.onCommand("refresh");
+            },
 
-                } else if (command == "prev") {
-                    //prev
-                    state.index--;
-                    this.onCommand("refresh");
+            prev(args) {
+                //prev
+                state.index--;
+                this.onCommand("refresh");
+            },
 
-                } else if (command == "next") {
-                    //next
-                    state.index++;
-                    this.onCommand("refresh");
+            next(args) {
+                //next
+                state.index++;
+                this.onCommand("refresh");
+            },
 
-                } else if (command == "refresh") {
-                    //refresh
-                    let panels = [];
-                    this.querySelectorAll(":scope > x-wizard-panel").forEach((panel, index) => {
-                        panels.push({
-                            label: panel.getAttribute("label"),
-                            message: panel.getAttribute("message"),
-                            icon: panel.getAttribute("icon") || "",
-                            index: index + 1
-                        });
+            refresh(args) {
+                //refresh
+                let panels = [];
+                this.querySelectorAll(":scope > x-wizard-panel").forEach((panel, index) => {
+                    panels.push({
+                        label: panel.getAttribute("label"),
+                        message: panel.getAttribute("message"),
+                        icon: panel.getAttribute("icon") || "",
+                        index: index + 1
                     });
-                    state.panels = panels;
-                    state.style = `::slotted(x-wizard-panel:nth-child(${parseInt(state.index) + 1})) {display:block;}`;
-                }
+                });
+                state.panels = panels;
+                state.style = `::slotted(x-wizard-panel:nth-child(${parseInt(state.index) + 1})) {display:block;}`;
             }
         };
     }

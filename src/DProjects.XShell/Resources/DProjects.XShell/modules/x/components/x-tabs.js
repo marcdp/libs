@@ -62,56 +62,55 @@ export default {
     `, 
     script({ state, events, getPage }) {
         return {
-            onCommand(command, params) {
-                if (command == "load") {
-                    //load
-                    events.on(state, "change:selectedHash", (event) => {
-                        let hash = event.newValue;
-                        let tabs = this.querySelectorAll(":scope > x-tab");
-                        let tab = Array.from(tabs).find(tab => tab.getAttribute("hash") == hash);
-                        let tabIndex = Array.from(tabs).indexOf(tab);
-                        if (tabIndex != -1) state.selectedIndex = tabIndex;
-                    });
-                    events.on(state, "change:selectedIndex", (event) => {
-                        let selectedIndex = event.newValue;
-                        let tabs = this.querySelectorAll(":scope > x-tab");
-                        let tab = tabs[selectedIndex];
-                        if (tab) state.selectedHash = tab.hash;
-                    });
-                    //hash
-                    var hash = (this.src + "#").split("#")[1];
-                    if (!hash) hash = state.selectedHash;
-                    if (hash) {
-                        state.selectedHash = "";
-                        state.selectedHash = hash;
-                    }
+            load(params) {
+                //load
+                events.on(state, "change:selectedHash", (event) => {
+                    let hash = event.newValue;
+                    let tabs = this.querySelectorAll(":scope > x-tab");
+                    let tab = Array.from(tabs).find(tab => tab.getAttribute("hash") == hash);
+                    let tabIndex = Array.from(tabs).indexOf(tab);
+                    if (tabIndex != -1) state.selectedIndex = tabIndex;
+                });
+                events.on(state, "change:selectedIndex", (event) => {
+                    let selectedIndex = event.newValue;
+                    let tabs = this.querySelectorAll(":scope > x-tab");
+                    let tab = tabs[selectedIndex];
+                    if (tab) state.selectedHash = tab.hash;
+                });
+                //hash
+                var hash = (this.src + "#").split("#")[1];
+                if (!hash) hash = state.selectedHash;
+                if (hash) {
+                    state.selectedHash = "";
+                    state.selectedHash = hash;
+                }
+            },
 
-                } else if (command == "click") {
-                    //click
-                    let event = params.event;
-                    let anchors = Array.from(this.shadowRoot.querySelectorAll("nav a"));
-                    state.selectedIndex = anchors.indexOf(event.target);
-                    this.onCommand("refresh");
-                    event.preventDefault();
-                    
-                } else if (command == "refresh") {
-                    //refresh
-                    let tabs = [];
-                    this.querySelectorAll(":scope > x-tab").forEach(tab => {
-                        tabs.push({
-                            label: tab.getAttribute("label"),
-                            icon: tab.getAttribute("icon") || "",
-                            hash: tab.getAttribute("hash") || ""
-                        });
+            click(params) {
+                //click
+                let event = params.event;
+                let anchors = Array.from(this.shadowRoot.querySelectorAll("nav a"));
+                state.selectedIndex = anchors.indexOf(event.target);
+                this.onCommand("refresh");
+                event.preventDefault();
+            },
+
+            refresh(params) {
+                //refresh
+                let tabs = [];
+                this.querySelectorAll(":scope > x-tab").forEach(tab => {
+                    tabs.push({
+                        label: tab.getAttribute("label"),
+                        icon: tab.getAttribute("icon") || "",
+                        hash: tab.getAttribute("hash") || ""
                     });
-                    state.tabs = tabs;
-                    state.style = `::slotted(x-tab:nth-child(${parseInt(state.selectedIndex) + 1})) {display:block;}`;
-                    //hash
-                    let tab = tabs[state.selectedIndex];
-                    if (tab && tab.hash) {
-                        getPage().replace("#" + tab.hash);
-                    }
-                    
+                });
+                state.tabs = tabs;
+                state.style = `::slotted(x-tab:nth-child(${parseInt(state.selectedIndex) + 1})) {display:block;}`;
+                //hash
+                let tab = tabs[state.selectedIndex];
+                if (tab && tab.hash) {
+                    getPage().replace("#" + tab.hash);
                 }
             }
         }

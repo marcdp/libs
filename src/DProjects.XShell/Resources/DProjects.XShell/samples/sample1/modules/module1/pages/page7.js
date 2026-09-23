@@ -25,27 +25,28 @@ export default {
     },
     script({ bus, state, timer, events }) {
         return {
-            onCommand(command, params) {
-                if (command == "load") {
-                    //load
-                    state.var1 = "holaaa";
-                    //timer.setInterval(1000, "refresh");
-                    events.on(bus, "xshell", "refresh")
-                    
-                } else if (command == "refresh") { 
-                    // refresh
-                    console.log("HElllooo" + new Date());
+            load(params) {
+                //load
+                state.var1 = "holaaa";
+                //timer.setInterval(1000, "refresh");
+                events.on(bus, "xshell", "refresh")
+            },
 
-                } else if (command == "mount") { 
-                    // mount
-                    this.refs.btn1.innerHTML = state.var1;
-                    events.on(this.refs.btn1, "click", "do-something");
-                    this.refs.btn1.style.border = "2px solid blue";
+            refresh(params) {
+                // refresh
+                console.log("HElllooo" + new Date());
+            },
 
-                } else if (command == "do-something") { 
-                    // todo ...
-                    alert("aaa2")
-                }
+            mount(params) {
+                // mount
+                this.refs.btn1.innerHTML = state.var1;
+                events.on(this.refs.btn1, "click", "do-something");
+                this.refs.btn1.style.border = "2px solid blue";
+            },
+
+            "do-something"(params) {
+                // todo ...
+                alert("aaa2")
             }
         }
     }

@@ -12,7 +12,9 @@ The loader imports the component module, prepares style, state, and render engin
 
 ## Construction and loading
 
-Construction creates a shadow root, creates state, exposes selected services to the component script, assigns returned methods to the instance, and invokes the `load` command.
+Construction creates a shadow root, creates state, exposes selected services to the component script, retains its returned named handlers privately,
+and invokes the `load` handler. A handler runs with the component instance as `this`, so it can use component APIs such as `dispatchEvent` and
+`shadowRoot` without replacing runtime lifecycle methods.
 
 ## Mount and render
 

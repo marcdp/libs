@@ -32,8 +32,10 @@ These observations describe the checked-in files only. They do not establish val
 
 The component loader reads `module.contract` and passes it into class construction, but class construction does not currently make substantial use of
 the object. The loader separately consumes the default runtime definition, whose fields include `meta`, `style`, `template`, `state`, and `script`.
-The component-level `script(...)` function is unrelated to a module definition's `controller` property. Methods returned by `script(...)` are assigned
-directly to the `HTMLElement` instance with `Object.assign`, and lifecycle commands are dispatched through `onCommand`.
+The component-level `script(...)` function is unrelated to a module definition's `controller` property. It returns named command and event handlers,
+such as `load`, `stateChange`, or `click`. The loader retains those handlers in a private script object and dispatches each command to its matching
+function with the component instance as `this`; it does not assign lifecycle handlers onto the `HTMLElement` instance. Methods declared by the
+component contract remain available as public component methods.
 
 ## Future manifest concept
 

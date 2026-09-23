@@ -59,15 +59,13 @@ export default {
     },
     script({ state }) {
         return {
-            onCommand(command, params){
-                if (command == "load") {
-                    //load
-                    this.addEventListener("click", ()=>{
-                        if (state.command) {
-                            this.dispatchEvent(new CustomEvent("command", {detail: {command: state.command, data: this.dataset}, bubbles: true, composed: false}));
-                        }
-                    });
-                } 
+            load(params) {
+                //load
+                this.addEventListener("click", ()=>{
+                    if (state.command) {
+                        this.dispatchEvent(new CustomEvent("command", {detail: {command: state.command, data: this.dataset}, bubbles: true, composed: false}));
+                    }
+                });
             }
         }
     }

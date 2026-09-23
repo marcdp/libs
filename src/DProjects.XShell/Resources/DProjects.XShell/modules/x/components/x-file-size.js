@@ -30,13 +30,11 @@ export default {
     },
     script({ state, events }) {
         return {
-            onCommand(command, params){
-                if (command == "load") {
-                    //load
-                    events.on(state, "change:value", (event) => {
-                        state.valueFormatted = formatFileSize(event.newValue);
-                    });
-                } 
+            load(params) {
+                //load
+                events.on(state, "change:value", (event) => {
+                    state.valueFormatted = formatFileSize(event.newValue);
+                });
             }
         }
     }

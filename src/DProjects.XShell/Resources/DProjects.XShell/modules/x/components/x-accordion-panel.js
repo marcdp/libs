@@ -63,22 +63,22 @@ export default {
     },
     script({ state }) {
         return {
-            onCommand(command, params){
-                if (command == "load") {
-                    //load
-                    this.onCommand("refresh");
+            load(params) {
+                //load
+                this.onCommand("refresh");
+            },
 
-                } else if (command == "collapse") {
-                    //collapse
-                    if (state.expanded) {
-                        this.onCommand("toggle");
-                    }
-
-                } else if (command == "toggle") {
-                    //toggle
-                    state.expanded = !state.expanded;
-                    this.dispatchEvent(new CustomEvent("toggle", {bubbles: true, composed: false}));
+            collapse(params) {
+                //collapse
+                if (state.expanded) {
+                    this.onCommand("toggle");
                 }
+            },
+
+            toggle(params) {
+                //toggle
+                state.expanded = !state.expanded;
+                this.dispatchEvent(new CustomEvent("toggle", {bubbles: true, composed: false}));
             }
         }
     }

@@ -29,26 +29,28 @@ export default {
     },
     script({ state, context }) {
         return {
-            onCommand(command, params) {
-                if (command == "load") {
-                    // load
+            load(params) {
+                // load
+            },
 
-                } else if (command == "yes") {
-                    //yes
-                    this.close("yes");
+            yes(params) {
+                //yes
+                this.close("yes");
+            },
 
-                } else if (command == "no") {
-                    //no
-                    this.close("no");
+            no(params) {
+                //no
+                this.close("no");
+            },
 
-                } else if (command == "cancel") {
-                    //cancel
-                    this.close("cancel");
+            cancel(params) {
+                //cancel
+                this.close("cancel");
+            },
 
-                } else if (command == "ok") {
-                    //ok
-                    this.close("ok");
-                }                
+            ok(params) {
+                //ok
+                this.close("ok");
             }
         };
     }

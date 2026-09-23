@@ -89,7 +89,10 @@ export default class Page {
         await this.onCommand("mount", {});
     }
     async onCommand(command, params = {}) {
-        // on command
+        const handler = this._script?.[command];
+        if (typeof(handler) === "function") {
+            return await handler.call(this, params);
+        }
     }
     async unmount() {
         // unmount

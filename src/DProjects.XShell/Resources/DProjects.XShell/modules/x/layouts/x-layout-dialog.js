@@ -82,28 +82,28 @@ export default {
     `,
     script({ state, events, bus, getPage }) {
         return {
-            onCommand(command) {
-                if (command == "load") {
-                    //load
-                    events.on(bus, "xshell:page:load", "refresh");
-                    this.onCommand("refresh");
+            load() {
+                //load
+                events.on(bus, "xshell:page:load", "refresh");
+                this.onCommand("refresh");
+                setTimeout(() => {
+                    this.shadowRoot.querySelector("DIALOG").showModal();
                     setTimeout(() => {
-                        this.shadowRoot.querySelector("DIALOG").showModal();
-                        setTimeout(() => {
-                            state.opened = true;
-                        }, 0);
+                        state.opened = true;
                     }, 0);
+                }, 0);
+            },
 
-                } else if (command == "refresh") {
-                    //refresh
-                    const page = getPage();
-                    state.label = page.label;
+            refresh() {
+                //refresh
+                const page = getPage();
+                state.label = page.label;
+            },
 
-                } else if (command == "query-close") {
-                    //query close
-                    args.event.preventDefault();
-                    this.dispatchEvent(new CustomEvent("query-close", { composed: true }));
-                }
+            "query-close"() {
+                //query close
+                args.event.preventDefault();
+                this.dispatchEvent(new CustomEvent("query-close", { composed: true }));
             }
         }
     }

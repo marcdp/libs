@@ -9,10 +9,8 @@ export default {
     },
     script({ state }) {
         return {
-            onCommand(command, params) {
-                if (command == "load") {
-                   // load
-                }                
+            load(params) {
+               // load
             }
         };
     }

@@ -48,22 +48,21 @@ export default {
     },
     script({ state, events }) {
         return {
-            async onCommand(command) {
-                if (command == "load") {
-                    //load
-                    events.on(state, "change:view", "refresh");
+            async load() {
+                //load
+                events.on(state, "change:view", "refresh");
+            },
 
-                } else if (command == "refresh") {
-                    //slotchange
-                    let view = state.view;
-                    let lastElement = null;
-                    this.shadowRoot.querySelector("slot:not([name])").assignedElements().forEach((item) => {
-                        item.view = view;
-                        lastElement = item;
-                    });
-                    if (lastElement && state.autoScroll && this.checkVisibility()) {
-                        lastElement.scrollIntoView({ block: "end", behavior: "smooth" });
-                    }
+            async refresh() {
+                //slotchange
+                let view = state.view;
+                let lastElement = null;
+                this.shadowRoot.querySelector("slot:not([name])").assignedElements().forEach((item) => {
+                    item.view = view;
+                    lastElement = item;
+                });
+                if (lastElement && state.autoScroll && this.checkVisibility()) {
+                    lastElement.scrollIntoView({ block: "end", behavior: "smooth" });
                 }
             }
         };

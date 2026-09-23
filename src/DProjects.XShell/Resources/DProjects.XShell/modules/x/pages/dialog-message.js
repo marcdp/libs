@@ -26,13 +26,13 @@ export default {
     },
     script({ state, context }) {
         return {
-            onCommand(command, params) {
-                if (command == "load") {
-                    // load
-                } else if (command == "submit") {
-                    // submit
-                    this.close("ok");
-                }                
+            load(params) {
+                // load
+            },
+
+            submit(params) {
+                // submit
+                this.close("ok");
             }
         };
     }

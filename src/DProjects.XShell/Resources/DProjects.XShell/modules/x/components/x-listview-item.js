@@ -68,10 +68,8 @@ export default {
     },
     script({}) {
         return {
-            async onCommand(command) {
-                if (command == "load") {
-                    //load
-                }
+            async load() {
+                //load
             }
         };
     }

@@ -29,17 +29,15 @@ export default {
     },
     script({ state, events, loader }) {
         return {
-            onCommand(command, params){
-                if (command == "load") {
-                    //load
-                    events.on(state, "change:icon", async (event) => {
-                        if (state.icon) {
-                            state.svg = await loader.load("icon:" + state.icon);
-                        } else {
-                            state.svg = null;
-                        }
-                    });
-                } 
+            load(params) {
+                //load
+                events.on(state, "change:icon", async (event) => {
+                    if (state.icon) {
+                        state.svg = await loader.load("icon:" + state.icon);
+                    } else {
+                        state.svg = null;
+                    }
+                });
             }
         }
     }

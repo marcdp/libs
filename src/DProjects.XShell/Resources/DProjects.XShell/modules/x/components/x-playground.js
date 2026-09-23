@@ -47,16 +47,15 @@ export default {
     },
     script({ state }) {
         return {
-            onCommand(command, args) {
-                if (command == "load") {
-                    //debugger;
-                    state.html = this.innerHTML;
+            load(args) {
+                //debugger;
+                state.html = this.innerHTML;
+            },
 
-                } else if (command == "change") {
-                    //change
-                    let event = args.event;
-                    state.html = event.target.value;
-                }
+            change(args) {
+                //change
+                let event = args.event;
+                state.html = event.target.value;
             }
         };
     }

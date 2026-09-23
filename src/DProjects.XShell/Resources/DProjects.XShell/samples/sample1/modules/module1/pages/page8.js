@@ -24,36 +24,39 @@ export default {
     `,
     script({ state, dialog}) {
         return {
-            async onCommand(command, params){
-                if (command == "doSomething") {
-                    // dosomething
-                    state.varMarc1++;
-                    state.var2++;
+            async doSomething(params) {
+                // dosomething
+                state.varMarc1++;
+                state.var2++;
+            },
 
-                } else if (command == "doMessage") {
-                    // message
-                    await dialog.message({title:"hello0", message:"Lorem ipsum asd kjsadhg ajsdhg ajsdgha kdsbye", type:"warning"})
-                    
-                } else if (command == "doConfirm") {
-                    // confirm
-                    const result = await dialog.confirm({title:"hello0", message:"bye", variant:"ok"})
-                    alert(result)
+            async doMessage(params) {
+                // message
+                await dialog.message({title:"hello0", message:"Lorem ipsum asd kjsadhg ajsdhg ajsdgha kdsbye", type:"warning"})
+            },
 
-                } else if (command == "doPrompt") {
-                    // prompt
-                    const result = await dialog.prompt({title:"hello0", message:"bye", required:true})
-                    alert(result)
+            async doConfirm(params) {
+                // confirm
+                const result = await dialog.confirm({title:"hello0", message:"bye", variant:"ok"})
+                alert(result)
+            },
 
-                } else if (command == "doPicker") {
-                    // picker
-                    const result = await dialog.picker({title:"hello0", message:"bye", domain:[{value:1,label:"11111"},{value:2,label:"2222"}], required:true})
-                    alert(result)
+            async doPrompt(params) {
+                // prompt
+                const result = await dialog.prompt({title:"hello0", message:"bye", required:true})
+                alert(result)
+            },
 
-                } else if (command == "doLanguage") {
-                    // language
-                    const result = await dialog.language()
-                    alert(result)
-                }
+            async doPicker(params) {
+                // picker
+                const result = await dialog.picker({title:"hello0", message:"bye", domain:[{value:1,label:"11111"},{value:2,label:"2222"}], required:true})
+                alert(result)
+            },
+
+            async doLanguage(params) {
+                // language
+                const result = await dialog.language()
+                alert(result)
             }
         }
     }

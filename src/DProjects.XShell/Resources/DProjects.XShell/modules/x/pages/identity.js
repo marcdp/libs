@@ -35,24 +35,23 @@ export default {
     },
     script({ state, identity, dialog, auth }) {
         return {
-            async onCommand(command, params) {
-                if (command == "load") {
-                    // load
-                    state.id = identity.id;
-                    state.name = identity.name;
-                    state.roles = identity.roles;
-                    state.claims = Object.entries(identity.claims).map(([key, value]) => ({ key: key, value: value }));
-                    
-                } else if (command == "logout") {
-                    // logout
-                    const result = await dialog.confirm({ 
-                        title: "Logout", 
-                        message: "Are you sure you want to logout?" 
-                    });
-                    if (result === "yes") {
-                        auth.logout();
-                    }
-                }                
+            async load(params) {
+                // load
+                state.id = identity.id;
+                state.name = identity.name;
+                state.roles = identity.roles;
+                state.claims = Object.entries(identity.claims).map(([key, value]) => ({ key: key, value: value }));
+            },
+
+            async logout(params) {
+                // logout
+                const result = await dialog.confirm({
+                    title: "Logout",
+                    message: "Are you sure you want to logout?"
+                });
+                if (result === "yes") {
+                    auth.logout();
+                }
             }
         };
     }

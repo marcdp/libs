@@ -140,86 +140,90 @@ export default {
     },
     script({ state, events, navigation, getPage }) {
         return {
-            onCommand(command, args) {
-                if (command == "load") {
-                    // load
-                    events.on(state, "change:href", "refresh");
-                    this.onCommand("refresh");
+            load(args) {
+                // load
+                events.on(state, "change:href", "refresh");
+                this.onCommand("refresh");
+            },
 
-                } else if (command == "mount") {
-                    // mount
-                    if (state.autofocus) {
-                        requestAnimationFrame(() => {
-                            let focusable = this.shadowRoot.querySelector("a.button");
-                            if (focusable) {
-                                focusable.focus();
-                            }
-                        });
-                    }
-
-                } else if (command == "command") {
-                    // command
-                    let handled = false;
-                    if (state.command) {
-                        this.dispatchEvent(new CustomEvent("command", {detail: {command: state.command, data: this.dataset}, bubbles: true, composed: false}));
-                        handled = true;
-                    } else if (state.childs) {
-                        if (state.expanded) {
-                            this.onCommand("collapse");
-                        } else {
-                            this.onCommand("expand");
+            mount(args) {
+                // mount
+                if (state.autofocus) {
+                    requestAnimationFrame(() => {
+                        let focusable = this.shadowRoot.querySelector("a.button");
+                        if (focusable) {
+                            focusable.focus();
                         }
-                        handled = true;
-                    }
-                    //cancel propagation
-                    if (handled) {
-                        let event = args.event;
-                        if (event) {
-                            event.preventDefault();
-                            event.stopPropagation();
-                        }
-                    }
+                    });
+                }
+            },
 
-                } else if (command == "expand") {
-                    // expand
-                    state.expanded = true;
-                    // bind event               
-                    if (!this.onDocumentClick) {
-                        this.onDocumentClick = function() { this.onCommand("collapse"); }.bind(this);
-                    }
-                    document.addEventListener("click", this.onDocumentClick, true);
-
-                } else if (command == "collapse") {
-                    // collapse
-                    state.expanded = false;
-                    // unbind event
-                    document.removeEventListener("click", this.onDocumentClick, true);
-                    delete this.onDocumentClick;
-
-                } else if (command == "toggle") {
-                    //toggle
+            command(args) {
+                // command
+                let handled = false;
+                if (state.command) {
+                    this.dispatchEvent(new CustomEvent("command", {detail: {command: state.command, data: this.dataset}, bubbles: true, composed: false}));
+                    handled = true;
+                } else if (state.childs) {
                     if (state.expanded) {
                         this.onCommand("collapse");
                     } else {
                         this.onCommand("expand");
                     }
-    
-                } else if (command == "refresh") {
-                    // refresh
-                    state.childs = (this.firstElementChild != null);
-                    // childsClass
-                    if (state.childs) {
-                        let rect = this.getBoundingClientRect();
-                        if (window.innerWidth - rect.right < 100) {
-                            state.forceRight = true;
-                        }
+                    handled = true;
+                }
+                //cancel propagation
+                if (handled) {
+                    let event = args.event;
+                    if (event) {
+                        event.preventDefault();
+                        event.stopPropagation();
                     }
-                    // href
-                    if (state.href) {
-                        state.realHref = navigation.getHref(state.href, getPage(), { breadcrumb: state.breadcrumb });
-                    } else {
-                        state.realHref = null;
+                }
+            },
+
+            expand(args) {
+                // expand
+                state.expanded = true;
+                // bind event
+                if (!this.onDocumentClick) {
+                    this.onDocumentClick = function() { this.onCommand("collapse"); }.bind(this);
+                }
+                document.addEventListener("click", this.onDocumentClick, true);
+            },
+
+            collapse(args) {
+                // collapse
+                state.expanded = false;
+                // unbind event
+                document.removeEventListener("click", this.onDocumentClick, true);
+                delete this.onDocumentClick;
+            },
+
+            toggle(args) {
+                //toggle
+                if (state.expanded) {
+                    this.onCommand("collapse");
+                } else {
+                    this.onCommand("expand");
+                }
+            },
+
+            refresh(args) {
+                // refresh
+                state.childs = (this.firstElementChild != null);
+                // childsClass
+                if (state.childs) {
+                    let rect = this.getBoundingClientRect();
+                    if (window.innerWidth - rect.right < 100) {
+                        state.forceRight = true;
                     }
+                }
+                // href
+                if (state.href) {
+                    state.realHref = navigation.getHref(state.href, getPage(), { breadcrumb: state.breadcrumb });
+                } else {
+                    state.realHref = null;
                 }
             }
         }

@@ -53,32 +53,33 @@ export default {
     `,
     script({ state }) {
         return {
-            onCommand(command, params){
-                if (command == "load") {
-                    //load
+            load(params) {
+                //load
+            },
 
-                } else if(command == "ready") {
-                    //ready
-                    state.ready = true;
+            ready(params) {
+                //ready
+                state.ready = true;
+            },
 
-                } else if(command == "input") {
-                    //input
-                    console.log("input");
-                    clearTimeout(this._inputTimeoutId);
-                    this._inputTimeoutId = setTimeout(()=>{
-                        this.onCommand("change");
-                    }, 500);
-                    
-                } else if(command == "change") {
-                    //change
-                    console.log("change");
-                    clearTimeout(this._inputTimeoutId);
-                    let target = this.shadowRoot.querySelector(".editor");
-                    let oldValue = state.value;
-                    let newValue = target.value ?? "";
-                    state.value = newValue;
-                    this.dispatchEvent(new CustomEvent("change", {detail: {oldValue, newValue}, bubbles: true, composed: false}));
-                }
+            input(params) {
+                //input
+                console.log("input");
+                clearTimeout(this._inputTimeoutId);
+                this._inputTimeoutId = setTimeout(()=>{
+                    this.onCommand("change");
+                }, 500);
+            },
+
+            change(params) {
+                //change
+                console.log("change");
+                clearTimeout(this._inputTimeoutId);
+                let target = this.shadowRoot.querySelector(".editor");
+                let oldValue = state.value;
+                let newValue = target.value ?? "";
+                state.value = newValue;
+                this.dispatchEvent(new CustomEvent("change", {detail: {oldValue, newValue}, bubbles: true, composed: false}));
             },
             preRender() {
                 debugger;

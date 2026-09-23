@@ -109,15 +109,13 @@ export default {
 
     script({ }) {
         return {
-            onCommand(command, params) {
-                if (command == "edit") {
-                    this.dispatchEvent(
-                        new CustomEvent("edit", {
-                            bubbles: true,
-                            composed: false
-                        })
-                    );
-                }
+            edit({ event }) {
+                this.dispatchEvent(
+                    new CustomEvent("edit", {
+                        bubbles: true,
+                        composed: false
+                    })
+                );
             }
         };
     }

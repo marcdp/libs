@@ -49,50 +49,50 @@ export default {
     },
     script({ state, navigation, getPage }) {
         return {
-            onCommand(command, params){
-                if (command == "load") {
-                    // load
+            load(params) {
+                // load
+            },
 
-                } else if (command == "stateChange") {
-                    // refresh
-                    if (state.href) {
-                        const page = getPage();
-                        const href = navigation.buildUrlAbsolute({
-                            href:       state.href,
-                            params:     state.qs,
-                            open:       state.open,
-                            replace:    state.replace,
-                            page:       page,
-                            nav: {
-                                breadcrumb: (state.breadcrumb ? page?.breadcrumb : null),
-                                title:      state.title,
-                                icon:       state.icon
-                            }
-                        });
-                        // set real href    
-                        state.hrefReal = href;
-                    }
-
-                } else if (command == "click") {
-                    // click
-                    const event = params.event;
-                    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || state.target) return;
+            stateChange(params) {
+                // refresh
+                if (state.href) {
                     const page = getPage();
-                    navigation.navigate( {
-                        href: state.href, 
-                        params: state.qs,
-                        open: state.open,
-                        replace: state.replace,
-                        page: page,
-                        outlet: state.outlet,
+                    const href = navigation.buildUrlAbsolute({
+                        href:       state.href,
+                        params:     state.qs,
+                        open:       state.open,
+                        replace:    state.replace,
+                        page:       page,
                         nav: {
-                            breadcrumb: (state.breadcrumb ? page.breadcrumb : null),
+                            breadcrumb: (state.breadcrumb ? page?.breadcrumb : null),
                             title:      state.title,
                             icon:       state.icon
                         }
                     });
-                    event.preventDefault();
+                    // set real href
+                    state.hrefReal = href;
                 }
+            },
+
+            click(params) {
+                // click
+                const event = params.event;
+                if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || state.target) return;
+                const page = getPage();
+                navigation.navigate( {
+                    href: state.href,
+                    params: state.qs,
+                    open: state.open,
+                    replace: state.replace,
+                    page: page,
+                    outlet: state.outlet,
+                    nav: {
+                        breadcrumb: (state.breadcrumb ? page.breadcrumb : null),
+                        title:      state.title,
+                        icon:       state.icon
+                    }
+                });
+                event.preventDefault();
             }
         }
     }

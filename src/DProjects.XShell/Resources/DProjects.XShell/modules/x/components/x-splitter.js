@@ -21,26 +21,24 @@ export default {
     state: { },
     script({}) {
         return {
-            onCommand(command) {
-                if (command == "load"){
-                    //init
-                    let mouseMove = () => {
-                        console.log("mouse move");
-                    };
-                    let mouseUp = () => {
-                        console.log("mouse up");
-                        document.removeEventListener("mousemove", mouseMove);
-                        document.removeEventListener("mouseup", mouseUp);
-                    };
-                    this.addEventListener("mousedown", () => {
-                        document.addEventListener("mousemove", mouseMove);
-                        document.addEventListener("mouseup", mouseUp);
-                    });
+            load() {
+                //init
+                let mouseMove = () => {
+                    console.log("mouse move");
+                };
+                let mouseUp = () => {
+                    console.log("mouse up");
+                    document.removeEventListener("mousemove", mouseMove);
+                    document.removeEventListener("mouseup", mouseUp);
+                };
+                this.addEventListener("mousedown", () => {
+                    document.addEventListener("mousemove", mouseMove);
+                    document.addEventListener("mouseup", mouseUp);
+                });
+            },
 
-                } else if (command == "resize") {
-                    //resize
-
-                }
+            resize() {
+                //resize
             }
         };
     }                

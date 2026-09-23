@@ -55,19 +55,18 @@ export default {
     },
     script({ state }) {
         return {
-            onCommand(command, args) {
-                if (command === "load") {
-                    //load
-                    
+            load(args) {
+                //load
+            },
 
-                } else if (command == "prev") {
-                    //prev
-                    this.dispatchEvent(new CustomEvent("change", {detail: {index: state.index - 1, size: state.size}}));
+            prev(args) {
+                //prev
+                this.dispatchEvent(new CustomEvent("change", {detail: {index: state.index - 1, size: state.size}}));
+            },
 
-                } else if (command == "next") {
-                    //next
-                    this.dispatchEvent(new CustomEvent("change", {detail: {index: state.index + 1, size: state.size}}));
-                }
+            next(args) {
+                //next
+                this.dispatchEvent(new CustomEvent("change", {detail: {index: state.index + 1, size: state.size}}));
             }
         };
     }

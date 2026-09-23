@@ -31,20 +31,19 @@ export default {
     },
     script({ state, events, bus, areas }) {
         return {
-            onCommand(command, params) {
-                if (command == "load") {
-                    // load
-                    events.on(bus, "xshell:area:change", "refresh");
-                    state.areas = areas.getAreas();
-                    this.onCommand("refresh");
-                    
-                } else if (command == "refresh") {
-                    // refresh selected area
-                    let currentArea = areas.getCurrentArea();
-                    if (currentArea) {
-                        state.selected = currentArea.id;
-                    }
-                }                
+            load(params) {
+                // load
+                events.on(bus, "xshell:area:change", "refresh");
+                state.areas = areas.getAreas();
+                this.onCommand("refresh");
+            },
+
+            refresh(params) {
+                // refresh selected area
+                let currentArea = areas.getCurrentArea();
+                if (currentArea) {
+                    state.selected = currentArea.id;
+                }
             }
         };
     }

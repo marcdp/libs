@@ -29,23 +29,21 @@ export default {
     `,
     script({}) {
         return {
-            onCommand(command, params){
-                if (command == "load") {
-                    //load
-                    this.addEventListener("toggle", (event) => {
-                        let target = event.target;
-                        if (target.expanded) {
-                            this.querySelectorAll(":scope > x-accordion-panel").forEach((panel) => {
-                                if (panel != target) {
-                                    panel.onCommand("collapse");
-                                }
-                            });
-                        }
-                        event.stopPropagation();
-                        event.preventDefault();
-                        return false;
-                    });
-                } 
+            load(params) {
+                //load
+                this.addEventListener("toggle", (event) => {
+                    let target = event.target;
+                    if (target.expanded) {
+                        this.querySelectorAll(":scope > x-accordion-panel").forEach((panel) => {
+                            if (panel != target) {
+                                panel.onCommand("collapse");
+                            }
+                        });
+                    }
+                    event.stopPropagation();
+                    event.preventDefault();
+                    return false;
+                });
             }
         }
     }

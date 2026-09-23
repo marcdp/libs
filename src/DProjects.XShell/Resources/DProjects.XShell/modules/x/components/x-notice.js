@@ -59,14 +59,13 @@ export default {
     },
     script({ state }) {
         return {
-            onCommand(command) {
-                if (command == "load") {
-                    //load
+            load() {
+                //load
+            },
 
-                } else if (command == "close") {
-                    //close
-                    state.visible = false;
-                }
+            close() {
+                //close
+                state.visible = false;
             }
         };
     }

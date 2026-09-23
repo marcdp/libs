@@ -81,45 +81,47 @@ export default {
     },
     script({ state }) {
         return {
-            async onCommand(command) {
-                if (command == "load") {
-                    //load                
-                    this.onCommand("refresh");
-        
-                } else if (command == "toggle") {
-                    //toggle
-                    if (state.expanded) {
-                        this.onCommand("collapse");
-                    } else {
-                        this.onCommand("expand");
-                    }
+            async load() {
+                //load
+                this.onCommand("refresh");
+            },
 
-                } else if (command == "expand") {
-                    //expand
-                    if (state.hasChilds) {
-                        state.expanded = true;
-                        this.dispatchEvent(new CustomEvent("toggle", {bubbles: true}));    
-                    }
-
-                } else if (command == "collapse") {
-                    //collapse
-                    if (state.expanded) {
-                        state.expanded = false;
-                        this.dispatchEvent(new CustomEvent("toggle", {bubbles: true}));    
-                    }
-
-                } else if (command == "refresh") {
-                    //refresh
-                    state.hasChilds = (this.querySelectorAll(':scope > :not([slot])').length > 0);
-                    //indent
-                    let element = this;
-                    let indent = 0;
-                    while (element && element.localName !== "x-treeview") {
-                        element = element.parentElement; // Move directly to the parent
-                        if (element.localName == "x-treeview-item") indent++;
-                    }
-                    state.indent = indent;
+            async toggle() {
+                //toggle
+                if (state.expanded) {
+                    this.onCommand("collapse");
+                } else {
+                    this.onCommand("expand");
                 }
+            },
+
+            async expand() {
+                //expand
+                if (state.hasChilds) {
+                    state.expanded = true;
+                    this.dispatchEvent(new CustomEvent("toggle", {bubbles: true}));
+                }
+            },
+
+            async collapse() {
+                //collapse
+                if (state.expanded) {
+                    state.expanded = false;
+                    this.dispatchEvent(new CustomEvent("toggle", {bubbles: true}));
+                }
+            },
+
+            async refresh() {
+                //refresh
+                state.hasChilds = (this.querySelectorAll(':scope > :not([slot])').length > 0);
+                //indent
+                let element = this;
+                let indent = 0;
+                while (element && element.localName !== "x-treeview") {
+                    element = element.parentElement; // Move directly to the parent
+                    if (element.localName == "x-treeview-item") indent++;
+                }
+                state.indent = indent;
             }
         };
     }

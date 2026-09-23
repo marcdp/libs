@@ -102,78 +102,83 @@ export default {
     },
     script({ state, events, bus }) {
         return {
-            onCommand(command) {
-                if (command == "load") {
-                    //load
-                    this.shadowRoot.addEventListener("focusout", (event) => {
-                        if (!state.collapseOnClick) {
-                            //if new focused element is a descendant of this element, does nothing
-                            let relatedTarget = event.relatedTarget;
-                            if (isDescendantOfElement(this, relatedTarget)) return;
-                            //if last mousedown was less than 10ms ago, does nothing
-                            let diff = performance.now() - this._mousedownBodyAt;
-                            if (isNaN(diff) || diff > 10) this.onCommand("collapse");
-                        }
-                    });
-                    events.on(bus, "xshell:navigation:start", () => {
-                        //if navigation occurred, collapse
-                        if (state.expanded) {
-                            if (!state.collapseOnClick) {
-                                this.onCommand("collapse");
-                            }
-                        }
-                    });
-                    
-                } else if (command == "focus-head") {
-                    //focus-head
+            load() {
+                //load
+                this.shadowRoot.addEventListener("focusout", (event) => {
                     if (!state.collapseOnClick) {
-                        this.onCommand("expand");
+                        //if new focused element is a descendant of this element, does nothing
+                        let relatedTarget = event.relatedTarget;
+                        if (isDescendantOfElement(this, relatedTarget)) return;
+                        //if last mousedown was less than 10ms ago, does nothing
+                        let diff = performance.now() - this._mousedownBodyAt;
+                        if (isNaN(diff) || diff > 10) this.onCommand("collapse");
                     }
+                });
+                events.on(bus, "xshell:navigation:start", () => {
+                    //if navigation occurred, collapse
+                    if (state.expanded) {
+                        if (!state.collapseOnClick) {
+                            this.onCommand("collapse");
+                        }
+                    }
+                });
+            },
 
-                } else if (command == "mousedown-head") {
-                    //mousedown (remember mousedown time)
-                    this._mousedownHeadAt = performance.now();
+            "focus-head"() {
+                //focus-head
+                if (!state.collapseOnClick) {
+                    this.onCommand("expand");
+                }
+            },
 
-                } else if (command == "click-head") {
-                    //click-head
-                    if (state.collapseOnClick) {
-                        if (state.expanded) {
-                            let diff = performance.now() - this._expandedAt;
-                            if (diff > 200) {
-                                this.onCommand("collapse");
-                            }
-                        } else {
-                            this.onCommand("expand");    
+            "mousedown-head"() {
+                //mousedown (remember mousedown time)
+                this._mousedownHeadAt = performance.now();
+            },
+
+            "click-head"() {
+                //click-head
+                if (state.collapseOnClick) {
+                    if (state.expanded) {
+                        let diff = performance.now() - this._expandedAt;
+                        if (diff > 200) {
+                            this.onCommand("collapse");
                         }
                     } else {
                         this.onCommand("expand");
                     }
+                } else {
+                    this.onCommand("expand");
+                }
+            },
 
-                } else if (command == "mousedown-body") {
-                    //mousedown (remember mousedown time)
-                    this._mousedownBodyAt = performance.now();
+            "mousedown-body"() {
+                //mousedown (remember mousedown time)
+                this._mousedownBodyAt = performance.now();
+            },
 
-                } else if (command == "click-body") {
-                    //click-body
-                    let a = findFocusableElement(this);
-                    let activeElement = getDeepActiveElement();
-                    if (a != null && activeElement && activeElement.localName == "body") {
-                        //if click in body, focus on first focusable element
-                        a.focus();
-                    }
+            "click-body"() {
+                //click-body
+                let a = findFocusableElement(this);
+                let activeElement = getDeepActiveElement();
+                if (a != null && activeElement && activeElement.localName == "body") {
+                    //if click in body, focus on first focusable element
+                    a.focus();
+                }
+            },
 
-                } else if (command == "expand") {
-                    //expand
-                    if (!state.expanded) {
-                        this._expandedAt = performance.now();
-                        state.expanded = true;
-                    }
+            expand() {
+                //expand
+                if (!state.expanded) {
+                    this._expandedAt = performance.now();
+                    state.expanded = true;
+                }
+            },
 
-                } else if (command == "collapse") {
-                    //collapse
-                    if (state.expanded) {
-                        state.expanded = false;
-                    }
+            collapse() {
+                //collapse
+                if (state.expanded) {
+                    state.expanded = false;
                 }
             }
         }

@@ -108,31 +108,31 @@ export default {
     `,
     script({ state }) {
         return {
-            onCommand(command, args) {
-                if (command == "load") {
-                    //load
-                    this.onCommand("refresh");
+            load(args) {
+                //load
+                this.onCommand("refresh");
+            },
 
-                } else if (command == "click") {
-                    //click
-                    let index = parseInt(args.event.currentTarget.dataset.index);
-                    if (index < state.index) {
-                        this.dispatchEvent(new CustomEvent("index-set", {detail: {index: index}, bubbles: false, composed: false}));
-                    }
-
-                } else if (command == "refresh") {
-                    //refresh
-                    let panels = [];
-                    this.querySelectorAll(":scope > *").forEach((panel, index) => {
-                        panels.push({
-                            label: panel.getAttribute("label"),
-                            message: panel.getAttribute("message"),
-                            icon: panel.getAttribute("icon") || "",
-                            index: index + 1
-                        });
-                    });
-                    state.panels = panels;
+            click(args) {
+                //click
+                let index = parseInt(args.event.currentTarget.dataset.index);
+                if (index < state.index) {
+                    this.dispatchEvent(new CustomEvent("index-set", {detail: {index: index}, bubbles: false, composed: false}));
                 }
+            },
+
+            refresh(args) {
+                //refresh
+                let panels = [];
+                this.querySelectorAll(":scope > *").forEach((panel, index) => {
+                    panels.push({
+                        label: panel.getAttribute("label"),
+                        message: panel.getAttribute("message"),
+                        icon: panel.getAttribute("icon") || "",
+                        index: index + 1
+                    });
+                });
+                state.panels = panels;
             }
         };
     }

@@ -62,29 +62,28 @@ export default {
     `,
     script({ state }) {
         return {
-            onCommand(command, args){
-                if (command == "load"){
-                    //load
-                    this.addEventListener("focusout", (event) => {
-                        this.onCommand("change", {event});
-                    });
+            load(args) {
+                //load
+                this.addEventListener("focusout", (event) => {
+                    this.onCommand("change", {event});
+                });
+            },
 
-                } else if (command == "action") {
-                    //action
-                    let event = args.event;
-                    let action = event.target.dataset.action;
-                    document.execCommand(action, false, null);
+            action(args) {
+                //action
+                let event = args.event;
+                let action = event.target.dataset.action;
+                document.execCommand(action, false, null);
+            },
 
-                } else if (command == "change") {
-                    //change
-                    let target = this.shadowRoot.querySelector(".editor");
-                    let oldValue = state.value;
-                    let newValue = target.innerHTML;
-                    if (newValue == "<br>") newValue = "";
-                    state.value = newValue;
-                    this.dispatchEvent(new CustomEvent("change", {detail: {oldValue, newValue}, bubbles: true, composed: false}));
-                    
-                }
+            change(args) {
+                //change
+                let target = this.shadowRoot.querySelector(".editor");
+                let oldValue = state.value;
+                let newValue = target.innerHTML;
+                if (newValue == "<br>") newValue = "";
+                state.value = newValue;
+                this.dispatchEvent(new CustomEvent("change", {detail: {oldValue, newValue}, bubbles: true, composed: false}));
             }
         };
     }

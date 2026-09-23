@@ -86,13 +86,11 @@ export default {
     },
     script({ state, events }) {
         return {
-            onCommand(command, params) {
-                if (command == "load") {
-                    //load
-                    events.on(state, "change:value", (event) => {
-                        state.colorized = colorize(event.newValue);                        
-                    });
-                } 
+            load(params) {
+                //load
+                events.on(state, "change:value", (event) => {
+                    state.colorized = colorize(event.newValue);
+                });
             }
         }
     }

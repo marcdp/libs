@@ -121,6 +121,7 @@ export async function createComponentClassFromJsDefinition(src, context, definit
         _stateChanges = [];
         _disposables = [];
         _reflectingAttributes = new Set();
+        _script = null;
         // static
         static get observedAttributes() { 
             return propertyAttributeNames;
@@ -179,10 +180,15 @@ export async function createComponentClassFromJsDefinition(src, context, definit
                     }                    
                 }
             });
-            // set methods
-            const methods = definition.script?.(servicesProvider) ?? {};
-            // bind methods to the instance
-            Object.assign(this, methods);
+            // author script
+            this._script = definition.script?.(servicesProvider) ?? {};
+            // expose contract methods without replacing runtime lifecycle methods
+            for (const methodName of Object.keys(contract?.methods ?? {})) {
+                const method = this._script[methodName];
+                if (typeof(method) === "function" && !(methodName in this)) {
+                    this[methodName] = (...params) => method.apply(this, params);
+                }
+            }
             // attribute mutation observer (listen for changes in attributes that starts with state map attribute names, ex: qs-*)
             if (stateMapAttributes.length) {
                 const mutationObserver = new MutationObserver((mutationsList) => {
@@ -264,6 +270,10 @@ export async function createComponentClassFromJsDefinition(src, context, definit
         }
         // onCommand
         onCommand(command, params) {
+            const handler = this._script?.[command];
+            if (typeof(handler) === "function") {
+                return handler.call(this, params);
+            }
         }
         // reflectPropertyToAttribute
         reflectPropertyToAttribute(propName, value) {

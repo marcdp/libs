@@ -275,72 +275,74 @@ export default {
     },
     script({ state, events, navigation, areas, bus, getPage }) {
         return {
-            async onCommand(command, params) {
-                if (command == "load") {
-                    //load
-                    state.toggled = false; //xshell.settings.getItem("x-layout-main.toggled", false);
-                    state.userName = xshell.identity.name;
-                    state.userInitials =  (() => { let w = xshell.identity.name.trim().split(/\s+/); return (w.length > 1 ? w[0][0] + w.at(-1)[0] : w[0].slice(0,2)); })().toUpperCase();
-                    // auto close menu on navigation start (mobile)
-                    events.on(bus, "xshell:navigation:start", (e) => {
-                        if (probablyPhone()) {
-                            if (state.toggled) {
-                                state.toggled = false;
-                            }
-                        }
-                    });
-                    events.on(bus, "xshell:navigation:end", "refresh");
-                    // bind refresh
-                    events.on(bus, "xshell:menus:change", "refresh")
-                    // bind search
-                    events.on(state, "change:keyword", "search");
-                    
-                } else if (command == "mount") {
-                    // refresh
-                    this.onCommand("refresh");
-
-                } else if (command == "refresh") {
-                    //refresh
-                    const page  = getPage();
-                    if (page) {
-                        let moduleId = page.host?.getAttribute("module");
-                        if (!moduleId) {
-                            //no module defined 
-                            state.menuNavigation = null;
-                        } else if (page.breadcrumb && page.breadcrumb.length){
-                            //get module
-                            moduleId = page.host?.getAttribute("module");
-                            //show menu main and tools
-                            state.menuNavigation = areas.getMenu("navigation");
-                            state.menuTools = areas.getMenu("tools");
-                            state.menuProfile = areas.getMenu("profile");
-                        } else { 
-                            // not found breadcrumb in page
-                            // show menu main and tools
-                            state.menuNavigation = areas.getMenu("navigation");
-                            state.menuTools = areas.getMenu("tools");
-                            state.menuProfile = areas.getMenu("profile");
-                            //breadcrumb
-                            if (state.menuNavigation) {
-                                let menuitems = findObjectsPath(state.menuNavigation, 'href', page.href);
-                            }
+            async load(params) {
+                //load
+                state.toggled = false; //xshell.settings.getItem("x-layout-main.toggled", false);
+                state.userName = xshell.identity.name;
+                state.userInitials =  (() => { let w = xshell.identity.name.trim().split(/\s+/); return (w.length > 1 ? w[0][0] + w.at(-1)[0] : w[0].slice(0,2)); })().toUpperCase();
+                // auto close menu on navigation start (mobile)
+                events.on(bus, "xshell:navigation:start", (e) => {
+                    if (probablyPhone()) {
+                        if (state.toggled) {
+                            state.toggled = false;
                         }
                     }
+                });
+                events.on(bus, "xshell:navigation:end", "refresh");
+                // bind refresh
+                events.on(bus, "xshell:menus:change", "refresh")
+                // bind search
+                events.on(state, "change:keyword", "search");
+            },
 
-                } else if (command == "menuitem-clicked") {
-                    //menuitem-clicked
-                    alert("menuitem-clicked");
+            async mount(params) {
+                // refresh
+                this.onCommand("refresh");
+            },
 
-                } else if (command == "toggle-menu") {
-                    //toggle-menu
-                    state.toggled = !state.toggled;
-                    //settings.setItem("x-layout-main.toggled", state.toggled);
-
-                } else if (command == "search") {
-                    //search
-                    bus.emit("xshell:search", { keyword: state.keyword.trim() });
+            async refresh(params) {
+                //refresh
+                const page  = getPage();
+                if (page) {
+                    let moduleId = page.host?.getAttribute("module");
+                    if (!moduleId) {
+                        //no module defined
+                        state.menuNavigation = null;
+                    } else if (page.breadcrumb && page.breadcrumb.length){
+                        //get module
+                        moduleId = page.host?.getAttribute("module");
+                        //show menu main and tools
+                        state.menuNavigation = areas.getMenu("navigation");
+                        state.menuTools = areas.getMenu("tools");
+                        state.menuProfile = areas.getMenu("profile");
+                    } else {
+                        // not found breadcrumb in page
+                        // show menu main and tools
+                        state.menuNavigation = areas.getMenu("navigation");
+                        state.menuTools = areas.getMenu("tools");
+                        state.menuProfile = areas.getMenu("profile");
+                        //breadcrumb
+                        if (state.menuNavigation) {
+                            let menuitems = findObjectsPath(state.menuNavigation, 'href', page.href);
+                        }
+                    }
                 }
-                
+            },
+
+            async "menuitem-clicked"(params) {
+                //menuitem-clicked
+                alert("menuitem-clicked");
+            },
+
+            async "toggle-menu"(params) {
+                //toggle-menu
+                state.toggled = !state.toggled;
+                //settings.setItem("x-layout-main.toggled", state.toggled);
+            },
+
+            async search(params) {
+                //search
+                bus.emit("xshell:search", { keyword: state.keyword.trim() });
             }
         };
     }

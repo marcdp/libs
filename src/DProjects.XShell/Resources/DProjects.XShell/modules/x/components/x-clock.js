@@ -20,16 +20,15 @@ export default {
     },
     script: ({ state, timer }) => {
         return {
-            onCommand(command) {
-                if (command == "load") {
-                    //load
-                    this.onCommand("refresh");
-                    timer.setInterval(1000, "refresh");
+            load() {
+                //load
+                this.onCommand("refresh");
+                timer.setInterval(1000, "refresh");
+            },
 
-                } else if (command == "refresh") {
-                    //refresh
-                    state.time = new Date().toLocaleTimeString();
-                }
+            refresh() {
+                //refresh
+                state.time = new Date().toLocaleTimeString();
             }
         };
     }

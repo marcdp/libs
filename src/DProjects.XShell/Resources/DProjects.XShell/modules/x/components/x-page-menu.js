@@ -55,31 +55,31 @@ export default {
     },
     script({ events, bus, state, getPage, areas }) {
         return {
-            onCommand(command, ...args) {
-                if (command == "load") {
-                    // load
-                    events.on(bus, "xshell:area:change", "refresh");
-                    events.on(bus, "xshell:menus:change", "refresh");
-                    events.on(bus, "xshell:page:load", (event)=>{
-                        if (event.detail.id == getPage()?.id) {
-                            this.onCommand("refresh");
-                        }
-                    });
-                    events.on(bus, "xshell:navigation:end", (event) => {
-                        let href = event.detail.src;
-                        if (href.indexOf("#")!=-1) href = href.substring(0, href.indexOf("#"));
-                        if (href.indexOf("?")!=-1) href = href.substring(0, href.indexOf("?"));
-                        state.selected = href;
-                    })
+            load(...args) {
+                // load
+                events.on(bus, "xshell:area:change", "refresh");
+                events.on(bus, "xshell:menus:change", "refresh");
+                events.on(bus, "xshell:page:load", (event)=>{
+                    if (event.detail.id == getPage()?.id) {
+                        this.onCommand("refresh");
+                    }
+                });
+                events.on(bus, "xshell:navigation:end", (event) => {
+                    let href = event.detail.src;
+                    if (href.indexOf("#")!=-1) href = href.substring(0, href.indexOf("#"));
+                    if (href.indexOf("?")!=-1) href = href.substring(0, href.indexOf("?"));
+                    state.selected = href;
+                })
+            },
 
-                } else if (command == "mount") {
-                    // mount
-                    this.onCommand("refresh");
+            mount(...args) {
+                // mount
+                this.onCommand("refresh");
+            },
 
-                } else if (command == "refresh") {
-                    //refresh
-                    state.menu = areas.getMenu("navigation");
-                }
+            refresh(...args) {
+                //refresh
+                state.menu = areas.getMenu("navigation");
             }
         }
     }
