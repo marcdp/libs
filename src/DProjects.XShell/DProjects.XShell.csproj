@@ -28,8 +28,4 @@
       <Folder Include="Resources\DProjects.XShell\modules\test\pages\" />
     </ItemGroup>
 
-    <ItemGroup>
-      <Compile Remove="Tests\**\*.cs" />
-    </ItemGroup>
-
 </Project>

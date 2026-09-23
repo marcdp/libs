@@ -1,6 +1,6 @@
 import Timer from "../timer.js"
 import Events from "../events.js"
-import xshell from "xshell";
+import xshell from "../xshell.js";
 
 
 // utils

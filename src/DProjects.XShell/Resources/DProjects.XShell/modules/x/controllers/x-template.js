@@ -1,4 +1,3 @@
-import xshell from "xshell";
 
 class XTemplate {
 
@@ -456,6 +455,7 @@ class XTemplateInstance {
     _element = null;
     _handler = null;
     _invalidate = null;
+    _i18n = null;
 
     //work fields
     _renderCount = 0;
@@ -468,12 +468,13 @@ class XTemplateInstance {
         if (xtemplate.styleSheets.length) this._element.adoptedStyleSheets = xtemplate.styleSheets;
         this._handler = handler;
         this._invalidate = invalidate;
+        
     }
 
     // methods
     render(state) {
         //render vdom
-        let vdom = this._xtemplate.render(state, this._handler, this._invalidate, utils, xshell.i18n, this._renderCount++);
+        let vdom = this._xtemplate.render(state, this._handler, this._invalidate, utils, this._i18n, this._renderCount++);
         //render vdom to dom
         if (this._vdom == null) {
             let index = 0;

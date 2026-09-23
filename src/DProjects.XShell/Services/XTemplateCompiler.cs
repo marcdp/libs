@@ -15,17 +15,21 @@ namespace DProjects.XShell.Services {
         // methods
         public string Compile(string template) {
             if (template == null) throw new ArgumentNullException(nameof(template));
-
-            // parse and validate the X template
             var root = new HtmlParser(NormalizeLineEndings(template).Trim()).Parse();
+            var indent = "    ";
             ValidateConditionalChains(root);
-
-            // generate the positional render-handler ABI used by the browser runtime
-            var body = new List<string> { "    debugger;", "    let _ifs = {};", "    let func;", "    return [" };
+            var body = new List<string> {
+                //indent + "debugger;",
+                indent + "let _ifs = {};",
+                indent + "let func;",
+                indent + "return ["
+            };
             var index = 0;
-            foreach (var node in root.Children) index += CompileNode(node, index, body, 1);
-            body.Add("    ];");
-            return "(state, handler, invalidate, utils, i18n, renderCount) => {\n    " + string.Join("\n    ", body) + "\n    }";
+            foreach (var node in root.Children) {
+                index += CompileNode(node, index, body, 1);
+            }
+            body.Add(indent + "];");
+            return "(state, handler, invalidate, utils, i18n, renderCount) => {\n" + indent + string.Join("\n" + indent, body) + "\n" + indent + "}";
         }
 
         // methods (private)
@@ -183,11 +187,33 @@ namespace DProjects.XShell.Services {
             } else if (element.Children.Count > 0) {
                 line.Append(", [");
                 javascript.Add(line.ToString());
-                for (var childIndex = 0; childIndex < element.Children.Count; childIndex++) CompileNode(element.Children[childIndex], childIndex, javascript, level + 1);
-                javascript.Add(indent + "                    ]");
-                if (childrenToAppend != null) javascript.Add(", " + childrenToAppend);
-                javascript.Add(")");
-                javascript.Add(postLine.Count > 0 ? string.Join("", postLine) : ",");
+
+                for (var childIndex = 0; childIndex < element.Children.Count; childIndex++) {
+                    CompileNode(
+                        element.Children[childIndex],
+                        childIndex,
+                        javascript,
+                        level + 1
+                    );
+                }
+
+                var closing = new StringBuilder(indent);
+                closing.Append(']');
+
+                if (childrenToAppend != null) {
+                    closing.Append(", ");
+                    closing.Append(childrenToAppend);
+                }
+
+                closing.Append(')');
+
+                if (postLine.Count > 0) {
+                    closing.Append(string.Join("", postLine));
+                } else {
+                    closing.Append(',');
+                }
+
+                javascript.Add(closing.ToString());
             } else {
                 line.Append(')').Append(postLine.Count > 0 ? string.Join("", postLine) : ",");
                 javascript.Add(line.ToString());

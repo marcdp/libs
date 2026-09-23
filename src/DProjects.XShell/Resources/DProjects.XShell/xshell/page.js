@@ -1,5 +1,5 @@
 import { generateId } from "./utils/ids.js";
-import xshell from "xshell";
+import xshell from "./xshell.js";
 
 
 // class

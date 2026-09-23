@@ -1,4 +1,3 @@
-import xshell from "xshell";
 
 // contract
 export const contract = {
@@ -101,7 +100,7 @@ export default {
             </div>
         </div>
     `,
-    script({ state, events, bus, getPage }) {
+    script({ state, events, bus, getPage, runtime }) {
         return {
             load() {
                 //load
@@ -109,7 +108,7 @@ export default {
                 this.onCommand("refresh");
                 this.shadowRoot.addEventListener("transitionend", () => this.onCommand("transition-end"));
                 //this.render();
-                const msSinceLoad = xshell.runtime.uptimeMs;
+                const msSinceLoad = runtime.uptimeMs;
                 if (msSinceLoad < 500) {
                     state.expanded = true;
                 } else {

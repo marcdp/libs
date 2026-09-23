@@ -1,4 +1,3 @@
-import xshell from "xshell";
 import { probablyPhone } from "../utils/dom.js";
 import { findObjectsPath } from "../utils/object.js";
 
@@ -273,13 +272,13 @@ export default {
         menuTools:       null,
         menuProfile:     null
     },
-    script({ state, events, navigation, areas, bus, getPage }) {
+    script({ state, events, navigation, areas, bus, getPage, identity }) {
         return {
             async load(params) {
                 //load
                 state.toggled = false; //xshell.settings.getItem("x-layout-main.toggled", false);
-                state.userName = xshell.identity.name;
-                state.userInitials =  (() => { let w = xshell.identity.name.trim().split(/\s+/); return (w.length > 1 ? w[0][0] + w.at(-1)[0] : w[0].slice(0,2)); })().toUpperCase();
+                state.userName = identity.name;
+                state.userInitials =  (() => { let w = identity.name.trim().split(/\s+/); return (w.length > 1 ? w[0][0] + w.at(-1)[0] : w[0].slice(0,2)); })().toUpperCase();
                 // auto close menu on navigation start (mobile)
                 events.on(bus, "xshell:navigation:start", (e) => {
                     if (probablyPhone()) {

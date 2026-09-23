@@ -16,13 +16,13 @@ namespace DProjects.XShell {
         // inner class
         public class Configuration {
             public string AppBasePath { get; init; } = "";
-            public string AppConfigPath { get; init; }  = "";
+            public string AppConfigPath { get; init; }  = ""; 
             public Dictionary<string,string> AppParams { get; init; } = new();
             public string ResourcesBase { get; init; } = "";
-            public string Favicon { get; init; } = "";
             public string[] UnhandledPrefixes { get; init; } = new string[] {"/_", "/api", "/temp"};
             public string TempPath { get; init; } = Path.Combine(Path.GetTempPath(), ResourceName, "temp");
             public string TempUrl { get; init; } = "/temp";
+            public string CSPValue { get; init; } = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none';";
         }
         
 
@@ -55,29 +55,30 @@ namespace DProjects.XShell {
             }
             if (!Directory.Exists(resourcePath)) throw new DirectoryNotFoundException($"XShell resources directory not found: {resourcePath}");
 
-            // register /_resources
+            // /_resources
             app.UseMiddleware<Middlewares.ResourcesMiddleware>(resourcePath, config.ResourcesBase + RequestPath, isDevelopment);
 
-            // register /_temp
+            // /_temp
             app.UseMiddleware<Middlewares.TempMiddleware>(config.TempPath, config.TempUrl);
 
-            // map routes /
+            // /
             var indexHtml = $"""
                     <!DOCTYPE html>
                     <html lang="en">
                     <head>
+                        <!-- general -->
                         <meta charset="utf-8">
                         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                        {(!string.IsNullOrEmpty(config.Favicon) ? "<link href=\"" + config.Favicon + "\" rel=\"icon\">" : "")}
+                        <meta http-equiv="Content-Security-Policy" content="{config.CSPValue}">
 
                         <!-- config xshell -->
-                        <meta name="xshell:app.basePath"    content="{config.AppBasePath}">
-                        <meta name="xshell:app.configPath"  content="{config.AppConfigPath}">
-                        <meta name="xshell:app.params"  content="{string.Join("&", config.AppParams.Select(kv => kv.Key + "=" + kv.Value))}">
+                        <meta name="xshell:app.basePath"       content="{config.AppBasePath}">
+                        <meta name="xshell:app.configPath"     content="{config.AppConfigPath}">
+                        <meta name="xshell:app.params"         content="{string.Join("&", config.AppParams.Select(kv => kv.Key + "=" + kv.Value))}">
                         <meta name="xshell:xshell.environment" content="{(environment)}">
 
                         <!-- bootstrap xshell -->
-                        <script src="{config.ResourcesBase}/_resources/DProjects.XShell/xshell/bootstrap.js"></script>
+                        <script src="{config.ResourcesBase}/_resources/DProjects.XShell/xshell/bootstrap.js" ></script>
 
                     </head>
                     <body>

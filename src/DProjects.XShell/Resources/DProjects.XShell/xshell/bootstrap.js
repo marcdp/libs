@@ -5,13 +5,7 @@ function meta(name) { return document.head.querySelector(`meta[name="${name}"]`)
 function deepFreeze(obj) {if (obj === null || typeof obj !== "object") {return obj;} Object.freeze(obj); for (const value of Object.values(obj)) {deepFreeze(value);} return obj;}
 function absolutizePrefixedUrl(key, obj, url) {return typeof obj === "string" ? (obj.startsWith("url:") ? ((obj = obj.substring(4).trim()), (obj.startsWith("/") || obj.startsWith("./") || obj.startsWith("../") || obj === ".") ? combineUrls(url, obj) : obj) : obj) : Array.isArray(obj) ? (obj.forEach((v, i) => obj[i] = absolutizePrefixedUrl(i, v, url)), obj) : obj instanceof Object ? (Object.keys(obj).forEach(k => obj[k] = absolutizePrefixedUrl(k, obj[k], url)), obj) : obj;}
 function relativizePaths(key, obj, path) { return typeof obj === "string" ? (obj.startsWith("/") ? ((obj = path + obj), obj.startsWith(document.location.origin) ? obj.substring(document.location.origin.length) : obj) : (obj.startsWith("./") || obj.startsWith("../") || obj === ".") ? ((obj = combineUrls(path + "/", obj)), obj.startsWith(document.location.origin) ? obj.substring(document.location.origin.length) : obj) : obj) : Array.isArray(obj) ? (obj.forEach((v, i) => obj[i] = relativizePaths(i, v, path)), obj) : obj instanceof Object ? (Object.keys(obj).forEach(k => obj[k] = relativizePaths(k, obj[k], path)), obj) : obj; }
-function relativizeModulePaths(config, path) {
-    // area prefixes are navigation metadata, not module resource paths
-    const definitions = config.xshell?.areas?.definitions || {};
-    const prefixes = Object.fromEntries(Object.entries(definitions).filter(([, area]) => Object.hasOwn(area, "prefix")).map(([id, area]) => [id, area.prefix]));
-    relativizePaths("", config, path);
-    for (const [id, prefix] of Object.entries(prefixes)) definitions[id].prefix = prefix;
-}
+function relativizeModulePaths(config, path) {const definitions = config.xshell?.areas?.definitions || {};const prefixes = Object.fromEntries(Object.entries(definitions).filter(([, area]) => Object.hasOwn(area, "prefix")).map(([id, area]) => [id, area.prefix]));relativizePaths("", config, path);for (const [id, prefix] of Object.entries(prefixes)) definitions[id].prefix = prefix;}
 async function loadJsonWithComments(url) {const request = await fetch(url);if (!request.ok) throw new Error(`Failed to json file: ${result.url}`);let json = await request.text();return JSON.parse(stripJsonComments(json));}
  
 
@@ -241,20 +235,11 @@ async function bootstrap() {
         return;
     }    
 
-    // create importmap
-    let imports = {};
-    for (let resolverImportName of Object.keys(config.xshell.resolver.import)) {
-        let resolverImportUrl = config.xshell.resolver.import[resolverImportName].url;
-        imports[resolverImportName] = (resolverImportUrl.indexOf(":") != -1 ? resolverImportUrl : appBasePath + resolverImportUrl);
-    }
-    const importMap = document.createElement("script");
-    importMap.type = "importmap";
-    importMap.textContent = JSON.stringify({ imports }, null, 2);
-    document.head.appendChild(importMap);
-
     // import xshell ES6 module
     console.log("bootstrap: loading xshell ...");
-    let xshell = (await import("xshell")).default;
+    const xshellUrl = config.xshell.resolver.import.xshell.url;
+    const xshellModule = await import(xshellUrl);
+    let xshell = xshellModule.default;
     
     // init xshell
     await xshell.init(deepFreeze(config));
