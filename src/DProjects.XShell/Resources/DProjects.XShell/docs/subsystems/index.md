@@ -12,6 +12,7 @@ Draft.
 - [Areas](areas.md) — Navigation contexts, effective menus, and homes composed from module contributions.
 - [Identity](identity.md) — The identity object exposed to runtime services.
 - [Internationalization](i18n.md) — Language metadata, localized text selection, and date/time formatting.
+- [Temporary Files](temp.md) — Browser uploads, temporary resource URLs, and the boundary with application persistence.
 
 ## Scope
 

@@ -20,7 +20,9 @@ namespace DProjects.XShell {
             public Dictionary<string,string> AppParams { get; init; } = new();
             public string ResourcesBase { get; init; } = "";
             public string Favicon { get; init; } = "";
-            public string[] UnhandledPrefixes { get; init; } = new string[] {"/_", "/api"};            
+            public string[] UnhandledPrefixes { get; init; } = new string[] {"/_", "/api", "/temp"};
+            public string TempPath { get; init; } = Path.Combine(Path.GetTempPath(), ResourceName, "temp");
+            public string TempUrl { get; init; } = "/temp";
         }
         
 
@@ -53,11 +55,11 @@ namespace DProjects.XShell {
             }
             if (!Directory.Exists(resourcePath)) throw new DirectoryNotFoundException($"XShell resources directory not found: {resourcePath}");
 
-            // register _resources
-            app.UseMiddleware<Middlewares.ResourcesMiddleware>(
-                resourcePath,
-                config.ResourcesBase + RequestPath,
-                isDevelopment);
+            // register /_resources
+            app.UseMiddleware<Middlewares.ResourcesMiddleware>(resourcePath, config.ResourcesBase + RequestPath, isDevelopment);
+
+            // register /_temp
+            app.UseMiddleware<Middlewares.TempMiddleware>(config.TempPath, config.TempUrl);
 
             // map routes /
             var indexHtml = $"""

@@ -1,6 +1,6 @@
 
 // class
-export default class Tabs {
+export default class {
 
     // vars
     _bus = null;

@@ -12,6 +12,7 @@ import Page from "./page.js";
 import Resolver from "./resolver.js";
 import Runtime from "./runtime.js";
 import Services from "./services.js";
+import Temp from "./temp.js";
 import Tabs from "./tabs.js";
 import UrlRewriter from "./urlRewriter.js";
 import XPage from "./x-page.js";
@@ -30,6 +31,7 @@ class XShell {
     _debug = null;
     _dialog = null;
     _i18n = null;
+    _temp = null;
     _identity = null;
     _loader = null;
     _modules = null;
@@ -61,6 +63,7 @@ class XShell {
     get runtime() { return this._runtime; }
     get services() { return this._services; }
     get tabs() { return this._tabs; }
+    get temp() { return this._temp; }
     get urlRewriter() { return this._urlRewriter; }
 
     //methods
@@ -83,6 +86,7 @@ class XShell {
         this._tabs = new Tabs( { bus: this._bus } );
         this._urlRewriter = new UrlRewriter();
         this._dialog = new Dialog( { config: config, navigation: this._navigation, i18n: this._i18n } );
+        this._temp = new Temp();
         this._runtime = new Runtime();
         // services
         this._services.register("areas", this._areas);
@@ -100,6 +104,7 @@ class XShell {
         this._services.register("runtime", this._runtime);
         this._services.register("services", this._services);
         this._services.register("tabs", this._tabs);
+        this._services.register("temp", this._temp);
         this._services.register("urlRewriter", this._urlRewriter);
         // auth
         this._identity = await this.auth.login(this._config);
