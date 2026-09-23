@@ -55,7 +55,7 @@ export default class Areas {
         // compose effective menus after canonical modules exist
         const findDefaultHref = (items) => {
             for (const item of items || []) {
-                if (item.default) return item.href || null;
+                if (item.default) return item.path || item.href || null;
                 const href = findDefaultHref(item.children);
                 if (href) return href;
             }
@@ -123,6 +123,15 @@ export default class Areas {
         }
         return null;
     }
+    resolvePath(path) {
+        for (const area of this._areas) {
+            for (const menu of Object.values(area.menus)) {
+                const item = this._findMenuitemByPath(menu, path);
+                if (item) return item;
+            }
+        }
+        return null;
+    }
     getMenu(name, areaId = null) {
         const area = areaId ? this.getArea(areaId) : this.getCurrentArea();
         return area?.menus[name] || [];
@@ -138,6 +147,7 @@ export default class Areas {
                     return menuitems.map(menuitem => ({
                         label: menuitem.label,
                         href: menuitem.href,
+                        path: menuitem.path,
                         ...(menuitem.icon ? { icon: menuitem.icon } : {}),
                         module: menuitem.module,
                         area: menuitem.area
@@ -176,6 +186,7 @@ export default class Areas {
         const result = {
             label: menuitem.label,
             href: this._buildAreaHref(menuitem.href, area),
+            path: this._buildAreaHref(menuitem.path, area),
             icon: menuitem.icon || null,
             module: module.id,
             default: menuitem.default || false,
@@ -233,5 +244,13 @@ export default class Areas {
             if (prefixes.has(area.prefix)) throw new Error(`Duplicate area prefix '${area.prefix}'`);
             prefixes.add(area.prefix);
         }
+    }
+    _findMenuitemByPath(items, path) {
+        for (const item of items || []) {
+            if (item.path === path) return item;
+            const found = this._findMenuitemByPath(item.children, path);
+            if (found) return found;
+        }
+        return null;
     }
 }

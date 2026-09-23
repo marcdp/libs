@@ -437,5 +437,12 @@ export default class Navigation {
             resolveFunc = resolve;
         });
     }
+    _buildResourceUrl(item) {
+        const menuitem = this._areas.resolvePath(item.href);
+        return this.buildUrl({
+            ...item,
+            href: menuitem?.href || item.href
+        });
+    }
 }
 
