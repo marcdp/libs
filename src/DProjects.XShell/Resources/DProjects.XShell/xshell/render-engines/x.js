@@ -160,39 +160,35 @@ class XTemplate {
 					//...<span x-children="state.node"></span>...
 					options.push("format:\"node\"");
 					text = attr.value;
-				} else if (attr.name == "x-attr" || attr.name == ":") {
-					//...<span x-attr="state.value"></span>...
-					//...<span :="state.value"></span>...
-					let attrValue = attr.value;
-					attrs.push("...utils.toObject(" + attrValue + ")");
-				} else if (attr.name.startsWith("x-attr:") || attr.name.startsWith(":")) {
-					//...<span x-attr:title="state.value"></span>...
-					let attrName = (attr.name.startsWith(":") ? attr.name.substring(1) : attr.name.substr(attr.name.indexOf(':') + 1));
+                } else if (attr.name == "x-attr") {
+                    //...<span x-attr="state.value"></span>...
+                    let attrValue = attr.value;
+                    attrs.push("...utils.toObject(" + attrValue + ")");
+                } else if (attr.name.startsWith("x-attr:")) {
+                    //...<span x-attr:title="state.value"></span>...
+                    let attrName = attr.name.substr(attr.name.indexOf(':') + 1);
 					let attrValue = attr.value;
 					if (attrName.startsWith("[") && attrName.endsWith("]")) {
 						attrs.push("...utils.toDynamicArgument(" + attrName.substring(1, attrName.length - 1) + ", " + attrValue + ")");
 					} else {
 						attrs.push('"' + attrName + '":' + attrValue);
 					}
-				} else if (attr.name == "x-prop" || attr.name == ".") {
-					//...<span x-prop="state.value"></span>...
-					//...<span .="state.value"></span>...
-					let propValue = attr.value;
-					attrs.push("..." + propValue + "");
-				} else if (attr.name.startsWith("x-prop:") || attr.name.startsWith(".")) {
-					//...<input x-prop:value="state.value"></input>...
-					//...<input .value="state.value"></input>...
-					let propName = this._kebabToCamel((attr.name.startsWith(".") ? attr.name.substring(1) : attr.name.substr(attr.name.indexOf(':') + 1)));
+                } else if (attr.name == "x-prop") {
+                    //...<span x-prop="state.value"></span>...
+                    let propValue = attr.value;
+                    attrs.push("..." + propValue + "");
+                } else if (attr.name.startsWith("x-prop:")) {
+                    //...<input x-prop:value="state.value"></input>...
+                    let propName = this._kebabToCamel(attr.name.substr(attr.name.indexOf(':') + 1));
 					let propValue = attr.value;
 					if (propName.startsWith("[") && propName.endsWith("]")) {
 						props.push("...utils.toDynamicProperty(" + propName.substring(1, propName.length - 1) + ", " + propValue + ")");
 					} else {
 						props.push(propName + ":" + propValue);
 					}
-				} else if (attr.name.startsWith("x-on:") || attr.name.startsWith("@")) {
-					//...<button x-on:click="onIncrement">+1</button>...
-					//...<button @click="onIncrement">+1</button>...
-					let eventName = (attr.name.startsWith("@") ? attr.name.substring(1) : attr.name.substr(attr.name.indexOf(':') + 1));
+                } else if (attr.name.startsWith("x-on:")) {
+                    //...<button x-on:click="onIncrement">+1</button>...
+                    let eventName = attr.name.substr(attr.name.indexOf(':') + 1);
 					let eventHandler = attr.value;
 					events.push("'" + eventName + "': (event) => handler('" + eventHandler + "', event)");
 				} else if (attr.name == "x-if") {

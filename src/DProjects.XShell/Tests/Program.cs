@@ -25,10 +25,16 @@ internal sealed class CompilerTests {
         AssertContains(compiler.Compile("<x-page src=\"/pages/test.js\"></x-page>"), "utils.rewriteAttribute");
         AssertContains(compiler.Compile("<span x-html=\"state.html\"></span>"), "format:\"html\"");
         AssertContains(compiler.Compile("<span x-children=\"state.nodes\"></span>"), "format:\"node\"");
-        AssertContains(compiler.Compile("<div x-attr=\"state.attrs\" :title=\"state.title\" :[state.name]=\"state.value\"></div>"), "utils.toDynamicArgument(state.name, state.value)");
-        AssertContains(compiler.Compile("<input x-prop=\"state.props\" .value=\"state.value\" .[state.name]=\"state.value\">"), "utils.toDynamicProperty(state.name, state.value)");
+        AssertContains(compiler.Compile("<div x-attr=\"state.attrs\" x-attr:title=\"state.title\" x-attr:[state.name]=\"state.value\"></div>"), "utils.toDynamicArgument(state.name, state.value)");
+        AssertContains(compiler.Compile("<input x-prop=\"state.props\" x-prop:value=\"state.value\" x-prop:[state.name]=\"state.value\">"), "utils.toDynamicProperty(state.name, state.value)");
         AssertContains(compiler.Compile("<input x-prop=\"state.props\">"), "{...state.props}");
+        AssertContains(compiler.Compile("<a x-attr:href=\"state.url\"></a>"), "\"href\":state.url");
+        AssertContains(compiler.Compile("<x-widget x-prop:value=\"state.value\"></x-widget>"), "value:state.value");
+        AssertContains(compiler.Compile("<button x-on:click=\"save\"></button>"), "handler(\"save\", event)");
         AssertContains(compiler.Compile("<button x-on:keydown.enter=\"save\"></button>"), "handler(\"save\", event)");
+        AssertDoesNotContain(compiler.Compile("<a :href=\"state.url\"></a>"), "\"href\":state.url");
+        AssertDoesNotContain(compiler.Compile("<x-widget .value=\"state.value\"></x-widget>"), "value:state.value");
+        AssertDoesNotContain(compiler.Compile("<button @click=\"save\"></button>"), "handler(\"save\", event)");
         AssertContains(compiler.Compile("<div x-if=\"state.a\"></div><div x-elseif=\"state.b\"></div><div x-else></div>"), "'x-elseif'");
         AssertContains(compiler.Compile("<li x-for=\"item in state.items\">{{item.name}}</li>"), "'x-for-start'");
         AssertContains(compiler.Compile("<li x-for=\"(item,index) in state.items\" x-key=\"id\"></li>"), "\"key\":item.id");
@@ -89,6 +95,10 @@ internal sealed class CompilerTests {
     private void AssertContains(string actual, string expected) {
         mAssertions++;
         if (!actual.Contains(expected, StringComparison.Ordinal)) throw new InvalidOperationException($"Expected generated output to contain: {expected}\nActual:\n{actual}");
+    }
+    private void AssertDoesNotContain(string actual, string unexpected) {
+        mAssertions++;
+        if (actual.Contains(unexpected, StringComparison.Ordinal)) throw new InvalidOperationException($"Generated output must not contain: {unexpected}\nActual:\n{actual}");
     }
     private void AssertEqual(string expected, string actual, string message) {
         mAssertions++;

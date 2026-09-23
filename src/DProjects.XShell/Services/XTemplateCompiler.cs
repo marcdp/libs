@@ -85,25 +85,25 @@ namespace DProjects.XShell.Services {
                     EnsureExpression(value, name, element);
                     options.Add("format:\"node\"");
                     text = value;
-                } else if (name is "x-attr" or ":") {
+                } else if (name == "x-attr") {
                     EnsureExpression(value, name, element);
                     attributes.Add($"...utils.toObject({value})");
-                } else if (name.StartsWith("x-attr:", StringComparison.Ordinal) || (name.StartsWith(':') && name.Length > 1)) {
+                } else if (name.StartsWith("x-attr:", StringComparison.Ordinal)) {
                     EnsureExpression(value, name, element);
-                    var attributeName = name.StartsWith(':') ? name[1..] : name[(name.IndexOf(':') + 1)..];
+                    var attributeName = name[(name.IndexOf(':') + 1)..];
                     if (attributeName.StartsWith('[') && attributeName.EndsWith(']')) attributes.Add($"...utils.toDynamicArgument({attributeName[1..^1]}, {value})");
                     else attributes.Add($"{ToJavaScriptString(attributeName)}:{value}");
-                } else if (name is "x-prop" or ".") {
+                } else if (name == "x-prop") {
                     EnsureExpression(value, name, element);
                     attributes.Add($"...{value}");
-                } else if (name.StartsWith("x-prop:", StringComparison.Ordinal) || (name.StartsWith('.') && name.Length > 1)) {
+                } else if (name.StartsWith("x-prop:", StringComparison.Ordinal)) {
                     EnsureExpression(value, name, element);
-                    var propertyName = KebabToCamel(name.StartsWith('.') ? name[1..] : name[(name.IndexOf(':') + 1)..]);
+                    var propertyName = KebabToCamel(name[(name.IndexOf(':') + 1)..]);
                     if (propertyName.StartsWith('[') && propertyName.EndsWith(']')) properties.Add($"...utils.toDynamicProperty({propertyName[1..^1]}, {value})");
                     else properties.Add($"{propertyName}:{value}");
-                } else if (name.StartsWith("x-on:", StringComparison.Ordinal) || name.StartsWith('@')) {
+                } else if (name.StartsWith("x-on:", StringComparison.Ordinal)) {
                     if (string.IsNullOrWhiteSpace(value)) throw TemplateError($"Directive '{name}' requires an event handler name.", element);
-                    var eventName = name.StartsWith('@') ? name[1..] : name[(name.IndexOf(':') + 1)..];
+                    var eventName = name[(name.IndexOf(':') + 1)..];
                     if (string.IsNullOrWhiteSpace(eventName)) throw TemplateError("An event binding requires an event name.", element);
                     events.Add($"{ToJavaScriptString(eventName)}: (event) => handler({ToJavaScriptString(value)}, event)");
                 } else if (name == "x-if") {
@@ -250,7 +250,7 @@ namespace DProjects.XShell.Services {
             if (string.IsNullOrWhiteSpace(expression)) throw TemplateError($"Directive '{directive}' requires a JavaScript expression.", element);
         }
         private static InvalidOperationException TemplateError(string message, ElementNode element) => new($"{message} Near <{element.Name}> at template offset {element.Offset}.");
-        private static bool IsStaticAttribute(string name) => !name.StartsWith("x-", StringComparison.Ordinal) && !name.StartsWith(':') && !name.StartsWith('.') && !name.StartsWith('@');
+        private static bool IsStaticAttribute(string name) => !name.StartsWith("x-", StringComparison.Ordinal);
         private static bool IsJavaScriptIdentifier(string value) => !string.IsNullOrEmpty(value) && (char.IsLetter(value[0]) || value[0] is '_' or '$') && value.Skip(1).All(character => char.IsLetterOrDigit(character) || character is '_' or '$');
         private static string NormalizeLineEndings(string value) => value.Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n');
         private static string ToJavaScriptString(string value) => JsonSerializer.Serialize(value);
