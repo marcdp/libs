@@ -98,7 +98,7 @@ export default {
             </div>
             <div class="body">                
                 <slot></slot>
-            <div>
+            </div>
         </div>
     `,
     script({ state, events, bus, getPage }) {

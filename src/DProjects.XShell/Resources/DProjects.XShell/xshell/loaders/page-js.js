@@ -52,7 +52,16 @@ export async function createPageClassFromJsDefinition(src, context, definition) 
     const renderEngineModule = moduleConfig.defaults?.page?.renderEngine;
     const renderEnginePage = definition.meta?.renderEngine || renderEngineModule;
     const renderEngineFactoryCreator = await xshell.loader.load("render-engine:" + renderEnginePage);
-    const renderEngineFactory = new renderEngineFactoryCreator(definition.template + style.join(""), context);
+    const templateHandler = definition.templateHandler ? (state, handler, invalidate, utils, i18n, renderCount) => {
+        const vdom = definition.templateHandler(state, handler, invalidate, utils, i18n, renderCount);
+        let index = vdom.reduce((maximum, node) => Math.max(maximum, node.options.index), -1) + 1;
+        for (const styleHtml of style) {
+            const styleText = styleHtml.substring("<style>".length, styleHtml.length - "</style>".length);
+            vdom.push(utils.createVDOM("style", null, null, null, {index: index++}, styleText));
+        }
+        return vdom;
+    } : null;
+    const renderEngineFactory = new renderEngineFactoryCreator(definition.template + style.join(""), context, templateHandler);
     // render engine dependencies
     if (renderEngineFactory.dependencies.length) {
         await xshell.loader.load(renderEngineFactory.dependencies);

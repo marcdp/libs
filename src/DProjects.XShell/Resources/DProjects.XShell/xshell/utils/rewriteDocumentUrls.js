@@ -30,6 +30,17 @@ export function addRewriteRule(selector, attr, type) {
     rules.push({ selector, attr, type });
 }
 
+// rewrite a static attribute emitted by a precompiled X template handler
+export function rewriteTemplateAttribute(tag, attrs, attr, value, context) {
+    if (!value) return value;
+    const element = document.createElement(tag);
+    for (const [name, staticValue] of Object.entries(attrs)) element.setAttribute(name, staticValue);
+    for (const rule of rules) {
+        if (rule.attr == attr && element.matches(rule.selector)) return rewrite(element, attr, rule.type, value, context);
+    }
+    return value;
+}
+
 // export
 export function normalizeModuleResourceUrl(url, modulePath, resourcePath) {
     if (url.indexOf(":") != -1) {

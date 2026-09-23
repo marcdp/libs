@@ -42,7 +42,7 @@ export default {
                 >
                     {{ item.label }}
                 </x-anchor>
-                <x-icon icon="x-keyboard-arrow-right" class="separator"><x-icon>
+                <x-icon icon="x-keyboard-arrow-right" class="separator"></x-icon>
             </li>
         </ul>
     `,

@@ -104,7 +104,7 @@ export async function createComponentClassFromJsDefinition(src, context, definit
     const renderEngineModule = xshell.config.modules[context.resourceDefinition.moduleId].defaults?.component?.renderEngine;
     const renderEngineComponent = definition.meta.renderEngine || renderEngineModule;
     const renderEngineFactoryCreator = await xshell.loader.load("render-engine:" + renderEngineComponent);
-    const renderEngineFactory = new renderEngineFactoryCreator(definition.template, context);
+    const renderEngineFactory = new renderEngineFactoryCreator(definition.template, context, definition.templateHandler);
     // render engine dependencies
     if (renderEngineFactory.dependencies.length) {
         await xshell.loader.load(renderEngineFactory.dependencies);

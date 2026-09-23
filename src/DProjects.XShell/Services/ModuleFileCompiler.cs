@@ -1,6 +1,4 @@
 using System.Text.Json;
-using System.Security.Cryptography;
-
 using DProjects.Utils;
 
 namespace DProjects.XShell.Services {
@@ -37,8 +35,8 @@ namespace DProjects.XShell.Services {
             });
             var content = FileUtils.ReadTextFile(jsPath);
             // check the default render engine
-            var renderEngine = config?.Modules?.Values.First().Defaults.Page.RenderEngine;
-            if (renderEngine == "x") {
+            var usesXTemplate = config?.Modules?.Values.Any(module => module.Defaults.Page.RenderEngine == "x" || module.Defaults.Component.RenderEngine == "x") == true;
+            if (usesXTemplate && Path.GetExtension(jsPath).Equals(".js", StringComparison.OrdinalIgnoreCase)) {
                 content = CompileXTemplate(content);
             }
             // return the compiled js
@@ -56,9 +54,8 @@ namespace DProjects.XShell.Services {
             throw new NotImplementedException();
         }
         private string CompileXTemplate(string js) {
-            // TODO ...
-
-            return js;
+            // preserve the module source and only transform the exported component definition
+            return new JavaScriptComponentTransformer(new XTemplateCompiler()).Transform(js);
         }
 
     }

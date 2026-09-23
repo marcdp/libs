@@ -47,7 +47,7 @@ export default {
     template: `
         <div class="circle">
             <x-icon x-if="state.icon" x-attr:icon="state.icon"></x-icon>
-            <img    x-elseif="state.image" x-attr:src="state.image"></x-icon>
+            <img    x-elseif="state.image" x-attr:src="state.image">
             <span   x-elseif="state.initials" x-text="state.initials"></span>
         </div>
         <div class="details" x-if="(state.label || state.message ? true : false)">

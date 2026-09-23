@@ -1,5 +1,5 @@
 import xshell from '../xshell.js';
-import {rewriteDocumentUrls} from "../utils/rewriteDocumentUrls.js";
+import {rewriteDocumentUrls, rewriteTemplateAttribute} from "../utils/rewriteDocumentUrls.js";
 
 class XTemplate {
 
@@ -8,10 +8,11 @@ class XTemplate {
 	_styleSheets = null;
 	_dependencies = null;
 	_render = null;
+	_utils = null;
 
 	//ctor
-	constructor({ template, styleSheets = [] }) { 
-		this._compile({ template, styleSheets });
+	constructor({ template, styleSheets = [], render = null, context = null }) {
+		this._compile({ template, styleSheets, render, context });
 	}
 
 	//props
@@ -19,9 +20,10 @@ class XTemplate {
 	get styleSheets() {return this._styleSheets;}
 	get dependencies() {return this._dependencies;}
 	get render() {return this._render;}
+	get utils() {return this._utils;}
 	
 	//methods
-	_compile({ template, styleSheets = [] }) { 
+	_compile({ template, styleSheets = [], render = null, context = null }) {
 		//create template from string if required
 		if (template instanceof DocumentFragment) {
 			let templateElement = document.createElement("template");
@@ -58,6 +60,14 @@ class XTemplate {
 			}
 			return false;
 		}).map(el => el.tagName.toLowerCase()))];
+		// bind source URL rewriting to this template's resource context
+		this._utils = Object.create(utils);
+		this._utils.rewriteAttribute = (tag, attrs, attr, value) => rewriteTemplateAttribute(tag, attrs, attr, value, context);
+		// use server-compiled render code when present, avoiding runtime code generation under strict CSP
+		if (render) {
+			this._render = render;
+			return;
+		}
 		//compiles
 		let funcs = [];
 		let code = [];
@@ -483,7 +493,7 @@ class XTemplateInstance {
 	// methods
 	render(state) {
 		//render vdom
-		let vdom = this._xtemplate.render(state, this._handler, this._invalidate, utils, xshell.i18n, this._renderCount++);
+		let vdom = this._xtemplate.render(state, this._handler, this._invalidate, this._xtemplate.utils, xshell.i18n, this._renderCount++);
 		//render vdom to dom
 		if (this._vdom == null) {
 			let index = 0;
@@ -886,7 +896,7 @@ export class RenderEngineX {
 		this._host.replaceChildren();
 	}
 }
-export default function createRenderEngineFactoryX(template, context) {
+export default function createRenderEngineFactoryX(template, context, templateHandler = null) {
 	// template
 	const templateElement = document.createElement("TEMPLATE");
 	templateElement.innerHTML = template;
@@ -907,7 +917,9 @@ export default function createRenderEngineFactoryX(template, context) {
 			// xtemplate
 			this._xtemplate =new XTemplate({ 
 				template: templateElement.content,
-				styleSheets: []
+				styleSheets: [],
+				render: templateHandler,
+				context: context
 			})
 		},
 		create: ({host, state, handler, invalidate}) => {
