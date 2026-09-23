@@ -35,25 +35,28 @@ namespace DProjects.XShell.Services {
             var config = JsonSerializer.Deserialize<Config>(moduleJson, new JsonSerializerOptions() {
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             });
-            var js = FileUtils.ReadTextFile(jsPath);
+            var content = FileUtils.ReadTextFile(jsPath);
             // check the default render engine
             var renderEngine = config?.Modules?.Values.First().Defaults.Page.RenderEngine;
             if (renderEngine == "x") {
-                js = CompileXTemplate(js);
+                content = CompileXTemplate(content);
             }
             // return the compiled js
-            return js;
+            return content;
         }
 
 
         // private methods
         private string CompileHtml(string html) {
+            // TODO ...
             throw new NotImplementedException();
         }
         private string CompileMarkdown(string html) {
+            // TODO ...
             throw new NotImplementedException();
         }
         private string CompileXTemplate(string js) {
+            // TODO ...
 
             return js;
         }

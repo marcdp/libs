@@ -88,7 +88,9 @@ namespace DProjects.XShell.Middlewares {
                         return;
                     }
                     var relativePath = remaining.Value ?? "";
-                    if (!relativePath.EndsWith(".js", StringComparison.OrdinalIgnoreCase)) {
+                    if (!relativePath.EndsWith(".js", StringComparison.OrdinalIgnoreCase) && 
+                        !relativePath.EndsWith(".html", StringComparison.OrdinalIgnoreCase) && 
+                        !relativePath.EndsWith(".md", StringComparison.OrdinalIgnoreCase)) {
                         await nextMiddleware();
                         return;
                     }
