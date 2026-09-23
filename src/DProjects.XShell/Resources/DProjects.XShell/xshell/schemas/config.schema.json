@@ -173,11 +173,13 @@
     "menus": {
       "type": "object",
       "additionalProperties": {
-        "type": "array",
-        "items": {"$ref": "#/$defs/menuItem"},
-        "description": "Menu items for a named menu slot."
+        "oneOf": [
+          { "type": "array", "items": {"$ref": "#/$defs/menuItem"}},
+          { "type": "string", "minLength": 1, "description": "Name of a registered dynamic menu source."}
+        ],
+        "description": "Static menu items or the name of a registered dynamic menu source."
       },
-      "description": "Named menu collections contributed by a module."
+      "description": "Named menu contributions provided by a module."
     },
     "menuItem": {
       "type": "object",

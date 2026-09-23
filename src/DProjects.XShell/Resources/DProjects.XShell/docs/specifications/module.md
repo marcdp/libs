@@ -41,11 +41,14 @@ container and defaults to the configuration document's directory. Module-relativ
 Service Worker maps those virtual URLs to `assetsUrl`, hiding the physical representation from normal resource consumers. Expanded directories are
 supported; ZIP-backed assets are not yet implemented.
 
-`modules.<module-id>.menus.<menu-name>` is an area-independent contribution to a named menu slot. The root application selects participating
-modules through `xshell.areas.definitions.<area-id>.modules`; a child module does not declare Area membership. One module can contribute to multiple
-Areas without creating another runtime module instance. Menu entries are navigation data, not imports or route declarations. Bootstrap normalizes
-authored module-relative hrefs such as `/pages/orders.js` into the module asset namespace before Areas applies an Area prefix. The first
-navigation item marked `default: true` in depth-first Area module order determines that Area's home; absent such an item, home is null.
+`modules.<module-id>.menus.<menu-name>` is an area-independent contribution to a named menu slot. A value is either an array of static menu items
+or a non-empty string naming a dynamic menu source registered with `Areas.registerSource(name, source)`. The source's `resolve()` method returns
+the menu-item array used for that complete contribution. A source name is a runtime lookup identifier, not a URL. This differs from
+`childrenSource` on a static item, which dynamically supplies only that item's child items. The root application selects participating modules
+through `xshell.areas.definitions.<area-id>.modules`; a child module does not declare Area membership. One module can contribute to multiple Areas
+without creating another runtime module instance. Menu entries are navigation data, not imports or route declarations. Bootstrap normalizes authored
+module-relative hrefs such as `/pages/orders.js` into the module asset namespace before Areas applies an Area prefix. The first navigation item
+marked `default: true` in depth-first Area module order determines that Area's home; absent such an item, home is null.
 
 The optional `controller` points to a JavaScript module loaded through `module:<controller>`. Its default export must be constructable. Runtime
 requests named XShell services through its constructor argument, supplies `params` from the final module config, and calls `start()` after controller

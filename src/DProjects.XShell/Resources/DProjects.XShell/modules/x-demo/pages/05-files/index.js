@@ -1,14 +1,18 @@
+// contract
+export const contract = {
+    description: "Upload",
+    events: {},
+    properties: {},
+    methods: {}
+};
+
 // export page
 export default {
     template: `
         <p>
-            this is a test page 2 
+            this is the upload page
         </p>
     `,    
-    state: {
-        areas: {value:[]},
-        selected: {value:""}
-    },
     script({ state }) {
         return {
             onCommand(command, params) {

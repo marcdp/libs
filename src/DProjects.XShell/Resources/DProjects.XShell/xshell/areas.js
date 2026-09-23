@@ -69,8 +69,29 @@ export default class Areas {
                     console.warn(`Area '${area.id}' references unknown module '${moduleId}'`);
                     continue;
                 }
-                for (const [menuName, menuItems] of Object.entries(module.config.menus || {})) {
-                    if (!Array.isArray(menuItems)) continue;
+                for (const [menuName, menuDefinition] of Object.entries(module.config.menus || {})) {
+                    let menuItems;
+
+                    if (Array.isArray(menuDefinition)) {
+                        menuItems = menuDefinition;
+                    } else if (typeof menuDefinition === "string") {
+                        const source = this._sources[menuDefinition];
+
+                        if (!source) {
+                            console.warn(`Unknown menu source '${menuDefinition}'`);
+                            continue;
+                        }
+
+                        menuItems = source.resolve?.() || [];
+                    } else {
+                        continue;
+                    }
+
+                    if (!Array.isArray(menuItems)) {
+                        console.warn(`Menu '${menuName}' must resolve to an array`);
+                        continue;
+                    }
+
                     menus[menuName] ??= [];
                     menus[menuName].push(...menuItems.map(menuitem => this._cloneMenuitem(menuitem, module, area)));
                 }
@@ -127,6 +148,7 @@ export default class Areas {
         return null;
     }
     registerSource(name, source) {
+        // register a dynamic menu source
         this._sources[name] = source;
         this._sourceTargets[name] = [];
         // refresh every effective copy backed by this source

@@ -83,7 +83,10 @@ module id. `xshell` holds runtime and hosting configuration, including `environm
 fragment, not a separate application format. Bootstrap records each resolved definition's `configUrl`, `assetsUrl`, and params on its
 `modules.<module-id>` entry. The module id is the key; a duplicate `name` field is unnecessary.
 
-`modules.<id>.menus.<name>` holds reusable, area-independent menu contributions. `xshell.areas.default` selects a default Area and
+`modules.<id>.menus.<name>` holds a reusable, area-independent named menu contribution. Its value is either a static array of menu items or a
+string naming a dynamic menu source registered at runtime through `Areas.registerSource()`. The string is a source name, not a URL; resolver
+entries and their `url` values are unrelated. The effective configuration remains deeply frozen: a registered source provides runtime menu data
+rather than mutating configuration. `xshell.areas.default` selects a default Area and
 `xshell.areas.definitions.<id>` describes application composition, including `prefix` and the participating `modules` array. Areas derives
 `home` from the first depth-first navigation item marked `default: true`; it does not use a configured Area home.
 Root ownership of Area composition is an architectural convention; imported fragments can technically contribute `xshell` settings.

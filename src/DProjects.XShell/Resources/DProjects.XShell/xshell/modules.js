@@ -63,9 +63,12 @@ export default class Modules {
                     const moduleClass = await this._loader.load("module:" + moduleConfig.controller);
                     const servicesProvider = new Proxy({}, {
                         get: (obj, prop) => {
-                            if (prop == "params") {
-                                // module params
-                                return moduleConfig.params;
+                            if (prop == "moduleAssetsPath") {
+                                // module assets path
+                                return "/" + assetsPrefix + "/" + moduleId;
+                            } else if (prop == "moduleConfig") {
+                                // module config
+                                return { id: moduleId, ...moduleConfig };
                             } else {
                                 // resolve from services
                                 return this._services.resolve(prop);

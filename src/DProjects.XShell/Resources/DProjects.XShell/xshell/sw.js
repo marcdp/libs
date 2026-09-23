@@ -70,73 +70,6 @@ self.addEventListener("fetch", event => {
 
 
 // methods
-async function handleRequestOld(request) {
-    const requestUrl = new URL(request.url);
-
-    // if request is outside scope, just fetch
-    if (!request.url.startsWith(self.registration.scope)) {
-        // console.log("sw: ignoring: " + request.url)
-        return fetch(request, { cache: "no-store" });
-    }    
-
-    // if no rules, just fetch
-    if (!state || state.rules.length == 0) {
-        return fetch(request, { cache: "no-store" });
-    }
-
-    // determine the rule to use
-    let rule = null;
-    for(let targetRule of state.rules) {
-        if (request.url.startsWith(targetRule.src)) {
-            // check exceptions
-            let isException = false;
-            for(let exception of targetRule.exceptions) {
-                if (request.url.startsWith(exception)) {
-                    isException = true;
-                    break;
-                }
-            }
-            if (isException) {
-                break;
-            }
-            // matched rule
-            rule = targetRule;
-            break;
-        }
-    }
-    if (!rule) {
-        // no matching rule, just fetch
-        // console.log("sw: no rule : " + request.url)
-        return fetch(request, { cache: "no-store" });
-    }
-
-    // url to fetch
-    let url = new URL(request.url.replace(rule.src, rule.dst));
-    //console.log("sw: fetching: " + url)
-
-    // fetch the real file
-    const response = await fetch(url, {
-        method: request.method,
-        headers: request.headers,
-        body: request.method !== "GET" && request.method !== "HEAD" ? request.body : undefined,
-        mode: "same-origin",
-        credentials: "same-origin",
-        redirect: "manual"   // IMPORTANT: prevents redirects from rewriting module identity
-    });
-
-    // headers (remove redirect-related headers that could leak the /src/... URL)
-    const headers = new Headers(response.headers);
-    headers.delete("Location");
-    headers.delete("Content-Location");
-
-    // body
-    const body = response.body;
-    // return the response
-    return new Response(body, {
-        status: response.status,
-        headers: headers
-    });
-}
 async function handleRequest(request) {
 
     // if request is outside scope, just fetch
@@ -158,8 +91,7 @@ async function handleRequest(request) {
     for (const targetRule of state.rules) {
         const srcUrl = new URL(targetRule.src);
 
-        if (
-            requestUrl.origin === srcUrl.origin &&
+        if (requestUrl.origin === srcUrl.origin &&
             (
                 requestUrl.pathname === srcUrl.pathname ||
                 requestUrl.pathname.startsWith(srcUrl.pathname + "/")

@@ -1,14 +1,18 @@
+// contract
+export const contract = {
+    description: "Pages markdown page",
+    events: {},
+    properties: {},
+    methods: {}
+};
+
 // export page
 export default {
     template: `
         <p>
-            this is a test page 1
+            this is the pages markdown page
         </p>
     `,    
-    state: {
-        areas: {value:[]},
-        selected: {value:""}
-    },
     script({ state }) {
         return {
             onCommand(command, params) {

@@ -1,6 +1,7 @@
-import {utils} from "x-element";
 
 // utils
+let freeId = 0;
+const getFreeId = function() {return "id" + freeId++;};
 const urlPattern = /^(https?:\/\/)?(www\.)?([a-zA-Z0-9-]+)\.([a-zA-Z]{2,})(\/[a-zA-Z0-9#-]+\/?)*$/;
 const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 const telPattern = /^(\+?\d{1,3}[-.\s]?)?(\(?\d{3}\)?[-.\s]?)?\d{3}[-.\s]?\d{4,7}$/;
@@ -454,7 +455,7 @@ export default {
             async onCommand(command, args) {
                 if (command == "load") {
                     // load
-                    state.inputId = utils.getFreeId();
+                    state.inputId = getFreeId();
                     events.on(state, ["change:domain", "change:type", "change:required", "change:min", "change:max", "change:minlength", "change:maxlength", "change:pattern", "change:value"], (event) => {
                         let prop = event.prop;
                         let newValue = event.newValue;

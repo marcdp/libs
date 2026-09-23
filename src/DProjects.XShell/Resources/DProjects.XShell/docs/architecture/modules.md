@@ -50,6 +50,20 @@ A module can declare reusable named menu contributions, independent of the appli
 } } } }
 ```
 
+Each named menu is either a static array or the name of a registered dynamic menu source:
+
+```jsonc
+{ "modules": { "reports": { "menus": {
+    "navigation": "report-pages",
+    "tools": [{ "label": "Export", "href": "/pages/export.js" }]
+} } } }
+```
+
+The string is a runtime lookup identifier, not a URL or resolver entry. A module controller can register it with
+`Areas.registerSource("report-pages", { resolve: () => menuItems })`. Its `resolve()` result supplies the complete named menu contribution.
+This is distinct from an item's `childrenSource`, which supplies only that item's children. The module configuration remains declarative and
+readonly; runtime menu data is not written back into `config.modules`.
+
 The root application lists module ids in `xshell.areas.definitions.<area-id>.modules`. Modules do not choose their Area. A module may be listed in
 zero, one, or several Areas. Areas composes separate effective menus for those Areas in the listed order; the first navigation item marked
 `default: true` in depth-first traversal provides each Area's home. Participation does not create routes, imports, or additional module instances.
@@ -79,6 +93,9 @@ concurrently, awaits all of them, and then calls all controller `start()` method
 and append the loaded stylesheets to `document.adoptedStyleSheets`. The proxy supplies `params` from the final module config; other requested names
 are resolved through XShell's registered services, including `navigation`, `bus`, and `config`. The runtime does not resolve repeated-import
 precedence.
+
+XShell runs `Modules.init()` before `Areas.init()`. Controllers can therefore register dynamic menu sources before Areas reads module menu
+contributions, composes effective Area menus, and starts Navigation.
 
 The proxy also has `definition` and `timer` branches that currently reference unavailable identifiers; their injection behavior is not
 established. A controller-free definition receives a fallback object with `onCommand()` but no `start()`, so startup can fail. The current module

@@ -10,7 +10,7 @@
 
     // module
     "modules": {
-        "test": {
+        "x-demo": {
             "label": "test module",
             "version": "1.0.0",
             "styles": [ "/css/styles.css" ],
@@ -26,16 +26,10 @@
                 "intents": {}
             },
             "menus":{
-                "navigation":[{
-                    "label": "Page 0",
-                    "href": "/pages/test0.js",                    
-                    "children": [
-                        { "label": "Page 1", "href": "/pages/test1.js", "default": true },
-                        { "label": "Page 2", "href": "/pages/test2.js" }
-                    ]
-                }],
+                "navigation": "x-demo-dynamic-navigation-menu-source",
                 "tools": [
-                    { "label": "My things", "href": "/pages/test1.js"}
+                    { "label": "My things 1", "href": "/pages/test1.js"},
+                    { "label": "My things 2", "href": "/pages/test1.js"}
                 ]
             }
         }
@@ -50,13 +44,13 @@
                     "prefix": "main",
                     "label": "Main area",
                     "icon": "x-bell",
-                    "modules": [ "test" ]
+                    "modules": [ "x-demo" ]
                 },
                 "advanced": {
                     "prefix": "advanced",
                     "label": "Advanced area",
                     "icon": "x-file",
-                    "modules": [ "test" ]
+                    "modules": [ "x-demo" ]
                 }
             }
         }

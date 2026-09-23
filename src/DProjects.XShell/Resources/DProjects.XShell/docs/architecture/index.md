@@ -6,7 +6,7 @@ XShell starts from the application's root module definition and recursively disc
 HTML/bootstrap inputs → root module → recursive imports → canonical module definitions
     → URL normalization → nested effective configuration (app, modules, xshell)
     → default resolvers → Service Worker mappings → import map → import XShell → deep freeze → init
-    → one live module instance per module id → Areas compose menus and homes → Navigation starts
+    → one live module instance per module id → controllers register runtime sources → Areas compose menus and homes → Navigation starts
 ```
 
 `config.modules` contains canonical definitions keyed by module id. `xshell.modules` is the runtime service. Repeated imports of one definition URL
@@ -18,7 +18,8 @@ Module resources use `/_assets/<module>/...` with the checked-in `_assets` prefi
 resolution selects a URL and loader; the loader obtains the resource. A Page uses the normal Component model plus Navigation.
 An Area is a navigation context composed from participating modules, including their effective menus. Modules define reusable menu contributions;
 Areas define application composition. The first navigation item marked `default: true` in depth-first traversal provides the Area home. This
-composition does not duplicate module instances.
+composition does not duplicate module instances. A named menu contribution can be a static array or a registered dynamic menu source; see
+[Areas](../subsystems/areas.md) for its composition and refresh behavior.
 
 ## Documents
 

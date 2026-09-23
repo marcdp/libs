@@ -1,14 +1,18 @@
+// contract
+export const contract = {
+    description: "Loader",
+    events: {},
+    properties: {},
+    methods: {}
+};
+
 // export page
 export default {
     template: `
         <p>
-            this is a test page 0
+            this is the loader page
         </p>
     `,    
-    state: {
-        areas: {value:[]},
-        selected: {value:""}
-    },
     script({ state }) {
         return {
             onCommand(command, params) {

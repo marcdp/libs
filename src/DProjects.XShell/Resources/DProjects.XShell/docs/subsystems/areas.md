@@ -37,9 +37,32 @@ prefix throws. With no configured default, the first sorted Area is used. The in
 
 ## Menus and home
 
-Areas composes each named menu slot by visiting participating modules in `area.modules` order and copying items in declaration order. Each
-effective item has its module id, Area id, label, icon, children, and effective href. Effective menu structures are separate for each Area;
-participation creates no additional module instances. Unknown module ids cause a warning and are skipped.
+Areas composes each named menu slot by visiting participating modules in `area.modules` order. A module contribution is either a static array,
+which Areas clones in declaration order, or a string naming a source already registered through `Areas.registerSource(name, source)`. For a named
+source, Areas calls `source.resolve()` during composition and clones the returned array as the complete contribution. Each effective item has its
+module id, Area id, label, icon, children, and effective href. Effective menu structures are separate for each Area; participation creates no
+additional module instances. Unknown module ids and unknown sources produce warnings and are skipped.
+
+`childrenSource` is a separate pattern. It belongs on a static menu item and adds dynamically resolved children to that item; it does not replace
+the named menu contribution:
+
+```jsonc
+{
+    "navigation": [
+        { "label": "Customers", "href": "/pages/customers.js", "childrenSource": "customer-pages" }
+    ],
+    "tools": "report-tools"
+}
+```
+
+Here `customer-pages` supplies only `Customers` children, while `report-tools` supplies the entire `tools` menu. Source names are runtime lookup
+identifiers, not URLs or resolver entries. They provide runtime data without mutating the readonly effective configuration.
+
+The bundled `x-demo` module illustrates a complete-menu source. Its `navigation` contribution names
+`x-demo-dynamic-navigation-menu-source`; its controller reads the physical `module.files.json` inventory, derives a page hierarchy from `/pages`,
+and registers the resulting menu. Numeric filename and directory prefixes order entries and are removed from labels. This is an `x-demo` convention,
+not an XShell requirement: `module.files.json` remains a physical file inventory, not menu metadata. Its `/pages/index.js` becomes the top-level
+`Demo` item, and other page sections become that item's children.
 
 Bootstrap first maps module-relative menu hrefs into `/_assets/<module-id>/...`. Areas then adds the Area prefix to local hrefs, leaving external
 scheme URLs unchanged. The Area home is the effective href of the first `navigation` item marked `"default": true` in depth-first traversal.
@@ -48,8 +71,10 @@ Area to have a home.
 
 `xshell.areas.getMenu("navigation")` selects the current Area; `getMenu("navigation", "inventory")` selects one explicitly.
 `getMenuitemBreadcrumb(href, areaId = null)` searches only that Area's effective menus, defaulting to the current Area.
-`registerSource(name, source)` supports dynamic children. When a dependency event refreshes effective content, Areas emits
-`xshell:menus:change`.
+`Areas.registerSource(name, source)` registers a source before Areas composition. A source exposes `resolve()`, which returns menu items, and may
+declare `dependsOn`, an array of Bus event names. For `childrenSource` targets, an event refreshes their effective children and emits
+`xshell:menus:change` when content changed. Complete-menu sources named by a string are resolved only during `Areas.init()`; the current runtime
+does not attach them as refresh targets, so they are not live-reactive after composition.
 
 ## Navigation context
 
@@ -64,7 +89,7 @@ Menu UIs should refresh on that event; `xshell:menus:change` is reserved for dyn
 ## Current implementation limits
 
 Both hash and path navigation apply Area prefixes. Bootstrap's generic configuration merge can accept Area definitions from imported fragments even
-though Area composition belongs to the root application. Dynamic menu children are mutable so registered sources can refresh them.
+though Area composition belongs to the root application. Dynamic `childrenSource` content can refresh; complete named menu sources are composed once.
 
 See [Navigation](../architecture/navigation.md), [Configuration](../architecture/configuration.md),
 [Module Specification](../specifications/module.md), and [ADR-0005](../adr/0005-area-menu-composition.md).
