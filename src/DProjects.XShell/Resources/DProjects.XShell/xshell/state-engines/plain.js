@@ -1,5 +1,5 @@
 // export
-export default function createStateEngineFactoryPlain(stateSkeleton, stateDefinition) {
+export default function createStateEngineFactoryPlain(stateSkeleton, context) {
 	
 	// init state definition json
 	const stateSkeletonJson = JSON.stringify(stateSkeleton || {});

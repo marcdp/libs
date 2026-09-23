@@ -1,5 +1,5 @@
 // export
-export default function createStateEngineFactoryProxy(stateSkeleton, stateDefinition) {
+export default function createStateEngineFactoryProxy(stateSkeleton, context) {
 	
 	// init state definition json
 	const stateSkeletonJson = JSON.stringify(stateSkeleton || {});

@@ -5,23 +5,10 @@ import xshell from "xshell";
 
 // utils
 function kebabToCamel(str) {
-    return str.split('-')
-        .map((word, index) => index === 0 ? word : word.charAt(0).toUpperCase() + word.slice(1))
-        .join('');
+    return str.split('-').map((word, index) => index === 0 ? word : word.charAt(0).toUpperCase() + word.slice(1)).join('');
 };
 function camelToKebab(str) {
-    return str
-      .replace(/([a-z])([A-Z])/g, '$1-$2') 
-      .toLowerCase();                      
-}
-function cloneDefaultValue(value) {
-    if (Array.isArray(value)) {
-        return value.map(cloneDefaultValue);
-    }
-    if (value && typeof(value) === "object" && Object.getPrototypeOf(value) === Object.prototype) {
-        return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, cloneDefaultValue(item)]));
-    }
-    return value;
+    return str.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();                      
 }
 function isEmptyPlainObject(value) {
     return value && typeof(value) === "object" && !Array.isArray(value) && Object.getPrototypeOf(value) === Object.prototype && Object.keys(value).length === 0;
@@ -158,7 +145,7 @@ export async function createComponentClassFromJsDefinition(src, context, definit
             this._properties = {};
             for (const [propName, property] of Object.entries(properties)) {
                 if (property.state !== true) {
-                    this._properties[propName] = cloneDefaultValue(property.default);
+                    this._properties[propName] = property.default;
                 }
             }
             // services provider

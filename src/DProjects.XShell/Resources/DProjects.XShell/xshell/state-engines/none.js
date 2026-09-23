@@ -1,5 +1,5 @@
 // export
-export default function createStateEngineFactoryNone(stateSkeleton, stateDefinition) {
+export default function createStateEngineFactoryNone(stateSkeleton, context) {
 
 	// returns a state instance factory
 	return {
