@@ -254,7 +254,7 @@ A definition-based component resolves its engines from its own `meta` first and 
 
 `component-js` precedence is component `meta`, then `modules.<id>.defaults.component`. Each resolved module requires both this component-default
 group and the corresponding Page-default group; render engine and state engine values are required non-empty strings. XShell defaults do not
-provide component render or state engines. `xshell.defaults.component` instead identifies the global `lazy` and `error` components.
+provide component render or state engines. `xshell.ui.component` instead identifies the global `lazy` and `error` components.
 
 The selected state and render engines are used while converting the definition into the final Web Component class.
 

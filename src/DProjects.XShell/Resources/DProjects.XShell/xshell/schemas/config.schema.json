@@ -232,7 +232,7 @@
     },
     "xshell": {
       "type": "object",
-      "required": ["build", "debug", "version", "environment", "identity", "assetsPrefix", "areas", "navigation", "resolver", "defaults", "configUrl", "assetsUrl"],
+      "required": ["build", "debug", "version", "environment", "identity", "assetsPrefix", "areas", "navigation", "resolver", "ui", "configUrl", "assetsUrl"],
       "properties": {
         "build": {"type": "string", "description": "XShell build identifier."},
         "debug": {"type": "boolean", "description": "Whether XShell debug behavior is enabled."},
@@ -241,7 +241,7 @@
         "assetsPrefix": {"type": "string", "description": "Virtual URL prefix used for module assets."},
         "configUrl": {"type": "string", "format": "uri", "description": "URL of the xshell configuration document"},
         "assetsUrl": {"type": "string", "format": "uri", "description": "URL of the directory or package containing the xshell assets."},
-        "defaults": {"$ref": "#/$defs/xshellDefaults", "description": "Global defaults inherited by XShell resources."},
+        "ui": {"$ref": "#/$defs/xshellUi", "description": "Global ui settings."},
         "identity": {"$ref": "#/$defs/xshellIdentity", "description": "Identity subsystem configuration."},
         "areas": {"$ref": "#/$defs/xshellAreas", "description": "Application area configuration."},
         "navigation": {"$ref": "#/$defs/xshellNavigation", "description": "Navigation configuration."},
@@ -291,18 +291,18 @@
       "additionalProperties": false,
       "description": "Application navigation mode and related options."
     },
-    "xshellDefaults": {
+    "xshellUi": {
       "type": "object",
       "required": ["layout","component","dialog"],
       "properties": {
-        "layout": {"$ref": "#/$defs/xshellLayoutDefaults", "description": "Default layouts available to pages."},
-        "component": {"$ref": "#/$defs/xshellComponentDefaults", "description": "Defaults applied to components."},
-        "dialog": {"$ref": "#/$defs/xshellDialogDefaults", "description": "Defaults dialogs available."}
+        "layout": {"$ref": "#/$defs/xshellUiLayout", "description": "Default layouts available to pages."},
+        "component": {"$ref": "#/$defs/xshellUiComponent", "description": "Defaults applied to components."},
+        "dialog": {"$ref": "#/$defs/xshellUiDialog", "description": "Defaults dialogs available."}
       },
       "additionalProperties": false,
       "description": "Default values inherited by pages, dialogs, and components."
     },
-    "xshellLayoutDefaults": {
+    "xshellUiLayout": {
       "type": "object",
       "required": [],
       "properties": {
@@ -315,7 +315,7 @@
       "additionalProperties": {"type": ["string", "null"]},
       "description": "Default layouts available to pages."
     },
-    "xshellComponentDefaults": {
+    "xshellUiComponent": {
       "type": "object",
       "required": [],
       "properties": {
@@ -325,7 +325,7 @@
       "additionalProperties": false,
       "description": "Default settings applied to components."
     },
-    "xshellDialogDefaults": {
+    "xshellUiDialog": {
       "type": "object",
       "properties": {
         "confirm": {"type": ["string", "null"], "description": "Page used for confirmation dialogs."},

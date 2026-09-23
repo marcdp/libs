@@ -64,7 +64,7 @@ Page `meta` and then `defaults.page`; Component engines resolve from component `
 render-engine or state-engine fallback.
 
 Module defaults do not define layouts or standard dialog infrastructure. A module may provide layout resources or Page resources used as dialogs,
-but application-wide layout contexts belong to `xshell.defaults.layout` and standard dialog pages belong to `xshell.defaults.dialog`. No current
+but application-wide layout contexts belong to `xshell.ui.layout` and standard dialog pages belong to `xshell.ui.dialog`. No current
 tooling uses render-engine defaults for publish-time X-template compilation.
 
 The effective schema requires `label`, `version`, `copyright`, `icon`, `configUrl`, `assetsUrl`, and `defaults` for every resolved module.

@@ -122,13 +122,13 @@ Component state engine:  definition.meta.stateEngine  → modules.<moduleId>.def
 There is no XShell-global render-engine or state-engine fallback. A module may provide layout resources or Page resources used as dialogs, but
 module defaults do not configure application-wide layouts or standard dialog infrastructure.
 
-**XShell defaults** are `xshell.defaults`: global runtime/UI infrastructure and presentation defaults, rather than module execution policy. The
-schema requires its `layout`, `component`, and `dialog` groups. Layout lookup uses `xshell.defaults.layout.<context>`; the built-in layout contexts
-are `default`, `dialog`, `main`, `stack`, and `embed`, and the schema allows additional named layout contexts. `xshell.defaults.component.lazy`
+**XShell defaults** are `xshell.ui`: global runtime/UI infrastructure and presentation defaults, rather than module execution policy. The
+schema requires its `layout`, `component`, and `dialog` groups. Layout lookup uses `xshell.ui.layout.<context>`; the built-in layout contexts
+are `default`, `dialog`, `main`, `stack`, and `embed`, and the schema allows additional named layout contexts. `xshell.ui.component.lazy`
 and `.error` identify the global lazy-loading and error components.
 
-`xshell.defaults.layout.dialog` is the layout context used for a Page opened in dialog context. It is distinct from
-`xshell.defaults.dialog.confirm`, `.message`, `.prompt`, and `.picker`, which identify the standard dialog Page resources used by dialog
+`xshell.ui.layout.dialog` is the layout context used for a Page opened in dialog context. It is distinct from
+`xshell.ui.dialog.confirm`, `.message`, `.prompt`, and `.picker`, which identify the standard dialog Page resources used by dialog
 operations. There is no `module.defaults.dialog` group.
 
 ## URLs and immutability

@@ -16,7 +16,7 @@ repository path above is canonical.
 
 Every resolved module requires **module defaults** at `modules.<id>.defaults`: both `page` and `component` require non-empty render-engine and
 state-engine names. These select how the owning module's definition-based resources execute after a resource `meta` override. The separate
-**XShell defaults** object, `xshell.defaults`, requires `layout`, `component`, and `dialog` groups for global UI infrastructure: layout contexts,
+**XShell defaults** object, `xshell.ui`, requires `layout`, `component`, and `dialog` groups for global UI infrastructure: layout contexts,
 lazy/error components, and standard dialog pages. It does not provide render or state engines for modules.
 
 See [Configuration](../architecture/configuration.md) and [ADR-0002](../adr/0002-jsonc-specifications.md).

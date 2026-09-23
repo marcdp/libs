@@ -42,8 +42,8 @@
             }
         },
 
-        // defaults
-        "defaults": {
+        // ui
+        "ui": {
             "layout": {
                 "default": "x-layout-default",
                 "dialog": "x-layout-dialog",

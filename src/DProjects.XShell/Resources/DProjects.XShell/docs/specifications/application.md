@@ -59,7 +59,7 @@ separate root id or root-params object, and there is no `xshell.module` section.
 
 The root is also a resolved module, so its **module defaults** are required: `defaults.page` and `defaults.component` each require non-empty
 `renderEngine` and `stateEngine` strings. These defaults control only the root module's definition-based Pages and Components. Application-wide
-UI infrastructure belongs to the distinct **XShell defaults** object, `xshell.defaults`.
+UI infrastructure belongs to the distinct **XShell defaults** object, `xshell.ui`.
 
 The checked-in `modules/test/module.jsonc` follows this nested shape. The canonical effective-configuration schema is
 `xshell/schemas/config.schema.json`; bootstrap adds host-derived and resolved fields such as `app.basePath`, `app.params`, `configUrl`, and

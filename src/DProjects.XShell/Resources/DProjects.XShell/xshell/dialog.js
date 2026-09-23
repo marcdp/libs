@@ -15,7 +15,7 @@ export default class Dialog {
 
     // methods
     async confirm({ title, message, variant }) {
-        const href = this._config.xshell.defaults.dialog.confirm;
+        const href = this._config.xshell.ui.dialog.confirm;
         return await this._navigation.navigate({ 
             href, 
             open:"dialog", 
@@ -27,7 +27,7 @@ export default class Dialog {
         });
     }
     async message({ type, title, message }    ) {
-        const href = this._config.xshell.defaults.dialog.message;
+        const href = this._config.xshell.ui.dialog.message;
         return await this._navigation.navigate({ 
             href, 
             open:"dialog",
@@ -39,7 +39,7 @@ export default class Dialog {
         });
     }
     async prompt({ title, message, defaultValue, inputType, placeholder, required }) {
-        const href = this._config.xshell.defaults.dialog.prompt; 
+        const href = this._config.xshell.ui.dialog.prompt; 
         return await this._navigation.navigate({ 
             href, 
             open:"dialog",
@@ -54,7 +54,7 @@ export default class Dialog {
         });
     }
     async picker({ title, message, defaultValue, inputType, placeholder, domain, multiple, required }) {
-        const href = this._config.xshell.defaults.dialog.picker;
+        const href = this._config.xshell.ui.dialog.picker;
         return await this._navigation.navigate({ 
             href, 
             open:"dialog",

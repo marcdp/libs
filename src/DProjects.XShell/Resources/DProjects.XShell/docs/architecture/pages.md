@@ -22,15 +22,15 @@ events.
 ## Layouts
 
 Layouts are presentation containers for Pages. They do not resolve routes. Checked-in layout names are `default`, `dialog`, `main`, `stack`, and
-`embed`, configured under `xshell.defaults.layout`. `x-page` currently uses `embed` when no layout is supplied; Navigation assigns `main` to the
+`embed`, configured under `xshell.ui.layout`. `x-page` currently uses `embed` when no layout is supplied; Navigation assigns `main` to the
 root page and `stack` to additional pages. Dialog and embed are also navigation opening modes.
 
-`x-page` selects a layout through `xshell.defaults.layout.<context>`. In `page-js`, a definition-based Page resolves each engine from Page `meta`
+`x-page` selects a layout through `xshell.ui.layout.<context>`. In `page-js`, a definition-based Page resolves each engine from Page `meta`
 first, then `modules.<id>.defaults.page`; there is no XShell render-engine or state-engine fallback. Stack rendering exists in both navigation
 modes, but its full behavioral contract remains to be specified.
 
-`xshell.defaults.layout.dialog` is the layout used for a Page opened in dialog context. It is separate from the standard dialog pages:
-`xshell.defaults.dialog.confirm`, `message`, `prompt`, and `picker` identify the Page resources used by dialog operations. Those Page-resource
+`xshell.ui.layout.dialog` is the layout used for a Page opened in dialog context. It is separate from the standard dialog pages:
+`xshell.ui.dialog.confirm`, `message`, `prompt`, and `picker` identify the Page resources used by dialog operations. Those Page-resource
 defaults do not select the `dialog` layout.
 
 See [Navigation](navigation.md), [Configuration](configuration.md), and [Loaders](loaders.md).

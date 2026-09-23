@@ -23,8 +23,8 @@
         "assetsPrefix": "_assets",
         "assetsUrl": "url:./",
 
-        // defaults
-        "defaults": {
+        // ui
+        "ui": {
             "layout": {
                 "default": null,
                 "dialog": null,

@@ -187,7 +187,7 @@ class XPage extends HTMLElement {
         // layout
         let layoutName = this._layout;
         if (!layoutName) layoutName = "embed";
-        let layout = xshell.config.xshell.defaults.layout[layoutName];
+        let layout = xshell.config.xshell.ui.layout[layoutName];
         let layoutClass = await xshell.loader.load("layout:" + layout);
         if (layoutElement == null || layoutElement.localName != layout) {
             if (layoutElement) layoutElement.remove();
@@ -315,7 +315,7 @@ class XPage extends HTMLElement {
     }
     async showError({code, message, src, module, stack, errors}) {
         // show error
-        let name = xshell.config.xshell.defaults.component.error;
+        let name = xshell.config.xshell.ui.component.error;
         const errorCoomponentClass = await xshell.loader.load("component:" + name);
         const errorComponent = new errorCoomponentClass();
         errorComponent.code = code;
