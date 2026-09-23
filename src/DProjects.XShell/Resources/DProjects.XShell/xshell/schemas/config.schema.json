@@ -55,7 +55,7 @@
         "defaults": {"$ref": "#/$defs/defaults", "description": "Defaults contributed by the module."},
         "contract": {"$ref": "#/$defs/moduleContract", "description": "Public contract exposed by the module."}
       },
-      "required": ["label", "version", "copyright", "icon", "configUrl", "assetsUrl"],
+      "required": ["label", "version", "copyright", "icon", "configUrl", "assetsUrl", "defaults"],
       "additionalProperties": false,
       "description": "Effective configuration of a resolved XShell module."
     },
@@ -263,7 +263,7 @@
     },
     "defaults": {
       "type": "object",
-      "required": [],
+      "required": ["page","component"],
       "properties": {
         "page": {"$ref": "#/$defs/pageDefaults", "description": "Defaults applied to pages."},
         "dialog": {"$ref": "#/$defs/dialogDefaults", "description": "Defaults applied to standard dialogs."},
@@ -274,6 +274,7 @@
     },
     "pageDefaults": {
       "type": "object",
+      "required": ["renderEngine","stateEngine"],
       "properties": {
         "layout": {
           "type": "object",
@@ -295,7 +296,7 @@
     },
     "componentDefaults": {
       "type": "object",
-      "required": ["lazy", "error", "renderEngine", "stateEngine"],
+      "required": ["renderEngine", "stateEngine"],
       "properties": {
         "lazy": {"type": ["string", "null"], "description": "Component used for lazy-loading placeholders."},
         "error": {"type": ["string", "null"], "description": "Component used to render component loading errors."},

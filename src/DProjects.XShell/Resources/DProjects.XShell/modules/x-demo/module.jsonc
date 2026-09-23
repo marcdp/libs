@@ -20,6 +20,16 @@
             "imports": [
                 {"configUrl": "url:../x/module.jsonc", "params": {"aaa":123, "bbb":456}}
             ],
+            "defaults": {
+                "component": { 
+                    "renderEngine": "x",
+                    "stateEngine": "proxy"
+                },
+                "page": { 
+                    "renderEngine": "x",
+                    "stateEngine": "proxy"
+                }
+            },
             "contract": {
                 "events": {},
                 "actions": {},

@@ -114,7 +114,34 @@ namespace DProjects.Utils {
                 element.WriteTo(writer);
             }
         }
-
+        public static string RemoveComments(string json) {
+            if (json == null) return null;
+            var sb = new System.Text.StringBuilder(json.Length);
+            bool quoted = false, escape = false;
+            for (int i = 0, N = json.Length; i < N; i++) {
+                var chr = json[i];
+                if (!escape && !quoted) {
+                    if (chr == '/' && i + 1 < N) {
+                        var nextChr = json[i + 1];
+                        if (nextChr == '/') {
+                            // single-line comment
+                            while (i < N && json[i] != '\n') i++;
+                            continue;
+                        } else if (nextChr == '*') {
+                            // multi-line comment
+                            i += 2;
+                            while (i + 1 < N && !(json[i] == '*' && json[i + 1] == '/')) i++;
+                            i++; // skip the closing '/'
+                            continue;
+                        }
+                    }
+                }
+                quoted = (chr == '"') ? !quoted : quoted;
+                escape = (chr == '\\') ? !escape : false;
+                sb.Append(chr);
+            }
+            return sb.ToString();
+        }
 
     }
 }

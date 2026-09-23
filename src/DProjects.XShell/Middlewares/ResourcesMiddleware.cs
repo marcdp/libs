@@ -1,4 +1,6 @@
 
+using DProjects.Utils;
+
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.StaticFiles;
@@ -75,6 +77,59 @@ namespace DProjects.XShell.Middlewares {
                     context.Response.ContentType = "application/json";
                     if (isDevelopment) SetNoCacheHeaders(context.Response);
                     await context.Response.WriteAsync(json);
+                });
+            }
+
+            // compile files .js, .html and .md, to .js files
+            if (isDevelopment) {
+                app.Use(async (context, nextMiddleware) => {
+                    if (!context.Request.Path.StartsWithSegments(requestPath, out var remaining)) {
+                        await nextMiddleware();
+                        return;
+                    }
+                    var relativePath = remaining.Value ?? "";
+                    if (!relativePath.EndsWith(".js", StringComparison.OrdinalIgnoreCase)) {
+                        await nextMiddleware();
+                        return;
+                    }
+                    // compile file
+                    var relativeFile = relativePath.TrimStart('/');
+                    var file = Path.GetFullPath(Path.Combine(physicalPath, relativeFile.Replace('/', Path.DirectorySeparatorChar)));
+                    var extension = System.IO.Path.GetExtension(file);
+                    // prevent path traversal
+                    if (!IsInside(file, physicalPath)) {
+                        context.Response.StatusCode = StatusCodes.Status404NotFound;
+                        return;
+                    }
+                    if (!File.Exists(file)) {
+                        context.Response.StatusCode = StatusCodes.Status404NotFound;
+                        return;
+                    }
+                    // search module.json or module.jsonc in the file's directory or its parent directories
+                    string directory = Path.GetDirectoryName(file) ?? "";
+                    string? moduleJson = null;
+                    while (!string.IsNullOrEmpty(directory) && IsInside(directory, physicalPath)) {
+                        var moduleJsonPath = Path.Combine(directory, "module.json");
+                        var moduleJsoncPath = Path.Combine(directory, "module.jsonc");
+                        if (File.Exists(moduleJsonPath)) {
+                            moduleJson = moduleJsonPath;
+                            break;
+                        } else if (File.Exists(moduleJsoncPath)) {
+                            moduleJson = moduleJsoncPath;
+                            break;
+                        }
+                        directory = Path.GetDirectoryName(directory) ?? "";
+                    }
+                    if (moduleJson == null) {
+                        await nextMiddleware();
+                        return;
+                    }
+                    // compile to js
+                    var js = await new Services.ModuleFileCompiler().CompileToJsAsync(moduleJson, file);
+                    // return response
+                    context.Response.ContentType = "application/javascript";
+                    SetNoCacheHeaders(context.Response);
+                    await context.Response.WriteAsync(js);
                 });
             }
 

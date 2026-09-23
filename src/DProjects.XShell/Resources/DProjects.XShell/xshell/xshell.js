@@ -122,6 +122,9 @@ class XShell {
         const result = validator.validate(config);
         if (!result.valid) {
             const message = result.errors.map(error => error.message).join("\n");
+            for(const err of result.errors) {
+                console.error(err);
+            }
             throw new Error(
                 `Invalid XShell configuration:\n${message}`,
                 { cause: result.errors }

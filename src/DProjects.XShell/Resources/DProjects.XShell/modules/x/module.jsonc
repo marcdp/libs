@@ -11,14 +11,13 @@
             "imports": [],
             "icon": "",
             "defaults": {
-                "page": { 
+                "component": { 
                     "renderEngine": "x",
                     "stateEngine": "proxy"
                 },
-                "dialog": {
-                    "confirm": null,
-                    "message": null,
-                    "prompt": null
+                "page": { 
+                    "renderEngine": "x",
+                    "stateEngine": "proxy"
                 }
             },
             "controller": "./js/module.js",
@@ -64,8 +63,6 @@
                 "picker": "/pages/dialog-picker.js"
             },
             "component": {
-                "renderEngine": "x",
-                "stateEngine": "proxy",
                 "lazy": "x-lazy",
                 "error": "x-error"
             }
