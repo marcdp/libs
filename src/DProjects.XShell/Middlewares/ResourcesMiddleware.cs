@@ -92,7 +92,7 @@ namespace DProjects.XShell.Middlewares {
                         await nextMiddleware();
                         return;
                     }
-                    // compile file
+                    // prepare
                     var relativeFile = relativePath.TrimStart('/');
                     var file = Path.GetFullPath(Path.Combine(physicalPath, relativeFile.Replace('/', Path.DirectorySeparatorChar)));
                     var extension = System.IO.Path.GetExtension(file);

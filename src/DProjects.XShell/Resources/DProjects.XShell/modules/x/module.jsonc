@@ -34,10 +34,7 @@
         // resolver
         "resolver": {
             "component": {
-                "ace-editor": {
-                    "url": "https://unpkg.com/ace-custom-element@latest/dist/index.min.js",
-                    "loader": "module-js"
-                }
+                "ace-editor": { "url": "https://unpkg.com/ace-custom-element@latest/dist/index.min.js", "loader": "module-js"}
             },
             "import": {
                 "marked": { "url": "/vendor/marked/marked.esm.js" },
@@ -47,14 +44,12 @@
 
         // defaults
         "defaults": {
-            "page": {
-                "layout": {
-                    "default": "x-layout-default",
-                    "dialog": "x-layout-dialog",
-                    "main": "x-layout-main",
-                    "stack": "x-layout-stack",
-                    "embed": "x-layout-embed"
-                }
+            "layout": {
+                "default": "x-layout-default",
+                "dialog": "x-layout-dialog",
+                "main": "x-layout-main",
+                "stack": "x-layout-stack",
+                "embed": "x-layout-embed"
             },
             "dialog": {
                 "confirm": "/pages/dialog-confirm.js",

@@ -58,12 +58,17 @@ requests named XShell services through its constructor argument, supplies `param
 and style loads. `Modules.stop()` can call controller `stop()`, but no automatic application-shutdown lifecycle currently invokes it. See
 [Modules](../architecture/modules.md) for current injection and controller-free startup limits.
 
-`defaults.page`, `defaults.dialog`, and `defaults.component` are allowed module defaults in the checked-in schema. Page and Component render/state
-engines use resource `meta` first, then their module default, then the XShell default. Dialog operations consume only `xshell.defaults.dialog`.
-No current tooling uses render-engine defaults for publish-time X-template compilation.
+**Module defaults** are required for every resolved module. `defaults` must contain both `page` and `component`; each requires non-empty-string
+`renderEngine` and `stateEngine` values. They define how the module's own definition-based Pages and Components execute. Page engines resolve from
+Page `meta` and then `defaults.page`; Component engines resolve from component `meta` and then `defaults.component`. There is no XShell
+render-engine or state-engine fallback.
 
-The effective schema requires `label`, `version`, `copyright`, `icon`, `configUrl`, and `assetsUrl` for every resolved module. Bootstrap supplies the
-two URLs during normalization. Optional fields are `params`, `styles`, `controller`, `imports`, `menus`, `defaults`, and `contract`.
+Module defaults do not define layouts or standard dialog infrastructure. A module may provide layout resources or Page resources used as dialogs,
+but application-wide layout contexts belong to `xshell.defaults.layout` and standard dialog pages belong to `xshell.defaults.dialog`. No current
+tooling uses render-engine defaults for publish-time X-template compilation.
+
+The effective schema requires `label`, `version`, `copyright`, `icon`, `configUrl`, `assetsUrl`, and `defaults` for every resolved module.
+Bootstrap supplies the two URLs during normalization. Optional fields are `params`, `styles`, `controller`, `imports`, `menus`, and `contract`.
 
 ## Public module contract
 

@@ -25,16 +25,12 @@
 
         // defaults
         "defaults": {
-            "page": {
-                "layout": {
-                    "default": null,
-                    "dialog": null,
-                    "main": null,
-                    "stack": null,
-                    "embed": null
-                },
-                "renderEngine": "plain",
-                "stateEngine": "plain"
+            "layout": {
+                "default": null,
+                "dialog": null,
+                "main": null,
+                "stack": null,
+                "embed": null
             },
             "dialog": {
                 "confirm": null,
@@ -44,9 +40,7 @@
             },
             "component": {
                 "lazy": "",
-                "error": "",
-                "renderEngine": "plain",
-                "stateEngine": "plain"
+                "error": ""
             }
         },
 

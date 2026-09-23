@@ -23,7 +23,8 @@ XShell authors nested JSONC. Framework defaults, the root module, and imported m
             "assetsUrl": "https://example.test/modules/test/",
             "controller": "/_assets/test/js/module.js",
             "defaults": {
-                "page": { "renderEngine": "x", "stateEngine": "proxy" }
+                "page": { "renderEngine": "x", "stateEngine": "proxy" },
+                "component": { "renderEngine": "x", "stateEngine": "proxy" }
             },
             "menus": { "navigation": [{ "label": "Home", "path": "/", "href": "/pages/home.js", "default": true }] },
             "imports": [
@@ -40,16 +41,12 @@ XShell authors nested JSONC. Framework defaults, the root module, and imported m
         "configUrl": "https://example.test/_resources/DProjects.XShell/xshell/xshell.jsonc",
         "assetsUrl": "https://example.test/_resources/DProjects.XShell/xshell/",
         "defaults": {
-            "page": {
-                "layout": {
-                    "default": "x-layout-default",
-                    "dialog": "x-layout-dialog",
-                    "main": "x-layout-main",
-                    "stack": "x-layout-stack",
-                    "embed": "x-layout-embed"
-                },
-                "renderEngine": "plain",
-                "stateEngine": "plain"
+            "layout": {
+                "default": "x-layout-default",
+                "dialog": "x-layout-dialog",
+                "main": "x-layout-main",
+                "stack": "x-layout-stack",
+                "embed": "x-layout-embed"
             },
             "dialog": {
                 "confirm": "/_assets/x/pages/dialog-confirm.js",
@@ -59,9 +56,7 @@ XShell authors nested JSONC. Framework defaults, the root module, and imported m
             },
             "component": {
                 "lazy": "x-lazy",
-                "error": "x-error",
-                "renderEngine": "x",
-                "stateEngine": "proxy"
+                "error": "x-error"
             }
         },
         "navigation": { "mode": "hash" },
@@ -113,14 +108,28 @@ no Area-specific replacement rule.
 
 ## Defaults
 
-`xshell.defaults.page` supplies Page render/state defaults and maps presentation contexts to layouts. `xshell.defaults.dialog` is a sibling that
-identifies the page resources used by `confirm`, `message`, `prompt`, and `picker`; it is not part of the Page defaults. In particular,
-`defaults.page.layout.dialog` selects a layout, while `defaults.dialog.confirm` selects the Page resource used for a confirmation operation.
-`xshell.defaults.component` supplies Component render/state defaults plus the lazy and error component names.
+**Module defaults** are `modules.<id>.defaults`. Each resolved module requires this object, its `page` and `component` objects, and non-empty
+`renderEngine` and `stateEngine` strings in both objects. They define how definition-based resources owned by that module execute:
 
-Both Page and Component loaders apply render/state engine precedence as: resource `meta` override, then `modules.<id>.defaults`, then
-`xshell.defaults`. Dialog operations read only `xshell.defaults.dialog`; module `defaults.dialog` is not applied. There is no implemented
-publish-time X-template compilation or other preparation step based on these defaults.
+```text
+Page render engine: definition.meta.renderEngine → modules.<moduleId>.defaults.page.renderEngine
+Page state engine:  definition.meta.stateEngine  → modules.<moduleId>.defaults.page.stateEngine
+
+Component render engine: definition.meta.renderEngine → modules.<moduleId>.defaults.component.renderEngine
+Component state engine:  definition.meta.stateEngine  → modules.<moduleId>.defaults.component.stateEngine
+```
+
+There is no XShell-global render-engine or state-engine fallback. A module may provide layout resources or Page resources used as dialogs, but
+module defaults do not configure application-wide layouts or standard dialog infrastructure.
+
+**XShell defaults** are `xshell.defaults`: global runtime/UI infrastructure and presentation defaults, rather than module execution policy. The
+schema requires its `layout`, `component`, and `dialog` groups. Layout lookup uses `xshell.defaults.layout.<context>`; the built-in layout contexts
+are `default`, `dialog`, `main`, `stack`, and `embed`, and the schema allows additional named layout contexts. `xshell.defaults.component.lazy`
+and `.error` identify the global lazy-loading and error components.
+
+`xshell.defaults.layout.dialog` is the layout context used for a Page opened in dialog context. It is distinct from
+`xshell.defaults.dialog.confirm`, `.message`, `.prompt`, and `.picker`, which identify the standard dialog Page resources used by dialog
+operations. There is no `module.defaults.dialog` group.
 
 ## URLs and immutability
 

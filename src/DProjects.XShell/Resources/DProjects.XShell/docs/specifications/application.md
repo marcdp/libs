@@ -21,6 +21,10 @@ application; there is no separate application specification.
             "copyright": "",
             "icon": "",
             "controller": "/js/module.js",
+            "defaults": {
+                "page": { "renderEngine": "x", "stateEngine": "proxy" },
+                "component": { "renderEngine": "x", "stateEngine": "proxy" }
+            },
             "imports": [
                 { "configUrl": "url:../customers/module.jsonc" },
                 { "configUrl": "url:../inventory/module.jsonc" },
@@ -52,6 +56,10 @@ Bootstrap treats the first key of the root file's `modules` object as the root i
 `xshell:app.params` host meta value becomes both the root definition's `params` and `app.params`. The effective configuration does not retain a
 separate root id or root-params object, and there is no `xshell.module` section. Root status is application composition information, not a
 `modules.app.root` flag.
+
+The root is also a resolved module, so its **module defaults** are required: `defaults.page` and `defaults.component` each require non-empty
+`renderEngine` and `stateEngine` strings. These defaults control only the root module's definition-based Pages and Components. Application-wide
+UI infrastructure belongs to the distinct **XShell defaults** object, `xshell.defaults`.
 
 The checked-in `modules/test/module.jsonc` follows this nested shape. The canonical effective-configuration schema is
 `xshell/schemas/config.schema.json`; bootstrap adds host-derived and resolved fields such as `app.basePath`, `app.params`, `configUrl`, and

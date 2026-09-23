@@ -16,6 +16,8 @@ initialization. See [Bootstrap](bootstrap.md).
 
 Module resources use `/_assets/<module>/...` with the checked-in `_assets` prefix. The Service Worker maps that namespace to source files. Resource
 resolution selects a URL and loader; the loader obtains the resource. A Page uses the normal Component model plus Navigation.
+Module defaults define the render and state engines for their own definition-based Pages and Components. XShell defaults are separate global UI
+infrastructure for layout contexts, lazy/error components, and standard dialog pages.
 An Area is a navigation context composed from participating modules, including their effective menus. Modules define reusable menu contributions;
 Areas define application composition. The first navigation item marked `default: true` in depth-first traversal provides the Area home. This
 composition does not duplicate module instances. A named menu contribution can be a static array or a registered dynamic menu source; see

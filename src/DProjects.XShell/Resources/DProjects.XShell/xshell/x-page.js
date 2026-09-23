@@ -187,7 +187,7 @@ class XPage extends HTMLElement {
         // layout
         let layoutName = this._layout;
         if (!layoutName) layoutName = "embed";
-        let layout = xshell.config.xshell.defaults.page.layout[layoutName];
+        let layout = xshell.config.xshell.defaults.layout[layoutName];
         let layoutClass = await xshell.loader.load("layout:" + layout);
         if (layoutElement == null || layoutElement.localName != layout) {
             if (layoutElement) layoutElement.remove();

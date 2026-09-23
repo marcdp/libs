@@ -237,14 +237,24 @@ The result is a standard browser Web Component.
 
 ## State and rendering
 
-A definition-based component uses engine defaults in nested configuration:
+A definition-based component resolves its engines from its own `meta` first and then from its owning module's required defaults:
 
 ```jsonc
-{ "xshell": { "defaults": { "component": { "stateEngine": "plain", "renderEngine": "plain" } } } }
+{
+    "modules": {
+        "orders": {
+            "defaults": {
+                "page": { "renderEngine": "x", "stateEngine": "proxy" },
+                "component": { "renderEngine": "x", "stateEngine": "proxy" }
+            }
+        }
+    }
+}
 ```
 
-Module definitions may provide `defaults.component` overrides. Current `component-js` precedence is component `meta`, then module
-`defaults.component`, then XShell `defaults.component`.
+`component-js` precedence is component `meta`, then `modules.<id>.defaults.component`. Each resolved module requires both this component-default
+group and the corresponding Page-default group; render engine and state engine values are required non-empty strings. XShell defaults do not
+provide component render or state engines. `xshell.defaults.component` instead identifies the global `lazy` and `error` components.
 
 The selected state and render engines are used while converting the definition into the final Web Component class.
 

@@ -52,7 +52,7 @@
           "description": "Modules imported by this module."
         },
         "menus": {"$ref": "#/$defs/menus", "description": "Menu contributions exposed by the module."},
-        "defaults": {"$ref": "#/$defs/defaults", "description": "Defaults contributed by the module."},
+        "defaults": {"$ref": "#/$defs/moduleDefaults", "description": "Defaults for that module."},
         "contract": {"$ref": "#/$defs/moduleContract", "description": "Public contract exposed by the module."}
       },
       "required": ["label", "version", "copyright", "icon", "configUrl", "assetsUrl", "defaults"],
@@ -68,6 +68,36 @@
       },
       "additionalProperties": false,
       "description": "Reference to another module configuration and optional import parameters."
+    },
+    "moduleDefaults": {
+      "type": "object",
+      "required": ["page","component"],
+      "properties": {
+        "page": {"$ref": "#/$defs/modulePageDefaults", "description": "Defaults applied to pages."},
+        "component": {"$ref": "#/$defs/moduleComponentDefaults", "description": "Defaults applied to components."}
+      },
+      "additionalProperties": false,
+      "description": "Default values used by pages and components of this module."
+    },
+    "modulePageDefaults": {
+      "type": "object",
+      "required": ["renderEngine","stateEngine"],
+      "properties": {
+        "renderEngine": {"type": "string", "minLength": 1 , "description": "Default render engine used by pages."},
+        "stateEngine": {"type": "string", "minLength": 1 , "description": "Default state engine used by pages."}
+      },
+      "additionalProperties": false,
+      "description": "Default settings applied to pages."
+    },
+    "moduleComponentDefaults": {
+      "type": "object",
+      "required": ["renderEngine", "stateEngine"],
+      "properties": {
+        "renderEngine": {"type": "string", "minLength": 1 , "description": "Default render engine used by components."},
+        "stateEngine": {"type": "string", "minLength": 1 , "description": "Default state engine used by components."}
+      },
+      "additionalProperties": false,
+      "description": "Default settings applied to components."
     },
     "moduleContract": {
       "type": "object",
@@ -208,33 +238,33 @@
         "debug": {"type": "boolean", "description": "Whether XShell debug behavior is enabled."},
         "version": {"type": "string", "description": "XShell runtime version."},
         "environment": {"type": "string", "description": "Runtime environment name."},
-        "defaults": {"$ref": "#/$defs/defaults", "description": "Global defaults inherited by XShell resources."},
-        "identity": {"$ref": "#/$defs/identity", "description": "Identity subsystem configuration."},
         "assetsPrefix": {"type": "string", "description": "Virtual URL prefix used for module assets."},
-        "areas": {"$ref": "#/$defs/areas", "description": "Application area configuration."},
-        "navigation": {"$ref": "#/$defs/navigation", "description": "Navigation configuration."},
-        "resolver": {"$ref": "#/$defs/resolver", "description": "Logical resource resolver configuration."},
         "configUrl": {"type": "string", "format": "uri", "description": "URL of the xshell configuration document"},
-        "assetsUrl": {"type": "string", "format": "uri", "description": "URL of the directory or package containing the xshell assets."}
+        "assetsUrl": {"type": "string", "format": "uri", "description": "URL of the directory or package containing the xshell assets."},
+        "defaults": {"$ref": "#/$defs/xshellDefaults", "description": "Global defaults inherited by XShell resources."},
+        "identity": {"$ref": "#/$defs/xshellIdentity", "description": "Identity subsystem configuration."},
+        "areas": {"$ref": "#/$defs/xshellAreas", "description": "Application area configuration."},
+        "navigation": {"$ref": "#/$defs/xshellNavigation", "description": "Navigation configuration."},
+        "resolver": {"$ref": "#/$defs/resolver", "description": "Logical resource resolver configuration."}
       },
       "additionalProperties": false,
       "description": "Core XShell runtime configuration."
     },
-    "areas": {
+    "xshellAreas": {
       "type": "object",
       "required": ["default", "definitions"],
       "properties": {
         "default": {"type": ["string", "null"], "description": "Identifier of the default area."},
         "definitions": {
           "type": "object",
-          "additionalProperties": {"$ref": "#/$defs/area"},
+          "additionalProperties": {"$ref": "#/$defs/xshellArea"},
           "description": "Area definitions keyed by area identifier."
         }
       },
       "additionalProperties": false,
       "description": "Application areas and the default active area."
     },
-    "area": {
+    "xshellArea": {
       "type": "object",
       "properties": {
         "prefix": {"type": "string", "description": "URL prefix assigned to the area."},
@@ -251,7 +281,7 @@
       "additionalProperties": false,
       "description": "Configuration of a navigation area."
     },
-    "navigation": {
+    "xshellNavigation": {
       "type": "object",
       "required": ["mode"],
       "properties": {
@@ -261,52 +291,41 @@
       "additionalProperties": false,
       "description": "Application navigation mode and related options."
     },
-    "defaults": {
+    "xshellDefaults": {
       "type": "object",
-      "required": ["page","component"],
+      "required": ["layout","component","dialog"],
       "properties": {
-        "page": {"$ref": "#/$defs/pageDefaults", "description": "Defaults applied to pages."},
-        "dialog": {"$ref": "#/$defs/dialogDefaults", "description": "Defaults applied to standard dialogs."},
-        "component": {"$ref": "#/$defs/componentDefaults", "description": "Defaults applied to components."}
+        "layout": {"$ref": "#/$defs/xshellLayoutDefaults", "description": "Default layouts available to pages."},
+        "component": {"$ref": "#/$defs/xshellComponentDefaults", "description": "Defaults applied to components."},
+        "dialog": {"$ref": "#/$defs/xshellDialogDefaults", "description": "Defaults dialogs available."}
       },
       "additionalProperties": false,
       "description": "Default values inherited by pages, dialogs, and components."
     },
-    "pageDefaults": {
+    "xshellLayoutDefaults": {
       "type": "object",
-      "required": ["renderEngine","stateEngine"],
+      "required": [],
       "properties": {
-        "layout": {
-          "type": "object",
-          "properties": {
-            "default": {"type": ["string", "null"], "description": "Default page layout."},
-            "dialog": {"type": ["string", "null"], "description": "Default dialog page layout."},
-            "main": {"type": ["string", "null"], "description": "Default main page layout."},
-            "stack": {"type": ["string", "null"], "description": "Default stacked page layout."},
-            "embed": {"type": ["string", "null"], "description": "Default embedded page layout."}
-          },
-          "additionalProperties": {"type": ["string", "null"]},
-          "description": "Default layouts available to pages."
-        },
-        "renderEngine": {"type": ["string", "null"], "description": "Default render engine used by pages."},
-        "stateEngine": {"type": ["string", "null"], "description": "Default state engine used by pages."}
+        "default": {"type": ["string", "null"], "description": "Default page layout."},
+        "dialog": {"type": ["string", "null"], "description": "Default dialog page layout."},
+        "main": {"type": ["string", "null"], "description": "Default main page layout."},
+        "stack": {"type": ["string", "null"], "description": "Default stacked page layout."},
+        "embed": {"type": ["string", "null"], "description": "Default embedded page layout."}
       },
-      "additionalProperties": false,
-      "description": "Default settings applied to pages."
+      "additionalProperties": {"type": ["string", "null"]},
+      "description": "Default layouts available to pages."
     },
-    "componentDefaults": {
+    "xshellComponentDefaults": {
       "type": "object",
-      "required": ["renderEngine", "stateEngine"],
+      "required": [],
       "properties": {
         "lazy": {"type": ["string", "null"], "description": "Component used for lazy-loading placeholders."},
-        "error": {"type": ["string", "null"], "description": "Component used to render component loading errors."},
-        "renderEngine": {"type": ["string", "null"], "description": "Default render engine used by components."},
-        "stateEngine": {"type": ["string", "null"], "description": "Default state engine used by components."}
+        "error": {"type": ["string", "null"], "description": "Component used to render component loading errors."}
       },
       "additionalProperties": false,
       "description": "Default settings applied to components."
     },
-    "dialogDefaults": {
+    "xshellDialogDefaults": {
       "type": "object",
       "properties": {
         "confirm": {"type": ["string", "null"], "description": "Page used for confirmation dialogs."},
@@ -317,7 +336,7 @@
       "additionalProperties": false,
       "description": "Default page resources used for standard dialogs."
     },
-    "identity": {
+    "xshellIdentity": {
       "type": "object",
       "required": ["provider"],
       "properties": {

@@ -47,6 +47,12 @@ namespace DProjects.XShell.Services {
 
 
         // private methods
+        private string CompileHtml(string html) {
+            throw new NotImplementedException();
+        }
+        private string CompileMarkdown(string html) {
+            throw new NotImplementedException();
+        }
         private string CompileXTemplate(string js) {
 
             return js;
