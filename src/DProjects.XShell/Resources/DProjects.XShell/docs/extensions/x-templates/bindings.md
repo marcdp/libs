@@ -1,33 +1,76 @@
-# X Template Bindings
+# XTemplate Bindings
 
-This document outlines the data and event binding forms recognized by the X template compiler.
+This guide introduces practical XTemplate binding concepts. For exact semantics, supported controls, advanced dynamic bindings, and known
+compatibility issues, see the [XTemplate Language Specification](specification.md).
 
-## Status
+## Attributes
 
-Draft.
+Use `x-attr:*` to bind DOM attributes. Attributes are serialized values suitable for HTML concerns such as links, labels, and ARIA metadata.
 
-## Attribute bindings
+```html
+<a x-attr:href="state.url" x-attr:aria-label="state.label">Open</a>
+<button x-attr:disabled="state.saving">Save</button>
+```
 
-`x-attr:name` and `:name` bind an expression to an HTML attribute. `x-attr` and `:` support object-style expansion. Dynamic argument names in brackets are present in the compiler but need focused tests.
+`x-attr` accepts an attribute object when several attributes are derived together. `:name` and `:` are supported shorthand forms, but the long
+forms are preferred in canonical templates.
 
-## Property bindings
+## Properties
 
-`x-prop:name` and `.name` bind an expression to a DOM property. The compiler converts kebab-case property names to camelCase.
+Use `x-prop:*` to assign a DOM or custom-element property. This preserves objects, arrays, and other values that should not be serialized as
+HTML attributes.
 
-## Event bindings
+```html
+<x-datafield x-prop:domain="state.domain" x-prop:value="state.value"></x-datafield>
+```
 
-`x-on:event` and `@event` forward events to a named component command. Dot-separated event modifiers are interpreted later by the render engine.
+In short: `x-attr:*` targets DOM attributes; `x-prop:*` targets DOM properties. `.name` is the supported shorthand for `x-prop:name`.
 
-## Class and model bindings
+## Events
 
-`x-class:name` conditionally includes a CSS class. `x-model` establishes a value/checked-style property binding and a change handler for supported form controls.
+`x-on:event="command"` dispatches a named command; it is not arbitrary inline JavaScript.
 
-## TODO
+```html
+<button x-on:click="save">Save</button>
+<input x-on:keydown.enter="submit">
+<a x-on:click.prevent="open">Open</a>
+```
 
-TODO: Verify object expansion, dynamic names, modifier combinations, multi-select values, radio values, and model update timing with executable tests.
+Common modifiers include `.stop`, `.prevent`, keyboard filters such as `.enter` and `.escape`, and mouse or modifier-key filters. `@event` is the
+supported shorthand. Use the specification for the complete modifier contract.
+
+## Classes
+
+`x-class:name` conditionally adds a CSS class while retaining authored static classes.
+
+```html
+<li class="menuitem" x-class:selected="item.id === state.selectedId"></li>
+```
+
+## Visibility
+
+Use `x-if` when a condition should structurally render or omit content. Use `x-show` when the content should remain structurally present while
+its visibility changes.
+
+```html
+<x-spinner x-if="state.loading"></x-spinner>
+<aside x-show="state.detailsVisible">Details</aside>
+```
+
+## Model binding
+
+`x-model` conceptually reads an assignable expression into a control and writes user changes back before requesting a new render.
+
+```html
+<input x-model="state.query">
+<x-datafield x-model="state.selection"></x-datafield>
+```
+
+Use the specification when working with control-specific behavior, advanced model targets, or compatibility constraints.
 
 ## Related documentation
 
 - [X Templates](index.md)
-- [Syntax](syntax.md)
+- [XTemplate Language Specification](specification.md)
+- [Syntax guide](syntax.md)
 - [Component Events](../../components/events.md)

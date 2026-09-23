@@ -1,30 +1,47 @@
-# X Template Expressions
+# XTemplate Expressions
 
-This document describes how expressions are embedded in X templates without attempting to define a separate expression language.
+For the normative XTemplate expression contract, see the [XTemplate Language Specification](specification.md). This guide explains the current
+expression model used by XShell.
 
-## Status
+## Current model
 
-Draft.
+XTemplate expressions use JavaScript expression syntax. They execute in the XTemplate render context, rather than in a separate portable
+expression language.
 
-## Evaluation model
+Typical names available to an expression include `state`, `i18n`, and `renderCount`. Render infrastructure can also provide names such as
+`utils`, `handler`, and `invalidate`. `x-for` and `x-recursive` introduce template-defined local variables, such as `item`, `index`,
+`indexAbsolute`, and `indent`.
 
-The current compiler inserts directive values and interpolation contents into a generated JavaScript render function. Expressions therefore use JavaScript syntax and execute with parameters including `state`, handler and invalidation callbacks, utility functions, internationalization, and a render count.
+```html
+<h1 x-text="state.title"></h1>
+<span>{{ i18n.t(state.messageKey) }}</span>
+<li x-for="(item,index) in state.items" x-class:selected="item.id === state.selectedId">
+    {{ index + 1 }}. {{ item.label }}
+</li>
+```
 
-## Common contexts
+## Where expressions are used
 
-Expressions appear in text interpolation, conditionals, iteration sources, keys, attributes, properties, classes, visibility, child-node values, and model bindings.
+Expressions provide values for interpolation, conditional directives, bindings, loop sources, class bindings, visibility, and model binding.
 
-## Safety and errors
+```html
+<div x-if="state.visible" x-attr:title="state.title"></div>
+<input x-model="state.query">
+```
 
-Compilation uses the `Function` constructor. The repository does not currently define a sandbox, expression allow-list, or formal diagnostic contract.
+Event binding is different: `x-on:event="command"` identifies a named command rather than arbitrary inline JavaScript.
 
-## TODO
+## Security and future direction
 
-TODO: Define scoping, error reporting, trusted-template requirements, and Content Security Policy implications before treating expression evaluation as a stable public specification.
+The current language does not define a sandboxed or portable expression language. Treat template source as trusted executable input, particularly
+where expressions or `x-html` values may originate outside application code.
+
+A restricted, cross-language expression grammar is possible future work. It is not implemented by the current XTemplate language and must not be
+assumed by templates or compilers targeting this version.
 
 ## Related documentation
 
 - [X Templates](index.md)
-- [Syntax](syntax.md)
-- [Compiler](compiler.md)
-
+- [XTemplate Language Specification](specification.md)
+- [Syntax guide](syntax.md)
+- [Compiler and runtime architecture](compiler.md)

@@ -1,21 +1,26 @@
 # X Templates
 
-This section documents X Templates, an optional XShell extension that provides the declarative template language used by the `x` render engine. It integrates with XShell Components but is not part of the core component model.
+X Templates are an optional XShell extension that provides the declarative template language used by the `x` render engine. They integrate with
+XShell Components, but are not part of the core component model.
 
-## Status
+## Documentation hierarchy
 
-Draft.
+[XTemplate Language Specification](specification.md) is the normative source of truth for XTemplate syntax and semantics. The other documents in
+this section are explanatory, tutorial-oriented, or implementation-oriented guides derived from that specification. If another document differs
+from the specification, the specification takes precedence.
 
 ## Documents
 
-- [Syntax](syntax.md) — Confirmed template directives and structural forms.
-- [Expressions](expressions.md) — JavaScript expressions evaluated by compiled templates.
-- [Bindings](bindings.md) — Attribute, property, event, class, and model bindings.
-- [Compiler](compiler.md) — Compilation to a virtual DOM render function and DOM reconciliation.
+- [XTemplate Language Specification](specification.md) — Normative XTemplate language contract, including the current XShell VDOM ABI where
+  compatibility requires it.
+- [Syntax guide](syntax.md) — Concise, human-oriented quick reference for common template constructs.
+- [Expressions](expressions.md) — Explanation of the current JavaScript expression model and render scope.
+- [Bindings](bindings.md) — Practical guide to attributes, properties, events, classes, visibility, and model binding.
+- [Compiler and runtime architecture](compiler.md) — XShell compiler/runtime architecture and implementation guidance.
 
-## Evidence boundary
-
-The initial outline is based on the current `x-template.js` compiler and templates under the X module. Syntax not handled by that compiler is intentionally omitted or marked TODO.
+Readers learning XTemplate can begin with the [syntax guide](syntax.md). Implementers of an XTemplate compiler or interpreter should begin with the
+[language specification](specification.md). Readers investigating the current XShell implementation should use the
+[compiler and runtime architecture](compiler.md) alongside the specification.
 
 ## Related documentation
 

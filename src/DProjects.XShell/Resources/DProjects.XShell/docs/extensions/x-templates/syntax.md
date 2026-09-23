@@ -1,34 +1,78 @@
-# X Template Syntax
+# XTemplate Syntax Guide
 
-This document lists template constructs confirmed in the current X template compiler.
+This is a concise guide to commonly used XTemplate syntax. For normative syntax and semantics, including validation rules and edge cases, see the
+[XTemplate Language Specification](specification.md).
 
-## Status
+## Content
 
-Draft.
+```html
+<p>Hello {{ state.name }}</p>
+<span x-text="state.label"></span>
+<div x-html="state.html"></div>
+<span x-children="state.iconNode"></span>
+```
 
-## Text
+`{{ expression }}` and `x-text` render text. `x-html` renders raw HTML, and `x-children` renders DOM-node content.
 
-Double-brace text such as `{{state.label}}` is transformed into an `x:text` node before compilation. The `x-text` directive sets text content, while `x-html` sets HTML content.
+## Attributes and properties
 
-## Conditional rendering
+```html
+<a x-attr:href="state.url">Open</a>
+<div x-attr="state.attributes"></div>
+<x-datafield x-prop:domain="state.domain"></x-datafield>
+```
 
-The compiler recognizes `x-if`, `x-elseif`, and `x-else`. It also recognizes `x-show`, which controls an inline display style rather than removing the node.
+`x-attr:name` binds an attribute, while `x-prop:name` binds a DOM or custom-element property. `x-attr` expands an attribute object.
 
-## Repetition
+The supported shorthand forms are `:name` for `x-attr:name`, `:` for `x-attr`, `.name` for `x-prop:name`, and `@event` for `x-on:event`.
+Canonical documentation and new templates should prefer the long `x-*` forms.
 
-The compiler recognizes `x-for="item in state.items"`, optional tuple variables, and an optional `x-key`. It also contains support for `x-recursive` and `x-recursive-wrapper`.
+## Events, classes, and visibility
 
-## Render controls
+```html
+<button x-on:click="save">Save</button>
+<li x-class:selected="state.selected"></li>
+<section x-show="state.expanded">Details</section>
+```
 
-Confirmed controls include `x-once`, `x-pre`, and `x-children`. TODO: Specify their edge cases after focused tests exist.
+`x-on:event` binds a named command. `x-class:name` conditionally adds a class. `x-show` keeps the element in the rendered structure while
+controlling its visibility.
 
-## Unsupported syntax
+## Structure
 
-Unknown `x-` attributes and unknown `x:` elements currently produce compiler errors. Similar syntax from other template languages must not be assumed to work.
+```html
+<x-spinner x-if="state.loading"></x-spinner>
+<x-error x-elseif="state.error"></x-error>
+<main x-else>Ready</main>
+
+<li x-for="(item,index) in state.items" x-key="id">
+    {{ index + 1 }}. {{ item.label }}
+</li>
+```
+
+Use `x-if`, `x-elseif`, and `x-else` for conditional structural rendering. Use `x-for` to repeat an element and `x-key` to supply item identity.
+
+```html
+<li x-recursive="item in state.menu" x-key="href" x-recursive-wrapper="ul">
+    <span x-text="item.label"></span>
+</li>
+```
+
+`x-recursive` repeats through a tree; `x-recursive-wrapper` supplies a wrapper for child levels.
+
+## Model and render controls
+
+```html
+<input x-model="state.query">
+<section x-once>Rendered once</section>
+<code x-pre>{{ literalBraces }}</code>
+```
+
+`x-model` provides read/write model binding. `x-once` preserves content after its first render, and `x-pre` leaves its child subtree literal.
 
 ## Related documentation
 
 - [X Templates](index.md)
+- [XTemplate Language Specification](specification.md)
 - [Expressions](expressions.md)
 - [Bindings](bindings.md)
-

@@ -1,48 +1,68 @@
-# X Template Compiler
+# XTemplate Compiler and Runtime Architecture
 
-This document summarizes how XShell compiles and renders templates.
+This document describes the current XShell implementation architecture. It does not define XTemplate language semantics; those are normative in
+the [XTemplate Language Specification](specification.md).
 
-## Status
+## Conceptual pipeline
 
-Draft.
+```text
+XTemplate source
+    ↓
+HTML fragment parsing
+    ↓
+Template AST / parsed structure
+    ↓
+validation
+    ↓
+dependency discovery
+    ↓
+render-program generation
+    ↓
+runtime renderer
+```
 
-## Compilation
+This pipeline separates parsing, validation, dependency discovery, and rendering concerns. An implementation can choose a different internal
+representation or renderer as long as it preserves the language contract.
 
-During development, the server locates the `template` property in an exported JavaScript component definition, parses its static template literal, and inserts a
-`templateHandler` function without regenerating the rest of the module. The browser uses this precompiled handler directly, so this path does not require `eval` or
-`new Function`. An isolated browser compiler remains as a compatibility fallback for modules that were not transformed by the server.
+## Current XShell implementation
 
-The source scanner understands JavaScript strings, template literals, comments, regular expressions, and nested braces, brackets, and parentheses. It therefore does
-not confuse text such as ``"template: `...`"`` or a nested object's `template` property with the exported component template. Recompilation replaces an existing
-`templateHandler`, making the transformation idempotent.
+The current XShell path is conceptually:
 
-The compiler preserves the existing X Template render semantics:
+```text
+template
+    → compiled render function
+    → VDOM
+    → DOM reconciliation
+```
 
-- `{{ expression }}`, `x-text`, `x-html`, and `x-children` select text, HTML, and DOM-node children;
-- `x-attr`, `x-attr:name`, `:`, and `:name` bind attribute maps, named attributes, and dynamic attribute names;
-- named `x-prop:name`/`.name` bindings target properties; bulk `x-prop`/`.` retains the current browser compiler behavior of spreading its map into attributes;
-- `x-on:event` and `@event` create command handlers while retaining dot-separated event modifiers;
-- `x-if`, `x-elseif`, and `x-else` retain comment placeholders used by reconciliation;
-- `x-for` and `x-key` retain positional/keyed start and end markers;
-- `x-recursive` and `x-recursive-wrapper` retain recursive child rendering;
-- `x-show`, `x-class:name`, `x-model`, `x-once`, and `x-pre` preserve the browser compiler's visibility, class, form, render-once, and literal-content behavior.
+The render function produces XShell virtual nodes. The runtime creates DOM on the first render and reconciles later output. VDOM behavior is an
+implementation backend, not a requirement for every XTemplate implementation; compiler authors targeting the current XShell runtime should use
+the ABI requirements in the specification.
 
-JavaScript expressions are emitted unchanged. Restricting or interpreting the expression language is outside this compiler version.
+Custom-element dependency discovery is also an implementation concern. The current compiler discovers applicable component dependencies so the
+general loader can load them before rendering.
 
-## Dependencies
+## Ahead-of-time compilation direction
 
-Custom element tags containing a hyphen are collected as component dependencies, except that descendants of `x-lazy` are not eagerly collected. The component loader asks the general loader to load discovered dependencies.
+The development/build server can compile XTemplate before browser execution:
 
-## Virtual DOM
+```text
+development/build server
+    → compiles XTemplate ahead of browser execution
 
-The render function produces virtual nodes containing tag, attributes, properties, events, options, and children. The renderer creates DOM on first render and applies later differences, with separate list handling for keyed and positional loops.
+generated JavaScript
+    → contains templateHandler
 
-## TODO
+browser runtime
+    → executes the precompiled render function
+```
 
-TODO: Define stable reconciliation semantics, DOM identity guarantees, duplicate-key behavior, whitespace rules, and supported browser prerequisites.
+This direction removes the need for runtime template compilation and improves Content Security Policy compatibility. `new Function(...)` is a
+historical/current mechanism of the browser-side compiler, not an XTemplate language feature or a requirement of precompiled templates.
 
 ## Related documentation
 
 - [X Templates](index.md)
-- [Syntax](syntax.md)
+- [XTemplate Language Specification](specification.md)
+- [Expressions](expressions.md)
 - [Loaders](../../architecture/loaders.md)
