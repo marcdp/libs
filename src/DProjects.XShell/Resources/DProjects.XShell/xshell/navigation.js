@@ -213,8 +213,9 @@ export default class Navigation {
                 stack[indexPage] = this.parseUrl(hrefAbsolute);
                 this._stackToBrowser(stack, { replace } );                
             } else {
-                // dialog or embed                
-                xpage.setAttribute("src", hrefAbsolute);
+                // dialog or embed 
+                const hrefFinal = this._buildUrlFinal(hrefAbsolute);
+                xpage.setAttribute("src", hrefFinal);
             }
         } else if (open == "top") {
             // top                        
@@ -234,7 +235,8 @@ export default class Navigation {
                 const xpage = page.host;
                 const outletElement = xpage.querySelector(`x-page[outlet="${outlet}"]`);
                 if (outletElement) {
-                    outletElement.setAttribute("src", hrefAbsolute);
+                    const hrefFinal = this._buildUrlFinal(hrefAbsolute);
+                    outletElement.setAttribute("src", hrefFinal);
                 }
             }
         }  
@@ -346,7 +348,8 @@ export default class Navigation {
             if (!itemBefore && itemAfter) {
                 //add page
                 let xpage = document.createElement("x-page");
-                xpage.setAttribute("src", this.buildUrl(itemAfter));
+                const hrefFinal = this._buildUrlFinal(itemAfter);
+                xpage.setAttribute("src", hrefFinal);
                 if (i == 0) {
                     xpage.setAttribute("layout", "main");
                     //emit event navigation-start
@@ -411,7 +414,8 @@ export default class Navigation {
                 //change page
                 let xpages = this.getXPages();
                 let xpage = xpages[i];
-                xpage.src = this.buildUrl(itemAfter);
+                let hrefFinal = this._buildUrlFinal(itemAfter); 
+                xpage.src = hrefFinal;
                 //emit event navigation-start
                 if (i == 0) {
                     this._bus.emit("xshell:navigation:start", { src: xpage.src });
@@ -437,7 +441,7 @@ export default class Navigation {
             resolveFunc = resolve;
         });
     }
-    _buildResourceUrl(item) {
+    _buildUrlFinal(item) {
         const menuitem = this._areas.resolvePath(item.href);
         return this.buildUrl({
             ...item,

@@ -38,18 +38,12 @@
     // xshell 
     "xshell": {
         "areas": {
-            "default": "main",
+            "default": "demo",
             "definitions": {
-                "main": {
-                    "prefix": "main",
-                    "label": "Main area",
-                    "icon": "x-bell",
-                    "modules": [ "x-demo" ]
-                },
-                "advanced": {
-                    "prefix": "advanced",
-                    "label": "Advanced area",
-                    "icon": "x-file",
+                "demo": {
+                    "prefix": "demo",
+                    "label": "Demo",
+                    "icon": "",
                     "modules": [ "x-demo" ]
                 }
             }

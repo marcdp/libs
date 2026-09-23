@@ -187,6 +187,7 @@
       "properties": {
         "label": {"type": "string", "description": "Human-readable menu item label."},
         "href": {"type": ["string", "null"], "description": "Navigation target associated with the menu item."},
+        "path": {"type": "string", "description": "Navigation path associated with the menu item."},
         "icon": {"type": ["string", "null"], "description": "Optional icon associated with the menu item."},
         "default": {"type": "boolean", "description": "Whether this item is the default navigation target."},
         "children": {
