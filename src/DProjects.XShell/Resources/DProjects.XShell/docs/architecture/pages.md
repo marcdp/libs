@@ -9,8 +9,12 @@ A Page uses the same state/render-engine infrastructure as Components. Its JavaS
 from query values by `page-js`.
 
 ```text
-URL + query → Navigation → page resource → Loader → Page state → render engine
+browser URL + query → Navigation → canonical Area-aware href → x-page → module resource → Loader → Page state → render engine
 ```
+
+For a menu item, the browser URL may be its optional friendly `path`. Navigation resolves that path to the menu item's canonical Area-aware `href`
+before it sets `x-page.src`. `x-page` then removes the Area prefix only for module resource resolution. It does not interpret menu paths, and the
+Loader does not translate menu paths to hrefs. Direct navigation to the canonical href continues to work when no friendly path is used.
 
 See [Components](components.md) for the contract and implementation formats. A component contract's DOM events are distinct from public module Bus
 events.

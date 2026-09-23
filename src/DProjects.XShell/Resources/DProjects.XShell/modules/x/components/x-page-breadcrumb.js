@@ -35,7 +35,7 @@ export default {
             <li x-for="item in state.breadcrumb" x-class:empty="!item.label">
                 <x-anchor 
                     class="plain" 
-                    x-attr:href="item.href"  
+                    x-attr:href="item.path || item.href"  
                     x-class:selected="(item!=state.breadcrumb[state.breadcrumb.length-1])" 
                     x-class:gray="item==state.breadcrumb[state.breadcrumb.length-1]"
                     open="auto"

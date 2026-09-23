@@ -36,7 +36,7 @@ export default {
             <ul x-if="state.menu">
                 <li class="menuitem new" x-recursive="menuitem in state.menu" x-key="href" x-recursive-wrapper="ul">
                     <hr x-if="menuitem.label=='-'" />
-                    <x-anchor x-else x-attr:href="menuitem.path || menuitem.href" x-attr:target="menuitem.target" x-attr:icon="menuitem.icon" class="plain" x-class:selected="state.selected == menuitem.href" >
+                    <x-anchor x-else x-attr:href="menuitem.path || menuitem.href" x-attr:target="menuitem.target" x-attr:icon="menuitem.icon" class="plain" x-class:selected="state.selected == menuitem.href || (menuitem.path && state.selected == menuitem.path)" >
                         <x-icon x-if="menuitem.icon" x-attr:icon="menuitem.icon"></x-icon>
                         <span x-text="menuitem.label"></span>
                         <x-icon x-if="menuitem.target && !menuitem.target.startsWith('#')" class="new" icon="x-open_in_new"></x-icon>

@@ -228,7 +228,8 @@ export default class Navigation {
             
         } else if (open == "dialog") {
             // dialog
-            return await this._showDialog({ href: hrefAbsolute, context });
+            const hrefFinal = this._buildUrlFinal(this.parseUrl(hrefAbsolute));
+            return await this._showDialog({ href: hrefFinal, context });
 
         } else if (open == "embed") {
             // embed
@@ -413,13 +414,16 @@ export default class Navigation {
                 inc -= 1;
             } else if (itemBefore.href != itemAfter.href) {
                 //change page
-                let xpages = this.getXPages();
-                let xpage = xpages[i];
-                let hrefFinal = this._buildUrlFinal(itemAfter); 
-                xpage.src = hrefFinal;
-                //emit event navigation-start
-                if (i == 0) {
-                    this._bus.emit("xshell:navigation:start", { src: xpage.src });
+                const hrefFinal = itemAfter ? this._buildUrlFinal(itemAfter) : null;
+                const itemFinal = hrefFinal ? this.parseUrl(hrefFinal) : null;
+                if (itemBefore.href != itemFinal.href) {
+                    let xpages = this.getXPages();
+                    let xpage = xpages[i];
+                    xpage.src = hrefFinal;
+                    //emit event navigation-start
+                    if (i == 0) {
+                        this._bus.emit("xshell:navigation:start", { src: xpage.src });
+                    }
                 }
             }
         }

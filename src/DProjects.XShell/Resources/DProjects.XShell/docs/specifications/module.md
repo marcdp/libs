@@ -22,7 +22,7 @@ provide `app` metadata. Any module file may contribute nested `xshell` settings.
                 { "configUrl": "url:../customer/module.jsonc", "params": { "region": "eu" } }
             ],
             "menus": {
-                "navigation": [{ "label": "Orders", "href": "/pages/orders.js", "default": true }],
+                "navigation": [{ "label": "Orders", "path": "/orders", "href": "/pages/orders.js", "default": true }],
                 "tools": [{ "label": "New order", "href": "/pages/new-order.js" }]
             }
         }
@@ -44,11 +44,14 @@ supported; ZIP-backed assets are not yet implemented.
 `modules.<module-id>.menus.<menu-name>` is an area-independent contribution to a named menu slot. A value is either an array of static menu items
 or a non-empty string naming a dynamic menu source registered with `Areas.registerSource(name, source)`. The source's `resolve()` method returns
 the menu-item array used for that complete contribution. A source name is a runtime lookup identifier, not a URL. This differs from
-`childrenSource` on a static item, which dynamically supplies only that item's child items. The root application selects participating modules
+`childrenSource` on a static item, which dynamically supplies only that item's child items. A menu item has a required `label`, an optional
+`path`, and an optional `href`. `path` is a friendly/public navigation alias; `href` is the canonical XShell navigation target. Both may be
+present. UI derived from a menu item navigates with `path || href`, preserving href-only items. The root application selects participating modules
 through `xshell.areas.definitions.<area-id>.modules`; a child module does not declare Area membership. One module can contribute to multiple Areas
 without creating another runtime module instance. Menu entries are navigation data, not imports or route declarations. Bootstrap normalizes authored
-module-relative hrefs such as `/pages/orders.js` into the module asset namespace before Areas applies an Area prefix. The first navigation item
-marked `default: true` in depth-first Area module order determines that Area's home; absent such an item, home is null.
+module-relative hrefs such as `/pages/orders.js` into the module asset namespace before Areas applies its prefix to both local fields. The first
+navigation item marked `default: true` in depth-first Area module order determines that Area's home through `path || href`; absent such an item,
+home is null. Dynamic sources return the same menu-item shape, so their items may use both `path` and `href` just like static items.
 
 The optional `controller` points to a JavaScript module loaded through `module:<controller>`. Its default export must be constructable. Runtime
 requests named XShell services through its constructor argument, supplies `params` from the final module config, and calls `start()` after controller

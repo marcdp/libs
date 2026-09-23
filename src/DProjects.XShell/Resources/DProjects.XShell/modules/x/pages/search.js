@@ -18,7 +18,7 @@ export default {
                         x-attr:label="result.label"
                         x-attr:description="result.description"
                         x-attr:icon="result.logo"
-                        x-attr:href="result.href"
+                        x-attr:href="result.path || result.href"
                         x-attr:target="result.target"
                         x-attr:category="result.category"                    
                         open="top"

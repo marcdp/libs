@@ -186,8 +186,8 @@
       "required": ["label"],
       "properties": {
         "label": {"type": "string", "description": "Human-readable menu item label."},
-        "href": {"type": ["string", "null"], "description": "Navigation target associated with the menu item."},
-        "path": {"type": "string", "description": "Navigation path associated with the menu item."},
+        "href": {"type": ["string", "null"], "description": "Canonical XShell navigation target associated with the menu item."},
+        "path": {"type": "string", "description": "Optional public navigation path used as a friendly alias for href."},
         "icon": {"type": ["string", "null"], "description": "Optional icon associated with the menu item."},
         "default": {"type": "boolean", "description": "Whether this item is the default navigation target."},
         "children": {

@@ -11,7 +11,7 @@ runtime instance per canonical module id. Navigation remains responsible for bro
     "modules": {
         "reports": {
             "menus": {
-                "navigation": [{ "label": "Reports", "href": "/pages/report.js", "default": true }],
+                "navigation": [{ "label": "Reports", "path": "/reports", "href": "/pages/report.js", "default": true }],
                 "tools": [{ "label": "Export", "href": "/pages/export.js" }]
             }
         }
@@ -40,8 +40,9 @@ prefix throws. With no configured default, the first sorted Area is used. The in
 Areas composes each named menu slot by visiting participating modules in `area.modules` order. A module contribution is either a static array,
 which Areas clones in declaration order, or a string naming a source already registered through `Areas.registerSource(name, source)`. For a named
 source, Areas calls `source.resolve()` during composition and clones the returned array as the complete contribution. Each effective item has its
-module id, Area id, label, icon, children, and effective href. Effective menu structures are separate for each Area; participation creates no
-additional module instances. Unknown module ids and unknown sources produce warnings and are skipped.
+module id, Area id, label, icon, children, path, and href. `path` is optional and is the friendly/public navigation alias; `href` is the canonical
+XShell navigation target. Effective menu structures are separate for each Area; participation creates no additional module instances. Unknown
+module ids and unknown sources produce warnings and are skipped.
 
 `childrenSource` is a separate pattern. It belongs on a static menu item and adds dynamically resolved children to that item; it does not replace
 the named menu contribution:
@@ -64,13 +65,16 @@ and registers the resulting menu. Numeric filename and directory prefixes order 
 not an XShell requirement: `module.files.json` remains a physical file inventory, not menu metadata. Its `/pages/index.js` becomes the top-level
 `Demo` item, and other page sections become that item's children.
 
-Bootstrap first maps module-relative menu hrefs into `/_assets/<module-id>/...`. Areas then adds the Area prefix to local hrefs, leaving external
-scheme URLs unchanged. The Area home is the effective href of the first `navigation` item marked `"default": true` in depth-first traversal.
-Children are searched. If none is marked, `home` is null. On a fresh load at the selected mode's empty/root URL, Navigation requires the default
-Area to have a home.
+Bootstrap first maps module-relative menu hrefs into `/_assets/<module-id>/...`. Areas then applies the Area prefix to both local `path` and local
+`href`, leaving external scheme URLs unchanged. For example, `/components` and `/_assets/x-demo/pages/01-components/index.js` become
+`/main/components` and `/main/_assets/x-demo/pages/01-components/index.js` in the `main` Area. The Area home is `path || href` of the first
+`navigation` item marked `"default": true` in depth-first traversal. Children are searched. If none is marked, `home` is null. On a fresh load at
+the selected mode's empty/root URL, Navigation requires the default Area to have a home.
 
 `xshell.areas.getMenu("navigation")` selects the current Area; `getMenu("navigation", "inventory")` selects one explicitly.
-`getMenuitemBreadcrumb(href, areaId = null)` searches only that Area's effective menus, defaulting to the current Area.
+`getMenuitemBreadcrumb(href, areaId = null)` searches only that Area's effective menus by canonical href, defaulting to the current Area. Its
+entries retain both the canonical `href` and optional friendly `path`, so breadcrumb UI can use a ready-to-navigate friendly link without
+performing translation itself.
 `Areas.registerSource(name, source)` registers a source before Areas composition. A source exposes `resolve()`, which returns menu items, and may
 declare `dependsOn`, an array of Bus event names. For `childrenSource` targets, an event refreshes their effective children and emits
 `xshell:menus:change` when content changed. Complete-menu sources named by a string are resolved only during `Areas.init()`; the current runtime
@@ -78,10 +82,12 @@ does not attach them as refresh targets, so they are not live-reactive after com
 
 ## Navigation context
 
-An Area prefix marks a navigation context; `/_assets/<module-id>/...` marks resource ownership. A configured `"inventory"` or
+An Area prefix marks a navigation context; `/_assets/<module-id>/...` marks resource ownership. Both `path` and `href` are Area-aware navigation
+values after composition; neither should be described as an unprefixed physical resource URL. A configured `"inventory"` or
 `"/inventory/"` normalizes to `"/inventory"`. Empty or root prefixes normalize to `""`. Prefix matching uses complete segments and tries the
-longest prefix first. Bootstrap preserves Area prefixes as navigation metadata. At page load, `x-page` removes the matched Area prefix before
-module resource resolution while retaining the prefixed URL for navigation and breadcrumbs.
+longest prefix first. Navigation resolves a friendly path through `Areas.resolvePath(path)` to its canonical Area-aware href. At page load,
+`x-page` removes the matched Area prefix before module resource resolution while retaining the prefixed canonical URL for navigation and
+breadcrumbs.
 
 When Navigation emits `xshell:navigation:end`, Areas resolves the current Area from the URL. A change emits `xshell:area:change`.
 Menu UIs should refresh on that event; `xshell:menus:change` is reserved for dynamic menu-content updates.

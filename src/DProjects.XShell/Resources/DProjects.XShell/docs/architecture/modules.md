@@ -45,7 +45,7 @@ A module can declare reusable named menu contributions, independent of the appli
 
 ```jsonc
 { "modules": { "reports": { "menus": {
-    "navigation": [{ "label": "Reports", "href": "/pages/report.js", "default": true }],
+    "navigation": [{ "label": "Reports", "path": "/reports", "href": "/pages/report.js", "default": true }],
     "tools": [{ "label": "Export", "href": "/pages/export.js" }]
 } } } }
 ```
@@ -62,7 +62,9 @@ Each named menu is either a static array or the name of a registered dynamic men
 The string is a runtime lookup identifier, not a URL or resolver entry. A module controller can register it with
 `Areas.registerSource("report-pages", { resolve: () => menuItems })`. Its `resolve()` result supplies the complete named menu contribution.
 This is distinct from an item's `childrenSource`, which supplies only that item's children. The module configuration remains declarative and
-readonly; runtime menu data is not written back into `config.modules`.
+readonly; runtime menu data is not written back into `config.modules`. Static and dynamic menu items use the same navigation shape: `path` is an
+optional friendly/public alias and `href` is the canonical XShell navigation target. Menu UIs use `path || href`, so href-only contributions
+remain compatible. Filename-derived paths in the bundled `x-demo` dynamic source are a demo convention, not an XShell core requirement.
 
 The root application lists module ids in `xshell.areas.definitions.<area-id>.modules`. Modules do not choose their Area. A module may be listed in
 zero, one, or several Areas. Areas composes separate effective menus for those Areas in the listed order; the first navigation item marked

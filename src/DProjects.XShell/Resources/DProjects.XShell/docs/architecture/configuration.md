@@ -25,7 +25,7 @@ XShell authors nested JSONC. Framework defaults, the root module, and imported m
             "defaults": {
                 "page": { "renderEngine": "x", "stateEngine": "proxy" }
             },
-            "menus": { "navigation": [{ "label": "Home", "href": "/pages/home.js", "default": true }] },
+            "menus": { "navigation": [{ "label": "Home", "path": "/", "href": "/pages/home.js", "default": true }] },
             "imports": [
                 { "configUrl": "https://example.test/modules/x/module.jsonc", "params": { "mode": "compact" } }
             ]
@@ -86,7 +86,9 @@ fragment, not a separate application format. Bootstrap records each resolved def
 `modules.<id>.menus.<name>` holds a reusable, area-independent named menu contribution. Its value is either a static array of menu items or a
 string naming a dynamic menu source registered at runtime through `Areas.registerSource()`. The string is a source name, not a URL; resolver
 entries and their `url` values are unrelated. The effective configuration remains deeply frozen: a registered source provides runtime menu data
-rather than mutating configuration. `xshell.areas.default` selects a default Area and
+rather than mutating configuration. A menu item's `path` is optional and provides its friendly/public navigation alias; `href` is its canonical
+XShell navigation target. Both can be supplied, and Areas prefixes both local values for each effective Area menu. `xshell.areas.default` selects
+a default Area and
 `xshell.areas.definitions.<id>` describes application composition, including `prefix` and the participating `modules` array. Areas derives
 `home` from the first depth-first navigation item marked `default: true`; it does not use a configured Area home.
 Root ownership of Area composition is an architectural convention; imported fragments can technically contribute `xshell` settings.

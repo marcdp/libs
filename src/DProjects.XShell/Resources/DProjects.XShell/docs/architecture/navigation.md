@@ -6,6 +6,37 @@ An Area is a navigation context within a mode. Its `xshell.areas.definitions.<id
 `/_assets/<module-id>/...` URL identifies a page resource. Navigation mode, Area, and resource ownership are separate. The hash-mode
 `hashPrefix = "#!"` marks the browser fragment; it is not an Area prefix.
 
+## Menu paths and canonical targets
+
+A menu item may provide both `path` and `href`. `path` is an optional friendly/public navigation path; `href` is the canonical XShell navigation
+target. `path` is an alias, not a replacement for `href`. A menu item without `path` remains valid and menu-facing UI naturally falls back to
+`href` through `menuitem.path || menuitem.href`.
+
+For example, a module may contribute:
+
+```jsonc
+{ "label": "Components", "path": "/components", "href": "/_assets/x-demo/pages/01-components/index.js" }
+```
+
+For an Area with prefix `/main`, the effective item uses Area-aware values for both fields:
+
+```jsonc
+{ "label": "Components", "path": "/main/components", "href": "/main/_assets/x-demo/pages/01-components/index.js" }
+```
+
+`x-menu`, `x-page-menu`, and search results pass `path || href` to their generic navigation elements. `x-menuitem` and `x-anchor` receive only an
+`href`; neither knows about menu paths or performs path-to-href translation. Breadcrumb lookup starts with the canonical Area-aware `href`, and
+the returned breadcrumb entries carry their `path` for UIs that choose to expose the friendly link.
+
+Navigation accepts either form. When a browser/navigation URL matches `Areas.resolvePath(value)`, Navigation replaces it with that effective menu
+item's canonical `href` before setting `x-page.src`; when no path matches, it preserves the original value. Thus `/main/components` and direct
+`/main/_assets/x-demo/pages/01-components/index.js` navigation both remain valid. Navigation translates to the Area-aware canonical href, not to
+the final module resource URL.
+
+`x-page` receives that canonical Area-aware href, identifies its Area, and removes only the Area prefix before asking the loader/resolver for the
+module resource. The loader/resolver therefore sees `/_assets/x-demo/pages/01-components/index.js`; it does not know about menu `path` values or
+perform path-to-href translation.
+
 ## Hash mode
 
 Navigation listens for hash changes, decodes the page stack, and updates `x-page` elements. The configured `hashPrefix` is `#!`. Because the
@@ -34,9 +65,9 @@ On a fresh load at the mode's empty/root URL, Navigation uses the default Area's
 finishes loading, it emits `xshell:navigation:end`; Areas resolves the current Area from the longest matching prefix. `x-page` selects its
 breadcrumb Area from the URL itself so lookup does not depend on the later navigation-end event.
 
-A non-empty Area prefix wraps the navigation path, for example `#!/customers/_assets/reports/pages/report.js` in hash mode or
-`/customers/_assets/reports/pages/report.js` in path mode. `x-page` removes the Area prefix before resolving the module resource. The
-`/_assets/reports/...` segment still denotes the resource owner.
+A non-empty Area prefix wraps both friendly paths and canonical hrefs. For example, the browser can show `#!/customers/reports` in hash mode or
+`/customers/reports` in path mode, while `x-page` receives `/customers/_assets/reports/pages/report.js`. `x-page` removes the Area prefix before
+resolving the module resource; the `/_assets/reports/...` segment still denotes the resource owner.
 
 TODO: The `x-page` `replace` and `navigate` event handlers in `Navigation._stackToDom()` remain debugger-marked and manipulate hash state directly.
 Normal Navigation API and browser-history paths work, but those legacy event paths still need mode-neutral completion.
