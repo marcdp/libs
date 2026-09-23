@@ -21,11 +21,11 @@ namespace DProjects.XShell.Services {
             ValidateConditionalChains(root);
 
             // generate the positional render-handler ABI used by the browser runtime
-            var body = new List<string> { "    let _ifs = {};", "    let func;", "    return [" };
+            var body = new List<string> { "    debugger;", "    let _ifs = {};", "    let func;", "    return [" };
             var index = 0;
             foreach (var node in root.Children) index += CompileNode(node, index, body, 1);
             body.Add("    ];");
-            return "(state, handler, invalidate, utils, i18n, renderCount) => {\n" + string.Join("\n", body) + "\n}";
+            return "(state, handler, invalidate, utils, i18n, renderCount) => {\n    " + string.Join("\n    ", body) + "\n    }";
         }
 
         // methods (private)
@@ -143,7 +143,7 @@ namespace DProjects.XShell.Services {
                     if (!string.IsNullOrWhiteSpace(keyName)) options.Add($"\"key\":{loop.Item}.{keyName}");
                     post.Add($"{indent}utils.createVDOM(\"#comment\", null, null, null, {{index: {index - 1}, forType:'{forType}'}}, 'x-for-end'),");
                     var wrapper = element.GetAttribute("x-recursive-wrapper") ?? "";
-                    post.Add($"\n{indent[..^4]}]; if (wrapper) _result = [utils.createVDOM(wrapper, null, null, null, {{index:1}}, _result)]; return _result;}})({loop.Collection}, 0, 0),");
+                    post.Add($"\n    {indent[..^4]}]; if (wrapper) _result = [utils.createVDOM(wrapper, null, null, null, {{index:1}}, _result)]; return _result;}})({loop.Collection}, 0, 0),");
                     childrenToAppend = $"func({loop.Item}.children, {loop.AbsoluteIndex} + 1, {loop.Indent} + 1, {ToJavaScriptString(wrapper)})";
                 } else if (name == "x-recursive-wrapper") {
                     if (!element.HasAttribute("x-recursive")) throw TemplateError("Directive 'x-recursive-wrapper' requires 'x-recursive'.", element);
@@ -184,7 +184,7 @@ namespace DProjects.XShell.Services {
                 line.Append(", [");
                 javascript.Add(line.ToString());
                 for (var childIndex = 0; childIndex < element.Children.Count; childIndex++) CompileNode(element.Children[childIndex], childIndex, javascript, level + 1);
-                javascript.Add(indent + "]");
+                javascript.Add(indent + "                    ]");
                 if (childrenToAppend != null) javascript.Add(", " + childrenToAppend);
                 javascript.Add(")");
                 javascript.Add(postLine.Count > 0 ? string.Join("", postLine) : ",");
