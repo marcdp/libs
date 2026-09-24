@@ -3,7 +3,6 @@ import Timer from "../timer.js"
 import Events from "../events.js"
 import xshell from "../xshell.js";
 import validateComponentContract from "../validation/component.js";
-import { createStateSkeleton } from "../contract-state.js";
 
 // utils
 function kebabToCamel(str) {
@@ -17,6 +16,61 @@ function camelToKebab(str) {
 function isEmptyPlainObject(value) {
     // check if the value is an empty plain object
     return value && typeof(value) === "object" && !Array.isArray(value) && Object.getPrototypeOf(value) === Object.prototype && Object.keys(value).length === 0;
+}
+function areDeclarativeValuesEqual(left, right) {
+    // compare declarative values by structure and value
+    if (left === right) {
+        return true;
+    }
+    if (left === null || right === null || typeof(left) !== "object" || typeof(right) !== "object") {
+        return false;
+    }
+    if (Array.isArray(left) || Array.isArray(right)) {
+        if (!Array.isArray(left) || !Array.isArray(right) || left.length !== right.length) {
+            return false;
+        }
+        return left.every((value, index) => areDeclarativeValuesEqual(value, right[index]));
+    }
+    if (!isPlainObject(left) || !isPlainObject(right)) {
+        return false;
+    }
+    const leftKeys = Object.keys(left);
+    const rightKeys = Object.keys(right);
+    if (leftKeys.length !== rightKeys.length) {
+        return false;
+    }
+    return leftKeys.every(key => Object.prototype.hasOwnProperty.call(right, key) && areDeclarativeValuesEqual(left[key], right[key]));
+}
+function createStateSkeleton(src, definition, contract) {
+    // build state with contract defaults as the canonical values for public properties
+    const stateSkeleton = {};
+    const properties = contract.properties || {};
+    const state = definition.state || {};
+    const name = definition.meta?.name || src;
+    for (const [propName, property] of Object.entries(properties)) {
+        if (property.state === true) {
+            stateSkeleton[propName] = property.default;
+        }
+    }
+    for (const [stateName, value] of Object.entries(state)) {
+        const property = properties[stateName];
+        if (!property) {
+            stateSkeleton[stateName] = value;
+            continue;
+        }
+        if (property.state !== true) {
+            throw new Error(`Page '${name}' declares public property '${stateName}' in definition.state, but the contract property is not state-backed.`);
+        }
+        if (!areDeclarativeValuesEqual(property.default, value)) {
+            throw new Error(`Page '${name}' declares different defaults for public property '${stateName}' in contract.properties and definition.state.`);
+        }
+    }
+    return stateSkeleton;
+}
+function isPlainObject(value) {
+    // check that a value is a JSON-style plain object
+    const prototype = Object.getPrototypeOf(value);
+    return prototype === Object.prototype || prototype === null;
 }
 function escapeCssString(value) {
     return value
@@ -61,7 +115,7 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
     contract = Object.seal(Object.freeze(contract));
    
     // state skeleton
-    const stateSkeleton = createStateSkeleton(src, definition, contract, "Page");
+    const stateSkeleton = createStateSkeleton(src, definition, contract);
     const propertyAttributeNames = [];
     const reflectedPropertyNames = [];
     const stateMapAttributes = [];
