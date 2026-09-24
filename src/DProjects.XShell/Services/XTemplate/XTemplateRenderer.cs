@@ -1,7 +1,6 @@
 using System.Collections;
 using System.Globalization;
 using System.Net;
-using System.Reflection;
 using System.Text;
 
 namespace DProjects.XShell.Services.XTemplate {
@@ -22,10 +21,18 @@ namespace DProjects.XShell.Services.XTemplate {
         // consts
         private static readonly HashSet<string> VoidElements = new(StringComparer.OrdinalIgnoreCase) { "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr" };
 
+        // vars
+        private readonly XTemplateObjectAccess _objectAccess;
+
+        // ctor
+        public XTemplateRenderer(IEnumerable<IXTemplateObjectAdapter>? objectAdapters = null) {
+            _objectAccess = new XTemplateObjectAccess(objectAdapters);
+        }
+
         // methods
         public string Render(string template, object? state) {
             var root = new XTemplateParser(template.Trim()).Parse();
-            var context = new XTemplateExpressionContext(new Dictionary<string, object?> { ["state"] = state });
+            var context = new XTemplateExpressionContext(new Dictionary<string, object?> { ["state"] = state }, _objectAccess.Adapters);
             var result = new StringBuilder();
             RenderChildren(root.Children, context, result, null);
             return result.ToString();
@@ -145,7 +152,7 @@ namespace DProjects.XShell.Services.XTemplate {
             }
             result.Append('>');
         }
-        private static List<KeyValuePair<string, string?>> BuildAttributes(XTemplateElementNode element, XTemplateExpressionContext context) {
+        private List<KeyValuePair<string, string?>> BuildAttributes(XTemplateElementNode element, XTemplateExpressionContext context) {
             var attributes = new OrderedAttributes();
             var hasShow = false;
             var isHidden = false;
@@ -202,13 +209,13 @@ namespace DProjects.XShell.Services.XTemplate {
             attributes.Clear();
             attributes.AddRange(values.Items);
         }
-        private static void AddSpread(OrderedAttributes attributes, object? value, int offset) {
+        private void AddSpread(OrderedAttributes attributes, object? value, int offset) {
             if (value == null) return;
             foreach (var member in ObjectMembers(value, offset)) {
                 if (member.Value is string or bool or byte or sbyte or short or ushort or int or uint or long or ulong or float or double or decimal) SetBoundAttribute(attributes, member.Key, member.Value, offset);
             }
         }
-        private static void SetBoundAttribute(OrderedAttributes attributes, string name, object? value, int offset) {
+        private void SetBoundAttribute(OrderedAttributes attributes, string name, object? value, int offset) {
             if (!IsValidAttributeName(name)) throw new XTemplateException($"Invalid attribute name '{name}'", offset);
             if (value == null || value is false) { attributes.Remove(name); return; }
             if (value is true) { attributes.Set(name, null); return; }
@@ -217,7 +224,7 @@ namespace DProjects.XShell.Services.XTemplate {
             var keys = ObjectMembers(value, offset).Where(member => IsTruthy(member.Value)).Select(member => member.Key);
             attributes.Set(name, string.Join(' ', keys));
         }
-        private static IEnumerable<object?> NormalizeCollection(object? value, int offset) {
+        private IEnumerable<object?> NormalizeCollection(object? value, int offset) {
             if (value == null || value is bool) throw new XTemplateException("x-for requires a collection, string, object, or non-negative integer number", offset);
             if (IsNumeric(value)) {
                 var number = Convert.ToDouble(value, CultureInfo.InvariantCulture);
@@ -226,23 +233,15 @@ namespace DProjects.XShell.Services.XTemplate {
                 return Enumerable.Range(1, (int)number).Cast<object?>();
             }
             if (value is string text) return text.EnumerateRunes().Select(rune => (object?)rune.ToString()).ToArray();
-            if (value is IDictionary dictionary) return dictionary.Keys.Cast<object?>().Select(key => key?.ToString()).ToArray();
+            if (value is IDictionary) return ObjectMembers(value, offset).Select(member => (object?)member.Key).ToArray();
             if (value is IEnumerable enumerable) return enumerable.Cast<object?>().ToArray();
             return ObjectMembers(value, offset).Select(member => (object?)member.Key).ToArray();
         }
-        private static IEnumerable<object?> NormalizeCollectionOrEmpty(object? value, int offset) => value == null ? Array.Empty<object?>() : NormalizeCollection(value, offset);
-        private static IEnumerable<KeyValuePair<string, object?>> ObjectMembers(object value, int offset) {
-            if (value is IDictionary dictionary) {
-                foreach (DictionaryEntry entry in dictionary) if (entry.Key is string key) yield return new(key, entry.Value);
-                yield break;
-            }
-            var type = value.GetType();
-            foreach (var property in type.GetProperties(BindingFlags.Instance | BindingFlags.Public).Where(property => property.CanRead && property.GetIndexParameters().Length == 0 && property.GetMethod?.IsPublic == true).OrderBy(property => property.Name, StringComparer.Ordinal)) {
-                object? memberValue;
-                try { memberValue = property.GetValue(value); } catch (Exception exception) { throw new XTemplateException($"Unable to read object member '{property.Name}': {exception.Message}", offset); }
-                yield return new(property.Name, memberValue);
-            }
-            foreach (var field in type.GetFields(BindingFlags.Instance | BindingFlags.Public).OrderBy(field => field.Name, StringComparer.Ordinal)) yield return new(field.Name, field.GetValue(value));
+        private IEnumerable<object?> NormalizeCollectionOrEmpty(object? value, int offset) => value == null ? Array.Empty<object?>() : NormalizeCollection(value, offset);
+        private IEnumerable<KeyValuePair<string, object?>> ObjectMembers(object value, int offset) {
+            try { return _objectAccess.GetMembers(value).ToArray(); }
+            catch (XTemplateObjectAccessException exception) { throw new XTemplateException(exception.Message, offset); }
+            catch (Exception exception) { throw new XTemplateException($"Unable to enumerate exposed object members: {exception.Message}", offset); }
         }
         private static bool IsNumeric(object value) => value is byte or sbyte or short or ushort or int or uint or long or ulong or float or double or decimal;
         private static double NormalizeNumber(object value) => Convert.ToDouble(value, CultureInfo.InvariantCulture);

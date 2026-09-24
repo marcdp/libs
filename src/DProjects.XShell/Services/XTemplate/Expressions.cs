@@ -1,6 +1,5 @@
 using System.Collections;
 using System.Globalization;
-using System.Reflection;
 
 namespace DProjects.XShell.Services.XTemplate {
 
@@ -40,20 +39,23 @@ namespace DProjects.XShell.Services.XTemplate {
 
         // vars
         private readonly IReadOnlyDictionary<string, object?> _identifiers;
+        private readonly XTemplateObjectAccess _objectAccess;
 
         // ctor
-        public XTemplateExpressionContext(IReadOnlyDictionary<string, object?> identifiers) {
+        public XTemplateExpressionContext(IReadOnlyDictionary<string, object?> identifiers, IEnumerable<IXTemplateObjectAdapter>? objectAdapters = null) {
             if (identifiers == null) throw new ArgumentNullException(nameof(identifiers));
             _identifiers = new Dictionary<string, object?>(identifiers, StringComparer.Ordinal);
+            _objectAccess = new XTemplateObjectAccess(objectAdapters);
         }
 
         // methods
         public bool TryGetValue(string name, out object? value) => _identifiers.TryGetValue(name, out value);
+        internal XTemplateObjectAccess ObjectAccess => _objectAccess;
         public XTemplateExpressionContext With(IReadOnlyDictionary<string, object?> identifiers) {
             if (identifiers == null) throw new ArgumentNullException(nameof(identifiers));
             var values = new Dictionary<string, object?>(_identifiers, StringComparer.Ordinal);
             foreach (var identifier in identifiers) values[identifier.Key] = identifier.Value;
-            return new XTemplateExpressionContext(values);
+            return new XTemplateExpressionContext(values, _objectAccess.Adapters);
         }
     }
 

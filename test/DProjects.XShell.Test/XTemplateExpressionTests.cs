@@ -133,7 +133,7 @@ namespace DProjects.XShell.Test {
         // methods (private)
         private static XTemplateExpressionContext Context(object? values = null) {
             var identifiers = values == null ? new Dictionary<string, object?>() : values.GetType().GetProperties().ToDictionary(property => property.Name, property => property.GetValue(values));
-            return new XTemplateExpressionContext(identifiers);
+            return new XTemplateExpressionContext(identifiers, new[] { new XTemplateReflectionObjectAdapter() });
         }
     }
 }

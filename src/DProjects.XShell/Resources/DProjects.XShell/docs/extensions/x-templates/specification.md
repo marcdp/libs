@@ -269,8 +269,10 @@ Division or modulo by zero and any operation producing a non-finite value are ev
 infinity, or negative infinity as XTemplate results.
 
 Objects are named-member containers. Collections are ordered, zero-based value sequences. A host may adapt dictionaries, DTOs, arrays, and lists to
-these kinds, but host methods, constructors, prototypes, reflection metadata, and indexers not exposed by the adapter are not members of the
-XTemplate value.
+these kinds, but only members explicitly provided by that adapter are members of the XTemplate value. Public CLR properties and fields are not
+automatically template-visible; an adapter may deliberately expose DTO/object members, including by using reflection, but normal rendering and
+evaluation MUST NOT discover or invoke .NET reflection members implicitly. Host methods, constructors, prototypes, reflection metadata, and indexers
+not exposed by the adapter are not members of the XTemplate value.
 
 ### 7.2 Lexical rules
 

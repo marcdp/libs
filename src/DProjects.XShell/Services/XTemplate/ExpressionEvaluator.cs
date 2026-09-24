@@ -1,6 +1,5 @@
 using System.Collections;
 using System.Globalization;
-using System.Reflection;
 
 namespace DProjects.XShell.Services.XTemplate {
 
@@ -68,19 +67,14 @@ namespace DProjects.XShell.Services.XTemplate {
             if (left.GetType() != right.GetType()) return false;
             return left is double or bool or string ? left.Equals(right) : ReferenceEquals(left, right);
         }
-        private static object? GetMember(object? target, string memberName, int offset) {
+        private object? GetMember(object? target, string memberName, int offset) {
             if (target == null) return null;
             if (target is string text) return memberName == "length" ? (double)text.Length : null;
             if (IsCollection(target)) return memberName == "length" ? (double)CollectionLength(target) : null;
-            if (TryGetDictionaryValue(target, memberName, out var value)) return Normalize(value, offset);
-            if (IsDictionary(target)) return null;
-            var type = target.GetType();
-            var property = type.GetProperty(memberName, BindingFlags.Instance | BindingFlags.Public);
-            if (property?.CanRead == true && property.GetIndexParameters().Length == 0 && property.GetMethod?.IsPublic == true) return Normalize(property.GetValue(target), offset);
-            var field = type.GetField(memberName, BindingFlags.Instance | BindingFlags.Public);
-            return field == null ? null : Normalize(field.GetValue(target), offset);
+            try { return _context.ObjectAccess.TryGetMember(target, memberName, out var value) ? Normalize(value, offset) : null; }
+            catch (XTemplateObjectAccessException exception) { throw new XTemplateExpressionEvaluationException(exception.Message, offset); }
         }
-        private static object? GetIndex(object? target, object? index, int offset) {
+        private object? GetIndex(object? target, object? index, int offset) {
             if (target == null) return null;
             if (index is string memberName) return GetMember(target, memberName, offset);
             if (index is not double number || number < 0 || number != Math.Truncate(number)) throw new XTemplateExpressionEvaluationException("A collection index must be a non-negative integer number", offset);
@@ -90,11 +84,6 @@ namespace DProjects.XShell.Services.XTemplate {
             if (target is string text) return position < text.Length ? text[position].ToString() : null;
             if (target is IList list) return position < list.Count ? Normalize(list[position], offset) : null;
             return ((IEnumerable)target).Cast<object?>().Skip(position).Select(value => Normalize(value, offset)).FirstOrDefault();
-        }
-        private static bool TryGetDictionaryValue(object target, string name, out object? value) {
-            if (target is IDictionary dictionary && dictionary.Contains(name)) { value = dictionary[name]; return true; }
-            value = null;
-            return false;
         }
         private static bool IsCollection(object value) => value is IEnumerable && value is not string && !IsDictionary(value);
         private static bool IsDictionary(object value) => value is IDictionary;

@@ -131,6 +131,6 @@ namespace DProjects.XShell.Test {
         }
 
         // methods (private)
-        private static string Render(string template, object? state = null) => new XTemplateRenderer().Render(template, state ?? new { });
+        private static string Render(string template, object? state = null) => new XTemplateRenderer(new[] { new XTemplateReflectionObjectAdapter() }).Render(template, state ?? new { });
     }
 }
