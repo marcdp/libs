@@ -17,6 +17,12 @@ function isEmptyPlainObject(value) {
     // check if the value is an empty plain object
     return value && typeof(value) === "object" && !Array.isArray(value) && Object.getPrototypeOf(value) === Object.prototype && Object.keys(value).length === 0;
 }
+function escapeCssString(value) {
+    return value
+        .replace(/\\/g, "\\\\")
+        .replace(/"/g, '\\"')
+        .replace(/\n/g, "\\A ");
+}
 function convertAttributeValue(property, value) {
     // convert attribute value based on property type
     switch (property.type) {
@@ -52,15 +58,7 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
     if (!definition.controller) definition.controller = () => ({});
     definition = Object.seal(Object.freeze(definition));
     contract = Object.seal(Object.freeze(contract));
-    // style
-    const style = [];
-    if (typeof(definition.style) == "string") {
-        style.push(`<style>@scope (:scope) {${definition.style}}</style>`);
-    } else if (Array.isArray(definition.style)) {
-        for(let styleText of definition.style) {
-            style.push(`<style>@scope (:scope) {${styleText}}</style>`);
-        }
-    }    
+   
     // state skeleton
     const stateSkeleton = {};
     const propertyAttributeNames = [];
@@ -105,7 +103,7 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
     const renderEngineModule = moduleConfig.defaults.page.renderEngine;
     const renderEnginePage = definition.meta?.renderEngine || renderEngineModule;
     const renderEngineFactoryCreator = await xshell.loader.load("render-engine:" + renderEnginePage);
-    const templateRenderer = definition.templateRenderer ? (state, handler, invalidate, utils, i18n, renderCount) => {
+    const templateRenderer = definition.templateRenderer; /* ? (state, handler, invalidate, utils, i18n, renderCount) => {
         const vdom = definition.templateRenderer(state, handler, invalidate, utils, i18n, renderCount);
         let index = vdom.reduce((maximum, node) => Math.max(maximum, node.options.index), -1) + 1;
         for (const styleHtml of style) {
@@ -113,8 +111,8 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
             vdom.push(utils.createVDOM("style", null, null, null, {index: index++}, styleText));
         }
         return vdom;
-    } : null;
-    const renderEngineFactory = new renderEngineFactoryCreator(definition.template + style.join(""), context, templateRenderer);
+    } : null;*/
+    const renderEngineFactory = new renderEngineFactoryCreator(definition.template, context, templateRenderer);
     // render engine dependencies
     if (renderEngineFactory.dependencies.length) {
         await xshell.loader.load(renderEngineFactory.dependencies);
@@ -128,6 +126,7 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
         _stateChanges = [];
         _renderEngine = null;
         _renderPending = false;
+        _styleSheets = [];
         _disposables = [];
         _script = null;
         // ctor
@@ -211,19 +210,40 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
         }
         // mount/unmount
         async mount({ host }) {
+            // style
+            const cssPageSelector = `${host.nodeName.toLowerCase()}[src="${escapeCssString(host.getAttribute("src"))}"]`;
+            if (typeof(definition.style) == "string" && definition.style) {
+                const cssStyleSheet = new CSSStyleSheet();
+                cssStyleSheet.replaceSync(`@scope (${cssPageSelector}) {${definition.style}}`);
+                this._styleSheets.push(cssStyleSheet);        
+            } else if (Array.isArray(definition.style) && definition.style.length) {
+                for(let styleText of definition.style) {
+                    const cssStyleSheet = new CSSStyleSheet();
+                    cssStyleSheet.replaceSync(`@scope (${cssPageSelector}) {${styleText}}`);
+                    this._styleSheets.push(cssStyleSheet);
+                }
+            }    
+            document.adoptedStyleSheets = [...document.adoptedStyleSheets,...this._styleSheets];
+            // render engine
             this._renderEngine = renderEngineFactory.create({ host, state: this._state, handler:(command, ...params) => {
                 this.onCommand(command, ...params);
             }, invalidate: () => { 
                 this.invalidate(); 
             } })
             this._renderEngine.mount();
+            // mount
             await super.mount({ host });
+            // invalidate
             this.invalidate();
         }
         async unmount() {
             await super.unmount();
             this._renderEngine.unmount();
             this._renderEngine = null;
+            if (this._styleSheets.length) {
+                document.adoptedStyleSheets = document.adoptedStyleSheets.filter(stylesheet => !this._styleSheets.includes(stylesheet));    
+                this._styleSheets = [];
+            }
             for(var disposable of this._disposables){
                 disposable.dispose();
             }

@@ -269,7 +269,10 @@ export async function createComponentClassFromJsDefinition(src, context, definit
         disconnectedCallback() {
             this.onCommand("unmount", {});
             this.onCommand("unload", {});
-            this._renderEngine.unmount();
+            if (this._renderEngine) {
+                this._renderEngine.unmount();
+                this._renderEngine = null;
+            }
             for(let disposable of this._disposables) {
                 disposable.dispose();
             }
