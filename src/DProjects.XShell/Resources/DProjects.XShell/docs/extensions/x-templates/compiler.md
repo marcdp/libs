@@ -28,7 +28,14 @@ representation or renderer as long as it preserves the language contract.
 
 Formatter syntax is parsed into the same target-neutral expression AST as the rest of the restricted language. A backend evaluates the source,
 evaluates formatter arguments when required, applies the specified built-in formatter semantics, and passes the result to the next pipeline stage.
-It must not turn formatter names into arbitrary JavaScript or .NET calls. This keeps the browser and server paths equivalent and CSP-compatible.
+The parser MUST give the pipeline lower precedence than `?:`, while retaining right-associative conditionals; an unparenthesized pipeline therefore
+receives the complete preceding conditional. Formatter arguments remain full expression ASTs inside their parentheses, so nested formatter pipelines
+are valid where the resulting value kind is accepted. It must not turn formatter names into arbitrary JavaScript or .NET calls. This keeps the browser
+and server paths equivalent and CSP-compatible.
+
+Locale-sensitive formatter output MUST follow the XTemplate locale conformance profile (`en-US`, `es-ES`, and `tr-TR`) for the cases defined by the
+specification. Compatible locale data SHOULD be used for other locales, but byte-identical output is not required across differing CLDR/ICU versions
+outside that profile.
 
 ## Current XShell implementation
 

@@ -36,6 +36,11 @@ Presentation formatters are the restricted pipeline extension:
 Formatter arguments are full XTemplate expressions, but formatter names refer only to the specified built-in language operations. General calls and
 method access remain invalid: `formatPrice(state.price)`, `state.price.toFixed(2)`, and `state.name.toUpperCase()` are not XTemplate expressions.
 
+The formatter pipeline has lower precedence than the conditional operator. An unparenthesized pipeline formats the complete preceding conditional,
+so `state.ok ? 'yes' : 'no' | upper` means `(state.ok ? 'yes' : 'no') | upper`. Parenthesize a branch to format only that branch. Formatter-call
+parentheses establish a nested expression boundary, so full expressions such as `state.total | currency(state.code | trim | upper)` remain valid;
+this does not add general function-call syntax.
+
 ## Where expressions are used
 
 Expressions provide values for interpolation, conditional directives, bindings, loop sources, class bindings, visibility, and model binding. A
@@ -53,10 +58,13 @@ Event binding is different: `x-on:event="command"` identifies a named command ra
 
 The restricted grammar does not permit arbitrary function calls, host globals, object methods, assignments, or statements. Formatters are pure,
 side-effect-free language operations: they cannot execute user code, mutate state, perform I/O, or access DOM/browser APIs. JavaScript and C#
-renderers must implement the same formatter semantics, including locale behavior, type checks, null propagation, and result kinds.
+renderers must implement the same normative formatter semantics and the profile locale behavior, including type checks, null propagation, and result
+kinds.
 
 Raw scalar conversion remains invariant. Locale-sensitive output is explicit, for example `state.price | number(2)`; ordinary `{{ state.price }}`
-continues to use invariant XTemplate conversion.
+continues to use invariant XTemplate conversion. JavaScript and C# renderers share the `en-US`, `es-ES`, and `tr-TR` XTemplate locale
+conformance profile defined by the specification. Other supported locales remain valid, but byte-for-byte equivalence can depend on compatible
+host locale data outside that profile.
 
 ## Related documentation
 

@@ -347,7 +347,7 @@ The following grammar is normative. `{ X }` means zero or more repetitions and `
 expression       = pipeline ;
 pipeline         = conditional, { "|", formatter } ;
 formatter        = identifier, [ "(", [ expression, { ",", expression } ], ")" ] ;
-conditional      = coalesce, [ "?", expression, ":", expression ] ;
+conditional      = coalesce, [ "?", conditional, ":", conditional ] ;
 coalesce         = logical-or, { "??", logical-or } ;
 logical-or       = logical-and, { "||", logical-and } ;
 logical-and      = equality, { "&&", equality } ;
@@ -364,11 +364,19 @@ literal          = "null" | "true" | "false" | number | string ;
 The grammar permits `??`, `||`, and `&&` to be mixed without additional host-language restrictions. Their precedence is exactly the precedence shown
 above. A formatter name is a single identifier; member access is not permitted in that position. Formatter arguments are full XTemplate expressions,
 and the comma is only an argument separator inside a formatter argument list, not a general comma or sequence operator. The conditional operator is
-right-associative because each branch is an `expression`. Repeated binary operators and formatter pipelines are left-associative.
+right-associative because its branches use `conditional`: `a ? b : c ? d : e` is `a ? b : (c ? d : e)`. Repeated binary operators and formatter
+pipelines are left-associative.
 
-The formatter pipeline is evaluated after its source `conditional` expression. A formatter argument is evaluated only when the formatter is invoked.
-Thus `state.price + 1 | number(2)` formats the result of the addition, while a formatter result used by another operator must be parenthesized, for
-example `(state.price | number(2)) == '12.00'`.
+The `pipeline` production is deliberately outside `conditional`, so the formatter pipeline has lower precedence than `?:`. An unparenthesized
+pipeline therefore operates on the complete preceding conditional expression. For example, `state.ok ? 'yes' : 'no' | upper` is parsed as
+`(state.ok ? 'yes' : 'no') | upper`, not as `state.ok ? 'yes' : ('no' | upper)`. To format only one conditional branch, that branch MUST be explicitly
+parenthesized, as in `state.ok ? ('yes' | upper) : 'no'` or `state.ok ? 'yes' : ('no' | upper)`.
+
+This precedence boundary applies only to the top-level expression. Formatter arguments remain full `expression` productions inside their parentheses,
+so `state.total | currency(state.code | trim | upper)` retains a nested pipeline in the argument expression. Parentheses in the primary
+production likewise establish a nested expression boundary. A formatter argument is evaluated only when the formatter is invoked. Thus
+`state.price + 1 | number(2)` formats the result of the addition, while a formatter result used by another operator must be parenthesized, for example
+`(state.price | number(2)) == '12.00'`.
 
 The parser MUST consume the entire expression. Empty expressions and trailing tokens are syntax errors.
 
@@ -391,6 +399,28 @@ From highest to lowest precedence:
 | 11 | formatter pipeline `|` | left |
 
 Parentheses override this table.
+
+The following groupings are normative:
+
+```text
+true ? 'a' : 'b' | upper
+→ FormatExpression(ConditionalExpression(true, 'a', 'b'), upper) → 'A'
+
+false ? 'a' : 'b' | upper
+→ FormatExpression(ConditionalExpression(false, 'a', 'b'), upper) → 'B'
+
+(true ? 'a' : 'b') | upper
+→ FormatExpression(ConditionalExpression(true, 'a', 'b'), upper) → 'A'
+
+true ? ('a' | upper) : 'b'
+→ ConditionalExpression(true, FormatExpression('a', upper), 'b') → 'A'
+
+false ? 'a' : ('b' | upper)
+→ ConditionalExpression(false, 'a', FormatExpression('b', upper)) → 'B'
+
+a ? b : c ? d : e
+→ ConditionalExpression(a, b, ConditionalExpression(c, d, e))
+```
 
 ### 7.5 Evaluation context and identifier resolution
 
@@ -532,15 +562,62 @@ write target of `x-model`.
 
 Locale-sensitive formatters use the active XShell/i18n locale supplied by the rendering environment. The locale is formatter context, not an
 XTemplate identifier and not a host API exposed to template source. JavaScript and C# implementations MAY use their platform locale libraries
-internally, but their observable XTemplate behavior MUST be equivalent.
+internally, but their observable XTemplate behavior MUST be equivalent for the conformance profile defined below. Outside that profile, they SHOULD
+use compatible locale data and preserve equivalent results where the host locale data permits.
+
+Locale behavior has three distinct parts:
+
+1. **Normative formatter semantics.** XTemplate defines the formatter names, accepted value kinds, exact requested fractional digits, default `number`
+   precision, null propagation, currency-code validation, ISO date/time input parsing, and supported date-pattern tokens. These rules are language
+   semantics and remain fixed regardless of the host locale database version.
+2. **Locale-sensitive behavior.** The active locale supplies presentation details such as decimal and grouping separators, currency placement and
+   symbols, localized month names, and casing. These details are produced by the formatter operation, not by host-language calls exposed to templates.
+3. **XTemplate locale conformance profile.** The cross-runtime guarantee is tested against the explicitly defined profile below. The profile is a
+   required interoperability target, not a statement that other locales are unsupported.
 
 If no locale is available, formatters MUST use the deterministic invariant XTemplate locale: ASCII digits, `.` as the decimal separator, `,` as the
 grouping separator, invariant casing, and invariant English date/month names where a textual component is requested. Currency output uses the ISO code
 when no invariant symbol is defined. Raw scalar conversion remains invariant regardless of the active locale; locale-sensitive output requires an
 explicit formatter.
 
-For example, the same numeric value may render as `1.234,50` under `es-ES` and `1,234.50` under `en-US` when formatted with `number(2)`, while
-`{{ state.price }}` continues to use the shortest invariant round-tripping number text from section 7.8.
+For example, the same numeric value renders as `1.234,50` under `es-ES` and `1,234.50` under `en-US` in the conformance profile when formatted
+with `number(2)`, while `{{ state.price }}` continues to use the shortest invariant round-tripping number text from section 7.8.
+
+##### XTemplate locale conformance profile
+
+The profile consists of `en-US`, `es-ES`, and `tr-TR`:
+
+| Locale | Purpose |
+|---|---|
+| `en-US` | English and invariant-like Western separators, casing, and month names |
+| `es-ES` | comma decimal separator and locale grouping, currency placement, and localized month names |
+| `tr-TR` | locale-sensitive Turkish casing and Turkish numeric/currency conventions |
+
+For the cases below, JavaScript and C# implementations MUST produce the same XTemplate result, including the same string characters and errors.
+The non-breaking spaces shown in the table are U+00A0. This table defines representative profile cases; it does not freeze every locale-data entry
+or every possible formatter input.
+
+| Locale | Expression | Required result |
+|---|---|---|
+| `en-US` | `1234.5 \| number(2)` | `1,234.50` |
+| `es-ES` | `1234.5 \| number(2)` | `1.234,50` |
+| `tr-TR` | `1234.5 \| number(2)` | `1.234,50` |
+| `en-US` | `0.25 \| percent(1)` | `25.0%` |
+| `es-ES` | `0.25 \| percent(1)` | `25,0 %` |
+| `tr-TR` | `0.25 \| percent(1)` | `%25,0` |
+| `en-US` | `1234.5 \| currency('EUR')` | `€1,234.50` |
+| `es-ES` | `1234.5 \| currency('EUR')` | `1.234,50 €` |
+| `tr-TR` | `1234.5 \| currency('EUR')` | `1.234,50 €` |
+| `en-US` | `'2026-09-24' \| date('MMMM')` | `September` |
+| `es-ES` | `'2026-09-24' \| date('MMMM')` | `septiembre` |
+| `tr-TR` | `'2026-09-24' \| date('MMMM')` | `Eylül` |
+| `en-US` | `'i' \| upper` / `'I' \| lower` | `I` / `i` |
+| `es-ES` | `'i' \| upper` / `'I' \| lower` | `I` / `i` |
+| `tr-TR` | `'i' \| upper` / `'I' \| lower` | `İ` / `ı` |
+
+The profile MUST include the explicit Turkish casing cases in the casing table below. Other locales remain valid whenever the rendering environment
+supports them. Outside this profile, implementations SHOULD use compatible locale data and SHOULD preserve equivalent results, but byte-for-byte
+equivalence may depend on compatible CLDR/ICU data. The language specification does not freeze the entire evolving locale database.
 
 #### Built-in formatter set
 
@@ -577,7 +654,7 @@ ISO 4217 representation, supplied as a string literal or an expression that eval
 `upper`, `lower`, and `trim` accept no arguments. Their casing is locale-aware but remains a pure XTemplate operation; an implementation MUST NOT
 call a method on the source object. Unicode whitespace for `trim` is the Unicode White_Space property, not just ASCII space.
 
-Locale-aware casing MUST be equivalent across JavaScript and C# implementations. The conformance locale profile includes at least `en-US` and
+Locale-aware casing MUST be equivalent across JavaScript and C# implementations. The conformance locale profile includes `en-US`, `es-ES`, and
 `tr-TR`; representative required results are:
 
 | Locale | Expression | Result |
@@ -586,6 +663,8 @@ Locale-aware casing MUST be equivalent across JavaScript and C# implementations.
 | `en-US` | `'I' \| lower` | `i` |
 | `en-US` | `'İ' \| upper` | `İ` |
 | `en-US` | `'ı' \| lower` | `ı` |
+| `es-ES` | `'i' \| upper` | `I` |
+| `es-ES` | `'I' \| lower` | `i` |
 | `tr-TR` | `'i' \| upper` | `İ` |
 | `tr-TR` | `'I' \| lower` | `ı` |
 | `tr-TR` | `'İ' \| lower` | `i` |
@@ -2851,7 +2930,8 @@ It must still preserve:
 Every valid XTemplate expression in this language version MUST be evaluable by a C# or other server-side renderer without Node.js, a browser, `eval`,
 `new Function`, a JavaScript interpreter, or arbitrary JavaScript execution. The renderer MUST evaluate the expression AST using the semantics in
 section 7, rather than translating behavior to host-language shortcuts with different coercion, access, locale, or formatter rules.
-In particular, server rendering MUST produce the same formatter results and formatting errors as JavaScript for the same context and active locale.
+In particular, server rendering MUST produce the same formatter results and formatting errors as JavaScript for the same context and active locale for
+the conformance-profile cases. For other locales it SHOULD use compatible locale data and preserve equivalent results where that data is compatible.
 
 A server-side HTML renderer can implement the subset of template and DOM semantics meaningful without a browser.
 
@@ -3090,6 +3170,17 @@ Expression suites MUST run the same cases against every parser/evaluator backend
 | `1 == '1'` | none | boolean `false` |
 | `1 == 1` | none | boolean `true` |
 
+Parser and evaluator suites MUST additionally assert the formatter/conditional precedence and right-associative grouping shown below:
+
+| Expression | Context condition | Required AST grouping or result |
+|---|---|---|
+| `true ? 'a' : 'b' \| upper` | none | `FormatExpression(ConditionalExpression(true, 'a', 'b'), upper)`; result `A` |
+| `false ? 'a' : 'b' \| upper` | none | `FormatExpression(ConditionalExpression(false, 'a', 'b'), upper)`; result `B` |
+| `(true ? 'a' : 'b') \| upper` | none | same grouping as the preceding `true` case; result `A` |
+| `true ? ('a' \| upper) : 'b'` | none | `ConditionalExpression(true, FormatExpression('a', upper), 'b')`; result `A` |
+| `false ? 'a' : ('b' \| upper)` | none | `ConditionalExpression(false, 'a', FormatExpression('b', upper))`; result `B` |
+| `a ? b : c ? d : e` | `a = false`, `c = true` | `ConditionalExpression(a, b, ConditionalExpression(c, d, e))`; result `d` |
+
 Formatter suites MUST additionally run the same cases against every parser/evaluator backend:
 
 | Expression or template | Context condition | Expected result or rejection |
@@ -3102,6 +3193,7 @@ Formatter suites MUST additionally run the same cases against every parser/evalu
 | `state.price \| number(2)` | `state.price = 12` | `12.00` in the invariant locale |
 | `state.price \| number(2)` | `state.price = 12.5` | `12.50` in the invariant locale |
 | `state.price \| number(state.decimals)` | `state.decimals = 2` | full-expression formatter argument is evaluated |
+| `state.total \| currency(state.code \| trim \| upper)` | `total = 12`, `code = ' eur '` | nested pipeline argument; EUR currency result |
 | `state.price \| number(2)` | `es-ES`, `state.price = 1234.5` | grouping and decimal separators follow `es-ES` |
 | `state.price \| number(2)` | `en-US`, `state.price = 1234.5` | grouping and decimal separators follow `en-US` |
 | `state.total \| currency('EUR')` | numeric total and active locale | locale currency formatting |
@@ -3144,6 +3236,7 @@ At minimum, invalid cases include:
 | `formatPrice(state.price)` | general function call |
 | `state.price.toFixed(2)` | method call |
 | `state.name.toUpperCase()` | method call |
+| `true ? 'a' \| upper : 'b'` | unparenthesized formatter pipeline in a conditional branch |
 | `1 === 1` | unsupported strict-equality operator |
 | `1 !== 2` | unsupported strict-inequality operator |
 | `new Date()` | constructor |

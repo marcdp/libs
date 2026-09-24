@@ -29,8 +29,11 @@ accepted, including attribute bindings:
 <div x-attr:data-price="state.price | number(2)"></div>
 ```
 
-Pipelines run left to right. Their locale-sensitive formatters use the active XShell/i18n locale, while ordinary scalar conversion remains invariant.
-General function calls and object methods remain invalid; use `number(2)` instead of `toFixed(2)` and `upper` instead of `toUpperCase()`.
+Pipelines run left to right and have lower precedence than `?:`. Therefore `state.ok ? 'yes' : 'no' | upper` formats the complete conditional;
+parenthesize a branch when only that branch should be formatted. Their locale-sensitive formatters use the active XShell/i18n locale, while
+ordinary scalar conversion remains invariant. General function calls and object methods remain invalid; use `number(2)` instead of `toFixed(2)` and
+`upper` instead of `toUpperCase()`. The JavaScript and C# backends share the `en-US`, `es-ES`, and `tr-TR` locale conformance profile; see the
+specification for its required numeric, percent, currency, month-name, and casing cases.
 
 ## Attributes and properties
 
