@@ -268,11 +268,15 @@ Numbers follow the finite IEEE 754 binary64 value set. Numeric literals and arit
 Division or modulo by zero and any operation producing a non-finite value are evaluation errors. Implementations MUST NOT expose `NaN`, positive
 infinity, or negative infinity as XTemplate results.
 
-Objects are named-member containers. Collections are ordered, zero-based value sequences. A host may adapt dictionaries, DTOs, arrays, and lists to
-these kinds, but only members explicitly provided by that adapter are members of the XTemplate value. Public CLR properties and fields are not
-automatically template-visible; an adapter may deliberately expose DTO/object members, including by using reflection, but normal rendering and
-evaluation MUST NOT discover or invoke .NET reflection members implicitly. Host methods, constructors, prototypes, reflection metadata, and indexers
-not exposed by the adapter are not members of the XTemplate value.
+Objects are named-member containers whose member names are strings. Collections are ordered, zero-based value sequences. A host may adapt dictionaries,
+DTOs, arrays, and lists to these kinds, but only members explicitly provided by that adapter are members of the XTemplate value. Dictionary-backed
+XTemplate objects MUST use string keys. Therefore `Dictionary<string, object?>`, `IReadOnlyDictionary<string, object?>`, and string-key
+`IDictionary` values are valid object sources; `Dictionary<int, object?>` and mixed-key `IDictionary` values are invalid object sources. Implementations
+MUST reject non-string dictionary keys and MUST NOT coerce them through `key.ToString()` (for example, `1` MUST NOT become `"1"`, and `true` MUST NOT
+become `"True"`). An explicit `IXTemplateObjectAdapter` implementation MAY expose an arbitrary host object, but every member name it produces MUST still
+be a string. Public CLR properties and fields are not automatically template-visible; an adapter may deliberately expose DTO/object members, including
+by using reflection, but normal rendering and evaluation MUST NOT discover or invoke .NET reflection members implicitly. Host methods, constructors,
+prototypes, reflection metadata, and indexers not exposed by the adapter are not members of the XTemplate value.
 
 ### 7.2 Lexical rules
 
@@ -410,7 +414,7 @@ expression; context validation determines whether its identifiers are available 
 
 ### 7.6 Member and indexed access
 
-`value.name` reads the named member `name`. For objects, the member must be explicitly exposed by the context adapter. Collections and strings expose
+`value.name` reads the named string member `name`. For objects, the member must be explicitly exposed by the context adapter. Collections and strings expose
 the single built-in member `length`; for collections it is the element count, and for strings it is the number of UTF-16 code units. No other
 collection or string members or methods are implicit.
 
@@ -850,6 +854,9 @@ Syntax:
 ```
 
 The expression is converted to an attribute object.
+
+The resulting object has string member names. A dictionary-backed value used for expansion MUST therefore have string keys; non-string or mixed-key
+dictionaries are invalid, and keys MUST NOT be converted with `key.ToString()`.
 
 Example:
 
@@ -1321,8 +1328,27 @@ Example:
 ### Object
 
 A non-null object is converted to a collection of the member-name strings exposed by its context adapter. Iteration yields **keys**, not member
-values. The adapter MUST provide deterministic key order; JavaScript adapters use own enumerable string-key order for compatibility with historical
-`Object.keys` behavior.
+values. For dictionary-backed objects, only string-key dictionaries are valid; non-string or mixed-key dictionaries are invalid and their keys MUST
+NOT be converted to strings. The adapter MUST provide deterministic member order; JavaScript adapters use own enumerable string-key order for
+compatibility with historical `Object.keys` behavior. For example:
+
+```text
+Dictionary<string, object?>          -> valid XTemplate object
+IReadOnlyDictionary<string, object?> -> valid XTemplate object
+string-key IDictionary               -> valid XTemplate object
+Dictionary<int, object?>             -> invalid XTemplate object
+mixed-key IDictionary                -> invalid XTemplate object
+```
+
+Thus an object loop exposes the string member names:
+
+```html
+<span x-for="key in state.object">
+    {{ key }}
+</span>
+```
+
+The order is the deterministic member order supplied by the object adapter.
 
 ### Other values
 
@@ -1430,6 +1456,9 @@ A non-VDOM implementation may use another range representation as long as observ
 ## 36. `x-recursive`
 
 `x-recursive` is a specialized recursive-list construct.
+
+Its source uses the same collection normalization rules as `x-for`; in particular, an object source exposes only its string member names in the
+deterministic order supplied by the object adapter.
 
 Basic syntax:
 

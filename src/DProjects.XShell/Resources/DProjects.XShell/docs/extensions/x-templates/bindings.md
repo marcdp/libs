@@ -12,7 +12,8 @@ Use `x-attr:*` to bind DOM attributes. Attributes are serialized values suitable
 <button x-attr:disabled="state.saving">Save</button>
 ```
 
-`x-attr` accepts an attribute object when several attributes are derived together. `:name` and `:` are supported shorthand forms, but the long
+`x-attr` accepts an attribute object when several attributes are derived together. Its object member names must be strings; dictionary-backed values
+must use string keys and non-string keys are not converted with `key.ToString()`. `:name` and `:` are supported shorthand forms, but the long
 forms are preferred in canonical templates.
 
 ## Properties
