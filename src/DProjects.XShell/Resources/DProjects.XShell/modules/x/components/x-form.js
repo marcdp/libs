@@ -14,17 +14,17 @@ export const contract = {
         }
     },
     properties: {
-        wizard:         {type:"boolean", default:false, attr:true, state:true, description:""},
-        wizardDirection:{type:"string", default:"", attr:true, state:true, description:""},
-        wizardIndex:    {type:"number", default:0, attr:true, state:true, description:""},
-        wizardPanels:   {type:"array", default:[], attr:true, state:true, description:""},
-        validated:      {type:"boolean", default:false, attr:true, state:true, description:""},
-        command:        {type:"string", default:"submit", attr:true, state:true, description:""},
-        errors:         {type:"array", default:[], attr:true, state:true, description:""},
-        loading:        {type:"boolean", default:false, attr:true, state:true, description:""},
-        loadingLabel:   {type:"string", default:"Working", attr:true, state:true, description:""},
-        loadingMessage: {type:"string", default:"Please wait...", attr:true, state:true, description:""},
-        wizardStyle:    {type:"string", default:"", attr:true, state:true, description:""}
+        wizard:         {type:"boolean", default:false, attribute:true, state:true, description:""},
+        wizardDirection:{type:"string", default:"", attribute:true, state:true, description:""},
+        wizardIndex:    {type:"number", default:0, attribute:true, state:true, description:""},
+        wizardPanels:   {type:"array", default:[], attribute:true, state:true, description:""},
+        validated:      {type:"boolean", default:false, attribute:true, state:true, description:""},
+        command:        {type:"string", default:"submit", attribute:true, state:true, description:""},
+        errors:         {type:"array", default:[], attribute:true, state:true, description:""},
+        loading:        {type:"boolean", default:false, attribute:true, state:true, description:""},
+        loadingLabel:   {type:"string", default:"Working", attribute:true, state:true, description:""},
+        loadingMessage: {type:"string", default:"Please wait...", attribute:true, state:true, description:""},
+        wizardStyle:    {type:"string", default:"", attribute:true, state:true, description:""}
     },
     methods: {
         validate: {

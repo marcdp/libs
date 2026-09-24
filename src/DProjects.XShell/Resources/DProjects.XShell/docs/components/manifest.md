@@ -15,7 +15,7 @@ export const contract = {
         label: {
             type: "string",
             default: "",
-            attr: true,
+            attribute: true,
             state: true
         }
     }
@@ -23,7 +23,7 @@ export const contract = {
 ```
 
 Representative checked-in components such as `x-datafields` and `x-error` export this metadata as `contract`. Observed top-level fields are
-`description`, `events`, `properties`, and `methods`. Observed property metadata includes `type`, `default`, `attr`, `state`, and `description`;
+`description`, `events`, `properties`, and `methods`. Observed property metadata includes `type`, `default`, `attribute`, `state`, and `description`;
 event metadata can include `description` and a typed `detail` shape.
 
 These observations describe the checked-in files only. They do not establish validation rules or runtime support for every field.

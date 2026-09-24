@@ -4,8 +4,8 @@ export const contract = {
     description: "Displays tab headers and the selected tab panel.",
     events: {},
     properties: {
-        selectedIndex: {type:"number", default:0, attr:true, state:true, description:""},
-        selectedHash:  {type:"string", default:"", attr:true, state:true, description:""}
+        selectedIndex: {type:"number", default:0, attribute:true, state:true, description:""},
+        selectedHash:  {type:"string", default:"", attribute:true, state:true, description:""}
     },
     methods: {}
 };

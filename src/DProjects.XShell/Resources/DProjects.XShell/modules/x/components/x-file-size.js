@@ -14,7 +14,7 @@ export const contract = {
     description: "Formats and displays a byte count.",
     events: {},
     properties: {
-        value: {type:"number", default:0, attr:true, state:true, description:""}
+        value: {type:"number", default:0, attribute:true, state:true, description:""}
     },
     methods: {}
 };

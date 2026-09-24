@@ -257,7 +257,7 @@ export const manifest = {
         label: {
             type: "string",
             default: "",
-            attr: true,
+            attribute: true,
             state: true
         }
     }
@@ -294,7 +294,7 @@ For example:
 label: {
     type: "string",
     default: "",
-    attr: true,
+    attribute: true,
     state: true
 }
 ```

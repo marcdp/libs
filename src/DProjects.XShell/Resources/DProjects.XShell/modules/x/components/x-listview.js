@@ -3,8 +3,8 @@ export const contract = {
     description: "Arranges list-view items and optionally scrolls to the latest item.",
     events: {},
     properties: {
-        view:       {type:"string", default:"list", attr:true, state:true, description:""},
-        autoScroll: {type:"boolean", default:false, attr:true, state:true, description:""}
+        view:       {type:"string", default:"list", attribute:true, state:true, description:""},
+        autoScroll: {type:"boolean", default:false, attribute:true, state:true, description:""}
     },
     methods: {}
 };

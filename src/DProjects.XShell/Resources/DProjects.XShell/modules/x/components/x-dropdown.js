@@ -5,8 +5,8 @@ export const contract = {
     description: "Displays slotted content in an expandable dropdown panel.",
     events: {},
     properties: {
-        expanded:       {type:"boolean", default:false, attr:true, state:true, description:""},
-        collapseOnClick:{type:"boolean", default:false, attr:true, state:true, description:""}
+        expanded:       {type:"boolean", default:false, attribute:true, state:true, description:""},
+        collapseOnClick:{type:"boolean", default:false, attribute:true, state:true, description:""}
     },
     methods: {}
 };

@@ -11,10 +11,10 @@ export const contract = {
         }
     },
     properties: {
-        total: {type:"number", default:0, attr:true, state:true, description:""},
-        index: {type:"number", default:0, attr:true, state:true, description:""},
-        size:  {type:"number", default:20, attr:true, state:true, description:""},
-        label: {type:"string", default:"records", attr:true, state:true, description:""}
+        total: {type:"number", default:0, attribute:true, state:true, description:""},
+        index: {type:"number", default:0, attribute:true, state:true, description:""},
+        size:  {type:"number", default:20, attribute:true, state:true, description:""},
+        label: {type:"string", default:"records", attribute:true, state:true, description:""}
     },
     methods: {}
 };

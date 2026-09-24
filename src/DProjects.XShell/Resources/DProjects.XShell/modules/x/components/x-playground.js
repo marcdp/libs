@@ -3,7 +3,7 @@ export const contract = {
     description: "Shows editable component markup alongside its rendered result.",
     events: {},
     properties: {
-        html: {type:"string", default:"", attr:true, state:true, description:""}
+        html: {type:"string", default:"", attribute:true, state:true, description:""}
     },
     methods: {}
 };

@@ -11,9 +11,9 @@ export const contract = {
         }
     },
     properties: {
-        value:      {type:"string", default:"", attr:true, state:true, description:""},
-        lang:       {type:"string", default:"", attr:true, state:true, description:""},
-        spellcheck: {type:"string", default:"true", attr:true, state:true, description:""}
+        value:      {type:"string", default:"", attribute:true, state:true, description:""},
+        lang:       {type:"string", default:"", attribute:true, state:true, description:""},
+        spellcheck: {type:"string", default:"true", attribute:true, state:true, description:""}
     },
     methods: {}
 };

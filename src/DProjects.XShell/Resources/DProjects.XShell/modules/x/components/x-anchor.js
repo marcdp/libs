@@ -4,17 +4,17 @@ export const contract = {
     description: "Renders a navigation link handled by the XShell navigation service.",
     events: {},
     properties: {
-        href:       {type:"string", default:"", attr:true, state:true, description:""},
-        open:       {type:"string", default:"auto", attr:true, state:true, description:"", enum: ["auto","top","dialog","stack","embed"]},
-        qs:         {type:"object", default:{}, attr:true, state:true, description:""},
-        breadcrumb: {type:"boolean", default:false, attr:true, state:true, description:""},
-        title:      {type:"string", default:null, attr:true, state:true, description:""},
-        icon:       {type:"string", default:null, attr:true, state:true, description:""},
-        disabled:   {type:"boolean", default:false, attr:true, state:true, description:""},
-        target:     {type:"string", default:null, attr:true, state:true, description:""},
-        outlet:     {type:"string", default:null, attr:true, state:true, description:""},
-        rel:        {type:"string", default:null, attr:true, state:true, description:"", reflect:true},
-        replace:    {type:"boolean", default:false, attr:true, state:true, description:""}
+        href:       {type:"string", default:"", attribute:true, state:true, description:""},
+        open:       {type:"string", default:"auto", attribute:true, state:true, description:"", enum: ["auto","top","dialog","stack","embed"]},
+        qs:         {type:"object", default:{}, attribute:true, state:true, description:""},
+        breadcrumb: {type:"boolean", default:false, attribute:true, state:true, description:""},
+        title:      {type:"string", default:null, attribute:true, state:true, description:""},
+        icon:       {type:"string", default:null, attribute:true, state:true, description:""},
+        disabled:   {type:"boolean", default:false, attribute:true, state:true, description:""},
+        target:     {type:"string", default:null, attribute:true, state:true, description:""},
+        outlet:     {type:"string", default:null, attribute:true, state:true, description:""},
+        rel:        {type:"string", default:null, attribute:true, state:true, description:"", reflect:true},
+        replace:    {type:"boolean", default:false, attribute:true, state:true, description:""}
     },
     methods: {}
 };

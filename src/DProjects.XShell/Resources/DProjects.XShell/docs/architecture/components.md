@@ -67,12 +67,12 @@ export const contract = {
     },
 
     properties: {
-        label:   { type: "string",  default: "",    attr: true, state: true },
-        message: { type: "string",  default: "",    attr: true, state: true },
-        columns: { type: "number",  default: 2,     attr: true, state: true },
-        remove:  { type: "boolean", default: false, attr: true, state: true },
-        move:    { type: "boolean", default: false, attr: true, state: true },
-        edit:    { type: "boolean", default: false, attr: true, state: true }
+        label:   { type: "string",  default: "",    attribute: true, state: true },
+        message: { type: "string",  default: "",    attribute: true, state: true },
+        columns: { type: "number",  default: 2,     attribute: true, state: true },
+        remove:  { type: "boolean", default: false, attribute: true, state: true },
+        move:    { type: "boolean", default: false, attribute: true, state: true },
+        edit:    { type: "boolean", default: false, attribute: true, state: true }
     },
 
     methods: {}
@@ -151,7 +151,7 @@ export const contract = {
         value: {
             type: "string",
             default: "",
-            attr: true,
+            attribute: true,
             state: true,
             description: "Current value."
         }

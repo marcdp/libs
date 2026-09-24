@@ -6,7 +6,7 @@ export const contract = {
     description: "Provides keyboard navigation and selection for a tree of tree-view items.",
     events: {},
     properties: {
-        multiple: {type:"boolean", default:false, attr:true, state:true, description:""}
+        multiple: {type:"boolean", default:false, attribute:true, state:true, description:""}
     },
     methods: {}
 };

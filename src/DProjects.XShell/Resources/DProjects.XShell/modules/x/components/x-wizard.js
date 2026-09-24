@@ -3,9 +3,9 @@ export const contract = {
     description: "Displays wizard panels with previous and next navigation controls.",
     events: {},
     properties: {
-        index:  {type:"number", default:0, attr:true, state:true, description:""},
-        panels: {type:"array", default:[], attr:true, state:true, description:""},
-        style:  {type:"string", default:"", attr:true, state:true, description:""}
+        index:  {type:"number", default:0, attribute:true, state:true, description:""},
+        panels: {type:"array", default:[], attribute:true, state:true, description:""},
+        style:  {type:"string", default:"", attribute:true, state:true, description:""}
     },
     methods: {}
 };

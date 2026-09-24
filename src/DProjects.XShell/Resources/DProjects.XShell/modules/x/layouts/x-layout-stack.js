@@ -4,8 +4,8 @@ export const contract = {
     description: "Layout for a default page.",
     events: {},
     properties: {
-        expanded: { type: "boolean", default: false, attr: true, state: true, description: "" },
-        status: { type: "string", default: "", attr: true, state: true, description: "" },
+        expanded: { type: "boolean", default: false, attribute: true, state: true, description: "" },
+        status: { type: "string", default: "", attribute: true, state: true, description: "" },
     },
     methods: {}
 };

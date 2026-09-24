@@ -892,7 +892,7 @@ export class RenderEngineX {
 		this._host.replaceChildren();
 	}
 }
-export default function createRenderEngineFactoryX(template, context, templateHandler = null) {
+export default function createRenderEngineFactoryX(template, context, templateRenderer = null) {
 	// template
 	const templateElement = document.createElement("TEMPLATE");
 	templateElement.innerHTML = template;
@@ -914,7 +914,7 @@ export default function createRenderEngineFactoryX(template, context, templateHa
 			this._xtemplate =new XTemplate({ 
 				template: templateElement.content,
 				styleSheets: [],
-				render: templateHandler,
+				render: templateRenderer,
 				context: context
 			})
 		},

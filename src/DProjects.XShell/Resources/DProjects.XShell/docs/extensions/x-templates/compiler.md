@@ -51,7 +51,7 @@ development/build server
     → compiles XTemplate ahead of browser execution
 
 generated JavaScript
-    → contains templateHandler
+    → contains templateRenderer
 
 browser runtime
     → executes the precompiled render function

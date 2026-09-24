@@ -1,19 +1,23 @@
 import Timer from "../timer.js"
 import Events from "../events.js"
 import xshell from "../xshell.js";
-
+import validateComponentContract from "../validation/component.js";
 
 // utils
 function kebabToCamel(str) {
+    // convert kebab-case to camelCase
     return str.split('-').map((word, index) => index === 0 ? word : word.charAt(0).toUpperCase() + word.slice(1)).join('');
 };
 function camelToKebab(str) {
+    // convert camelCase to kebab-case
     return str.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();                      
 }
 function isEmptyPlainObject(value) {
+    // check if the value is an empty plain object
     return value && typeof(value) === "object" && !Array.isArray(value) && Object.getPrototypeOf(value) === Object.prototype && Object.keys(value).length === 0;
 }
 function convertAttributeValue(property, value) {
+    // convert attribute value based on property type
     switch (property.type) {
         case "boolean":
             return value !== null;
@@ -32,6 +36,7 @@ function convertAttributeValue(property, value) {
     }
 }
 function findClosestXPage(element) {
+    // Find the closest ancestor X-PAGE element, if any.
     let current = element;
     while (current) {
         if (current.tagName === "X-PAGE") return current;
@@ -49,7 +54,6 @@ function findClosestXPage(element) {
     return null;
 }
 
-
 // create page class from js definition
 export async function createComponentClassFromJsDefinition(src, context, definition, contract) {
     // defaults
@@ -64,6 +68,10 @@ export async function createComponentClassFromJsDefinition(src, context, definit
     if (!definition.controller) definition.controller = () => ({});
     definition = Object.seal(Object.freeze(definition));
     contract = Object.seal(Object.freeze(contract));
+    // validate contract
+    if (contract) {
+        await validateComponentContract(src, contract);
+    }
     // stylesheets
     const stylesheets = []
     if (typeof(definition.style) == "string") {
@@ -86,13 +94,13 @@ export async function createComponentClassFromJsDefinition(src, context, definit
         if (property.state === true) {
             stateSkeleton[propName] = property.default;
         }
-        if (property.attr === true) {
+        if (property.attribute === true) {
             propertyAttributeNames.push(camelToKebab(propName));
         }
         if (property.reflect === true) {
             reflectedPropertyNames.push(propName);
         }
-        if (property.state === true && property.attr === true && isEmptyPlainObject(property.default)) {
+        if (property.state === true && property.attribute === true && isEmptyPlainObject(property.default)) {
             stateMapAttributes.push({ attributePrefix: camelToKebab(propName) + "-", stateName: propName });
         }
     }
@@ -114,7 +122,7 @@ export async function createComponentClassFromJsDefinition(src, context, definit
     const renderEngineModule = xshell.config.modules[context.resourceDefinition.moduleId].defaults.component.renderEngine;
     const renderEngineComponent = definition.meta.renderEngine || renderEngineModule;
     const renderEngineFactoryCreator = await xshell.loader.load("render-engine:" + renderEngineComponent);
-    const renderEngineFactory = new renderEngineFactoryCreator(definition.template, context, definition.templateHandler);
+    const renderEngineFactory = new renderEngineFactoryCreator(definition.template, context, definition.templateRenderer);
     // render engine dependencies
     if (renderEngineFactory.dependencies.length) {
         await xshell.loader.load(renderEngineFactory.dependencies);
@@ -244,7 +252,7 @@ export async function createComponentClassFromJsDefinition(src, context, definit
             if (this._reflectingAttributes.has(name)) return;
             const propName = kebabToCamel(name);
             const property = contract.properties[propName];
-            if (!property || property.attr !== true) return;
+            if (!property || property.attribute !== true) return;
             this[propName] = convertAttributeValue(property, newValue);
         }
         // connected/disconnected

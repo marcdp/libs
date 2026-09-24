@@ -7,7 +7,7 @@ export const contract = {
     description: "Loads and displays an SVG icon.",
     events: {},
     properties: {
-        icon: {type:"string", default:"", attr:true, state:true, description:""}
+        icon: {type:"string", default:"", attribute:true, state:true, description:""}
     },
     methods: {}
 };

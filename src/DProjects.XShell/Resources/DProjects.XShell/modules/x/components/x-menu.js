@@ -3,7 +3,7 @@ export const contract = {
     description: "Renders menu data as menu items.",
     events: {},
     properties: {
-        menu: {type:"array", default:null, attr:false, state:true, description:""}
+        menu: {type:"array", default:null, attribute:false, state:true, description:""}
     },
     methods: {}
 };

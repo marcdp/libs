@@ -3,10 +3,10 @@ export const contract = {
     description: "Displays a dismissible status notice.",
     events: {},
     properties: {
-        type:    {type:"string", default:"info", attr:true, state:true, description:""},
-        label:   {type:"string", default:"", attr:true, state:true, description:""},
-        message: {type:"string", default:"", attr:true, state:true, description:""},
-        visible: {type:"boolean", default:true, attr:true, state:true, description:""}
+        type:    {type:"string", default:"info", attribute:true, state:true, description:""},
+        label:   {type:"string", default:"", attribute:true, state:true, description:""},
+        message: {type:"string", default:"", attribute:true, state:true, description:""},
+        visible: {type:"boolean", default:true, attribute:true, state:true, description:""}
     },
     methods: {}
 };

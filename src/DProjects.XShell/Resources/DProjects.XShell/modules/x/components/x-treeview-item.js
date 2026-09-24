@@ -7,16 +7,16 @@ export const contract = {
         }
     },
     properties: {
-        indent:      {type:"number", default:0, attr:true, state:true, description:""},
-        icon:        {type:"string", default:"x-file", attr:true, state:true, description:""},
-        label:       {type:"string", default:"", attr:true, state:true, description:""},
-        description: {type:"string", default:"", attr:true, state:true, description:""},
-        href:        {type:"string", default:"", attr:true, state:true, description:""},
-        target:      {type:"string", default:"", attr:true, state:true, description:""},
-        hasChilds:   {type:"boolean", default:false, attr:true, state:true, description:""},
-        expanded:    {type:"boolean", default:false, attr:true, state:true, description:""},
-        selected:    {type:"boolean", default:false, attr:true, state:true, description:""},
-        index:       {type:"number", default:0, attr:true, state:true, description:""}
+        indent:      {type:"number", default:0, attribute:true, state:true, description:""},
+        icon:        {type:"string", default:"x-file", attribute:true, state:true, description:""},
+        label:       {type:"string", default:"", attribute:true, state:true, description:""},
+        description: {type:"string", default:"", attribute:true, state:true, description:""},
+        href:        {type:"string", default:"", attribute:true, state:true, description:""},
+        target:      {type:"string", default:"", attribute:true, state:true, description:""},
+        hasChilds:   {type:"boolean", default:false, attribute:true, state:true, description:""},
+        expanded:    {type:"boolean", default:false, attribute:true, state:true, description:""},
+        selected:    {type:"boolean", default:false, attribute:true, state:true, description:""},
+        index:       {type:"number", default:0, attribute:true, state:true, description:""}
     },
     methods: {}
 };

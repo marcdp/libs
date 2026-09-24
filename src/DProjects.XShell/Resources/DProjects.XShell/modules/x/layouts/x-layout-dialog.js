@@ -3,9 +3,9 @@ export const contract = {
     description: "Layout for a dialog page.",
     events: {},
     properties: {
-        label: { type: "boolean", default: false, attr: true, state: true, description: "" },
-        status: { type: "string", default: "", attr: true, state: true, description: "" },
-        opened: { type: "boolean", default: false, attr: true, state: true, description: "" }
+        label: { type: "boolean", default: false, attribute: true, state: true, description: "" },
+        status: { type: "string", default: "", attribute: true, state: true, description: "" },
+        opened: { type: "boolean", default: false, attribute: true, state: true, description: "" }
     },
     methods: {}
 };

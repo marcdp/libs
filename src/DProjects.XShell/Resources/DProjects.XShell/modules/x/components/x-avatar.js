@@ -12,12 +12,12 @@ export const contract = {
         }
     },
     properties: {
-        initials: {type:"string", default:"", attr:true, state:true, description:""},
-        icon:     {type:"string", default:"", attr:true, state:true, description:""},
-        image:    {type:"string", default:"", attr:true, state:true, description:""},
-        label:    {type:"string", default:"", attr:true, state:true, description:""},
-        message:  {type:"string", default:"", attr:true, state:true, description:""},
-        command:  {type:"string", default:"", attr:true, state:true, description:""}
+        initials: {type:"string", default:"", attribute:true, state:true, description:""},
+        icon:     {type:"string", default:"", attribute:true, state:true, description:""},
+        image:    {type:"string", default:"", attribute:true, state:true, description:""},
+        label:    {type:"string", default:"", attribute:true, state:true, description:""},
+        message:  {type:"string", default:"", attribute:true, state:true, description:""},
+        command:  {type:"string", default:"", attribute:true, state:true, description:""}
     },
     methods: {}
 };

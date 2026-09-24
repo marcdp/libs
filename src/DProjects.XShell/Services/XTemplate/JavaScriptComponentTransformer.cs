@@ -21,12 +21,12 @@ namespace DProjects.XShell.Services.XTemplate {
                 throw new InvalidOperationException($"The exported X component 'template' at JavaScript offset {valueToken.Start} must be a static template literal.");
             }
             var templateText = DecodeStaticTemplateLiteral(source[valueToken.Start..valueToken.End], valueToken.Start);
-            var handler = templateCompiler.Compile(templateText);
-            var existingHandler = properties.FirstOrDefault(property => property.Name == "templateHandler");
-            if (existingHandler != null) {
-                var start = tokens[existingHandler.ValueStartTokenIndex].Start;
-                var end = tokens[existingHandler.ValueEndTokenIndex].End;
-                return source[..start] + handler + source[end..];
+            var renderer = templateCompiler.Compile(templateText);
+            var existingRenderer = properties.FirstOrDefault(property => property.Name == "templateRenderer");
+            if (existingRenderer != null) {
+                var start = tokens[existingRenderer.ValueStartTokenIndex].Start;
+                var end = tokens[existingRenderer.ValueEndTokenIndex].End;
+                return source[..start] + renderer + source[end..];
             }
 
             // insert directly after template while retaining all original module text
@@ -35,7 +35,7 @@ namespace DProjects.XShell.Services.XTemplate {
             var separator = template.SeparatorTokenIndex >= 0;
             var insertionOffset = separator ? tokens[template.SeparatorTokenIndex].End : tokens[template.ValueEndTokenIndex].End;
             var prefix = separator ? "" : ",";
-            return source[..insertionOffset] + prefix + newline + indentation + "templateHandler: " + handler + "," + source[insertionOffset..];
+            return source[..insertionOffset] + prefix + newline + indentation + "templateRenderer: " + renderer + "," + source[insertionOffset..];
         }
 
         // methods (private)

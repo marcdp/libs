@@ -6,8 +6,8 @@ export const contract = {
     description: "Renders Markdown text or Markdown loaded from a source URL.",
     events: {},
     properties: {
-        value: {type:"string", default:"", attr:true, state:true, description:""},
-        src:   {type:"string", default:"", attr:true, state:true, description:""}
+        value: {type:"string", default:"", attribute:true, state:true, description:""},
+        src:   {type:"string", default:"", attribute:true, state:true, description:""}
     },
     methods: {}
 };

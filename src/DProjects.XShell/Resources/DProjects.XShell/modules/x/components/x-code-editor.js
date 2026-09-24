@@ -11,12 +11,12 @@ export const contract = {
         }
     },
     properties: {
-        value:    {type:"string", default:"", attr:true, state:true, description:""},
-        mode:     {type:"string", default:"", attr:true, state:true, description:""},
-        theme:    {type:"string", default:"chrome", attr:true, state:true, description:""},
-        wrap:     {type:"boolean", default:false, attr:true, state:true, description:""},
-        readonly: {type:"boolean", default:false, attr:true, state:true, description:""},
-        ready:    {type:"boolean", default:false, attr:true, state:true, description:""}
+        value:    {type:"string", default:"", attribute:true, state:true, description:""},
+        mode:     {type:"string", default:"", attribute:true, state:true, description:""},
+        theme:    {type:"string", default:"chrome", attribute:true, state:true, description:""},
+        wrap:     {type:"boolean", default:false, attribute:true, state:true, description:""},
+        readonly: {type:"boolean", default:false, attribute:true, state:true, description:""},
+        ready:    {type:"boolean", default:false, attribute:true, state:true, description:""}
     },
     methods: {}
 };

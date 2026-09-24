@@ -6,7 +6,7 @@ export const contract = {
     description: "Main layout.",
     events: {},
     properties: {
-        status: { type:"string", default: "", attr: true, state: true, description: "" },
+        status: { type:"string", default: "", attribute: true, state: true, description: "" },
         appIcon: { type: "string", default: "", state: true, description: "" },
         appLabel: { type: "string", default: "", state: true, description: "" },
         appBasePath: { type: "string", default: "", state: true, description: "" },

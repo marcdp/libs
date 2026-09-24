@@ -2463,7 +2463,7 @@ That historical mechanism requires CSP allowances equivalent to dynamic code eva
 A server/build compiler can instead emit a normal JavaScript function, such as:
 
 ```js
-templateHandler: (state, handler, invalidate, utils, i18n, renderCount) => {
+templateRenderer: (state, handler, invalidate, utils, i18n, renderCount) => {
     ...
 }
 ```

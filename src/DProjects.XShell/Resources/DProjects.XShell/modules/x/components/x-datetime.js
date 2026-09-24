@@ -3,9 +3,9 @@ export const contract = {
     description: "Formats and displays a date and time value.",
     events: {},
     properties: {
-        datetime: {type:"string", default:"", attr:true, state:true, description:""},
-        value:    {type:"string", default:"", attr:true, state:true, description:""},
-        format:   {type:"string", default:"", attr:true, state:true, description:""}
+        datetime: {type:"string", default:"", attribute:true, state:true, description:""},
+        value:    {type:"string", default:"", attribute:true, state:true, description:""},
+        format:   {type:"string", default:"", attribute:true, state:true, description:""}
     },
     methods: {}
 };

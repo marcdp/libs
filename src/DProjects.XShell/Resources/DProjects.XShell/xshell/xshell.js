@@ -15,9 +15,8 @@ import Services from "./services.js";
 import Temp from "./temp.js";
 import Tabs from "./tabs.js";
 import UrlRewriter from "./urlRewriter.js";
+import validateConfig from "./validation/config.js";
 import XPage from "./x-page.js";
-import { Validator } from "./vendor/json-schema/json-schema.js"
-import ConfigSchema from "./schemas/config.schema.json" with { type: "json" };
 
 // class
 class XShell {
@@ -69,7 +68,7 @@ class XShell {
     //methods
     async init(config) {
         // validate config
-        await this.validateConfig(config);
+        await validateConfig("config", config);
         // init
         this._bus = new Bus();
         this._debug = new Debug();

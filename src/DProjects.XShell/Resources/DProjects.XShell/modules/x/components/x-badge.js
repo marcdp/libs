@@ -4,7 +4,7 @@ export const contract = {
     description: "Displays a short badge value.",
     events: {},
     properties: {
-        value: {type:"string", default:"", attr:true, state:true, description:""}
+        value: {type:"string", default:"", attribute:true, state:true, description:""}
     },
     methods: {}
 };

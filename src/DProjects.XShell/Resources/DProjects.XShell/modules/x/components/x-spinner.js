@@ -4,7 +4,7 @@ export const contract = {
     description: "Displays a spinner with an optional message.",
     events: {},
     properties: {
-        message: {type:"string", default:"", attr:true, state:true, description:""}
+        message: {type:"string", default:"", attribute:true, state:true, description:""}
     },
     methods: {}
 };

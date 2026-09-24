@@ -3,7 +3,7 @@ export const contract = {
     description: "Layout for an embedded page.",
     events: {},
     properties: {
-        status: { type: "string", default: "", attr: true, state: true, description: "" },
+        status: { type: "string", default: "", attribute: true, state: true, description: "" },
     },
     methods: {}
 };

@@ -3,18 +3,18 @@ export const contract = {
     description: "Displays a menu item with optional nested menu content.",
     events: {},
     properties: {
-        icon:        {type:"string", default:"", attr:true, state:true, description:""},
-        label:       {type:"string", default:"", attr:true, state:true, description:""},
-        href:        {type:"string", default:"", attr:true, state:true, description:""},
-        suffix:      {type:"string", default:"", attr:true, state:true, description:""},
-        command:     {type:"string", default:"", attr:true, state:true, description:""},
-        selected:    {type:"boolean", default:false, attr:true, state:true, description:""},
-        checked:     {type:"boolean", default:false, attr:true, state:true, description:""},
-        disabled:    {type:"boolean", default:false, attr:true, state:true, description:""},
-        expanded:    {type:"boolean", default:false, attr:true, state:true, description:""},
-        hasChilds:   {type:"boolean", default:false, attr:true, state:true, description:""},
-        menuitem:    {type:"object", default:null, attr:true, state:true, description:""},
-        childsRight: {type:"boolean", default:true, attr:true, state:true, description:""}
+        icon:        {type:"string", default:"", attribute:true, state:true, description:""},
+        label:       {type:"string", default:"", attribute:true, state:true, description:""},
+        href:        {type:"string", default:"", attribute:true, state:true, description:""},
+        suffix:      {type:"string", default:"", attribute:true, state:true, description:""},
+        command:     {type:"string", default:"", attribute:true, state:true, description:""},
+        selected:    {type:"boolean", default:false, attribute:true, state:true, description:""},
+        checked:     {type:"boolean", default:false, attribute:true, state:true, description:""},
+        disabled:    {type:"boolean", default:false, attribute:true, state:true, description:""},
+        expanded:    {type:"boolean", default:false, attribute:true, state:true, description:""},
+        hasChilds:   {type:"boolean", default:false, attribute:true, state:true, description:""},
+        menuitem:    {type:"object", default:null, attribute:true, state:true, description:""},
+        childsRight: {type:"boolean", default:true, attribute:true, state:true, description:""}
     },
     methods: {}
 };

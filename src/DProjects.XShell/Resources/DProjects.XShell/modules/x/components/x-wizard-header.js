@@ -10,8 +10,8 @@ export const contract = {
         }
     },
     properties: {
-        index:  {type:"number", default:0, attr:true, state:true, description:""},
-        panels: {type:"array", default:[], attr:true, state:true, description:""}
+        index:  {type:"number", default:0, attribute:true, state:true, description:""},
+        panels: {type:"array", default:[], attribute:true, state:true, description:""}
     },
     methods: {}
 };

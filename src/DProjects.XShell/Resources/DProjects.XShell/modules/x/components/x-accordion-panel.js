@@ -8,9 +8,9 @@ export const contract = {
         }
     },
     properties: {
-        label:    {type:"string",  default:"",    attr:true, state:true, description:""},
-        icon:     {type:"string",  default:"",    attr:true, state:true, description:""},
-        expanded: {type:"boolean", default:false, attr:true, state:true, description:""}
+        label:    {type:"string",  default:"",    attribute:true, state:true, description:""},
+        icon:     {type:"string",  default:"",    attribute:true, state:true, description:""},
+        expanded: {type:"boolean", default:false, attribute:true, state:true, description:""}
     },
     methods: {}
 };

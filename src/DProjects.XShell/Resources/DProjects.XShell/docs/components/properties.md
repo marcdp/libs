@@ -13,7 +13,7 @@ synchronizes a property with a state value.
 
 ## Attributes
 
-Current contract metadata can mark a property with `attr`. Runtime state definitions separately use `attr` to observe an HTML attribute and
+Current contract metadata can mark a property with `attribute`. Runtime state definitions separately use `attr` to observe an HTML attribute and
 `reflect` to propagate selected state changes back to an attribute.
 
 ## Property-to-state synchronization

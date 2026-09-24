@@ -28,8 +28,8 @@ export const contract = {
     description: "Displays syntax-highlighted JSON source.",
     events: {},
     properties: {
-        value:     {type:"string", default:"", attr:true, state:true, description:""},
-        colorized: {type:"string", default:"", attr:true, state:true, description:""}
+        value:     {type:"string", default:"", attribute:true, state:true, description:""},
+        colorized: {type:"string", default:"", attribute:true, state:true, description:""}
     },
     methods: {}
 };

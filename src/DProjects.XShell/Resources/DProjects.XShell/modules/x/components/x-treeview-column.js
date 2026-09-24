@@ -3,7 +3,7 @@ export const contract = {
     description: "Defines a labeled column in a tree view.",
     events: {},
     properties: {
-        label: {type:"string", default:"", attr:true, state:true, description:""}
+        label: {type:"string", default:"", attribute:true, state:true, description:""}
     },
     methods: {}
 };
