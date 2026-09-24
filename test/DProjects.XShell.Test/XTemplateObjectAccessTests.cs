@@ -53,6 +53,35 @@ namespace DProjects.XShell.Test {
             Assert.Contains("must use string keys", exception.Message, StringComparison.Ordinal);
         }
 
+        [Fact]
+        public void UsesReadOnlyDictionaryMembersBeforeCollectionSemantics() {
+            IReadOnlyDictionary<string, object?> map = new ReadOnlyMap(new Dictionary<string, object?> { ["name"] = "Ada" });
+            var state = new Dictionary<string, object?> { ["map"] = map };
+            var context = new XTemplateExpressionContext(new Dictionary<string, object?> { ["state"] = state });
+
+            Assert.Equal("Ada", XTemplateExpressions.Evaluate("state.map.name", context));
+            Assert.Null(XTemplateExpressions.Evaluate("state.map.missing", context));
+        }
+
+        [Fact]
+        public void UsesExplicitAdapterBeforeCollectionSemanticsForEnumerableObjects() {
+            var state = new Dictionary<string, object?> { ["model"] = new AdaptedEnumerable() };
+            var context = new XTemplateExpressionContext(new Dictionary<string, object?> { ["state"] = state }, new[] { new AdaptedEnumerableAdapter() });
+
+            Assert.Equal("adapted", XTemplateExpressions.Evaluate("state.model.name", context));
+            Assert.Equal("adapter-length", XTemplateExpressions.Evaluate("state.model.length", context));
+            Assert.Equal("adapted", XTemplateExpressions.Evaluate("state.model[\"name\"]", context));
+        }
+
+        [Fact]
+        public void KeepsCollectionSemanticsForUnadaptedLists() {
+            var state = new Dictionary<string, object?> { ["items"] = new[] { "first", "second" } };
+            var context = new XTemplateExpressionContext(new Dictionary<string, object?> { ["state"] = state });
+
+            Assert.Equal(2d, XTemplateExpressions.Evaluate("state.items.length", context));
+            Assert.Equal("second", XTemplateExpressions.Evaluate("state.items[1]", context));
+        }
+
         // methods (private)
         private sealed class SideEffectModel {
 
@@ -75,6 +104,49 @@ namespace DProjects.XShell.Test {
             public IEnumerable<KeyValuePair<string, object?>> GetMembers(object value) {
                 yield return new("active", true);
                 yield return new("featured", true);
+            }
+        }
+
+        private sealed class ReadOnlyMap : IReadOnlyDictionary<string, object?> {
+
+            // vars
+            private readonly Dictionary<string, object?> _values;
+
+            // props
+            public object? this[string key] => _values[key];
+            public IEnumerable<string> Keys => _values.Keys;
+            public IEnumerable<object?> Values => _values.Values;
+            public int Count => _values.Count;
+
+            // ctor
+            public ReadOnlyMap(Dictionary<string, object?> values) {
+                _values = values;
+            }
+
+            // methods
+            public bool ContainsKey(string key) => _values.ContainsKey(key);
+            public bool TryGetValue(string key, out object? value) => _values.TryGetValue(key, out value);
+            public IEnumerator<KeyValuePair<string, object?>> GetEnumerator() => _values.GetEnumerator();
+            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+        }
+
+        private sealed class AdaptedEnumerable : IEnumerable {
+
+            // methods
+            public IEnumerator GetEnumerator() => new[] { "collection-value" }.GetEnumerator();
+        }
+
+        private sealed class AdaptedEnumerableAdapter : IXTemplateObjectAdapter {
+
+            // methods
+            public bool CanAdapt(object value) => value is AdaptedEnumerable;
+            public bool TryGetMember(object value, string name, out object? member) {
+                member = name switch { "name" => "adapted", "length" => "adapter-length", _ => null };
+                return member != null;
+            }
+            public IEnumerable<KeyValuePair<string, object?>> GetMembers(object value) {
+                yield return new("name", "adapted");
+                yield return new("length", "adapter-length");
             }
         }
     }

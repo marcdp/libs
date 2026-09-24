@@ -69,6 +69,10 @@ namespace DProjects.XShell.Services.XTemplate {
         private object? GetMember(object? target, string memberName, int offset) {
             if (target == null) return null;
             if (target is string text) return memberName == "length" ? (double)text.Length : null;
+            if (_context.ObjectAccess.CanAdapt(target)) {
+                try { return _context.ObjectAccess.TryGetMember(target, memberName, out var value) ? Normalize(value, offset) : null; }
+                catch (XTemplateObjectAccessException exception) { throw new XTemplateExpressionEvaluationException(exception.Message, offset); }
+            }
             if (IsCollection(target)) return memberName == "length" ? (double)CollectionLength(target) : null;
             try { return _context.ObjectAccess.TryGetMember(target, memberName, out var value) ? Normalize(value, offset) : null; }
             catch (XTemplateObjectAccessException exception) { throw new XTemplateExpressionEvaluationException(exception.Message, offset); }

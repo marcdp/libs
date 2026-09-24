@@ -52,6 +52,7 @@ namespace DProjects.XShell.Services.XTemplate {
         public IEnumerable<IXTemplateObjectAdapter> Adapters => _adapters.Skip(1);
 
         // methods
+        public bool CanAdapt(object value) => _adapters.Any(adapter => adapter.CanAdapt(value));
         public bool TryGetMember(object value, string name, out object? member) {
             var adapter = _adapters.FirstOrDefault(adapter => adapter.CanAdapt(value));
             if (adapter == null) {
