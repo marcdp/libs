@@ -20,9 +20,9 @@ export default {
         </x-form>
     `,    
     state: {
-        title: {value:"", context:true},
-        message: {value:"", context:true},
-        type: {value:"info", enum:["info","success","warning","error"], context:true},
+        title: "",
+        message: "",
+        type: "info",
     },
     controller({ state, context }) {
         return {

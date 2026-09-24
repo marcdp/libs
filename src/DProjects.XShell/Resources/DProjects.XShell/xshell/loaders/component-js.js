@@ -2,6 +2,7 @@ import Timer from "../timer.js"
 import Events from "../events.js"
 import xshell from "../xshell.js";
 import validateComponentContract from "../validation/component.js";
+import { createStateSkeleton } from "../contract-state.js";
 
 // utils
 function kebabToCamel(str) {
@@ -86,14 +87,11 @@ export async function createComponentClassFromJsDefinition(src, context, definit
         }
     }
     // state skeleton
-    const stateSkeleton = {};
+    const stateSkeleton = createStateSkeleton(src, definition, contract, "Component");
     const propertyAttributeNames = [];
     const reflectedPropertyNames = [];
     const stateMapAttributes = [];
     for (const [propName, property] of Object.entries(contract.properties)) {
-        if (property.state === true) {
-            stateSkeleton[propName] = property.default;
-        }
         if (property.attribute === true) {
             propertyAttributeNames.push(camelToKebab(propName));
         }
@@ -105,10 +103,9 @@ export async function createComponentClassFromJsDefinition(src, context, definit
         }
     }
     for (const [stateName, value] of Object.entries(definition.state)) {
-        if (Object.prototype.hasOwnProperty.call(stateSkeleton, stateName)) {
-            throw new Error(`Component '${definition.meta?.name || src}' declares state '${stateName}' in both contract.properties and definition.state.`);
+        if (Object.prototype.hasOwnProperty.call(contract.properties, stateName)) {
+            continue;
         }
-        stateSkeleton[stateName] = value;
         if (isEmptyPlainObject(value)) {
             stateMapAttributes.push({ attributePrefix: camelToKebab(stateName) + "-", stateName });
         }

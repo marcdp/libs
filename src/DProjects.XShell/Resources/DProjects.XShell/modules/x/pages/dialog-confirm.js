@@ -24,8 +24,8 @@ export default {
         </x-form>
     `,    
     state: {
-        message: {value:"", context:true},
-        variant: {value:"yesno", enum:["yesno","yesnocancel","okcancel","ok"], context:true},
+        message: "",
+        variant: "yesno",
     },
     controller({ state, context }) {
         return {

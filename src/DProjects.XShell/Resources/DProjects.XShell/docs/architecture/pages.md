@@ -19,6 +19,10 @@ Loader does not translate menu paths to hrefs. Direct navigation to the canonica
 See [Components](components.md) for the contract and implementation formats. A component contract's DOM events are distinct from public module Bus
 events.
 
+Definition-based Pages use the same public-property and state-default rule as components and layouts: `contract.properties[*].default` is
+canonical for public properties, while `definition.state` supplies private/internal defaults. A state-backed public property may be repeated in
+`definition.state` only with a structurally equal value; a non-state-backed public property may not be repeated there.
+
 ## Layouts
 
 Layouts are presentation containers for Pages. They do not resolve routes. Checked-in layout names are `default`, `dialog`, `main`, `stack`, and

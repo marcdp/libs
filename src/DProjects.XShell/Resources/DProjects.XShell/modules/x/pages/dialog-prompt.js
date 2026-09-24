@@ -34,13 +34,13 @@ export default {
         </x-form>
     `,    
     state: {
-        title: {value:"", context:true},
-        message: {value:"", context:true},
-        defaultValue: {value:"", context:true},
-        inputType: {value:"text", enum:["text","number","password"], context:true},
-        placeholder: {value:"", context:true},
-        required: {value:false, context:true},
-        value: {value:null, context:true}
+        title: "",
+        message: "",
+        defaultValue: "",
+        inputType: "text",
+        placeholder: "",
+        required: false,
+        value: null
     },
     controller({ state, context }) {
         return {

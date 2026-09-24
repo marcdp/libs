@@ -4,7 +4,7 @@ This record captures the intended distinction between a component's public prope
 
 ## Status
 
-Draft; direction proposed, runtime alignment incomplete.
+Accepted.
 
 ## Context
 
@@ -18,18 +18,15 @@ with state only when that relationship is explicitly declared; synchronization i
 
 ## Current implementation
 
-Component contracts now distinguish `properties`, and property metadata can include `state: true`. However, the active component loader still
-derives JavaScript properties from runtime `state` entries marked `prop`, with attribute-backed entries receiving that flag by default. The loader
-reads the named `contract` export but does not yet use it to enforce this separation.
+Component contracts distinguish `properties`, and property metadata can include `state: true`. `contract.properties[*].default` is the canonical
+default for every public property. `definition.state` supplies defaults for private/internal state. A state-backed property may repeat its name in
+`definition.state` only for readability and only with a structurally equal value; loaders validate the duplicate and retain the contract default.
+A non-state-backed public property may not appear in `definition.state`.
 
 ## Consequences
 
-A future alignment must preserve component compatibility while introducing an explicit mapping and preventing accidental exposure of internal
-state. Migration and validation rules are still required.
-
-## TODO
-
-TODO: Finalize the metadata name, mapping semantics, attribute interaction, migration plan, and enforcement tests before accepting this decision.
+This preserves a single public-property default source, permits readable state-backed definitions without ambiguity, and prevents accidental
+exposure of internal state.
 
 ## Related documentation
 

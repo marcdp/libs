@@ -3,6 +3,7 @@ import Timer from "../timer.js"
 import Events from "../events.js"
 import xshell from "../xshell.js";
 import validateComponentContract from "../validation/component.js";
+import { createStateSkeleton } from "../contract-state.js";
 
 // utils
 function kebabToCamel(str) {
@@ -60,7 +61,7 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
     contract = Object.seal(Object.freeze(contract));
    
     // state skeleton
-    const stateSkeleton = {};
+    const stateSkeleton = createStateSkeleton(src, definition, contract, "Page");
     const propertyAttributeNames = [];
     const reflectedPropertyNames = [];
     const stateMapAttributes = [];
@@ -68,9 +69,6 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
     const stateReflectedQsNames = [];
     let stateContextNames = []; // what we should do with context variables? now they are not implemented
     for (const [propName, property] of Object.entries(contract.properties)) {
-        if (property.state === true) {
-            stateSkeleton[propName] = property.default;
-        }
         if (property.attribute === true) {
             propertyAttributeNames.push(camelToKebab(propName));
         }
@@ -84,10 +82,9 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
         if (property.reflect) stateReflectedQsNames.push(propName);
     }
     for (const [stateName, value] of Object.entries(definition.state)) {
-        if (Object.prototype.hasOwnProperty.call(stateSkeleton, stateName)) {
-            throw new Error(`Component '${definition.meta?.name || src}' declares state '${stateName}' in both contract.properties and definition.state.`);
+        if (Object.prototype.hasOwnProperty.call(contract.properties, stateName)) {
+            continue;
         }
-        stateSkeleton[stateName] = value;
         if (isEmptyPlainObject(value)) {
             stateMapAttributes.push({ attributePrefix: camelToKebab(stateName) + "-", stateName });
         }

@@ -38,15 +38,15 @@ export default {
         </x-form>
     `,    
     state: {
-        title: {value:"", context:true},
-        message: {value:"", context:true},
-        defaultValue: {value:null, context:true},
-        domain: {value:[], description:"list of keypairs value and label)", context:true},
-        inputType: {value:"select", enum:["select"], context:true},
-        placeholder: {value:"", context:true},
-        multiple: {value:false, context:true},
-        required: {value:false, context:true},
-        value: {value:null, context:true}
+        title: "",
+        message: "",
+        defaultValue: null,
+        domain: [],
+        inputType: "select",
+        placeholder: "",
+        multiple: false,
+        required: false,
+        value: null
     },
     controller({ state, context }) {
         return {

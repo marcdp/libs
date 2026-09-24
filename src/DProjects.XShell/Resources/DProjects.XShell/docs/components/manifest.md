@@ -51,8 +51,9 @@ These observations describe the checked-in files only. They do not establish val
 
 ## Runtime relationship
 
-The component loader reads `module.contract` and passes it into class construction, but class construction does not currently make substantial use of
-the object. The loader separately consumes the default runtime definition, whose fields include `meta`, `style`, `template`, `state`, and `script`.
+The component loader reads `module.contract` and uses it to create the public property and method surface. Its property defaults are canonical:
+state-backed public properties populate runtime state from `contract.properties[*].default`, while `definition.state` supplies private state. The
+default runtime definition separately provides fields including `meta`, `style`, `template`, `state`, and `script`.
 The component-level `script(...)` function is unrelated to a module definition's `controller` property. It returns named command and event handlers,
 such as `load`, `stateChange`, or `click`. The loader retains those handlers in a private script object and dispatches each command to its matching
 function with the component instance as `this`; it does not assign lifecycle handlers onto the `HTMLElement` instance. Methods declared by the
