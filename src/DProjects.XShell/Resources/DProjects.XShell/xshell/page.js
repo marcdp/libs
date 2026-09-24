@@ -18,6 +18,8 @@ export default class Page {
 
     _host = null;
     _refs = null;
+    _loaded = false;
+    _unloaded = false;
 
     //ctor
     constructor({ src, context }) {
@@ -70,8 +72,10 @@ export default class Page {
         return this._refs;
     }
 
-    // lifecycle mehods
+    // lifecycle methods
     async load() {
+        if (this._loaded || this._unloaded) return;
+        this._loaded = true;
         // call load command
         const url = new URL(this._src, document.baseURI);
         const params = {
@@ -84,6 +88,7 @@ export default class Page {
         xshell.bus.emit("xshell:page:load", { src: this._src, id: this._id });
     }
     async mount({ host, renderEngine }) {
+        if (this._unloaded) return;
         // mount
         this._host = host;
         await this.onCommand("mount", {});
@@ -95,13 +100,17 @@ export default class Page {
         }
     }
     async unmount() {
+        if (this._unloaded) return;
         // unmount
         this._host = null;
         await this.onCommand("unmount", {});
     }
     async unload() {
+        if (this._unloaded) return;
+        this._unloaded = true;
         // unload
         await this.onCommand("unload", {});
+        this._host = null;
         this._refs = null;
     }
 

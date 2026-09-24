@@ -253,6 +253,7 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
         }
         // mount/unmount
         async mount({ host }) {
+            if (this._unloaded) return;
             // style
             const cssPageSelector = `${host.nodeName.toLowerCase()}[src="${escapeCssString(host.getAttribute("src"))}"]`;
             if (typeof(definition.style) == "string" && definition.style) {
@@ -280,19 +281,39 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
             this.invalidate();
         }
         async unmount() {
+            if (this._unloaded) return;
             await super.unmount();
             if (this._renderEngine) {
                 this._renderEngine.unmount();
                 this._renderEngine = null;
             }
+            this._renderPending = false;
             if (this._styleSheets.length) {
                 document.adoptedStyleSheets = document.adoptedStyleSheets.filter(stylesheet => !this._styleSheets.includes(stylesheet));    
                 this._styleSheets = [];
             }
-            for(var disposable of this._disposables){
-                disposable.dispose();
+        }
+        async unload() {
+            if (this._unloaded) return;
+            try {
+                await super.unload();
+            } finally {
+                if (this._renderEngine) {
+                    this._renderEngine.unmount();
+                    this._renderEngine = null;
+                }
+                this._renderPending = false;
+                if (this._styleSheets.length) {
+                    document.adoptedStyleSheets = document.adoptedStyleSheets.filter(stylesheet => !this._styleSheets.includes(stylesheet));
+                    this._styleSheets = [];
+                }
+                for (const disposable of this._disposables) {
+                    disposable.dispose();
+                }
+                this._disposables = [];
+                this._stateChanges = [];
+                this._script = null;
             }
-            this._disposables = null;
         }
         // statechange
         stateChange(prop, oldValue, newValue) {
@@ -320,14 +341,16 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
         }
         // invalidate
         invalidate(path) {
-            if (!this._renderEngine) return;
+            const renderEngine = this._renderEngine;
+            if (!renderEngine) return;
             if (this._renderPending) return;
             this._renderPending = true;
             requestAnimationFrame(() => {
+                if (this._renderEngine !== renderEngine) return;
                 this.onCommand("stateChange", {changes: this._stateChanges});
                 this._stateChanges = [];
                 this._renderPending = false;
-                this._renderEngine.render();
+                renderEngine.render();
             });
         }
     };

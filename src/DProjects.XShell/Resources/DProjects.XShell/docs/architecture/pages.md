@@ -23,6 +23,14 @@ Definition-based Pages use the same public-property and state-default rule as co
 canonical for public properties, while `definition.state` supplies private/internal defaults. A state-backed public property may be repeated in
 `definition.state` only with a structurally equal value; a non-state-backed public property may not be repeated there.
 
+## Page lifecycle
+
+A Page instance is loaded once and can be mounted and unmounted repeatedly. `x-page` preserves the Page controller and state while its host is
+temporarily disconnected, then remounts that same instance when the host reconnects. Replacing the resource, and `removePage()`, are final
+destruction paths: they unmount the current Page and then unload it before the instance is discarded. Page render engines and page styles belong
+to each mount; Page state, controller, timers, events, and disposables belong to the Page instance until its final unload. See the component
+[Lifecycle](../components/lifecycle.md) contract for the complete sequence.
+
 ## Layouts
 
 Layouts are presentation containers for Pages. They do not resolve routes. Checked-in layout names are `default`, `dialog`, `main`, `stack`, and

@@ -189,6 +189,9 @@ export async function createComponentClassFromJsDefinition(src, context, definit
         _disposables = [];
         _reflectingAttributes = new Set();
         _controller = null;
+        _renderEngine = null;
+        _renderPending = false;
+        _unloaded = false;
         // static
         static get observedAttributes() { 
             return propertyAttributeNames;
@@ -308,6 +311,7 @@ export async function createComponentClassFromJsDefinition(src, context, definit
         }
         // connected/disconnected
         connectedCallback() {
+            if (this._unloaded) return;
             this._renderEngine = renderEngineFactory.create({ host: this.shadowRoot, state: this._state, handler:(command, ...params) => {
                 this.onCommand(command, ...params);
             }, invalidate: () => { 
@@ -318,14 +322,30 @@ export async function createComponentClassFromJsDefinition(src, context, definit
             this.invalidate();
         }
         disconnectedCallback() {
+            if (this._unloaded) return;
             this.onCommand("unmount", {});
-            this.onCommand("unload", {});
             if (this._renderEngine) {
                 this._renderEngine.unmount();
                 this._renderEngine = null;
             }
-            for(let disposable of this._disposables) {
-                disposable.dispose();
+            this._renderPending = false;
+        }
+        // unload
+        async unload() {
+            if (this._unloaded) return;
+            this._unloaded = true;
+            try {
+                await this.onCommand("unload", {});
+            } finally {
+                if (this._renderEngine) {
+                    this._renderEngine.unmount();
+                    this._renderEngine = null;
+                }
+                this._renderPending = false;
+                for (const disposable of this._disposables) {
+                    disposable.dispose();
+                }
+                this._disposables = [];
             }
         }
         // stateChange(prop, oldValue, newValue) {
@@ -338,14 +358,16 @@ export async function createComponentClassFromJsDefinition(src, context, definit
         }
         // invalidate
         invalidate(path) {
-            if (!this._renderEngine) return;
+            const renderEngine = this._renderEngine;
+            if (!renderEngine) return;
             if (this._renderPending) return;
             this._renderPending = true;
             requestAnimationFrame(() => {
+                if (this._renderEngine !== renderEngine) return;
                 this.onCommand("stateChange", {changes: this._stateChanges});
                 this._stateChanges = [];
                 this._renderPending = false;
-                this._renderEngine.render();
+                renderEngine.render();
             });
         }
         // onCommand

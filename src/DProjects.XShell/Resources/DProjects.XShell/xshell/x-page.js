@@ -142,6 +142,10 @@ class XPage extends HTMLElement {
     }
     connectedCallback() {
         this._connected = true;
+        if (this._page && this._page.src === this._src) {
+            this.mount();
+            return;
+        }
         // load now, or on the first activation
         if (this.loading == "lazy") {
             // intersection observer            
@@ -164,9 +168,9 @@ class XPage extends HTMLElement {
         }
     }
     disconnectedCallback() {
-        //destroy previous page
-        this.unload();
         this._connected = false;
+        // unmount current page; disconnection does not imply final destruction
+        this.unmount();
     }
 
 
@@ -275,7 +279,7 @@ class XPage extends HTMLElement {
         // call load on page
         await this._page.load();
         // call mount on page
-        await this._page.mount( { host: this });
+        await this.mount();
         // raise load event
         this.dispatchEvent(new CustomEvent("load"));
     }
@@ -287,8 +291,18 @@ class XPage extends HTMLElement {
     }
     async unload() {
         // unload
+        const page = this._page;
+        if (page) {
+            await page.unload();
+            if (this._page === page) {
+                this._page = null;
+            }
+        }
+    }
+    async mount() {
+        // mount
         if (this._page) {
-            await this._page.unload();
+            await this._page.mount({ host: this });
         }
     }
     async queryClose() {
@@ -302,6 +316,9 @@ class XPage extends HTMLElement {
         this.dispatchEvent(new CustomEvent("close", { composed: true }));
     }
     async removePage() {
+        // destroy current page before the host is removed permanently
+        await this.unmount();
+        await this.unload();
         //remove dom element
         let layoutElement = this.shadowRoot.firstChild;
         let removeHandler = ()=> {
