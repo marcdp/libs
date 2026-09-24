@@ -141,7 +141,17 @@ namespace DProjects.XShell.Services.XTemplate {
                 var character = _source[_position++];
                 if (character == quote) return new(ExpressionTokenKind.String, _source[offset.._position], result.ToString(), offset);
                 if (character is '\r' or '\n') throw new XTemplateExpressionSyntaxException("A string cannot contain a raw line break", _position - 1);
-                if (character != '\\') { result.Append(character); continue; }
+                if (character != '\\') {
+                    if (char.IsLowSurrogate(character)) throw new XTemplateExpressionSyntaxException("String literals must not contain unpaired surrogates", _position - 1);
+                    if (char.IsHighSurrogate(character)) {
+                        if (_position == _source.Length || !char.IsLowSurrogate(_source[_position])) throw new XTemplateExpressionSyntaxException("String literals must not contain unpaired surrogates", _position - 1);
+                        result.Append(character);
+                        result.Append(_source[_position++]);
+                        continue;
+                    }
+                    result.Append(character);
+                    continue;
+                }
                 if (_position == _source.Length) throw new XTemplateExpressionSyntaxException("Incomplete string escape", _position - 1);
                 character = _source[_position++];
                 if (character == 'u') { result.Append(ReadUnicodeEscape()); continue; }

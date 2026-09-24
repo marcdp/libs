@@ -63,6 +63,30 @@ namespace DProjects.XShell.Test {
         }
 
         [Fact]
+        public void AcceptsRawSurrogatePairsInStrings() {
+            var scalar = char.ConvertFromUtf32(0x10000);
+
+            Assert.Equal(scalar, XTemplateExpressions.Evaluate($"\"{scalar}\"", Context()));
+        }
+
+        [Fact]
+        public void RejectsUnpairedRawSurrogatesInStrings() {
+            var highSurrogate = "\uD800";
+            var lowSurrogate = "\uDC00";
+
+            Assert.Throws<XTemplateExpressionSyntaxException>(() => XTemplateExpressions.Parse($"\"{highSurrogate}\""));
+            Assert.Throws<XTemplateExpressionSyntaxException>(() => XTemplateExpressions.Parse($"\"{lowSurrogate}\""));
+            Assert.Throws<XTemplateExpressionSyntaxException>(() => XTemplateExpressions.Parse($"\"{highSurrogate}x\""));
+        }
+
+        [Fact]
+        public void PreservesEscapedSurrogateValidation() {
+            Assert.Equal(char.ConvertFromUtf32(0x10000), XTemplateExpressions.Evaluate(@"""\uD800\uDC00""", Context()));
+            Assert.Throws<XTemplateExpressionSyntaxException>(() => XTemplateExpressions.Parse(@"""\uD800"""));
+            Assert.Throws<XTemplateExpressionSyntaxException>(() => XTemplateExpressions.Parse(@"""\uDC00"""));
+        }
+
+        [Fact]
         public void ImplementsStrictEqualityAndComparison() {
             var context = Context();
 
