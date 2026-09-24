@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Text;
 
-namespace DProjects.XShell.Services {
+namespace DProjects.XShell.Services.XTemplate {
 
     internal sealed class JavaScriptComponentTransformer(XTemplateCompiler templateCompiler) {
 

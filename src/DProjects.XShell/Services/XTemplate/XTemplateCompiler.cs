@@ -2,7 +2,7 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 
-namespace DProjects.XShell.Services {
+namespace DProjects.XShell.Services.XTemplate {
 
     public sealed class XTemplateCompiler {
 
