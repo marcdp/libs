@@ -482,32 +482,6 @@ Example:
 
 ---
 
-## 14. Attribute shorthand `:name`
-
-The reference compiler accepts:
-
-```html
-<a :href="state.url"></a>
-```
-
-as shorthand for:
-
-```html
-<a x-attr:href="state.url"></a>
-```
-
-It also accepts:
-
-```html
-<div :="state.attributes"></div>
-```
-
-as shorthand for object attribute expansion.
-
-For portability and readability, the long `x-attr:*` form SHOULD be preferred in canonical documentation and generated templates.
-
----
-
 ## 15. `x-attr` object expansion
 
 Syntax:
@@ -603,24 +577,6 @@ This is a runtime behavior, not syntax, but compatible XShell renderers should p
 
 ---
 
-## 18. Property shorthand `.name`
-
-The reference compiler accepts:
-
-```html
-<x-widget .value="state.value"></x-widget>
-```
-
-as shorthand for:
-
-```html
-<x-widget x-prop:value="state.value"></x-widget>
-```
-
-The long form SHOULD be preferred in canonical templates.
-
----
-
 ## 19. Dynamic property names
 
 The compiler contains support for:
@@ -641,23 +597,17 @@ This syntax is implemented but not broadly evidenced in application templates an
 
 ## 20. Whole-object `x-prop`
 
-The parser recognizes:
+The current reference parser recognizes:
 
 ```html
 <element x-prop="expression"></element>
-```
-
-and the shorthand:
-
-```html
-<element .="expression"></element>
 ```
 
 The apparent intended meaning is property-object expansion.
 
 However, the current reference compiler places this expansion into the **attribute object**, not the property object.
 
-Because implementation and naming disagree, whole-object `x-prop` is **not stable normative syntax** in this specification.
+Because implementation and naming disagree, whole-object `x-prop` is **not supported XTemplate syntax** and is not part of the normative language.
 
 Implementers SHOULD support `x-prop:name`, which is well-defined.
 
@@ -764,24 +714,6 @@ handler("save", event)
 The component/runtime decides how the command is dispatched.
 
 This command-oriented event model is a defining XTL characteristic.
-
----
-
-## 24. Event shorthand
-
-The reference compiler accepts:
-
-```html
-<button @click="save"></button>
-```
-
-as shorthand for:
-
-```html
-<button x-on:click="save"></button>
-```
-
-Canonical templates SHOULD use `x-on:*`.
 
 ---
 
@@ -1866,13 +1798,10 @@ children-directive= "x-children", "=", quoted-expression ;
 
 attr-binding      = "x-attr:", attr-name, "=", quoted-expression ;
 attr-spread       = "x-attr", "=", quoted-expression ;
-attr-shorthand    = ":", attr-name, "=", quoted-expression ;
 
 prop-binding      = "x-prop:", prop-name, "=", quoted-expression ;
-prop-shorthand    = ".", prop-name, "=", quoted-expression ;
 
 event-binding     = "x-on:", event-spec, "=", quoted-command ;
-event-shorthand   = "@", event-spec, "=", quoted-command ;
 
 class-binding     = "x-class:", class-name, "=", quoted-expression ;
 
@@ -1895,6 +1824,22 @@ model-directive   = "x-model", "=", quoted-assignable-expression ;
 once-directive    = "x-once" ;
 pre-directive     = "x-pre" ;
 ```
+
+### 61.1 Unsupported binding syntax
+
+XTemplate shorthand bindings are not part of the language. The following are invalid XTemplate binding syntax:
+
+```text
+:title="state.title"
+.value="state.value"
+@click="save"
+:="state.attributes"
+.="state.properties"
+```
+
+A conforming parser, compiler, renderer, validator, or tool MUST NOT interpret these forms as XTemplate bindings. Where HTML parsing permits them, they may remain ordinary HTML attributes without XTemplate directive semantics.
+
+Older implementations may have recognized these forms; that historical behavior is not part of the current language.
 
 ---
 
@@ -2762,16 +2707,6 @@ x-children
 {{ expression }}
 ```
 
-Prefer long forms over:
-
-```text
-:name
-.name
-@event
-```
-
-even though the reference compiler supports the shorthands.
-
 Avoid unstable/ambiguous forms such as whole-object `x-prop` until their semantics are formally resolved.
 
 ---
@@ -2872,7 +2807,7 @@ Changes that would benefit from versioning include:
 - redefining whole-object property spread;
 - changing `x-model` representation;
 - changing recursive-child semantics;
-- removing shorthand directives;
+- adding or removing directives;
 - changing whitespace/interpolation parsing.
 
 ---
@@ -2925,11 +2860,8 @@ A correct implementation should preserve these semantics even if it uses a compl
 | `x-children` | Real DOM node content | expression |
 | `x-attr:name` | Dynamic attribute | expression |
 | `x-attr` | Attribute spread | expression/object |
-| `:name` | Attribute shorthand | expression |
 | `x-prop:name` | Dynamic property | expression |
-| `.name` | Property shorthand | expression |
 | `x-on:event` | Event command | command name |
-| `@event` | Event shorthand | command name |
 | `x-class:name` | Conditional class | expression |
 | `x-if` | Conditional branch | expression |
 | `x-elseif` | Conditional branch | expression |
@@ -2969,15 +2901,6 @@ x-recursive-wrapper
 x-model (basic value semantics)
 x-once
 x-pre
-```
-
-## Supported shorthand
-
-```text
-:name
-:
-.name
-@event
 ```
 
 ## Implemented but should receive dedicated tests

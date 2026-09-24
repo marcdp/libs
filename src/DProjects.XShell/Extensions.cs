@@ -22,7 +22,7 @@ namespace DProjects.XShell {
             public string[] UnhandledPrefixes { get; init; } = new string[] {"/_", "/api", "/temp"};
             public string TempPath { get; init; } = Path.Combine(Path.GetTempPath(), ResourceName, "temp");
             public string TempUrl { get; init; } = "/temp";
-            public string CSPValue { get; init; } = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none';";
+            public string CSPValue { get; init; } = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; ";
         }
         
 
@@ -62,6 +62,7 @@ namespace DProjects.XShell {
             app.UseMiddleware<Middlewares.TempMiddleware>(config.TempPath, config.TempUrl);
 
             // /
+            // TODO ... create a builder for the index.html and sw.js content
             var indexHtml = $"""
                     <!DOCTYPE html>
                     <html lang="en">
