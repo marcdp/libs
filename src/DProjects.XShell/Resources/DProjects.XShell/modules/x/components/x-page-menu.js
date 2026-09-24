@@ -14,9 +14,9 @@ export default {
         :host {display:block; }
         ul {margin:0; padding:0;}
         li {list-style:none; }
-        li > x-anchor {display:block; margin-bottom:.7em;}
-        li > li > li  {padding-left:1.75em;}
-        ul > li > ul > li > ul {padding-left:1.75em;}
+        li > x-anchor {display:block; margin-bottom:.5em;}
+        li > li > li  {padding-left:1.5em;}
+        ul > li > ul > li > ul {padding-left:1.25em;}
         hr {border-top:var(--x-layout-main-border); margin-top:1.5em; margin-bottom:1.5em; display:block;}
 
         :host > nav > ul > li + li {margin-top:1.5em; }

@@ -14,6 +14,7 @@ X Template (XTL) is the declarative template language used by the XShell `x` ren
 An X Template is an HTML fragment extended with:
 
 - restricted XTemplate expressions;
+- restricted presentation formatter pipelines;
 - text interpolation;
 - dynamic attributes and properties;
 - event-to-command bindings;
@@ -548,7 +549,7 @@ reinterpret their names as host-language calls.
 
 | Formatter | Arguments | Input | Result and semantics |
 |---|---|---|---|
-| `number` | none or `digits` | number | string; locale number formatting; exact fractional digits when supplied |
+| `number` | none or `digits` | number | string; locale formatting; 0–3 digits omitted, exact digits supplied |
 | `currency` | `code` or `code, digits` | number | string; locale currency formatting |
 | `percent` | none or `digits` | number | string; locale percentage formatting after multiplying by 100 |
 | `date` | `pattern` | ISO date or offset date-time | string; date-pattern formatting |
@@ -560,18 +561,37 @@ reinterpret their names as host-language calls.
 
 `number`, `currency`, and `percent` reject non-numeric input, non-finite numeric values, and invalid digit arguments. `digits` is evaluated as an
 XTemplate expression, then must be a number whose value is an integer greater than or equal to zero. Implementations MUST reject values outside
-their supported formatting range rather than silently changing the requested precision. `number()` is equivalent to `number`; omitted digits use
-the locale's default number formatting. Supplied digits are exact. `percent` multiplies the input by 100 before formatting, so `percent(1)` formats
-`0.25` as `25.0%` or the equivalent locale representation.
+their supported formatting range rather than silently changing the requested precision. `number` and `number()` use a minimum of 0 and a maximum
+of 3 fractional digits, round to the nearest decimal value with ties away from zero, and omit trailing fractional zeroes. Therefore `12` becomes
+`12`, `12.5` becomes `12.5`, `12.345` becomes `12.345`, and `12.3456` becomes `12.346`, before locale separators are applied. Supplied digits
+are exact. `percent` and `percent()` use the same 0–3 fractional-digit rule when digits are omitted, then multiply the input by 100 before
+formatting, so `percent(1)` formats `0.25` as `25.0%` or the equivalent locale representation.
 
-`currency` uses the currency's standard fraction digits when digits are omitted. When supplied, digits are exact. Locale controls currency symbol
-placement, grouping, and decimal separator.
+`currency` uses the currency's standard ISO 4217/CLDR-compatible fraction-digit contract when digits are omitted; host runtime defaults MUST NOT
+change that contract. When supplied, digits are exact. Locale controls currency symbol placement, grouping, and decimal separator.
 
-`currency` rejects a missing, non-string, malformed, or unsupported currency code. The code is case-sensitive and MUST be supplied as a string
-literal or an expression that evaluates to the required three-letter code.
+`currency` rejects a missing, non-string, malformed, or unsupported currency code. The code is case-sensitive and MUST be the canonical uppercase
+ISO 4217 representation, supplied as a string literal or an expression that evaluates to that representation. `'EUR'` and `'USD'` are valid;
+`'eur'` and `'Usd'` are invalid. Implementations MUST NOT automatically uppercase or otherwise normalize the code.
 
 `upper`, `lower`, and `trim` accept no arguments. Their casing is locale-aware but remains a pure XTemplate operation; an implementation MUST NOT
 call a method on the source object. Unicode whitespace for `trim` is the Unicode White_Space property, not just ASCII space.
+
+Locale-aware casing MUST be equivalent across JavaScript and C# implementations. The conformance locale profile includes at least `en-US` and
+`tr-TR`; representative required results are:
+
+| Locale | Expression | Result |
+|---|---|---|
+| `en-US` | `'i' \| upper` | `I` |
+| `en-US` | `'I' \| lower` | `i` |
+| `en-US` | `'İ' \| upper` | `İ` |
+| `en-US` | `'ı' \| lower` | `ı` |
+| `tr-TR` | `'i' \| upper` | `İ` |
+| `tr-TR` | `'I' \| lower` | `ı` |
+| `tr-TR` | `'İ' \| lower` | `i` |
+| `tr-TR` | `'ı' \| upper` | `I` |
+
+These are XTemplate results, not a requirement to expose JavaScript or .NET casing APIs in source syntax.
 
 #### Date and time patterns
 
@@ -599,9 +619,13 @@ The portable pattern vocabulary is:
 | `mm` | two-digit minute | `datetime`, `time` |
 | `ss` | two-digit second | `datetime`, `time` |
 
-All other non-token characters are literal punctuation or spacing. Alphabetic text that is not one of the tokens above is an unsupported pattern
-error; arbitrary .NET, ICU, or JavaScript date tokens are not part of XTemplate. Token matching uses the longest token first, so `MMMM` is not
-parsed as four `M` tokens. A pattern MUST contain at least one token allowed for its formatter. The `date`, `datetime`, and `time` formatters
+This pattern language is defined by XTemplate itself. It does not inherit arbitrary .NET, ICU, or JavaScript date-format syntax or formatting
+options. Only the documented tokens are valid; token matching is longest-token-first, literal punctuation and spacing remain allowed, and an
+alphabetic sequence that is not a documented token is a formatting error. `date`, `datetime`, and `time` reject tokens outside their respective
+allowed subsets.
+
+Token matching uses the longest token first, so `MMMM` is not parsed as four `M` tokens. A pattern MUST contain at least one token allowed for its
+formatter. The `date`, `datetime`, and `time` formatters
 therefore accept examples such as `dd/MM/yyyy`, `yyyy-MM-dd`, `MMMM`, `dd/MM/yyyy HH:mm`, and `HH:mm`, respectively.
 
 #### Result kinds and nulls
@@ -752,8 +776,9 @@ source expression
 
 Generated JavaScript may resemble the input, but only after validation. The emitter MUST preserve XTemplate null propagation, equality, truthiness,
 numeric, access, and formatter semantics; emitting a host operator directly is conforming only when it is observably equivalent for all permitted
-operands. A formatter such as `value | upper` MUST NOT be translated to an arbitrary source method such as `value.toUpperCase()` without preserving
-the specified type checks, null propagation, locale behavior, and result kind.
+operands. Formatter syntax MUST NOT be translated into arbitrary host-language calls such as `value.toLocaleString(...)`, `value.toUpperCase()`,
+or `someFunction(value)`. A backend MAY use trusted runtime helpers or equivalent generated code only when it preserves the specified type checks,
+null propagation, locale behavior, and result kind.
 
 At render time, formatter evaluation MUST follow this target-neutral sequence:
 
@@ -765,7 +790,8 @@ evaluate source expression
 → pass the result to the next pipeline stage
 ```
 
-A C# or other direct renderer evaluates the same AST. Every valid XTemplate expression in this language version MUST be evaluable without Node.js,
+A C# or other direct renderer evaluates the same AST and MUST preserve the same formatter names, argument evaluation, left-to-right chaining, null
+short-circuiting, locale rules, errors, and result kinds. Every valid XTemplate expression in this language version MUST be evaluable without Node.js,
 a browser, `eval`, `new Function`, a JavaScript interpreter, or arbitrary JavaScript execution.
 
 ### 7.13 Expression diagnostics
@@ -839,6 +865,12 @@ A conforming expression implementation MUST:
 - consume the complete input and preserve the precedence and associativity table;
 - implement short-circuit evaluation and evaluate only a selected conditional branch;
 - implement null/member/index access, equality, truthiness, string conversion, and numeric behavior exactly as specified;
+- parse formatter pipelines into the expression AST;
+- parse and evaluate formatter arguments using ordinary XTemplate expression semantics;
+- resolve only the built-in XTemplate formatter names;
+- apply formatter stages left-to-right while preserving null short-circuit behavior;
+- apply the active formatter locale rules and preserve formatter result kinds;
+- reject unknown formatter names and invalid formatter arguments;
 - resolve identifiers only from the explicit evaluation context;
 - distinguish ordinary expressions from assignable expressions;
 - produce equivalent observable values or equivalent errors across JavaScript and C# implementations.
@@ -1388,8 +1420,8 @@ It is rendered when no earlier branch in the same chain matched.
 Canonical form:
 
 ```html
-<div x-if="state.kind === 'a'">A</div>
-<div x-elseif="state.kind === 'b'">B</div>
+<div x-if="state.kind == 'a'">A</div>
+<div x-elseif="state.kind == 'b'">B</div>
 <div x-else>Other</div>
 ```
 
@@ -2819,6 +2851,7 @@ It must still preserve:
 Every valid XTemplate expression in this language version MUST be evaluable by a C# or other server-side renderer without Node.js, a browser, `eval`,
 `new Function`, a JavaScript interpreter, or arbitrary JavaScript execution. The renderer MUST evaluate the expression AST using the semantics in
 section 7, rather than translating behavior to host-language shortcuts with different coercion, access, locale, or formatter rules.
+In particular, server rendering MUST produce the same formatter results and formatting errors as JavaScript for the same context and active locale.
 
 A server-side HTML renderer can implement the subset of template and DOM semantics meaningful without a browser.
 
@@ -2978,7 +3011,7 @@ is recursively rendered.
 ```html
 <a
     class="menuitem"
-    x-class:selected="state.selectedId === item.id">
+    x-class:selected="state.selectedId == item.id">
     {{ item.label }}
 </a>
 ```
@@ -3055,30 +3088,48 @@ Expression suites MUST run the same cases against every parser/evaluator backend
 | `state.items[index].name` | index `1`; second item name is `B` | string `B` |
 | `state.user.name ?? 'Anonymous'` | `state.user = null` | string `Anonymous` |
 | `1 == '1'` | none | boolean `false` |
+| `1 == 1` | none | boolean `true` |
 
 Formatter suites MUST additionally run the same cases against every parser/evaluator backend:
 
 | Expression or template | Context condition | Expected result or rejection |
 |---|---|---|
-| `state.price | number` | `state.price = 12.5` | locale-formatted number with default digits |
-| `state.price | number(2)` | `state.price = 12` | string with exactly two fractional digits |
-| `state.price | number(state.decimals)` | `state.decimals = 2` | full-expression formatter argument is evaluated |
-| `state.price | number(2)` | `es-ES`, `state.price = 1234.5` | grouping and decimal separators follow `es-ES` |
-| `state.price | number(2)` | `en-US`, `state.price = 1234.5` | grouping and decimal separators follow `en-US` |
-| `state.total | currency('EUR')` | numeric total and active locale | locale currency formatting |
-| `state.ratio | percent(1)` | `state.ratio = 0.25` | locale percentage equivalent to `25.0%` |
-| `state.createdAt | date('dd/MM/yyyy')` | `2026-09-24T21:15:00Z` | `24/09/2026` |
-| `state.createdAt | date('MMMM')` | valid ISO input and `es-ES` | localized month name |
-| `state.createdAt | date('dd/MM/yyyy')` | invalid ISO input | formatting error |
-| `state.name | upper` / `lower` | string input and active locale | locale-aware uppercase/lowercase |
-| `state.name | trim` | surrounding Unicode whitespace | trimmed string |
-| `state.name | trim | upper` | string input | trim first, then uppercase |
-| `state.value | number(2)` | `state.value = null` | `null`, without invoking the formatter |
-| `state.name | unknownFormatter` | any non-null string | unknown-formatter error |
-| `'abc' | number(2)` | none | wrong-input-type error |
-| `state.price | number(-1)` | numeric price | invalid-argument error |
-| `state.createdAt | date('unsupported-token')` | valid ISO input | unsupported-pattern error |
-| `<div x-attr:data-price="state.price | number(2)"></div>` | numeric price | valid attribute expression and formatted value |
+| `state.price \| number` | `state.price = 12` | `12` in the invariant locale |
+| `state.price \| number` | `state.price = 12.5` | `12.5` in the invariant locale |
+| `state.price \| number` | `state.price = 12.345` | `12.345` in the invariant locale |
+| `state.price \| number` | `state.price = 12.3456` | `12.346` in the invariant locale |
+| `state.price \| number()` | `state.price = 12.3456` | same result as `number`: `12.346` |
+| `state.price \| number(2)` | `state.price = 12` | `12.00` in the invariant locale |
+| `state.price \| number(2)` | `state.price = 12.5` | `12.50` in the invariant locale |
+| `state.price \| number(state.decimals)` | `state.decimals = 2` | full-expression formatter argument is evaluated |
+| `state.price \| number(2)` | `es-ES`, `state.price = 1234.5` | grouping and decimal separators follow `es-ES` |
+| `state.price \| number(2)` | `en-US`, `state.price = 1234.5` | grouping and decimal separators follow `en-US` |
+| `state.total \| currency('EUR')` | numeric total and active locale | locale currency formatting |
+| `state.total \| currency('EUR')` | `state.total = 12` | standard EUR fraction digits |
+| `state.total \| currency('JPY')` | `state.total = 12` | standard JPY fraction digits |
+| `state.total \| currency('EUR')` | code is `'eur'` | canonical-code error |
+| `state.ratio \| percent(1)` | `state.ratio = 0.25` | locale percentage equivalent to `25.0%` |
+| `state.createdAt \| date('dd/MM/yyyy')` | `2026-09-24T21:15:00Z` | `24/09/2026` |
+| `state.createdAt \| date('MMMM')` | valid ISO input and `es-ES` | localized month name |
+| `state.createdAt \| date('dd/MM/yyyy')` | invalid ISO input | formatting error |
+| `state.name \| upper` / `lower` | string input and active locale | locale-aware uppercase/lowercase |
+| `'i' \| upper` | `en-US` | `I` |
+| `'I' \| lower` | `en-US` | `i` |
+| `'i' \| upper` | `tr-TR` | `İ` |
+| `'I' \| lower` | `tr-TR` | `ı` |
+| `'İ' \| lower` | `tr-TR` | `i` |
+| `'ı' \| upper` | `tr-TR` | `I` |
+| `state.name \| trim` | surrounding Unicode whitespace | trimmed string |
+| `state.name \| trim \| upper` | string input | trim first, then uppercase |
+| `state.value \| number(2)` | `state.value = null` | `null`, without invoking the formatter |
+| `state.name \| unknownFormatter` | any non-null string | unknown-formatter error |
+| `'abc' \| number(2)` | none | wrong-input-type error |
+| `state.price \| number(-1)` | numeric price | invalid-argument error |
+| `state.createdAt \| date('unsupported-token')` | valid ISO input | unsupported-pattern error |
+| `state.createdAt \| date('yyyy-MMM-dd')` | `2026-09-24` | portable token formatting |
+| `state.createdAt \| datetime('dd/MM/yyyy HH:mm:ss')` | `2026-09-24T21:15:00+02:00` | fields represented by `+02:00` are formatted |
+| same offset date-time | different host time zones | identical output; host timezone is ignored |
+| `<div x-attr:data-price="state.price \| number(2)"></div>` | numeric price | valid attribute expression and formatted value |
 
 Short-circuit tests MUST use a branch that would otherwise fail, proving that `false && (1 / 0)`, `true || (1 / 0)`, `1 ?? (1 / 0)`, and the
 unselected branch of `true ? 1 : (1 / 0)` do not evaluate the division by zero.
@@ -3093,6 +3144,8 @@ At minimum, invalid cases include:
 | `formatPrice(state.price)` | general function call |
 | `state.price.toFixed(2)` | method call |
 | `state.name.toUpperCase()` | method call |
+| `1 === 1` | unsupported strict-equality operator |
+| `1 !== 2` | unsupported strict-inequality operator |
 | `new Date()` | constructor |
 | `window.location` | unknown identifier; no host-global fallback |
 | `state.value = 10` | assignment |
@@ -3497,6 +3550,7 @@ The most important distinctions are:
 
 ```text
 {{ ... }} / x-text     → text
+expr | formatter(...)   → explicit presentation formatting
 x-html                  → raw HTML
 x-children              → real DOM nodes
 

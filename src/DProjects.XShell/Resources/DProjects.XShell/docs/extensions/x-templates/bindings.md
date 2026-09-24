@@ -49,7 +49,7 @@ supported shorthand. Use the specification for the complete modifier contract.
 `x-class:name` conditionally adds a CSS class while retaining authored static classes.
 
 ```html
-<li class="menuitem" x-class:selected="item.id === state.selectedId"></li>
+<li class="menuitem" x-class:selected="item.id == state.selectedId"></li>
 ```
 
 ## Visibility

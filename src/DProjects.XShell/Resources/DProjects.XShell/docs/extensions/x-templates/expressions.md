@@ -8,9 +8,13 @@ portable expression model used by XShell.
 XTemplate expressions are a small language owned by XTemplate. The syntax is JavaScript-like, but expressions are parsed into a portable AST and
 evaluated against an explicit render context. They are not arbitrary JavaScript and cannot access host globals or object methods.
 
-Typical names available to an expression include `state`, `i18n`, and `renderCount`. Render infrastructure can also provide names such as
-`utils`, `handler`, and `invalidate`. `x-for` and `x-recursive` introduce template-defined local variables, such as `item`, `index`,
-`indexAbsolute`, and `indent`.
+Typical expression-visible identifiers include `state`, explicitly supplied application/context values, and template-defined locals. `x-for` and
+`x-recursive` introduce locals such as `item`, `index`, `indexAbsolute`, and `indent`. Values such as `i18n` and `renderCount` are expression-visible
+only when the rendering environment explicitly inserts them into `ExpressionContext`.
+
+Runtime/compiler infrastructure such as `handler`, `invalidate`, `utils`, and VDOM internals is not automatically available as expression
+identifiers. An implementation may expose additional identifiers only by explicitly placing them in `ExpressionContext` and documenting that
+context.
 
 ```html
 <h1 x-text="state.title"></h1>
