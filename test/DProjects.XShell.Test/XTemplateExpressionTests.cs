@@ -54,6 +54,23 @@ namespace DProjects.XShell.Test {
         }
 
         [Fact]
+        public void AppliesStringLengthAndRejectsNumericStringIndexing() {
+            var context = Context(new {
+                state = new {
+                    text = "A😀",
+                    items = new[] { "first", "second" },
+                    map = new Dictionary<string, object?> { ["name"] = "Ada" }
+                }
+            });
+
+            Assert.Equal(3d, XTemplateExpressions.Evaluate("state.text.length", context));
+            Assert.Equal("first", XTemplateExpressions.Evaluate("state.items[0]", context));
+            Assert.Equal("Ada", XTemplateExpressions.Evaluate("state.map[\"name\"]", context));
+            Assert.Throws<XTemplateExpressionEvaluationException>(() => XTemplateExpressions.Evaluate("\"abc\"[0]", context));
+            Assert.Throws<XTemplateExpressionEvaluationException>(() => XTemplateExpressions.Evaluate("\"abc\"[1]", context));
+        }
+
+        [Fact]
         public void SupportsStringsEscapesAndConcatenation() {
             var context = Context(new { state = new { name = "Ada" } });
 

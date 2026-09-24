@@ -97,7 +97,6 @@ namespace DProjects.XShell.Services.XTemplate {
             if (!IsCollection(target)) throw new XTemplateExpressionEvaluationException("Indexed access requires an object string index or collection numeric index", offset);
             if (number > int.MaxValue) return null;
             var position = (int)number;
-            if (target is string text) return position < text.Length ? text[position].ToString() : null;
             if (target is IList list) return position < list.Count ? Normalize(list[position], offset) : null;
             return ((IEnumerable)target).Cast<object?>().Skip(position).Select(value => Normalize(value, offset)).FirstOrDefault();
         }
