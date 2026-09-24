@@ -50,6 +50,8 @@ src/DProjects.XShell/
 ├── DProjects.XShell.csproj
 ├── Extensions.cs
 ├── Program.cs
+├── Services/
+|   └── XTemplate/
 └── Resources/
     └── DProjects.XShell/
         ├── docs/

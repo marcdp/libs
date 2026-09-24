@@ -23,7 +23,7 @@ namespace DProjects.XShell.Services.XTemplate {
 
         // methods
         public string Render(string template, object? state) {
-            var root = new XTemplateParser(template).Parse();
+            var root = new XTemplateParser(template.Trim()).Parse();
             var context = new XTemplateExpressionContext(new Dictionary<string, object?> { ["state"] = state });
             var result = new StringBuilder();
             RenderChildren(root.Children, context, result);

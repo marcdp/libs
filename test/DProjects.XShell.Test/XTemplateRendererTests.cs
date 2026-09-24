@@ -12,6 +12,15 @@ namespace DProjects.XShell.Test {
             Assert.Equal("<!-- note --><x-button title=\"A &amp; B\"></x-button><br><img src=\"a.png\">", html);
         }
 
+        [Theory]
+        [InlineData("   <div>A</div>   ", "<div>A</div>")]
+        [InlineData("\n\t<div>A</div>\r\n", "<div>A</div>")]
+        [InlineData("<div>  A  </div>", "<div>  A  </div>")]
+        [InlineData("\n<div>A</div>\n    <div>B</div>\n", "<div>A</div>\n    <div>B</div>")]
+        public void TrimsOnlyOuterTemplateWhitespace(string template, string expected) {
+            Assert.Equal(expected, Render(template));
+        }
+
         [Fact]
         public void RendersInterpolationsAsEscapedText() {
             var html = Render("<div>{{ state.name }}: {{ state.value + 1 }} / {{ state.missing ?? 'none' }}</div>", new { name = "<Marc>&", value = 2 });
