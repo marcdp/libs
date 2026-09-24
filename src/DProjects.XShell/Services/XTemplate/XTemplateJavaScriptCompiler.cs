@@ -3,7 +3,13 @@ using System.Text;
 
 namespace DProjects.XShell.Services.XTemplate {
 
-    internal sealed class JavaScriptComponentTransformer(XTemplateCompiler templateCompiler) {
+    internal sealed class XTemplateJavaScriptCompiler {
+
+        private readonly XTemplateCompiler _templateCompiler;
+
+        public XTemplateJavaScriptCompiler(XTemplateCompiler templateCompiler) {
+            _templateCompiler = templateCompiler;
+        }
 
         // methods
         public string Transform(string source) {
@@ -21,7 +27,7 @@ namespace DProjects.XShell.Services.XTemplate {
                 throw new InvalidOperationException($"The exported X component 'template' at JavaScript offset {valueToken.Start} must be a static template literal.");
             }
             var templateText = DecodeStaticTemplateLiteral(source[valueToken.Start..valueToken.End], valueToken.Start);
-            var renderer = templateCompiler.Compile(templateText);
+            var renderer = _templateCompiler.Compile(templateText);
             var existingRenderer = properties.FirstOrDefault(property => property.Name == "templateRenderer");
             if (existingRenderer != null) {
                 var start = tokens[existingRenderer.ValueStartTokenIndex].Start;

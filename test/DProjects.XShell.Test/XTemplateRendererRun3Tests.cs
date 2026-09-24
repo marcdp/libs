@@ -1,3 +1,4 @@
+using System.Collections;
 using DProjects.XShell.Services.XTemplate;
 
 namespace DProjects.XShell.Test {
@@ -56,6 +57,16 @@ namespace DProjects.XShell.Test {
             var html = Render("<li x-recursive=\"item in state.items\">{{ item.label }}</li>", new { items = new[] { new { label = "Root", children = (object?)Array.Empty<object>() } } });
 
             Assert.Equal("<li>Root</li>", html);
+        }
+
+        [Fact]
+        public void UsesObjectSemanticsForRecursiveReadOnlyDictionaryChildren() {
+            var children = new ReadOnlyMap(new Dictionary<string, object?> { ["Child"] = null });
+            var state = new { items = new[] { new { label = "Root", children = (object?)children } } };
+
+            var html = Render("<li x-recursive=\"item in state.items\">{{ item.label ?? item }}</li>", state);
+
+            Assert.Equal("<li>Root<li>Child</li></li>", html);
         }
 
         [Theory]
@@ -153,6 +164,28 @@ namespace DProjects.XShell.Test {
 
         // methods (private)
         private static string Render(string template, object? state = null) => new XTemplateRenderer(new[] { new XTemplateReflectionObjectAdapter() }).Render(template, state ?? new { });
+        private sealed class ReadOnlyMap : IReadOnlyDictionary<string, object?> {
+
+            // vars
+            private readonly Dictionary<string, object?> _values;
+
+            // props
+            public object? this[string key] => _values[key];
+            public IEnumerable<string> Keys => _values.Keys;
+            public IEnumerable<object?> Values => _values.Values;
+            public int Count => _values.Count;
+
+            // ctor
+            public ReadOnlyMap(Dictionary<string, object?> values) {
+                _values = values;
+            }
+
+            // methods
+            public bool ContainsKey(string key) => _values.ContainsKey(key);
+            public bool TryGetValue(string key, out object? value) => _values.TryGetValue(key, out value);
+            public IEnumerator<KeyValuePair<string, object?>> GetEnumerator() => _values.GetEnumerator();
+            IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+        }
         private sealed record Node(string name, Node[] children);
         private sealed record Menu(int id, string label, string href, Menu[] children);
     }

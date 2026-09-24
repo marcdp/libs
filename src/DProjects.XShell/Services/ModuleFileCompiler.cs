@@ -55,7 +55,7 @@ namespace DProjects.XShell.Services {
         }
         private string CompileXTemplate(string js) {
             // preserve the module source and only transform the exported component definition
-            return new Services.XTemplate.JavaScriptComponentTransformer(new Services.XTemplate.XTemplateCompiler()).Transform(js);
+            return new Services.XTemplate.XTemplateJavaScriptCompiler(new Services.XTemplate.XTemplateCompiler()).Transform(js);
         }
 
     }

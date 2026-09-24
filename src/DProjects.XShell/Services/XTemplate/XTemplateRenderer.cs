@@ -232,7 +232,7 @@ namespace DProjects.XShell.Services.XTemplate {
                 return Enumerable.Range(1, (int)number).Cast<object?>();
             }
             if (value is string text) return text.EnumerateRunes().Select(rune => (object?)rune.ToString()).ToArray();
-            if (value is IDictionary) return ObjectMembers(value, offset).Select(member => (object?)member.Key).ToArray();
+            if (_objectAccess.CanAdapt(value)) return ObjectMembers(value, offset).Select(member => (object?)member.Key).ToArray();
             if (value is IEnumerable enumerable) return enumerable.Cast<object?>().ToArray();
             return ObjectMembers(value, offset).Select(member => (object?)member.Key).ToArray();
         }
@@ -272,9 +272,7 @@ namespace DProjects.XShell.Services.XTemplate {
             return WebUtility.HtmlDecode(text.ToString());
         }
         private static string HtmlAttribute(string value) => HtmlText(value).Replace("\"", "&quot;", StringComparison.Ordinal).Replace("'", "&#39;", StringComparison.Ordinal);
-        private static bool IsValidAttributeName(string name) => name.Length > 0 && name.All(IsValidAttributeNameCharacter);
-        private static bool IsValidAttributeNameCharacter(char character) => !char.IsWhiteSpace(character) && character is not '"' and not '\'' and not '<' and not '>' and not '=' and not '/' and not '\0' && character > 0x1F && character != 0x7F && !IsUnicodeNoncharacter(character);
-        private static bool IsUnicodeNoncharacter(char character) => character is >= '\uFDD0' and <= '\uFDEF' or >= '\uFFFE' and <= '\uFFFF';
+        private static bool IsValidAttributeName(string name) => XTemplateAttributeNames.IsValid(name);
     }
 
     internal abstract record XTemplateNode(int Offset);

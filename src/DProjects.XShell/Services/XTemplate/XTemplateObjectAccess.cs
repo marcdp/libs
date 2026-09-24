@@ -15,7 +15,7 @@ namespace DProjects.XShell.Services.XTemplate {
     public sealed class XTemplateReflectionObjectAdapter : IXTemplateObjectAdapter {
 
         // methods
-        public bool CanAdapt(object value) => value != null;
+        public bool CanAdapt(object value) => value != null && value is not IEnumerable;
         public bool TryGetMember(object value, string name, out object? member) {
             var property = value.GetType().GetProperty(name, BindingFlags.Instance | BindingFlags.Public);
             if (property?.CanRead == true && property.GetIndexParameters().Length == 0 && property.GetMethod?.IsPublic == true) {

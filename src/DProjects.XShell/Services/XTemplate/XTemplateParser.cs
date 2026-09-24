@@ -213,9 +213,7 @@ namespace DProjects.XShell.Services.XTemplate {
         private static bool IsTagNameStart(char character) => char.IsLetter(character) || character is '_' or ':';
         private static bool IsTagName(string value) => value.Length > 0 && char.IsLetter(value[0]) && value.All(character => char.IsLetterOrDigit(character) || character is '-' or '_' or ':');
         private static bool IsIdentifier(string value) => value.Length > 0 && (value[0] is >= 'A' and <= 'Z' or >= 'a' and <= 'z' or '_') && value.Skip(1).All(character => character is >= 'A' and <= 'Z' or >= 'a' and <= 'z' or >= '0' and <= '9' or '_');
-        private static bool IsValidAttributeName(string name) => name.Length > 0 && name.All(IsValidAttributeNameCharacter);
-        private static bool IsValidAttributeNameCharacter(char character) => !char.IsWhiteSpace(character) && character is not '"' and not '\'' and not '<' and not '>' and not '=' and not '/' and not '\0' && character > 0x1F && character != 0x7F && !IsUnicodeNoncharacter(character);
-        private static bool IsUnicodeNoncharacter(char character) => character is >= '\uFDD0' and <= '\uFDEF' or >= '\uFFFE' and <= '\uFFFF';
+        private static bool IsValidAttributeName(string name) => XTemplateAttributeNames.IsValid(name);
         private static XTemplateException Error(string message, int offset) => new(message, offset);
         private sealed record RawAttribute(string Name, string Value, bool HasValue, int Offset);
         private sealed class MutableElement(string name, int offset, List<RawAttribute> attributes) {

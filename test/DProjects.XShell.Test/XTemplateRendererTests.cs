@@ -120,6 +120,37 @@ namespace DProjects.XShell.Test {
             Assert.Throws<XTemplateException>(() => Render("<div x-attr:[state.name]=\"state.value\"></div>", new { name, value = "value" }));
         }
 
+        [Theory]
+        [InlineData(0x1FFFE)]
+        [InlineData(0x1FFFF)]
+        [InlineData(0x10FFFE)]
+        [InlineData(0x10FFFF)]
+        public void RejectsSupplementaryUnicodeNoncharactersInDynamicAttributeNames(int codePoint) {
+            var name = char.ConvertFromUtf32(codePoint);
+
+            Assert.Throws<XTemplateException>(() => Render("<div x-attr:[state.name]=\"state.value\"></div>", new { name, value = "value" }));
+        }
+
+        [Fact]
+        public void AcceptsOrdinarySupplementaryUnicodeDynamicAttributeNames() {
+            var name = char.ConvertFromUtf32(0x1F600);
+
+            var html = Render("<div x-attr:[state.name]=\"state.value\"></div>", new { name, value = "value" });
+
+            Assert.Equal($"<div {name}=\"value\"></div>", html);
+        }
+
+        [Theory]
+        [InlineData(0x1FFFE)]
+        [InlineData(0x1FFFF)]
+        [InlineData(0x10FFFE)]
+        [InlineData(0x10FFFF)]
+        public void RejectsSupplementaryUnicodeNoncharactersInBoundAttributeNames(int codePoint) {
+            var name = char.ConvertFromUtf32(codePoint);
+
+            Assert.Throws<XTemplateException>(() => Render($"<div x-attr:{name}=\"state.value\"></div>", new { value = "value" }));
+        }
+
         [Fact]
         public void RendersTruthyShowWithoutHiddenAttribute() {
             var html = Render("<div x-show=\"true\"></div>");

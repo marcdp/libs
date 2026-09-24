@@ -64,6 +64,16 @@ namespace DProjects.XShell.Test {
         }
 
         [Fact]
+        public void RendersReadOnlyDictionaryKeysBeforeCollectionSemantics() {
+            IReadOnlyDictionary<string, object?> map = new ReadOnlyMap(new Dictionary<string, object?> { ["name"] = "Ada", ["city"] = "Paris" });
+            var state = new Dictionary<string, object?> { ["map"] = map };
+
+            var html = new XTemplateRenderer().Render("<i x-for=\"key in state.map\">{{ key }}</i>", state);
+
+            Assert.Equal("<i>name</i><i>city</i>", html);
+        }
+
+        [Fact]
         public void UsesExplicitAdapterBeforeCollectionSemanticsForEnumerableObjects() {
             var state = new Dictionary<string, object?> { ["model"] = new AdaptedEnumerable() };
             var context = new XTemplateExpressionContext(new Dictionary<string, object?> { ["state"] = state }, new[] { new AdaptedEnumerableAdapter() });
@@ -74,12 +84,31 @@ namespace DProjects.XShell.Test {
         }
 
         [Fact]
+        public void RendersExplicitAdapterMembersBeforeCollectionSemanticsForEnumerableObjects() {
+            var state = new Dictionary<string, object?> { ["model"] = new AdaptedEnumerable() };
+            var renderer = new XTemplateRenderer(new[] { new AdaptedEnumerableAdapter() });
+
+            var html = renderer.Render("<i x-for=\"key in state.model\">{{ key }}</i>", state);
+
+            Assert.Equal("<i>name</i><i>length</i>", html);
+        }
+
+        [Fact]
         public void KeepsCollectionSemanticsForUnadaptedLists() {
             var state = new Dictionary<string, object?> { ["items"] = new[] { "first", "second" } };
             var context = new XTemplateExpressionContext(new Dictionary<string, object?> { ["state"] = state });
 
             Assert.Equal(2d, XTemplateExpressions.Evaluate("state.items.length", context));
             Assert.Equal("second", XTemplateExpressions.Evaluate("state.items[1]", context));
+        }
+
+        [Fact]
+        public void RendersOrdinaryListsAsCollectionElements() {
+            var state = new Dictionary<string, object?> { ["items"] = new[] { "first", "second" } };
+
+            var html = new XTemplateRenderer().Render("<i x-for=\"item in state.items\">{{ item }}</i>", state);
+
+            Assert.Equal("<i>first</i><i>second</i>", html);
         }
 
         // methods (private)
