@@ -19,10 +19,35 @@ namespace DProjects.XShell.Test {
         }
 
         [Fact]
-        public void RendersNoRecursiveChildrenForNullOrEmptyCollections() {
-            var html = Render("<li x-recursive=\"item in state.items\">{{ item.name }}</li>", new { items = new[] { new { name = "One", children = (object?)null }, new { name = "Two", children = (object?)Array.Empty<object>() } } });
+        public void RendersNoRecursiveChildrenForNullCollection() {
+            var html = Render("<li x-recursive=\"item in state.items\">{{ item.label }}</li>", new { items = new[] { new { label = "Root", children = (object?)null } } });
 
-            Assert.Equal("<li>One</li><li>Two</li>", html);
+            Assert.Equal("<li>Root</li>", html);
+        }
+
+        [Fact]
+        public void RendersNoRecursiveChildrenForEmptyCollection() {
+            var html = Render("<li x-recursive=\"item in state.items\">{{ item.label }}</li>", new { items = new[] { new { label = "Root", children = (object?)Array.Empty<object>() } } });
+
+            Assert.Equal("<li>Root</li>", html);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        [InlineData(-1)]
+        [InlineData(1.5)]
+        public void RejectsInvalidRecursiveChildCollections(object children) {
+            var exception = Assert.Throws<XTemplateException>(() => Render("<li x-recursive=\"item in state.items\">{{ item.label }}</li>", new { items = new[] { new { label = "Root", children = (object?)children } } }));
+
+            Assert.IsType<XTemplateException>(exception);
+        }
+
+        [Fact]
+        public void ExpandsNonNegativeIntegerRecursiveChildCollections() {
+            var html = Render("<li x-recursive=\"(item,index) in state.items\">{{ index }}</li>", new { items = new[] { new { label = "Root", children = (object?)3 } } });
+
+            Assert.Equal("<li>0<li>0</li><li>1</li><li>2</li></li>", html);
         }
 
         [Fact]
