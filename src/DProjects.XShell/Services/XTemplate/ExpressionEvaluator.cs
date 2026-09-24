@@ -1,5 +1,4 @@
 using System.Collections;
-using System.Globalization;
 
 namespace DProjects.XShell.Services.XTemplate {
 
@@ -22,7 +21,7 @@ namespace DProjects.XShell.Services.XTemplate {
                 IndexAccessExpression index => GetIndex(Evaluate(index.Target), Evaluate(index.Index), index.Offset),
                 UnaryExpression unary => EvaluateUnary(unary),
                 BinaryExpression binary => EvaluateBinary(binary),
-                ConditionalExpression conditional => IsTruthy(Evaluate(conditional.Condition)) ? Evaluate(conditional.WhenTrue) : Evaluate(conditional.WhenFalse),
+                ConditionalExpression conditional => XTemplateValues.IsTruthy(Evaluate(conditional.Condition)) ? Evaluate(conditional.WhenTrue) : Evaluate(conditional.WhenFalse),
                 _ => throw new XTemplateExpressionEvaluationException("Unsupported expression node", expression.Offset)
             };
         }
@@ -34,12 +33,12 @@ namespace DProjects.XShell.Services.XTemplate {
         }
         private object? EvaluateUnary(UnaryExpression expression) {
             var value = Evaluate(expression.Operand);
-            return expression.Operator switch { "!" => !IsTruthy(value), "+" => Number(value, expression.Offset), "-" => CheckedNumber(-Number(value, expression.Offset), expression.Offset), _ => throw new XTemplateExpressionEvaluationException($"Unsupported unary operator '{expression.Operator}'", expression.Offset) };
+            return expression.Operator switch { "!" => !XTemplateValues.IsTruthy(value), "+" => Number(value, expression.Offset), "-" => CheckedNumber(-Number(value, expression.Offset), expression.Offset), _ => throw new XTemplateExpressionEvaluationException($"Unsupported unary operator '{expression.Operator}'", expression.Offset) };
         }
         private object? EvaluateBinary(BinaryExpression expression) {
             var left = Evaluate(expression.Left);
-            if (expression.Operator == "&&") return IsTruthy(left) ? Evaluate(expression.Right) : left;
-            if (expression.Operator == "||") return IsTruthy(left) ? left : Evaluate(expression.Right);
+            if (expression.Operator == "&&") return XTemplateValues.IsTruthy(left) ? Evaluate(expression.Right) : left;
+            if (expression.Operator == "||") return XTemplateValues.IsTruthy(left) ? left : Evaluate(expression.Right);
             if (expression.Operator == "??") return left ?? Evaluate(expression.Right);
             var right = Evaluate(expression.Right);
             return expression.Operator switch {
@@ -89,14 +88,22 @@ namespace DProjects.XShell.Services.XTemplate {
         private static bool IsDictionary(object value) => value is IDictionary;
         private static int CollectionLength(object collection) => collection is ICollection collectionValue ? collectionValue.Count : ((IEnumerable)collection).Cast<object?>().Count();
         private static object? Normalize(object? value, int offset) {
-            if (value == null || value is bool or string or double) return value;
-            if (value is byte or sbyte or short or ushort or int or uint or long or ulong or float or decimal) return CheckedNumber(Convert.ToDouble(value, CultureInfo.InvariantCulture), offset);
+            if (value == null || value is bool or string) return value;
+            if (XTemplateValues.IsNumeric(value)) {
+                try { return XTemplateValues.NormalizeNumber(value); }
+                catch (XTemplateValueException exception) { throw new XTemplateExpressionEvaluationException(exception.Message, offset); }
+            }
             if (value is char character) return character.ToString();
             return value;
         }
-        private static double Number(object? value, int offset) => value is double number ? number : throw new XTemplateExpressionEvaluationException("Numeric operands are required", offset);
+        private static double Number(object? value, int offset) {
+            try { return value is double number ? XTemplateValues.NormalizeNumber(number) : XTemplateValues.ToNumber(value); }
+            catch (XTemplateValueException exception) { throw new XTemplateExpressionEvaluationException(exception.Message, offset); }
+        }
         private static double CheckedNumber(double value, int offset) => double.IsFinite(value) ? value : throw new XTemplateExpressionEvaluationException("Arithmetic result must be a finite number", offset);
-        private static bool IsTruthy(object? value) => value switch { null => false, bool boolean => boolean, double number => number != 0, string text => text.Length != 0, _ => true };
-        private static string ScalarString(object? value, int offset) => value switch { null => string.Empty, bool boolean => boolean ? "true" : "false", double number when number == 0 => "0", double number => number.ToString("R", CultureInfo.InvariantCulture), string text => text, _ => throw new XTemplateExpressionEvaluationException("Objects and collections cannot be converted to strings", offset) };
+        private static string ScalarString(object? value, int offset) {
+            try { return XTemplateValues.ToScalarString(value); }
+            catch (XTemplateValueException exception) { throw new XTemplateExpressionEvaluationException(exception.Message, offset); }
+        }
     }
 }

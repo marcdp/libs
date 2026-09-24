@@ -46,6 +46,45 @@ namespace DProjects.XShell.Test {
         }
 
         [Fact]
+        public void UsesTheSameTruthinessForDirectivesAndExpressions() {
+            var values = new object?[] { null, false, true, 0, -0d, 2, string.Empty, "value", Array.Empty<object>(), new object() };
+
+            foreach (var value in values) {
+                var html = Render("<a x-if=\"state.value\">truthy</a><b x-if=\"!state.value\">falsy</b>", new { value });
+                var expected = XTemplateTruthiness(value) ? "<a>truthy</a>" : "<b>falsy</b>";
+                Assert.Equal(expected, html);
+            }
+        }
+
+        [Fact]
+        public void UsesTheSameScalarConversionForInterpolationAndStringConcatenation() {
+            var values = new object?[] { null, false, true, 12, 1.25d, -0d, "value" };
+
+            foreach (var value in values) {
+                var html = Render("<span>{{ state.value }}</span><b>{{ '' + state.value }}</b>", new { value });
+                var expected = Scalar(value);
+                Assert.Equal($"<span>{expected}</span><b>{expected}</b>", html);
+            }
+        }
+
+        [Fact]
+        public void NormalizesClrNumbersConsistently() {
+            foreach (var value in new object[] { 12, 12L, 12.5f, 12.5d, 12.5m }) {
+                var normalized = Convert.ToDouble(value).ToString("R", System.Globalization.CultureInfo.InvariantCulture);
+                var html = Render("<span>{{ state.value + 0 }}</span><b x-attr:data-value=\"state.value\"></b>", new { value });
+
+                Assert.Equal($"<span>{normalized}</span><b data-value=\"{normalized}\"></b>", html);
+            }
+        }
+
+        [Fact]
+        public void RejectsNonFiniteNumbersInBothExpressionAndRendererPaths() {
+            Assert.Throws<XTemplateExpressionEvaluationException>(() => XTemplateExpressions.Evaluate("state.value + 0", new XTemplateExpressionContext(new Dictionary<string, object?> { ["state"] = new { value = double.NaN } }, new[] { new XTemplateReflectionObjectAdapter() })));
+            Assert.Throws<XTemplateExpressionEvaluationException>(() => Render("<span>{{ state.value }}</span>", new { value = double.PositiveInfinity }));
+            Assert.Throws<XTemplateException>(() => Render("<div x-attr=\"state.attributes\"></div>", new { attributes = new Dictionary<string, object?> { ["value"] = double.NegativeInfinity } }));
+        }
+
+        [Fact]
         public void SupportsAttributeSpreadAndDynamicNames() {
             var attributes = new Dictionary<string, object?> { ["title"] = "Hello", ["hidden"] = false, ["checked"] = true, ["count"] = 2, ["empty"] = null };
             var state = new { attributes, attributeName = "data-id", value = "42" };
@@ -132,5 +171,7 @@ namespace DProjects.XShell.Test {
 
         // methods (private)
         private static string Render(string template, object? state = null) => new XTemplateRenderer(new[] { new XTemplateReflectionObjectAdapter() }).Render(template, state ?? new { });
+        private static bool XTemplateTruthiness(object? value) => value switch { null => false, bool boolean => boolean, double number => number != 0, int number => number != 0, string text => text.Length != 0, _ => true };
+        private static string Scalar(object? value) => value switch { null => string.Empty, bool boolean => boolean ? "true" : "false", double number => number == 0 ? "0" : number.ToString("R", System.Globalization.CultureInfo.InvariantCulture), int number => number.ToString(System.Globalization.CultureInfo.InvariantCulture), string text => text, _ => throw new InvalidOperationException() };
     }
 }

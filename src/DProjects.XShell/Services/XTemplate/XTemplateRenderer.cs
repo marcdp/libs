@@ -1,5 +1,4 @@
 using System.Collections;
-using System.Globalization;
 using System.Net;
 using System.Text;
 
@@ -72,7 +71,7 @@ namespace DProjects.XShell.Services.XTemplate {
                 if (children[index] is not XTemplateElementNode element) continue;
                 if (element.IsElse) return element;
                 var condition = element.If ?? element.ElseIf;
-                if (condition != null && IsTruthy(XTemplateExpressions.Evaluate(condition, context))) return element;
+                if (condition != null && IsTruthy(XTemplateExpressions.Evaluate(condition, context), element.Offset)) return element;
             }
             return null;
         }
@@ -167,11 +166,11 @@ namespace DProjects.XShell.Services.XTemplate {
                         SetBoundAttribute(attributes, name, XTemplateExpressions.Evaluate(dynamicAttribute.ValueExpression, context), dynamicAttribute.Offset);
                         break;
                     case XTemplateClassAttribute classAttribute:
-                        if (IsTruthy(XTemplateExpressions.Evaluate(classAttribute.Expression, context))) attributes.AddClass(classAttribute.Name);
+                        if (IsTruthy(XTemplateExpressions.Evaluate(classAttribute.Expression, context), classAttribute.Offset)) attributes.AddClass(classAttribute.Name);
                         break;
                     case XTemplateShowAttribute showAttribute:
                         hasShow = true;
-                        isHidden |= !IsTruthy(XTemplateExpressions.Evaluate(showAttribute.Expression, context));
+                        isHidden |= !IsTruthy(XTemplateExpressions.Evaluate(showAttribute.Expression, context), showAttribute.Offset);
                         break;
                 }
             }
@@ -191,7 +190,7 @@ namespace DProjects.XShell.Services.XTemplate {
             }
             if (element.Name != "input") return null;
             var type = values.GetValue("type")?.ToLowerInvariant() ?? "text";
-            if (type == "checkbox") { if (IsTruthy(modelValue)) values.Set("checked", null); else values.Remove("checked"); }
+            if (type == "checkbox") { if (IsTruthy(modelValue, element.Offset)) values.Set("checked", null); else values.Remove("checked"); }
             else if (type == "radio") {
                 var value = values.GetValue("value") ?? string.Empty;
                 if (modelValue != null && ScalarString(modelValue, element.Offset) == value) values.Set("checked", null); else values.Remove("checked");
@@ -220,14 +219,14 @@ namespace DProjects.XShell.Services.XTemplate {
             if (value == null || value is false) { attributes.Remove(name); return; }
             if (value is true) { attributes.Set(name, null); return; }
             if (value is string text) { attributes.Set(name, text); return; }
-            if (IsNumeric(value)) { attributes.Set(name, ScalarString(NormalizeNumber(value), offset)); return; }
-            var keys = ObjectMembers(value, offset).Where(member => IsTruthy(member.Value)).Select(member => member.Key);
+            if (IsNumeric(value)) { attributes.Set(name, ScalarString(NormalizeNumber(value, offset), offset)); return; }
+            var keys = ObjectMembers(value, offset).Where(member => IsTruthy(member.Value, offset)).Select(member => member.Key);
             attributes.Set(name, string.Join(' ', keys));
         }
         private IEnumerable<object?> NormalizeCollection(object? value, int offset) {
             if (value == null || value is bool) throw new XTemplateException("x-for requires a collection, string, object, or non-negative integer number", offset);
             if (IsNumeric(value)) {
-                var number = Convert.ToDouble(value, CultureInfo.InvariantCulture);
+                var number = NormalizeNumber(value, offset);
                 if (!double.IsFinite(number) || number < 0 || number != Math.Truncate(number)) throw new XTemplateException("x-for numeric sources must be finite non-negative integers", offset);
                 if (number > int.MaxValue) throw new XTemplateException("x-for numeric source is too large", offset);
                 return Enumerable.Range(1, (int)number).Cast<object?>();
@@ -243,10 +242,19 @@ namespace DProjects.XShell.Services.XTemplate {
             catch (XTemplateObjectAccessException exception) { throw new XTemplateException(exception.Message, offset); }
             catch (Exception exception) { throw new XTemplateException($"Unable to enumerate exposed object members: {exception.Message}", offset); }
         }
-        private static bool IsNumeric(object value) => value is byte or sbyte or short or ushort or int or uint or long or ulong or float or double or decimal;
-        private static double NormalizeNumber(object value) => Convert.ToDouble(value, CultureInfo.InvariantCulture);
-        private static bool IsTruthy(object? value) => value switch { null => false, bool boolean => boolean, string text => text.Length != 0, double number => number != 0, float number => number != 0, byte number => number != 0, sbyte number => number != 0, short number => number != 0, ushort number => number != 0, int number => number != 0, uint number => number != 0, long number => number != 0, ulong number => number != 0, decimal number => number != 0, _ => true };
-        private static string ScalarString(object? value, int offset) => value switch { null => string.Empty, bool boolean => boolean ? "true" : "false", string text => text, _ when IsNumeric(value) => NormalizeNumber(value).ToString("R", CultureInfo.InvariantCulture), _ => throw new XTemplateException("Objects and collections cannot be converted to text", offset) };
+        private static bool IsNumeric(object? value) => XTemplateValues.IsNumeric(value);
+        private static double NormalizeNumber(object value, int offset) {
+            try { return XTemplateValues.NormalizeNumber(value); }
+            catch (XTemplateValueException exception) { throw new XTemplateException(exception.Message, offset); }
+        }
+        private static bool IsTruthy(object? value, int offset) {
+            try { return XTemplateValues.IsTruthy(value); }
+            catch (XTemplateValueException exception) { throw new XTemplateException(exception.Message, offset); }
+        }
+        private static string ScalarString(object? value, int offset) {
+            try { return XTemplateValues.ToScalarString(value); }
+            catch (XTemplateValueException exception) { throw new XTemplateException(exception.Message, offset); }
+        }
         private static string HtmlText(string value) => value.Replace("&", "&amp;", StringComparison.Ordinal).Replace("<", "&lt;", StringComparison.Ordinal).Replace(">", "&gt;", StringComparison.Ordinal);
         private static string HtmlTextContent(string html) {
             var text = new StringBuilder();
