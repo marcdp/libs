@@ -29,7 +29,7 @@ export const contract = {
     methods: {
         validate: {
             description: "Validates the form's data fields.",
-            arguments: [],
+            parameters: [],
             returns: {
                 description: "The validation errors found in the form.",
                 type: "array"
@@ -37,7 +37,7 @@ export const contract = {
         },
         showLoading: {
             description: "Shows the loading notice and optionally updates its text.",
-            arguments: [
+            parameters: [
                 {name:"options", type:"object", description:"Optional label and message values for the loading notice."}
             ],
             returns: {
@@ -47,11 +47,25 @@ export const contract = {
         },
         hideLoading: {
             description: "Hides the loading notice.",
-            arguments: [],
+            parameters: [],
             returns: {
                 description: "Does not return a value.",
                 type: "void"
             }
+        }
+    }, 
+    slots: {
+        "": {
+            description: "The default slot for form content."
+        },
+        "header": {
+            description: "The slot for the form header content."
+        },
+        "cancel":{
+            description: "The slot for the form cancel button content."
+        },
+        "footer": {
+            description: "The slot for the form footer content."
         }
     }
 };

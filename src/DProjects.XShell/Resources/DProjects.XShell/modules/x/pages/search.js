@@ -42,8 +42,8 @@ export default {
         </x-datafields>    
     `,    
     state: {
-        keyword: {value:"", attr:true},
-        results: {value:[]}
+        keyword: "",
+        results: []
     },
     controller({ state, events, bus, modules, areas, config }) {
         return {

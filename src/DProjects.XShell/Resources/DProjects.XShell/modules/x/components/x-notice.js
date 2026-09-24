@@ -8,7 +8,12 @@ export const contract = {
         message: {type:"string", default:"", attribute:true, state:true, description:""},
         visible: {type:"boolean", default:true, attribute:true, state:true, description:""}
     },
-    methods: {}
+    methods: {},
+    slots: {
+        "": {
+            description: "The default slot for notice content."
+        }
+    }
 };
 
 

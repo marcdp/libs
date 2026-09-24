@@ -17,7 +17,7 @@
     "valueType": {
       "type": "string",
       "description": "Declares the XShell value type expected by a property, event detail field, parameter, or return value.",
-      "enum": [ "string", "number", "integer", "boolean", "object", "array", "function", "any" ]
+      "enum": [ "string", "number", "integer", "boolean", "object", "array", "function", "any", "void" ]
     },
     "property": {
       "type": "object",

@@ -23,7 +23,12 @@ export const contract = {
         move:       {type:"boolean", default:false, attribute:true, state:true, description:""},
         edit:       {type:"boolean", default:false, attribute:true, state:true, description:""}
     },
-    methods: {}
+    methods: {},
+    slots: {
+        "": {
+            description: "The default slot for data fields."
+        }
+    }
 }
 
 

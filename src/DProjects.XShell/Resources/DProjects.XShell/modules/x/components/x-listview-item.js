@@ -13,7 +13,12 @@ export const contract = {
         open:        {type:"string", default:"", attribute:true, state:true, description:""},
         view:        {type:"string", default:"list", attribute:true, state:true, description:""}
     },
-    methods: {}
+    methods: {},
+    slots: {
+        "": {
+            description: "The default slot for list view item content."
+        }
+    }
 };
 
 

@@ -40,16 +40,22 @@ namespace DProjects.XShell.Services.XTemplate {
         private static string Percent(object input, IReadOnlyList<object?> arguments, CultureInfo culture, int offset) {
             RequireCount("percent", arguments, 0, 1, offset);
             int? digits = arguments.Count == 0 ? null : Digits(arguments[0], offset);
-            var text = FormatNumber(InputNumber(input, "percent", offset) * 100, digits, culture, offset);
-            return culture.Name.Equals("tr-TR", StringComparison.OrdinalIgnoreCase) ? "%" + text : culture.Name.Equals("es-ES", StringComparison.OrdinalIgnoreCase) ? text + "\u00A0%" : text + "%";
+            var percentage = InputNumber(input, "percent", offset) * 100;
+            if (!double.IsFinite(percentage)) throw Error("Formatter 'percent' produced a non-finite intermediate result", offset);
+            var rounded = Round(percentage, digits);
+            var text = FormatNumber(Math.Abs(rounded), digits, culture, offset);
+            var numberFormat = culture.NumberFormat;
+            return ApplyPercentPattern(text, numberFormat.PercentSymbol, rounded < 0, numberFormat);
         }
         private static string Currency(object input, IReadOnlyList<object?> arguments, CultureInfo culture, int offset) {
             RequireCount("currency", arguments, 1, 2, offset);
             if (arguments[0] is not string code || !CurrencyCode().IsMatch(code) || !Currencies.TryGetValue(code, out var currency)) throw Error("Formatter 'currency' requires a supported uppercase ISO 4217 currency code", offset);
             var digits = arguments.Count == 2 ? Digits(arguments[1], offset) : currency.Digits;
-            var text = FormatNumber(InputNumber(input, "currency", offset), digits, culture, offset);
-            var symbol = localeIsInvariant(culture) && currency.Symbol == code ? code : currency.Symbol;
-            return culture.Name.Equals("es-ES", StringComparison.OrdinalIgnoreCase) || culture.Name.Equals("tr-TR", StringComparison.OrdinalIgnoreCase) ? text + "\u00A0" + symbol : symbol + text;
+            var numberFormat = (NumberFormatInfo)culture.NumberFormat.Clone();
+            numberFormat.CurrencySymbol = currency.Symbol;
+            numberFormat.CurrencyDecimalDigits = digits;
+            NormalizeCurrencyPattern(culture, numberFormat);
+            return Round(InputNumber(input, "currency", offset), digits).ToString("C", numberFormat).Replace(" ", "\u00A0", StringComparison.Ordinal);
         }
         private static string String(object input, IReadOnlyList<object?> arguments, CultureInfo culture, int offset, bool upper) {
             RequireCount(upper ? "upper" : "lower", arguments, 0, 0, offset);
@@ -75,11 +81,34 @@ namespace DProjects.XShell.Services.XTemplate {
         }
         private static string FormatNumber(double number, int? digits, CultureInfo culture, int offset) {
             var precision = digits ?? 3;
-            var rounded = Math.Round(number, precision, MidpointRounding.AwayFromZero);
+            var rounded = Round(number, digits);
             var format = digits.HasValue ? "#,##0." + new string('0', digits.Value) : "#,##0." + new string('#', precision);
             if (precision == 0) format = "#,##0";
             try { return rounded.ToString(format, culture); }
             catch (FormatException) { throw Error("Unsupported formatter precision", offset); }
+        }
+        private static double Round(double number, int? digits) => Math.Round(number, digits ?? 3, MidpointRounding.AwayFromZero);
+        private static string ApplyPercentPattern(string number, string symbol, bool negative, NumberFormatInfo numberFormat) {
+            var pattern = negative ? numberFormat.PercentNegativePattern : numberFormat.PercentPositivePattern;
+            return pattern switch {
+                0 => negative ? "-" + number + "\u00A0" + symbol : number + "\u00A0" + symbol,
+                1 => negative ? "-" + number + symbol : number + symbol,
+                2 => negative ? "-" + symbol + number : symbol + number,
+                3 => negative ? symbol + "-" + number : symbol + "\u00A0" + number,
+                4 => symbol + number + "-",
+                5 => number + "-" + symbol,
+                6 => number + symbol + "-",
+                7 => "-" + symbol + "\u00A0" + number,
+                8 => number + "\u00A0" + symbol + "-",
+                9 => symbol + "\u00A0" + number + "-",
+                10 => symbol + "\u00A0-" + number,
+                11 => number + "-\u00A0" + symbol,
+                _ => throw new InvalidOperationException("Unsupported percent pattern")
+            };
+        }
+        private static void NormalizeCurrencyPattern(CultureInfo culture, NumberFormatInfo numberFormat) {
+            // normalize the .NET Turkish local-currency pattern to the normative XTemplate foreign-currency profile
+            if (culture.Name.Equals("tr-TR", StringComparison.OrdinalIgnoreCase)) numberFormat.CurrencyPositivePattern = 3;
         }
         private static DateTimeOffset ParseDate(object input, int offset, bool dateAllowed) {
             if (input is not string text) throw Error("Date/time formatters require a string input", offset);
@@ -91,6 +120,8 @@ namespace DProjects.XShell.Services.XTemplate {
         private static string FormatPattern(DateTimeOffset value, string pattern, CultureInfo culture, bool dateAllowed, bool timeAllowed, int offset) {
             var result = new System.Text.StringBuilder();
             var hasToken = false;
+            var hasDateToken = false;
+            var hasTimeToken = false;
             for (var position = 0; position < pattern.Length;) {
                 var token = PatternTokens.FirstOrDefault(candidate => pattern.AsSpan(position).StartsWith(candidate, StringComparison.Ordinal));
                 if (token == null) {
@@ -106,9 +137,12 @@ namespace DProjects.XShell.Services.XTemplate {
                     "HH" => value.Hour.ToString("D2", CultureInfo.InvariantCulture), "H" => value.Hour.ToString(CultureInfo.InvariantCulture), "mm" => value.Minute.ToString("D2", CultureInfo.InvariantCulture), "ss" => value.Second.ToString("D2", CultureInfo.InvariantCulture), _ => throw Error("Formatter pattern contains an unsupported token", offset)
                 });
                 hasToken = true;
+                hasDateToken |= token is "yyyy" or "MMMM" or "MMM" or "MM" or "M" or "dd" or "d";
+                hasTimeToken |= token is "HH" or "H" or "mm" or "ss";
                 position += token.Length;
             }
             if (!hasToken) throw Error("Formatter pattern must contain a token", offset);
+            if (dateAllowed && timeAllowed && (!hasDateToken || !hasTimeToken)) throw Error("Formatter 'datetime' pattern must contain date and time tokens", offset);
             return result.ToString();
         }
         private static string Pattern(IReadOnlyList<object?> arguments, string name, int offset) {
@@ -122,7 +156,6 @@ namespace DProjects.XShell.Services.XTemplate {
         private static double InputNumber(object input, string name, int offset) => input is double number && double.IsFinite(number) ? number : throw Error($"Formatter '{name}' requires a numeric input", offset);
         private static void RequireCount(string name, IReadOnlyList<object?> values, int minimum, int maximum, int offset) { if (values.Count < minimum || values.Count > maximum) throw Error($"Formatter '{name}' received an invalid argument count", offset); }
         private static CultureInfo GetCulture(string? locale, int offset) { if (string.IsNullOrWhiteSpace(locale)) return CultureInfo.InvariantCulture; try { return CultureInfo.GetCultureInfo(locale); } catch (CultureNotFoundException) { throw Error($"Unsupported formatter locale '{locale}'", offset); } }
-        private static bool localeIsInvariant(CultureInfo culture) => culture.Equals(CultureInfo.InvariantCulture);
         private static XTemplateExpressionEvaluationException Error(string message, int offset) => new(message, offset);
 
         [GeneratedRegex("^[A-Z]{3}$", RegexOptions.CultureInvariant)]

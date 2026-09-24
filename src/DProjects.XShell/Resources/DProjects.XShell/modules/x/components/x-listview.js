@@ -6,7 +6,15 @@ export const contract = {
         view:       {type:"string", default:"list", attribute:true, state:true, description:""},
         autoScroll: {type:"boolean", default:false, attribute:true, state:true, description:""}
     },
-    methods: {}
+    methods: {},
+    slots: {
+        "": {
+            description: "The default slot for data fields."
+        },
+        "column": {
+            description: "The slot for column headers."
+        }
+    }
 };
 
 

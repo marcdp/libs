@@ -224,15 +224,83 @@ namespace DProjects.XShell.Test {
         [Fact]
         public void FormatsNumbersPercentAndCurrenciesAcrossTheLocaleProfile() {
             Assert.Equal("12", XTemplateExpressions.Evaluate("12 | number", Context()));
+            Assert.Equal(XTemplateExpressions.Evaluate("12.3456 | number", Context()), XTemplateExpressions.Evaluate("12.3456 | number()", Context()));
             Assert.Equal("12.346", XTemplateExpressions.Evaluate("12.3456 | number", Context()));
             Assert.Equal("12.50", XTemplateExpressions.Evaluate("12.5 | number(2)", Context()));
+            Assert.Equal("1.3", XTemplateExpressions.Evaluate("1.25 | number(1)", Context()));
             Assert.Equal("-1.3", XTemplateExpressions.Evaluate("-1.25 | number(1)", Context()));
-            Assert.Equal("1,234.50", XTemplateExpressions.Evaluate("1234.5 | number(2)", Context(locale: "en-US")));
-            Assert.Equal("1.234,50", XTemplateExpressions.Evaluate("1234.5 | number(2)", Context(locale: "es-ES")));
-            Assert.Equal("25,0\u00A0%", XTemplateExpressions.Evaluate("0.25 | percent(1)", Context(locale: "es-ES")));
-            Assert.Equal("€1,234.50", XTemplateExpressions.Evaluate("1234.5 | currency('EUR')", Context(locale: "en-US")));
             Assert.Equal("¥1,235", XTemplateExpressions.Evaluate("1234.5 | currency('JPY')", Context(locale: "en-US")));
+            Assert.Equal("€1,234.500", XTemplateExpressions.Evaluate("1234.5 | currency('EUR', 3)", Context(locale: "en-US")));
             Assert.Throws<XTemplateExpressionEvaluationException>(() => XTemplateExpressions.Evaluate("1 | currency('eur')", Context()));
+        }
+
+        [Theory]
+        [InlineData("en-US", "1,234.50", "25.0%", "€1,234.50", "September", "I", "i")]
+        [InlineData("es-ES", "1.234,50", "25,0\u00A0%", "1.234,50\u00A0€", "septiembre", "I", "i")]
+        [InlineData("tr-TR", "1.234,50", "%25,0", "1.234,50\u00A0€", "Eylül", "İ", "ı")]
+        public void MeetsTheLocaleFormatterConformanceProfile(string locale, string number, string percent, string currency, string month, string upper, string lower) {
+            var context = Context(locale: locale);
+
+            Assert.Equal(number, XTemplateExpressions.Evaluate("1234.5 | number(2)", context));
+            Assert.Equal(percent, XTemplateExpressions.Evaluate("0.25 | percent(1)", context));
+            Assert.Equal(currency, XTemplateExpressions.Evaluate("1234.5 | currency('EUR')", context));
+            Assert.Equal(month, XTemplateExpressions.Evaluate("'2026-09-24' | date('MMMM')", context));
+            Assert.Equal(upper, XTemplateExpressions.Evaluate("'i' | upper", context));
+            Assert.Equal(lower, XTemplateExpressions.Evaluate("'I' | lower", context));
+        }
+
+        [Fact]
+        public void MeetsTheTurkishCasingConformanceProfile() {
+            var context = Context(locale: "tr-TR");
+
+            Assert.Equal("i", XTemplateExpressions.Evaluate("'İ' | lower", context));
+            Assert.Equal("I", XTemplateExpressions.Evaluate("'ı' | upper", context));
+        }
+
+        [Fact]
+        public void RejectsInvalidFormatterArgumentsAndInputs() {
+            var context = Context(new { state = new { value = double.MaxValue } });
+
+            Assert.Throws<XTemplateExpressionEvaluationException>(() => XTemplateExpressions.Evaluate("1 | number(-1)", context));
+            Assert.Throws<XTemplateExpressionEvaluationException>(() => XTemplateExpressions.Evaluate("1 | number(1.5)", context));
+            Assert.Throws<XTemplateExpressionEvaluationException>(() => XTemplateExpressions.Evaluate("1 | number(16)", context));
+            Assert.Equal(XTemplateExpressions.Evaluate("1 | percent", context), XTemplateExpressions.Evaluate("1 | percent()", context));
+            Assert.Equal("100.00\u00A0%", XTemplateExpressions.Evaluate("1 | percent(2)", context));
+            Assert.Throws<XTemplateExpressionEvaluationException>(() => XTemplateExpressions.Evaluate("1 | percent(-1)", context));
+            Assert.Throws<XTemplateExpressionEvaluationException>(() => XTemplateExpressions.Evaluate("1 | percent(1.5)", context));
+            Assert.Throws<XTemplateExpressionEvaluationException>(() => XTemplateExpressions.Evaluate("state.value | percent", context));
+            Assert.Throws<XTemplateExpressionEvaluationException>(() => XTemplateExpressions.Evaluate("1 | currency()", context));
+            Assert.Throws<XTemplateExpressionEvaluationException>(() => XTemplateExpressions.Evaluate("1 | currency('')", context));
+            Assert.Throws<XTemplateExpressionEvaluationException>(() => XTemplateExpressions.Evaluate("1 | currency('Usd')", context));
+            Assert.Throws<XTemplateExpressionEvaluationException>(() => XTemplateExpressions.Evaluate("1 | currency(123)", context));
+            Assert.Throws<XTemplateExpressionEvaluationException>(() => XTemplateExpressions.Evaluate("1 | currency('EUR', -1)", context));
+            Assert.Throws<XTemplateExpressionEvaluationException>(() => XTemplateExpressions.Evaluate("1 | currency('EUR', 1.5)", context));
+            Assert.Throws<XTemplateExpressionEvaluationException>(() => XTemplateExpressions.Evaluate("1 | currency('XYZ')", context));
+            Assert.Throws<XTemplateExpressionEvaluationException>(() => XTemplateExpressions.Evaluate("'x' | upper(1)", context));
+            Assert.Throws<XTemplateExpressionEvaluationException>(() => XTemplateExpressions.Evaluate("'x' | lower(1)", context));
+            Assert.Throws<XTemplateExpressionEvaluationException>(() => XTemplateExpressions.Evaluate("'x' | trim('x')", context));
+            Assert.Throws<XTemplateExpressionEvaluationException>(() => XTemplateExpressions.Evaluate("1 | upper", context));
+            Assert.Throws<XTemplateExpressionEvaluationException>(() => XTemplateExpressions.Evaluate("1 | lower", context));
+            Assert.Throws<XTemplateExpressionEvaluationException>(() => XTemplateExpressions.Evaluate("1 | trim", context));
+        }
+
+        [Fact]
+        public void RejectsInvalidDateAndTimeFormatterValues() {
+            var context = Context();
+
+            Assert.Throws<XTemplateExpressionEvaluationException>(() => XTemplateExpressions.Evaluate("'2026-09-24' | date()", context));
+            Assert.Throws<XTemplateExpressionEvaluationException>(() => XTemplateExpressions.Evaluate("123 | date('yyyy')", context));
+            Assert.Throws<XTemplateExpressionEvaluationException>(() => XTemplateExpressions.Evaluate("'2026-09-24' | date('yyyy', 1)", context));
+            Assert.Throws<XTemplateExpressionEvaluationException>(() => XTemplateExpressions.Evaluate("'2026-09-24' | date('HH:mm')", context));
+            Assert.Throws<XTemplateExpressionEvaluationException>(() => XTemplateExpressions.Evaluate("'2026-09-24' | date('unsupported-token')", context));
+            Assert.Throws<XTemplateExpressionEvaluationException>(() => XTemplateExpressions.Evaluate("'2026-02-30' | date('yyyy-MM-dd')", context));
+            Assert.Throws<XTemplateExpressionEvaluationException>(() => XTemplateExpressions.Evaluate("'2026-09-24T21:15:00Z' | datetime()", context));
+            Assert.Throws<XTemplateExpressionEvaluationException>(() => XTemplateExpressions.Evaluate("123 | datetime('yyyy-MM-dd HH:mm')", context));
+            Assert.Throws<XTemplateExpressionEvaluationException>(() => XTemplateExpressions.Evaluate("'2026-09-24T21:15:00Z' | datetime('yyyy')", context));
+            Assert.Throws<XTemplateExpressionEvaluationException>(() => XTemplateExpressions.Evaluate("'2026-09-24T21:15:00' | datetime('HH:mm')", context));
+            Assert.Throws<XTemplateExpressionEvaluationException>(() => XTemplateExpressions.Evaluate("'2026-09-24T21:15:00Z' | time('yyyy')", context));
+            Assert.Equal("21:15", XTemplateExpressions.Evaluate("'2026-09-24T21:15:00Z' | time('HH:mm')", context));
+            Assert.Equal("21:15:00", XTemplateExpressions.Evaluate("'2026-09-24T21:15:00Z' | time('HH:mm:ss')", context));
         }
 
         [Fact]
