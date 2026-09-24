@@ -44,7 +44,30 @@ namespace DProjects.XShell.Test {
         [Fact]
         public void RejectsInvalidAndAmbiguousModelCases() {
             Assert.Throws<XTemplateException>(() => Render("<input x-model=\"state.a + state.b\">", new { a = 1, b = 2 }));
-            Assert.Throws<XTemplateException>(() => Render("<select x-model=\"state.value\"></select>", new { value = "a" }));
+            Assert.Throws<XTemplateException>(() => Render("<select multiple x-model=\"state.value\"><option value=\"a\">A</option></select>", new { value = "a" }));
+        }
+
+        [Theory]
+        [InlineData("a", "<select><option value=\"a\" selected>A</option><option value=\"b\">B</option><option value=\"c\">C</option></select>")]
+        [InlineData("b", "<select><option value=\"a\">A</option><option value=\"b\" selected>B</option><option value=\"c\">C</option></select>")]
+        [InlineData("c", "<select><option value=\"a\">A</option><option value=\"b\">B</option><option value=\"c\" selected>C</option></select>")]
+        public void SelectModelMarksTheMatchingExplicitValueOption(string value, string expected) {
+            var html = Render("<select x-model=\"state.value\"><option value=\"a\">A</option><option value=\"b\">B</option><option value=\"c\">C</option></select>", new { value });
+
+            Assert.Equal(expected, html);
+        }
+
+        [Fact]
+        public void SelectModelNormalizesOptionsAndPreservesOptionMarkup() {
+            var html = Render("<select id=\"choices\" x-model=\"state.value\"><option value=\"1\" selected data-id=\"first\">One</option><option class=\"choice\" selected data-id=\"second\"><span>Two</span> &amp; more</option><option value=\"3\" selected>Three</option></select>", new { value = "Two & more" });
+
+            Assert.Equal("<select id=\"choices\"><option value=\"1\" data-id=\"first\">One</option><option class=\"choice\" selected data-id=\"second\"><span>Two</span> &amp; more</option><option value=\"3\">Three</option></select>", html);
+        }
+
+        [Fact]
+        public void SelectModelUsesScalarConversionAndLeavesNoMatchUnselected() {
+            Assert.Equal("<select><option value=\"1\">One</option><option value=\"2\" selected>Two</option></select>", Render("<select x-model=\"state.value\"><option value=\"1\">One</option><option value=\"2\">Two</option></select>", new { value = 2 }));
+            Assert.Equal("<select><option value=\"a\">A</option><option value=\"b\">B</option></select>", Render("<select x-model=\"state.value\"><option value=\"a\" selected>A</option><option value=\"b\">B</option></select>", new { value = "missing" }));
         }
 
         [Fact]

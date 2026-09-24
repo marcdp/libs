@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Globalization;
+using System.Net;
 using System.Reflection;
 using System.Text;
 
@@ -26,12 +27,12 @@ namespace DProjects.XShell.Services.XTemplate {
             var root = new XTemplateParser(template.Trim()).Parse();
             var context = new XTemplateExpressionContext(new Dictionary<string, object?> { ["state"] = state });
             var result = new StringBuilder();
-            RenderChildren(root.Children, context, result);
+            RenderChildren(root.Children, context, result, null);
             return result.ToString();
         }
 
         // methods (private)
-        private void RenderChildren(IReadOnlyList<XTemplateNode> children, XTemplateExpressionContext context, StringBuilder result) {
+        private void RenderChildren(IReadOnlyList<XTemplateNode> children, XTemplateExpressionContext context, StringBuilder result, XTemplateSelectModel? selectModel) {
             for (var index = 0; index < children.Count; index++) {
                 if (children[index] is XTemplateElementNode element && element.If != null) {
                     var end = FindConditionalEnd(children, index);
@@ -39,14 +40,14 @@ namespace DProjects.XShell.Services.XTemplate {
                     for (var branchIndex = index; branchIndex <= end; branchIndex++) {
                         var node = children[branchIndex];
                         if (node is XTemplateElementNode branch && (branch.If != null || branch.ElseIf != null || branch.IsElse)) {
-                            if (ReferenceEquals(branch, selected)) RenderElement(branch, context, result);
-                        } else RenderNode(node, context, result);
+                            if (ReferenceEquals(branch, selected)) RenderElement(branch, context, result, selectModel);
+                        } else RenderNode(node, context, result, selectModel);
                     }
                     index = end;
                     continue;
                 }
                 if (children[index] is XTemplateElementNode { ElseIf: not null } or XTemplateElementNode { IsElse: true }) throw new XTemplateException("Conditional branch has no preceding x-if", children[index].Offset);
-                RenderNode(children[index], context, result);
+                RenderNode(children[index], context, result, selectModel);
             }
         }
         private static int FindConditionalEnd(IReadOnlyList<XTemplateNode> children, int start) {
@@ -68,20 +69,20 @@ namespace DProjects.XShell.Services.XTemplate {
             }
             return null;
         }
-        private void RenderNode(XTemplateNode node, XTemplateExpressionContext context, StringBuilder result) {
+        private void RenderNode(XTemplateNode node, XTemplateExpressionContext context, StringBuilder result, XTemplateSelectModel? selectModel) {
             switch (node) {
                 case XTemplateTextNode text: result.Append(HtmlText(text.Text)); break;
                 case XTemplateInterpolationNode interpolation: result.Append(HtmlText(ScalarString(XTemplateExpressions.Evaluate(interpolation.Expression, context), interpolation.Offset))); break;
                 case XTemplateCommentNode comment: result.Append("<!--").Append(comment.Text).Append("-->"); break;
                 case XTemplateRawHtmlNode raw: result.Append(raw.Html); break;
-                case XTemplateElementNode element: RenderElement(element, context, result); break;
+                case XTemplateElementNode element: RenderElement(element, context, result, selectModel); break;
                 default: throw new XTemplateException("Unsupported template node", node.Offset);
             }
         }
-        private void RenderElement(XTemplateElementNode element, XTemplateExpressionContext context, StringBuilder result) {
+        private void RenderElement(XTemplateElementNode element, XTemplateExpressionContext context, StringBuilder result, XTemplateSelectModel? selectModel) {
             if (element.ChildrenExpression != null) throw new XTemplateException("x-children is not supported by server rendering because it requires browser DOM nodes", element.Offset);
             if (element.Recursive != null) {
-                RenderRecursiveItems(element, NormalizeCollection(XTemplateExpressions.Evaluate(element.Recursive.Collection, context), element.Recursive.Offset), context, 0, 0, result);
+                RenderRecursiveItems(element, NormalizeCollection(XTemplateExpressions.Evaluate(element.Recursive.Collection, context), element.Recursive.Offset), context, 0, 0, result, selectModel);
                 return;
             }
             if (element.For != null) {
@@ -89,14 +90,14 @@ namespace DProjects.XShell.Services.XTemplate {
                 var itemIndex = 0;
                 foreach (var item in NormalizeCollection(collection, element.For.Offset)) {
                     var locals = new Dictionary<string, object?> { [element.For.ItemName] = item, [element.For.IndexName] = itemIndex };
-                    RenderElementOnce(element, context.With(locals), result, null);
+                    RenderElementOnce(element, context.With(locals), result, null, selectModel);
                     itemIndex++;
                 }
                 return;
             }
-            RenderElementOnce(element, context, result, null);
+            RenderElementOnce(element, context, result, null, selectModel);
         }
-        private int RenderRecursiveItems(XTemplateElementNode element, IEnumerable<object?> items, XTemplateExpressionContext context, int indexAbsolute, int indent, StringBuilder result) {
+        private int RenderRecursiveItems(XTemplateElementNode element, IEnumerable<object?> items, XTemplateExpressionContext context, int indexAbsolute, int indent, StringBuilder result, XTemplateSelectModel? selectModel) {
             var definition = element.Recursive!;
             var siblingIndex = 0;
             foreach (var item in items) {
@@ -105,30 +106,44 @@ namespace DProjects.XShell.Services.XTemplate {
                 RenderElementOnce(element, context.With(locals), result, () => {
                     var childItems = NormalizeCollectionOrEmpty(XTemplateExpressions.Evaluate(definition.Children, context.With(locals)), definition.Offset);
                     var descendants = new StringBuilder();
-                    indexAbsolute = RenderRecursiveItems(element, childItems, context.With(locals), indexAbsolute, indent + 1, descendants);
+                    indexAbsolute = RenderRecursiveItems(element, childItems, context.With(locals), indexAbsolute, indent + 1, descendants, selectModel);
                     if (descendants.Length == 0) return;
                     if (definition.WrapperName == null) result.Append(descendants);
                     else result.Append('<').Append(definition.WrapperName).Append('>').Append(descendants).Append("</").Append(definition.WrapperName).Append('>');
-                });
+                }, selectModel);
                 siblingIndex++;
             }
             return indexAbsolute;
         }
-        private void RenderElementOnce(XTemplateElementNode element, XTemplateExpressionContext context, StringBuilder result, Action? renderRecursiveChildren) {
+        private void RenderElementOnce(XTemplateElementNode element, XTemplateExpressionContext context, StringBuilder result, Action? renderRecursiveChildren, XTemplateSelectModel? selectModel) {
             var attributes = BuildAttributes(element, context);
-            ApplyModel(element, context, attributes);
+            var childSelectModel = ApplyModel(element, context, attributes) ?? selectModel;
+            if (element.Name == "option" && selectModel != null) {
+                var content = new StringBuilder();
+                RenderElementContent(element, context, content, renderRecursiveChildren, null);
+                ApplyOptionSelection(attributes, selectModel, HtmlTextContent(content.ToString()));
+                AppendElementStart(element, attributes, result);
+                result.Append(content).Append("</").Append(element.Name).Append('>');
+                return;
+            }
+            AppendElementStart(element, attributes, result);
+            if (VoidElements.Contains(element.Name)) return;
+            RenderElementContent(element, context, result, renderRecursiveChildren, childSelectModel);
+            result.Append("</").Append(element.Name).Append('>');
+        }
+        private void RenderElementContent(XTemplateElementNode element, XTemplateExpressionContext context, StringBuilder result, Action? renderRecursiveChildren, XTemplateSelectModel? selectModel) {
+            if (element.Text != null) result.Append(HtmlText(ScalarString(XTemplateExpressions.Evaluate(element.Text, context), element.Offset)));
+            else if (element.Html != null) result.Append(ScalarString(XTemplateExpressions.Evaluate(element.Html, context), element.Offset));
+            else RenderChildren(element.Children, context, result, selectModel);
+            renderRecursiveChildren?.Invoke();
+        }
+        private static void AppendElementStart(XTemplateElementNode element, IEnumerable<KeyValuePair<string, string?>> attributes, StringBuilder result) {
             result.Append('<').Append(element.Name);
             foreach (var attribute in attributes) {
                 result.Append(' ').Append(attribute.Key);
                 if (attribute.Value != null) result.Append("=\"").Append(HtmlAttribute(attribute.Value)).Append('"');
             }
             result.Append('>');
-            if (VoidElements.Contains(element.Name)) return;
-            if (element.Text != null) result.Append(HtmlText(ScalarString(XTemplateExpressions.Evaluate(element.Text, context), element.Offset)));
-            else if (element.Html != null) result.Append(ScalarString(XTemplateExpressions.Evaluate(element.Html, context), element.Offset));
-            else RenderChildren(element.Children, context, result);
-            renderRecursiveChildren?.Invoke();
-            result.Append("</").Append(element.Name).Append('>');
         }
         private static List<KeyValuePair<string, string?>> BuildAttributes(XTemplateElementNode element, XTemplateExpressionContext context) {
             var attributes = new OrderedAttributes();
@@ -159,12 +174,15 @@ namespace DProjects.XShell.Services.XTemplate {
             }
             return attributes.Items;
         }
-        private static void ApplyModel(XTemplateElementNode element, XTemplateExpressionContext context, List<KeyValuePair<string, string?>> attributes) {
-            if (element.Model == null) return;
+        private static XTemplateSelectModel? ApplyModel(XTemplateElementNode element, XTemplateExpressionContext context, List<KeyValuePair<string, string?>> attributes) {
+            if (element.Model == null) return null;
             var modelValue = XTemplateExpressions.Evaluate(element.Model, context);
             var values = new OrderedAttributes(attributes);
-            if (element.Name == "select") throw new XTemplateException("x-model on select is not supported by server rendering because selected-option semantics are not specified", element.Offset);
-            if (element.Name != "input") return;
+            if (element.Name == "select") {
+                if (values.Contains("multiple")) throw new XTemplateException("x-model on select[multiple] is not supported by server rendering", element.Offset);
+                return new XTemplateSelectModel(modelValue, element.Offset);
+            }
+            if (element.Name != "input") return null;
             var type = values.GetValue("type")?.ToLowerInvariant() ?? "text";
             if (type == "checkbox") { if (IsTruthy(modelValue)) values.Set("checked", null); else values.Remove("checked"); }
             else if (type == "radio") {
@@ -172,6 +190,15 @@ namespace DProjects.XShell.Services.XTemplate {
                 if (modelValue != null && ScalarString(modelValue, element.Offset) == value) values.Set("checked", null); else values.Remove("checked");
             } else if (modelValue == null) values.Remove("value");
             else values.Set("value", ScalarString(modelValue, element.Offset));
+            attributes.Clear();
+            attributes.AddRange(values.Items);
+            return null;
+        }
+        private static void ApplyOptionSelection(List<KeyValuePair<string, string?>> attributes, XTemplateSelectModel selectModel, string textContent) {
+            var values = new OrderedAttributes(attributes);
+            var optionValue = values.Contains("value") ? values.GetValue("value") ?? string.Empty : textContent;
+            if (selectModel.Value != null && ScalarString(selectModel.Value, selectModel.Offset) == optionValue) values.Set("selected", null);
+            else values.Remove("selected");
             attributes.Clear();
             attributes.AddRange(values.Items);
         }
@@ -222,6 +249,21 @@ namespace DProjects.XShell.Services.XTemplate {
         private static bool IsTruthy(object? value) => value switch { null => false, bool boolean => boolean, string text => text.Length != 0, double number => number != 0, float number => number != 0, byte number => number != 0, sbyte number => number != 0, short number => number != 0, ushort number => number != 0, int number => number != 0, uint number => number != 0, long number => number != 0, ulong number => number != 0, decimal number => number != 0, _ => true };
         private static string ScalarString(object? value, int offset) => value switch { null => string.Empty, bool boolean => boolean ? "true" : "false", string text => text, _ when IsNumeric(value) => NormalizeNumber(value).ToString("R", CultureInfo.InvariantCulture), _ => throw new XTemplateException("Objects and collections cannot be converted to text", offset) };
         private static string HtmlText(string value) => value.Replace("&", "&amp;", StringComparison.Ordinal).Replace("<", "&lt;", StringComparison.Ordinal).Replace(">", "&gt;", StringComparison.Ordinal);
+        private static string HtmlTextContent(string html) {
+            var text = new StringBuilder();
+            var inTag = false;
+            char quote = '\0';
+            foreach (var character in html) {
+                if (!inTag) {
+                    if (character == '<') inTag = true;
+                    else text.Append(character);
+                } else if (quote != '\0') {
+                    if (character == quote) quote = '\0';
+                } else if (character is '\'' or '"') quote = character;
+                else if (character == '>') inTag = false;
+            }
+            return WebUtility.HtmlDecode(text.ToString());
+        }
         private static string HtmlAttribute(string value) => HtmlText(value).Replace("\"", "&quot;", StringComparison.Ordinal).Replace("'", "&#39;", StringComparison.Ordinal);
         private static bool IsValidAttributeName(string name) => name.Length > 0 && name.All(character => !char.IsWhiteSpace(character) && character is not '"' and not '\'' and not '<' and not '>' and not '=' and not '/' and not '\0');
     }
@@ -240,6 +282,7 @@ namespace DProjects.XShell.Services.XTemplate {
     internal abstract record XTemplateElementAttribute(int Offset);
     internal sealed record XTemplateForDefinition(string ItemName, string IndexName, XTemplateExpression Collection, int Offset);
     internal sealed record XTemplateRecursiveDefinition(string ItemName, string IndexName, string AbsoluteIndexName, XTemplateExpression Collection, XTemplateExpression Children, string? WrapperName, int Offset);
+    internal sealed record XTemplateSelectModel(object? Value, int Offset);
     internal sealed record XTemplateElementNode(string Name, List<XTemplateElementAttribute> Attributes, List<XTemplateNode> Children, int Offset, XTemplateExpression? If, XTemplateExpression? ElseIf, bool IsElse, XTemplateForDefinition? For, XTemplateRecursiveDefinition? Recursive, XTemplateExpression? Text, XTemplateExpression? Html, XTemplateExpression? Model, XTemplateExpression? ChildrenExpression) : XTemplateNode(Offset);
 
     internal sealed class OrderedAttributes {
@@ -258,6 +301,7 @@ namespace DProjects.XShell.Services.XTemplate {
         public void Set(string name, string? value) { var index = _items.FindIndex(item => string.Equals(item.Key, name, StringComparison.OrdinalIgnoreCase)); if (index < 0) _items.Add(new(name, value)); else _items[index] = new(name, value); }
         public void Remove(string name) { var index = _items.FindIndex(item => string.Equals(item.Key, name, StringComparison.OrdinalIgnoreCase)); if (index >= 0) _items.RemoveAt(index); }
         public void AddClass(string name) { var current = _items.FirstOrDefault(item => string.Equals(item.Key, "class", StringComparison.OrdinalIgnoreCase)); var classes = (current.Value ?? string.Empty).Split(' ', StringSplitOptions.RemoveEmptyEntries).ToList(); if (!classes.Contains(name, StringComparer.Ordinal)) classes.Add(name); Set("class", string.Join(' ', classes)); }
+        public bool Contains(string name) => _items.Any(item => string.Equals(item.Key, name, StringComparison.OrdinalIgnoreCase));
         public string? GetValue(string name) => _items.FirstOrDefault(item => string.Equals(item.Key, name, StringComparison.OrdinalIgnoreCase)).Value;
     }
 }

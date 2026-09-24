@@ -1717,6 +1717,11 @@ The reference compiler chooses the render-side property approximately as follows
 | `select` | normal | `value` |
 | `select` | `multiple` | current implementation attempts special handling |
 
+For server rendering, a normal single-selection `<select x-model="...">` evaluates the model expression using ordinary XTemplate expression
+semantics. Each descendant `<option>` is normalized so that only options whose effective value equals the model's scalar string have `selected`.
+An option's effective value is its `value` attribute when present; otherwise it is its rendered text content. Non-matching options have `selected`
+removed, and no option is selected when there is no match. `<select multiple x-model="...">` remains unsupported by server rendering.
+
 ### 44.1 Radio implementation defect
 
 The current compiler's radio checked-expression is effectively hardcoded around `state.value` rather than consistently using the actual `x-model` expression.
@@ -3060,6 +3065,8 @@ Current compile-time code for the render-side multi-select property references `
 The read/write representation is also inconsistent with ordinary arrays because `getInputValue` joins values with commas.
 
 This area requires a deliberate future contract.
+
+Server rendering currently rejects `select[multiple]` with `x-model`; this remains unresolved until that contract is defined.
 
 ---
 
