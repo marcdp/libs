@@ -103,15 +103,7 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
     const renderEngineModule = moduleConfig.defaults.page.renderEngine;
     const renderEnginePage = definition.meta?.renderEngine || renderEngineModule;
     const renderEngineFactoryCreator = await xshell.loader.load("render-engine:" + renderEnginePage);
-    const templateRenderer = definition.templateRenderer; /* ? (state, handler, invalidate, utils, i18n, renderCount) => {
-        const vdom = definition.templateRenderer(state, handler, invalidate, utils, i18n, renderCount);
-        let index = vdom.reduce((maximum, node) => Math.max(maximum, node.options.index), -1) + 1;
-        for (const styleHtml of style) {
-            const styleText = styleHtml.substring("<style>".length, styleHtml.length - "</style>".length);
-            vdom.push(utils.createVDOM("style", null, null, null, {index: index++}, styleText));
-        }
-        return vdom;
-    } : null;*/
+    const templateRenderer = definition.templateRenderer; 
     const renderEngineFactory = new renderEngineFactoryCreator(definition.template, context, templateRenderer);
     // render engine dependencies
     if (renderEngineFactory.dependencies.length) {
@@ -238,8 +230,10 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
         }
         async unmount() {
             await super.unmount();
-            this._renderEngine.unmount();
-            this._renderEngine = null;
+            if (this._renderEngine) {
+                this._renderEngine.unmount();
+                this._renderEngine = null;
+            }
             if (this._styleSheets.length) {
                 document.adoptedStyleSheets = document.adoptedStyleSheets.filter(stylesheet => !this._styleSheets.includes(stylesheet));    
                 this._styleSheets = [];
@@ -275,6 +269,7 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
         }
         // invalidate
         invalidate(path) {
+            if (!this._renderEngine) return;
             if (this._renderPending) return;
             this._renderPending = true;
             requestAnimationFrame(() => {
