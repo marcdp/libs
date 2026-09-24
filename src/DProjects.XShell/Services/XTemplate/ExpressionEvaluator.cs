@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Text;
 
 namespace DProjects.XShell.Services.XTemplate {
 
@@ -58,8 +59,20 @@ namespace DProjects.XShell.Services.XTemplate {
         private static object Modulo(object? left, object? right, int offset) { var divisor = Number(right, offset); if (divisor == 0) throw new XTemplateExpressionEvaluationException("Modulo by zero", offset); return CheckedNumber(Number(left, offset) % divisor, offset); }
         private static int Compare(object? left, object? right, int offset) {
             if (left is double leftNumber && right is double rightNumber) return leftNumber.CompareTo(rightNumber);
-            if (left is string leftString && right is string rightString) return string.CompareOrdinal(leftString, rightString);
+            if (left is string leftString && right is string rightString) return CompareStrings(leftString, rightString);
             throw new XTemplateExpressionEvaluationException("Comparison requires two numbers or two strings", offset);
+        }
+        // compare strings by Unicode scalar sequence
+        private static int CompareStrings(string left, string right) {
+            var leftRunes = left.EnumerateRunes().GetEnumerator();
+            var rightRunes = right.EnumerateRunes().GetEnumerator();
+            while (true) {
+                var hasLeftRune = leftRunes.MoveNext();
+                var hasRightRune = rightRunes.MoveNext();
+                if (!hasLeftRune || !hasRightRune) return hasLeftRune ? 1 : hasRightRune ? -1 : 0;
+                var comparison = leftRunes.Current.Value.CompareTo(rightRunes.Current.Value);
+                if (comparison != 0) return comparison;
+            }
         }
         private static bool Equal(object? left, object? right) {
             if (left == null || right == null) return left == null && right == null;

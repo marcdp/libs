@@ -73,6 +73,30 @@ namespace DProjects.XShell.Test {
         }
 
         [Fact]
+        public void OrdersStringsByUnicodeScalarSequence() {
+            var context = Context(new {
+                asciiA = "a",
+                asciiB = "b",
+                prefixShort = "A",
+                prefixLong = "AA",
+                bmpPrivateUse = "\uE000", // U+E000
+                supplementary = "\U00010000", // U+10000
+                supplementaryPrefixLower = "A\U00010000", // U+10000 after equal U+0041
+                supplementaryPrefixHigher = "A\U00010001" // U+10001 after equal U+0041
+            });
+
+            Assert.Equal(true, XTemplateExpressions.Evaluate("asciiA < asciiB", context));
+            Assert.Equal(true, XTemplateExpressions.Evaluate("prefixShort < prefixLong", context));
+            Assert.Equal(true, XTemplateExpressions.Evaluate("prefixLong > prefixShort", context));
+            Assert.Equal(true, XTemplateExpressions.Evaluate("bmpPrivateUse < supplementary", context));
+            Assert.Equal(true, XTemplateExpressions.Evaluate("supplementary > bmpPrivateUse", context));
+            Assert.Equal(true, XTemplateExpressions.Evaluate("bmpPrivateUse <= supplementary", context));
+            Assert.Equal(true, XTemplateExpressions.Evaluate("supplementary >= bmpPrivateUse", context));
+            Assert.Equal(true, XTemplateExpressions.Evaluate("supplementaryPrefixLower < supplementaryPrefixHigher", context));
+            Assert.Equal(true, XTemplateExpressions.Evaluate("supplementaryPrefixHigher > supplementaryPrefixLower", context));
+        }
+
+        [Fact]
         public void ImplementsXTemplateTruthiness() {
             var context = Context(new { empty = "", nonEmpty = "x", zero = 0, number = 2, array = Array.Empty<int>(), data = new { } });
 
