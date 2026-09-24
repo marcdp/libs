@@ -85,7 +85,7 @@ export default {
             <slot x-on:slotchange="refresh"></slot>
         </x-contextmenu>
     `,
-    script({ state }) {
+    controller({ state }) {
         return {
             load(args) {
                 //load

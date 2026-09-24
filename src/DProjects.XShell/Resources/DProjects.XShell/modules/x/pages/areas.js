@@ -29,7 +29,7 @@ export default {
         areas: {value:[]},
         selected: {value:""}
     },
-    script({ state, events, bus, areas }) {
+    controller({ state, events, bus, areas }) {
         return {
             load(params) {
                 // load

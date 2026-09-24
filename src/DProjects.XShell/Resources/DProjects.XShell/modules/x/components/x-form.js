@@ -170,7 +170,7 @@ export default {
     `,
     state: {
     },
-    script({ state }) {
+    controller({ state }) {
         return {
             showLoading({label, message}) {
                 state.loading = true;

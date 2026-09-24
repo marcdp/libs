@@ -45,7 +45,7 @@ export default {
         keyword: {value:"", attr:true},
         results: {value:[]}
     },
-    script({ state, events, bus, modules, areas, config }) {
+    controller({ state, events, bus, modules, areas, config }) {
         return {
             load(params) {
                 // load

@@ -13,7 +13,7 @@ export default {
             this is the components page
         </p>
     `,    
-    script({ state }) {
+    controller({ state }) {
         return {
             load(params) {
                // load

@@ -131,6 +131,14 @@ async function loadConfig() {
     };
     const configMerged =  configs.reduce((result, config) => merge(result, config), {});
 
+    // default contract for modules
+    for(const moduleId in configMerged.modules)   {
+        const module = configMerged.modules[moduleId];
+        if (!module.contract) module.contract = {};
+        if (!module.contract.events) module.contract.events = {};
+        if (!module.contract.intents) module.contract.intents = {};
+        if (!module.contract.actions) module.contract.actions = {};
+    }
     // default resolvers for modules
     for(const moduleId in configMerged.modules)   {
         const module = configMerged.modules[moduleId];

@@ -47,7 +47,7 @@ export default {
     state: {
         hrefReal: null
     },
-    script({ state, navigation, getPage }) {
+    controller({ state, navigation, getPage }) {
         return {
             load(params) {
                 // load

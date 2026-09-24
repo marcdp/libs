@@ -272,7 +272,7 @@ export default {
         menuTools:       null,
         menuProfile:     null
     },
-    script({ state, events, navigation, areas, bus, getPage, identity }) {
+    controller({ state, events, navigation, areas, bus, getPage, identity }) {
         return {
             async load(params) {
                 //load

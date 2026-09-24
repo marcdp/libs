@@ -60,7 +60,7 @@ export default {
         </nav>        
         <slot x-on:slotchange="refresh"></slot>
     `, 
-    script({ state, events, getPage }) {
+    controller({ state, events, getPage }) {
         return {
             load(params) {
                 //load

@@ -28,7 +28,7 @@ export default {
     state: {
         valueFormatted: null
     },
-    script({ state, events }) {
+    controller({ state, events }) {
         return {
             load(params) {
                 //load

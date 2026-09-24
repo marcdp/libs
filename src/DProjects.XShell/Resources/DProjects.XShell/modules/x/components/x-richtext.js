@@ -60,7 +60,7 @@ export default {
         </x-toolbar>
         <div class="editor" contenteditable="true" x-html="state.value" x-attr:lang="state.lang" x-attr:spellcheck="state.spellcheck"></div>
     `,
-    script({ state }) {
+    controller({ state }) {
         return {
             load(args) {
                 //load

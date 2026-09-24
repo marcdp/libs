@@ -15,7 +15,7 @@ export default {
     state: {
         label: ""
     },
-    script({ events, bus, state, getPage }) {
+    controller({ events, bus, state, getPage }) {
         return {
             load(...args) {
                 // load

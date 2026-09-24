@@ -99,7 +99,7 @@ export default {
     `,
     
     state: {},
-    script({ }) {
+    controller({ }) {
         return {
             move(params) {
                 //move

@@ -22,7 +22,7 @@ export default {
             <x-button label="Do lang" command="doLanguage"></x-button>
         </p>
     `,
-    script({ state, dialog}) {
+    controller({ state, dialog}) {
         return {
             async doSomething(params) {
                 // dosomething

@@ -23,7 +23,7 @@ export default {
     `,
     state: {
     },
-    script({ state, events, loader }) {
+    controller({ state, events, loader }) {
         return {
             load() {
                 //load

@@ -51,7 +51,7 @@ export default {
             ></ace-editor>
         </x-lazy>
     `,
-    script({ state }) {
+    controller({ state }) {
         return {
             load(params) {
                 //load

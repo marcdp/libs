@@ -138,7 +138,7 @@ export default {
         expanded: false,
         forceRight: ""
     },
-    script({ state, events, navigation, getPage }) {
+    controller({ state, events, navigation, getPage }) {
         return {
             load(args) {
                 // load

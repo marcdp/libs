@@ -53,7 +53,7 @@ export default {
         src: "",
         menu: null
     },
-    script({ events, bus, state, getPage, areas }) {
+    controller({ events, bus, state, getPage, areas }) {
         return {
             load(...args) {
                 // load

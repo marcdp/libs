@@ -6,8 +6,6 @@ export default class {
     // ctor
     constructor({ config, areas, moduleAssetsPath }) {
         const menu = this._createMenuFromModuleFiles(files, "/pages", "Demo", ".js", moduleAssetsPath, true);
-        console.log(menu);
-
         areas.registerSource("x-demo-dynamic-navigation-menu-source", {
             resolve: () => {
                 return menu;

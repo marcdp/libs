@@ -1,6 +1,5 @@
-import xshell from "xshell";
-
-await xshell.loader.load(["component:x-treeview-body", "component:x-treeview-item"]);
+//import xshell from "xshell";
+//await xshell.loader.load(["component:x-treeview-body", "component:x-treeview-item"]);
 
 // contract
 export const contract = {
@@ -30,7 +29,7 @@ export default {
     `,
     state: {
     },
-    script({ state, events }) {
+    controller({ state, events }) {
         return {
             async load(args) {
                 //load

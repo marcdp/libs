@@ -13,7 +13,7 @@ export default {
             this is the modules events page
         </p>
     `,    
-    script({ state }) {
+    controller({ state }) {
         return {
             load(params) {
                // load

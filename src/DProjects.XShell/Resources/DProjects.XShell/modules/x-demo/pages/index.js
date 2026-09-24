@@ -13,7 +13,7 @@ export default {
             this is the index page
         </p>
     `,    
-    script({ state }) {
+    controller({ state }) {
         return {
             load(params) {
                // load

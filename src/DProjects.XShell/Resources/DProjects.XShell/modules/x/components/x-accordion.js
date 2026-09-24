@@ -7,7 +7,18 @@ export const contract = {
     properties: {
         selectedIndex: {type:"number", default:0, attr:true, state:true, description:""}
     },
-    methods: {}
+    methods: {},
+    slots: {
+        default: {
+            description: "The default slot for accordion panels."
+        }
+    },
+    examples: [
+        {
+            title: "Basic",
+            html: `<x-accordion></x-accordion>`
+        },
+    ]
 };
 
 
@@ -27,7 +38,7 @@ export default {
     template: `
         <slot></slot>
     `,
-    script({}) {
+    controller({}) {
         return {
             load(params) {
                 //load

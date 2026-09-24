@@ -49,7 +49,7 @@ export default {
     state: {
         breadcrumb: []
     },
-    script({ events, bus, state, getPage }) {
+    controller({ events, bus, state, getPage }) {
         return {
             load(...args) {
                 // load

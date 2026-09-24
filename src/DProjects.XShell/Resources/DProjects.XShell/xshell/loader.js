@@ -165,6 +165,7 @@ export default class Loader {
                     }
                     result[i] = value;
                 } else if (taskResult.status === 'rejected') {
+                    debugger
                     const exception = taskResult.reason instanceof Error ? taskResult.reason : new Error(String(taskResult.reason));
                     const error = new ResourceLoadError(
                         resources[i], 
@@ -183,6 +184,9 @@ export default class Loader {
         // throw exception if errors
         if (errors.length) {
             let message = errors.map(error => error.message + " (" + error.code + ")" + (error.path ? " at " + error.path : "") + (error.line ? " at line " + error.line : "") + (error.cause ? " Caused by: " + error.cause : "")).join("; ");
+            for (const error of errors) {
+                console.error(error);
+            }
             throw new LoaderException(errors, "Some resources failed: " + message);
         }
         // result

@@ -20,7 +20,7 @@ export default {
     state: {
         activated: false
     },
-    script({ state, loader }) {
+    controller({ state, loader }) {
         return {
             async load(params) {
                 //load

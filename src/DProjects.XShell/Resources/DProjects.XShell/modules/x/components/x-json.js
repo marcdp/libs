@@ -70,7 +70,7 @@ export default {
     `,
     state: {
     },
-    script({ state, events }) {
+    controller({ state, events }) {
         return {
             load(params) {
                 //load

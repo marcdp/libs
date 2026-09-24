@@ -27,7 +27,7 @@ export default {
         message: {value:"", context:true},
         variant: {value:"yesno", enum:["yesno","yesnocancel","okcancel","ok"], context:true},
     },
-    script({ state, context }) {
+    controller({ state, context }) {
         return {
             load(params) {
                 // load

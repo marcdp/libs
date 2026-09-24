@@ -106,7 +106,7 @@ export default {
             </li>
         </ul>
     `,
-    script({ state }) {
+    controller({ state }) {
         return {
             load(args) {
                 //load

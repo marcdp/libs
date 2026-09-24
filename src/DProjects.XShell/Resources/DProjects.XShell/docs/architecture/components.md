@@ -107,7 +107,7 @@ export default {
 
     state: {},
 
-    script({ }) {
+    controller({ }) {
         return {
             edit({ event }) {
                 this.dispatchEvent(

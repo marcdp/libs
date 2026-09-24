@@ -2,9 +2,7 @@
 // contract
 export const contract = {
     description: "Provides a styled container for contextual menu content.",
-    events: {},
-    properties: {},
-    methods: {}
+    
 };
 
 

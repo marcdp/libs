@@ -13,7 +13,7 @@ export default {
             this is the basic navigation page
         </p>
     `,    
-    script({ state }) {
+    controller({ state }) {
         return {
             load(params) {
                // load

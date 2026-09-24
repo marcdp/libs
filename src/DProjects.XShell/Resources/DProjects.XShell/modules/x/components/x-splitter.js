@@ -19,7 +19,7 @@ export default {
     `,
     template: ``,
     state: { },
-    script({}) {
+    controller({}) {
         return {
             load() {
                 //init

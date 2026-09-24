@@ -80,7 +80,7 @@ export default {
         </dialog>
 
     `,
-    script({ state, events, bus, getPage }) {
+    controller({ state, events, bus, getPage }) {
         return {
             load() {
                 //load

@@ -46,7 +46,7 @@ export default {
     `,
     state: {
     },
-    script({ state, events }) {
+    controller({ state, events }) {
         return {
             async load() {
                 //load

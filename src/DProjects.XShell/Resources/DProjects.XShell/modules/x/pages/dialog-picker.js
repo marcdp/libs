@@ -48,7 +48,7 @@ export default {
         required: {value:false, context:true},
         value: {value:null, context:true}
     },
-    script({ state, context }) {
+    controller({ state, context }) {
         return {
             load(params) {
                 // load

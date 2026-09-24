@@ -13,7 +13,7 @@ export default {
             this is the layout page
         </p>
     `,    
-    script({ state }) {
+    controller({ state }) {
         return {
             load(params) {
                // load

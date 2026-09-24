@@ -24,7 +24,7 @@ export default {
         message: {value:"", context:true},
         type: {value:"info", enum:["info","success","warning","error"], context:true},
     },
-    script({ state, context }) {
+    controller({ state, context }) {
         return {
             load(params) {
                 // load

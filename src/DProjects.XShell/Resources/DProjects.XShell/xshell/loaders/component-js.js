@@ -52,6 +52,18 @@ function findClosestXPage(element) {
 
 // create page class from js definition
 export async function createComponentClassFromJsDefinition(src, context, definition, contract) {
+    // defaults
+    if (!contract) contract = {};
+    if (!contract.properties) contract.properties = {};
+    if (!contract.events) contract.events = {};
+    if (!contract.slots) contract.slots = {};
+    if (!contract.methods) contract.methods = {};
+    if (!definition.state) definition.state = {};
+    if (!definition.style) definition.style = "";
+    if (!definition.template) definition.template = "";
+    if (!definition.controller) definition.controller = () => ({});
+    definition = Object.seal(Object.freeze(definition));
+    contract = Object.seal(Object.freeze(contract));
     // stylesheets
     const stylesheets = []
     if (typeof(definition.style) == "string") {
@@ -66,13 +78,11 @@ export async function createComponentClassFromJsDefinition(src, context, definit
         }
     }
     // state skeleton
-    const properties = contract?.properties || {};
-    const internalState = definition.state || {};
     const stateSkeleton = {};
     const propertyAttributeNames = [];
     const reflectedPropertyNames = [];
     const stateMapAttributes = [];
-    for (const [propName, property] of Object.entries(properties)) {
+    for (const [propName, property] of Object.entries(contract.properties)) {
         if (property.state === true) {
             stateSkeleton[propName] = property.default;
         }
@@ -86,7 +96,7 @@ export async function createComponentClassFromJsDefinition(src, context, definit
             stateMapAttributes.push({ attributePrefix: camelToKebab(propName) + "-", stateName: propName });
         }
     }
-    for (const [stateName, value] of Object.entries(internalState)) {
+    for (const [stateName, value] of Object.entries(definition.state)) {
         if (Object.prototype.hasOwnProperty.call(stateSkeleton, stateName)) {
             throw new Error(`Component '${definition.meta?.name || src}' declares state '${stateName}' in both contract.properties and definition.state.`);
         }
@@ -96,12 +106,12 @@ export async function createComponentClassFromJsDefinition(src, context, definit
         }
     }
     // state engine
-    const stateEngineModule = xshell.config.modules[context.resourceDefinition.moduleId].defaults?.component?.stateEngine;
+    const stateEngineModule = xshell.config.modules[context.resourceDefinition.moduleId].defaults.component.stateEngine;
     const stateEngineComponent = definition.meta.stateEngine || stateEngineModule;
     const stateEngineFactoryCreator = await xshell.loader.load("state-engine:" + stateEngineComponent);
     const stateEngineFactory = new stateEngineFactoryCreator(stateSkeleton, context);
     // render engine
-    const renderEngineModule = xshell.config.modules[context.resourceDefinition.moduleId].defaults?.component?.renderEngine;
+    const renderEngineModule = xshell.config.modules[context.resourceDefinition.moduleId].defaults.component.renderEngine;
     const renderEngineComponent = definition.meta.renderEngine || renderEngineModule;
     const renderEngineFactoryCreator = await xshell.loader.load("render-engine:" + renderEngineComponent);
     const renderEngineFactory = new renderEngineFactoryCreator(definition.template, context, definition.templateHandler);
@@ -119,7 +129,7 @@ export async function createComponentClassFromJsDefinition(src, context, definit
         _stateChanges = [];
         _disposables = [];
         _reflectingAttributes = new Set();
-        _script = null;
+        _controller = null;
         // static
         static get observedAttributes() { 
             return propertyAttributeNames;
@@ -142,7 +152,7 @@ export async function createComponentClassFromJsDefinition(src, context, definit
                 }
             });
             this._properties = {};
-            for (const [propName, property] of Object.entries(properties)) {
+            for (const [propName, property] of Object.entries(contract.properties)) {
                 if (property.state !== true) {
                     this._properties[propName] = property.default;
                 }
@@ -153,6 +163,9 @@ export async function createComponentClassFromJsDefinition(src, context, definit
                     if (prop == "definition") {
                         // definition of component
                         return definition;
+                    } else if (prop == "contract") {
+                        // contract of component
+                        return contract;
                     } else if (prop == "state") {
                         // state
                         return self._state;
@@ -166,6 +179,12 @@ export async function createComponentClassFromJsDefinition(src, context, definit
                         const events = new Events( (command) => {self.onCommand(command);} );
                         self._disposables.push(events);
                         return events;
+                    } else if (prop == "moduleConfig") {
+                        // module configuration
+                        return xshell.config.modules[context.resourceDefinition.moduleId];
+                    } else if (prop == "module") {
+                        // module 
+                        return xshell.modules.getModuleById(context.resourceDefinition.moduleId);
                     } else if (prop == "getPage") {
                         // get current page function
                         return function() {
@@ -179,10 +198,10 @@ export async function createComponentClassFromJsDefinition(src, context, definit
                 }
             });
             // author script
-            this._script = definition.script?.(servicesProvider) ?? {};
+            this._controller = definition.controller(servicesProvider) ?? {};
             // expose contract methods without replacing runtime lifecycle methods
             for (const methodName of Object.keys(contract?.methods ?? {})) {
-                const method = this._script[methodName];
+                const method = this._controller[methodName];
                 if (typeof(method) === "function" && !(methodName in this)) {
                     this[methodName] = (...params) => method.apply(this, params);
                 }
@@ -224,7 +243,7 @@ export async function createComponentClassFromJsDefinition(src, context, definit
         attributeChangedCallback(name, oldValue, newValue) {
             if (this._reflectingAttributes.has(name)) return;
             const propName = kebabToCamel(name);
-            const property = properties[propName];
+            const property = contract.properties[propName];
             if (!property || property.attr !== true) return;
             this[propName] = convertAttributeValue(property, newValue);
         }
@@ -268,7 +287,7 @@ export async function createComponentClassFromJsDefinition(src, context, definit
         }
         // onCommand
         onCommand(command, params) {
-            const handler = this._script?.[command];
+            const handler = this._controller[command];
             if (typeof(handler) === "function") {
                 return handler.call(this, params);
             }
@@ -289,7 +308,7 @@ export async function createComponentClassFromJsDefinition(src, context, definit
         }
     };
     // add properties
-    for (const [propName, property] of Object.entries(properties)) {
+    for (const [propName, property] of Object.entries(contract.properties)) {
         Object.defineProperty(WebComponent.prototype, propName, {
             get() {
                 return property.state === true ? this._state[propName] : this._properties[propName];
@@ -306,6 +325,16 @@ export async function createComponentClassFromJsDefinition(src, context, definit
                         }
                     }
                 }
+            },
+            enumerable: true,
+            configurable: false
+        });
+    }
+    // add methods
+    for (const [methodName, method] of Object.entries(contract.methods)) {
+        Object.defineProperty(WebComponent.prototype, methodName, {
+            value: function(...args) {
+                return method.apply(this, args);
             },
             enumerable: true,
             configurable: false
@@ -341,7 +370,6 @@ export default class LoaderComponentJs {
             aux = aux.substring(aux.lastIndexOf("/")+1).split(".")[0];
             definition.meta.name = aux;
         }
-        definition = Object.seal(Object.freeze(definition));
         // create class definition
         return await createComponentClassFromJsDefinition(src, context, definition, contract);        
     }

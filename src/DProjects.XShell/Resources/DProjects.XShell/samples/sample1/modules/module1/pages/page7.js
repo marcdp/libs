@@ -23,7 +23,7 @@ export default {
         var1: {value:"value1"},
         var2: {value:"value2"}
     },
-    script({ bus, state, timer, events }) {
+    controller({ bus, state, timer, events }) {
         return {
             load(params) {
                 //load

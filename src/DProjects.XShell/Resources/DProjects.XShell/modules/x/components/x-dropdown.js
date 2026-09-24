@@ -100,7 +100,7 @@ export default {
     `,
     state: {
     },
-    script({ state, events, bus }) {
+    controller({ state, events, bus }) {
         return {
             load() {
                 //load

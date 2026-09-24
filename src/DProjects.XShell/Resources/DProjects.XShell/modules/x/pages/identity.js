@@ -33,7 +33,7 @@ export default {
         roles:  {value:[]},
         claims: {value:[]}
     },
-    script({ state, identity, dialog, auth }) {
+    controller({ state, identity, dialog, auth }) {
         return {
             async load(params) {
                 // load

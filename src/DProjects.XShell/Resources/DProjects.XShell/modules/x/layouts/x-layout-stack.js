@@ -100,7 +100,7 @@ export default {
             </div>
         </div>
     `,
-    script({ state, events, bus, getPage, runtime }) {
+    controller({ state, events, bus, getPage, runtime }) {
         return {
             load() {
                 //load

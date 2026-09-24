@@ -450,7 +450,7 @@ export default {
     `,
     state: {
     },
-    script({ state, events, timer, navigation, i18n }) {
+    controller({ state, events, timer, navigation, i18n }) {
         return {
             async load(args) {
                 // load

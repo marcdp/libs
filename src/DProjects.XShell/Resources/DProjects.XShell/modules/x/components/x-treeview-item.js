@@ -79,7 +79,7 @@ export default {
     `,
     state: {
     },
-    script({ state }) {
+    controller({ state }) {
         return {
             async load() {
                 //load

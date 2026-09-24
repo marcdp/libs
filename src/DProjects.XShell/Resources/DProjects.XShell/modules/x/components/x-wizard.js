@@ -54,7 +54,7 @@ export default {
             <slot name="buttons" x-if="state.index == state.panels.length - 1"></slot>
         </div>
     `,
-    script({ state }) {
+    controller({ state }) {
         return {
             load(args) {
                 //load

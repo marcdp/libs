@@ -57,7 +57,7 @@ export default {
     `,
     state: {
     },
-    script({ state }) {
+    controller({ state }) {
         return {
             load() {
                 //load
