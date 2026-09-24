@@ -2,22 +2,56 @@ import Page from "../page.js"
 import Timer from "../timer.js"
 import Events from "../events.js"
 import xshell from "../xshell.js";
+import validateComponentContract from "../validation/component.js";
 
 // utils
 function kebabToCamel(str) {
-    return str.split('-')
-        .map((word, index) => index === 0 ? word : word.charAt(0).toUpperCase() + word.slice(1))
-        .join('');
+    // convert kebab-case to camelCase
+    return str.split('-').map((word, index) => index === 0 ? word : word.charAt(0).toUpperCase() + word.slice(1)).join('');
 };
 function camelToKebab(str) {
-    return str
-      .replace(/([a-z])([A-Z])/g, '$1-$2') 
-      .toLowerCase();                      
+    // convert camelCase to kebab-case
+    return str.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();                      
+}
+function isEmptyPlainObject(value) {
+    // check if the value is an empty plain object
+    return value && typeof(value) === "object" && !Array.isArray(value) && Object.getPrototypeOf(value) === Object.prototype && Object.keys(value).length === 0;
+}
+function convertAttributeValue(property, value) {
+    // convert attribute value based on property type
+    switch (property.type) {
+        case "boolean":
+            return value !== null;
+        case "number":
+            return value === null ? null : Number(value);
+        case "array":
+        case "object":
+            if (value === null) return null;
+            try {
+                return JSON.parse(value);
+            } catch {
+                return value;
+            }
+        default:
+            return value;
+    }
 }
 
 
 // create page class from js definition
-export async function createPageClassFromJsDefinition(src, context, definition) {
+export async function createPageClassFromJsDefinition(src, context, definition, contract) {
+    // defaults
+    if (!contract) contract = {};
+    if (!contract.properties) contract.properties = {};
+    if (!contract.events) contract.events = {};
+    if (!contract.slots) contract.slots = {};
+    if (!contract.methods) contract.methods = {};
+    if (!definition.state) definition.state = {};
+    if (!definition.style) definition.style = "";
+    if (!definition.template) definition.template = "";
+    if (!definition.controller) definition.controller = () => ({});
+    definition = Object.seal(Object.freeze(definition));
+    contract = Object.seal(Object.freeze(contract));
     // style
     const style = [];
     if (typeof(definition.style) == "string") {
@@ -28,28 +62,47 @@ export async function createPageClassFromJsDefinition(src, context, definition) 
         }
     }    
     // state skeleton
-    let stateSkeleton = {};
-    let stateQsNames = [];
-    let stateReflectedQsNames = [];
-    let stateContextNames = [];
-    for(let propName in definition.state) {
-        const propDefinition = definition.state[propName];
-        if (typeof(propDefinition.value) == "undefined") propDefinition.value = null;
-        if (typeof(propDefinition.type) == "undefined") propDefinition.type = "string";
-        stateSkeleton[propName] = propDefinition.value; 
-        if (propDefinition.qs === true) stateQsNames.push(propName);
-        if (propDefinition.qs === true && propDefinition.reflect) stateReflectedQsNames.push(propName);
-        if (propDefinition.context === true) stateContextNames.push(propName);
+    const stateSkeleton = {};
+    const propertyAttributeNames = [];
+    const reflectedPropertyNames = [];
+    const stateMapAttributes = [];
+    const stateQsNames = [];
+    const stateReflectedQsNames = [];
+    let stateContextNames = []; // what we should do with context variables? now they are not implemented
+    for (const [propName, property] of Object.entries(contract.properties)) {
+        if (property.state === true) {
+            stateSkeleton[propName] = property.default;
+        }
+        if (property.attribute === true) {
+            propertyAttributeNames.push(camelToKebab(propName));
+        }
+        if (property.reflect === true) {
+            reflectedPropertyNames.push(propName);
+        }
+        if (property.state === true && property.attribute === true && isEmptyPlainObject(property.default)) {
+            stateMapAttributes.push({ attributePrefix: camelToKebab(propName) + "-", stateName: propName });
+        }
+        stateQsNames.push(propName);
+        if (property.reflect) stateReflectedQsNames.push(propName);
+    }
+    for (const [stateName, value] of Object.entries(definition.state)) {
+        if (Object.prototype.hasOwnProperty.call(stateSkeleton, stateName)) {
+            throw new Error(`Component '${definition.meta?.name || src}' declares state '${stateName}' in both contract.properties and definition.state.`);
+        }
+        stateSkeleton[stateName] = value;
+        if (isEmptyPlainObject(value)) {
+            stateMapAttributes.push({ attributePrefix: camelToKebab(stateName) + "-", stateName });
+        }
     }
     // modules
     const moduleConfig = xshell.config.modules[context.resourceDefinition.moduleId];
     // state engine
-    const stateEngineModule = moduleConfig.defaults?.page?.stateEngine;
+    const stateEngineModule = moduleConfig.defaults.page.stateEngine;
     const stateEnginePage = definition.meta?.stateEngine || stateEngineModule;
     const stateEngineFactoryCreator = await xshell.loader.load("state-engine:" + stateEnginePage);
     const stateEngineFactory = new stateEngineFactoryCreator(stateSkeleton, context);
     // render engine
-    const renderEngineModule = moduleConfig.defaults?.page?.renderEngine;
+    const renderEngineModule = moduleConfig.defaults.page.renderEngine;
     const renderEnginePage = definition.meta?.renderEngine || renderEngineModule;
     const renderEngineFactoryCreator = await xshell.loader.load("render-engine:" + renderEnginePage);
     const templateRenderer = definition.templateRenderer ? (state, handler, invalidate, utils, i18n, renderCount) => {
@@ -220,6 +273,7 @@ export default class LoaderPageJs {
         // import
         const module = await import(src);
         let definition = module.default;
+        let contract = module.contract;
         // check if its a promise
         if (typeof(definition) === "object" && typeof(definition.then) === "function") {
             definition = await definition;
@@ -230,8 +284,12 @@ export default class LoaderPageJs {
         }
         // else, asume its a definition object
         if (!definition.meta) definition.meta = {};
-        definition = Object.seal(Object.freeze(definition));
+        if (!definition.meta.name) {
+            let aux = src.split("?")[0];
+            aux = aux.substring(aux.lastIndexOf("/")+1).split(".")[0];
+            definition.meta.name = aux;
+        }
         // create class definition
-        return await createPageClassFromJsDefinition(src, context, definition);        
+        return await createPageClassFromJsDefinition(src, context, definition, contract);        
     }
 };

@@ -284,6 +284,7 @@ export async function createComponentClassFromJsDefinition(src, context, definit
         }
         // invalidate
         invalidate(path) {
+            if (!this._renderEngine) return;
             if (this._renderPending) return;
             this._renderPending = true;
             requestAnimationFrame(() => {

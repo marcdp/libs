@@ -504,7 +504,15 @@ class XTemplateInstance {
 				documentFragment.appendChild(element);
 				index++;
 			}
-			this._element.appendChild(documentFragment);
+
+			
+			//const div = document.createElement("div");
+			//div.append(documentFragment.cloneNode(true));
+			//if (div.innerHTML.indexOf("style")!=-1) {
+			//	debugger;
+			//}
+
+			this._element.appendChild(documentFragment);			
 			this._vdom = vdom;
 		} else {
 			this._diffDom(this._vdom, vdom, this._element, 0);
