@@ -94,6 +94,32 @@ namespace DProjects.XShell.Test {
             Assert.Equal("<input title=\"Hello\" checked count=\"2\" data-id=\"42\">", html);
         }
 
+        [Theory]
+        [InlineData("data-id")]
+        [InlineData("aria-label")]
+        [InlineData("x-custom")]
+        [InlineData("xml:lang")]
+        [InlineData("xmlns")]
+        [InlineData("étiquette")]
+        public void RendersValidDynamicAttributeNamesAsOrdinaryAttributes(string name) {
+            var html = Render("<div x-attr:[state.name]=\"state.value\"></div>", new { name, value = "value" });
+
+            Assert.Equal($"<div {name}=\"value\"></div>", html);
+        }
+
+        [Theory]
+        [InlineData("")]
+        [InlineData("a b")]
+        [InlineData("a=b")]
+        [InlineData("a/b")]
+        [InlineData("a>b")]
+        [InlineData("\u0001")]
+        [InlineData("\u007F")]
+        [InlineData("\uFDD0")]
+        public void RejectsInvalidDynamicAttributeNames(string name) {
+            Assert.Throws<XTemplateException>(() => Render("<div x-attr:[state.name]=\"state.value\"></div>", new { name, value = "value" }));
+        }
+
         [Fact]
         public void RendersTruthyShowWithoutHiddenAttribute() {
             var html = Render("<div x-show=\"true\"></div>");

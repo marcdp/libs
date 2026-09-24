@@ -272,7 +272,9 @@ namespace DProjects.XShell.Services.XTemplate {
             return WebUtility.HtmlDecode(text.ToString());
         }
         private static string HtmlAttribute(string value) => HtmlText(value).Replace("\"", "&quot;", StringComparison.Ordinal).Replace("'", "&#39;", StringComparison.Ordinal);
-        private static bool IsValidAttributeName(string name) => name.Length > 0 && name.All(character => !char.IsWhiteSpace(character) && character is not '"' and not '\'' and not '<' and not '>' and not '=' and not '/' and not '\0');
+        private static bool IsValidAttributeName(string name) => name.Length > 0 && name.All(IsValidAttributeNameCharacter);
+        private static bool IsValidAttributeNameCharacter(char character) => !char.IsWhiteSpace(character) && character is not '"' and not '\'' and not '<' and not '>' and not '=' and not '/' and not '\0' && character > 0x1F && character != 0x7F && !IsUnicodeNoncharacter(character);
+        private static bool IsUnicodeNoncharacter(char character) => character is >= '\uFDD0' and <= '\uFDEF' or >= '\uFFFE' and <= '\uFFFF';
     }
 
     internal abstract record XTemplateNode(int Offset);
