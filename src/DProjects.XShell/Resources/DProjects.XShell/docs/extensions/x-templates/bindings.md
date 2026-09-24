@@ -10,11 +10,15 @@ Use `x-attr:*` to bind DOM attributes. Attributes are serialized values suitable
 ```html
 <a x-attr:href="state.url" x-attr:aria-label="state.label">Open</a>
 <button x-attr:disabled="state.saving">Save</button>
+<div x-attr:data-price="state.price | number(2)"></div>
 ```
 
 `x-attr` accepts an attribute object when several attributes are derived together. Its object member names must be strings; dictionary-backed values
 must use string keys and non-string keys are not converted with `key.ToString()`. `:name` and `:` are supported shorthand forms, but the long
 forms are preferred in canonical templates.
+
+The formatter pipeline is valid in this value-expression position. It produces a string using the active XShell/i18n locale; raw scalar conversion
+without a formatter remains invariant.
 
 ## Properties
 

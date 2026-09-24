@@ -1,12 +1,12 @@
 # XTemplate Expressions
 
-For the normative XTemplate expression contract, see the [XTemplate Language Specification](specification.md). This guide explains the current
-expression model used by XShell.
+For the normative XTemplate expression contract, see the [XTemplate Language Specification](specification.md). This guide summarizes the restricted,
+portable expression model used by XShell.
 
 ## Current model
 
-XTemplate expressions use JavaScript expression syntax. They execute in the XTemplate render context, rather than in a separate portable
-expression language.
+XTemplate expressions are a small language owned by XTemplate. The syntax is JavaScript-like, but expressions are parsed into a portable AST and
+evaluated against an explicit render context. They are not arbitrary JavaScript and cannot access host globals or object methods.
 
 Typical names available to an expression include `state`, `i18n`, and `renderCount`. Render infrastructure can also provide names such as
 `utils`, `handler`, and `invalidate`. `x-for` and `x-recursive` introduce template-defined local variables, such as `item`, `index`,
@@ -14,15 +14,29 @@ Typical names available to an expression include `state`, `i18n`, and `renderCou
 
 ```html
 <h1 x-text="state.title"></h1>
-<span>{{ i18n.t(state.messageKey) }}</span>
-<li x-for="(item,index) in state.items" x-class:selected="item.id === state.selectedId">
+<span>{{ state.message }}</span>
+<li x-for="(item,index) in state.items" x-class:selected="item.id == state.selectedId">
     {{ index + 1 }}. {{ item.label }}
 </li>
 ```
 
+Presentation formatters are the restricted pipeline extension:
+
+```html
+<p>{{ state.price | number(2) }}</p>
+<p>{{ state.createdAt | date('dd/MM/yyyy') }}</p>
+<p>{{ state.name | trim | upper }}</p>
+<div x-attr:data-price="state.price | number(2)"></div>
+```
+
+Formatter arguments are full XTemplate expressions, but formatter names refer only to the specified built-in language operations. General calls and
+method access remain invalid: `formatPrice(state.price)`, `state.price.toFixed(2)`, and `state.name.toUpperCase()` are not XTemplate expressions.
+
 ## Where expressions are used
 
-Expressions provide values for interpolation, conditional directives, bindings, loop sources, class bindings, visibility, and model binding.
+Expressions provide values for interpolation, conditional directives, bindings, loop sources, class bindings, visibility, and model binding. A
+formatter pipeline can be used in ordinary value-expression positions, including bindings such as `x-attr:data-price`; `x-model` still requires an
+assignable expression and therefore cannot use a formatter as its write target.
 
 ```html
 <div x-if="state.visible" x-attr:title="state.title"></div>
@@ -31,13 +45,14 @@ Expressions provide values for interpolation, conditional directives, bindings, 
 
 Event binding is different: `x-on:event="command"` identifies a named command rather than arbitrary inline JavaScript.
 
-## Security and future direction
+## Security and portability
 
-The current language does not define a sandboxed or portable expression language. Treat template source as trusted executable input, particularly
-where expressions or `x-html` values may originate outside application code.
+The restricted grammar does not permit arbitrary function calls, host globals, object methods, assignments, or statements. Formatters are pure,
+side-effect-free language operations: they cannot execute user code, mutate state, perform I/O, or access DOM/browser APIs. JavaScript and C#
+renderers must implement the same formatter semantics, including locale behavior, type checks, null propagation, and result kinds.
 
-A restricted, cross-language expression grammar is possible future work. It is not implemented by the current XTemplate language and must not be
-assumed by templates or compilers targeting this version.
+Raw scalar conversion remains invariant. Locale-sensitive output is explicit, for example `state.price | number(2)`; ordinary `{{ state.price }}`
+continues to use invariant XTemplate conversion.
 
 ## Related documentation
 

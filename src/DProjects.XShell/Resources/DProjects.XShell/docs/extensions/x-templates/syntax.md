@@ -14,6 +14,24 @@ This is a concise guide to commonly used XTemplate syntax. For normative syntax 
 
 `{{ expression }}` and `x-text` render text. `x-html` renders raw HTML, and `x-children` renders DOM-node content.
 
+## Presentation formatters
+
+Use the restricted formatter pipeline for explicit presentation formatting. Formatters are available anywhere an ordinary value expression is
+accepted, including attribute bindings:
+
+```html
+<p>{{ state.price | number(2) }}</p>
+<p>{{ state.total | currency('EUR') }}</p>
+<p>{{ state.ratio | percent(1) }}</p>
+<p>{{ state.createdAt | date('dd/MM/yyyy') }}</p>
+<p>{{ state.createdAt | datetime('dd/MM/yyyy HH:mm') }}</p>
+<p>{{ state.name | trim | upper }}</p>
+<div x-attr:data-price="state.price | number(2)"></div>
+```
+
+Pipelines run left to right. Their locale-sensitive formatters use the active XShell/i18n locale, while ordinary scalar conversion remains invariant.
+General function calls and object methods remain invalid; use `number(2)` instead of `toFixed(2)` and `upper` instead of `toUpperCase()`.
+
 ## Attributes and properties
 
 ```html

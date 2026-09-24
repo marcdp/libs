@@ -5,33 +5,66 @@ using System.Text;
 namespace DProjects.XShell.Services.XTemplate {
 
     public sealed class XTemplateException : Exception {
-
-        // props
         public int Offset { get; }
-
-        // ctor
         public XTemplateException(string message, int offset) : base($"{message} (at template offset {offset}).") {
             Offset = offset;
         }
     }
+    internal abstract record XTemplateNode(int Offset);
+    internal sealed record XTemplateTextNode(string Text, int Offset) : XTemplateNode(Offset);
+    internal sealed record XTemplateRawHtmlNode(string Html, int Offset) : XTemplateNode(Offset);
+    internal sealed record XTemplateInterpolationNode(XTemplateExpression Expression, int Offset) : XTemplateNode(Offset);
+    internal sealed record XTemplateCommentNode(string Text, int Offset) : XTemplateNode(Offset);
+    internal sealed record XTemplateStaticAttribute(string Name, string Value, bool HasValue, int Offset) : XTemplateElementAttribute(Offset);
+    internal sealed record XTemplateBoundAttribute(string Name, XTemplateExpression Expression, int Offset) : XTemplateElementAttribute(Offset);
+    internal sealed record XTemplateDynamicAttribute(XTemplateExpression NameExpression, XTemplateExpression ValueExpression, int Offset) : XTemplateElementAttribute(Offset);
+    internal sealed record XTemplateAttributeSpread(XTemplateExpression Expression, int Offset) : XTemplateElementAttribute(Offset);
+    internal sealed record XTemplateClassAttribute(string Name, XTemplateExpression Expression, int Offset) : XTemplateElementAttribute(Offset);
+    internal sealed record XTemplateShowAttribute(XTemplateExpression Expression, int Offset) : XTemplateElementAttribute(Offset);
+    internal abstract record XTemplateElementAttribute(int Offset);
+    internal sealed record XTemplateForDefinition(string ItemName, string IndexName, XTemplateExpression Collection, int Offset);
+    internal sealed record XTemplateRecursiveDefinition(string ItemName, string IndexName, string AbsoluteIndexName, XTemplateExpression Collection, XTemplateExpression Children, string? WrapperName, int Offset);
+    internal sealed record XTemplateSelectModel(object? Value, int Offset);
+    internal sealed record XTemplateElementNode(string Name, List<XTemplateElementAttribute> Attributes, List<XTemplateNode> Children, int Offset, XTemplateExpression? If, XTemplateExpression? ElseIf, bool IsElse, XTemplateForDefinition? For, XTemplateRecursiveDefinition? Recursive, XTemplateExpression? Text, XTemplateExpression? Html, XTemplateExpression? Model, XTemplateExpression? ChildrenExpression) : XTemplateNode(Offset);
 
+    internal sealed class OrderedAttributes {
+
+        // vars
+        private readonly List<KeyValuePair<string, string?>> _items;
+
+        // props
+        public List<KeyValuePair<string, string?>> Items => _items;
+
+        // ctor
+        public OrderedAttributes() { _items = new(); }
+        public OrderedAttributes(IEnumerable<KeyValuePair<string, string?>> items) { _items = new(items); }
+
+        // methods
+        public void Set(string name, string? value) { var index = _items.FindIndex(item => string.Equals(item.Key, name, StringComparison.OrdinalIgnoreCase)); if (index < 0) _items.Add(new(name, value)); else _items[index] = new(name, value); }
+        public void Remove(string name) { var index = _items.FindIndex(item => string.Equals(item.Key, name, StringComparison.OrdinalIgnoreCase)); if (index >= 0) _items.RemoveAt(index); }
+        public void AddClass(string name) { var current = _items.FirstOrDefault(item => string.Equals(item.Key, "class", StringComparison.OrdinalIgnoreCase)); var classes = (current.Value ?? string.Empty).Split(' ', StringSplitOptions.RemoveEmptyEntries).ToList(); if (!classes.Contains(name, StringComparer.Ordinal)) classes.Add(name); Set("class", string.Join(' ', classes)); }
+        public bool Contains(string name) => _items.Any(item => string.Equals(item.Key, name, StringComparison.OrdinalIgnoreCase));
+        public string? GetValue(string name) => _items.FirstOrDefault(item => string.Equals(item.Key, name, StringComparison.OrdinalIgnoreCase)).Value;
+    }
+
+    // class
     public sealed class XTemplateRenderer {
 
         // consts
         private static readonly HashSet<string> VoidElements = new(StringComparer.OrdinalIgnoreCase) { "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr" };
 
         // vars
-        private readonly XTemplateObjectAccess _objectAccess;
+        private readonly XTemplateObjectAccess mObjectAccess;
 
         // ctor
         public XTemplateRenderer(IEnumerable<IXTemplateObjectAdapter>? objectAdapters = null) {
-            _objectAccess = new XTemplateObjectAccess(objectAdapters);
+            mObjectAccess = new XTemplateObjectAccess(objectAdapters);
         }
 
         // methods
         public string Render(string template, object? state) {
             var root = new XTemplateParser(template.Trim()).Parse();
-            var context = new XTemplateExpressionContext(new Dictionary<string, object?> { ["state"] = state }, _objectAccess.Adapters);
+            var context = new XTemplateExpressionContext(new Dictionary<string, object?> { ["state"] = state }, mObjectAccess.Adapters);
             var result = new StringBuilder();
             RenderChildren(root.Children, context, result, null);
             return result.ToString();
@@ -232,13 +265,13 @@ namespace DProjects.XShell.Services.XTemplate {
                 return Enumerable.Range(1, (int)number).Cast<object?>();
             }
             if (value is string text) return text.EnumerateRunes().Select(rune => (object?)rune.ToString()).ToArray();
-            if (_objectAccess.CanAdapt(value)) return ObjectMembers(value, offset).Select(member => (object?)member.Key).ToArray();
+            if (mObjectAccess.CanAdapt(value)) return ObjectMembers(value, offset).Select(member => (object?)member.Key).ToArray();
             if (value is IEnumerable enumerable) return enumerable.Cast<object?>().ToArray();
             return ObjectMembers(value, offset).Select(member => (object?)member.Key).ToArray();
         }
         private IEnumerable<object?> NormalizeCollectionOrEmpty(object? value, int offset) => value == null ? Array.Empty<object?>() : NormalizeCollection(value, offset);
         private IEnumerable<KeyValuePair<string, object?>> ObjectMembers(object value, int offset) {
-            try { return _objectAccess.GetMembers(value).ToArray(); }
+            try { return mObjectAccess.GetMembers(value).ToArray(); }
             catch (XTemplateObjectAccessException exception) { throw new XTemplateException(exception.Message, offset); }
             catch (Exception exception) { throw new XTemplateException($"Unable to enumerate exposed object members: {exception.Message}", offset); }
         }
@@ -275,40 +308,5 @@ namespace DProjects.XShell.Services.XTemplate {
         private static bool IsValidAttributeName(string name) => XTemplateAttributeNames.IsValid(name);
     }
 
-    internal abstract record XTemplateNode(int Offset);
-    internal sealed record XTemplateTextNode(string Text, int Offset) : XTemplateNode(Offset);
-    internal sealed record XTemplateRawHtmlNode(string Html, int Offset) : XTemplateNode(Offset);
-    internal sealed record XTemplateInterpolationNode(XTemplateExpression Expression, int Offset) : XTemplateNode(Offset);
-    internal sealed record XTemplateCommentNode(string Text, int Offset) : XTemplateNode(Offset);
-    internal sealed record XTemplateStaticAttribute(string Name, string Value, bool HasValue, int Offset) : XTemplateElementAttribute(Offset);
-    internal sealed record XTemplateBoundAttribute(string Name, XTemplateExpression Expression, int Offset) : XTemplateElementAttribute(Offset);
-    internal sealed record XTemplateDynamicAttribute(XTemplateExpression NameExpression, XTemplateExpression ValueExpression, int Offset) : XTemplateElementAttribute(Offset);
-    internal sealed record XTemplateAttributeSpread(XTemplateExpression Expression, int Offset) : XTemplateElementAttribute(Offset);
-    internal sealed record XTemplateClassAttribute(string Name, XTemplateExpression Expression, int Offset) : XTemplateElementAttribute(Offset);
-    internal sealed record XTemplateShowAttribute(XTemplateExpression Expression, int Offset) : XTemplateElementAttribute(Offset);
-    internal abstract record XTemplateElementAttribute(int Offset);
-    internal sealed record XTemplateForDefinition(string ItemName, string IndexName, XTemplateExpression Collection, int Offset);
-    internal sealed record XTemplateRecursiveDefinition(string ItemName, string IndexName, string AbsoluteIndexName, XTemplateExpression Collection, XTemplateExpression Children, string? WrapperName, int Offset);
-    internal sealed record XTemplateSelectModel(object? Value, int Offset);
-    internal sealed record XTemplateElementNode(string Name, List<XTemplateElementAttribute> Attributes, List<XTemplateNode> Children, int Offset, XTemplateExpression? If, XTemplateExpression? ElseIf, bool IsElse, XTemplateForDefinition? For, XTemplateRecursiveDefinition? Recursive, XTemplateExpression? Text, XTemplateExpression? Html, XTemplateExpression? Model, XTemplateExpression? ChildrenExpression) : XTemplateNode(Offset);
 
-    internal sealed class OrderedAttributes {
-
-        // vars
-        private readonly List<KeyValuePair<string, string?>> _items;
-
-        // props
-        public List<KeyValuePair<string, string?>> Items => _items;
-
-        // ctor
-        public OrderedAttributes() { _items = new(); }
-        public OrderedAttributes(IEnumerable<KeyValuePair<string, string?>> items) { _items = new(items); }
-
-        // methods
-        public void Set(string name, string? value) { var index = _items.FindIndex(item => string.Equals(item.Key, name, StringComparison.OrdinalIgnoreCase)); if (index < 0) _items.Add(new(name, value)); else _items[index] = new(name, value); }
-        public void Remove(string name) { var index = _items.FindIndex(item => string.Equals(item.Key, name, StringComparison.OrdinalIgnoreCase)); if (index >= 0) _items.RemoveAt(index); }
-        public void AddClass(string name) { var current = _items.FirstOrDefault(item => string.Equals(item.Key, "class", StringComparison.OrdinalIgnoreCase)); var classes = (current.Value ?? string.Empty).Split(' ', StringSplitOptions.RemoveEmptyEntries).ToList(); if (!classes.Contains(name, StringComparer.Ordinal)) classes.Add(name); Set("class", string.Join(' ', classes)); }
-        public bool Contains(string name) => _items.Any(item => string.Equals(item.Key, name, StringComparison.OrdinalIgnoreCase));
-        public string? GetValue(string name) => _items.FirstOrDefault(item => string.Equals(item.Key, name, StringComparison.OrdinalIgnoreCase)).Value;
-    }
 }

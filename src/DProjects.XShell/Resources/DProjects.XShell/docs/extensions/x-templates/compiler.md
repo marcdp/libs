@@ -16,6 +16,8 @@ validation
     ↓
 dependency discovery
     ↓
+expression AST evaluation/code generation, including restricted formatter pipelines
+    ↓
 render-program generation
     ↓
 runtime renderer
@@ -23,6 +25,10 @@ runtime renderer
 
 This pipeline separates parsing, validation, dependency discovery, and rendering concerns. An implementation can choose a different internal
 representation or renderer as long as it preserves the language contract.
+
+Formatter syntax is parsed into the same target-neutral expression AST as the rest of the restricted language. A backend evaluates the source,
+evaluates formatter arguments when required, applies the specified built-in formatter semantics, and passes the result to the next pipeline stage.
+It must not turn formatter names into arbitrary JavaScript or .NET calls. This keeps the browser and server paths equivalent and CSP-compatible.
 
 ## Current XShell implementation
 

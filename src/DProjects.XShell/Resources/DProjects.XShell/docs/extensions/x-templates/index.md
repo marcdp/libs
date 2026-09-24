@@ -14,7 +14,7 @@ from the specification, the specification takes precedence.
 - [XTemplate Language Specification](specification.md) — Normative XTemplate language contract, including the current XShell VDOM ABI where
   compatibility requires it.
 - [Syntax guide](syntax.md) — Concise, human-oriented quick reference for common template constructs.
-- [Expressions](expressions.md) — Explanation of the current JavaScript expression model and render scope.
+- [Expressions](expressions.md) — Explanation of the restricted expression model, formatter pipeline, and render scope.
 - [Bindings](bindings.md) — Practical guide to attributes, properties, events, classes, visibility, and model binding.
 - [Compiler and runtime architecture](compiler.md) — XShell compiler/runtime architecture and implementation guidance.
 
