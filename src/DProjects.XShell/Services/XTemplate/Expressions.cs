@@ -11,6 +11,8 @@ namespace DProjects.XShell.Services.XTemplate {
     public sealed record UnaryExpression(string Operator, XTemplateExpression Operand, int Offset) : XTemplateExpression(Offset);
     public sealed record BinaryExpression(string Operator, XTemplateExpression Left, XTemplateExpression Right, int Offset) : XTemplateExpression(Offset);
     public sealed record ConditionalExpression(XTemplateExpression Condition, XTemplateExpression WhenTrue, XTemplateExpression WhenFalse, int Offset) : XTemplateExpression(Offset);
+    public sealed record FormatterStage(string Name, IReadOnlyList<XTemplateExpression> Arguments, int Offset);
+    public sealed record FormatExpression(XTemplateExpression Source, IReadOnlyList<FormatterStage> Formatters, int Offset) : XTemplateExpression(Offset);
 
     public abstract class XTemplateExpressionException : Exception {
 
@@ -41,11 +43,15 @@ namespace DProjects.XShell.Services.XTemplate {
         private readonly IReadOnlyDictionary<string, object?> _identifiers;
         private readonly XTemplateObjectAccess _objectAccess;
 
+        // props
+        public string? Locale { get; }
+
         // ctor
-        public XTemplateExpressionContext(IReadOnlyDictionary<string, object?> identifiers, IEnumerable<IXTemplateObjectAdapter>? objectAdapters = null) {
+        public XTemplateExpressionContext(IReadOnlyDictionary<string, object?> identifiers, IEnumerable<IXTemplateObjectAdapter>? objectAdapters = null, string? locale = null) {
             if (identifiers == null) throw new ArgumentNullException(nameof(identifiers));
             _identifiers = new Dictionary<string, object?>(identifiers, StringComparer.Ordinal);
             _objectAccess = new XTemplateObjectAccess(objectAdapters);
+            Locale = locale;
         }
 
         // methods
@@ -55,7 +61,7 @@ namespace DProjects.XShell.Services.XTemplate {
             if (identifiers == null) throw new ArgumentNullException(nameof(identifiers));
             var values = new Dictionary<string, object?>(_identifiers, StringComparer.Ordinal);
             foreach (var identifier in identifiers) values[identifier.Key] = identifier.Value;
-            return new XTemplateExpressionContext(values, _objectAccess.Adapters);
+            return new XTemplateExpressionContext(values, _objectAccess.Adapters, Locale);
         }
     }
 
@@ -81,7 +87,7 @@ namespace DProjects.XShell.Services.XTemplate {
         }
     }
 
-    internal enum ExpressionTokenKind { End, Identifier, Number, String, Null, True, False, Dot, OpenBracket, CloseBracket, OpenParenthesis, CloseParenthesis, Question, Colon, Plus, Minus, Star, Slash, Percent, Bang, Less, LessOrEqual, Greater, GreaterOrEqual, EqualEqual, BangEqual, AndAnd, OrOr, QuestionQuestion }
+    internal enum ExpressionTokenKind { End, Identifier, Number, String, Null, True, False, Dot, OpenBracket, CloseBracket, OpenParenthesis, CloseParenthesis, Question, Colon, Comma, Pipe, Plus, Minus, Star, Slash, Percent, Bang, Less, LessOrEqual, Greater, GreaterOrEqual, EqualEqual, BangEqual, AndAnd, OrOr, QuestionQuestion }
     internal readonly record struct ExpressionToken(ExpressionTokenKind Kind, string Text, object? Value, int Offset);
 
     internal sealed class ExpressionTokenizer {
@@ -106,14 +112,14 @@ namespace DProjects.XShell.Services.XTemplate {
             if (character is '\'' or '"') return ReadString(character, offset);
             return character switch {
                 '.' => new(ExpressionTokenKind.Dot, ".", null, offset), '[' => new(ExpressionTokenKind.OpenBracket, "[", null, offset), ']' => new(ExpressionTokenKind.CloseBracket, "]", null, offset),
-                '(' => new(ExpressionTokenKind.OpenParenthesis, "(", null, offset), ')' => new(ExpressionTokenKind.CloseParenthesis, ")", null, offset), '?' when Match('?') => new(ExpressionTokenKind.QuestionQuestion, "??", null, offset),
+                '(' => new(ExpressionTokenKind.OpenParenthesis, "(", null, offset), ')' => new(ExpressionTokenKind.CloseParenthesis, ")", null, offset), ',' => new(ExpressionTokenKind.Comma, ",", null, offset), '|' when Match('|') => new(ExpressionTokenKind.OrOr, "||", null, offset), '|' => new(ExpressionTokenKind.Pipe, "|", null, offset), '?' when Match('?') => new(ExpressionTokenKind.QuestionQuestion, "??", null, offset),
                 '?' => new(ExpressionTokenKind.Question, "?", null, offset), ':' => new(ExpressionTokenKind.Colon, ":", null, offset), '+' when Match('+') => Error("Update operator '++' is not valid in XTemplate expressions", offset),
                 '+' => new(ExpressionTokenKind.Plus, "+", null, offset), '-' when Match('-') => Error("Update operator '--' is not valid in XTemplate expressions", offset), '-' => new(ExpressionTokenKind.Minus, "-", null, offset),
                 '*' => new(ExpressionTokenKind.Star, "*", null, offset), '/' => new(ExpressionTokenKind.Slash, "/", null, offset), '%' => new(ExpressionTokenKind.Percent, "%", null, offset), '!' when Match('=') => new(ExpressionTokenKind.BangEqual, "!=", null, offset),
                 '!' => new(ExpressionTokenKind.Bang, "!", null, offset), '<' when Match('=') => new(ExpressionTokenKind.LessOrEqual, "<=", null, offset), '<' => new(ExpressionTokenKind.Less, "<", null, offset),
                 '>' when Match('=') => new(ExpressionTokenKind.GreaterOrEqual, ">=", null, offset), '>' => new(ExpressionTokenKind.Greater, ">", null, offset), '=' when Match('=') => new(ExpressionTokenKind.EqualEqual, "==", null, offset),
                 '=' => Error("Assignment operator '=' is not valid in XTemplate expressions", offset), '&' when Match('&') => new(ExpressionTokenKind.AndAnd, "&&", null, offset), '&' => Error("Unexpected '&'", offset),
-                '|' when Match('|') => new(ExpressionTokenKind.OrOr, "||", null, offset), '|' => Error("Unexpected '|'", offset), _ => Error($"Unexpected character '{character}'", offset)
+                _ => Error($"Unexpected character '{character}'", offset)
             };
         }
 
@@ -193,7 +199,7 @@ namespace DProjects.XShell.Services.XTemplate {
         // methods
         public XTemplateExpression Parse() {
             if (_current.Kind == ExpressionTokenKind.End) throw Error("Expected an expression");
-            var expression = ParseConditional();
+            var expression = ParsePipeline();
             if (_current.Kind != ExpressionTokenKind.End) throw Error($"Unexpected token '{_current.Text}'");
             return expression;
         }
@@ -206,6 +212,22 @@ namespace DProjects.XShell.Services.XTemplate {
             var whenTrue = ParseConditional();
             Require(ExpressionTokenKind.Colon, "Expected ':' in conditional expression");
             return new ConditionalExpression(condition, whenTrue, ParseConditional(), offset);
+        }
+        private XTemplateExpression ParsePipeline() {
+            var expression = ParseConditional();
+            if (!Take(ExpressionTokenKind.Pipe)) return expression;
+            var formatters = new List<FormatterStage>();
+            do {
+                var name = _current;
+                Require(ExpressionTokenKind.Identifier, "Expected a formatter identifier after '|'");
+                var arguments = new List<XTemplateExpression>();
+                if (Take(ExpressionTokenKind.OpenParenthesis) && !Take(ExpressionTokenKind.CloseParenthesis)) {
+                    do { arguments.Add(ParsePipeline()); } while (Take(ExpressionTokenKind.Comma));
+                    Require(ExpressionTokenKind.CloseParenthesis, "Missing closing ')' in formatter arguments");
+                }
+                formatters.Add(new FormatterStage(name.Text, arguments, name.Offset));
+            } while (Take(ExpressionTokenKind.Pipe));
+            return new FormatExpression(expression, formatters, formatters[0].Offset);
         }
         private XTemplateExpression ParseCoalesce() => ParseBinary(ParseLogicalOr, ExpressionTokenKind.QuestionQuestion);
         private XTemplateExpression ParseLogicalOr() => ParseBinary(ParseLogicalAnd, ExpressionTokenKind.OrOr);
@@ -227,7 +249,7 @@ namespace DProjects.XShell.Services.XTemplate {
             var expression = ParsePrimary();
             while (true) {
                 if (Take(ExpressionTokenKind.Dot)) { var token = _current; Require(ExpressionTokenKind.Identifier, "Expected a member identifier after '.'"); expression = new MemberAccessExpression(expression, token.Text, token.Offset); }
-                else if (Take(ExpressionTokenKind.OpenBracket)) { var offset = _current.Offset - 1; var index = ParseConditional(); Require(ExpressionTokenKind.CloseBracket, "Missing closing ']'"); expression = new IndexAccessExpression(expression, index, offset); }
+                else if (Take(ExpressionTokenKind.OpenBracket)) { var offset = _current.Offset - 1; var index = ParsePipeline(); Require(ExpressionTokenKind.CloseBracket, "Missing closing ']'"); expression = new IndexAccessExpression(expression, index, offset); }
                 else return expression;
             }
         }
@@ -240,7 +262,7 @@ namespace DProjects.XShell.Services.XTemplate {
                 _ => throw new XTemplateExpressionSyntaxException($"Expected an expression, found '{token.Text}'", token.Offset)
             };
         }
-        private XTemplateExpression ParseParenthesized(int offset) { var expression = ParseConditional(); Require(ExpressionTokenKind.CloseParenthesis, "Missing closing ')'"); return expression; }
+        private XTemplateExpression ParseParenthesized(int offset) { var expression = ParsePipeline(); Require(ExpressionTokenKind.CloseParenthesis, "Missing closing ')'"); return expression; }
         private bool Take(ExpressionTokenKind kind) { if (_current.Kind != kind) return false; Next(); return true; }
         private void Require(ExpressionTokenKind kind, string message) { if (_current.Kind != kind) throw Error(message); Next(); }
         private void Next() => _current = _tokenizer.Next();

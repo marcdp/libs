@@ -23,6 +23,7 @@ namespace DProjects.XShell.Services.XTemplate {
                 UnaryExpression unary => EvaluateUnary(unary),
                 BinaryExpression binary => EvaluateBinary(binary),
                 ConditionalExpression conditional => XTemplateValues.IsTruthy(Evaluate(conditional.Condition)) ? Evaluate(conditional.WhenTrue) : Evaluate(conditional.WhenFalse),
+                FormatExpression format => EvaluateFormat(format),
                 _ => throw new XTemplateExpressionEvaluationException("Unsupported expression node", expression.Offset)
             };
         }
@@ -48,6 +49,15 @@ namespace DProjects.XShell.Services.XTemplate {
                 "<" => Compare(left, right, expression.Offset) < 0, "<=" => Compare(left, right, expression.Offset) <= 0, ">" => Compare(left, right, expression.Offset) > 0, ">=" => Compare(left, right, expression.Offset) >= 0,
                 _ => throw new XTemplateExpressionEvaluationException($"Unsupported binary operator '{expression.Operator}'", expression.Offset)
             };
+        }
+        private object? EvaluateFormat(FormatExpression expression) {
+            object? value = Evaluate(expression.Source);
+            foreach (var formatter in expression.Formatters) {
+                if (value == null) return null;
+                var arguments = formatter.Arguments.Select(Evaluate).ToArray();
+                value = XTemplateFormatters.Apply(formatter.Name, value, arguments, _context.Locale, formatter.Offset);
+            }
+            return value;
         }
         private static object Add(object? left, object? right, int offset) {
             if (left is double leftNumber && right is double rightNumber) return CheckedNumber(leftNumber + rightNumber, offset);

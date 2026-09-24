@@ -55,16 +55,18 @@ namespace DProjects.XShell.Services.XTemplate {
 
         // vars
         private readonly XTemplateObjectAccess mObjectAccess;
+        private readonly string? mLocale;
 
         // ctor
-        public XTemplateRenderer(IEnumerable<IXTemplateObjectAdapter>? objectAdapters = null) {
+        public XTemplateRenderer(IEnumerable<IXTemplateObjectAdapter>? objectAdapters = null, string? locale = null) {
             mObjectAccess = new XTemplateObjectAccess(objectAdapters);
+            mLocale = locale;
         }
 
         // methods
         public string Render(string template, object? state) {
             var root = new XTemplateParser(template.Trim()).Parse();
-            var context = new XTemplateExpressionContext(new Dictionary<string, object?> { ["state"] = state }, mObjectAccess.Adapters);
+            var context = new XTemplateExpressionContext(new Dictionary<string, object?> { ["state"] = state }, mObjectAccess.Adapters, mLocale);
             var result = new StringBuilder();
             RenderChildren(root.Children, context, result, null);
             return result.ToString();

@@ -195,10 +195,63 @@ namespace DProjects.XShell.Test {
             Assert.Throws<XTemplateExpressionSyntaxException>(() => XTemplateExpressions.Evaluate("state.GetType()", context));
         }
 
+        [Fact]
+        public void ParsesAndEvaluatesFormatterPipelinesWithConditionalPrecedence() {
+            var context = Context(new { state = new { price = 12.5, decimals = 2, name = "  ada  " } });
+
+            var format = Assert.IsType<FormatExpression>(XTemplateExpressions.Parse("state.name | trim | upper"));
+            Assert.Equal(new[] { "trim", "upper" }, format.Formatters.Select(formatter => formatter.Name));
+            Assert.Equal("13.50", XTemplateExpressions.Evaluate("state.price + 1 | number(2)", context));
+            Assert.Equal("A", XTemplateExpressions.Evaluate("true ? 'a' : 'b' | upper", context));
+            Assert.Equal("A", XTemplateExpressions.Evaluate("true ? ('a' | upper) : 'b'", context));
+            Assert.Equal("B", XTemplateExpressions.Evaluate("false ? 'a' : ('b' | upper)", context));
+            Assert.Equal("ADA", XTemplateExpressions.Evaluate("state.name | trim | upper", context));
+            Assert.Equal("12.50", XTemplateExpressions.Evaluate("state.price | number(state.decimals)", context));
+            Assert.False(XTemplateExpressions.IsAssignable(XTemplateExpressions.Parse("state.price | number(2)")));
+        }
+
+        [Fact]
+        public void ImplementsFormatterNullShortCircuitingAndErrors() {
+            Assert.Null(XTemplateExpressions.Evaluate("null | number(1 / 0) | upper", Context()));
+            Assert.Throws<XTemplateExpressionEvaluationException>(() => XTemplateExpressions.Evaluate("1 | unknownFormatter", Context()));
+            Assert.Throws<XTemplateExpressionEvaluationException>(() => XTemplateExpressions.Evaluate("1 | number(-1)", Context()));
+            Assert.Throws<XTemplateExpressionSyntaxException>(() => XTemplateExpressions.Parse("formatPrice(state.price)"));
+            Assert.Throws<XTemplateExpressionSyntaxException>(() => XTemplateExpressions.Parse("state.price.toFixed(2)"));
+            Assert.Throws<XTemplateExpressionSyntaxException>(() => XTemplateExpressions.Parse("1 === 1"));
+            Assert.Throws<XTemplateExpressionSyntaxException>(() => XTemplateExpressions.Parse("1 !== 2"));
+        }
+
+        [Fact]
+        public void FormatsNumbersPercentAndCurrenciesAcrossTheLocaleProfile() {
+            Assert.Equal("12", XTemplateExpressions.Evaluate("12 | number", Context()));
+            Assert.Equal("12.346", XTemplateExpressions.Evaluate("12.3456 | number", Context()));
+            Assert.Equal("12.50", XTemplateExpressions.Evaluate("12.5 | number(2)", Context()));
+            Assert.Equal("-1.3", XTemplateExpressions.Evaluate("-1.25 | number(1)", Context()));
+            Assert.Equal("1,234.50", XTemplateExpressions.Evaluate("1234.5 | number(2)", Context(locale: "en-US")));
+            Assert.Equal("1.234,50", XTemplateExpressions.Evaluate("1234.5 | number(2)", Context(locale: "es-ES")));
+            Assert.Equal("25,0\u00A0%", XTemplateExpressions.Evaluate("0.25 | percent(1)", Context(locale: "es-ES")));
+            Assert.Equal("€1,234.50", XTemplateExpressions.Evaluate("1234.5 | currency('EUR')", Context(locale: "en-US")));
+            Assert.Equal("¥1,235", XTemplateExpressions.Evaluate("1234.5 | currency('JPY')", Context(locale: "en-US")));
+            Assert.Throws<XTemplateExpressionEvaluationException>(() => XTemplateExpressions.Evaluate("1 | currency('eur')", Context()));
+        }
+
+        [Fact]
+        public void FormatsDatesTimesAndLocaleAwareTextWithoutLocalTimeConversion() {
+            Assert.Equal("24/09/2026", XTemplateExpressions.Evaluate("'2026-09-24' | date('dd/MM/yyyy')", Context()));
+            Assert.Equal("septiembre", XTemplateExpressions.Evaluate("'2026-09-24' | date('MMMM')", Context(locale: "es-ES")));
+            Assert.Equal("24/09/2026 21:15:00", XTemplateExpressions.Evaluate("'2026-09-24T21:15:00+02:00' | datetime('dd/MM/yyyy HH:mm:ss')", Context()));
+            Assert.Equal("21:15", XTemplateExpressions.Evaluate("'2026-09-24T21:15:00+02:00' | time('HH:mm')", Context()));
+            Assert.Equal("İ", XTemplateExpressions.Evaluate("'i' | upper", Context(locale: "tr-TR")));
+            Assert.Equal("ı", XTemplateExpressions.Evaluate("'I' | lower", Context(locale: "tr-TR")));
+            Assert.Equal("value", XTemplateExpressions.Evaluate("'\u2002value\u2002' | trim", Context()));
+            Assert.Throws<XTemplateExpressionEvaluationException>(() => XTemplateExpressions.Evaluate("'2026-09-24T21:15:00' | datetime('HH:mm')", Context()));
+            Assert.Throws<XTemplateExpressionEvaluationException>(() => XTemplateExpressions.Evaluate("'2026-09-24' | date('QQ')", Context()));
+        }
+
         // methods (private)
-        private static XTemplateExpressionContext Context(object? values = null) {
+        private static XTemplateExpressionContext Context(object? values = null, string? locale = null) {
             var identifiers = values == null ? new Dictionary<string, object?>() : values.GetType().GetProperties().ToDictionary(property => property.Name, property => property.GetValue(values));
-            return new XTemplateExpressionContext(identifiers, new[] { new XTemplateReflectionObjectAdapter() });
+            return new XTemplateExpressionContext(identifiers, new[] { new XTemplateReflectionObjectAdapter() }, locale);
         }
     }
 }

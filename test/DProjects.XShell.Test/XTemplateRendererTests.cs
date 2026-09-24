@@ -226,8 +226,17 @@ namespace DProjects.XShell.Test {
             else Assert.Throws<XTemplateException>(() => Render(template, new { value = "value" }));
         }
 
+        [Fact]
+        public void RendersFormatterPipelinesUsingTheConfiguredLocale() {
+            var state = new { price = 1234.5 };
+
+            Assert.Equal("<p>1.234,50</p>", Render("<p>{{ state.price | number(2) }}</p>", state, "es-ES"));
+            Assert.Equal("<div data-price=\"1.234,50\"></div>", Render("<div x-attr:data-price=\"state.price | number(2)\"></div>", state, "es-ES"));
+            Assert.Equal("<p>1,234.50</p>", Render("<p>{{ state.price | number(2) }}</p>", state));
+        }
+
         // methods (private)
-        private static string Render(string template, object? state = null) => new XTemplateRenderer(new[] { new XTemplateReflectionObjectAdapter() }).Render(template, state ?? new { });
+        private static string Render(string template, object? state = null, string? locale = null) => new XTemplateRenderer(new[] { new XTemplateReflectionObjectAdapter() }, locale).Render(template, state ?? new { });
         private static bool XTemplateTruthiness(object? value) => value switch { null => false, bool boolean => boolean, double number => number != 0, int number => number != 0, string text => text.Length != 0, _ => true };
         private static string Scalar(object? value) => value switch { null => string.Empty, bool boolean => boolean ? "true" : "false", double number => number == 0 ? "0" : number.ToString("R", System.Globalization.CultureInfo.InvariantCulture), int number => number.ToString(System.Globalization.CultureInfo.InvariantCulture), string text => text, _ => throw new InvalidOperationException() };
     }
