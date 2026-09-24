@@ -19,6 +19,32 @@ namespace DProjects.XShell.Test {
         }
 
         [Fact]
+        public void RendersRecursiveItemsWithDepthFirstTraversalAndRecursiveLocals() {
+            var state = new {
+                items = new[] {
+                    new Node("A", new[] { new Node("A1", Array.Empty<Node>()), new Node("A2", Array.Empty<Node>()) }),
+                    new Node("B", new[] { new Node("B1", Array.Empty<Node>()) })
+                }
+            };
+            var html = Render("<ul><li x-recursive=\"(item,index,indexAbsolute) in state.items\" x-recursive-wrapper=\"ul\">{{ item.name }}:{{ index }}:{{ indexAbsolute }}:{{ indent }}</li></ul>", state);
+
+            Assert.Equal("<ul><li>A:0:0:0<ul><li>A1:0:1:1</li><li>A2:1:2:1</li></ul></li><li>B:1:3:0<ul><li>B1:0:4:1</li></ul></li></ul>", html);
+        }
+
+        [Fact]
+        public void ContinuesAbsoluteRecursiveIndexAfterReturningFromDeeperBranch() {
+            var state = new {
+                items = new[] {
+                    new Node("A", new[] { new Node("A1", new[] { new Node("A1a", Array.Empty<Node>()) }), new Node("A2", Array.Empty<Node>()) }),
+                    new Node("B", Array.Empty<Node>())
+                }
+            };
+            var html = Render("<span x-recursive=\"(item,index,indexAbsolute) in state.items\" x-recursive-wrapper=\"div\">{{ item.name }}={{ index }}={{ indexAbsolute }}={{ indent }}</span>", state);
+
+            Assert.Equal("<span>A=0=0=0<div><span>A1=0=1=1<div><span>A1a=0=2=2</span></div></span><span>A2=1=3=1</span></div></span><span>B=1=4=0</span>", html);
+        }
+
+        [Fact]
         public void RendersNoRecursiveChildrenForNullCollection() {
             var html = Render("<li x-recursive=\"item in state.items\">{{ item.label }}</li>", new { items = new[] { new { label = "Root", children = (object?)null } } });
 
