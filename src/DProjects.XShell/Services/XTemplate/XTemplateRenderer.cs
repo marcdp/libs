@@ -132,6 +132,8 @@ namespace DProjects.XShell.Services.XTemplate {
         }
         private static List<KeyValuePair<string, string?>> BuildAttributes(XTemplateElementNode element, XTemplateExpressionContext context) {
             var attributes = new OrderedAttributes();
+            var hasShow = false;
+            var isHidden = false;
             foreach (var attribute in element.Attributes) {
                 switch (attribute) {
                     case XTemplateStaticAttribute staticAttribute: attributes.Set(staticAttribute.Name, staticAttribute.HasValue ? staticAttribute.Value : null); break;
@@ -146,9 +148,14 @@ namespace DProjects.XShell.Services.XTemplate {
                         if (IsTruthy(XTemplateExpressions.Evaluate(classAttribute.Expression, context))) attributes.AddClass(classAttribute.Name);
                         break;
                     case XTemplateShowAttribute showAttribute:
-                        if (!IsTruthy(XTemplateExpressions.Evaluate(showAttribute.Expression, context))) attributes.AppendStyle("display:none");
+                        hasShow = true;
+                        isHidden |= !IsTruthy(XTemplateExpressions.Evaluate(showAttribute.Expression, context));
                         break;
                 }
+            }
+            if (hasShow) {
+                if (isHidden) attributes.Set("hidden", null);
+                else attributes.Remove("hidden");
             }
             return attributes.Items;
         }
@@ -251,7 +258,6 @@ namespace DProjects.XShell.Services.XTemplate {
         public void Set(string name, string? value) { var index = _items.FindIndex(item => string.Equals(item.Key, name, StringComparison.OrdinalIgnoreCase)); if (index < 0) _items.Add(new(name, value)); else _items[index] = new(name, value); }
         public void Remove(string name) { var index = _items.FindIndex(item => string.Equals(item.Key, name, StringComparison.OrdinalIgnoreCase)); if (index >= 0) _items.RemoveAt(index); }
         public void AddClass(string name) { var current = _items.FirstOrDefault(item => string.Equals(item.Key, "class", StringComparison.OrdinalIgnoreCase)); var classes = (current.Value ?? string.Empty).Split(' ', StringSplitOptions.RemoveEmptyEntries).ToList(); if (!classes.Contains(name, StringComparer.Ordinal)) classes.Add(name); Set("class", string.Join(' ', classes)); }
-        public void AppendStyle(string style) { var current = _items.FirstOrDefault(item => string.Equals(item.Key, "style", StringComparison.OrdinalIgnoreCase)); var prefix = string.IsNullOrEmpty(current.Key) || string.IsNullOrWhiteSpace(current.Value) ? string.Empty : current.Value!.TrimEnd(';') + ";"; Set("style", prefix + style); }
         public string? GetValue(string name) => _items.FirstOrDefault(item => string.Equals(item.Key, name, StringComparison.OrdinalIgnoreCase)).Value;
     }
 }

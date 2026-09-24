@@ -1016,23 +1016,16 @@ Syntax:
 
 `x-show` does not structurally remove the element.
 
-When the expression is falsy, the current implementation adds an inline attribute equivalent to:
+When the expression is falsy, the renderer adds the boolean HTML attribute:
 
 ```html
-style="display:none"
+hidden
 ```
 
-When truthy, that hiding style is absent.
+When truthy, the `hidden` attribute is absent. `x-show` controls the resulting `hidden` attribute, so an authored `hidden` attribute is removed
+when the expression is truthy and retained as a single boolean attribute when it is falsy. Authored `style` attributes are unchanged.
 
 This differs fundamentally from `x-if`.
-
-### 22.1 Combination with other style bindings
-
-The current implementation realizes `x-show` as an attribute-object contribution.
-
-Combining it with another independently generated `style` binding may be order-sensitive in the current compiler.
-
-Templates SHOULD avoid ambiguous combinations until explicit style-merging semantics are standardized.
 
 ---
 
@@ -3102,17 +3095,7 @@ This is a runtime defect.
 
 ---
 
-## 105. `x-show` and style collisions
-
-`x-show` contributes a `style` attribute through generated object merging.
-
-Multiple generated `style` properties can produce source-order-sensitive behavior.
-
-A future language version could define explicit style-object merging.
-
----
-
-## 106. Structural directive combinations
+## 105. Structural directive combinations
 
 Because the reference compiler rewrites generated prefix/suffix code while iterating attributes, multiple structural directives on one element can be source-order-sensitive.
 
@@ -3311,7 +3294,7 @@ A correct implementation should preserve these semantics even if it uses a compl
 | `x-if` | Conditional branch | expression |
 | `x-elseif` | Conditional branch | expression |
 | `x-else` | Fallback branch | none |
-| `x-show` | CSS visibility | expression |
+| `x-show` | HTML hidden visibility | expression |
 | `x-for` | Repetition | loop expression |
 | `x-key` | Item identity | property name |
 | `x-recursive` | Recursive repetition | recursive loop expression |
@@ -3365,7 +3348,6 @@ radio x-model generalized target
 multiple-select x-model
 some mouse modifier checks
 Alt modifier check
-style collision with x-show
 multiple structural directives on one element
 ```
 

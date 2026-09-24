@@ -56,10 +56,30 @@ namespace DProjects.XShell.Test {
         }
 
         [Fact]
-        public void MergesClassesAndAppliesShowStyle() {
+        public void RendersTruthyShowWithoutHiddenAttribute() {
+            var html = Render("<div x-show=\"true\"></div>");
+
+            Assert.Equal("<div></div>", html);
+        }
+
+        [Fact]
+        public void RendersFalsyShowWithHiddenAttribute() {
+            var html = Render("<div x-show=\"false\"></div>");
+
+            Assert.Equal("<div hidden></div>", html);
+        }
+
+        [Fact]
+        public void PreservesStaticStyleWhenShowIsFalsy() {
             var html = Render("<div class=\"base\" x-class:selected=\"state.selected\" x-class:busy=\"state.busy\" style=\"color:red\" x-show=\"state.visible\"></div>", new { selected = true, busy = false, visible = false });
 
-            Assert.Equal("<div class=\"base selected\" style=\"color:red;display:none\"></div>", html);
+            Assert.Equal("<div class=\"base selected\" style=\"color:red\" hidden></div>", html);
+        }
+
+        [Fact]
+        public void ReconcilesExistingHiddenAttributeWithShowWithoutDuplicates() {
+            Assert.Equal("<div></div>", Render("<div hidden x-show=\"true\"></div>"));
+            Assert.Equal("<div hidden></div>", Render("<div x-show=\"false\" hidden></div>"));
         }
 
         [Fact]
