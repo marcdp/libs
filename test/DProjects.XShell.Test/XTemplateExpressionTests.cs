@@ -296,7 +296,7 @@ namespace DProjects.XShell.Test {
             Assert.Throws<XTemplateExpressionEvaluationException>(() => XTemplateExpressions.Evaluate("'2026-02-30' | date('yyyy-MM-dd')", context));
             Assert.Throws<XTemplateExpressionEvaluationException>(() => XTemplateExpressions.Evaluate("'2026-09-24T21:15:00Z' | datetime()", context));
             Assert.Throws<XTemplateExpressionEvaluationException>(() => XTemplateExpressions.Evaluate("123 | datetime('yyyy-MM-dd HH:mm')", context));
-            Assert.Throws<XTemplateExpressionEvaluationException>(() => XTemplateExpressions.Evaluate("'2026-09-24T21:15:00Z' | datetime('yyyy')", context));
+            Assert.Throws<XTemplateExpressionEvaluationException>(() => XTemplateExpressions.Evaluate("'2026-09-24T21:15:00Z' | datetime('--')", context));
             Assert.Throws<XTemplateExpressionEvaluationException>(() => XTemplateExpressions.Evaluate("'2026-09-24T21:15:00' | datetime('HH:mm')", context));
             Assert.Throws<XTemplateExpressionEvaluationException>(() => XTemplateExpressions.Evaluate("'2026-09-24T21:15:00Z' | time('yyyy')", context));
             Assert.Equal("21:15", XTemplateExpressions.Evaluate("'2026-09-24T21:15:00Z' | time('HH:mm')", context));
@@ -307,6 +307,10 @@ namespace DProjects.XShell.Test {
         public void FormatsDatesTimesAndLocaleAwareTextWithoutLocalTimeConversion() {
             Assert.Equal("24/09/2026", XTemplateExpressions.Evaluate("'2026-09-24' | date('dd/MM/yyyy')", Context()));
             Assert.Equal("septiembre", XTemplateExpressions.Evaluate("'2026-09-24' | date('MMMM')", Context(locale: "es-ES")));
+            Assert.Equal("2026", XTemplateExpressions.Evaluate("'2026-09-24T21:15:00Z' | datetime('yyyy')", Context()));
+            Assert.Equal("21:15", XTemplateExpressions.Evaluate("'2026-09-24T21:15:00Z' | datetime('HH:mm')", Context()));
+            Assert.Equal("2026-09-24", XTemplateExpressions.Evaluate("'2026-09-24T21:15:00Z' | datetime('yyyy-MM-dd')", Context()));
+            Assert.Equal("2026-09-24 21:15:00", XTemplateExpressions.Evaluate("'2026-09-24T21:15:00Z' | datetime('yyyy-MM-dd HH:mm:ss')", Context()));
             Assert.Equal("24/09/2026 21:15:00", XTemplateExpressions.Evaluate("'2026-09-24T21:15:00+02:00' | datetime('dd/MM/yyyy HH:mm:ss')", Context()));
             Assert.Equal("21:15", XTemplateExpressions.Evaluate("'2026-09-24T21:15:00+02:00' | time('HH:mm')", Context()));
             Assert.Equal("İ", XTemplateExpressions.Evaluate("'i' | upper", Context(locale: "tr-TR")));

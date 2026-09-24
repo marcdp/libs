@@ -284,7 +284,7 @@ export async function createComponentClassFromJsDefinition(src, context, definit
             // author script
             this._controller = definition.controller(servicesProvider) ?? {};
             // expose contract methods without replacing runtime lifecycle methods
-            for (const methodName of Object.keys(contract?.methods ?? {})) {
+            for (const methodName of Object.keys(contract.methods ?? {})) {
                 const method = this._controller[methodName];
                 if (typeof(method) === "function" && !(methodName in this)) {
                     this[methodName] = (...params) => method.apply(this, params);

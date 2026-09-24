@@ -120,8 +120,6 @@ namespace DProjects.XShell.Services.XTemplate {
         private static string FormatPattern(DateTimeOffset value, string pattern, CultureInfo culture, bool dateAllowed, bool timeAllowed, int offset) {
             var result = new System.Text.StringBuilder();
             var hasToken = false;
-            var hasDateToken = false;
-            var hasTimeToken = false;
             for (var position = 0; position < pattern.Length;) {
                 var token = PatternTokens.FirstOrDefault(candidate => pattern.AsSpan(position).StartsWith(candidate, StringComparison.Ordinal));
                 if (token == null) {
@@ -137,12 +135,9 @@ namespace DProjects.XShell.Services.XTemplate {
                     "HH" => value.Hour.ToString("D2", CultureInfo.InvariantCulture), "H" => value.Hour.ToString(CultureInfo.InvariantCulture), "mm" => value.Minute.ToString("D2", CultureInfo.InvariantCulture), "ss" => value.Second.ToString("D2", CultureInfo.InvariantCulture), _ => throw Error("Formatter pattern contains an unsupported token", offset)
                 });
                 hasToken = true;
-                hasDateToken |= token is "yyyy" or "MMMM" or "MMM" or "MM" or "M" or "dd" or "d";
-                hasTimeToken |= token is "HH" or "H" or "mm" or "ss";
                 position += token.Length;
             }
             if (!hasToken) throw Error("Formatter pattern must contain a token", offset);
-            if (dateAllowed && timeAllowed && (!hasDateToken || !hasTimeToken)) throw Error("Formatter 'datetime' pattern must contain date and time tokens", offset);
             return result.ToString();
         }
         private static string Pattern(IReadOnlyList<object?> arguments, string name, int offset) {

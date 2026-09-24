@@ -171,7 +171,7 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
         _renderPending = false;
         _styleSheets = [];
         _disposables = [];
-        _script = null;
+        _controller = null;
         // ctor
         constructor({ src, context }) {
             super({ src, context });
@@ -249,7 +249,15 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
                 }
             });            
             // author script
-            this._script = definition.script?.(servicesProvider) ?? {};
+            this._controller = definition.controller?.(servicesProvider) ?? {};
+            // expose contract methods without replacing runtime lifecycle methods
+            for (const methodName of Object.keys(contract.methods ?? {})) {
+                const method = this._controller[methodName];
+                if (typeof(method) === "function" && !(methodName in this)) {
+                    this[methodName] = (...params) => method.apply(this, params);
+                }
+            }
+            
         }
         // mount/unmount
         async mount({ host }) {
@@ -318,7 +326,7 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
                 }
                 this._disposables = [];
                 this._stateChanges = [];
-                this._script = null;
+                this._controller = null;
             }
         }
         // statechange
@@ -343,6 +351,14 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
                 const newUrl = xshell.navigation.buildUrl(item);
                 // call navigate, with replace true to avoid creating a new history entry for each state change
                 xshell.navigation.navigate({...item, page:this, replace:true});
+            }
+        }
+        // onCommand
+        onCommand(command, params) {
+            debugger
+            const handler = this._controller[command];
+            if (typeof(handler) === "function") {
+                return handler.call(this, params);
             }
         }
         // invalidate
