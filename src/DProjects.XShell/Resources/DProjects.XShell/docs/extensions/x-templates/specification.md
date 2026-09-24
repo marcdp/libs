@@ -13,7 +13,7 @@ X Template (XTL) is the declarative template language used by the XShell `x` ren
 
 An X Template is an HTML fragment extended with:
 
-- JavaScript expressions;
+- restricted XTemplate expressions;
 - text interpolation;
 - dynamic attributes and properties;
 - event-to-command bindings;
@@ -85,20 +85,20 @@ Conceptually:
 ```text
 X Template source
     ↓
-HTML fragment parsing
+template parser
     ↓
-XTL template tree
+template AST
     ↓
-directive/expression analysis
+expression parser
     ↓
-render program
-    ↓
-render(state, context)
-    ↓
-rendered node tree
-    ↓
-DOM creation or reconciliation
+expression AST
+    +----------------------+----------------------+----------------------+
+    |                      |                      |
+JavaScript compiler   C# server renderer   validation/tooling
 ```
+
+The template parser owns template structure. Every expression-bearing construct is tokenized and parsed into an implementation-neutral expression AST.
+A backend may emit code from that AST or evaluate it directly.
 
 An implementation may use:
 
@@ -207,15 +207,7 @@ instead.
 
 ### 6.2 Conversion
 
-The current renderer uses conceptual JavaScript semantics equivalent to:
-
-```js
-"" + expression
-```
-
-for interpolation.
-
-Therefore values are converted to strings using normal JavaScript string conversion.
+The result is converted with the XTemplate string conversion defined in section 7.8. Interpolation does not use host-language string coercion.
 
 Examples:
 
@@ -229,73 +221,452 @@ Examples:
 
 # Part II — Expression Model
 
-## 7. Expressions
+## 7. XTemplate expression language
 
-In the current language version, directive values and interpolation contents are **JavaScript expressions**.
+XTemplate expressions are a small language owned and defined by XTemplate. The syntax is intentionally JavaScript-like, but the language semantics are
+defined by this specification and MUST NOT depend on a JavaScript runtime or the coercion, global scope, object model, or parser rules of a host
+language.
 
-Examples:
+Every valid expression in this language version MUST be parseable into an implementation-neutral AST and evaluable without a JavaScript engine. A
+conforming JavaScript compiler and a conforming C# evaluator MUST implement the same XTemplate semantics.
 
-```html
-<div x-if="state.visible"></div>
-<span x-text="state.label"></span>
-<a x-attr:href="item.path || item.href"></a>
-<li x-class:selected="state.selected == item.id"></li>
-```
-
-The current implementation does not define a separate safe expression grammar or sandbox.
-
-A compatible JavaScript compiler may emit these expressions directly into generated JavaScript.
-
-### 7.1 Expression scope
-
-The following names can be available depending on context:
+Representative expressions are:
 
 ```text
-state
-i18n
-renderCount
-utils
-handler
-invalidate
+state.value
+state.value + 1
+state.value == 'a' || state.value == 'b'
+state.array[state.index].var2 + 3 / 12
+state.val1 ? '123' : '232'
+state.variable ?? 'default'
+state.enabled && !state.disabled
+(state.price * state.quantity) + state.tax
+item.name
+state.items[index].name
 ```
 
-Loop constructs introduce additional local variables.
+An expression is read-only and has no side effects. Assignments are not expressions. `x-model` uses the separate assignable-expression subset in
+section 41.
 
-`x-for` typically introduces:
+### 7.1 Value model
+
+Expression values belong to these language-level kinds:
 
 ```text
-item
-index
+null
+boolean
+number
+string
+object
+collection
 ```
 
-where the actual names are template-defined.
+`null` is the sole nullish value. Host-only sentinel values such as JavaScript `undefined` are not XTemplate values. A host adapter MUST map a missing
+value to XTemplate `null` or report a context-construction error before evaluation.
 
-`x-recursive` additionally provides:
+Numbers follow the finite IEEE 754 binary64 value set. Numeric literals and arithmetic results MUST be representable as finite binary64 values.
+Division or modulo by zero and any operation producing a non-finite value are evaluation errors. Implementations MUST NOT expose `NaN`, positive
+infinity, or negative infinity as XTemplate results.
+
+Objects are named-member containers. Collections are ordered, zero-based value sequences. A host may adapt dictionaries, DTOs, arrays, and lists to
+these kinds, but host methods, constructors, prototypes, reflection metadata, and indexers not exposed by the adapter are not members of the
+XTemplate value.
+
+### 7.2 Lexical rules
+
+Whitespace consists of space, tab, carriage return, and line feed and may occur between tokens. Whitespace is not permitted inside a token.
+
+An identifier matches:
 
 ```text
-indexAbsolute
-indent
+[A-Za-z_][A-Za-z0-9_]*
 ```
 
-unless an alternate absolute-index variable name is declared.
+Identifiers are case-sensitive. `null`, `true`, and `false` are reserved literal tokens and cannot be identifiers.
 
-Expressions inside repeated or recursive content can reference the corresponding loop locals.
+A number is one or more ASCII digits, optionally followed by `.` and one or more ASCII digits:
 
-### 7.2 Side effects
+```ebnf
+number = digit, { digit }, [ ".", digit, { digit } ] ;
+```
 
-The current implementation technically permits arbitrary JavaScript expressions because expressions are injected into generated JavaScript.
+Leading `+` or `-` is a unary operator, not part of a numeric token. Exponent notation, numeric separators, hexadecimal, binary, octal, leading-dot
+decimals, and trailing-dot decimals are not supported.
 
-This specification does **not** recommend relying on side effects in value expressions.
+A string is enclosed in single or double quotes. It may contain any Unicode character except an unescaped matching quote, backslash, carriage return,
+or line feed. The following escapes are supported:
 
-Templates SHOULD treat ordinary expressions as value-producing expressions.
+| Escape | Value |
+|---|---|
+| `\\` | backslash |
+| `\'` | single quote |
+| `\"` | double quote |
+| `\n` | line feed |
+| `\r` | carriage return |
+| `\t` | tab |
+| `\b` | backspace |
+| `\f` | form feed |
+| `\uHHHH` | UTF-16 code unit written as exactly four hexadecimal digits |
 
-Event handlers are deliberately modeled as commands rather than arbitrary inline JavaScript.
+An escape may be used with either quote style. Unknown, incomplete, or malformed escapes are syntax errors. A raw line break in a string is a syntax
+error. Consecutive `\uHHHH` escapes may encode a UTF-16 surrogate pair; an unpaired surrogate is invalid.
 
-### 7.3 Future expression languages
+The complete operator and punctuation token set is:
 
-A future XTL version may replace unrestricted JavaScript expressions with a restricted portable expression grammar.
+```text
+.  [  ]  (  )  ?  :
++  -  *  /  %  !
+<  <=  >  >=  ==  !=  &&  ||  ??
+```
 
-Such a change must be versioned and must not be silently assumed by an implementation of the language described here.
+Tokenization uses the longest valid token. Any other character or token, including a single `=`, `&`, or `|`, is invalid. When an expression is read
+from an HTML attribute, HTML character-reference decoding occurs before expression tokenization.
+
+The contiguous character sequences `++` and `--` are invalid update-operator tokens; they MUST NOT be interpreted as two unary operators. Nested
+unary operators remain expressible when separated, for example `+ +value`.
+
+### 7.3 Grammar
+
+The following grammar is normative. `{ X }` means zero or more repetitions and `[ X ]` means an optional production.
+
+```ebnf
+expression       = conditional ;
+conditional      = coalesce, [ "?", expression, ":", expression ] ;
+coalesce         = logical-or, { "??", logical-or } ;
+logical-or       = logical-and, { "||", logical-and } ;
+logical-and      = equality, { "&&", equality } ;
+equality         = comparison, { ( "==" | "!=" ), comparison } ;
+comparison       = additive, { ( "<" | "<=" | ">" | ">=" ), additive } ;
+additive         = multiplicative, { ( "+" | "-" ), multiplicative } ;
+multiplicative   = unary, { ( "*" | "/" | "%" ), unary } ;
+unary            = ( "!" | "+" | "-" ), unary | member ;
+member           = primary, { ".", identifier | "[", expression, "]" } ;
+primary          = identifier | literal | "(", expression, ")" ;
+literal          = "null" | "true" | "false" | number | string ;
+```
+
+The grammar permits `??`, `||`, and `&&` to be mixed without additional host-language restrictions. Their precedence is exactly the precedence shown
+above. The conditional operator is right-associative because each branch is an `expression`. Repeated binary operators are left-associative.
+
+The parser MUST consume the entire expression. Empty expressions and trailing tokens are syntax errors.
+
+### 7.4 Operator precedence and associativity
+
+From highest to lowest precedence:
+
+| Precedence | Form | Associativity |
+|---:|---|---|
+| 1 | member `.` and index `[]` access | left |
+| 2 | unary `!`, unary `+`, unary `-` | right |
+| 3 | `*`, `/`, `%` | left |
+| 4 | `+`, `-` | left |
+| 5 | `<`, `<=`, `>`, `>=` | left |
+| 6 | `==`, `!=` | left |
+| 7 | `&&` | left |
+| 8 | `||` | left |
+| 9 | `??` | left |
+| 10 | `?:` | right |
+
+Parentheses override this table.
+
+### 7.5 Evaluation context and identifier resolution
+
+Evaluation receives an explicit `ExpressionContext`, conceptually:
+
+```text
+ExpressionContext
+    identifiers:
+        state
+        item
+        index
+        indexAbsolute
+        indent
+        ...
+```
+
+The context is a case-sensitive mapping from identifier names to XTemplate values. An identifier MUST be resolved only from that mapping. An unknown
+identifier is an evaluation error and SHOULD also be a validation error when the available context is statically known.
+
+There is no fallback to host globals. In particular, `window`, `document`, `globalThis`, `location`, `fetch`, `Math`, `Date`, `Function`, and `eval`
+do not automatically exist. A future language version may define controlled XTemplate built-ins; such built-ins would be language features with
+specified portable semantics, not access to host-language functions.
+
+The available identifiers depend on template location:
+
+- ordinary expressions normally receive `state`;
+- content inside `x-for` additionally receives its declared item variable and its declared or implicit `index` variable;
+- content inside `x-recursive` additionally receives its declared variables, `index`, `indexAbsolute`, and `indent` as specified by the recursive
+  construct;
+- an enclosing lexical context remains visible unless a loop declaration shadows the same name.
+
+Runtime/compiler services such as `handler`, `invalidate`, or VDOM utilities are not expression identifiers merely because a JavaScript render
+function receives them. An implementation may expose additional application values only by explicitly placing them in the expression context and
+documenting that directive context.
+
+Language syntax, evaluation context, and directive-specific identifiers are separate contracts. Parsing determines whether text is a valid
+expression; context validation determines whether its identifiers are available at that template location.
+
+### 7.6 Member and indexed access
+
+`value.name` reads the named member `name`. For objects, the member must be explicitly exposed by the context adapter. Collections and strings expose
+the single built-in member `length`; for collections it is the element count, and for strings it is the number of UTF-16 code units. No other
+collection or string members or methods are implicit.
+
+`value[index]` evaluates `index` and then reads:
+
+- an object member when the index is a string;
+- a collection element when the index is a non-negative integer number.
+
+Member names are case-sensitive. A missing object member, an out-of-range collection index, or access through a `null` base evaluates to `null`. The
+remainder of a member/index chain also evaluates to `null` without a host exception. Therefore:
+
+```text
+state.user.name ?? 'Anonymous'
+```
+
+evaluates to `'Anonymous'` when `state.user` or `state.user.name` is missing or `null`.
+
+Access with an unsupported base or index kind is an evaluation error. Implementations MUST NOT consult JavaScript prototypes, invoke .NET reflection
+members implicitly, or call property getters that were not explicitly exposed by the host adapter.
+
+### 7.7 Truthiness and control flow
+
+XTemplate truthiness is:
+
+| Value | Truthiness |
+|---|---|
+| `null` | false |
+| `false` | false |
+| `true` | true |
+| number `0` or `-0` | false |
+| any other number | true |
+| empty string `''` or `""` | false |
+| non-empty string | true |
+| object | true |
+| collection, including an empty collection | true |
+
+`!value` returns the boolean negation of this truthiness.
+
+`left && right` evaluates `left`; if it is falsy, the operator returns `left` without evaluating `right`, otherwise it evaluates and returns `right`.
+
+`left || right` evaluates `left`; if it is truthy, the operator returns `left` without evaluating `right`, otherwise it evaluates and returns `right`.
+
+`value ?? fallback` evaluates `value`; if it is not `null`, the operator returns it without evaluating `fallback`, otherwise it evaluates and returns
+`fallback`. No other value is nullish.
+
+`condition ? whenTrue : whenFalse` evaluates the condition and exactly one branch, selected by XTemplate truthiness.
+
+### 7.8 Arithmetic and string conversion
+
+Unary `+` and unary `-`, and binary `-`, `*`, `/`, and `%`, require numeric operands. There is no implicit conversion from strings, booleans, or
+`null` to numbers.
+
+`/` performs binary64 division. Division by zero is an evaluation error. `%` is the remainder after a quotient truncated toward zero; the result has
+the sign of the left operand. Modulo by zero is an evaluation error.
+
+Binary `+` performs numeric addition when both operands are numbers. If either operand is a string, it performs concatenation after converting the
+other operand with this scalar string conversion:
+
+| Value | String form |
+|---|---|
+| `null` | empty string |
+| boolean | `true` or `false` |
+| number | shortest invariant-culture decimal text that round-trips to the same binary64 value; `-0` is `0` |
+| string | unchanged |
+| object or collection | evaluation error |
+
+If neither operand is a number pair and neither is a string, `+` is an evaluation error. Interpolation and text directives use the same scalar string
+conversion; a renderer MAY define directive-specific handling for object or collection content only where that directive explicitly requires such
+values.
+
+### 7.9 Equality and comparison
+
+`==` is strict XTemplate equality and does not coerce types:
+
+- values of different kinds are not equal;
+- `null` equals `null`;
+- booleans compare by boolean value;
+- numbers compare by binary64 numeric value, with `0` equal to `-0`;
+- strings compare by ordinal Unicode scalar sequence;
+- objects and collections compare by identity within the supplied evaluation context, not by deep contents.
+
+`!=` is the boolean negation of `==`. Consequently:
+
+```text
+1 == 1       → true
+1 == '1'     → false
+null == null → true
+true == true → true
+```
+
+`===` and `!==` are not operators in this language version. `==` and `!=` already provide the non-coercive equality model.
+
+`<`, `<=`, `>`, and `>=` accept either two numbers or two strings. Numbers use numeric ordering. Strings use ordinal Unicode scalar ordering. Other
+or mixed operand kinds are evaluation errors; there is no implicit conversion.
+
+### 7.10 Unsupported constructs
+
+Arbitrary JavaScript is not valid XTemplate expression syntax. The initial language has no calls, methods, assignments, updates, statements, object
+or array literals, or host-language escape hatch. The following are invalid:
+
+```text
+foo()
+state.foo()
+Math.round(value)
+new Date()
+new Something()
+() => value
+function() {}
+state.value = 3
+state.value += 2
+state.value++
+++state.value
+delete state.value
+await value
+yield value
+class {}
+import('module')
+eval('code')
+state.name.toUpperCase()
+state.items.filter(x => x.enabled)
+{ name: 'test' }
+[1, 2, 3]
+```
+
+Specifically, this version does not support function or method calls, function or class declarations, arrow functions, constructors, `new`,
+assignments of any kind, increment/decrement, `await`, `yield`, `delete`, `typeof`, `instanceof`, `in`, comma/sequence expressions, template literals,
+optional chaining, object literals, or array literals.
+
+Complex computation belongs in component logic or state. For example, replace historical template code such as:
+
+```text
+state.items.filter(x => x.enabled).length
+```
+
+with a state value such as:
+
+```text
+state.enabledItemCount
+```
+
+### 7.11 Expression AST
+
+An expression parser MUST represent structure rather than retaining an unvalidated source string as executable code. The implementation-neutral
+model contains at least these node kinds:
+
+```text
+Literal(value)
+Identifier(name)
+MemberAccess(target, memberName)
+IndexAccess(target, index)
+UnaryExpression(operator, operand)
+BinaryExpression(operator, left, right)
+ConditionalExpression(condition, whenTrue, whenFalse)
+```
+
+Nodes SHOULD retain source spans for diagnostics. Exact class names and storage layout are implementation details.
+
+For example, `state.array[state.index].var2 + 3 / 12` parses conceptually as:
+
+```text
+BinaryExpression(+)
+├── MemberAccess(var2)
+│   └── IndexAccess
+│       ├── MemberAccess(array)
+│       │   └── Identifier(state)
+│       └── MemberAccess(index)
+│           └── Identifier(state)
+└── BinaryExpression(/)
+    ├── Literal(3)
+    └── Literal(12)
+```
+
+### 7.12 Compiler and evaluator requirements
+
+A JavaScript backend MUST use this pipeline:
+
+```text
+source expression
+→ tokenize
+→ parse
+→ validate
+→ expression AST
+→ emit JavaScript
+```
+
+Generated JavaScript may resemble the input, but only after validation. The emitter MUST preserve XTemplate null propagation, equality, truthiness,
+numeric, and access semantics; emitting a host operator directly is conforming only when it is observably equivalent for all permitted operands.
+
+A C# or other direct renderer evaluates the same AST. Every valid XTemplate expression in this language version MUST be evaluable without Node.js,
+a browser, `eval`, `new Function`, a JavaScript interpreter, or arbitrary JavaScript execution.
+
+### 7.13 Expression diagnostics
+
+Syntax, validation, and evaluation errors are distinct. Diagnostics SHOULD contain a source offset or span and enough context to identify the
+expression and directive. Implementations need not produce byte-identical wording, but MUST accept and reject the same constructs.
+
+Representative diagnostics include:
+
+```text
+Unexpected token '(' after identifier 'foo': function calls are not supported.
+Assignment operator '=' is not valid in XTemplate expressions.
+Unknown identifier 'window'.
+Expected expression after '+'.
+Missing closing ']'.
+Unexpected token 'new': constructors are not supported.
+```
+
+### 7.14 Directive integration
+
+The following constructs consume the restricted expression grammar:
+
+| Construct | Expression role | Additional context or rule |
+|---|---|---|
+| `{{ ... }}` | value | converted to text |
+| `x-text`, `x-html`, `x-children` | value | directive-specific output handling |
+| `x-attr`, `x-attr:name` | value | whole-object form expects an object |
+| `x-attr:[expression]` | dynamic name | bracket contents use this grammar |
+| `x-prop`, `x-prop:name` | value | subject to the support rules in Part IV |
+| `x-prop:[expression]` | dynamic name | bracket contents use this grammar |
+| `x-if`, `x-elseif`, `x-show`, `x-class:name` | condition | XTemplate truthiness |
+| `x-for` collection | value | evaluated in the enclosing context before loop locals exist |
+| `x-recursive` collection | value | evaluated in the enclosing context; nested content receives recursive locals |
+| `x-model` | assignable expression | restricted further by section 41 |
+
+`x-on:event` does not consume an expression; its value is a command name/string. `x-key` is a property name under the current XTemplate contract, not
+an arbitrary expression. Implementations MUST preserve these distinctions.
+
+### 7.15 Historical compatibility
+
+Historically, the browser compiler inserted expression text into generated JavaScript. That implementation detail allowed arbitrary JavaScript and
+is not the language contract defined by this version. Unsupported JavaScript syntax MUST NOT be accepted merely for compatibility or implementation
+convenience.
+
+Migration consists of moving calls, transformations, and other complex computation into component logic/state and exposing their results as simple
+context values. This restriction is intentionally breaking for templates that relied on executable JavaScript.
+
+The repository at the time of this language change contains historical templates that use constructs such as `Math.floor(...)`, string methods
+(`endsWith`, `startsWith`, `indexOf`, `split`, `join`), and `i18n` method calls. Those templates require migration to precomputed state/context values
+before they conform to this specification. A historical `x-model="state.roles.join(', ')"` is additionally invalid because a call is not an assignable
+target. No current-language support for calls is implied by those legacy examples. The audit found no requirement for object or array literal syntax,
+so those literals remain unsupported.
+
+### 7.16 Expression conformance
+
+A conforming expression implementation MUST:
+
+- parse every syntactically valid expression generated by the grammar, then apply the specified validation and evaluation errors, and reject
+  unsupported JavaScript constructs;
+- consume the complete input and preserve the precedence and associativity table;
+- implement short-circuit evaluation and evaluate only a selected conditional branch;
+- implement null/member/index access, equality, truthiness, string conversion, and numeric behavior exactly as specified;
+- resolve identifiers only from the explicit evaluation context;
+- distinguish ordinary expressions from assignable expressions;
+- produce equivalent observable values or equivalent errors across JavaScript and C# implementations.
+
+Representative valid cases are the examples at the start of section 7. Representative invalid categories are calls (`state.getValue()`), host globals
+(`Math.round(state.value)`, `window.location`), constructors (`new Date()`), assignments and updates (`state.value = 10`, `state.value++`), functions
+(`() => 1`), async/module syntax (`await state.value`, `import('module')`), and collection/object literals (`[1, 2, 3]`, `{ value: 1 }`).
 
 ---
 
@@ -336,24 +707,14 @@ Example:
 Semantics:
 
 1. evaluate the expression;
-2. convert it to text;
+2. convert it with the XTemplate scalar string conversion in section 7.8;
 3. set the element's text content.
 
 The element MUST NOT contain authored child nodes.
 
 A compiler SHOULD report a diagnostic when `x-text` is used on a non-empty element.
 
-Conceptually:
-
-```js
-element.textContent = String(value)
-```
-
-The current compiler uses:
-
-```js
-"" + value
-```
+Object and collection values produce an evaluation error because the scalar string conversion does not define a representation for them.
 
 ---
 
@@ -374,14 +735,10 @@ Example:
 Semantics:
 
 1. evaluate the expression;
-2. convert it to a string;
+2. convert it with the XTemplate scalar string conversion in section 7.8;
 3. assign it as raw HTML content.
 
-Conceptually:
-
-```js
-element.innerHTML = String(value)
-```
+Object and collection values produce an evaluation error because the scalar string conversion does not define a representation for them.
 
 The element MUST NOT contain authored child nodes.
 
@@ -415,7 +772,7 @@ The value may be:
 
 - a DOM Node;
 - an array of DOM Nodes;
-- nullish/empty.
+- `null`/empty.
 
 Semantics:
 
@@ -470,7 +827,7 @@ Current DOM behavior:
 
 - boolean `true` → present empty attribute;
 - boolean `false` → attribute removed;
-- `null` / `undefined` → attribute removed;
+- `null` → attribute removed;
 - primitive value → assigned via `setAttribute`;
 - object value → current renderer treats truthy object keys as a space-separated attribute value.
 
@@ -520,13 +877,8 @@ The current compiler supports bracketed dynamic names:
 <div x-attr:[expression]="valueExpression"></div>
 ```
 
-Conceptual semantics:
-
-```js
-{
-    [expression]: valueExpression
-}
-```
+The bracket contents and the value are independently parsed as restricted XTemplate expressions. The name expression is evaluated first and
+converted to a dynamic attribute name by the renderer's attribute-name rules; it is never executed as JavaScript.
 
 This form exists in the compiler but has little evidence in current templates.
 
@@ -585,11 +937,8 @@ The compiler contains support for:
 <element x-prop:[expression]="valueExpression"></element>
 ```
 
-Conceptual semantics:
-
-```js
-element[evaluatedName] = evaluatedValue
-```
+The bracket contents and the value are independently parsed as restricted XTemplate expressions. The name expression is evaluated first and
+converted to a dynamic property name by the renderer's property-name rules; it is never executed as JavaScript.
 
 This syntax is implemented but not broadly evidenced in application templates and should be treated as advanced syntax pending focused tests.
 
@@ -935,11 +1284,12 @@ index
 
 ## 32. Collection normalization
 
-The current `utils.toArray` semantics are:
+An `x-for` or `x-recursive` source is normalized with the following XTemplate rules. These rules describe language behavior; a renderer MUST NOT
+depend on a JavaScript `.map` method or other host collection API.
 
 ### Array
 
-```js
+```text
 [ a, b, c ] → [ a, b, c ]
 ```
 
@@ -965,7 +1315,7 @@ iterates over:
 
 ### String
 
-A string becomes an array of characters/code points according to JavaScript spread behavior.
+A string becomes a collection of Unicode code points in source order. A supplementary character represented by a UTF-16 surrogate pair is one item.
 
 Example:
 
@@ -975,23 +1325,14 @@ Example:
 
 ### Object
 
-A non-null object is converted to:
-
-```js
-Object.keys(value)
-```
-
-Therefore iteration yields **keys**, not values.
+A non-null object is converted to a collection of the member-name strings exposed by its context adapter. Iteration yields **keys**, not member
+values. The adapter MUST provide deterministic key order; JavaScript adapters use own enumerable string-key order for compatibility with historical
+`Object.keys` behavior.
 
 ### Other values
 
-The current helper returns the value unchanged.
-
-Such values may not support `.map()` and can fail at runtime.
-
-Conforming templates SHOULD provide supported collection values.
-
-A stricter implementation MAY diagnose unsupported `x-for` source values.
+`null` and booleans are not iterable and produce an evaluation error. A finite non-negative integer is required for number iteration; negative,
+fractional, and non-finite numbers produce an evaluation error.
 
 ---
 
@@ -1181,7 +1522,7 @@ renderRecursive(
 )
 ```
 
-Nullish or empty children produce no recursive item content.
+`null` or empty children produce no recursive item content.
 
 ---
 
@@ -1260,7 +1601,14 @@ change:
     invalidate()
 ```
 
-The expression MUST be assignable for write-back semantics.
+The value MUST be an `AssignableExpression`, which is a strict subset of `Expression`. Its grammar is:
+
+```ebnf
+assignable-expression = identifier, { ".", identifier | "[", expression, "]" } ;
+```
+
+At least one member or index suffix is REQUIRED; replacing a root context binding such as `state` or `item` is not permitted. Each index is an
+ordinary, read-only XTemplate expression. Calls, operators, conditionals, coalescing, and literals cannot form the outer assignment target.
 
 Recommended forms include:
 
@@ -1271,7 +1619,24 @@ item.value
 state.items[index].name
 ```
 
-Non-assignable expressions do not constitute valid two-way models even though some current source templates use expression-like values in read-only contexts.
+The assignment algorithm resolves the root identifier from the explicit evaluation context, evaluates each index exactly once from left to right,
+and traverses all suffixes except the final suffix as reads. Every intermediate container MUST exist and be non-null. For the final suffix:
+
+- an object member is assigned when it is writable; the member may be created only when the context adapter explicitly permits member creation;
+- a collection index is assigned only when it is an in-range, non-negative integer and the collection is writable.
+
+A missing intermediate, null, unsupported, out-of-range, or read-only target produces a model-assignment error. Write traversal does not use the
+null-propagating read behavior to silently discard an assignment.
+
+These are not assignable expressions and MUST be rejected during template validation:
+
+```text
+state.a + state.b
+state.value ?? 'default'
+state.enabled ? state.a : state.b
+```
+
+An assignable expression is read with the normal expression semantics during rendering and is used as a validated location during write-back.
 
 ---
 
@@ -1701,11 +2066,11 @@ A new compiler SHOULD use the following conceptual phases:
 3. Recognize interpolation.
 4. Parse as an HTML fragment.
 5. Build a template AST.
-6. Validate structural/directive rules.
-7. Discover custom-element dependencies.
-8. Compile expressions/bindings.
-9. Generate target render program.
-10. Execute or emit target artifact.
+6. Tokenize and parse every expression into an expression AST.
+7. Validate expression contexts, assignability, and structural/directive rules.
+8. Discover custom-element dependencies.
+9. Evaluate expression ASTs or emit target code from them.
+10. Execute or emit the target artifact.
 ```
 
 A compiler does not need to literally create `<x:text>` nodes.
@@ -1736,6 +2101,15 @@ ElementNode
   bindings
   directives
   children
+
+ExpressionNode
+  Literal
+  Identifier
+  MemberAccess
+  IndexAccess
+  UnaryExpression
+  BinaryExpression
+  ConditionalExpression
 ```
 
 Suggested binding nodes:
@@ -1790,16 +2164,20 @@ This grammar is intentionally descriptive rather than a complete HTML grammar.
 ```ebnf
 template          = html-fragment ;
 
-interpolation     = "{{", js-expression, "}}" ;
+interpolation     = "{{", expression, "}}" ;
 
 text-directive    = "x-text", "=", quoted-expression ;
 html-directive    = "x-html", "=", quoted-expression ;
 children-directive= "x-children", "=", quoted-expression ;
 
 attr-binding      = "x-attr:", attr-name, "=", quoted-expression ;
+dynamic-attr-binding
+                  = "x-attr:[", expression, "]", "=", quoted-expression ;
 attr-spread       = "x-attr", "=", quoted-expression ;
 
 prop-binding      = "x-prop:", prop-name, "=", quoted-expression ;
+dynamic-prop-binding
+                  = "x-prop:[", expression, "]", "=", quoted-expression ;
 
 event-binding     = "x-on:", event-spec, "=", quoted-command ;
 
@@ -1847,8 +2225,8 @@ Older implementations may have recognized these forms; that historical behavior 
 
 ```ebnf
 for-expression =
-      identifier, " in ", js-expression
-    | "(", identifier, ",", identifier, ")", " in ", js-expression
+      identifier, " in ", expression
+    | "(", identifier, ",", identifier, ")", " in ", expression
     ;
 ```
 
@@ -1865,9 +2243,9 @@ item in state.items
 
 ```ebnf
 recursive-expression =
-      identifier, " in ", js-expression
-    | "(", identifier, ",", identifier, ")", " in ", js-expression
-    | "(", identifier, ",", identifier, ",", identifier, ")", " in ", js-expression
+      identifier, " in ", expression
+    | "(", identifier, ",", identifier, ")", " in ", expression
+    | "(", identifier, ",", identifier, ",", identifier, ")", " in ", expression
     ;
 ```
 
@@ -2001,6 +2379,9 @@ where an actual valid HTML/XTL element is used as the wrapper.
 A compiler SHOULD reject or diagnose:
 
 - malformed interpolation;
+- invalid expression tokens or syntax;
+- unsupported JavaScript constructs such as calls, assignments, statements, and literals outside the XTemplate grammar;
+- unknown identifiers when the expression context is statically known;
 - malformed HTML that makes directive structure impossible to determine;
 - unknown `x-*` directives;
 - unknown `x:*` pseudo-elements;
@@ -2029,27 +2410,31 @@ reason
 
 Runtime errors can still occur from:
 
-- JavaScript expression exceptions;
-- null property access;
+- unknown identifiers when the context cannot be validated statically;
+- invalid operand kinds, division/modulo by zero, or non-finite numeric results;
+- unsupported host values or member/index adapters;
+- failed `x-model` writes through missing, null, or read-only containers;
 - unsupported collection values;
 - DOM property assignment errors;
 - invalid event assumptions;
 - user command-handler errors;
 - unsafe or invalid raw HTML.
 
-A compiler cannot statically eliminate all such errors while expressions remain unrestricted JavaScript.
+A conforming implementation MUST report these as XTemplate evaluation errors rather than leaking backend-specific JavaScript or .NET exceptions as
+language semantics. Null member/index reads themselves are not errors; they evaluate to `null` as defined in section 7.6.
 
 ---
 
 # Part XIX — Security
 
-## 69. Trusted templates
+## 69. Restricted expressions and template trust
 
-The current XTL expression model executes JavaScript expressions.
+The restricted expression language prevents templates from invoking arbitrary JavaScript, accessing implicit host globals, or expressing assignments
+and statements. It enables static validation, portable server-side evaluation, and code generation that does not depend on `eval` or `new Function`.
 
-Therefore template source must be treated as executable code.
-
-Untrusted users MUST NOT be allowed to provide arbitrary XTL that is compiled/executed under this model.
+These restrictions reduce the authority of expression text but do not make an entire template inherently safe. Implementations MUST still validate
+template structure, explicitly control the values and members exposed by the evaluation context, safely encode ordinary text and attributes, and
+apply the security rules of the target renderer. Directives such as `x-html` retain independent injection risks.
 
 ---
 
@@ -2065,7 +2450,7 @@ XTL itself does not sanitize HTML.
 
 ## 71. CSP and compilation
 
-The historical browser compiler uses:
+The historical browser compiler used:
 
 ```js
 new Function(...)
@@ -2073,7 +2458,7 @@ new Function(...)
 
 to create the render function.
 
-That requires CSP allowances equivalent to dynamic code evaluation.
+That historical mechanism requires CSP allowances equivalent to dynamic code evaluation and does not define the current expression language.
 
 A server/build compiler can instead emit a normal JavaScript function, such as:
 
@@ -2083,9 +2468,10 @@ templateHandler: (state, handler, invalidate, utils, i18n, renderCount) => {
 }
 ```
 
-This preserves XTL semantics while avoiding runtime template compilation and allowing a stricter Content Security Policy.
+The required expression pipeline is tokenize, parse, validate, build an AST, and then evaluate or emit code. A build compiler may emit a normal
+JavaScript function, preserving XTL semantics while avoiding runtime dynamic-code evaluation and allowing a stricter Content Security Policy.
 
-`new Function` is an implementation mechanism, not a requirement of XTL.
+`eval` and `new Function` are neither expression-language features nor requirements of XTL.
 
 ---
 
@@ -2139,7 +2525,8 @@ getInputValue
 
 XShell internationalization object.
 
-It is visible to expressions.
+Its presence in the historical render-function ABI does not make it an expression global. A language profile may expose an adapted `i18n` value by
+explicitly adding it to `ExpressionContext`; otherwise the identifier is unknown.
 
 ### `renderCount`
 
@@ -2162,11 +2549,13 @@ XTemplateCompiler
 ├── TemplateAstBuilder
 ├── TemplateValidator
 ├── DependencyCollector
-├── ExpressionEmitter
+├── ExpressionTokenizer
+├── ExpressionParser
+├── ExpressionValidator
 └── RenderBackend
     ├── JavaScriptVDomBackend
     ├── DirectDomBackend
-    └── future HtmlBackend
+    └── ServerHtmlBackend
 ```
 
 ---
@@ -2187,6 +2576,10 @@ However, it does not need to reproduce the exact source text or internal `_ifs` 
 
 Conformance is based on observable behavior, not byte-for-byte generated JavaScript.
 
+The compiler MUST emit JavaScript from validated expression AST nodes. It MUST NOT assume source expression text is arbitrary valid JavaScript or
+splice unparsed expression text into generated code. Backend helpers MAY be used to preserve XTemplate null propagation, access, equality, truthiness,
+and numeric rules where JavaScript operators alone differ.
+
 ---
 
 ## 75. Direct interpreter
@@ -2199,7 +2592,7 @@ renderNode(astNode, scope, parentContext)
 
 It must still preserve:
 
-- expression scope;
+- expression contexts and all expression-language semantics;
 - branch selection;
 - loop locals;
 - recursive locals;
@@ -2214,7 +2607,11 @@ It must still preserve:
 
 ## 76. Server-side renderer
 
-A C# or other server-side HTML renderer can implement the subset of XTL semantics meaningful without a browser.
+Every valid XTemplate expression in this language version MUST be evaluable by a C# or other server-side renderer without Node.js, a browser, `eval`,
+`new Function`, a JavaScript interpreter, or arbitrary JavaScript execution. The renderer MUST evaluate the expression AST using the semantics in
+section 7, rather than translating behavior to host-language shortcuts with different coercion or access rules.
+
+A server-side HTML renderer can implement the subset of template and DOM semantics meaningful without a browser.
 
 Potentially renderable:
 
@@ -2430,6 +2827,48 @@ multiple interpolations
 interpolation adjacent to text
 literal braces under x-pre
 ```
+
+### 89.1 Expression conformance tests
+
+Expression suites MUST run the same cases against every parser/evaluator backend. At minimum, valid cases include:
+
+| Expression | Context condition | Expected result or structure |
+|---|---|---|
+| `state.value` | `state.value = 2` | number `2` |
+| `state.value + 1` | `state.value = 2` | number `3` |
+| `state.value == 'a' || state.value == 'b'` | `state.value = 'b'` | boolean `true` |
+| `state.array[state.index].var2 + 3 / 12` | index `0`; first item has `var2 = 4` | number `4.25` |
+| `state.val1 ? '123' : '232'` | `state.val1 = false` | string `232` |
+| `state.variable ?? 'default'` | member missing | string `default` |
+| `state.enabled && !state.disabled` | enabled true, disabled false | boolean `true` |
+| `(state.price * state.quantity) + state.tax` | price `2`, quantity `3`, tax `0.5` | number `6.5` |
+| `item.name` | item name is `A` | string `A` |
+| `state.items[index].name` | index `1`; second item name is `B` | string `B` |
+| `state.user.name ?? 'Anonymous'` | `state.user = null` | string `Anonymous` |
+| `1 == '1'` | none | boolean `false` |
+
+Short-circuit tests MUST use a branch that would otherwise fail, proving that `false && (1 / 0)`, `true || (1 / 0)`, `1 ?? (1 / 0)`, and the
+unselected branch of `true ? 1 : (1 / 0)` do not evaluate the division by zero.
+
+At minimum, invalid cases include:
+
+| Expression | Required rejection category |
+|---|---|
+| `state.getValue()` | method call |
+| `Math.round(state.value)` | host global and call |
+| `state.items.filter(x => x.enabled)` | method call and arrow function |
+| `new Date()` | constructor |
+| `window.location` | unknown identifier; no host-global fallback |
+| `state.value = 10` | assignment |
+| `state.value++` | update operator |
+| `() => 1` | arrow function |
+| `await state.value` | unsupported keyword/statement syntax |
+| `import('module')` | dynamic import/call syntax |
+| `[1, 2, 3]` | array literal |
+| `{ value: 1 }` | object literal |
+
+Assignable-expression tests MUST accept `state.name`, `state.user.name`, `state.items[index].value`, and `item.name`; they MUST reject arithmetic,
+coalescing, and conditional expressions as `x-model` targets.
 
 ---
 
@@ -2718,11 +3157,11 @@ Avoid unstable/ambiguous forms such as whole-object `x-prop` until their semanti
 An implementation-generating LLM should perform these steps:
 
 1. Parse XTL as an HTML fragment.
-2. Parse interpolation as expression nodes.
+2. Tokenize and parse every expression-bearing construct into expression AST nodes using section 7.
 3. Create a target-neutral AST.
 4. Classify directives into content, bindings, events, structural directives, and auxiliaries.
 5. Validate directive combinations.
-6. Preserve JavaScript expression text for the current language version.
+6. Validate identifiers against the directive-specific expression context and reject unsupported syntax.
 7. Introduce lexical scope for loop and recursive variables.
 8. Normalize `x-for` sources according to XTL collection rules.
 9. Implement contiguous conditional chains.
@@ -2734,7 +3173,7 @@ An implementation-generating LLM should perform these steps:
 15. Implement `x-model` as read + write-back + invalidation.
 16. Implement raw HTML, raw node, once, and pre semantics.
 17. Collect custom-element dependencies while respecting `x-lazy`.
-18. Generate the target backend.
+18. Evaluate expression AST nodes or generate target code from them while preserving XTemplate semantics.
 19. Add diagnostics rather than silently accepting malformed templates.
 20. Run the conformance matrix in this document.
 
@@ -2760,7 +3199,7 @@ Additionally:
 9. set `format: "node"` for `x-children`;
 10. set `once: true` for post-first-render `x-once` placeholders;
 11. produce normal event functions rather than dynamically compiling event strings;
-12. avoid `eval` / `new Function` when generating precompiled production JavaScript.
+12. emit JavaScript only from validated expression AST nodes and avoid `eval` / `new Function`.
 
 ---
 
@@ -2801,9 +3240,13 @@ xtemplate: 1
 
 or equivalent engine metadata.
 
-Changes that would benefit from versioning include:
+This specification introduces the restricted expression language as a breaking change from the historical arbitrary-JavaScript implementation.
+Implementations that support historical templates SHOULD identify that compatibility mode separately; they MUST NOT describe it as conforming to the
+expression language in section 7.
 
-- replacing JavaScript expressions with a restricted expression grammar;
+Future changes that would benefit from versioning include:
+
+- changing the restricted expression grammar or value semantics;
 - redefining whole-object property spread;
 - changing `x-model` representation;
 - changing recursive-child semantics;
@@ -2818,7 +3261,9 @@ Changes that would benefit from versioning include:
 
 An X Template is:
 
-> an HTML fragment whose elements may contain declarative XTL directives and JavaScript value expressions; rendering evaluates those expressions against component state and local loop scope, producing DOM-equivalent content while preserving structural identity across conditional and repeated regions.
+> an HTML fragment whose elements may contain declarative XTL directives and restricted XTemplate expressions; expressions are parsed into a
+> portable AST and evaluated only against an explicit context, while rendering produces DOM-equivalent content and preserves structural identity
+> across conditional and repeated regions.
 
 The most important distinctions are:
 
@@ -2854,7 +3299,7 @@ A correct implementation should preserve these semantics even if it uses a compl
 
 | Construct | Purpose | Value |
 |---|---|---|
-| `{{ expr }}` | Text interpolation | JavaScript expression |
+| `{{ expr }}` | Text interpolation | restricted XTemplate expression |
 | `x-text` | Text content | expression |
 | `x-html` | Raw HTML content | expression |
 | `x-children` | Real DOM node content | expression |
