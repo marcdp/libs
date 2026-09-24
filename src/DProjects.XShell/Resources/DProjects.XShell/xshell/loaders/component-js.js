@@ -108,6 +108,24 @@ function findClosestXPage(element) {
     }
     return null;
 }
+function validateSlots(definition, contract) {
+    const template = document.createElement("template");
+    template.innerHTML = definition.template;
+
+    const slots = contract.slots || {};
+    const componentName = definition.meta?.name || "unknown";
+
+    for (const slot of template.content.querySelectorAll("slot")) {
+        const slotName = slot.getAttribute("name") || "";
+
+        if (!Object.prototype.hasOwnProperty.call(slots, slotName)) {
+            const displayName = slotName || "(default)";
+            throw new Error(
+                `Component '${componentName}' template declares slot '${displayName}', but it is not declared in contract.slots.`
+            );
+        }
+    }
+}
 
 // create page class from js definition
 export async function createComponentClassFromJsDefinition(src, context, definition, contract) {
@@ -126,6 +144,10 @@ export async function createComponentClassFromJsDefinition(src, context, definit
     // validate contract
     if (contract) {
         await validateComponentContract(src, contract);
+    }
+    // validate slots
+    if (contract) {
+        validateSlots(definition, contract);
     }
     // stylesheets
     const stylesheets = []

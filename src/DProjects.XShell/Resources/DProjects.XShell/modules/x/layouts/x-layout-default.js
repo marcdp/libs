@@ -3,7 +3,12 @@ export const contract = {
     description: "Layout for a default page.",
     events: {},
     properties: {},
-    methods: {}
+    methods: {},
+    slots: {
+        "": {
+            description: "Default slot for the layout content."
+        }
+    }
 };
 
 

@@ -3,7 +3,12 @@ export const contract = {
     description: "Provides a flexible toolbar container.",
     events: {},
     properties: {},
-    methods: {}
+    methods: {},
+    slots: {
+        "": {
+            description: "Default slot for the toolbar content."
+        }
+    } 
 };
 
 

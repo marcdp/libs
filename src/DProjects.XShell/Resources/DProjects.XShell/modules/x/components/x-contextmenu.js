@@ -2,7 +2,11 @@
 // contract
 export const contract = {
     description: "Provides a styled container for contextual menu content.",
-    
+    slots: {
+        "": {
+            description: "Default slot for the context menu content."
+        }
+    }    
 };
 
 

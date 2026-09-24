@@ -5,7 +5,12 @@ export const contract = {
     properties: {
         status: { type: "string", default: "", attribute: true, state: true, description: "" },
     },
-    methods: {}
+    methods: {},
+    slots: {
+        "": {
+            description: "Default slot for the layout content."
+        }
+    }
 };
 
 

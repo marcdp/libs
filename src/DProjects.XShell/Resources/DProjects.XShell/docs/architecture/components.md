@@ -184,12 +184,15 @@ The contract describes how other code can interact with the component.
 
 Its optional `slots` section documents the public Web Component composition API. The empty string `""` identifies the default unnamed slot, and
 named keys identify named slots. Slot metadata supports `description` and an optional `required` boolean. This metadata does not create or render
-`<slot>` elements; the implementation defines those elements.
+`<slot>` elements; the implementation defines those elements. Every native `<slot>` used by the template must nevertheless be declared in
+`contract.slots`. `<slot></slot>` uses the empty-string key, while `<slot name="actions"></slot>` uses the `actions` key. Duplicate occurrences
+of a slot are allowed, and a declared slot does not have to appear in the template.
 
 It is separate from the runtime implementation.
 
-The current loader reads `module.contract`, but it does not substantially use the object after passing it into component-class construction. The
-metadata therefore documents an intended public surface without current runtime validation or enforcement.
+When the component definition is loaded, the component loader validates template slot usage against the contract before registering the component.
+If the template uses a slot that is not declared in `contract.slots`, loading fails. This is component contract/loader validation, not render-engine
+validation.
 
 ## Implementation
 
@@ -248,12 +251,13 @@ For definition-based components, `component-js`:
 
 1. imports the component JavaScript file;
 2. reads its default export;
-3. selects the configured state engine and creates the component state through it;
-4. selects the configured render engine;
-5. builds an `HTMLElement` subclass;
-6. connects contract-defined attributes and properties to state;
-7. creates the controller and connects lifecycle and rendering behavior;
-8. registers the resulting class with `customElements`.
+3. validates template slot usage against `contract.slots`;
+4. selects the configured state engine and creates the component state through it;
+5. selects the configured render engine;
+6. builds an `HTMLElement` subclass;
+7. connects contract-defined attributes and properties to state;
+8. creates the controller and connects lifecycle and rendering behavior;
+9. registers the resulting class with `customElements`.
 
 The result is a standard browser Web Component.
 

@@ -15,7 +15,15 @@ export const contract = {
         lang:       {type:"string", default:"", attribute:true, state:true, description:""},
         spellcheck: {type:"string", default:"true", attribute:true, state:true, description:""}
     },
-    methods: {}
+    methods: {},
+    slots: {
+        "": {
+            description: "Default slot for the rich-text editor content."
+        },
+        "toolbar": {
+            description: "Default slot for the rich-text editor toolbar content."
+        }
+    } 
 };
 
 

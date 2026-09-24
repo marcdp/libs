@@ -69,7 +69,12 @@ export const contract = {
                 type: "array"
             }
         }
-    }
+    },
+    slots: {
+        "": {
+            description: "Default slot for the datafield content."
+        }
+    } 
 };
 
 

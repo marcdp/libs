@@ -7,7 +7,12 @@ export const contract = {
         status: { type: "string", default: "", attribute: true, state: true, description: "" },
         opened: { type: "boolean", default: false, attribute: true, state: true, description: "" }
     },
-    methods: {}
+    methods: {},
+    slots: {
+        "": {
+            description: "Default slot for the layout content."
+        }
+    }
 };
 
 

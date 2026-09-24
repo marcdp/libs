@@ -16,7 +16,12 @@ export const contract = {
         menuitem:    {type:"object", default:null, attribute:true, state:true, description:""},
         childsRight: {type:"boolean", default:true, attribute:true, state:true, description:""}
     },
-    methods: {}
+    methods: {},
+    slots: {
+        "": {
+            description: "Default slot for the menu item content."
+        }
+    }
 };
 
 

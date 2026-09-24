@@ -16,7 +16,12 @@ export const contract = {
         keyword: { type: "string", default: "", state: true, description: "" },
         shellDebug: { type: "boolean", default: false, state: true, description: "" },
     },
-    methods: {}
+    methods: {},
+    slots: {
+        "": {
+            description: "Default slot for the layout content."
+        }
+    }
 };
 
 
