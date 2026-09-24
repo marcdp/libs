@@ -6,19 +6,36 @@ This document outlines the lifecycle implemented by the JavaScript component loa
 
 Draft.
 
+## Ownership boundaries
+
+For definition-based Components and Pages, the loader owns the runtime composition and lifecycle:
+
+```text
+loader
+ ├─ contract / properties / public API
+ ├─ controller / lifecycle
+ ├─ state engine → reactive state
+ └─ render engine → rendered output
+```
+
+State engines own reactive state only. Render engines own rendered output only. The loader creates and coordinates both engines; it owns `load`,
+`mount`, `unmount`, and `unload`, controller methods, public methods, contracts, property and attribute semantics, services, and navigation.
+
 ## Definition loading
 
-The loader imports the component module, prepares style, state, and render engines, initializes the render engine factory, and defines a custom element for the requested resource name.
+The loader imports the component module, prepares style, state, and render engines, initializes the render engine factory, and defines a custom
+element for the requested resource name.
 
 ## Construction and loading
 
-Construction creates a shadow root, creates state, exposes selected services to the component script, retains its returned named handlers privately,
-and invokes the `load` handler. A handler runs with the component instance as `this`, so it can use component APIs such as `dispatchEvent` and
-`shadowRoot` without replacing runtime lifecycle methods.
+Construction creates a shadow root, creates state through the state engine, exposes selected services to the component script, retains its returned
+named handlers privately, and invokes the `load` handler. A handler runs with the component instance as `this`, so it can use component APIs such as
+`dispatchEvent` and `shadowRoot` without replacing runtime lifecycle methods.
 
 ## Mount and render
 
-On connection, the runtime creates and mounts a render-engine instance, invokes `mount`, and schedules a render. State invalidations are coalesced through `requestAnimationFrame`; immediately before rendering, the runtime invokes `stateChange` with accumulated changes.
+On connection, the loader creates and mounts a render-engine instance, invokes `mount`, and schedules a render. State invalidations are coalesced
+through `requestAnimationFrame`; immediately before rendering, the loader invokes `stateChange` with accumulated changes.
 
 ## Instance and connection lifetimes
 

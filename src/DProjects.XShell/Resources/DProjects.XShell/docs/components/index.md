@@ -12,6 +12,7 @@ Draft.
 - [Properties](properties.md) — Public component API values.
 - [Slots](slots.md) — Public Web Component composition points.
 - [State](state.md) — Internal reactive data and rendering invalidation.
+- [Rendering Engines](rendering.md) — Rendered-output responsibilities and command bridging.
 - [Events](events.md) — DOM events emitted by components.
 - [Lifecycle](lifecycle.md) — Loading, mounting, rendering, unmounting, and cleanup.
 

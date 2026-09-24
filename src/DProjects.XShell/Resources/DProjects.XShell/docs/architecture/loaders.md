@@ -125,16 +125,19 @@ render engine
 Conceptually:
 
 ```text
-Loader
-    ↓
-component-js / page-js
-    ↓
-state engine + render engine
-    ↓
-runtime component
+definition-based component or Page loader
+ ├─ contract / properties / public API
+ ├─ controller / lifecycle
+ ├─ state engine → reactive state
+ └─ render engine → rendered output
 ```
 
-Not every loader needs an engine.
+The loader is the orchestrator. The state engine creates, observes, and notifies reactive state and requests invalidation. The render engine creates,
+mounts, updates, and unmounts rendered output. Neither engine owns contracts, public APIs, controllers, lifecycle, services, property or attribute
+semantics, or navigation. Not every loader needs an engine.
+
+When a render engine emits template commands through a handler callback, that callback is a loader-provided bridge. The loader decides how the command
+is handled; the callback does not transfer controller or lifecycle ownership to the render engine.
 
 ## Diagram
 

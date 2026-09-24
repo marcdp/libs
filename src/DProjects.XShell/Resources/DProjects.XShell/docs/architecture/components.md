@@ -248,13 +248,12 @@ For definition-based components, `component-js`:
 
 1. imports the component JavaScript file;
 2. reads its default export;
-3. creates the component state;
-4. selects the configured state engine;
-5. selects the configured render engine;
-6. builds an `HTMLElement` subclass;
-7. connects attributes and properties to state;
-8. connects lifecycle and rendering behavior;
-9. registers the resulting class with `customElements`.
+3. selects the configured state engine and creates the component state through it;
+4. selects the configured render engine;
+5. builds an `HTMLElement` subclass;
+6. connects contract-defined attributes and properties to state;
+7. creates the controller and connects lifecycle and rendering behavior;
+8. registers the resulting class with `customElements`.
 
 The result is a standard browser Web Component.
 
@@ -279,16 +278,18 @@ A definition-based component resolves its engines from its own `meta` first and 
 group and the corresponding Page-default group; render engine and state engine values are required non-empty strings. XShell defaults do not
 provide component render or state engines. `xshell.ui.component` instead identifies the global `lazy` and `error` components.
 
-The selected state and render engines are used while converting the definition into the final Web Component class.
+The loader uses the selected engines while converting the definition into the final Web Component class. It remains responsible for the contract,
+public API, properties and attributes, controller, lifecycle, services, and orchestration. The state engine owns reactive state only; the render
+engine owns rendered output only.
 
 For example:
 
 ```text
 component definition
     ↓
-state engine
-    +
-render engine
+component-js loader
+    ├─ state engine → reactive state
+    └─ render engine → rendered output
     ↓
 HTMLElement subclass
 ```

@@ -5,8 +5,9 @@ Page = Component + Navigation
 ```
 
 A Page uses the same state/render-engine infrastructure as Components. Its JavaScript default export can be a `Page` subclass or a definition object;
-`page-js` converts a definition into a `Page` subclass. Navigation loads and mounts a Page as a destination. State entries marked `qs` are initialized
-from query values by `page-js`.
+`page-js` converts a definition into a `Page` subclass and orchestrates its contract, properties, public API, controller, lifecycle, and engines.
+The state engine owns reactive state only, and the render engine owns rendered output only. Navigation loads and mounts a Page as a destination. State
+entries marked `qs` are initialized from query values by `page-js`.
 
 ```text
 browser URL + query → Navigation → canonical Area-aware href → x-page → module resource → Loader → Page state → render engine
