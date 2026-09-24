@@ -282,15 +282,21 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
         }
         async unmount() {
             if (this._unloaded) return;
-            await super.unmount();
-            if (this._renderEngine) {
-                this._renderEngine.unmount();
-                this._renderEngine = null;
-            }
+            // detach this mount's resources immediately
+            const renderEngine = this._renderEngine;
+            const styleSheets = this._styleSheets;
+            // capture the current render engine and style sheets for cleanup after unmount
+            this._renderEngine = null;
+            this._styleSheets = [];
             this._renderPending = false;
-            if (this._styleSheets.length) {
-                document.adoptedStyleSheets = document.adoptedStyleSheets.filter(stylesheet => !this._styleSheets.includes(stylesheet));    
-                this._styleSheets = [];
+            // controller may be async
+            await super.unmount();
+            // clean only resources captured from this mount
+            if (renderEngine) {
+                renderEngine.unmount();
+            }
+            if (styleSheets.length) {
+                document.adoptedStyleSheets = document.adoptedStyleSheets.filter(stylesheet => !styleSheets.includes(stylesheet));
             }
         }
         async unload() {
