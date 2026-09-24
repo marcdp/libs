@@ -18,13 +18,34 @@ export const contract = {
             attribute: true,
             state: true
         }
+    },
+    slots: {
+        "": {
+            description: "Default slot."
+        },
+        "header": {
+            description: "Content displayed in the component header."
+        }
     }
 };
 ```
 
 Representative checked-in components such as `x-datafields` and `x-error` export this metadata as `contract`. Observed top-level fields are
-`description`, `events`, `properties`, and `methods`. Observed property metadata includes `type`, `default`, `attribute`, `state`, and `description`;
-event metadata can include `description` and a typed `detail` shape.
+`description`, `events`, `properties`, `methods`, and `slots`. Observed property metadata includes `type`, `default`, `attribute`, `state`, and
+`description`; event metadata can include `description` and a typed `detail` shape.
+
+## Slots
+
+The optional `slots` section declares the slots that a Web Component exposes as part of its public composition API. Each key is a Web Component
+slot name. The empty string `""` represents the default unnamed slot; named keys, such as `"header"`, represent named Web Component slots.
+
+Currently supported slot metadata is:
+
+- `description`: Human-readable description of the slot.
+- `required`: Optional boolean indicating whether consumers are expected to provide content for the slot.
+
+`slots` is contract and documentation metadata. It does not itself create or render `<slot>` elements; the component implementation remains
+responsible for defining the corresponding slots.
 
 These observations describe the checked-in files only. They do not establish validation rules or runtime support for every field.
 
@@ -51,4 +72,5 @@ semantics.
 
 - [Components](index.md)
 - [Properties](properties.md)
+- [Slots](slots.md)
 - [State](state.md)

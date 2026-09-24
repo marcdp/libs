@@ -75,7 +75,16 @@ export const contract = {
         edit:    { type: "boolean", default: false, attribute: true, state: true }
     },
 
-    methods: {}
+    methods: {},
+
+    slots: {
+        "": {
+            description: "Default slot."
+        },
+        "header": {
+            description: "Content displayed in the component header."
+        }
+    }
 };
 
 // implementation
@@ -133,6 +142,7 @@ description
 events
 properties
 methods
+slots
 ```
 
 For example:
@@ -157,11 +167,24 @@ export const contract = {
         }
     },
 
-    methods: {}
+    methods: {},
+
+    slots: {
+        "": {
+            description: "Default slot."
+        },
+        "header": {
+            description: "Content displayed in the component header."
+        }
+    }
 };
 ```
 
 The contract describes how other code can interact with the component.
+
+Its optional `slots` section documents the public Web Component composition API. The empty string `""` identifies the default unnamed slot, and
+named keys identify named slots. Slot metadata supports `description` and an optional `required` boolean. This metadata does not create or render
+`<slot>` elements; the implementation defines those elements.
 
 It is separate from the runtime implementation.
 
@@ -341,6 +364,7 @@ The default export provides the runtime implementation.
 * [Components](../components/)
 * [Component Contract](../components/manifest.md)
 * [Properties](../components/properties.md)
+* [Slots](../components/slots.md)
 * [State](../components/state.md)
 * [Lifecycle](../components/lifecycle.md)
 * [Resolvers](resolvers.md)
