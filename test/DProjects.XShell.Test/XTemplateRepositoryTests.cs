@@ -28,6 +28,24 @@ namespace DProjects.XShell.Test {
         }
 
         [Fact]
+        public void StaticResourceTemplatesCompile() {
+            var resourceDirectory = GetResourceDirectory();
+            var errors = new List<string>();
+
+            foreach (var path in Directory.EnumerateFiles(Path.Combine(resourceDirectory, "samples"), "*.html", SearchOption.AllDirectories)) {
+                var template = File.ReadAllText(path);
+                if (!template.Contains("x-", StringComparison.Ordinal) && !template.Contains("{{", StringComparison.Ordinal)) continue;
+                try {
+                    _ = new XTemplateCompiler().Compile(template);
+                } catch (Exception exception) {
+                    errors.Add($"{Path.GetRelativePath(resourceDirectory, path)}: {exception.Message}");
+                }
+            }
+
+            Assert.True(errors.Count == 0, "Static XTemplate resource compilation failed:" + Environment.NewLine + string.Join(Environment.NewLine, errors));
+        }
+
+        [Fact]
         public void BrowserRuntimeUsesOnlyPrecompiledRenderers() {
             var runtime = File.ReadAllText(Path.Combine(GetResourceDirectory(), "xshell", "render-engines", "x.js"));
 

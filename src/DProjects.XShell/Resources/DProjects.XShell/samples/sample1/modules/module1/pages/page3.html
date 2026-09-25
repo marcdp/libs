@@ -106,7 +106,7 @@
                         };
                         for (let i = 0; i < datatable.size; i++) {
                             datatable.rows.push(
-                                { id: datatable.index * datatable.size + i + 1, label: "name" + datatable.index * datatable.size + i, age: 12 },
+                                { id: datatable.index * datatable.size + i + 1, label: "name" + datatable.index * datatable.size + i, age: 12, randomValue: Math.random() },
                             );
                         }
                         this.state.datatable = datatable;
@@ -120,7 +120,7 @@
     <body>
 
         
-        <x-json x-attr:value="JSON.stringify(state)"></x-json>
+        <x-json x-prop:value="state"></x-json>
         <x-html x-attr:value="state.richtext"></x-html>
 
         <x-form wizard wizard-direction="vertical">
@@ -208,7 +208,7 @@
                                         </td>
                                         <td>{{ row.label }}</td>
                                         <td>{{ row.age }}</td>
-                                        <td>{{ row.age * Math.random(123) }}</td>
+                                        <td>{{ row.randomValue }}</td>
                                     </tr>
                                 </tbody>
                             </table>
