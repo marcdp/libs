@@ -7,7 +7,7 @@ export const contract = {
 };
 
 
-// implementation
+// definition
 export default {
     style: `
         :host {border:1px solid black; display:inline-block; padding:10px;}
@@ -18,7 +18,7 @@ export default {
     state: {
         time: null
     },
-    script: ({ state, timer }) => {
+    controller: ({ state, timer }) => {
         return {
             load() {
                 //load

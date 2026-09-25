@@ -245,7 +245,7 @@ async function bootstrap() {
 
     // import xshell ES6 module
     console.log("bootstrap: loading xshell ...");
-    const xshellUrl = config.xshell.resolver.import.xshell.url;
+    const xshellUrl = config.xshell.resolver.module.xshell.url;
     const xshellModule = await import(xshellUrl);
     let xshell = xshellModule.default;
     

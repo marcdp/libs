@@ -16,7 +16,7 @@ export const contract = {
 };
 
 
-// implementation
+// definition
 export default {
     template: `
         {{ state.valueFormatted || ''}}

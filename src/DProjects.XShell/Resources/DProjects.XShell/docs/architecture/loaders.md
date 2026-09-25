@@ -111,6 +111,29 @@ The generic Loader does not need to know how SVG, JavaScript, Components, or Pag
 
 It only dispatches the resolved resource to the appropriate loader.
 
+## Declarative component and Page dependencies
+
+A definition-based Component or Page can declare `dependencies` as an object of ordinary XShell resource references. The Loader accepts that
+object, resolves and loads each value through its normal path, and returns an object with the same keys and the loaded values. The corresponding
+loader exposes that result to the controller as `controller({ dependencies })`.
+
+```text
+dependencies: { fileIcon: "icon:x-file" }
+    ↓
+Resolver → URL + loader metadata
+    ↓
+Loader → loaded icon
+    ↓
+controller({ dependencies }) → dependencies.fileIcon
+```
+
+This feature does not add a dependency container or a second loading model. It declares resources known when a Component or Page definition is
+loaded. Controller code can still use its `loader` service and `loader.load(...)` for dynamic/runtime resource loading.
+
+If a resource in a declared dependency object cannot be resolved, the Loader rejects the request. If resolution succeeds but one or more loads
+fail, the Loader waits for its requested loads to settle and then rejects. The enclosing Component or Page loader cannot finish creating its class
+or controller in either case.
+
 ## Engines
 
 Some resource-specific loaders use additional engines.

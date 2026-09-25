@@ -22,6 +22,21 @@ infrastructure for layout contexts, lazy/error components, and standard dialog p
 For a definition-based Component or Page, its loader is the orchestrator: it owns the contract, properties, public API, controller, lifecycle,
 services, and coordination. The state engine owns reactive state only; the render engine owns rendered output only. See [Loaders](loaders.md) and
 [Component Lifecycle](../components/lifecycle.md).
+
+When a definition declares `dependencies`, its loading flow is:
+
+```text
+component or Page definition
+    ↓
+read dependencies
+    ↓
+Resolver maps each reference
+    ↓
+Loader obtains each resource
+    ↓
+create controller with controller({ dependencies })
+```
+
 An Area is a navigation context composed from participating modules, including their effective menus. Modules define reusable menu contributions;
 Areas define application composition. The first navigation item marked `default: true` in depth-first traversal provides the Area home. This
 composition does not duplicate module instances. A named menu contribution can be a static array or a registered dynamic menu source; see

@@ -20,6 +20,38 @@ Loader does not translate menu paths to hrefs. Direct navigation to the canonica
 See [Components](components.md) for the contract and implementation formats. A component contract's DOM events are distinct from public module Bus
 events.
 
+## Declarative dependencies
+
+Definition-based Pages use the same `dependencies` mechanism as Components. A Page implementation declares an object whose keys are exposed on
+the `dependencies` object passed to `controller({ dependencies })`, and whose values are ordinary XShell resource references.
+
+```js
+export default {
+    dependencies: {
+        marked: "module:/_assets/x/utils/markdown.js",
+        fileIcon: "icon:x-file",
+        editor: "component:x-code-editor"
+    },
+
+    template: `<main></main>`,
+
+    controller({ dependencies }) {
+        return {
+            load() {
+                console.log(dependencies.marked);
+                console.log(dependencies.fileIcon);
+                console.log(dependencies.editor);
+            }
+        };
+    }
+};
+```
+
+`page-js` resolves these declarations through the same Resolver and Loader path used by Components. All declared dependencies are resolved before
+the Page class is returned and before a Page instance creates its controller. A resolution or load failure rejects the Page load before its class
+or controller is created. For the common resource-reference rules and the distinction from runtime `loader.load(...)`, see
+[Components](components.md#declarative-dependencies).
+
 Definition-based Pages use the same public-property and state-default rule as components and layouts: `contract.properties[*].default` is
 canonical for public properties, while `definition.state` supplies private/internal defaults. A state-backed public property may be repeated in
 `definition.state` only with a structurally equal value; a non-state-backed public property may not be repeated there.

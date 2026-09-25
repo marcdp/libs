@@ -201,10 +201,11 @@ The default exported object contains the runtime implementation of the component
 Typical fields are:
 
 ```text
+dependencies
 style
 template
 state
-script
+controller
 ```
 
 Conceptually:
@@ -222,6 +223,45 @@ style + template + state + behavior
 The implementation object is not itself a browser Web Component class.
 
 It must first be converted into one.
+
+## Declarative dependencies
+
+A definition-based Component can declare resources that its controller needs through `dependencies`. It is a declarative resource request, not a
+separate dependency-injection subsystem. Each key is the name made available on the `dependencies` object passed to the controller, and each value
+is an ordinary XShell resource reference.
+
+```js
+export default {
+    dependencies: {
+        marked: "module:/_assets/x/utils/markdown.js",
+        fileIcon: "icon:x-file",
+        editor: "component:x-code-editor"
+    },
+
+    template: `<div></div>`,
+
+    controller({ dependencies }) {
+        return {
+            load() {
+                console.log(dependencies.marked);
+                console.log(dependencies.fileIcon);
+                console.log(dependencies.editor);
+            }
+        };
+    }
+};
+```
+
+`component-js` asks the Loader to load the declaration object. For each value, the Resolver selects the matching resource definition, URL, and
+resource-specific loader; the Loader then obtains the resolved resource. The resulting values retain their declared keys in `dependencies`.
+
+All declared dependencies are resolved before the generated Web Component class is returned and before a component instance creates its controller.
+An unresolvable reference rejects the Loader request. If resolution succeeds but one or more loads fail, the Loader waits for its requested loads to
+settle and then rejects. In either case, the component class and its controller are not created.
+
+This is distinct from runtime loading. `dependencies` is for resources known in the implementation definition and resolved automatically during
+component loading. The `loader` service remains available to controller code for dynamic or runtime resource loading; dynamic
+`loader.load(...)` calls are not replaced by `dependencies`.
 
 ## Component loader
 
@@ -254,10 +294,11 @@ For definition-based components, `component-js`:
 3. validates template slot usage against `contract.slots`;
 4. selects the configured state engine and creates the component state through it;
 5. selects the configured render engine;
-6. builds an `HTMLElement` subclass;
-7. connects contract-defined attributes and properties to state;
-8. creates the controller and connects lifecycle and rendering behavior;
-9. registers the resulting class with `customElements`.
+6. resolves declared `dependencies` through the Resolver and Loader;
+7. builds an `HTMLElement` subclass;
+8. connects contract-defined attributes and properties to state;
+9. creates the controller with `controller({ dependencies })` and connects lifecycle and rendering behavior;
+10. registers the resulting class with `customElements`.
 
 The result is a standard browser Web Component.
 

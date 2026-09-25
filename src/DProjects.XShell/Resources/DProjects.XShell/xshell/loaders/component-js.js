@@ -1,7 +1,8 @@
 import Timer from "../timer.js"
 import Events from "../events.js"
 import xshell from "../xshell.js";
-import validateComponentContract from "../validation/component.js";
+import validateComponentContract from "../validation/component.contract.js";
+import validateComponent from "../validation/component.js";
 
 // utils
 function kebabToCamel(str) {
@@ -134,12 +135,14 @@ export async function createComponentClassFromJsDefinition(src, context, definit
     if (!contract.events) contract.events = {};
     if (!contract.slots) contract.slots = {};
     if (!contract.methods) contract.methods = {};
+    if (!definition.meta) definition.meta = {};
+    if (!definition.meta.renderEngine) definition.meta.renderEngine = xshell.config.modules[context.resourceDefinition.moduleId].defaults.component.renderEngine;
+    if (!definition.meta.stateEngine) definition.meta.stateEngine = xshell.config.modules[context.resourceDefinition.moduleId].defaults.component.stateEngine;
+    if (!definition.dependencies) definition.dependencies = {};
     if (!definition.state) definition.state = {};
     if (!definition.style) definition.style = "";
     if (!definition.template) definition.template = "";
     if (!definition.controller) definition.controller = () => ({});
-    definition = Object.seal(Object.freeze(definition));
-    contract = Object.seal(Object.freeze(contract));
     // validate contract
     if (contract) {
         await validateComponentContract(src, contract);
@@ -148,6 +151,13 @@ export async function createComponentClassFromJsDefinition(src, context, definit
     if (contract) {
         validateSlots(definition, contract);
     }
+    // validateComponent definition against contract
+    if (definition) {
+        await validateComponent(src, definition);
+    }
+    // freeze and seal the definition and contract to prevent further modifications
+    definition = Object.seal(Object.freeze(definition));
+    contract = Object.seal(Object.freeze(contract));
     // stylesheets
     const stylesheets = []
     if (typeof(definition.style) == "string") {
@@ -186,23 +196,22 @@ export async function createComponentClassFromJsDefinition(src, context, definit
         }
     }
     // state engine
-    const stateEngineModule = xshell.config.modules[context.resourceDefinition.moduleId].defaults.component.stateEngine;
-    const stateEngineComponent = definition.meta.stateEngine || stateEngineModule;
-    const stateEngineFactoryCreator = await xshell.loader.load("state-engine:" + stateEngineComponent);
+    const stateEngineFactoryCreator = await xshell.loader.load("state-engine:" + definition.meta.stateEngine);
     const stateEngineFactory = new stateEngineFactoryCreator(stateSkeleton, context);
     // render engine
-    const renderEngineModule = xshell.config.modules[context.resourceDefinition.moduleId].defaults.component.renderEngine;
-    const renderEngineComponent = definition.meta.renderEngine || renderEngineModule;
-    const renderEngineFactoryCreator = await xshell.loader.load("render-engine:" + renderEngineComponent);
+    const renderEngineFactoryCreator = await xshell.loader.load("render-engine:" + definition.meta.renderEngine);
     const renderEngineFactory = new renderEngineFactoryCreator(definition.template, context, definition.templateRenderer);
-    // render engine dependencies
+    // load render engine dependencies
     if (renderEngineFactory.dependencies.length) {
         await xshell.loader.load(renderEngineFactory.dependencies);
     }    
+    // load component dependencies
+    let dependencies = {};
+    if (definition.dependencies && Object.keys(definition.dependencies).length) {
+        dependencies = await xshell.loader.load(definition.dependencies);
+    }
     // init 
     renderEngineFactory.init();
-    // controller dispatcher
-    const invokeController = Symbol("invokeController");
     // returns a class that extends base class component
     const WebComponent = class extends HTMLElement {
         // vars
@@ -256,12 +265,12 @@ export async function createComponentClassFromJsDefinition(src, context, definit
                         return self._state;
                     } else if (prop == "timer") {
                         // timer helper
-                        const timer = new Timer((command, ...params) => { self[invokeController](command, ...params); });
+                        const timer = new Timer((command, ...params) => { self._controller[command](...params); });
                         self._disposables.push(timer);
                         return timer;
                     } else if (prop == "events") {
                         // events helper
-                        const events = new Events((command, ...params) => { self[invokeController](command, ...params); });
+                        const events = new Events((command, ...params) => { self._controller[command](...params); });
                         self._disposables.push(events);
                         return events;
                     } else if (prop == "moduleConfig") {
@@ -279,6 +288,9 @@ export async function createComponentClassFromJsDefinition(src, context, definit
                             const xpage = findClosestXPage(self);
                             return (xpage ? xpage.page : null);
                         }
+                    } else if (prop == "dependencies") {
+                        // get dependencies
+                        return dependencies;
                     } else {
                         // resolve from services
                         return xshell.services.resolve(prop);
@@ -325,7 +337,7 @@ export async function createComponentClassFromJsDefinition(src, context, definit
                 }
             }
             // load
-            this[invokeController]("load", {});
+            this.onCommand("load", {});
         }        
         // attributeChangedCallback
         attributeChangedCallback(name, oldValue, newValue) {
@@ -339,17 +351,17 @@ export async function createComponentClassFromJsDefinition(src, context, definit
         connectedCallback() {
             if (this._unloaded) return;
             this._renderEngine = renderEngineFactory.create({ host: this.shadowRoot, state: this._state, handler:(command, ...params) => {
-                this[invokeController](command, ...params);
+                this.onCommand(command, ...params);
             }, invalidate: () => { 
                 this.invalidate(); 
             } });
             this._renderEngine.mount();
-            this[invokeController]("mount", {});
+            this.onCommand("mount", {});
             this.invalidate();
         }
         disconnectedCallback() {
             if (this._unloaded) return;
-            this[invokeController]("unmount", {});
+            this.onCommand("unmount", {});
             if (this._renderEngine) {
                 this._renderEngine.unmount();
                 this._renderEngine = null;
@@ -362,7 +374,7 @@ export async function createComponentClassFromJsDefinition(src, context, definit
             this._unloaded = true;
             let result;
             try {
-                result = await this[invokeController]("unload", {});
+                result = await this.onCommand("unload", {});
             } finally {
                 if (this._renderEngine) {
                     this._renderEngine.unmount();
@@ -392,14 +404,14 @@ export async function createComponentClassFromJsDefinition(src, context, definit
             this._renderPending = true;
             requestAnimationFrame(() => {
                 if (this._renderEngine !== renderEngine) return;
-                this[invokeController]("stateChange", {changes: this._stateChanges});
+                this.onCommand("stateChange", {changes: this._stateChanges});
                 this._stateChanges = [];
                 this._renderPending = false;
                 renderEngine.render();
             });
         }
         // invoke controller
-        [invokeController](command, ...params) {
+        onCommand(command, ...params) {
             const handler = this._controller[command];
             if (typeof(handler) === "function") {
                 return handler.apply(this._controller, params);
@@ -450,7 +462,7 @@ export async function createComponentClassFromJsDefinition(src, context, definit
         }
         Object.defineProperty(WebComponent.prototype, methodName, {
             value: function(...args) {
-                return this[invokeController](methodName, ...args);
+                return this.onCommand(methodName, ...args);
             },
             enumerable: true,
             configurable: false

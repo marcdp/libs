@@ -9,7 +9,7 @@ export const contract = {
 };
 
 
-// implementation
+// definition
 export default {
     style: `
         ul {margin:0; padding:0; display: flex; align-items:center; box-sizing: border-box;}

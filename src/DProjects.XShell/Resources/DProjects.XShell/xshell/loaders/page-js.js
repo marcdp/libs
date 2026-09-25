@@ -107,6 +107,7 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
     if (!contract.events) contract.events = {};
     if (!contract.slots) contract.slots = {};
     if (!contract.methods) contract.methods = {};
+    if (!definition.dependencies) definition.dependencies = {};
     if (!definition.state) definition.state = {};
     if (!definition.style) definition.style = "";
     if (!definition.template) definition.template = "";
@@ -156,10 +157,15 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
     const renderEngineFactoryCreator = await xshell.loader.load("render-engine:" + renderEnginePage);
     const templateRenderer = definition.templateRenderer; 
     const renderEngineFactory = new renderEngineFactoryCreator(definition.template, context, templateRenderer);
-    // render engine dependencies
+    // load render engine dependencies
     if (renderEngineFactory.dependencies.length) {
         await xshell.loader.load(renderEngineFactory.dependencies);
     }    
+    // load component dependencies
+    let dependencies = {};
+    if (definition.dependencies && Object.keys(definition.dependencies).length) {
+        dependencies = await xshell.loader.load(definition.dependencies);
+    }
     // init 
     renderEngineFactory.init();
     // returns a class that extends base class Page
@@ -243,7 +249,10 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
                         return events;
                     } else if (prop == "page") {
                         // get current page
-                        return self;                    
+                        return self;                
+                    } else if (prop == "dependencies") {
+                        // get dependencies
+                        return dependencies;
                     } else {
                         // resolve from services
                         return xshell.services.resolve(prop);                    

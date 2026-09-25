@@ -130,7 +130,7 @@ export default {
     `,    
     controller({ }) {
         return {
-            load(params) {
+            load() {
                // load
             }
         };

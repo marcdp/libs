@@ -1,5 +1,4 @@
-import {marked} from "marked";
-
+import parser from "../utils/markdown.js";
 
 // contract
 export const contract = {
@@ -9,11 +8,15 @@ export const contract = {
         value: {type:"string", default:"", attribute:true, state:true, description:""},
         src:   {type:"string", default:"", attribute:true, state:true, description:""}
     },
-    methods: {}
+    methods: {},
+    slots: {
+        "":{
+            description: "Slot for providing Markdown content directly."
+        }
+    }
 };
 
-
-// implementation
+// definition
 export default {
     style: `
         :host {display:block;}
@@ -28,7 +31,7 @@ export default {
             load() {
                 //load
                 events.on(state, "change:value", async (event) => {
-                    let html = marked.parse(event.newValue);
+                    let html = parser(event.newValue);
                     //load components
                     let docWithoutTemplate = (new DOMParser()).parseFromString(html.replace("<template>","<div>").replace("</template>","</div>"), "text/html");
                     let componentNames = [...new Set(Array.from(docWithoutTemplate.querySelectorAll('*')).filter(el => {return (el.tagName.includes('-'))}).map(el => "component:" + el.tagName.toLowerCase()))];

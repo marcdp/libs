@@ -35,9 +35,6 @@
         "resolver": {
             "component": {
                 "ace-editor": { "url": "https://unpkg.com/ace-custom-element@latest/dist/index.min.js", "loader": "module-js"}
-            },
-            "import": {
-                "marked": { "url": "/vendor/marked/marked.esm.js" }
             }
         },
 

@@ -3,11 +3,16 @@ export const contract = {
     description: "Displays slotted content only on mobile-sized viewports.",
     events: {},
     properties: {},
-    methods: {}
+    methods: {},
+    slots: {
+        "":{
+            description: "Slot for providing content that will only be displayed on mobile-sized viewports."
+        }
+    }
 };
 
 
-// implementation
+// definition
 export default {
     style: `
         @media (min-width: 769px) {

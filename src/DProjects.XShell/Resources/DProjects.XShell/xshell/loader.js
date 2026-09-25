@@ -66,11 +66,15 @@ export default class Loader {
 
     //methods
     async load(resources) {
-        let isString = typeof(resources) == "string";
+        const resourcesOriginal = resources;
+        const isString = typeof(resources) == "string";
         if (resources == undefined) return null;
         if (resources == "" ) return null;
         if (resources == [""] ) return null;;
         if (typeof(resources) == "string") resources = [resources];
+        const isArray = Array.isArray(resources);
+        const isObject = typeof(resources) == "object" && !isArray;
+        if (isObject) resources = Object.values(resources);
         //load resources
         let result = [];
         let urls = [];
@@ -192,6 +196,8 @@ export default class Loader {
         // result
         if (isString) {
             result = result[0];
+        } else if (isObject) {
+            result = Object.fromEntries(Object.keys(resourcesOriginal).map((key, index) => [key, result[index]]));
         }
         //return
         return result;

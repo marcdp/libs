@@ -3,11 +3,16 @@ export const contract = {
     description: "Provides a panel container for a wizard.",
     events: {},
     properties: {},
-    methods: {}
+    methods: {},
+    slots: {
+        "":{
+            description: "Slot for providing the content of the wizard panel."
+        }
+    }
 };
 
 
-// implementation
+// definition
 export default {
     style: `
         :host {display:block;}

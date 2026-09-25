@@ -28,7 +28,7 @@ export const contract = {
 };
 
 
-// implementation
+// definition
 export default {
     style: `
         :host {position:relative; display:inline-flex;}

@@ -7,11 +7,19 @@ export const contract = {
         panels: {type:"array", default:[], attribute:true, state:true, description:""},
         style:  {type:"string", default:"", attribute:true, state:true, description:""}
     },
-    methods: {}
+    methods: {},
+    slots: {
+        "":{
+            description: "Slot for providing wizard panels."
+        },
+        "buttons":{
+            description: "Slot for providing buttons."
+        }
+    }
 };
 
 
-// implementation
+// definition
 export default {
     style: `
         :host {display:block;}

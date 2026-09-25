@@ -1,112 +1,51 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://xshell.dev/schemas/component-contract.schema.json",
-  "title": "XShell Web Component Contract",
-  "description": "Describes the public contract of an XShell web component.",
+  "$id": "https://xshell.dev/schemas/component.implementation.schema.json",
+  "title": "XShell Web Component Implementation",
+  "description": "Describes the implementation object of an XShell web component.",
   "type": "object",
   "additionalProperties": false,
   "properties": {
-    "description": { "type": "string", "description": "Human-readable description of the component." },
-    "properties": { "type": "object", "description": "Public properties exposed by the component.", "additionalProperties": { "$ref": "#/$defs/property" } },
-    "events": { "type": "object", "description": "Events emitted by the component.", "additionalProperties": { "$ref": "#/$defs/event" } },
-    "methods": { "type": "object", "description": "Public methods exposed by the component.", "additionalProperties": { "$ref": "#/$defs/method" } },
-    "slots": { "type": "object", "description": "Slots exposed by the component.", "additionalProperties": { "$ref": "#/$defs/slot" } },
-    "examples": { "type": "array", "description": "Usage examples for documentation and tooling.", "items": { "$ref": "#/$defs/example" } }
-  },
-  "$defs": {
-    "valueType": {
+    "dependencies": {
+      "type": "object",
+      "description": "Declarative dependencies resolved before the component controller is created. Each property name becomes an injected controller dependency.",
+      "required": [ ],
+      "additionalProperties": true
+    },
+    "meta": {
+      "type": "object",
+      "description": "Component meta information.",
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "description": "The name of the component." },
+        "renderEngine": { "type": "string", "minLength": 1, "description": "The rendering engine used by the component." },
+        "stateEngine": { "type": "string", "minLength": 1, "description": "The state management engine used by the component." }
+      },
+      "required": [ "name" ],
+      "additionalProperties": false
+    },
+    "style": {
+      "description": "Component CSS source.",
+      "oneOf": [
+        { "type": "string" },
+        { "type": "array",
+          "items": { "type": "string" }
+        }
+      ]
+    },
+    "template": {
       "type": "string",
-      "description": "Declares the XShell value type expected by a property, event detail field, parameter, or return value.",
-      "enum": [ "string", "number", "integer", "boolean", "object", "array", "function", "any", "void" ]
+      "description": "Declarative component template source."
     },
-    "property": {
-      "type": "object",
-      "description": "Describes a public component property and its XShell runtime behavior.",
-      "additionalProperties": false,
-      "properties": {
-        "description": { "type": "string", "description": "Human-readable description of the property." },
-        "type": { "$ref": "#/$defs/valueType", "description": "Value type accepted by the property." },
-        "default": { "description": "Default value of the property." },
-        "state": { "type": "boolean", "description": "Whether the property is backed by component state." },
-        "reflect": { "type": "boolean", "description": "Whether property changes are reflected back to the corresponding HTML attribute." },
-        "required": { "type": "boolean", "description": "Whether the property is required." },
-        "readonly": { "type": "boolean", "description": "Whether consumers should treat the property as read-only." },
-        "enum": { "type": "array", "description": "Optional set of allowed string values for the property.", "items": { "type": "string" }, "uniqueItems": true },
-        "attribute": { "description": "Whether the property is exposed as an HTML attribute, or the explicit attribute name to use.", "oneOf": [ { "type": "boolean" }, { "type": "string", "minLength": 1 } ] }
-      },
-      "required": [ "type" ]
+    "templateRenderer": {
+      "description": "Optional generated or prepared executable representation of the template."
     },
-    "event": {
+    "state": {
       "type": "object",
-      "description": "Describes an event emitted by the component.",
-      "additionalProperties": false,
-      "properties": {
-        "description": { "type": "string", "description": "Human-readable description of when and why the event is emitted." },
-        "detail": { "type": "object", "description": "Structure of the event's CustomEvent.detail payload.", "additionalProperties": { "$ref": "#/$defs/eventDetailProperty" } },
-        "bubbles": { "type": "boolean", "description": "Whether the event bubbles through the DOM." },
-        "composed": { "type": "boolean", "description": "Whether the event may cross shadow DOM boundaries." },
-        "cancelable": { "type": "boolean", "description": "Whether the event can be canceled with preventDefault()." }
-      }
+      "description": "Initial private component state.",
+      "additionalProperties": true
     },
-    "eventDetailProperty": {
-      "type": "object",
-      "description": "Describes one field of the event detail payload.",
-      "additionalProperties": false,
-      "properties": {
-        "description": { "type": "string", "description": "Human-readable description of the detail field." },
-        "type": { "$ref": "#/$defs/valueType", "description": "Value type of the detail field." },
-        "required": { "type": "boolean", "description": "Whether the detail field is always present." }
-      },
-      "required": [ "type" ]
-    },
-    "method": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "description": { "type": "string" },
-        "parameters": { "type": "array", "items": { "$ref": "#/$defs/methodParameter" } },
-        "returns": { "$ref": "#/$defs/returnValue" }
-      }
-    },
-    "methodParameter": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "name": { "type": "string", "minLength": 1 },
-        "description": { "type": "string" },
-        "type": { "$ref": "#/$defs/valueType" },
-        "required": { "type": "boolean" },
-        "default": {}
-      },
-      "required": [ "name", "type" ]
-    },
-    "returnValue": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "description": { "type": "string" },
-        "type": { "$ref": "#/$defs/valueType" }
-      },
-      "required": [ "type" ]
-    },
-    "slot": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "description": { "type": "string" },
-        "required": { "type": "boolean" }
-      }
-    },
-    "example": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "name": { "type": "string", "minLength": 1, "pattern": "^[A-Za-z][A-Za-z0-9_-]*$" },
-        "description": { "type": "string" },
-        "template": { "type": "string", "minLength": 1 },
-        "state": { "type": "object" }
-      },
-      "required": [ "name", "template" ]
+    "controller": {
+      "description": "Controller factory called by XShell with component runtime services and resolved dependencies."
     }
   }
 }

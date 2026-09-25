@@ -67,8 +67,8 @@
             "component": {
                 "x-page": {"url": "/x-page.js", "loader": "module-js", "cache": true}
             },
-            "import": {
-                "xshell": {"url": "/xshell.js"}
+            "module": {
+                "xshell": {"url": "/xshell.js", "loader": "module-js", "cache": true}
             },
             "idp": {
                 "{name}": {"url": "/idp/{name}.js", "loader": "module-js"}

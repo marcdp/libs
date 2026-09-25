@@ -35,7 +35,7 @@ export const contract = {
 };
 
 
-// implementation
+// definition
 export default {
     style:`
         :host {}
