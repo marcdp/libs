@@ -117,16 +117,28 @@ const utils = new class {
 		const round = (value, precision) => {
 			const factor = 10 ** precision;
 			const scaled = Math.abs(value) * factor;
-			// preserve binary64 values that cannot be scaled without overflowing
-			if (!Number.isFinite(scaled)) return value;
+			// preserve large binary64 integer values whose decimal precision cannot change
+			if (!Number.isFinite(scaled) || Math.abs(value) >= 1e21) return value;
 			return Math.sign(value) * Math.floor(scaled + 0.5) / factor;
 		};
 		const invariantMonths = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 		const invariantShortMonths = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+		const expandExponent = (value) => {
+			const [coefficient, exponent] = String(value).toLowerCase().split("e");
+			if (exponent === undefined) return coefficient;
+			const [whole, fraction = ""] = coefficient.split(".");
+			const digits = whole + fraction;
+			const decimal = whole.length + Number(exponent);
+			if (decimal <= 0) return "0." + "0".repeat(-decimal) + digits;
+			if (decimal >= digits.length) return digits + "0".repeat(decimal - digits.length);
+			return digits.slice(0, decimal) + "." + digits.slice(decimal);
+		};
 		const invariantNumber = (value, precision, exact) => {
 			const rounded = round(value, precision);
 			const sign = rounded < 0 ? "-" : "";
-			let [integer, fraction = ""] = Math.abs(rounded).toFixed(precision).split(".");
+			const absolute = Math.abs(rounded);
+			let [integer, fraction = ""] = (absolute >= 1e21 ? expandExponent(absolute) : absolute.toFixed(precision)).split(".");
+			if (absolute >= 1e21) fraction = "0".repeat(precision);
 			integer = integer.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 			if (!exact) fraction = fraction.replace(/0+$/, "");
 			return sign + integer + (fraction ? "." + fraction : "");

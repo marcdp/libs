@@ -79,6 +79,22 @@ public sealed class XTemplateJavaScriptConformanceTests {
     }
 
     [Fact]
+    public void GeneratedJavaScriptMatchesInvariantLargeNumberFormatting() {
+        var state = new Dictionary<string, object?>();
+        var cases = new[] {
+            new ConformanceCase("100000000000000000000 | number(0)", state),
+            new ConformanceCase("1000000000000000000000 | number(0)", state),
+            new ConformanceCase("10000000000000000000000 | number(0)", state),
+            new ConformanceCase("-1000000000000000000000 | number(0)", state),
+            new ConformanceCase("1000000000000000000000 | number(2)", state),
+            new ConformanceCase("100000000000000000000 | percent(0)", state),
+            new ConformanceCase("1000000000000000000000 | currency('EUR')", state)
+        };
+
+        Assert.Equal(cases.Select(EvaluateServer), EvaluateJavaScript(cases));
+    }
+
+    [Fact]
     public void GeneratedJavaScriptMatchesUnicodeStringPredicateSemantics() {
         var state = new Dictionary<string, object?>();
         var cases = new[] {
