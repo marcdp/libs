@@ -15,6 +15,7 @@ export default class Page {
     _breadcrumb = null;
     _icon = null;
     _result = null;
+    _controller = null;
 
     _host = null;
     _refs = null;
@@ -94,7 +95,7 @@ export default class Page {
         await this.onCommand("mount", {});
     }
     async onCommand(command, params = {}) {
-        const handler = this._script?.[command];
+        const handler = this._controller?.[command];
         if (typeof(handler) === "function") {
             return await handler.call(this, params);
         }
@@ -102,8 +103,8 @@ export default class Page {
     async unmount() {
         if (this._unloaded) return;
         // unmount
-        this._host = null;
         await this.onCommand("unmount", {});
+        this._host = null;
     }
     async unload() {
         if (this._unloaded) return;

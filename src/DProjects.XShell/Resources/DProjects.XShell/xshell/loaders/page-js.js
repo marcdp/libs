@@ -162,8 +162,6 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
     }    
     // init 
     renderEngineFactory.init();
-    // controller dispatcher
-    const invokeController = Symbol("invokeController");
     // returns a class that extends base class Page
     const PageClass = class extends Page {
         // vars
@@ -173,8 +171,6 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
         _renderPending = false;
         _styleSheets = [];
         _disposables = [];
-        _controller = null;
-        _host = null;
         // ctor
         constructor({ src, context }) {
             super({ src, context });
@@ -237,12 +233,12 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
                         return self._context;
                     } else if (prop == "timer") {
                         // timer
-                        const timer = new Timer((command, ...params) => { self[invokeController](command, ...params); });
+                        const timer = new Timer((command, ...params) => { self._controller?.[command]?.(...params); });
                         self._disposables.push(timer);
                         return timer;
                     } else if (prop == "events") {
                         // events
-                        const events = new Events((command, ...params) => { self[invokeController](command, ...params); });
+                        const events = new Events((command, ...params) => { self._controller?.[command]?.(...params); });
                         self._disposables.push(events);
                         return events;
                     } else if (prop == "page") {
@@ -268,7 +264,6 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
         // mount/unmount
         async mount({ host }) {
             if (this._unloaded) return;
-            this._host = host;
             // style
             const cssPageSelector = `${host.nodeName.toLowerCase()}[src="${escapeCssString(host.getAttribute("src"))}"]`;
             if (typeof(definition.style) == "string" && definition.style) {
@@ -285,7 +280,7 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
             document.adoptedStyleSheets = [...document.adoptedStyleSheets,...this._styleSheets];
             // render engine
             this._renderEngine = renderEngineFactory.create({ host, state: this._state, handler:(command, ...params) => {
-                this[invokeController](command, ...params);
+                this._controller?.[command]?.(...params);
             }, invalidate: () => { 
                 this.invalidate(); 
             } })
@@ -313,8 +308,6 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
             if (styleSheets.length) {
                 document.adoptedStyleSheets = document.adoptedStyleSheets.filter(stylesheet => !styleSheets.includes(stylesheet));
             }
-            // clear the reference to the host element
-            this._host = null;
         }
         async unload() {
             if (this._unloaded) return;
@@ -362,16 +355,12 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
                 xshell.navigation.navigate({...item, page:this, replace:true});
             }
         }
-        // invoke controller
-        [invokeController](command, ...params) {
+        // onCommand
+        onCommand(command, ...params) {
             const handler = this._controller[command];
             if (typeof(handler) === "function") {
                 return handler.apply(this._controller, params);
             }
-        }
-        // onCommand
-        onCommand(command, params) {
-            return this[invokeController](command, params);
         }
         // invalidate
         invalidate(path) {
@@ -381,7 +370,7 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
             this._renderPending = true;
             requestAnimationFrame(() => {
                 if (this._renderEngine !== renderEngine) return;
-                this[invokeController]("stateChange", {changes: this._stateChanges});
+                this.onCommand("stateChange", {changes: this._stateChanges});
                 this._stateChanges = [];
                 this._renderPending = false;
                 renderEngine.render();
@@ -395,7 +384,7 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
         }
         Object.defineProperty(PageClass.prototype, methodName, {
             value: function(...args) {
-                return this[invokeController](methodName, ...args);
+                return this.onCommand(methodName, ...args);
             },
             enumerable: true,
             configurable: false
