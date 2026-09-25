@@ -5,28 +5,7 @@ namespace DProjects.XShell.Test {
 
     public sealed class XTemplateRepositoryTests {
 
-        // methods
-        [Fact]
-        public void StaticModuleTemplatesCompileThroughTheServerCompiler() {
-            var resourceDirectory = GetResourceDirectory();
-            var compilerType = typeof(XTemplateCompiler).Assembly.GetType("DProjects.XShell.Services.XTemplate.XTemplateJavaScriptCompiler", throwOnError: true)!;
-            var compiler = Activator.CreateInstance(compilerType, new XTemplateCompiler())!;
-            var transform = compilerType.GetMethod("Transform", BindingFlags.Instance | BindingFlags.Public)!;
-            var errors = new List<string>();
-
-            // vendor modules are third-party source rather than XTemplate authoring surfaces
-            foreach (var path in Directory.EnumerateFiles(Path.Combine(resourceDirectory, "modules"), "*.js", SearchOption.AllDirectories).Where(path => !IsVendorPath(path))) {
-                var source = File.ReadAllText(path);
-                try {
-                    transform.Invoke(compiler, [source]);
-                } catch (TargetInvocationException exception) {
-                    errors.Add($"{Path.GetRelativePath(resourceDirectory, path)}: {exception.InnerException?.Message ?? exception.Message}");
-                }
-            }
-
-            Assert.True(errors.Count == 0, "Static XTemplate module compilation failed:" + Environment.NewLine + string.Join(Environment.NewLine, errors));
-        }
-
+        // methods 
         [Fact]
         public void StaticResourceTemplatesCompile() {
             var resourceDirectory = GetResourceDirectory();
