@@ -1557,7 +1557,7 @@ Canonical form:
 <div x-else>Other</div>
 ```
 
-A conforming template MUST treat these branches as one contiguous sibling chain.
+A conforming template MUST treat these branches as one contiguous sibling chain. Whitespace-only text nodes and comments between branches are structurally inert and do not break a chain; meaningful text or any other sibling does break it.
 
 `x-elseif` and `x-else` SHOULD immediately follow a previous branch in the same chain, ignoring only insignificant authoring conventions specifically allowed by a validator.
 

@@ -23,6 +23,12 @@ namespace DProjects.XShell.Services.XTemplate {
             Once
         }
 
+        private enum ConditionalChainState {
+            None,
+            Open,
+            ClosedByElse
+        }
+
         // vars
         private readonly XTemplateExpressionJavaScriptCompiler _expressionCompiler = new();
 
@@ -310,9 +316,31 @@ namespace DProjects.XShell.Services.XTemplate {
         }
 
         private static void ValidateConditionalChains(ElementNode parent) {
+            var chainState = ConditionalChainState.None;
             foreach (var child in parent.Children) {
                 if (child is ElementNode element) {
+                    switch (GetStructuralDirective(element).Kind) {
+                        case StructuralDirectiveKind.If:
+                            chainState = ConditionalChainState.Open;
+                            break;
+                        case StructuralDirectiveKind.ElseIf:
+                            if (chainState != ConditionalChainState.Open) {
+                                throw TemplateError("Directive 'x-elseif' requires a preceding 'x-if' or 'x-elseif' conditional chain.", element);
+                            }
+                            break;
+                        case StructuralDirectiveKind.Else:
+                            if (chainState != ConditionalChainState.Open) {
+                                throw TemplateError("Directive 'x-else' requires a preceding conditional chain.", element);
+                            }
+                            chainState = ConditionalChainState.ClosedByElse;
+                            break;
+                        default:
+                            chainState = ConditionalChainState.None;
+                            break;
+                    }
                     ValidateConditionalChains(element);
+                } else if (child is not CommentNode && (child is not TextNode text || !string.IsNullOrWhiteSpace(text.Text))) {
+                    chainState = ConditionalChainState.None;
                 }
             }
         }

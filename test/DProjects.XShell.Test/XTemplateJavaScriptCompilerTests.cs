@@ -90,6 +90,32 @@ namespace DProjects.XShell.Test {
             Assert.NotEmpty(compiler.Compile("<div x-once x-class:ready=\"state.ready\"></div>"));
         }
 
+        [Theory]
+        [InlineData("<div x-elseif=\"state.a\"></div>", "x-elseif")]
+        [InlineData("<div x-else></div>", "x-else")]
+        [InlineData("<div x-if=\"state.a\"></div><span></span><div x-elseif=\"state.b\"></div>", "x-elseif")]
+        [InlineData("<div x-if=\"state.a\"></div><span></span><div x-else></div>", "x-else")]
+        [InlineData("<div x-if=\"state.a\"></div><div x-else></div><div x-elseif=\"state.b\"></div>", "x-elseif")]
+        [InlineData("<div x-if=\"state.a\"></div><div x-else></div><div x-else></div>", "x-else")]
+        [InlineData("<div x-if=\"state.a\"></div><div x-for=\"item in state.items\"></div><div x-elseif=\"state.b\"></div>", "x-elseif")]
+        [InlineData("<div x-if=\"state.a\"></div><div x-once></div><div x-else></div>", "x-else")]
+        [InlineData("<div x-if=\"state.a\"></div>text<div x-else></div>", "x-else")]
+        public void RejectsInvalidConditionalChains(string template, string directive) {
+            var exception = Assert.Throws<InvalidOperationException>(() => new XTemplateCompiler().Compile(template));
+
+            Assert.Contains($"Directive '{directive}'", exception.Message, StringComparison.Ordinal);
+        }
+
+        [Theory]
+        [InlineData("<div x-if=\"state.a\"></div><div x-elseif=\"state.b\"></div><div x-else></div>")]
+        [InlineData("<div x-if=\"state.a\"></div><div x-if=\"state.b\"></div>")]
+        [InlineData("<div x-if=\"state.a\"></div><div x-elseif=\"state.b\"></div><div x-if=\"state.c\"></div><div x-else></div>")]
+        [InlineData("<div x-if=\"state.a\"></div>\n<!-- formatting -->\n<div x-elseif=\"state.b\"></div>\n<div x-else></div>")]
+        [InlineData("<div x-if=\"state.outer\"><span x-if=\"state.innerA\"></span><span x-elseif=\"state.innerB\"></span><span x-else></span></div><div x-else></div>")]
+        public void AllowsValidConditionalChains(string template) {
+            Assert.NotEmpty(new XTemplateCompiler().Compile(template));
+        }
+
         // methods (private)
         private static string Attribute(string directive) => directive switch {
             "x-if" or "x-elseif" => $"{directive}=\"state.visible\"",
