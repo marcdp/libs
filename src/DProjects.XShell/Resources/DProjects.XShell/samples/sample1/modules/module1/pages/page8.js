@@ -6,8 +6,8 @@ export default {
         description: "This is a sample page 8 description"
     },
     state: {
-        varMarc1: { value: 0,  qs: true, reflect:true },
-        var2: { value: 0 }
+        varMarc1: 0,
+        var2: 0
     },
     template: `
         <p>

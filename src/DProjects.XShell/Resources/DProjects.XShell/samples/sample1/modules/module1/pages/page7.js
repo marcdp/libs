@@ -20,8 +20,8 @@ export default {
         <button ref="btn1">Do Something</button>
     `,
     state: {
-        var1: {value:"value1"},
-        var2: {value:"value2"}
+        var1: "value1",
+        var2: "value2"
     },
     controller({ bus, state, timer, events }) {
         return {

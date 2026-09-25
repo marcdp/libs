@@ -14,9 +14,9 @@ namespace DProjects.XShell.Test {
             var transform = compilerType.GetMethod("Transform", BindingFlags.Instance | BindingFlags.Public)!;
             var errors = new List<string>();
 
-            foreach (var path in Directory.EnumerateFiles(Path.Combine(resourceDirectory, "modules"), "*.js", SearchOption.AllDirectories).Where(path => !path.Contains("\\vendor\\", StringComparison.OrdinalIgnoreCase))) {
+            // vendor modules are third-party source rather than XTemplate authoring surfaces
+            foreach (var path in Directory.EnumerateFiles(Path.Combine(resourceDirectory, "modules"), "*.js", SearchOption.AllDirectories).Where(path => !IsVendorPath(path))) {
                 var source = File.ReadAllText(path);
-                if (!source.Contains("template:", StringComparison.Ordinal)) continue;
                 try {
                     transform.Invoke(compiler, [source]);
                 } catch (TargetInvocationException exception) {
@@ -32,7 +32,7 @@ namespace DProjects.XShell.Test {
             var resourceDirectory = GetResourceDirectory();
             var errors = new List<string>();
 
-            foreach (var path in Directory.EnumerateFiles(Path.Combine(resourceDirectory, "samples"), "*.html", SearchOption.AllDirectories)) {
+            foreach (var path in Directory.EnumerateFiles(resourceDirectory, "*.html", SearchOption.AllDirectories)) {
                 var template = File.ReadAllText(path);
                 if (!template.Contains("x-", StringComparison.Ordinal) && !template.Contains("{{", StringComparison.Ordinal)) continue;
                 try {
@@ -43,6 +43,18 @@ namespace DProjects.XShell.Test {
             }
 
             Assert.True(errors.Count == 0, "Static XTemplate resource compilation failed:" + Environment.NewLine + string.Join(Environment.NewLine, errors));
+        }
+
+        [Fact]
+        public void StaticModuleTemplatesCompileWhenTemplatePropertyUsesWhitespaceBeforeTheColon() {
+            var compilerType = typeof(XTemplateCompiler).Assembly.GetType("DProjects.XShell.Services.XTemplate.XTemplateJavaScriptCompiler", throwOnError: true)!;
+            var compiler = Activator.CreateInstance(compilerType, new XTemplateCompiler())!;
+            var transform = compilerType.GetMethod("Transform", BindingFlags.Instance | BindingFlags.Public)!;
+            const string source = "export default { template : `<div>{{ state.value }}</div>` };";
+
+            var transformed = (string)transform.Invoke(compiler, [source])!;
+
+            Assert.Contains("templateRenderer:", transformed, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -69,5 +81,7 @@ namespace DProjects.XShell.Test {
             var projectDirectory = typeof(Extensions).Assembly.GetCustomAttributes<AssemblyMetadataAttribute>().Single(attribute => attribute.Key == "ProjectDirectory").Value;
             return Path.Combine(projectDirectory!, "Resources", Extensions.ResourceName);
         }
+
+        private static bool IsVendorPath(string path) => path.Contains("\\vendor\\", StringComparison.OrdinalIgnoreCase) || path.Contains("/vendor/", StringComparison.OrdinalIgnoreCase);
     }
 }
