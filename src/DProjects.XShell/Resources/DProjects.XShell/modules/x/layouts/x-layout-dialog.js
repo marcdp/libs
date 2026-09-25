@@ -85,14 +85,14 @@ export default {
         </dialog>
 
     `,
-    controller({ state, events, bus, getPage }) {
+    controller({ state, events, bus, getPage, host }) {
         return {
             load() {
                 //load
                 events.on(bus, "xshell:page:load", "refresh");
-                this.onCommand("refresh");
+                this.refresh();
                 setTimeout(() => {
-                    this.shadowRoot.querySelector("DIALOG").showModal();
+                    host.shadowRoot.querySelector("DIALOG").showModal();
                     setTimeout(() => {
                         state.opened = true;
                     }, 0);
@@ -108,7 +108,7 @@ export default {
             "query-close"() {
                 //query close
                 args.event.preventDefault();
-                this.dispatchEvent(new CustomEvent("query-close", { composed: true }));
+                host.dispatchEvent(new CustomEvent("query-close", { composed: true }));
             }
         }
     }

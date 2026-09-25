@@ -143,19 +143,19 @@ export default {
         expanded: false,
         forceRight: ""
     },
-    controller({ state, events, navigation, getPage }) {
+    controller({ state, events, navigation, getPage, host }) {
         return {
             load(args) {
                 // load
                 events.on(state, "change:href", "refresh");
-                this.onCommand("refresh");
+                this.refresh();
             },
 
             mount(args) {
                 // mount
                 if (state.autofocus) {
                     requestAnimationFrame(() => {
-                        let focusable = this.shadowRoot.querySelector("a.button");
+                        let focusable = host.shadowRoot.querySelector("a.button");
                         if (focusable) {
                             focusable.focus();
                         }
@@ -167,13 +167,13 @@ export default {
                 // command
                 let handled = false;
                 if (state.command) {
-                    this.dispatchEvent(new CustomEvent("command", {detail: {command: state.command, data: this.dataset}, bubbles: true, composed: false}));
+                    host.dispatchEvent(new CustomEvent("command", {detail: {command: state.command, data: host.dataset}, bubbles: true, composed: false}));
                     handled = true;
                 } else if (state.childs) {
                     if (state.expanded) {
-                        this.onCommand("collapse");
+                        this.collapse();
                     } else {
-                        this.onCommand("expand");
+                        this.expand();
                     }
                     handled = true;
                 }
@@ -192,7 +192,7 @@ export default {
                 state.expanded = true;
                 // bind event
                 if (!this.onDocumentClick) {
-                    this.onDocumentClick = function() { this.onCommand("collapse"); }.bind(this);
+                    this.onDocumentClick = () => { this.collapse(); };
                 }
                 document.addEventListener("click", this.onDocumentClick, true);
             },
@@ -208,18 +208,18 @@ export default {
             toggle(args) {
                 //toggle
                 if (state.expanded) {
-                    this.onCommand("collapse");
+                    this.collapse();
                 } else {
-                    this.onCommand("expand");
+                    this.expand();
                 }
             },
 
             refresh(args) {
                 // refresh
-                state.childs = (this.firstElementChild != null);
+                state.childs = (host.firstElementChild != null);
                 // childsClass
                 if (state.childs) {
-                    let rect = this.getBoundingClientRect();
+                    let rect = host.getBoundingClientRect();
                     if (window.innerWidth - rect.right < 100) {
                         state.forceRight = true;
                     }

@@ -55,14 +55,14 @@ export default {
                 // load
                 events.on(bus, "xshell:page:load", (event)=>{
                     if (event.detail.id == getPage()?.id) {
-                        this.onCommand("refresh");
+                        this.refresh();
                     }
                 });
             },
 
             mount(...args) {
                 // mount
-                this.onCommand("refresh");
+                this.refresh();
             },
 
             refresh(...args) {

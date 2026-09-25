@@ -54,7 +54,7 @@ export default {
     state: {
         isLastPage: false
     },
-    controller({ state, events }) {
+    controller({ state, events, host }) {
         const updateIsLastPage = () => {
             state.isLastPage = state.index == Math.floor(state.total / state.size) - 1;
         };
@@ -67,12 +67,12 @@ export default {
 
             prev(args) {
                 //prev
-                this.dispatchEvent(new CustomEvent("change", {detail: {index: state.index - 1, size: state.size}}));
+                host.dispatchEvent(new CustomEvent("change", {detail: {index: state.index - 1, size: state.size}}));
             },
 
             next(args) {
                 //next
-                this.dispatchEvent(new CustomEvent("change", {detail: {index: state.index + 1, size: state.size}}));
+                host.dispatchEvent(new CustomEvent("change", {detail: {index: state.index + 1, size: state.size}}));
             }
         };
     }

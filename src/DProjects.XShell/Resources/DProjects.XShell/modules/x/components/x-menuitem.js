@@ -90,41 +90,41 @@ export default {
             <slot x-on:slotchange="refresh"></slot>
         </x-contextmenu>
     `,
-    controller({ state }) {
+    controller({ state, host }) {
         return {
             load(args) {
                 //load
-                this.addEventListener("mouseenter", ()=>{
-                    if (this.classList.contains("inline")) {
+                host.addEventListener("mouseenter", ()=>{
+                    if (host.classList.contains("inline")) {
                     } else {
                         state.expanded = true;
-                        this.onCommand("refresh");
+                        this.refresh();
                     }
                 });
-                this.addEventListener("mouseleave", ()=>{
-                    if (this.classList.contains("inline")) {
+                host.addEventListener("mouseleave", ()=>{
+                    if (host.classList.contains("inline")) {
                     } else {
                         state.expanded = false;
-                        this.onCommand("refresh");
+                        this.refresh();
                     }
                 });
-                this.addEventListener("click", (event) => {
-                    this.shadowRoot.querySelector("x-anchor").focus();
-                    if (this.classList.contains("inline")) {
+                host.addEventListener("click", (event) => {
+                    host.shadowRoot.querySelector("x-anchor").focus();
+                    if (host.classList.contains("inline")) {
                         state.expanded = !state.expanded;
-                        this.onCommand("refresh");
+                        this.refresh();
                         event.preventDefault();
                         event.stopPropagation();
                     }
                 });
-                this.onCommand("refresh");
+                this.refresh();
             },
 
             refresh(args) {
                 //refresh
-                state.hasChilds = (this.firstElementChild != null);
+                state.hasChilds = (host.firstElementChild != null);
                 if (state.hasChilds) {
-                    let rect = this.getBoundingClientRect();
+                    let rect = host.getBoundingClientRect();
                     let right = rect.left + rect.width * 2.5;
                     state.childsRight = right > window.innerWidth;
                 }

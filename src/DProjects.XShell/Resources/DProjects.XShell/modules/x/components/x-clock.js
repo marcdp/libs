@@ -22,7 +22,7 @@ export default {
         return {
             load() {
                 //load
-                this.onCommand("refresh");
+                this.refresh();
                 timer.setInterval(1000, "refresh");
             },
 

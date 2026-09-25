@@ -73,12 +73,12 @@ export default {
         </x-toolbar>
         <div class="editor" contenteditable="true" x-html="state.value" x-attr:lang="state.lang" x-attr:spellcheck="state.spellcheck"></div>
     `,
-    controller({ state }) {
+    controller({ state, host }) {
         return {
             load(args) {
                 //load
-                this.addEventListener("focusout", (event) => {
-                    this.onCommand("change", {event});
+                host.addEventListener("focusout", (event) => {
+                    this.change({event});
                 });
             },
 
@@ -91,12 +91,12 @@ export default {
 
             change(args) {
                 //change
-                let target = this.shadowRoot.querySelector(".editor");
+                let target = host.shadowRoot.querySelector(".editor");
                 let oldValue = state.value;
                 let newValue = target.innerHTML;
                 if (newValue == "<br>") newValue = "";
                 state.value = newValue;
-                this.dispatchEvent(new CustomEvent("change", {detail: {oldValue, newValue}, bubbles: true, composed: false}));
+                host.dispatchEvent(new CustomEvent("change", {detail: {oldValue, newValue}, bubbles: true, composed: false}));
             }
         };
     }

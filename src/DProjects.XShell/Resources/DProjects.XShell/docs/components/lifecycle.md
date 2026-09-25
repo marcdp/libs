@@ -28,9 +28,10 @@ element for the requested resource name.
 
 ## Construction and loading
 
-Construction creates a shadow root, creates state through the state engine, exposes selected services to the component script, retains its returned
-named handlers privately, and invokes the `load` handler. A handler runs with the component instance as `this`, so it can use component APIs such as
-`dispatchEvent` and `shadowRoot` without replacing runtime lifecycle methods.
+Construction creates a shadow root, creates state through the state engine, exposes selected services to the controller, retains its returned
+named handlers privately, and invokes the `load` handler. Every controller handler runs with the controller object as `this`. The generated Web
+Component is available only through the explicitly requested `host` dependency, so DOM access uses forms such as `host.dispatchEvent(...)` and
+`host.shadowRoot`. Lifecycle handlers remain private controller methods rather than public Web Component methods.
 
 ## Mount and render
 
@@ -62,6 +63,9 @@ final destruction
 `load` and `unload` each run once for an instance. `mount` runs whenever that instance becomes connected or mounted, and `unmount` runs whenever
 it becomes disconnected or unmounted. In particular, a native `disconnectedCallback()` is not evidence of permanent destruction: the browser can
 reconnect the same custom-element instance later.
+
+The controller context is stable across these calls. A lifecycle handler can use `this.refresh()` to invoke another controller method, while an
+operation on the underlying custom element must use the injected `host`.
 
 The runtime keeps controller, state, `Timer`, `Events`, and registered `_disposables` for the complete `load` → `unload` lifetime. Render-engine
 instances and page-specific adopted stylesheets are mount-owned resources; they are created/adopted for `mount` and unmounted/de-adopted for

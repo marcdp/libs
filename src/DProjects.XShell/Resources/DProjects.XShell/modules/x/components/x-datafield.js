@@ -460,7 +460,7 @@ export default {
         localizedValues: {},
         selectedOptions: {}
     },
-    controller({ state, events, timer, navigation, i18n }) {
+    controller({ state, events, timer, navigation, i18n, host }) {
         const updateTemplateState = () => {
             const value = state.value || "";
             const languages = state.langs || [];
@@ -498,14 +498,14 @@ export default {
                         }
                     } else if (prop == "type" || prop == "required" || prop == "min" || prop == "max" || prop == "minlength" || prop == "maxlength" || prop == "pattern") {
                         //value changed
-                        this.onCommand("validate");
+                        this.validate();
 
                     } else if (prop == "value") {
                         //value changed
-                        if (this.isConnected) {
-                            this.onCommand("validate");
-                            this.dispatchEvent(new CustomEvent("change", {detail: {oldValue, newValue}, bubbles: true, composed: false}));
-                            this.dispatchEvent(new CustomEvent("datafield:change", {detail: {oldValue, newValue}, bubbles: true, composed: false}));
+                        if (host.isConnected) {
+                            this.validate();
+                            host.dispatchEvent(new CustomEvent("change", {detail: {oldValue, newValue}, bubbles: true, composed: false}));
+                            host.dispatchEvent(new CustomEvent("datafield:change", {detail: {oldValue, newValue}, bubbles: true, composed: false}));
                         } else {
                             state.validated =false;
                         }
@@ -519,19 +519,19 @@ export default {
                 //load
                 if (state.autofocus) {
                     timer.setTimeout(25, () => {
-                        let element = this.shadowRoot.querySelector(".input");
+                        let element = host.shadowRoot.querySelector(".input");
                         if (element && element.focus) element.focus();
                     });
                 }
                 if (!state.validated) {
-                    this.onCommand("validate");
+                    this.validate();
                 }
-                state.hasChilds = (this.firstElementChild != null);
+                state.hasChilds = (host.firstElementChild != null);
             },
 
             async slotchange(args) {
                 //slotchange
-                state.hasChilds = (this.firstElementChild != null);
+                state.hasChilds = (host.firstElementChild != null);
             },
 
             async langAdd(args) {
@@ -541,7 +541,7 @@ export default {
                     state.langs.push(lang);
                     state.langIndex = state.langs.length - 1;
                     updateTemplateState();
-                    this.invalidate();
+                    host.invalidate();
                 }
             },
 
@@ -600,7 +600,7 @@ export default {
             async checkboxChanged(args) {
                 // checkboxChanged
                 let value = [];
-                this.shadowRoot.querySelectorAll("input:checked").forEach((element)=>{
+                host.shadowRoot.querySelectorAll("input:checked").forEach((element)=>{
                     value.push(element.value);
                 });
                 state.value = value.join(",");
@@ -641,9 +641,8 @@ export default {
                 alert("pick");
             },
 
-            async validate(args) {
+            validate(detail = false) {
                 // validate
-                let detail = false;
                 let result = [];
                 //langs                    
                 if (state.type.endsWith("_i18n")) {
@@ -662,45 +661,45 @@ export default {
                 }
                 //errors
                 if (state.required && !state.value) {
-                    result.push({type:"error", label: this.label, message:"Required"});
+                    result.push({type:"error", label: host.label, message:"Required"});
                 } else if (state.type == "text" || state.type == "textarea") {
                     if (state.value) {
                         if (state.minlength && state.value.length < state.minlength) {
-                            result.push({type:"error", label: this.label, message:"Too short"});
+                            result.push({type:"error", label: host.label, message:"Too short"});
                         } else if (state.maxlength && state.value.length > state.maxlength) {
-                            result.push({type:"error", label: this.label, message:"Too long"});
+                            result.push({type:"error", label: host.label, message:"Too long"});
                         }
                         if (state.pattern) {
                             let re = new RegExp(state.pattern);
                             if (!re.test(state.value)) {
-                                result.push({type:"error", label: this.label, message:"Invalid format"});
+                                result.push({type:"error", label: host.label, message:"Invalid format"});
                             }
                         }
                         }
                 } else if (state.type == "number") {
                     if (state.value && isNaN(state.value)) {
-                        result.push({type:"error", label: this.label, message:"Invalid number"});
+                        result.push({type:"error", label: host.label, message:"Invalid number"});
                     } else if (state.min && state.value < parseInt(state.min)) {
-                        result.push({type:"error", label: this.label, message:"Value too low"});
+                        result.push({type:"error", label: host.label, message:"Value too low"});
                     } else if (state.max && state.value > parseInt(state.max)) {
-                        result.push({type:"error", label: this.label, message:"Value too high"});
+                        result.push({type:"error", label: host.label, message:"Value too high"});
                     }
                 } else if (state.type == "url") {
                     if (state.value) {
                         if (!urlPattern.test(state.value)) {
-                            result.push({type:"error", label: this.label, message:"Invalid url"});
+                            result.push({type:"error", label: host.label, message:"Invalid url"});
                         }
                     }
                 } else if (state.type == "email") {
                     if (state.value) {
                         if (!emailPattern.test(state.value)) {
-                            result.push({type:"error", label: this.label, message:"Invalid email"});
+                            result.push({type:"error", label: host.label, message:"Invalid email"});
                         }
                     }
                 } else if (state.type == "tel") {
                     if (state.value) {
                         if (!telPattern.test(state.value)) {
-                            result.push({type:"error", label: this.label, message:"Invalid phone number"});
+                            result.push({type:"error", label: host.label, message:"Invalid phone number"});
                         }
                     }
                 } else if (state.type.endsWith("_i18n")) {
@@ -712,22 +711,22 @@ export default {
 
                         }
                         if (state.required && !hasMainValue) {
-                            result.push({type:"error", label: this.label, message:"Required"});
+                            result.push({type:"error", label: host.label, message:"Required"});
                         }
                     }
                 } else if (state.type == "list") {
                     if (state.required && (!state.value || state.value.length == 0)) {
-                        result.push({type:"error", label: this.label, message:"Required"});
+                        result.push({type:"error", label: host.label, message:"Required"});
                     } else if (state.value && state.minlength && state.value.length < state.minlength) {
-                        result.push({type:"error", label: this.label, message:"Too few items"});
+                        result.push({type:"error", label: host.label, message:"Too few items"});
                     } else if (state.value && state.maxlength && state.value.length > state.maxlength) {
-                        result.push({type:"error", label: this.label, message:"Too many items"});
+                        result.push({type:"error", label: host.label, message:"Too many items"});
                     }
                 }
                 //path
                 if (detail) {
                     let path = [];
-                    let element = this;
+                    let element = host;
                     while (element.parentNode) {
                         element = element.parentNode;
                         if (element.localName == "x-datafield" || element.localName == "x-datafields" || element.localName == "x-tab") {
@@ -743,6 +742,7 @@ export default {
                 // set errors and validated state
                 state.errors = result;
                 state.validated = true;
+                return result;
             }
         };
     }

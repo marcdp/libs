@@ -162,8 +162,10 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
     }    
     // init 
     renderEngineFactory.init();
+    // controller dispatcher
+    const invokeController = Symbol("invokeController");
     // returns a class that extends base class Page
-    return class extends Page {
+    const PageClass = class extends Page {
         // vars
         _state = null;
         _stateChanges = [];
@@ -234,12 +236,12 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
                         return self._context;
                     } else if (prop == "timer") {
                         // timer
-                        const timer = new Timer( (command) => {self.onCommand(command);} );
+                        const timer = new Timer((command, ...params) => { self[invokeController](command, ...params); });
                         self._disposables.push(timer);
                         return timer;
                     } else if (prop == "events") {
                         // events
-                        const events = new Events( (command) => {self.onCommand(command);} );
+                        const events = new Events((command, ...params) => { self[invokeController](command, ...params); });
                         self._disposables.push(events);
                         return events;
                     } else if (prop == "host") {
@@ -253,11 +255,11 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
             });            
             // author script
             this._controller = definition.controller?.(servicesProvider) ?? {};
-            // expose contract methods without replacing runtime lifecycle methods
+            // validate public contract methods
             for (const methodName of Object.keys(contract.methods ?? {})) {
                 const method = this._controller[methodName];
-                if (typeof(method) === "function" && !(methodName in this)) {
-                    this[methodName] = (...params) => method.apply(this, params);
+                if (typeof(method) !== "function") {
+                    throw new Error(`Page '${definition.meta.name}' declares public method '${methodName}' in contract.methods but controller.${methodName} is not a function.`);
                 }
             }
             
@@ -281,7 +283,7 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
             document.adoptedStyleSheets = [...document.adoptedStyleSheets,...this._styleSheets];
             // render engine
             this._renderEngine = renderEngineFactory.create({ host, state: this._state, handler:(command, ...params) => {
-                this.onCommand(command, ...params);
+                this[invokeController](command, ...params);
             }, invalidate: () => { 
                 this.invalidate(); 
             } })
@@ -356,12 +358,16 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
                 xshell.navigation.navigate({...item, page:this, replace:true});
             }
         }
-        // onCommand
-        onCommand(command, params) {
+        // invoke controller
+        [invokeController](command, ...params) {
             const handler = this._controller[command];
             if (typeof(handler) === "function") {
-                return handler.call(this, params);
+                return handler.apply(this._controller, params);
             }
+        }
+        // onCommand
+        onCommand(command, params) {
+            return this[invokeController](command, params);
         }
         // invalidate
         invalidate(path) {
@@ -371,13 +377,27 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
             this._renderPending = true;
             requestAnimationFrame(() => {
                 if (this._renderEngine !== renderEngine) return;
-                this.onCommand("stateChange", {changes: this._stateChanges});
+                this[invokeController]("stateChange", {changes: this._stateChanges});
                 this._stateChanges = [];
                 this._renderPending = false;
                 renderEngine.render();
             });
         }
     };
+    // add methods
+    for (const methodName of Object.keys(contract.methods)) {
+        if (methodName in PageClass.prototype) {
+            throw new Error(`Page '${definition.meta.name}' cannot expose public method '${methodName}' because it would overwrite a framework or Page method.`);
+        }
+        Object.defineProperty(PageClass.prototype, methodName, {
+            value: function(...args) {
+                return this[invokeController](methodName, ...args);
+            },
+            enumerable: true,
+            configurable: false
+        });
+    }
+    return PageClass;
 }
 
 //export 

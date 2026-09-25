@@ -42,7 +42,7 @@ export default {
         required: false,
         value: null
     },
-    controller({ state, context }) {
+    controller({ state, context, host }) {
         return {
             load(params) {
                 // load
@@ -50,12 +50,12 @@ export default {
 
             submit(params) {
                 //submit
-                this.close(state.value);
+                host.close(state.value);
             },
 
             cancel(params) {
                 //cancel
-                this.close(null);
+                host.close(null);
             }
         };
     }

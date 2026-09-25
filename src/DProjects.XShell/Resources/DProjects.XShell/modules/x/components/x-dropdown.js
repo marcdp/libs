@@ -108,25 +108,25 @@ export default {
     `,
     state: {
     },
-    controller({ state, events, bus }) {
+    controller({ state, events, bus, host }) {
         return {
             load() {
                 //load
-                this.shadowRoot.addEventListener("focusout", (event) => {
+                host.shadowRoot.addEventListener("focusout", (event) => {
                     if (!state.collapseOnClick) {
                         //if new focused element is a descendant of this element, does nothing
                         let relatedTarget = event.relatedTarget;
-                        if (isDescendantOfElement(this, relatedTarget)) return;
+                        if (isDescendantOfElement(host, relatedTarget)) return;
                         //if last mousedown was less than 10ms ago, does nothing
                         let diff = performance.now() - this._mousedownBodyAt;
-                        if (isNaN(diff) || diff > 10) this.onCommand("collapse");
+                        if (isNaN(diff) || diff > 10) this.collapse();
                     }
                 });
                 events.on(bus, "xshell:navigation:start", () => {
                     //if navigation occurred, collapse
                     if (state.expanded) {
                         if (!state.collapseOnClick) {
-                            this.onCommand("collapse");
+                            this.collapse();
                         }
                     }
                 });
@@ -135,7 +135,7 @@ export default {
             "focus-head"() {
                 //focus-head
                 if (!state.collapseOnClick) {
-                    this.onCommand("expand");
+                    this.expand();
                 }
             },
 
@@ -150,13 +150,13 @@ export default {
                     if (state.expanded) {
                         let diff = performance.now() - this._expandedAt;
                         if (diff > 200) {
-                            this.onCommand("collapse");
+                            this.collapse();
                         }
                     } else {
-                        this.onCommand("expand");
+                        this.expand();
                     }
                 } else {
-                    this.onCommand("expand");
+                    this.expand();
                 }
             },
 
@@ -167,7 +167,7 @@ export default {
 
             "click-body"() {
                 //click-body
-                let a = findFocusableElement(this);
+                let a = findFocusableElement(host);
                 let activeElement = getDeepActiveElement();
                 if (a != null && activeElement && activeElement.localName == "body") {
                     //if click in body, focus on first focusable element

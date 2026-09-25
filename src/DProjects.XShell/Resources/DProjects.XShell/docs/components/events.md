@@ -16,8 +16,10 @@ For example, `x-datafields` declares `move`, `edit`, and `remove`; its implement
 
 ## Optional X Templates integration
 
-The optional X Templates extension recognizes `x-on:<event>` and the `@<event>` shorthand. Its compiled handler forwards the command name and
-browser event to the component's command handler. Components do not depend on that extension to emit or handle standard DOM events.
+The optional X Templates extension recognizes `x-on:<event>` and the `@<event>` shorthand. Its compiled handler forwards the controller method name
+and browser event to the component runtime's internal controller dispatcher. The matching controller method executes with the controller as
+`this`; it is not looked up through a public Web Component method. Components do not depend on that extension to emit or handle standard DOM
+events.
 
 ## Modifiers
 

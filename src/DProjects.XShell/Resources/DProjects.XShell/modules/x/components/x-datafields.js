@@ -104,23 +104,23 @@ export default {
     `,
     
     state: {},
-    controller({ }) {
+    controller({ host }) {
         return {
             move(params) {
                 //move
                 let event = params.event;
                 let direction = event.target.dataset.direction;
-                this.dispatchEvent(new CustomEvent("move", {detail: {direction: direction}, bubbles: true, composed: false}));
+                host.dispatchEvent(new CustomEvent("move", {detail: {direction: direction}, bubbles: true, composed: false}));
             },
 
             edit(params) {
                 //edit
-                this.dispatchEvent(new CustomEvent("edit", {bubbles: true, composed: false}));
+                host.dispatchEvent(new CustomEvent("edit", {bubbles: true, composed: false}));
             },
 
             remove(params) {
                 //remove
-                this.dispatchEvent(new CustomEvent("remove", {bubbles: true, composed: false}));
+                host.dispatchEvent(new CustomEvent("remove", {bubbles: true, composed: false}));
             }
         }
     }

@@ -301,7 +301,7 @@ export default {
 
             async mount(params) {
                 // refresh
-                this.onCommand("refresh");
+                this.refresh();
             },
 
             async refresh(params) {

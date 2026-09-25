@@ -27,7 +27,7 @@ export default {
         message: "",
         variant: "yesno",
     },
-    controller({ state, context }) {
+    controller({ state, context, host }) {
         return {
             load(params) {
                 // load
@@ -35,22 +35,22 @@ export default {
 
             yes(params) {
                 //yes
-                this.close("yes");
+                host.close("yes");
             },
 
             no(params) {
                 //no
-                this.close("no");
+                host.close("no");
             },
 
             cancel(params) {
                 //cancel
-                this.close("cancel");
+                host.close("cancel");
             },
 
             ok(params) {
                 //ok
-                this.close("ok");
+                host.close("ok");
             }
         };
     }

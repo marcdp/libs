@@ -38,16 +38,17 @@ export default {
     template: `
         <slot></slot>
     `,
-    controller({}) {
+    controller({ host }) {
         return {
             load(params) {
                 //load
-                this.addEventListener("toggle", (event) => {
+                host.addEventListener("toggle", (event) => {
                     let target = event.target;
                     if (target.expanded) {
-                        this.querySelectorAll(":scope > x-accordion-panel").forEach((panel) => {
+                        host.querySelectorAll(":scope > x-accordion-panel").forEach((panel) => {
                             if (panel != target) {
-                                panel.onCommand("collapse");
+                                panel.expanded = false;
+                                panel.dispatchEvent(new CustomEvent("toggle", {bubbles: true, composed: false}));
                             }
                         });
                     }

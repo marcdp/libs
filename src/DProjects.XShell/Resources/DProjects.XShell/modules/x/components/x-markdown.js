@@ -23,7 +23,7 @@ export default {
     `,
     state: {
     },
-    controller({ state, events, loader }) {
+    controller({ state, events, loader, host }) {
         return {
             load() {
                 //load
@@ -34,7 +34,7 @@ export default {
                     let componentNames = [...new Set(Array.from(docWithoutTemplate.querySelectorAll('*')).filter(el => {return (el.tagName.includes('-'))}).map(el => "component:" + el.tagName.toLowerCase()))];
                     await loader.load(componentNames);
                     //set html
-                    this.innerHTML = html;
+                    host.innerHTML = html;
                 });
                 events.on(state, "change:src", async (event) => {
                     let src = event.newValue;
@@ -49,4 +49,3 @@ export default {
         };
     }
 };
-

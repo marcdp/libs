@@ -57,13 +57,13 @@ export default {
     `,
     state: {
     },
-    controller({ state }) {
+    controller({ state, host }) {
         return {
             load(params) {
                 //load
-                this.addEventListener("click", ()=>{
+                host.addEventListener("click", ()=>{
                     if (state.command) {
-                        this.dispatchEvent(new CustomEvent("command", {detail: {command: state.command, data: this.dataset}, bubbles: true, composed: false}));
+                        host.dispatchEvent(new CustomEvent("command", {detail: {command: state.command, data: host.dataset}, bubbles: true, composed: false}));
                     }
                 });
             }

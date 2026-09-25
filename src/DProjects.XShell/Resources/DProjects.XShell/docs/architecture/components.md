@@ -116,10 +116,10 @@ export default {
 
     state: {},
 
-    controller({ }) {
+    controller({ host }) {
         return {
             edit({ event }) {
-                this.dispatchEvent(
+                host.dispatchEvent(
                     new CustomEvent("edit", {
                         bubbles: true,
                         composed: false
@@ -260,6 +260,52 @@ For definition-based components, `component-js`:
 9. registers the resulting class with `customElements`.
 
 The result is a standard browser Web Component.
+
+## Controller and Web Component ownership
+
+The generated Web Component owns DOM/custom-element integration, public properties, public contract methods, its `ShadowRoot`, and framework
+lifecycle plumbing. The controller owns implementation behavior, private methods, lifecycle handlers, and X Template handlers.
+
+Controller methods always execute with the controller object as `this`. A controller that needs the generated Web Component must explicitly
+request the injected `host` dependency; XShell does not inject `shadowRoot` separately.
+
+```js
+export const contract = {
+    methods: {
+        validate: {
+            description: "Validates the component."
+        }
+    }
+};
+
+export default {
+    controller({ state, host }) {
+        return {
+            mount() {
+                host.addEventListener("click", () => this.refresh());
+                this.refresh();
+            },
+
+            refresh() {
+                const element = host.shadowRoot.querySelector(".content");
+                // update private implementation behavior
+            },
+
+            validate(options) {
+                // validate using the caller's original arguments
+            }
+        };
+    }
+};
+```
+
+In this example, `this.refresh()` calls another method on the same controller, `host.shadowRoot` accesses the Web Component DOM, and
+`element.validate(options)` is a public Web Component proxy to `controller.validate(options)`.
+
+Controller methods are private by default. X Template handlers resolve directly against the controller, so a template can invoke `refresh`,
+`validate`, or any other controller handler without exposing it on the Web Component. Only names declared by `contract.methods` are installed as
+public Web Component methods. Each declared public method must have a controller function of the same name and cannot replace a framework or
+native Web Component method. Contract method entries are metadata; the loader never executes them as implementation functions.
 
 ## State and rendering
 

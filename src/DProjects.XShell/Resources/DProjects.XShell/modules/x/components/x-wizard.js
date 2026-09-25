@@ -51,41 +51,41 @@ export default {
             <slot name="buttons" x-if="state.index == state.panels.length - 1"></slot>
         </div>
     `,
-    controller({ state }) {
+    controller({ state, host }) {
         let styleSheet = new CSSStyleSheet();
         return {
             load(args) {
                 //load
-                this.onCommand("refresh");
+                this.refresh();
             },
             mounted(args) {
                 //mounted
-                this.shadowRoot.adoptedStyleSheets = [...this.shadowRoot.adoptedStyleSheets, styleSheet];
+                host.shadowRoot.adoptedStyleSheets = [...host.shadowRoot.adoptedStyleSheets, styleSheet];
             },
 
             set(args) {
                 //set
                 let index = args.event.detail.index;
                 state.index = index;
-                this.onCommand("refresh");
+                this.refresh();
             },
 
             prev(args) {
                 //prev
                 state.index--;
-                this.onCommand("refresh");
+                this.refresh();
             },
 
             next(args) {
                 //next
                 state.index++;
-                this.onCommand("refresh");
+                this.refresh();
             },
 
             refresh(args) {
                 //refresh
                 let panels = [];
-                this.querySelectorAll(":scope > x-wizard-panel").forEach((panel, index) => {
+                host.querySelectorAll(":scope > x-wizard-panel").forEach((panel, index) => {
                     panels.push({
                         label: panel.getAttribute("label"),
                         message: panel.getAttribute("message"),

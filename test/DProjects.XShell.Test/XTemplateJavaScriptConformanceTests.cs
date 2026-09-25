@@ -210,15 +210,26 @@ public sealed class XTemplateJavaScriptConformanceTests {
                     childNodes = [];
                     appendChild(child) { this.childNodes.push(child); return child; }
                     append(child) { this.appendChild(child); }
+                    cloneNode(deep) {
+                        const clone = new FakeFragment();
+                        if (deep) clone.childNodes = this.childNodes.map(child => child.cloneNode(true));
+                        return clone;
+                    }
                     querySelectorAll() { return []; }
                 }
                 class FakeElement {
-                    constructor(tag) { this.tagName = tag.toUpperCase(); this.localName = tag.toLowerCase(); this.listeners = {}; this.childNodes = []; }
+                    constructor(tag) { this.tagName = tag.toUpperCase(); this.localName = tag.toLowerCase(); this.listeners = {}; this.childNodes = []; this.innerHTML = ""; }
                     addEventListener(name, listener) { this.listeners[name] = listener; }
                     appendChild(child) {
                         if (child instanceof FakeFragment) this.childNodes.push(...child.childNodes);
                         else this.childNodes.push(child);
                         return child;
+                    }
+                    append(child) { this.appendChild(child); }
+                    cloneNode(deep) {
+                        const clone = new FakeElement(this.localName);
+                        if (deep) clone.childNodes = this.childNodes.map(child => child.cloneNode(true));
+                        return clone;
                     }
                     replaceChildren() { this.childNodes = []; }
                     setAttribute() {}

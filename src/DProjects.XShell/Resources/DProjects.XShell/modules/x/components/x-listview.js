@@ -54,14 +54,14 @@ export default {
     `,
     state: {
     },
-    controller({ state, events }) {
+    controller({ state, events, host }) {
         return {
             async load() {
                 //load
                 events.on(state, "change:view", "refresh");
             },
             async refresh() {
-                const slot = this.shadowRoot.querySelector("slot:not([name])");
+                const slot = host.shadowRoot.querySelector("slot:not([name])");
                 if (!slot) return;
 
                 const view = state.view;
@@ -72,7 +72,7 @@ export default {
                     lastElement = item;
                 });
 
-                if (lastElement && state.autoScroll && this.checkVisibility()) {
+                if (lastElement && state.autoScroll && host.checkVisibility()) {
                     lastElement.scrollIntoView({ block: "end", behavior: "smooth" });
                 }
             }

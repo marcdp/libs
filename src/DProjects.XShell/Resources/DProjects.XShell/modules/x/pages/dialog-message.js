@@ -24,7 +24,7 @@ export default {
         message: "",
         type: "info",
     },
-    controller({ state, context }) {
+    controller({ state, context, host }) {
         return {
             load(params) {
                 // load
@@ -32,7 +32,7 @@ export default {
 
             submit(params) {
                 // submit
-                this.close("ok");
+                host.close("ok");
             }
         };
     }

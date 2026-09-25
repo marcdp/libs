@@ -181,36 +181,37 @@ export default {
     `,
     state: {
     },
-    controller({ state }) {
+    controller({ state, host }) {
         let styleSheet = new CSSStyleSheet();
         return {
 
             load(args) {
                 //load
-                this.shadowRoot.addEventListener("command", (event) => {
+                host.shadowRoot.addEventListener("command", (event) => {
                     if (event.detail.command == "submit") {
-                        this.onCommand(event.detail.command);
+                        const handler = this[event.detail.command];
+                        if (typeof(handler) === "function") handler.call(this);
                         event.stopPropagation();
                     }
                 });
-                this.shadowRoot.addEventListener("datafield:change", () => {
+                host.shadowRoot.addEventListener("datafield:change", () => {
                     if (state.validated) {
-                        this.onCommand("validate");
+                        this.validate();
                     }
                 });
-                this.shadowRoot.addEventListener("keypress", (event) => {
+                host.shadowRoot.addEventListener("keypress", (event) => {
                     if (event.keyCode == 13) {
                         var type = event.target.type;
                         if (inputTypesThatAcceptsEnters.indexOf(type) != -1) {
                             event.stopPropagation();
-                            setTimeout(()=>{this.onCommand("submit");}, 0);
+                            setTimeout(()=>{this.submit();}, 0);
                         }
                     }
                 });
-                this.onCommand("refresh");
+                this.refresh();
             },
             mount() {
-                this.shadowRoot.adoptedStyleSheets = [...this.shadowRoot.adoptedStyleSheets, styleSheet];
+                host.shadowRoot.adoptedStyleSheets = [...host.shadowRoot.adoptedStyleSheets, styleSheet];
             },
             showLoading({label, message}) {
                 state.loading = true;
@@ -224,19 +225,19 @@ export default {
                 //wizardSet
                 let index = args.event.detail.index;
                 state.wizardIndex = index;
-                this.onCommand("refresh");
+                this.refresh();
             },
             wizardPrev(args) {
                 //wizardPrev
                 state.errors = [];
                 state.wizardIndex--;
-                this.onCommand("refresh");
+                this.refresh();
             },
             wizardNext(args) {
                 //wizardNext
                 //get current wizard panel
                 let wizardPanel = state.wizardPanels[state.wizardIndex];
-                let wizardPanelElement = this.querySelector(`:scope > *:nth-child(${ wizardPanel.index })`);
+                let wizardPanelElement = host.querySelector(`:scope > *:nth-child(${ wizardPanel.index })`);
                 //validate errors in current wizard panel
                 let errors = [];
                 wizardPanelElement.querySelectorAll("x-datafield").forEach((element) => {
@@ -250,7 +251,7 @@ export default {
                 //if not error, advance to next panel
                 if (state.errors.length == 0) {
                     state.wizardIndex++;
-                    this.onCommand("refresh");
+                    this.refresh();
                 }
             },
             validate(args) {
@@ -258,14 +259,14 @@ export default {
                 let errors = [];
                 if (state.wizard) {
                     let wizardPanel = state.wizardPanels[state.wizardIndex];
-                    let wizardPanelElement = this.querySelector(`:scope > *:nth-child(${ wizardPanel.index })`);
+                    let wizardPanelElement = host.querySelector(`:scope > *:nth-child(${ wizardPanel.index })`);
                     wizardPanelElement.querySelectorAll("x-datafield").forEach((element) => {
                         for(let error of element.validate(true)) {
                             errors.push(error);
                         }                    
                     });
                 } else {
-                    this.querySelectorAll("x-datafield").forEach((element) => {
+                    host.querySelectorAll("x-datafield").forEach((element) => {
                         for(let error of element.validate(true)) {
                             errors.push(error);
                         }
@@ -277,16 +278,16 @@ export default {
             },
             submit(args) {
                 //submit
-                this.onCommand("validate");
+                this.validate();
                 if (state.errors.length == 0) {
-                    this.dispatchEvent(new CustomEvent("command", {detail: {command: state.command, data: this.dataset}, bubbles: true, composed: false}));
+                    host.dispatchEvent(new CustomEvent("command", {detail: {command: state.command, data: host.dataset}, bubbles: true, composed: false}));
                 }
             },
             refresh(args) {
                 //refresh
                 if (state.wizard) {
                     let wizardPanels = [];
-                    this.querySelectorAll(":scope > *[label]").forEach((panel) => {
+                    host.querySelectorAll(":scope > *[label]").forEach((panel) => {
                         if (!panel.hasAttribute("slot")) {
                             wizardPanels.push({
                                 label: panel.getAttribute("label"),

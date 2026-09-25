@@ -69,24 +69,24 @@ export default {
     `,
     state: {
     },
-    controller({ state }) {
+    controller({ state, host }) {
         return {
             load(params) {
                 //load
-                this.onCommand("refresh");
+                this.refresh();
             },
 
             collapse(params) {
                 //collapse
                 if (state.expanded) {
-                    this.onCommand("toggle");
+                    this.toggle();
                 }
             },
 
             toggle(params) {
                 //toggle
                 state.expanded = !state.expanded;
-                this.dispatchEvent(new CustomEvent("toggle", {bubbles: true, composed: false}));
+                host.dispatchEvent(new CustomEvent("toggle", {bubbles: true, composed: false}));
             }
         }
     }

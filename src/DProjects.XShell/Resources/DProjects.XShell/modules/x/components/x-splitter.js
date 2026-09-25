@@ -19,7 +19,7 @@ export default {
     `,
     template: ``,
     state: { },
-    controller({}) {
+    controller({ host }) {
         return {
             load() {
                 //init
@@ -31,7 +31,7 @@ export default {
                     document.removeEventListener("mousemove", mouseMove);
                     document.removeEventListener("mouseup", mouseUp);
                 };
-                this.addEventListener("mousedown", () => {
+                host.addEventListener("mousedown", () => {
                     document.addEventListener("mousemove", mouseMove);
                     document.addEventListener("mouseup", mouseUp);
                 });

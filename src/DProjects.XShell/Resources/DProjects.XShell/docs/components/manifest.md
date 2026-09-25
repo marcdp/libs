@@ -57,11 +57,11 @@ contract/loader layer, not to the render engine.
 The component loader reads `module.contract` and uses it to create the public property and method surface. It also validates template slot usage
 against `contract.slots` before registering the component. Its property defaults are canonical:
 state-backed public properties populate runtime state from `contract.properties[*].default`, while `definition.state` supplies private state. The
-default runtime definition separately provides fields including `meta`, `style`, `template`, `state`, and `script`.
-The component-level `script(...)` function is unrelated to a module definition's `controller` property. It returns named command and event handlers,
-such as `load`, `stateChange`, or `click`. The loader retains those handlers in a private script object and dispatches each command to its matching
-function with the component instance as `this`; it does not assign lifecycle handlers onto the `HTMLElement` instance. Methods declared by the
-component contract remain available as public component methods.
+default runtime definition separately provides fields including `meta`, `style`, `template`, `state`, and `controller`.
+The component-level `controller(...)` function returns named lifecycle, command, and event handlers such as `load`, `stateChange`, or `click`.
+The loader retains that controller privately and invokes each handler with the controller object as `this`. The generated Web Component is available
+through the injected `host` dependency. X Template handlers resolve against the controller, while methods declared by `contract.methods` are the
+only controller methods exposed as public Web Component proxies. Contract method metadata is never used as the executable implementation.
 
 ## Future manifest concept
 

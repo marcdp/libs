@@ -61,7 +61,7 @@ export default {
                 events.on(bus, "xshell:menus:change", "refresh");
                 events.on(bus, "xshell:page:load", (event)=>{
                     if (event.detail.id == getPage()?.id) {
-                        this.onCommand("refresh");
+                        this.refresh();
                     }
                 });
                 events.on(bus, "xshell:navigation:end", (event) => {
@@ -79,7 +79,7 @@ export default {
 
             mount() {
                 // mount
-                this.onCommand("refresh");
+                this.refresh();
             },
 
             refresh() {

@@ -105,13 +105,13 @@ export default {
             </div>
         </div>
     `,
-    controller({ state, events, bus, getPage, runtime }) {
+    controller({ state, events, bus, getPage, runtime, host }) {
         return {
             load() {
                 //load
                 events.on(bus, "xshell:page:load", "refresh");
-                this.onCommand("refresh");
-                this.shadowRoot.addEventListener("transitionend", () => this.onCommand("transition-end"));
+                this.refresh();
+                host.shadowRoot.addEventListener("transitionend", () => this["transition-end"]());
                 //this.render();
                 const msSinceLoad = runtime.uptimeMs;
                 if (msSinceLoad < 500) {
@@ -125,7 +125,7 @@ export default {
 
             "query-close"() {
                 //query close
-                this.dispatchEvent(new CustomEvent("query-close", { composed: true }));
+                host.dispatchEvent(new CustomEvent("query-close", { composed: true }));
             },
 
             "transition-end"() {

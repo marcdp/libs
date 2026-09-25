@@ -45,11 +45,11 @@ export default {
     `,
     state: {
     },
-    controller({ state }) {
+    controller({ state, host }) {
         return {
             load(args) {
                 //debugger;
-                state.html = this.innerHTML;
+                state.html = host.innerHTML;
             },
 
             change(args) {

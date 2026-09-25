@@ -86,7 +86,7 @@ export default {
     `,
     state: {
     },
-    controller({ state }) {
+    controller({ state, host }) {
         let styleSheet = new CSSStyleSheet();
         return {
             async load() {
@@ -94,16 +94,16 @@ export default {
             },
 
             mount() {
-                this.shadowRoot.adoptedStyleSheets = [...this.shadowRoot.adoptedStyleSheets, styleSheet];
-                this.onCommand("refresh");
+                host.shadowRoot.adoptedStyleSheets = [...host.shadowRoot.adoptedStyleSheets, styleSheet];
+                this.refresh();
             },
 
             async toggle() {
                 //toggle
                 if (state.expanded) {
-                    this.onCommand("collapse");
+                    this.collapse();
                 } else {
-                    this.onCommand("expand");
+                    this.expand();
                 }
             },
 
@@ -111,7 +111,7 @@ export default {
                 //expand
                 if (state.hasChilds) {
                     state.expanded = true;
-                    this.dispatchEvent(new CustomEvent("toggle", {bubbles: true}));
+                    host.dispatchEvent(new CustomEvent("toggle", {bubbles: true}));
                 }
             },
 
@@ -119,15 +119,15 @@ export default {
                 //collapse
                 if (state.expanded) {
                     state.expanded = false;
-                    this.dispatchEvent(new CustomEvent("toggle", {bubbles: true}));
+                    host.dispatchEvent(new CustomEvent("toggle", {bubbles: true}));
                 }
             },
 
             async refresh() {
                 //refresh
-                state.hasChilds = (this.querySelectorAll(':scope > :not([slot])').length > 0);
+                state.hasChilds = (host.querySelectorAll(':scope > :not([slot])').length > 0);
                 //indent
-                let element = this;
+                let element = host;
                 let indent = 0;
                 while (element && element.localName !== "x-treeview") {
                     element = element.parentElement; // Move directly to the parent

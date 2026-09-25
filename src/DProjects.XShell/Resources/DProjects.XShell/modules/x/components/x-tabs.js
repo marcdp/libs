@@ -64,26 +64,26 @@ export default {
         </nav>        
         <slot x-on:slotchange="refresh"></slot>
     `, 
-    controller({ state, events, getPage }) {
+    controller({ state, events, getPage, host }) {
         let styleSheet = new CSSStyleSheet();
         return {
             load(params) {
                 //load
                 events.on(state, "change:selectedHash", (event) => {
                     let hash = event.newValue;
-                    let tabs = this.querySelectorAll(":scope > x-tab");
+                    let tabs = host.querySelectorAll(":scope > x-tab");
                     let tab = Array.from(tabs).find(tab => tab.getAttribute("hash") == hash);
                     let tabIndex = Array.from(tabs).indexOf(tab);
                     if (tabIndex != -1) state.selectedIndex = tabIndex;
                 });
                 events.on(state, "change:selectedIndex", (event) => {
                     let selectedIndex = event.newValue;
-                    let tabs = this.querySelectorAll(":scope > x-tab");
+                    let tabs = host.querySelectorAll(":scope > x-tab");
                     let tab = tabs[selectedIndex];
                     if (tab) state.selectedHash = tab.hash;
                 });
                 //hash
-                var hash = (this.src + "#").split("#")[1];
+                var hash = (host.src + "#").split("#")[1];
                 if (!hash) hash = state.selectedHash;
                 if (hash) {
                     state.selectedHash = "";
@@ -91,22 +91,22 @@ export default {
                 }
             },
             mount(){
-                this.shadowRoot.adoptedStyleSheets = [...this.shadowRoot.adoptedStyleSheets, styleSheet];
+                host.shadowRoot.adoptedStyleSheets = [...host.shadowRoot.adoptedStyleSheets, styleSheet];
             },
 
             click(params) {
                 //click
                 let event = params.event;
-                let anchors = Array.from(this.shadowRoot.querySelectorAll("nav a"));
+                let anchors = Array.from(host.shadowRoot.querySelectorAll("nav a"));
                 state.selectedIndex = anchors.indexOf(event.target);
-                this.onCommand("refresh");
+                this.refresh();
                 event.preventDefault();
             },
 
             refresh(params) {
                 //refresh
                 let tabs = [];
-                this.querySelectorAll(":scope > x-tab").forEach(tab => {
+                host.querySelectorAll(":scope > x-tab").forEach(tab => {
                     tabs.push({
                         label: tab.getAttribute("label"),
                         icon: tab.getAttribute("icon") || "",

@@ -325,7 +325,7 @@ class XPage extends HTMLElement {
             this.remove();
         };
         if (layoutElement) {
-            removeHandler = layoutElement.onCommand("unload") || removeHandler;
+            removeHandler = await layoutElement.unload() || removeHandler;
         }
         //remove DOM node
         removeHandler();

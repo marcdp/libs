@@ -201,6 +201,8 @@ export async function createComponentClassFromJsDefinition(src, context, definit
     }    
     // init 
     renderEngineFactory.init();
+    // controller dispatcher
+    const invokeController = Symbol("invokeController");
     // returns a class that extends base class component
     const WebComponent = class extends HTMLElement {
         // vars
@@ -254,12 +256,12 @@ export async function createComponentClassFromJsDefinition(src, context, definit
                         return self._state;
                     } else if (prop == "timer") {
                         // timer helper
-                        const timer = new Timer( (command) => {self.onCommand(command);} );
+                        const timer = new Timer((command, ...params) => { self[invokeController](command, ...params); });
                         self._disposables.push(timer);
                         return timer;
                     } else if (prop == "events") {
                         // events helper
-                        const events = new Events( (command) => {self.onCommand(command);} );
+                        const events = new Events((command, ...params) => { self[invokeController](command, ...params); });
                         self._disposables.push(events);
                         return events;
                     } else if (prop == "moduleConfig") {
@@ -285,11 +287,11 @@ export async function createComponentClassFromJsDefinition(src, context, definit
             });
             // author script
             this._controller = definition.controller(servicesProvider) ?? {};
-            // expose contract methods without replacing runtime lifecycle methods
+            // validate public contract methods
             for (const methodName of Object.keys(contract.methods ?? {})) {
                 const method = this._controller[methodName];
-                if (typeof(method) === "function" && !(methodName in this)) {
-                    this[methodName] = (...params) => method.apply(this, params);
+                if (typeof(method) !== "function") {
+                    throw new Error(`Component '${definition.meta.name}' declares public method '${methodName}' in contract.methods but controller.${methodName} is not a function.`);
                 }
             }
             // attribute mutation observer (listen for changes in attributes that starts with state map attribute names, ex: qs-*)
@@ -323,7 +325,7 @@ export async function createComponentClassFromJsDefinition(src, context, definit
                 }
             }
             // load
-            this.onCommand("load", {});
+            this[invokeController]("load", {});
         }
         // attributeChangedCallback
         attributeChangedCallback(name, oldValue, newValue) {
@@ -337,17 +339,17 @@ export async function createComponentClassFromJsDefinition(src, context, definit
         connectedCallback() {
             if (this._unloaded) return;
             this._renderEngine = renderEngineFactory.create({ host: this.shadowRoot, state: this._state, handler:(command, ...params) => {
-                this.onCommand(command, ...params);
+                this[invokeController](command, ...params);
             }, invalidate: () => { 
                 this.invalidate(); 
             } });
             this._renderEngine.mount();
-            this.onCommand("mount", {});
+            this[invokeController]("mount", {});
             this.invalidate();
         }
         disconnectedCallback() {
             if (this._unloaded) return;
-            this.onCommand("unmount", {});
+            this[invokeController]("unmount", {});
             if (this._renderEngine) {
                 this._renderEngine.unmount();
                 this._renderEngine = null;
@@ -358,8 +360,9 @@ export async function createComponentClassFromJsDefinition(src, context, definit
         async unload() {
             if (this._unloaded) return;
             this._unloaded = true;
+            let result;
             try {
-                await this.onCommand("unload", {});
+                result = await this[invokeController]("unload", {});
             } finally {
                 if (this._renderEngine) {
                     this._renderEngine.unmount();
@@ -371,6 +374,7 @@ export async function createComponentClassFromJsDefinition(src, context, definit
                 }
                 this._disposables = [];
             }
+            return result;
         }
         // stateChange(prop, oldValue, newValue) {
         stateChange(prop, oldValue, newValue) {
@@ -388,17 +392,17 @@ export async function createComponentClassFromJsDefinition(src, context, definit
             this._renderPending = true;
             requestAnimationFrame(() => {
                 if (this._renderEngine !== renderEngine) return;
-                this.onCommand("stateChange", {changes: this._stateChanges});
+                this[invokeController]("stateChange", {changes: this._stateChanges});
                 this._stateChanges = [];
                 this._renderPending = false;
                 renderEngine.render();
             });
         }
-        // onCommand
-        onCommand(command, params) {
+        // invoke controller
+        [invokeController](command, ...params) {
             const handler = this._controller[command];
             if (typeof(handler) === "function") {
-                return handler.call(this, params);
+                return handler.apply(this._controller, params);
             }
         }
         // reflectPropertyToAttribute
@@ -440,11 +444,13 @@ export async function createComponentClassFromJsDefinition(src, context, definit
         });
     }
     // add methods
-    for (const [methodName, method] of Object.entries(contract.methods)) {
+    for (const methodName of Object.keys(contract.methods)) {
+        if (methodName in WebComponent.prototype) {
+            throw new Error(`Component '${definition.meta.name}' cannot expose public method '${methodName}' because it would overwrite a framework or Web Component method.`);
+        }
         Object.defineProperty(WebComponent.prototype, methodName, {
             value: function(...args) {
-                debugger
-                return method.apply(this, args);
+                return this[invokeController](methodName, ...args);
             },
             enumerable: true,
             configurable: false

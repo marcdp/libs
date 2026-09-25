@@ -33,19 +33,19 @@ export default {
     `,
     state: {
     },
-    controller({ state, events }) {
+    controller({ state, events, host }) {
         let styleSheet = new CSSStyleSheet();
         return {
             async load(args) {
                 //load
-                this.addEventListener("keydown", (event) => {this.onCommand("keydown", {event});});
-                this.addEventListener("toggle", (event) => {this.onCommand("refresh", {event});});
+                host.addEventListener("keydown", (event) => {this.keydown({event});});
+                host.addEventListener("toggle", (event) => {this.refresh({event});});
                 events.on(state, "change:items", "build-items");
                 //detect changes in light dom
                 this.mutationObserver = new MutationObserver(()=>{
-                    this.onCommand("refresh");
+                    this.refresh();
                 });
-                this.mutationObserver.observe(this, {
+                this.mutationObserver.observe(host, {
                     childList: true, // Observe additions/removals of child nodes
                     attributes: true, // Observe attribute changes
                     subtree: true // Observe changes in child nodes' children
@@ -53,7 +53,7 @@ export default {
             },
 
             mount() {
-                this.shadowRoot.adoptedStyleSheets = [...this.shadowRoot.adoptedStyleSheets, styleSheet];
+                host.shadowRoot.adoptedStyleSheets = [...host.shadowRoot.adoptedStyleSheets, styleSheet];
             },
 
             async unload(args) {
@@ -75,7 +75,7 @@ export default {
                         getRecursive(child);
                     }
                 };
-                getRecursive(this);
+                getRecursive(host);
                 //get selected items
                 let selected = null;
                 let selecteds = [];
@@ -108,7 +108,8 @@ export default {
                 } else if (event.key == "ArrowRight") {
                     if (selected) {
                         if (!selected.expanded) {
-                            selected.onCommand("expand");
+                            selected.expanded = true;
+                            selected.dispatchEvent(new CustomEvent("toggle", {bubbles: true}));
                         } else {
                             let index = items.indexOf(selected);
                             if (index < items.length - 1) newSelecteds = [items[index+1]];
@@ -117,12 +118,14 @@ export default {
                     event.preventDefault();
                 } else if (event.key == " ") {
                     if (selected) {
-                        selected.onCommand("toggle");
+                        selected.expanded = !selected.expanded;
+                        selected.dispatchEvent(new CustomEvent("toggle", {bubbles: true}));
                     }
                     event.preventDefault();
                 } else if (event.key == "Enter") {
                     if (selected) {
-                        selected.onCommand("toggle");
+                        selected.expanded = !selected.expanded;
+                        selected.dispatchEvent(new CustomEvent("toggle", {bubbles: true}));
                     }
                     event.preventDefault();
                 }
@@ -146,10 +149,10 @@ export default {
                         setIndexRecursive(child);
                     }
                 };
-                setIndexRecursive(this);
+                setIndexRecursive(host);
                 //column widths
                 let widths = [];
-                this.querySelectorAll(":scope > x-treeview-head > x-treeview-column").forEach((column) => {
+                host.querySelectorAll(":scope > x-treeview-head > x-treeview-column").forEach((column) => {
                     widths.push(column.getAttribute("width"));
                 });
                 let columnStyles = ":host {\n";
@@ -168,7 +171,7 @@ export default {
                     if (state.multiple) {
                         item.selected = !item.selected;
                     } else {
-                        let items = this.querySelectorAll("x-treeview-item");
+                        let items = host.querySelectorAll("x-treeview-item");
                         items.forEach((item) => {
                             item.selected = false;
                         });
@@ -177,7 +180,7 @@ export default {
                 }
                 //focus if required
                 if (!document.activeElement || document.activeElement.localName == "body") {
-                    this.shadowRoot.querySelector('[ref="div"]').focus();
+                    host.shadowRoot.querySelector('[ref="div"]').focus();
                 }
             }
         };

@@ -106,25 +106,25 @@ export default {
             </li>
         </ul>
     `,
-    controller({ state }) {
+    controller({ state, host }) {
         return {
             load(args) {
                 //load
-                this.onCommand("refresh");
+                this.refresh();
             },
 
             click(args) {
                 //click
                 let index = parseInt(args.event.currentTarget.dataset.index);
                 if (index < state.index) {
-                    this.dispatchEvent(new CustomEvent("index-set", {detail: {index: index}, bubbles: false, composed: false}));
+                    host.dispatchEvent(new CustomEvent("index-set", {detail: {index: index}, bubbles: false, composed: false}));
                 }
             },
 
             refresh(args) {
                 //refresh
                 let panels = [];
-                this.querySelectorAll(":scope > *").forEach((panel, index) => {
+                host.querySelectorAll(":scope > *").forEach((panel, index) => {
                     panels.push({
                         label: panel.getAttribute("label"),
                         message: panel.getAttribute("message"),

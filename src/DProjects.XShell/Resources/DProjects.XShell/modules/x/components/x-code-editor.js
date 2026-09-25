@@ -51,7 +51,7 @@ export default {
             ></ace-editor>
         </x-lazy>
     `,
-    controller({ state }) {
+    controller({ state, host }) {
         return {
             load(params) {
                 //load
@@ -67,7 +67,7 @@ export default {
                 console.log("input");
                 clearTimeout(this._inputTimeoutId);
                 this._inputTimeoutId = setTimeout(()=>{
-                    this.onCommand("change");
+                    this.change();
                 }, 500);
             },
 
@@ -75,22 +75,22 @@ export default {
                 //change
                 console.log("change");
                 clearTimeout(this._inputTimeoutId);
-                let target = this.shadowRoot.querySelector(".editor");
+                let target = host.shadowRoot.querySelector(".editor");
                 let oldValue = state.value;
                 let newValue = target.value ?? "";
                 state.value = newValue;
-                this.dispatchEvent(new CustomEvent("change", {detail: {oldValue, newValue}, bubbles: true, composed: false}));
+                host.dispatchEvent(new CustomEvent("change", {detail: {oldValue, newValue}, bubbles: true, composed: false}));
             },
             preRender() {
                 debugger;
                 if (this._renderCount > 0) {
-                    let spinner = this.shadowRoot.querySelector("x-spinner");
-                    let editor = this.shadowRoot.querySelector("ace-editor");
-                    if (state.ready && spinner) this.shadowRoot.removeChild(spinner);
+                    let spinner = host.shadowRoot.querySelector("x-spinner");
+                    let editor = host.shadowRoot.querySelector("ace-editor");
+                    if (state.ready && spinner) host.shadowRoot.removeChild(spinner);
                     if (state.wrap) editor.wrap = true;
                     if (state.mode) editor.mode = "ace/mode/" + state.mode;
                     if (state.theme) editor.theme = "ace/theme/" + state.theme;
-                    editor.value = this.value;
+                    editor.value = host.value;
                     return true;
                 }
             }

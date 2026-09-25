@@ -25,7 +25,7 @@ export default {
     state: {
         activated: false
     },
-    controller({ state, loader }) {
+    controller({ state, loader, host }) {
         return {
             async load(params) {
                 //load
@@ -34,7 +34,7 @@ export default {
                     entries.forEach(entry => {
                         if (entry.isIntersecting) {
                             observer.disconnect(); // Stop observing once loaded
-                            this.onCommand("activate");
+                            this.activate();
                         }
                     });
                 };
@@ -43,14 +43,14 @@ export default {
                     rootMargin: '100px' // start loading just before it comes into view
                 });
                 // start observing the element
-                this._loadingObserver.observe(this);
+                this._loadingObserver.observe(host);
             },
 
             async activate(params) {
                 //activate
-                let dependencies = [...new Set(Array.from(this.querySelectorAll('*')).filter(el =>{
+                let dependencies = [...new Set(Array.from(host.querySelectorAll('*')).filter(el =>{
                     if (el.tagName.includes('-')) {
-                        if (el.tagName == "X-LAZY" || el.closest("x-lazy") == this) {
+                        if (el.tagName == "X-LAZY" || el.closest("x-lazy") == host) {
                             return true;
                         }
                     }
