@@ -49,14 +49,20 @@ export default {
         &nbsp;
 
         <x-button class="short plain prev" x-on:click="prev" icon="x-keyboard-arrow-left"   x-attr:disabled="state.index == 0"></x-button>
-        <x-button class="short plain next" x-on:click="next" icon="x-keyboard-arrow-right"  x-attr:disabled="state.index == Math.floor(state.total/state.size) - 1"></x-button>
+        <x-button class="short plain next" x-on:click="next" icon="x-keyboard-arrow-right"  x-attr:disabled="state.isLastPage"></x-button>
     `,
     state: {
+        isLastPage: false
     },
-    controller({ state }) {
+    controller({ state, events }) {
+        const updateIsLastPage = () => {
+            state.isLastPage = state.index == Math.floor(state.total / state.size) - 1;
+        };
         return {
             load(args) {
                 //load
+                events.on(state, ["change:index", "change:size", "change:total"], updateIsLastPage);
+                updateIsLastPage();
             },
 
             prev(args) {

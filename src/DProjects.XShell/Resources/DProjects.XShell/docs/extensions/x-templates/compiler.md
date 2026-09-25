@@ -78,6 +78,16 @@ call the private `utils.expr` semantic helpers for member access, arithmetic, tr
 parse XTemplate expressions, receive serialized expression ASTs, or compile template source dynamically; it only executes the precompiled
 `templateRenderer` with the trusted runtime helpers.
 
+The browser runtime requires a `templateRenderer`; it has no XTemplate source compiler, expression parser, `eval`, or `new Function` fallback. This
+keeps the normal browser path compatible with `script-src 'self'` and `style-src 'self'` without `unsafe-eval` or `unsafe-inline`.
+
+## Browser `x-model` assignment policy
+
+The browser's plain-object XTemplate model requires the final object member named by an `x-model` assignment to already exist and be writable.
+Implicit member creation is not supported. This is intentional: XTemplate permits creation only when the active context adapter explicitly allows it,
+and the browser plain-object adapter exposes no such capability. Intermediate members must likewise exist and be writable objects or valid collection
+entries.
+
 ## Related documentation
 
 - [X Templates](index.md)

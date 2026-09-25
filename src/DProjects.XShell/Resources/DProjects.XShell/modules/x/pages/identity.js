@@ -14,7 +14,7 @@ export default {
             <x-datafields>
                 <x-datafield label="ID"     type="text" x-model="state.id" readonly></x-datafield>
                 <x-datafield label="Name"   type="text" x-model="state.name" readonly></x-datafield>
-                <x-datafield label="Roles"  type="text" x-model="state.roles.join(', ')" readonly></x-datafield>
+                <x-datafield label="Roles"  type="text" x-model="state.rolesText" readonly></x-datafield>
                 <x-datafield label="Claims" type="list" readonly>
                     <table>
                         <tr x-for="item in state.claims" x-key="id">
@@ -31,6 +31,7 @@ export default {
         id:     {value:""},
         name:   {value:""},
         roles:  {value:[]},
+        rolesText: {value:""},
         claims: {value:[]}
     },
     controller({ state, identity, dialog, auth }) {
@@ -40,6 +41,7 @@ export default {
                 state.id = identity.id;
                 state.name = identity.name;
                 state.roles = identity.roles;
+                state.rolesText = identity.roles.join(", ");
                 state.claims = Object.entries(identity.claims).map(([key, value]) => ({ key: key, value: value }));
             },
 

@@ -13,8 +13,21 @@ export const contract = {
 // implementation
 export default {
     template: `
-        {{ i18n.translate(state.text) }}
+        {{ state.localizedText }}
     `,
     state: {
+        localizedText: ""
+    },
+    controller({ state, events, i18n }) {
+        const updateLocalizedText = () => {
+            state.localizedText = i18n.translate(state.text);
+        };
+        return {
+            load(args) {
+                // load
+                events.on(state, "change:text", updateLocalizedText);
+                updateLocalizedText();
+            }
+        };
     }
 }

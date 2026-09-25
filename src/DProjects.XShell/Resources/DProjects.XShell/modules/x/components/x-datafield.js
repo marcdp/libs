@@ -206,18 +206,18 @@ export default {
         <label x-if="state.label" x-attr:for="state.inputId" x-attr:label-mode="state.labelMode" x-class:error="state.errors.length">
             <span class="label" x-if="state.label" x-text="state.label"></span>
             <span class="required" x-if="state.required">*</span>
-            <span class="langs" x-if="state.type.endsWith('_i18n')" >
+            <span class="langs" x-if="state.isI18n" >
                 <div x-if="state.type!='text_i18n' && state.type!='textarea_i18n'">
                     <x-button 
                             slot="toolbar" 
                             x-for="(lang,index) in state.langs"
                             x-attr:label="lang"
                             x-on:click="lang-changed"
-                            x-attr:title="i18n.getLangLabel(lang)"
+                            x-attr:title="state.langLabels[lang]"
                             x-attr:data-lang="lang"
                             x-class:plain="true"
                             x-class:selected="state.langIndex == index"
-                            x-class:empty="state.value.indexOf('i18n:' + lang + '=')==-1"
+                            x-class:empty="state.emptyTranslations[lang]"
                             >
                     </x-button>
                 </div>
@@ -237,7 +237,7 @@ export default {
             x-attr:id="state.inputId"
             x-attr:multiple="state.multiple">
             <option x-if="!state.multiple" x-text="state.placeholder" class="placeholder"></option>
-            <option x-for="option in state.domain" x-attr:value="option.value" x-text="option.label" x-attr:disabled="option.disabled" x-attr:selected="(option.value == state.value || (state.multiple && (',' + state.value + ',').indexOf(',' + option.value + ',')!=-1))"></option>
+            <option x-for="option in state.domain" x-attr:value="option.value" x-text="option.label" x-attr:disabled="option.disabled" x-attr:selected="state.selectedOptions[option.value]"></option>
         </select>
 
         <div x-elseif="state.type=='radios'" class="input container">
@@ -256,7 +256,7 @@ export default {
 
         <div x-elseif="state.type=='checkboxes'" class="input container">
             <div x-for="(option,index) in state.domain">
-                <input type="checkbox" x-attr:value="option.value" x-attr:id="'radio' + index" name="checkbox" x-attr:checked="(state.value ? state.value.split(',').indexOf(option.value)!=-1 : null)" x-on:change="checkbox-changed" x-attr:disabled="option.disabled"/>
+                <input type="checkbox" x-attr:value="option.value" x-attr:id="'radio' + index" name="checkbox" x-attr:checked="state.selectedOptions[option.value]" x-on:change="checkbox-changed" x-attr:disabled="option.disabled"/>
                 <label x-text="option.label" x-attr:for="'radio' + index"></label>
             </div>
         </div>
@@ -288,7 +288,7 @@ export default {
                 <input 
                     type="text" 
                     class="input"
-                    x-prop:value="i18n.formatText(state.value, lang)"
+                    x-prop:value="state.localizedValues[lang]"
                     x-on:change="text_i18n-changed"
                     x-attr:id="state.inputId + (index == 0 ? '' : index)"
                     x-attr:lang="lang" 
@@ -300,7 +300,7 @@ export default {
                     x-attr:readonly="state.readonly" 
                     x-attr:spellcheck="state.spellcheck"
                 />
-                <span class="lang" x-html="lang" x-attr:title="i18n.getLangLabel(lang)"></span>
+                <span class="lang" x-html="lang" x-attr:title="state.langLabels[lang]"></span>
             </div>
         </div>
 
@@ -308,7 +308,7 @@ export default {
             <div x-for="(lang,index) in state.langs">
                 <textarea 
                     class="input" 
-                    x-prop:value="i18n.formatText(state.value, lang)"
+                    x-prop:value="state.localizedValues[lang]"
                     x-on:change="text_i18n-changed"
                     x-attr:id="state.inputId + (index == 0 ? '' : index)"
                     x-attr:lang="lang" 
@@ -319,7 +319,7 @@ export default {
                     x-attr:readonly="state.readonly" 
                     x-attr:spellcheck="state.spellcheck"
                 ></textarea>
-                <span class="lang" x-html="lang" x-attr:title="i18n.getLangLabel(lang)"></span>
+                <span class="lang" x-html="lang" x-attr:title="state.langLabels[lang]"></span>
             </div>
         </div>
         
@@ -349,7 +349,7 @@ export default {
 
         <div x-elseif="state.type=='richtext_i18n'" class="input richtext">
             <x-richtext
-                x-prop:value="i18n.formatText(state.value, state.langs[state.langIndex])"
+                x-prop:value="state.localizedValues[state.langs[state.langIndex]]"
                 x-on:change="text_i18n-changed"
                 x-attr:id="state.inputId"
                 x-attr:lang="state.langs[state.langIndex]" 
@@ -374,7 +374,7 @@ export default {
         <div x-elseif="state.type=='markdown_i18n'" class="input code">
             <x-code-editor 
                 mode="markdown"
-                x-prop:value="i18n.formatText(state.value, state.langs[state.langIndex])"
+                x-prop:value="state.localizedValues[state.langs[state.langIndex]]"
                 x-on:change="text_i18n-changed"
                 x-attr:id="state.inputId"
                 x-attr:lang="state.langs[state.langIndex]" 
@@ -454,13 +454,31 @@ export default {
         </div>
     `,
     state: {
+        isI18n: false,
+        langLabels: {},
+        emptyTranslations: {},
+        localizedValues: {},
+        selectedOptions: {}
     },
     controller({ state, events, timer, navigation, i18n }) {
+        const updateTemplateState = () => {
+            const value = state.value || "";
+            const languages = state.langs || [];
+            const selectedOptions = {};
+            const values = state.multiple ? ("," + value + ",") : null;
+
+            state.isI18n = typeof state.type == "string" && state.type.endsWith("_i18n");
+            state.langLabels = Object.fromEntries(languages.map(lang => [lang, i18n.getLangLabel(lang)]));
+            state.emptyTranslations = Object.fromEntries(languages.map(lang => [lang, value.indexOf("i18n:" + lang + "=") == -1]));
+            state.localizedValues = Object.fromEntries(languages.map(lang => [lang, i18n.formatText(value, lang)]));
+            for (const option of state.domain || []) selectedOptions[option.value] = state.multiple ? values.indexOf("," + option.value + ",") != -1 : option.value == value;
+            state.selectedOptions = selectedOptions;
+        };
         return {
             async load(args) {
                 // load
                 state.inputId = getFreeId();
-                events.on(state, ["change:domain", "change:type", "change:required", "change:min", "change:max", "change:minlength", "change:maxlength", "change:pattern", "change:value"], (event) => {
+                events.on(state, ["change:domain", "change:type", "change:required", "change:min", "change:max", "change:minlength", "change:maxlength", "change:pattern", "change:value", "change:langs", "change:langIndex", "change:multiple"], (event) => {
                     let prop = event.prop;
                     let newValue = event.newValue;
                     let oldValue = event.oldValue;
@@ -492,7 +510,9 @@ export default {
                             state.validated =false;
                         }
                     }
+                    updateTemplateState();
                 });
+                updateTemplateState();
             },
 
             async mount(args) {
@@ -520,6 +540,7 @@ export default {
                 if (lang) {
                     state.langs.push(lang);
                     state.langIndex = state.langs.length - 1;
+                    updateTemplateState();
                     this.invalidate();
                 }
             },
@@ -528,6 +549,7 @@ export default {
                 //lang-changed
                 let lang = args.event.target.dataset.lang;
                 state.langIndex = state.langs.indexOf(lang);
+                updateTemplateState();
             },
 
             async "object-changed"(args) {
@@ -639,6 +661,7 @@ export default {
                     }
                     state.langs = langs;
                     if (state.langIndex >= langs.length) state.langIndex = 0;
+                    updateTemplateState();
                 }
                 //errors
                 if (state.required && !state.value) {
