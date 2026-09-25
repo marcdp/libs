@@ -33,9 +33,6 @@ export default {
     state: {
     },
     template: `        
-
-        <style x-html="state.style"></style>
-
         <x-wizard-header x-attr:index="state.index" x-on:index-set="set">
             <div x-for="panel in state.panels" 
                 x-attr:label="panel.label"
@@ -55,10 +52,15 @@ export default {
         </div>
     `,
     controller({ state }) {
+        let styleSheet = new CSSStyleSheet();
         return {
             load(args) {
                 //load
                 this.onCommand("refresh");
+            },
+            mounted(args) {
+                //mounted
+                this.shadowRoot.adoptedStyleSheets = [...this.shadowRoot.adoptedStyleSheets, styleSheet];
             },
 
             set(args) {
@@ -92,7 +94,7 @@ export default {
                     });
                 });
                 state.panels = panels;
-                state.style = `::slotted(x-wizard-panel:nth-child(${parseInt(state.index) + 1})) {display:block;}`;
+                styleSheet.replaceSync(`::slotted(x-wizard-panel:nth-child(${parseInt(state.index) + 1})) {display:block;}`);
             }
         };
     }

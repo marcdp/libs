@@ -31,8 +31,10 @@ export default class Bus {
             ts: Date.now(),
             detail: detail
         }
+        //console.log("Emitting event: ", data);
         this._channel.port2.postMessage(data);
     }
+
 
     // private methods
     _processEvent(event) {

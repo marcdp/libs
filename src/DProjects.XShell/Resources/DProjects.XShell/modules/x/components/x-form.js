@@ -182,7 +182,7 @@ export default {
     state: {
     },
     controller({ state }) {
-        let wizardStyleSheet = null;
+        let styleSheet = new CSSStyleSheet();
         return {
 
             load(args) {
@@ -210,8 +210,7 @@ export default {
                 this.onCommand("refresh");
             },
             mount() {
-                wizardStyleSheet = new CSSStyleSheet();
-                this.shadowRoot.adoptedStyleSheets = [...this.shadowRoot.adoptedStyleSheets, wizardStyleSheet];
+                this.shadowRoot.adoptedStyleSheets = [...this.shadowRoot.adoptedStyleSheets, styleSheet];
             },
             showLoading({label, message}) {
                 state.loading = true;
@@ -298,8 +297,7 @@ export default {
                         }
                     });
                     state.wizardPanels = wizardPanels;
-                    //state.wizardStyle = `:host([wizard]) .body ::slotted(*:nth-child(${ wizardPanels[state.wizardIndex].index })) {display:block;}`;
-                    wizardStyleSheet?.replaceSync(`
+                    styleSheet?.replaceSync(`
                         :host([wizard]) .body ::slotted(*:nth-child(${ wizardPanels[state.wizardIndex].index })) {
                             display: block;
                         }

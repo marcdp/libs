@@ -120,7 +120,7 @@ export function rewriteDocumentUrls(doc, context) {
         });
         el.setAttribute("style", newStyle);
     });
-    // CSS inside <style> tags
+    // CSS inside style tags
     doc.querySelectorAll("style").forEach(style => {
         let css = style.textContent;
         css = css.replace(/url\(([^)]+)\)/g, (match, url) => {

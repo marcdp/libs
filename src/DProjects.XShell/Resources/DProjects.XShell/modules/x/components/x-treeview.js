@@ -27,7 +27,6 @@ export default {
         div:focus {outline:none;}
     `,
     template: `
-        <style x-html="state.columnStyles"></style>
         <div ref="div" tabindex="0">
             <slot x-on:slotchange="refresh" x-on:click="click"></slot>
         </div>
@@ -35,6 +34,7 @@ export default {
     state: {
     },
     controller({ state, events }) {
+        let styleSheet = new CSSStyleSheet();
         return {
             async load(args) {
                 //load
@@ -50,6 +50,10 @@ export default {
                     attributes: true, // Observe attribute changes
                     subtree: true // Observe changes in child nodes' children
                 });
+            },
+
+            mount() {
+                this.shadowRoot.adoptedStyleSheets = [...this.shadowRoot.adoptedStyleSheets, styleSheet];
             },
 
             async unload(args) {
@@ -153,7 +157,7 @@ export default {
                     columnStyles += `    --x-treeview-column-width-${i+1}: ${widths[i]};\n`;
                 }
                 columnStyles += "}\n";
-                state.columnStyles = columnStyles;
+                styleSheet?.replaceSync(columnStyles);
             },
 
             async click(args) {

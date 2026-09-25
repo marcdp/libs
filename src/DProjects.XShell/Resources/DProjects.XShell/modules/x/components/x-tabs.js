@@ -51,7 +51,6 @@ export default {
         tabs: []
     },
     template: `
-        <style x-html="state.style"></style>
         <nav>
             <a x-for="(tab,index) in state.tabs" 
                 x-attr:tabindex="index+1"
@@ -66,6 +65,7 @@ export default {
         <slot x-on:slotchange="refresh"></slot>
     `, 
     controller({ state, events, getPage }) {
+        let styleSheet = new CSSStyleSheet();
         return {
             load(params) {
                 //load
@@ -90,6 +90,9 @@ export default {
                     state.selectedHash = hash;
                 }
             },
+            mount(){
+                this.shadowRoot.adoptedStyleSheets = [...this.shadowRoot.adoptedStyleSheets, styleSheet];
+            },
 
             click(params) {
                 //click
@@ -111,11 +114,15 @@ export default {
                     });
                 });
                 state.tabs = tabs;
-                state.style = `::slotted(x-tab:nth-child(${parseInt(state.selectedIndex) + 1})) {display:block;}`;
+                styleSheet.replaceSync(`::slotted(x-tab:nth-child(${parseInt(state.selectedIndex) + 1})) {display:block;}`);
                 //hash
                 let tab = tabs[state.selectedIndex];
                 if (tab && tab.hash) {
-                    getPage().replace("#" + tab.hash);
+                    const page = getPage();
+                    if (page) {
+                        //debugger
+                        //page.replace("#" + tab.hash);
+                    }
                 }
             }
         }

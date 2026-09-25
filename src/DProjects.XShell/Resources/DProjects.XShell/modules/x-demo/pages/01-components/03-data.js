@@ -25,23 +25,9 @@ export default {
 
         <x-listview view="list">
 
-            <x-listview-item
-                icon="x-file"
-                label="Document.txt"
-                description="Text document">
-            </x-listview-item>
-
-            <x-listview-item
-                icon="x-image"
-                label="Photo.jpg"
-                description="Image">
-            </x-listview-item>
-
-            <x-listview-item
-                icon="x-folder"
-                label="Projects"
-                description="Folder">
-            </x-listview-item>
+            <x-listview-item icon="x-file" label="Document.txt" description="Text document"> </x-listview-item>
+            <x-listview-item icon="x-image" label="Photo.jpg" description="Image"> </x-listview-item>
+            <x-listview-item icon="x-folder" label="Projects" description="Folder"> </x-listview-item>
 
         </x-listview>
 
@@ -49,20 +35,9 @@ export default {
 
         <x-listview view="icons">
 
-            <x-listview-item
-                icon="x-file"
-                label="Document">
-            </x-listview-item>
-
-            <x-listview-item
-                icon="x-image"
-                label="Photo">
-            </x-listview-item>
-
-            <x-listview-item
-                icon="x-folder"
-                label="Projects">
-            </x-listview-item>
+            <x-listview-item icon="x-file" label="Document"></x-listview-item>
+            <x-listview-item icon="x-image" label="Photo"></x-listview-item>
+            <x-listview-item icon="x-folder" label="Projects"></x-listview-item>
 
         </x-listview>
 
@@ -74,31 +49,19 @@ export default {
             <span slot="column">Type</span>
             <span slot="column">Size</span>
 
-            <x-listview-item
-                icon="x-file"
-                label="Document.txt">
-
+            <x-listview-item icon="x-file" label="Document.txt">
                 <span>Text document</span>
                 <span>24 KB</span>
-
             </x-listview-item>
 
-            <x-listview-item
-                icon="x-image"
-                label="Photo.jpg">
-
+            <x-listview-item icon="x-image" label="Photo.jpg">
                 <span>Image</span>
                 <span>2.4 MB</span>
-
             </x-listview-item>
 
-            <x-listview-item
-                icon="x-folder"
-                label="Projects">
-
+            <x-listview-item icon="x-folder" label="Projects">
                 <span>Folder</span>
                 <span>-</span>
-
             </x-listview-item>
 
         </x-listview>
@@ -109,44 +72,18 @@ export default {
 
         <x-treeview>
 
-            <x-treeview-item
-                label="Documents"
-                icon="x-folder"
-                has-childs
-                expanded>
-
-                <x-treeview-item
-                    label="Reports"
-                    icon="x-folder"
-                    has-childs>
-
-                    <x-treeview-item
-                        label="Report.pdf"
-                        icon="x-file">
-                    </x-treeview-item>
-
+            <x-treeview-item label="Documents" icon="x-folder" has-childs expanded>
+                <x-treeview-item label="Reports" icon="x-folder"has-childs>
+                    <x-treeview-item label="Reportttt.pdf" icon="x-file"></x-treeview-item>
                 </x-treeview-item>
-
-                <x-treeview-item
-                    label="Notes.txt"
-                    icon="x-file">
-                </x-treeview-item>
-
+                <x-treeview-item label="Notes.txt" icon="x-file"></x-treeview-item>
             </x-treeview-item>
-
-            <x-treeview-item
-                label="Images"
-                icon="x-folder"
-                has-childs>
-
-                <x-treeview-item
-                    label="Photo.jpg"
-                    icon="x-image">
-                </x-treeview-item>
-
+            <x-treeview-item label="Images" icon="x-folder" has-childs>
+                <x-treeview-item label="Photo.jpg" icon="x-image"></x-treeview-item>
             </x-treeview-item>
 
         </x-treeview>
+
 
         <x-divider></x-divider>
 

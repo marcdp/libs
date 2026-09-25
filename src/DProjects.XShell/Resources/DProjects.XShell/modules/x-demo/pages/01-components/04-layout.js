@@ -221,20 +221,18 @@ export default {
 
         <h2>Fill</h2>
 
+<!--
         <p>
             x-fill is intended for layouts where content must occupy the complete
             available positioned container.
         </p>
-
-        <div style="position:relative; height:10em; border:1px solid currentColor;">
 
             <x-fill>
                 <div>
                     This content fills the available container.
                 </div>
             </x-fill>
-
-        </div>
+            -->
     `,  
     controller({ state }) {
         return {

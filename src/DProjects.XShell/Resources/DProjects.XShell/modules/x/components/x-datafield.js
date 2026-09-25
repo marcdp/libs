@@ -212,7 +212,7 @@ export default {
                             slot="toolbar" 
                             x-for="(lang,index) in state.langs"
                             x-attr:label="lang"
-                            x-on:click="lang-changed"
+                            x-on:click="langChanged"
                             x-attr:title="state.langLabels[lang]"
                             x-attr:data-lang="lang"
                             x-class:plain="true"
@@ -221,7 +221,7 @@ export default {
                             >
                     </x-button>
                 </div>
-                <x-button class="add plain" x-on:click="lang-add" icon="x-add" title="Add translation"></x-button>
+                <x-button class="add plain" x-on:click="langAdd" icon="x-add" title="Add translation"></x-button>
             </span>
         </label>
 
@@ -256,7 +256,7 @@ export default {
 
         <div x-elseif="state.type=='checkboxes'" class="input container">
             <div x-for="(option,index) in state.domain">
-                <input type="checkbox" x-attr:value="option.value" x-attr:id="'radio' + index" name="checkbox" x-attr:checked="state.selectedOptions[option.value]" x-on:change="checkbox-changed" x-attr:disabled="option.disabled"/>
+                <input type="checkbox" x-attr:value="option.value" x-attr:id="'radio' + index" name="checkbox" x-attr:checked="state.selectedOptions[option.value]" x-on:change="checkboxChanged" x-attr:disabled="option.disabled"/>
                 <label x-text="option.label" x-attr:for="'radio' + index"></label>
             </div>
         </div>
@@ -289,7 +289,7 @@ export default {
                     type="text" 
                     class="input"
                     x-prop:value="state.localizedValues[lang]"
-                    x-on:change="text_i18n-changed"
+                    x-on:change="text_i18nChanged"
                     x-attr:id="state.inputId + (index == 0 ? '' : index)"
                     x-attr:lang="lang" 
                     x-attr:placeholder="(index == 0 ? state.placeholder : '')" 
@@ -309,7 +309,7 @@ export default {
                 <textarea 
                     class="input" 
                     x-prop:value="state.localizedValues[lang]"
-                    x-on:change="text_i18n-changed"
+                    x-on:change="text_i18nChanged"
                     x-attr:id="state.inputId + (index == 0 ? '' : index)"
                     x-attr:lang="lang" 
                     x-attr:placeholder="(index == 0 ? state.placeholder : '')" 
@@ -350,7 +350,7 @@ export default {
         <div x-elseif="state.type=='richtext_i18n'" class="input richtext">
             <x-richtext
                 x-prop:value="state.localizedValues[state.langs[state.langIndex]]"
-                x-on:change="text_i18n-changed"
+                x-on:change="text_i18nChanged"
                 x-attr:id="state.inputId"
                 x-attr:lang="state.langs[state.langIndex]" 
                 x-attr:disabled="state.disabled" 
@@ -375,7 +375,7 @@ export default {
             <x-code-editor 
                 mode="markdown"
                 x-prop:value="state.localizedValues[state.langs[state.langIndex]]"
-                x-on:change="text_i18n-changed"
+                x-on:change="text_i18nChanged"
                 x-attr:id="state.inputId"
                 x-attr:lang="state.langs[state.langIndex]" 
                 x-attr:disabled="state.disabled" 
@@ -387,7 +387,7 @@ export default {
         <div x-elseif="state.type=='object'" class="input object">
             <input 
                 type="checkbox" 
-                x-on:change="object-changed"
+                x-on:change="objectChanged"
                 x-attr:id="state.inputId"
                 x-attr:checked="state.value != null"
                 x-attr:disabled="state.disabled"
@@ -398,11 +398,11 @@ export default {
         </div>
 
         <div x-elseif="state.type=='list'" class="input list">
-            <div class="list-body" x-on:edit="list-edit" x-on:remove="list-remove" x-on:move="list-move" x-attr:empty="!state.hasChilds">
+            <div class="list-body" x-on:edit="listEdit" x-on:remove="listRemove" x-on:move="listMove" x-attr:empty="!state.hasChilds">
                 <slot x-on:slotchange="slotchange"></slot>
             </div>
             <div class="list-buttons" x-if="state.add">
-                <x-button x-if="state.add" x-on:click="list-add" icon="x-add" class="plain"></x-button>
+                <x-button x-if="state.add" x-on:click="listAdd" icon="x-add" class="plain"></x-button>
             </div>
         </div>
         
@@ -411,7 +411,7 @@ export default {
             <input 
                 class="input"                
                 autocomplete="on"
-                x-on:input="search-input"
+                x-on:input="searchInput"
                 x-attr:value="state.value"
                 x-attr:id="state.inputId"
                 x-attr:type="state.type" 
@@ -534,8 +534,8 @@ export default {
                 state.hasChilds = (this.firstElementChild != null);
             },
 
-            async "lang-add"(args) {
-                //lang-add
+            async langAdd(args) {
+                //langAdd
                 let lang = await navigation.showDialog({ src: "/x/pages/lang-picker.html?disabled=" + state.langs.join(",")});
                 if (lang) {
                     state.langs.push(lang);
@@ -545,15 +545,15 @@ export default {
                 }
             },
 
-            async "lang-changed"(args) {
-                //lang-changed
+            async langChanged(args) {
+                //langChanged
                 let lang = args.event.target.dataset.lang;
                 state.langIndex = state.langs.indexOf(lang);
                 updateTemplateState();
             },
 
-            async "object-changed"(args) {
-                //object-changed
+            async objectChanged(args) {
+                //objectChanged
                 if (state.value) {
                     state.valueOriginal = state.value;
                     state.value = null;
@@ -562,23 +562,23 @@ export default {
                 }
             },
 
-            async "file-changed"(args) {
-                // file-changed
+            async fileChanged(args) {
+                // fileChanged
                 var files = args.event.target.files;
                 // ... todo
             },
 
-            async "list-add"(args) {
-                // list-add
+            async listAdd(args) {
+                // listAdd
                 state.value = state.value.concat({});
             },
 
-            async "list-edit"(args) {
-                // list-edit
+            async listEdit(args) {
+                // listEdit
             },
 
-            async "list-move"(args) {
-                // list-move
+            async listMove(args) {
+                // listMove
                 let event = args.event;
                 let index = Array.from(event.target.parentNode.children).indexOf(event.target);
                 let newIndex = (event.detail.direction == "up" ? index - 1 : index + 1);
@@ -589,16 +589,16 @@ export default {
                 event.stopPropagation();
             },
 
-            async "list-remove"(args) {
-                // list-remove
+            async listRemove(args) {
+                // listRemove
                 let event = args.event;
                 let index = Array.from(event.target.parentNode.children).indexOf(event.target);
                 state.value = state.value.filter((item, i) => i != index);
                 event.stopPropagation();
             },
 
-            async "checkbox-changed"(args) {
-                // checkbox-changed
+            async checkboxChanged(args) {
+                // checkboxChanged
                 let value = [];
                 this.shadowRoot.querySelectorAll("input:checked").forEach((element)=>{
                     value.push(element.value);
@@ -606,8 +606,8 @@ export default {
                 state.value = value.join(",");
             },
 
-            async "text_i18n-changed"(args) {
-                // text_i18n-changed
+            async text_i18nChanged(args) {
+                // text_i18nChanged
                 let value = args.event.target.value;
                 let lang = args.event.target.lang;
                 let parts = [];
@@ -631,8 +631,8 @@ export default {
                 state.value = parts.join("|");
             },
 
-            async "search-input"(args) {
-                //search-input
+            async searchInput(args) {
+                //searchInput
                 state.value = args.event.target.value;
             },
 
@@ -643,10 +643,7 @@ export default {
 
             async validate(args) {
                 // validate
-                state.errors = this.validateErrors();
-                state.validated = true;
-            },
-            validateErrors(detail) {
+                let detail = false;
                 let result = [];
                 //langs                    
                 if (state.type.endsWith("_i18n")) {
@@ -743,8 +740,9 @@ export default {
                         error.path = path;
                     }
                 }
-                //return
-                return result;
+                // set errors and validated state
+                state.errors = result;
+                state.validated = true;
             }
         };
     }

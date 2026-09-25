@@ -69,35 +69,11 @@ export default {
 
         <h2>Notices</h2>
 
-        <x-notice
-            type="info"
-            label="Information"
-            message="This is an informational notice.">
-        </x-notice>
-
-        <x-notice
-            type="success"
-            label="Success"
-            message="The operation completed successfully.">
-        </x-notice>
-
-        <x-notice
-            type="warning"
-            label="Warning"
-            message="Something requires your attention.">
-        </x-notice>
-
-        <x-notice
-            type="error"
-            label="Error"
-            message="The operation could not be completed.">
-        </x-notice>
-
-        <x-notice
-            type="working"
-            label="Working"
-            message="Please wait while the operation completes.">
-        </x-notice>
+        <x-notice type="info" label="Information" message="This is an informational notice."></x-notice>
+        <x-notice type="success" label="Success" message="The operation completed successfully."></x-notice>
+        <x-notice type="warning" label="Warning" message="Something requires your attention."></x-notice>
+        <x-notice type="error" label="Error" message="The operation could not be completed."></x-notice>
+        <x-notice type="working" label="Working" message="Please wait while the operation completes."></x-notice>
 
         <x-divider></x-divider>
 

@@ -83,6 +83,7 @@ export default {
                 // click
                 const event = params.event;
                 if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || state.target) return;
+                if (!state.href) return;
                 const page = getPage();
                 navigation.navigate( {
                     href: state.href,

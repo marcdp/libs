@@ -80,17 +80,21 @@ export default {
             </div>
             <slot name="column"></slot>            
         </div>
-        <div class="children" x-if="state.expanded">
-            <style x-html="':host .children {--x-treeview-indent:' + (state.indent + 1) + '}'"></style>
+        <div class="children" x-if="state.expanded"> 
             <slot></slot>
         </div>
     `,
     state: {
     },
     controller({ state }) {
+        let styleSheet = new CSSStyleSheet();
         return {
             async load() {
                 //load
+            },
+
+            mount() {
+                this.shadowRoot.adoptedStyleSheets = [...this.shadowRoot.adoptedStyleSheets, styleSheet];
                 this.onCommand("refresh");
             },
 
@@ -127,9 +131,13 @@ export default {
                 let indent = 0;
                 while (element && element.localName !== "x-treeview") {
                     element = element.parentElement; // Move directly to the parent
-                    if (element && element.localName == "x-treeview-item") indent++;
+                    if (element && element.localName == "x-treeview-item") {
+                        indent++;
+                    }
                 }
                 state.indent = indent;
+                // update the stylesheet with the new indent level
+                styleSheet.replaceSync(':host .children {--x-treeview-indent:' + (indent + 1) + '}');
             }
         };
     }

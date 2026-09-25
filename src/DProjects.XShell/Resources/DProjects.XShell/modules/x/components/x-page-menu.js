@@ -50,12 +50,12 @@ export default {
         </nav>
     `,
     state: {
-        src: "",
+        selected: "",
         menu: null
     },
-    controller({ events, bus, state, getPage, areas }) {
+    controller({ events, bus, state, getPage, areas, navigation }) {
         return {
-            load(...args) {
+            load() {
                 // load
                 events.on(bus, "xshell:area:change", "refresh");
                 events.on(bus, "xshell:menus:change", "refresh");
@@ -67,25 +67,24 @@ export default {
                 events.on(bus, "xshell:navigation:end", (event) => {
                     let href = event.detail.src;
                     if (href.indexOf("#")!=-1) href = href.substring(0, href.indexOf("#"));
-                    if (href.indexOf("?")!=-1) href = href.substring(0, href.indexOf("?"));
+                    //if (href.indexOf("?")!=-1) href = href.substring(0, href.indexOf("?"));
                     state.selected = href;
                 })
+
+                let href = navigation.src;
+                if (href.indexOf("#")!=-1) href = href.substring(0, href.indexOf("#"));
+                //if (href.indexOf("?")!=-1) href = href.substring(0, href.indexOf("?"));
+                state.selected = href;
             },
 
-            mount(...args) {
+            mount() {
                 // mount
                 this.onCommand("refresh");
             },
 
-            refresh(...args) {
+            refresh() {
                 //refresh
-                state.menu = areas.getMenu("navigation");
-                const setExternalTargets = (items) => {
-                    for (const item of items || []) {
-                        setExternalTargets(item.children);
-                    }
-                };
-                setExternalTargets(state.menu);
+                state.menu = areas.getMenu("navigation");                
             }
         }
     }
