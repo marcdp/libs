@@ -24,28 +24,29 @@ context.
 </li>
 ```
 
-Presentation formatters are the restricted pipeline extension:
+Transformers are the restricted pipeline extension:
 
 ```html
 <p>{{ state.price | number(2) }}</p>
 <p>{{ state.createdAt | date('dd/MM/yyyy') }}</p>
 <p>{{ state.name | trim | upper }}</p>
+<span x-if="state.type | endsWith('_i18n')">Languages</span>
 <div x-attr:data-price="state.price | number(2)"></div>
 ```
 
-Formatter arguments are full XTemplate expressions, but formatter names refer only to the specified built-in language operations. General calls and
+Transformer arguments are full XTemplate expressions, but transformer names refer only to the specified built-in language operations. General calls and
 method access remain invalid: `formatPrice(state.price)`, `state.price.toFixed(2)`, and `state.name.toUpperCase()` are not XTemplate expressions.
 
-The formatter pipeline has lower precedence than the conditional operator. An unparenthesized pipeline formats the complete preceding conditional,
-so `state.ok ? 'yes' : 'no' | upper` means `(state.ok ? 'yes' : 'no') | upper`. Parenthesize a branch to format only that branch. Formatter-call
+The transformer pipeline has lower precedence than the conditional operator. An unparenthesized pipeline transforms the complete preceding conditional,
+so `state.ok ? 'yes' : 'no' | upper` means `(state.ok ? 'yes' : 'no') | upper`. Parenthesize a branch to transform only that branch. Transformer-call
 parentheses establish a nested expression boundary, so full expressions such as `state.total | currency(state.code | trim | upper)` remain valid;
 this does not add general function-call syntax.
 
 ## Where expressions are used
 
 Expressions provide values for interpolation, conditional directives, bindings, loop sources, class bindings, visibility, and model binding. A
-formatter pipeline can be used in ordinary value-expression positions, including bindings such as `x-attr:data-price`; `x-model` still requires an
-assignable expression and therefore cannot use a formatter as its write target.
+transformer pipeline can be used in ordinary value-expression positions, including bindings such as `x-attr:data-price`; `x-model` still requires an
+assignable expression and therefore cannot use a transformer as its write target.
 
 ```html
 <div x-if="state.visible" x-attr:title="state.title"></div>
@@ -56,9 +57,9 @@ Event binding is different: `x-on:event="command"` identifies a named command ra
 
 ## Security and portability
 
-The restricted grammar does not permit arbitrary function calls, host globals, object methods, assignments, or statements. Formatters are pure,
+The restricted grammar does not permit arbitrary function calls, host globals, object methods, assignments, or statements. Transformers are pure,
 side-effect-free language operations: they cannot execute user code, mutate state, perform I/O, or access DOM/browser APIs. JavaScript and C#
-renderers must implement the same normative formatter semantics and the profile locale behavior, including type checks, null propagation, and result
+renderers must implement the same normative transformer semantics and the profile locale behavior, including type checks, null propagation, and result
 kinds.
 
 Raw scalar conversion remains invariant. Locale-sensitive output is explicit, for example `state.price | number(2)`; ordinary `{{ state.price }}`

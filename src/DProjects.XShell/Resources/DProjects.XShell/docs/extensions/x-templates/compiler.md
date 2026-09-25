@@ -16,7 +16,7 @@ validation
     ↓
 dependency discovery
     ↓
-expression AST evaluation/code generation, including restricted formatter pipelines
+expression AST evaluation/code generation, including restricted transformer pipelines
     ↓
 render-program generation
     ↓
@@ -26,14 +26,14 @@ runtime renderer
 This pipeline separates parsing, validation, dependency discovery, and rendering concerns. An implementation can choose a different internal
 representation or renderer as long as it preserves the language contract.
 
-Formatter syntax is parsed into the same target-neutral expression AST as the rest of the restricted language. A backend evaluates the source,
-evaluates formatter arguments when required, applies the specified built-in formatter semantics, and passes the result to the next pipeline stage.
+Transformer syntax is parsed into the same target-neutral expression AST as the rest of the restricted language. A backend evaluates the source,
+evaluates transformer arguments when required, applies the specified built-in transformer semantics, and passes the result to the next pipeline stage.
 The parser MUST give the pipeline lower precedence than `?:`, while retaining right-associative conditionals; an unparenthesized pipeline therefore
-receives the complete preceding conditional. Formatter arguments remain full expression ASTs inside their parentheses, so nested formatter pipelines
-are valid where the resulting value kind is accepted. It must not turn formatter names into arbitrary JavaScript or .NET calls. This keeps the browser
+receives the complete preceding conditional. Transformer arguments remain full expression ASTs inside their parentheses, so nested transformer pipelines
+are valid where the resulting value kind is accepted. It must not turn transformer names into arbitrary JavaScript or .NET calls. This keeps the browser
 and server paths equivalent and CSP-compatible.
 
-Locale-sensitive formatter output MUST follow the XTemplate locale conformance profile (`en-US`, `es-ES`, and `tr-TR`) for the cases defined by the
+Locale-sensitive transformer output MUST follow the XTemplate locale conformance profile (`en-US`, `es-ES`, and `tr-TR`) for the cases defined by the
 specification. Compatible locale data SHOULD be used for other locales, but byte-identical output is not required across differing CLDR/ICU versions
 outside that profile.
 
@@ -74,7 +74,7 @@ This direction removes the need for runtime template compilation and improves Co
 historical/current mechanism of the browser-side compiler, not an XTemplate language feature or a requirement of precompiled templates.
 
 The conforming path parses every expression on the server and emits JavaScript only from the validated XTemplate expression AST. Generated renderers
-call the private `utils.expr` semantic helpers for member access, arithmetic, truthiness, formatting, and collection handling. The browser does not
+call the private `utils.expr` semantic helpers for member access, arithmetic, truthiness, transformation, and collection handling. The browser does not
 parse XTemplate expressions, receive serialized expression ASTs, or compile template source dynamically; it only executes the precompiled
 `templateRenderer` with the trusted runtime helpers.
 

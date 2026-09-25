@@ -33,7 +33,7 @@ namespace DProjects.XShell.Services.XTemplate {
                 UnaryExpression unary => CompileUnary(unary, scope),
                 BinaryExpression binary => CompileBinary(binary, scope),
                 ConditionalExpression conditional => $"utils.expr.conditional(() => {CompileExpression(conditional.Condition, scope)}, () => {CompileExpression(conditional.WhenTrue, scope)}, () => {CompileExpression(conditional.WhenFalse, scope)})",
-                FormatExpression format => CompileFormat(format, scope),
+                TransformExpression transform => CompileTransform(transform, scope),
                 _ => throw new XTemplateExpressionSyntaxException("Unsupported XTemplate expression node", expression.Offset)
             };
         }
@@ -77,11 +77,11 @@ namespace DProjects.XShell.Services.XTemplate {
             return $"utils.expr.{method}({CompileExpression(expression.Left, scope)}, {CompileExpression(expression.Right, scope)})";
         }
 
-        private string CompileFormat(FormatExpression expression, XTemplateExpressionJavaScriptScope scope) {
+        private string CompileTransform(TransformExpression expression, XTemplateExpressionJavaScriptScope scope) {
             var value = CompileExpression(expression.Source, scope);
-            foreach (var formatter in expression.Formatters) {
-                var arguments = string.Join(", ", formatter.Arguments.Select(argument => CompileExpression(argument, scope)));
-                value = $"utils.expr.format({value}, {ToJavaScriptString(formatter.Name)}, () => [{arguments}], i18n)";
+            foreach (var transformer in expression.Transformers) {
+                var arguments = string.Join(", ", transformer.Arguments.Select(argument => CompileExpression(argument, scope)));
+                value = $"utils.expr.transform({value}, {ToJavaScriptString(transformer.Name)}, () => [{arguments}], i18n)";
             }
             return value;
         }

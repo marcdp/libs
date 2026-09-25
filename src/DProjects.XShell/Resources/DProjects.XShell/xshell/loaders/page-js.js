@@ -355,7 +355,6 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
         }
         // onCommand
         onCommand(command, params) {
-            debugger
             const handler = this._controller[command];
             if (typeof(handler) === "function") {
                 return handler.call(this, params);

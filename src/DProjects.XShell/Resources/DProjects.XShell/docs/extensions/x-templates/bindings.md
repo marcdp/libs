@@ -17,8 +17,8 @@ Use `x-attr:*` to bind DOM attributes. Attributes are serialized values suitable
 must use string keys and non-string keys are not converted with `key.ToString()`. `:name` and `:` are supported shorthand forms, but the long
 forms are preferred in canonical templates.
 
-The formatter pipeline is valid in this value-expression position. It produces a string using the active XShell/i18n locale; raw scalar conversion
-without a formatter remains invariant.
+The transformer pipeline is valid in this value-expression position. Presentation transformers produce locale-aware strings, while predicate
+transformers produce booleans; raw scalar conversion without a transformer remains invariant.
 
 ## Properties
 

@@ -11,8 +11,8 @@ namespace DProjects.XShell.Services.XTemplate {
     public sealed record UnaryExpression(string Operator, XTemplateExpression Operand, int Offset) : XTemplateExpression(Offset);
     public sealed record BinaryExpression(string Operator, XTemplateExpression Left, XTemplateExpression Right, int Offset) : XTemplateExpression(Offset);
     public sealed record ConditionalExpression(XTemplateExpression Condition, XTemplateExpression WhenTrue, XTemplateExpression WhenFalse, int Offset) : XTemplateExpression(Offset);
-    public sealed record FormatterStage(string Name, IReadOnlyList<XTemplateExpression> Arguments, int Offset);
-    public sealed record FormatExpression(XTemplateExpression Source, IReadOnlyList<FormatterStage> Formatters, int Offset) : XTemplateExpression(Offset);
+    public sealed record TransformerStage(string Name, IReadOnlyList<XTemplateExpression> Arguments, int Offset);
+    public sealed record TransformExpression(XTemplateExpression Source, IReadOnlyList<TransformerStage> Transformers, int Offset) : XTemplateExpression(Offset);
 
     public abstract class XTemplateExpressionException : Exception {
 
@@ -216,18 +216,18 @@ namespace DProjects.XShell.Services.XTemplate {
         private XTemplateExpression ParsePipeline() {
             var expression = ParseConditional();
             if (!Take(ExpressionTokenKind.Pipe)) return expression;
-            var formatters = new List<FormatterStage>();
+            var transformers = new List<TransformerStage>();
             do {
                 var name = _current;
-                Require(ExpressionTokenKind.Identifier, "Expected a formatter identifier after '|'");
+                Require(ExpressionTokenKind.Identifier, "Expected a transformer identifier after '|'");
                 var arguments = new List<XTemplateExpression>();
                 if (Take(ExpressionTokenKind.OpenParenthesis) && !Take(ExpressionTokenKind.CloseParenthesis)) {
                     do { arguments.Add(ParsePipeline()); } while (Take(ExpressionTokenKind.Comma));
-                    Require(ExpressionTokenKind.CloseParenthesis, "Missing closing ')' in formatter arguments");
+                    Require(ExpressionTokenKind.CloseParenthesis, "Missing closing ')' in transformer arguments");
                 }
-                formatters.Add(new FormatterStage(name.Text, arguments, name.Offset));
+                transformers.Add(new TransformerStage(name.Text, arguments, name.Offset));
             } while (Take(ExpressionTokenKind.Pipe));
-            return new FormatExpression(expression, formatters, formatters[0].Offset);
+            return new TransformExpression(expression, transformers, transformers[0].Offset);
         }
         private XTemplateExpression ParseCoalesce() => ParseBinary(ParseLogicalOr, ExpressionTokenKind.QuestionQuestion);
         private XTemplateExpression ParseLogicalOr() => ParseBinary(ParseLogicalAnd, ExpressionTokenKind.OrOr);

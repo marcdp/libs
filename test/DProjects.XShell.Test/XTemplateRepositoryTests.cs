@@ -38,11 +38,12 @@ namespace DProjects.XShell.Test {
         }
 
         [Fact]
-        public void MigratedComputedTemplateStateIsAccepted() {
-            var javascript = new XTemplateCompiler().Compile("<span x-if=\"state.isI18n\"></span>");
+        public void TransformerPredicatesAreAcceptedWithoutAllowingHostMethods() {
+            var javascript = new XTemplateCompiler().Compile("<span x-if=\"state.type | endsWith('_i18n')\"></span>");
 
-            Assert.Contains("utils.expr.member(state, \"isI18n\")", javascript, StringComparison.Ordinal);
+            Assert.Contains("utils.expr.transform(utils.expr.member(state, \"type\"), \"endsWith\", () => [\"_i18n\"], i18n)", javascript, StringComparison.Ordinal);
             Assert.Throws<InvalidOperationException>(() => new XTemplateCompiler().Compile("<span x-if=\"state.type.endsWith('_i18n')\"></span>"));
+            Assert.Throws<InvalidOperationException>(() => new XTemplateCompiler().Compile("<span x-if=\"endsWith(state.type, '_i18n')\"></span>"));
         }
 
         // methods (private)

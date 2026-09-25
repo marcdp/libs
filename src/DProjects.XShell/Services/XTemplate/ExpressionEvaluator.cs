@@ -23,7 +23,7 @@ namespace DProjects.XShell.Services.XTemplate {
                 UnaryExpression unary => EvaluateUnary(unary),
                 BinaryExpression binary => EvaluateBinary(binary),
                 ConditionalExpression conditional => XTemplateValues.IsTruthy(Evaluate(conditional.Condition)) ? Evaluate(conditional.WhenTrue) : Evaluate(conditional.WhenFalse),
-                FormatExpression format => EvaluateFormat(format),
+                TransformExpression transform => EvaluateTransform(transform),
                 _ => throw new XTemplateExpressionEvaluationException("Unsupported expression node", expression.Offset)
             };
         }
@@ -50,12 +50,12 @@ namespace DProjects.XShell.Services.XTemplate {
                 _ => throw new XTemplateExpressionEvaluationException($"Unsupported binary operator '{expression.Operator}'", expression.Offset)
             };
         }
-        private object? EvaluateFormat(FormatExpression expression) {
+        private object? EvaluateTransform(TransformExpression expression) {
             object? value = Evaluate(expression.Source);
-            foreach (var formatter in expression.Formatters) {
+            foreach (var transformer in expression.Transformers) {
                 if (value == null) return null;
-                var arguments = formatter.Arguments.Select(Evaluate).ToArray();
-                value = XTemplateFormatters.Apply(formatter.Name, value, arguments, _context.Locale, formatter.Offset);
+                var arguments = transformer.Arguments.Select(Evaluate).ToArray();
+                value = XTemplateTransformers.Apply(transformer.Name, value, arguments, _context.Locale, transformer.Offset);
             }
             return value;
         }

@@ -14,9 +14,9 @@ This is a concise guide to commonly used XTemplate syntax. For normative syntax 
 
 `{{ expression }}` and `x-text` render text. `x-html` renders raw HTML, and `x-children` renders DOM-node content.
 
-## Presentation formatters
+## Transformers
 
-Use the restricted formatter pipeline for explicit presentation formatting. Formatters are available anywhere an ordinary value expression is
+Use the restricted transformer pipeline for explicit presentation formatting and string predicates. Transformers are available anywhere an ordinary value expression is
 accepted, including attribute bindings:
 
 ```html
@@ -26,11 +26,12 @@ accepted, including attribute bindings:
 <p>{{ state.createdAt | date('dd/MM/yyyy') }}</p>
 <p>{{ state.createdAt | datetime('dd/MM/yyyy HH:mm') }}</p>
 <p>{{ state.name | trim | upper }}</p>
+<span x-if="state.type | endsWith('_i18n')">Languages</span>
 <div x-attr:data-price="state.price | number(2)"></div>
 ```
 
-Pipelines run left to right and have lower precedence than `?:`. Therefore `state.ok ? 'yes' : 'no' | upper` formats the complete conditional;
-parenthesize a branch when only that branch should be formatted. Their locale-sensitive formatters use the active XShell/i18n locale, while
+Pipelines run left to right and have lower precedence than `?:`. Therefore `state.ok ? 'yes' : 'no' | upper` transforms the complete conditional;
+parenthesize a branch when only that branch should be transformed. Locale-sensitive transformers use the active XShell/i18n locale, while
 ordinary scalar conversion remains invariant. General function calls and object methods remain invalid; use `number(2)` instead of `toFixed(2)` and
 `upper` instead of `toUpperCase()`. The JavaScript and C# backends share the `en-US`, `es-ES`, and `tr-TR` locale conformance profile; see the
 specification for its required numeric, percent, currency, month-name, and casing cases.

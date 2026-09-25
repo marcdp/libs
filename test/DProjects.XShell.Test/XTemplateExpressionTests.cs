@@ -196,11 +196,13 @@ namespace DProjects.XShell.Test {
         }
 
         [Fact]
-        public void ParsesAndEvaluatesFormatterPipelinesWithConditionalPrecedence() {
+        public void ParsesAndEvaluatesTransformerPipelinesWithConditionalPrecedence() {
             var context = Context(new { state = new { price = 12.5, decimals = 2, name = "  ada  " } });
 
-            var format = Assert.IsType<FormatExpression>(XTemplateExpressions.Parse("state.name | trim | upper"));
-            Assert.Equal(new[] { "trim", "upper" }, format.Formatters.Select(formatter => formatter.Name));
+            var transform = Assert.IsType<TransformExpression>(XTemplateExpressions.Parse("state.name | trim | upper"));
+            Assert.Equal(new[] { "trim", "upper" }, transform.Transformers.Select(transformer => transformer.Name));
+            var predicate = Assert.IsType<TransformExpression>(XTemplateExpressions.Parse("state.name | trim | startsWith('A')"));
+            Assert.Equal(new[] { "trim", "startsWith" }, predicate.Transformers.Select(transformer => transformer.Name));
             Assert.Equal("13.50", XTemplateExpressions.Evaluate("state.price + 1 | number(2)", context));
             Assert.Equal("A", XTemplateExpressions.Evaluate("true ? 'a' : 'b' | upper", context));
             Assert.Equal("A", XTemplateExpressions.Evaluate("true ? ('a' | upper) : 'b'", context));
@@ -211,14 +213,46 @@ namespace DProjects.XShell.Test {
         }
 
         [Fact]
-        public void ImplementsFormatterNullShortCircuitingAndErrors() {
+        public void ImplementsTransformerNullShortCircuitingAndErrors() {
             Assert.Null(XTemplateExpressions.Evaluate("null | number(1 / 0) | upper", Context()));
-            Assert.Throws<XTemplateExpressionEvaluationException>(() => XTemplateExpressions.Evaluate("1 | unknownFormatter", Context()));
+            Assert.Throws<XTemplateExpressionEvaluationException>(() => XTemplateExpressions.Evaluate("1 | unknownTransformer", Context()));
             Assert.Throws<XTemplateExpressionEvaluationException>(() => XTemplateExpressions.Evaluate("1 | number(-1)", Context()));
             Assert.Throws<XTemplateExpressionSyntaxException>(() => XTemplateExpressions.Parse("formatPrice(state.price)"));
             Assert.Throws<XTemplateExpressionSyntaxException>(() => XTemplateExpressions.Parse("state.price.toFixed(2)"));
             Assert.Throws<XTemplateExpressionSyntaxException>(() => XTemplateExpressions.Parse("1 === 1"));
             Assert.Throws<XTemplateExpressionSyntaxException>(() => XTemplateExpressions.Parse("1 !== 2"));
+        }
+
+        [Fact]
+        public void AppliesStringPredicateTransformersWithTypedResults() {
+            var context = Context();
+
+            Assert.Equal(true, XTemplateExpressions.Evaluate("'abcdef' | startsWith('abc')", context));
+            Assert.Equal(false, XTemplateExpressions.Evaluate("'abcdef' | startsWith('def')", context));
+            Assert.Equal(true, XTemplateExpressions.Evaluate("'abcdef' | endsWith('def')", context));
+            Assert.Equal(false, XTemplateExpressions.Evaluate("'abcdef' | endsWith('abc')", context));
+            Assert.Equal(true, XTemplateExpressions.Evaluate("'abcdef' | contains('cd')", context));
+            Assert.Equal(false, XTemplateExpressions.Evaluate("'abcdef' | contains('xy')", context));
+            Assert.Equal(true, XTemplateExpressions.Evaluate("' abc ' | trim | startsWith('a')", context));
+            Assert.Equal(true, XTemplateExpressions.Evaluate("12.5 | number(1) | endsWith('5')", context));
+            Assert.Equal(true, XTemplateExpressions.Evaluate("'😀value' | startsWith('😀')", context));
+            Assert.Null(XTemplateExpressions.Evaluate("null | endsWith(1 / 0)", context));
+        }
+
+        [Theory]
+        [InlineData("1 | startsWith('1')")]
+        [InlineData("'abc' | startsWith(1)")]
+        [InlineData("'abc' | startsWith()")]
+        [InlineData("'abc' | startsWith('a', 'b')")]
+        [InlineData("1 | endsWith('1')")]
+        [InlineData("'abc' | endsWith(1)")]
+        [InlineData("'abc' | contains()")]
+        [InlineData("'abc' | contains('a', 'b')")]
+        [InlineData("1 | contains('1')")]
+        [InlineData("'abc' | contains(1)")]
+        [InlineData("'abc' | endsWith('c') | upper")]
+        public void RejectsInvalidTransformerCompositionAndPredicateArguments(string source) {
+            Assert.Throws<XTemplateExpressionEvaluationException>(() => XTemplateExpressions.Evaluate(source, Context()));
         }
 
         [Fact]
@@ -238,7 +272,7 @@ namespace DProjects.XShell.Test {
         [InlineData("en-US", "1,234.50", "25.0%", "€1,234.50", "September", "I", "i")]
         [InlineData("es-ES", "1.234,50", "25,0\u00A0%", "1.234,50\u00A0€", "septiembre", "I", "i")]
         [InlineData("tr-TR", "1.234,50", "%25,0", "1.234,50\u00A0€", "Eylül", "İ", "ı")]
-        public void MeetsTheLocaleFormatterConformanceProfile(string locale, string number, string percent, string currency, string month, string upper, string lower) {
+        public void MeetsTheLocaleTransformerConformanceProfile(string locale, string number, string percent, string currency, string month, string upper, string lower) {
             var context = Context(locale: locale);
 
             Assert.Equal(number, XTemplateExpressions.Evaluate("1234.5 | number(2)", context));
@@ -258,7 +292,7 @@ namespace DProjects.XShell.Test {
         }
 
         [Fact]
-        public void RejectsInvalidFormatterArgumentsAndInputs() {
+        public void RejectsInvalidTransformerArgumentsAndInputs() {
             var context = Context(new { state = new { value = double.MaxValue } });
 
             Assert.Throws<XTemplateExpressionEvaluationException>(() => XTemplateExpressions.Evaluate("1 | number(-1)", context));
@@ -285,7 +319,7 @@ namespace DProjects.XShell.Test {
         }
 
         [Fact]
-        public void RejectsInvalidDateAndTimeFormatterValues() {
+        public void RejectsInvalidDateAndTimeTransformerValues() {
             var context = Context();
 
             Assert.Throws<XTemplateExpressionEvaluationException>(() => XTemplateExpressions.Evaluate("'2026-09-24' | date()", context));

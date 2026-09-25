@@ -28,11 +28,11 @@ export default {
         </x-form>
     `,    
     state: {
-        id:     {value:""},
-        name:   {value:""},
-        roles:  {value:[]},
-        rolesText: {value:""},
-        claims: {value:[]}
+        id:     "",
+        name:   "",
+        roles:  [],
+        rolesText: "",
+        claims: []
     },
     controller({ state, identity, dialog, auth }) {
         return {

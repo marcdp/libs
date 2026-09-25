@@ -111,7 +111,7 @@ const utils = new class {
 		const number = (value, message = "Numeric operand must be a finite number") => typeof value === "number" && Number.isFinite(value) ? value : fail(message);
 		const normalize = (value) => value === undefined ? null : typeof value === "number" ? number(value, "XTemplate numbers must be finite") : value;
 		const checked = (value) => Number.isFinite(value) ? value : fail("Arithmetic result must be a finite number");
-		const digits = (value) => Number.isInteger(value) && value >= 0 && value <= 15 ? value : fail("Formatter digits must be a supported non-negative integer");
+		const digits = (value) => Number.isInteger(value) && value >= 0 && value <= 15 ? value : fail("Transformer digits must be a supported non-negative integer");
 		const round = (value, precision) => {
 			const factor = 10 ** precision;
 			const scaled = Math.abs(value) * factor;
@@ -167,22 +167,22 @@ const utils = new class {
 			return leftValues.length - rightValues.length;
 		};
 		const parseDate = (value, allowDate) => {
-			if (typeof value !== "string") return fail("Date/time formatters require a string input");
+			if (typeof value !== "string") return fail("Date/time transformers require a string input");
 			let match = allowDate && /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
 			if (match) return dateParts(+match[1], +match[2], +match[3], 0, 0, 0, 0, 0);
 			match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(Z|[+-]\d{2}:\d{2})$/.exec(value);
-			if (!match) return fail("Formatter received an invalid ISO-8601 value");
+			if (!match) return fail("Transformer received an invalid ISO-8601 value");
 			const offset = match[7] === "Z" ? [0, 0] : [+match[7].slice(1, 3), +match[7].slice(4, 6)];
 			return dateParts(+match[1], +match[2], +match[3], +match[4], +match[5], +match[6], offset[0], offset[1]);
 		};
 		const dateParts = (year, month, day, hour, minute, second, offsetHour, offsetMinute) => {
 			const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
 			const days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-			if (year < 1 || month < 1 || month > 12 || day < 1 || day > days[month - 1] || hour > 23 || minute > 59 || second > 59 || offsetHour > 14 || offsetMinute > 59 || offsetHour === 14 && offsetMinute !== 0) return fail("Formatter received an invalid ISO-8601 value");
+			if (year < 1 || month < 1 || month > 12 || day < 1 || day > days[month - 1] || hour > 23 || minute > 59 || second > 59 || offsetHour > 14 || offsetMinute > 59 || offsetHour === 14 && offsetMinute !== 0) return fail("Transformer received an invalid ISO-8601 value");
 			return {year, month, day, hour, minute, second};
 		};
 		const pattern = (value, format, culture, dateAllowed, timeAllowed) => {
-			if (typeof format !== "string") return fail("Formatter pattern requires a string argument");
+			if (typeof format !== "string") return fail("Transformer pattern requires a string argument");
 			let found = false;
 			const values = {yyyy:String(value.year).padStart(4, "0"), MM:String(value.month).padStart(2, "0"), M:String(value.month), dd:String(value.day).padStart(2, "0"), d:String(value.day), HH:String(value.hour).padStart(2, "0"), H:String(value.hour), mm:String(value.minute).padStart(2, "0"), ss:String(value.second).padStart(2, "0")};
 			let result = "";
@@ -190,55 +190,63 @@ const utils = new class {
 				const token = patternTokens.find(candidate => format.startsWith(candidate, position));
 				if (token) {
 					found = true;
-					if (!dateAllowed && /^(yyyy|MMMM|MMM|MM|M|dd|d)$/.test(token)) return fail("Formatter pattern token is not allowed");
-					if (!timeAllowed && /^(HH|H|mm|ss)$/.test(token)) return fail("Formatter pattern token is not allowed");
+					if (!dateAllowed && /^(yyyy|MMMM|MMM|MM|M|dd|d)$/.test(token)) return fail("Transformer pattern token is not allowed");
+					if (!timeAllowed && /^(HH|H|mm|ss)$/.test(token)) return fail("Transformer pattern token is not allowed");
 					result += token === "MMMM" || token === "MMM" ? new Intl.DateTimeFormat(culture, {month:token === "MMMM" ? "long" : "short", timeZone:"UTC"}).format(new Date(Date.UTC(2000, value.month - 1, 1))) : values[token];
 					position += token.length;
 					continue;
 				}
 				const character = String.fromCodePoint(format.codePointAt(position));
-				if (/\p{L}/u.test(character)) return fail("Formatter pattern contains an unsupported token");
+				if (/\p{L}/u.test(character)) return fail("Transformer pattern contains an unsupported token");
 				result += character;
 				position += character.length;
 			}
-			return found ? result : fail("Formatter pattern must contain a token");
+			return found ? result : fail("Transformer pattern must contain a token");
 		};
-		const format = (value, name, getArguments, i18n) => {
+		const transform = (value, name, getArguments, i18n) => {
 			if (value === null) return null;
 			const args = getArguments();
-			const culture = locale(i18n);
 			if (name === "number") {
-				if (args.length > 1) return fail("Formatter 'number' received an invalid argument count");
+				if (args.length > 1) return fail("Transformer 'number' received an invalid argument count");
+				const culture = locale(i18n);
 				const precision = args.length ? digits(args[0]) : 3;
-				return new Intl.NumberFormat(culture, {useGrouping:true, minimumFractionDigits:args.length ? precision : 0, maximumFractionDigits:precision}).format(round(number(value, "Formatter 'number' requires a numeric input"), precision));
+				return new Intl.NumberFormat(culture, {useGrouping:true, minimumFractionDigits:args.length ? precision : 0, maximumFractionDigits:precision}).format(round(number(value, "Transformer 'number' requires a numeric input"), precision));
 			}
 			if (name === "percent") {
-				if (args.length > 1) return fail("Formatter 'percent' received an invalid argument count");
+				if (args.length > 1) return fail("Transformer 'percent' received an invalid argument count");
+				const culture = locale(i18n);
 				const precision = args.length ? digits(args[0]) : 3;
-				return new Intl.NumberFormat(culture, {style:"percent", useGrouping:true, minimumFractionDigits:args.length ? precision : 0, maximumFractionDigits:precision}).format(round(checked(number(value, "Formatter 'percent' requires a numeric input") * 100), precision) / 100);
+				return new Intl.NumberFormat(culture, {style:"percent", useGrouping:true, minimumFractionDigits:args.length ? precision : 0, maximumFractionDigits:precision}).format(round(checked(number(value, "Transformer 'percent' requires a numeric input") * 100), precision) / 100);
 			}
 			if (name === "currency") {
-				if (args.length < 1 || args.length > 2 || typeof args[0] !== "string" || !currencies.has(args[0])) return fail("Formatter 'currency' requires a supported uppercase ISO 4217 currency code");
+				if (args.length < 1 || args.length > 2 || typeof args[0] !== "string" || !currencies.has(args[0])) return fail("Transformer 'currency' requires a supported uppercase ISO 4217 currency code");
+				const culture = locale(i18n);
 				const currency = currencies.get(args[0]);
 				const precision = args.length === 2 ? digits(args[1]) : currency.digits;
-				const formatter = new Intl.NumberFormat(culture, {style:"currency", currency:args[0], currencyDisplay:"symbol", useGrouping:true, minimumFractionDigits:precision, maximumFractionDigits:precision});
-				const parts = formatter.formatToParts(round(number(value, "Formatter 'currency' requires a numeric input"), precision));
+				const currencyFormatter = new Intl.NumberFormat(culture, {style:"currency", currency:args[0], currencyDisplay:"symbol", useGrouping:true, minimumFractionDigits:precision, maximumFractionDigits:precision});
+				const parts = currencyFormatter.formatToParts(round(number(value, "Transformer 'currency' requires a numeric input"), precision));
 				if (culture === "tr-TR") return parts.filter(part => part.type !== "currency").map(part => part.value).join("").replaceAll(" ", "\u00A0") + "\u00A0" + currency.symbol;
 				return parts.map(part => part.type === "currency" ? currency.symbol : part.value).join("").replaceAll(" ", "\u00A0");
 			}
 			if (name === "upper" || name === "lower") {
-				if (args.length || typeof value !== "string") return fail(`Formatter '${name}' requires a string input and no arguments`);
+				if (args.length || typeof value !== "string") return fail(`Transformer '${name}' requires a string input and no arguments`);
+				const culture = locale(i18n);
 				return name === "upper" ? value.toLocaleUpperCase(culture) : value.toLocaleLowerCase(culture);
 			}
 			if (name === "trim") {
-				if (args.length || typeof value !== "string") return fail("Formatter 'trim' requires a string input and no arguments");
+				if (args.length || typeof value !== "string") return fail("Transformer 'trim' requires a string input and no arguments");
 				return value.trim();
 			}
+			if (name === "startsWith" || name === "endsWith" || name === "contains") {
+				if (args.length !== 1 || typeof value !== "string" || typeof args[0] !== "string") return fail(`Transformer '${name}' requires a string input and one string argument`);
+				return name === "startsWith" ? value.startsWith(args[0]) : name === "endsWith" ? value.endsWith(args[0]) : value.includes(args[0]);
+			}
 			if (name === "date" || name === "datetime" || name === "time") {
-				if (args.length !== 1) return fail(`Formatter '${name}' requires one pattern argument`);
+				if (args.length !== 1) return fail(`Transformer '${name}' requires one pattern argument`);
+				const culture = locale(i18n);
 				return pattern(parseDate(value, name === "date"), args[0], culture, name !== "time", name !== "date");
 			}
-			return fail(`Unknown formatter '${name}'`);
+			return fail(`Unknown transformer '${name}'`);
 		};
 		return {
 			truthy, scalar,
@@ -275,7 +283,7 @@ const utils = new class {
 			subtract: (left, right) => checked(number(left) - number(right)), multiply: (left, right) => checked(number(left) * number(right)), divide: (left, right) => { const divisor = number(right); return divisor === 0 ? fail("Division by zero") : checked(number(left) / divisor); }, modulo: (left, right) => { const divisor = number(right); return divisor === 0 ? fail("Modulo by zero") : checked(number(left) % divisor); },
 			equal: (left, right) => left === right, notEqual: (left, right) => left !== right, less: (left, right) => compare(left, right) < 0, lessOrEqual: (left, right) => compare(left, right) <= 0, greater: (left, right) => compare(left, right) > 0, greaterOrEqual: (left, right) => compare(left, right) >= 0,
 			and: (left, right) => { const value = left(); return truthy(value) ? right() : value; }, or: (left, right) => { const value = left(); return truthy(value) ? value : right(); }, coalesce: (left, right) => { const value = left(); return value === null ? right() : value; }, conditional: (condition, whenTrue, whenFalse) => truthy(condition()) ? whenTrue() : whenFalse(),
-			format, collection: (value) => { if (Array.isArray(value)) return value; if (typeof value === "number" && Number.isInteger(value) && value >= 0) return Array.from({length:value}, (_, index) => index + 1); if (typeof value === "string") return [...value]; if (value !== null && typeof value === "object") return Object.keys(value); return fail("x-for requires a collection, string, object, or non-negative integer number"); },
+			transform, collection: (value) => { if (Array.isArray(value)) return value; if (typeof value === "number" && Number.isInteger(value) && value >= 0) return Array.from({length:value}, (_, index) => index + 1); if (typeof value === "string") return [...value]; if (value !== null && typeof value === "object") return Object.keys(value); return fail("x-for requires a collection, string, object, or non-negative integer number"); },
 			attributes: (value) => { if (value === null || typeof value !== "object" || Array.isArray(value)) return fail("x-attr requires an object"); const result = {}; for (const key of Object.keys(value)) { const item = value[key]; if (typeof item === "string" || typeof item === "number" || item === true) result[key] = item; } return result; }, properties: (value) => value !== null && typeof value === "object" && !Array.isArray(value) ? Object.fromEntries(Object.keys(value).map((key) => [key, value[key] === undefined ? null : value[key]])) : fail("x-prop requires an object"), dynamicArgument: (name, value) => typeof name === "string" ? {[name]: value} : fail("Dynamic attribute name must be a string"), dynamicProperty: (name, value) => typeof name === "string" ? {[name]: value} : fail("Dynamic property name must be a string")
 		};
 	})();

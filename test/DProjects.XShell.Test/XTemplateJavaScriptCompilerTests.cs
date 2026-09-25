@@ -12,17 +12,17 @@ namespace DProjects.XShell.Test {
             Assert.Contains("utils.expr.member(utils.expr.member(state, \"user\"), \"name\")", javascript, StringComparison.Ordinal);
             Assert.Contains("utils.expr.coalesce", javascript, StringComparison.Ordinal);
             Assert.Contains("utils.expr.add", javascript, StringComparison.Ordinal);
-            Assert.Contains("utils.expr.format", javascript, StringComparison.Ordinal);
+            Assert.Contains("utils.expr.transform", javascript, StringComparison.Ordinal);
             Assert.Contains("utils.expr.scalar", javascript, StringComparison.Ordinal);
             Assert.DoesNotContain("\"\" + (state", javascript, StringComparison.Ordinal);
         }
 
         [Fact]
-        public void CompilesLazyControlFlowAndFormatterArguments() {
+        public void CompilesLazyControlFlowAndTransformerArguments() {
             var javascript = new XTemplateCompiler().Compile("<div x-if=\"false && (1 / 0)\">{{ null | number(1 / 0) }}</div>");
 
             Assert.Contains("utils.expr.and(() => false, () => utils.expr.divide(1, 0))", javascript, StringComparison.Ordinal);
-            Assert.Contains("utils.expr.format(null, \"number\", () => [utils.expr.divide(1, 0)], i18n)", javascript, StringComparison.Ordinal);
+            Assert.Contains("utils.expr.transform(null, \"number\", () => [utils.expr.divide(1, 0)], i18n)", javascript, StringComparison.Ordinal);
             Assert.Contains("utils.expr.truthy", javascript, StringComparison.Ordinal);
         }
 

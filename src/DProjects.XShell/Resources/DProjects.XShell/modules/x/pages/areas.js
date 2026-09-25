@@ -26,8 +26,8 @@ export default {
         </x-listview>       
     `,    
     state: {
-        areas: {value:[]},
-        selected: {value:""}
+        areas: [],
+        selected: ""
     },
     controller({ state, events, bus, areas }) {
         return {

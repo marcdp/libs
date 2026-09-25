@@ -52,7 +52,7 @@ public sealed class XTemplateJavaScriptConformanceTests {
     }
 
     [Fact]
-    public void GeneratedJavaScriptPreservesFormatterNullLaziness() {
+    public void GeneratedJavaScriptPreservesTransformerNullLaziness() {
         var state = new Dictionary<string, object?>();
         var results = EvaluateJavaScript([
             new ConformanceCase("null | number(1 / 0)", state),
@@ -84,6 +84,10 @@ public sealed class XTemplateJavaScriptConformanceTests {
             new("1 == 1", state), new("1 != '1'", state), new("'a' < '😀'", state), new("2 <= 2", state), new("3 > 2", state), new("3 >= 3", state),
             new("false && (1 / 0)", state), new("true || (1 / 0)", state), new("1 ?? (1 / 0)", state), new("true ? 1 : (1 / 0)", state), new("false ? (1 / 0) : 2", state),
             new("null | number(1 / 0)", state), new("state.name | trim | upper", state), new("state.number | number(2)", state, "en-US"), new("state.ratio | percent(1)", state, "en-US"),
+            new("'abcdef' | startsWith('abc')", state), new("'abcdef' | startsWith('def')", state), new("'abcdef' | endsWith('def')", state), new("'abcdef' | endsWith('abc')", state),
+            new("'abcdef' | contains('cd')", state), new("'abcdef' | contains('xy')", state), new("state.name | trim | startsWith('a')", state), new("12.5 | number(1) | endsWith('5')", state),
+            new("null | endsWith(1 / 0)", state), new("1 | startsWith('1')", state), new("'abc' | startsWith(1)", state), new("'abc' | startsWith()", state), new("'abc' | startsWith('a', 'b')", state),
+            new("1 | endsWith('1')", state), new("'abc' | endsWith(1)", state), new("'abc' | contains()", state), new("'abc' | contains('a', 'b')", state), new("1 | contains('1')", state), new("'abc' | contains(1)", state), new("'abc' | endsWith('c') | upper", state),
             new("1234.5 | currency('EUR')", state, "en-US"), new("1234.5 | currency('EUR')", state, "es-ES"), new("1234.5 | currency('EUR')", state, "tr-TR"),
             new("1234.5 | currency('JPY')", state, "en-US"), new("1234.5 | currency('CAD')", state, "en-US"), new("1234.5 | currency('AUD')", state, "en-US"), new("1234.5 | currency('CNY')", state, "en-US"),
             new("'2026-09-24' | date('MMMM')", state, "en-US"), new("'2026-09-24' | date('MMMM')", state, "es-ES"), new("'2026-09-24' | date('MMMM')", state, "tr-TR"),

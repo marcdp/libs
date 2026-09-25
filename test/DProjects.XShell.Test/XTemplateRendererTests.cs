@@ -227,12 +227,22 @@ namespace DProjects.XShell.Test {
         }
 
         [Fact]
-        public void RendersFormatterPipelinesUsingTheConfiguredLocale() {
+        public void RendersTransformerPipelinesUsingTheConfiguredLocale() {
             var state = new { price = 1234.5 };
 
             Assert.Equal("<p>1.234,50</p>", Render("<p>{{ state.price | number(2) }}</p>", state, "es-ES"));
             Assert.Equal("<div data-price=\"1.234,50\"></div>", Render("<div x-attr:data-price=\"state.price | number(2)\"></div>", state, "es-ES"));
             Assert.Equal("<p>1,234.50</p>", Render("<p>{{ state.price | number(2) }}</p>", state));
+        }
+
+        [Fact]
+        public void RendersPredicateTransformerResultsThroughNormalDirectiveAndScalarSemantics() {
+            Assert.Equal("<span>Languages</span>", Render("<span x-if=\"state.type | endsWith('_i18n')\">Languages</span>", new { type = "field_i18n" }));
+            Assert.Equal(string.Empty, Render("<span x-if=\"state.type | endsWith('_i18n')\">Languages</span>", new { type = "field" }));
+            Assert.Equal("<div></div>", Render("<div x-show=\"state.name | startsWith('A')\"></div>", new { name = "Ada" }));
+            Assert.Equal("<div hidden></div>", Render("<div x-show=\"state.name | startsWith('A')\"></div>", new { name = "Bea" }));
+            Assert.Equal("<div class=\"match\"></div>", Render("<div x-class:match=\"state.code | contains('-')\"></div>", new { code = "en-US" }));
+            Assert.Equal("<p>true</p><p>false</p>", Render("<p>{{ state.match | endsWith('_i18n') }}</p><p>{{ state.noMatch | endsWith('_i18n') }}</p>", new { match = "field_i18n", noMatch = "field" }));
         }
 
         // methods (private)
