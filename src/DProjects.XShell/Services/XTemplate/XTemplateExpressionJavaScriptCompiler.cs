@@ -14,11 +14,13 @@ namespace DProjects.XShell.Services.XTemplate {
 
         public string CompileAssignment(XTemplateExpression expression, string valueExpression, XTemplateExpressionJavaScriptScope scope) {
             if (!XTemplateExpressions.IsAssignable(expression)) throw new XTemplateExpressionSyntaxException("x-model requires an assignable expression", expression.Offset);
-            return expression switch {
-                MemberAccessExpression member => $"utils.expr.setMember({CompileExpression(member.Target, scope)}, {ToJavaScriptString(member.MemberName)}, {valueExpression})",
-                IndexAccessExpression index => $"utils.expr.setIndex({CompileExpression(index.Target, scope)}, {CompileExpression(index.Index, scope)}, {valueExpression})",
-                _ => throw new XTemplateExpressionSyntaxException("x-model requires an assignable expression", expression.Offset)
-            };
+            var (root, segments) = GetAssignmentPath(expression);
+            var path = string.Join(", ", segments.Select(segment => segment switch {
+                MemberAccessExpression member => $"{{kind:\"member\", name:{ToJavaScriptString(member.MemberName)}}}",
+                IndexAccessExpression index => $"{{kind:\"index\", value:() => {CompileExpression(index.Index, scope)}}}",
+                _ => throw new XTemplateExpressionSyntaxException("x-model requires an assignable expression", segment.Offset)
+            }));
+            return $"utils.expr.assign({CompileIdentifier(root, scope)}, [{path}], {valueExpression})";
         }
 
         // methods (private)
@@ -82,6 +84,25 @@ namespace DProjects.XShell.Services.XTemplate {
                 value = $"utils.expr.format({value}, {ToJavaScriptString(formatter.Name)}, () => [{arguments}], i18n)";
             }
             return value;
+        }
+
+        private static (IdentifierExpression Root, IReadOnlyList<XTemplateExpression> Segments) GetAssignmentPath(XTemplateExpression expression) {
+            var segments = new List<XTemplateExpression>();
+            while (expression is MemberAccessExpression or IndexAccessExpression) {
+                switch (expression) {
+                    case MemberAccessExpression member:
+                        segments.Add(member);
+                        expression = member.Target;
+                        break;
+                    case IndexAccessExpression index:
+                        segments.Add(index);
+                        expression = index.Target;
+                        break;
+                }
+            }
+            segments.Reverse();
+            if (expression is not IdentifierExpression root) throw new XTemplateExpressionSyntaxException("x-model requires an assignable expression", expression.Offset);
+            return (root, segments);
         }
 
         private static string ToJavaScriptString(string value) => JsonSerializer.Serialize(value);

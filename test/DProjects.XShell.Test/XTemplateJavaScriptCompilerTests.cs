@@ -39,7 +39,7 @@ namespace DProjects.XShell.Test {
         public void CompilesModelWritesAndHiddenAttributeWithoutRawAssignments() {
             var javascript = new XTemplateCompiler().Compile("<input type=\"radio\" value=\"a\" x-model=\"state.choice\"><div x-show=\"state.visible\"></div>");
 
-            Assert.Contains("utils.expr.setMember(state, \"choice\", value)", javascript, StringComparison.Ordinal);
+            Assert.Contains("utils.expr.assign(state, [{kind:\"member\", name:\"choice\"}], value)", javascript, StringComparison.Ordinal);
             Assert.Contains("utils.expr.equal(utils.expr.member(state, \"choice\")", javascript, StringComparison.Ordinal);
             Assert.Contains("hidden:utils.expr.truthy", javascript, StringComparison.Ordinal);
             Assert.DoesNotContain("state.choice = value", javascript, StringComparison.Ordinal);

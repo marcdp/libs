@@ -400,7 +400,8 @@ const utils = new class {
 		};
 	};
 	expr = (() => {
-		const currencies = new Set(["EUR", "USD", "JPY", "GBP", "CAD", "AUD", "CHF", "CNY", "KRW"]);
+		const currencies = new Map([["EUR", {digits:2, symbol:"€"}], ["USD", {digits:2, symbol:"$"}], ["JPY", {digits:0, symbol:"¥"}], ["GBP", {digits:2, symbol:"£"}], ["CAD", {digits:2, symbol:"CA$"}], ["AUD", {digits:2, symbol:"A$"}], ["CHF", {digits:2, symbol:"CHF"}], ["CNY", {digits:2, symbol:"CN¥"}], ["KRW", {digits:0, symbol:"₩"}]]);
+		const patternTokens = ["yyyy", "MMMM", "MMM", "MM", "dd", "HH", "mm", "ss", "M", "d", "H"];
 		const locale = (i18n) => {
 			const value = i18n?.config?.lang || "en-US";
 			return value === "en" ? "en-US" : value === "es" ? "es-ES" : value === "tr" ? "tr-TR" : value;
@@ -412,7 +413,10 @@ const utils = new class {
 		const digits = (value) => Number.isInteger(value) && value >= 0 && value <= 15 ? value : fail("Formatter digits must be a supported non-negative integer");
 		const round = (value, precision) => {
 			const factor = 10 ** precision;
-			return Math.sign(value) * Math.floor(Math.abs(value) * factor + 0.5) / factor;
+			const scaled = Math.abs(value) * factor;
+			// preserve binary64 values that cannot be scaled without overflowing
+			if (!Number.isFinite(scaled)) return value;
+			return Math.sign(value) * Math.floor(scaled + 0.5) / factor;
 		};
 		const scalar = (value) => {
 			if (value === null) return "";
@@ -437,25 +441,39 @@ const utils = new class {
 		const parseDate = (value, allowDate) => {
 			if (typeof value !== "string") return fail("Date/time formatters require a string input");
 			let match = allowDate && /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-			if (match) return {year:+match[1], month:+match[2], day:+match[3], hour:0, minute:0, second:0};
+			if (match) return dateParts(+match[1], +match[2], +match[3], 0, 0, 0, 0, 0);
 			match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(Z|[+-]\d{2}:\d{2})$/.exec(value);
 			if (!match) return fail("Formatter received an invalid ISO-8601 value");
-			return {year:+match[1], month:+match[2], day:+match[3], hour:+match[4], minute:+match[5], second:+match[6]};
+			const offset = match[7] === "Z" ? [0, 0] : [+match[7].slice(1, 3), +match[7].slice(4, 6)];
+			return dateParts(+match[1], +match[2], +match[3], +match[4], +match[5], +match[6], offset[0], offset[1]);
+		};
+		const dateParts = (year, month, day, hour, minute, second, offsetHour, offsetMinute) => {
+			const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+			const days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+			if (year < 1 || month < 1 || month > 12 || day < 1 || day > days[month - 1] || hour > 23 || minute > 59 || second > 59 || offsetHour > 14 || offsetMinute > 59 || offsetHour === 14 && offsetMinute !== 0) return fail("Formatter received an invalid ISO-8601 value");
+			return {year, month, day, hour, minute, second};
 		};
 		const pattern = (value, format, culture, dateAllowed, timeAllowed) => {
 			if (typeof format !== "string") return fail("Formatter pattern requires a string argument");
-			const tokens = /yyyy|MMMM|MMM|MM|dd|HH|mm|ss|M|d|H/g;
 			let found = false;
-			const result = format.replace(tokens, (token) => {
-				found = true;
-				if (!dateAllowed && /^(yyyy|MMMM|MMM|MM|M|dd|d)$/.test(token)) return fail("Formatter pattern token is not allowed");
-				if (!timeAllowed && /^(HH|H|mm|ss)$/.test(token)) return fail("Formatter pattern token is not allowed");
-				if (token === "MMMM" || token === "MMM") return new Intl.DateTimeFormat(culture, {month:token === "MMMM" ? "long" : "short", timeZone:"UTC"}).format(new Date(Date.UTC(value.year, value.month - 1, 1)));
-				const values = {yyyy:String(value.year).padStart(4, "0"), MM:String(value.month).padStart(2, "0"), M:String(value.month), dd:String(value.day).padStart(2, "0"), d:String(value.day), HH:String(value.hour).padStart(2, "0"), H:String(value.hour), mm:String(value.minute).padStart(2, "0"), ss:String(value.second).padStart(2, "0")};
-				return values[token];
-			});
-			if (!found || /[A-Za-z]/.test(result.replace(/[^A-Za-z]/g, ""))) return fail("Formatter pattern contains an unsupported token");
-			return result;
+			const values = {yyyy:String(value.year).padStart(4, "0"), MM:String(value.month).padStart(2, "0"), M:String(value.month), dd:String(value.day).padStart(2, "0"), d:String(value.day), HH:String(value.hour).padStart(2, "0"), H:String(value.hour), mm:String(value.minute).padStart(2, "0"), ss:String(value.second).padStart(2, "0")};
+			let result = "";
+			for (let position = 0; position < format.length;) {
+				const token = patternTokens.find(candidate => format.startsWith(candidate, position));
+				if (token) {
+					found = true;
+					if (!dateAllowed && /^(yyyy|MMMM|MMM|MM|M|dd|d)$/.test(token)) return fail("Formatter pattern token is not allowed");
+					if (!timeAllowed && /^(HH|H|mm|ss)$/.test(token)) return fail("Formatter pattern token is not allowed");
+					result += token === "MMMM" || token === "MMM" ? new Intl.DateTimeFormat(culture, {month:token === "MMMM" ? "long" : "short", timeZone:"UTC"}).format(new Date(Date.UTC(2000, value.month - 1, 1))) : values[token];
+					position += token.length;
+					continue;
+				}
+				const character = String.fromCodePoint(format.codePointAt(position));
+				if (/\p{L}/u.test(character)) return fail("Formatter pattern contains an unsupported token");
+				result += character;
+				position += character.length;
+			}
+			return found ? result : fail("Formatter pattern must contain a token");
 		};
 		const format = (value, name, getArguments, i18n) => {
 			if (value === null) return null;
@@ -464,17 +482,21 @@ const utils = new class {
 			if (name === "number") {
 				if (args.length > 1) return fail("Formatter 'number' received an invalid argument count");
 				const precision = args.length ? digits(args[0]) : 3;
-				return new Intl.NumberFormat(culture, {minimumFractionDigits:args.length ? precision : 0, maximumFractionDigits:precision}).format(round(number(value, "Formatter 'number' requires a numeric input"), precision));
+				return new Intl.NumberFormat(culture, {useGrouping:true, minimumFractionDigits:args.length ? precision : 0, maximumFractionDigits:precision}).format(round(number(value, "Formatter 'number' requires a numeric input"), precision));
 			}
 			if (name === "percent") {
 				if (args.length > 1) return fail("Formatter 'percent' received an invalid argument count");
 				const precision = args.length ? digits(args[0]) : 3;
-				return new Intl.NumberFormat(culture, {style:"percent", minimumFractionDigits:args.length ? precision : 0, maximumFractionDigits:precision}).format(round(checked(number(value, "Formatter 'percent' requires a numeric input") * 100), precision) / 100);
+				return new Intl.NumberFormat(culture, {style:"percent", useGrouping:true, minimumFractionDigits:args.length ? precision : 0, maximumFractionDigits:precision}).format(round(checked(number(value, "Formatter 'percent' requires a numeric input") * 100), precision) / 100);
 			}
 			if (name === "currency") {
 				if (args.length < 1 || args.length > 2 || typeof args[0] !== "string" || !currencies.has(args[0])) return fail("Formatter 'currency' requires a supported uppercase ISO 4217 currency code");
-				const precision = args.length === 2 ? digits(args[1]) : (["JPY", "KRW"].includes(args[0]) ? 0 : 2);
-				return new Intl.NumberFormat(culture, {style:"currency", currency:args[0], currencyDisplay:"narrowSymbol", minimumFractionDigits:precision, maximumFractionDigits:precision}).format(round(number(value, "Formatter 'currency' requires a numeric input"), precision));
+				const currency = currencies.get(args[0]);
+				const precision = args.length === 2 ? digits(args[1]) : currency.digits;
+				const formatter = new Intl.NumberFormat(culture, {style:"currency", currency:args[0], currencyDisplay:"symbol", useGrouping:true, minimumFractionDigits:precision, maximumFractionDigits:precision});
+				const parts = formatter.formatToParts(round(number(value, "Formatter 'currency' requires a numeric input"), precision));
+				if (culture === "tr-TR") return parts.filter(part => part.type !== "currency").map(part => part.value).join("").replaceAll(" ", "\u00A0") + "\u00A0" + currency.symbol;
+				return parts.map(part => part.type === "currency" ? currency.symbol : part.value).join("").replaceAll(" ", "\u00A0");
 			}
 			if (name === "upper" || name === "lower") {
 				if (args.length || typeof value !== "string") return fail(`Formatter '${name}' requires a string input and no arguments`);
@@ -494,8 +516,32 @@ const utils = new class {
 			truthy, scalar,
 			member: (target, name) => target === null ? null : (typeof target === "string" || Array.isArray(target)) ? name === "length" ? target.length : null : (typeof target === "object" && own(target, name) ? normalize(target[name]) : null),
 			index: (target, index) => target === null ? null : typeof index === "string" ? (typeof target === "string" || Array.isArray(target) ? (index === "length" ? target.length : null) : (typeof target === "object" && own(target, index) ? normalize(target[index]) : null)) : (Number.isInteger(index) && index >= 0 && Array.isArray(target) ? normalize(target[index]) : fail("A collection index must be a non-negative integer number")),
-			setMember: (target, name, value) => { if (target === null || typeof target !== "object" || Array.isArray(target)) fail("Member assignment requires an XTemplate object"); target[name] = value; return value; },
-			setIndex: (target, index, value) => { if (!Array.isArray(target) || !Number.isInteger(index) || index < 0) fail("Indexed assignment requires a collection non-negative integer index"); target[index] = value; return value; },
+			assign: (root, path, value) => {
+				if (root === null || typeof root !== "object" || !Array.isArray(path) || path.length === 0) return fail("Model assignment requires a writable target");
+				let target = root;
+				for (let position = 0; position < path.length; position++) {
+					const segment = path[position];
+					const isFinal = position === path.length - 1;
+					if (segment.kind === "member") {
+						if (target === null || typeof target !== "object" || Array.isArray(target) || !own(target, segment.name)) return fail("Model assignment requires an existing object member");
+						if (isFinal) { target[segment.name] = value; return value; }
+						target = normalize(target[segment.name]);
+					} else if (segment.kind === "index") {
+						const index = segment.value();
+						if (typeof index === "string") {
+							if (target === null || typeof target !== "object" || Array.isArray(target) || !own(target, index)) return fail("Model assignment requires an existing object member");
+							if (isFinal) { target[index] = value; return value; }
+							target = normalize(target[index]);
+						} else {
+							if (!Array.isArray(target) || !Number.isInteger(index) || index < 0 || index >= target.length) return fail("Model assignment requires an in-range collection index");
+							if (isFinal) { target[index] = value; return value; }
+							target = normalize(target[index]);
+						}
+					} else return fail("Model assignment requires a valid path segment");
+					if (target === null) return fail("Model assignment requires a non-null intermediate target");
+				}
+				return fail("Model assignment requires a writable target");
+			},
 			not: (value) => !truthy(value), unaryPlus: (value) => number(value), unaryMinus: (value) => checked(-number(value)),
 			add: (left, right) => typeof left === "number" && typeof right === "number" ? checked(left + right) : (typeof left === "string" || typeof right === "string" ? scalar(left) + scalar(right) : fail("Operator '+' requires two numbers or a string operand")),
 			subtract: (left, right) => checked(number(left) - number(right)), multiply: (left, right) => checked(number(left) * number(right)), divide: (left, right) => { const divisor = number(right); return divisor === 0 ? fail("Division by zero") : checked(number(left) / divisor); }, modulo: (left, right) => { const divisor = number(right); return divisor === 0 ? fail("Modulo by zero") : checked(number(left) % divisor); },
@@ -955,6 +1001,7 @@ class XTemplateInstance {
 
 
 // export
+export { utils as XTemplateRuntimeUtils };
 export class RenderEngineX {
 	
 	// vars+
