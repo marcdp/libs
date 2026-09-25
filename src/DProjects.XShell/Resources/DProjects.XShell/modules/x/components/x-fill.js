@@ -4,7 +4,12 @@ export const contract = {
     description: "Provides a flexible element that fills available layout space.",
     events: {},
     properties: {},
-    methods: {}
+    methods: {},
+    slots: {
+        "": {
+            description: "Content for the fill element"
+        }
+    }
 };
 
 

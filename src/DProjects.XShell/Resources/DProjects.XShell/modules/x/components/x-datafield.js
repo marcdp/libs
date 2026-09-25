@@ -643,10 +643,10 @@ export default {
 
             async validate(args) {
                 // validate
-                state.errors = this.validate();
+                state.errors = this.validateErrors();
                 state.validated = true;
             },
-            validate(detail) {
+            validateErrors(detail) {
                 let result = [];
                 //langs                    
                 if (state.type.endsWith("_i18n")) {

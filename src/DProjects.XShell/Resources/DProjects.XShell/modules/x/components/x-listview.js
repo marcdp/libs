@@ -60,15 +60,18 @@ export default {
                 //load
                 events.on(state, "change:view", "refresh");
             },
-
             async refresh() {
-                //slotchange
-                let view = state.view;
+                const slot = this.shadowRoot.querySelector("slot:not([name])");
+                if (!slot) return;
+
+                const view = state.view;
                 let lastElement = null;
-                this.shadowRoot.querySelector("slot:not([name])").assignedElements().forEach((item) => {
+
+                slot.assignedElements().forEach((item) => {
                     item.view = view;
                     lastElement = item;
                 });
+
                 if (lastElement && state.autoScroll && this.checkVisibility()) {
                     lastElement.scrollIntoView({ block: "end", behavior: "smooth" });
                 }

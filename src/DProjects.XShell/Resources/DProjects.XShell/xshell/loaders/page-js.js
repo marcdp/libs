@@ -242,6 +242,9 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
                         const events = new Events( (command) => {self.onCommand(command);} );
                         self._disposables.push(events);
                         return events;
+                    } else if (prop == "host") {
+                        // get current web component
+                        return self;                    
                     } else {
                         // resolve from services
                         return xshell.services.resolve(prop);                    

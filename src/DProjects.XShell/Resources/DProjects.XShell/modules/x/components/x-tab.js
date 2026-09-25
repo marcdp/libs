@@ -7,7 +7,12 @@ export const contract = {
         label: {type:"string", default:"", attribute:true, state:true, description:""},
         hash:  {type:"string", default:"", attribute:true, state:true, description:""}
     },
-    methods: {}
+    methods: {},
+    slots: {
+        "":{
+            description: "Content for the tab panel"
+        }
+    }
 };
 
 

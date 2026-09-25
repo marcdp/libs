@@ -30,6 +30,11 @@ export const contract = {
 // implementation
 export default {
     style: `
+        :host(.standalone) {
+            display:block;
+            border: var(--x-datafield-border);
+            border-radius: var(--x-datafield-border-radius);
+        }
         .editor {
             min-height: 10em;
             padding:.5em;

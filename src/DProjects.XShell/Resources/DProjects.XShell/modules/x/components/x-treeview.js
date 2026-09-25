@@ -8,7 +8,12 @@ export const contract = {
     properties: {
         multiple: {type:"boolean", default:false, attribute:true, state:true, description:""}
     },
-    methods: {}
+    methods: {},
+    slots: {
+        "": {
+            description: "Default slot for tree-view items."
+        }
+    }
 };
 
 

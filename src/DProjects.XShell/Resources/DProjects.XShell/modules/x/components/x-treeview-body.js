@@ -3,7 +3,12 @@ export const contract = {
     description: "Provides a container for tree-view item content.",
     events: {},
     properties: {},
-    methods: {}
+    methods: {},
+    slots: {
+        "": {
+            description: "Default slot."
+        }
+    }
 };
 
 

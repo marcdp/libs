@@ -24,7 +24,6 @@ export const contract = {
         loading:        {type:"boolean", default:false, attribute:true, state:true, description:""},
         loadingLabel:   {type:"string", default:"Working", attribute:true, state:true, description:""},
         loadingMessage: {type:"string", default:"Please wait...", attribute:true, state:true, description:""},
-        wizardStyle:    {type:"string", default:"", attribute:true, state:true, description:""}
     },
     methods: {
         validate: {
@@ -125,8 +124,6 @@ export default {
 
     `,
     template: `
-        <style x-if="state.wizardStyle" x-html="state.wizardStyle"></style>
-        
         <div class="header">
             <slot name="header"></slot>
         </div>
@@ -136,7 +133,7 @@ export default {
         </div>
         <div x-else class="container" x-attr:vertical="state.wizardDirection == 'vertical' ? true : false">
 
-            <x-wizard-header x-if="state.wizard" x-attr:index="state.wizardIndex" x-attr:class="state.wizardDirection" x-on:index-set="wizard-set">
+            <x-wizard-header x-if="state.wizard" x-attr:index="state.wizardIndex" x-attr:class="state.wizardDirection" x-on:index-set="wizardSet">
                 <div x-for="wizardPanel in state.wizardPanels" 
                     x-attr:label="wizardPanel.label"
                     x-attr:message="wizardPanel.message"
@@ -169,8 +166,8 @@ export default {
                 <div class="footer">
                     <slot name="cancel"></slot>
                     <div x-if="state.wizard">
-                        <x-button x-if="state.wizardIndex > 0" label="Prev" x-on:click="wizard-prev"></x-button>
-                        <x-button x-if="state.wizardIndex < state.wizardPanels.length - 1" label="Next" x-on:click="wizard-next"></x-button>
+                        <x-button x-if="state.wizardIndex > 0" label="Prev" x-on:click="wizardPrev"></x-button>
+                        <x-button x-if="state.wizardIndex < state.wizardPanels.length - 1" label="Next" x-on:click="wizardNext"></x-button>
                         <slot x-else name="footer"></slot>
                     </div>
                     <div x-else>
@@ -185,15 +182,9 @@ export default {
     state: {
     },
     controller({ state }) {
+        let wizardStyleSheet = null;
         return {
-            showLoading({label, message}) {
-                state.loading = true;
-                if (label) state.loadingLabel = label;
-                if (message) state.loadingMessage = message;
-            },
-            hideLoading() {
-                state.loading = false;
-            },
+
             load(args) {
                 //load
                 this.shadowRoot.addEventListener("command", (event) => {
@@ -218,23 +209,32 @@ export default {
                 });
                 this.onCommand("refresh");
             },
-
-            "wizard-set"(args) {
-                //wizard-set
+            mount() {
+                wizardStyleSheet = new CSSStyleSheet();
+                this.shadowRoot.adoptedStyleSheets = [...this.shadowRoot.adoptedStyleSheets, wizardStyleSheet];
+            },
+            showLoading({label, message}) {
+                state.loading = true;
+                if (label) state.loadingLabel = label;
+                if (message) state.loadingMessage = message;
+            },
+            hideLoading() {
+                state.loading = false;
+            },
+            wizardSet(args) {
+                //wizardSet
                 let index = args.event.detail.index;
                 state.wizardIndex = index;
                 this.onCommand("refresh");
             },
-
-            "wizard-prev"(args) {
-                //wizard-prev
+            wizardPrev(args) {
+                //wizardPrev
                 state.errors = [];
                 state.wizardIndex--;
                 this.onCommand("refresh");
             },
-
-            "wizard-next"(args) {
-                //wizard-next
+            wizardNext(args) {
+                //wizardNext
                 //get current wizard panel
                 let wizardPanel = state.wizardPanels[state.wizardIndex];
                 let wizardPanelElement = this.querySelector(`:scope > *:nth-child(${ wizardPanel.index })`);
@@ -254,7 +254,6 @@ export default {
                     this.onCommand("refresh");
                 }
             },
-
             validate(args) {
                 //validate
                 let errors = [];
@@ -277,7 +276,6 @@ export default {
                 state.validated = true;
                 return state.errors;
             },
-
             submit(args) {
                 //submit
                 this.onCommand("validate");
@@ -285,7 +283,6 @@ export default {
                     this.dispatchEvent(new CustomEvent("command", {detail: {command: state.command, data: this.dataset}, bubbles: true, composed: false}));
                 }
             },
-
             refresh(args) {
                 //refresh
                 if (state.wizard) {
@@ -301,7 +298,12 @@ export default {
                         }
                     });
                     state.wizardPanels = wizardPanels;
-                    state.wizardStyle = `:host([wizard]) .body ::slotted(*:nth-child(${ wizardPanels[state.wizardIndex].index })) {display:block;}`;
+                    //state.wizardStyle = `:host([wizard]) .body ::slotted(*:nth-child(${ wizardPanels[state.wizardIndex].index })) {display:block;}`;
+                    wizardStyleSheet?.replaceSync(`
+                        :host([wizard]) .body ::slotted(*:nth-child(${ wizardPanels[state.wizardIndex].index })) {
+                            display: block;
+                        }
+                    `);
                 }
             }
         };

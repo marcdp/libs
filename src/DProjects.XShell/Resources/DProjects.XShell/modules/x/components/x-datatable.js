@@ -4,7 +4,12 @@ export const contract = {
     description: "Provides a container for data table content.",
     events: {},
     properties: {},
-    methods: {}
+    methods: {},
+    slots: {
+        "": {
+            description: "Default slot for data table content."
+        }
+    }
 };
 
 

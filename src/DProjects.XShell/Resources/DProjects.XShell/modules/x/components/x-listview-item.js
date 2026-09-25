@@ -63,7 +63,7 @@ export default {
             {{state.category}}
         </div>
         <x-anchor x-attr:href="state.href" x-attr:target="state.target" x-attr:class="'plain ' + state.view" x-attr:title="state.description" x-prop:breadcrumb="state.breadcrumb" x-attr:open="state.open">
-            <x-icon x-else x-attr:icon="state.icon || 'x-file'"></x-icon>
+            <x-icon x-attr:icon="state.icon || 'x-file'"></x-icon>
             <span class="label" x-text="state.label"></span>
             <span class="description" x-text="state.description"></span>
         </x-anchor>

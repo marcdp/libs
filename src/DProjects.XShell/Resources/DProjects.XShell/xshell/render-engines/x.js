@@ -387,11 +387,11 @@ class XTemplateInstance {
 			}
 
 			
-			//const div = document.createElement("div");
-			//div.append(documentFragment.cloneNode(true));
-			//if (div.innerHTML.indexOf("style")!=-1) {
-			//	debugger;
-			//}
+			const div = document.createElement("div");
+			div.append(documentFragment.cloneNode(true));
+			if (div.innerHTML.indexOf("style")!=-1) {
+				debugger;
+			}
 
 			this._element.appendChild(documentFragment);			
 			this._vdom = vdom;

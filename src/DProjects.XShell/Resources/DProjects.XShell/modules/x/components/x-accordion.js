@@ -9,14 +9,14 @@ export const contract = {
     },
     methods: {},
     slots: {
-        default: {
+        "": {
             description: "The default slot for accordion panels."
         }
     },
     examples: [
         {
-            title: "Basic",
-            html: `<x-accordion></x-accordion>`
+            name: "Basic",
+            template: `<x-accordion></x-accordion>`
         },
     ]
 };

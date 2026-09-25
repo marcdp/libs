@@ -7,7 +7,12 @@ export const contract = {
         selectedIndex: {type:"number", default:0, attribute:true, state:true, description:""},
         selectedHash:  {type:"string", default:"", attribute:true, state:true, description:""}
     },
-    methods: {}
+    methods: {},
+    slots: {
+        "": {
+            description: "Content for the tab panels"
+        }
+    }
 };
 
 

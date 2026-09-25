@@ -120,9 +120,8 @@ function validateSlots(definition, contract) {
 
         if (!Object.prototype.hasOwnProperty.call(slots, slotName)) {
             const displayName = slotName || "(default)";
-            throw new Error(
-                `Component '${componentName}' template declares slot '${displayName}', but it is not declared in contract.slots.`
-            );
+            debugger
+            throw new Error(`Component '${componentName}' template declares slot '${displayName}', but it is not declared in contract.slots.`);
         }
     }
 }
@@ -269,6 +268,9 @@ export async function createComponentClassFromJsDefinition(src, context, definit
                     } else if (prop == "module") {
                         // module 
                         return xshell.modules.getModuleById(context.resourceDefinition.moduleId);
+                    } else if (prop == "host") {
+                        // get current web component
+                        return self;
                     } else if (prop == "getPage") {
                         // get current page function
                         return function() {
@@ -441,6 +443,7 @@ export async function createComponentClassFromJsDefinition(src, context, definit
     for (const [methodName, method] of Object.entries(contract.methods)) {
         Object.defineProperty(WebComponent.prototype, methodName, {
             value: function(...args) {
+                debugger
                 return method.apply(this, args);
             },
             enumerable: true,

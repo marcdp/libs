@@ -18,7 +18,15 @@ export const contract = {
         selected:    {type:"boolean", default:false, attribute:true, state:true, description:""},
         index:       {type:"number", default:0, attribute:true, state:true, description:""}
     },
-    methods: {}
+    methods: {},
+    slots: {
+        "": {
+            description: "Default slot for tree-view item content."
+        },
+        "column": {
+            description: "Slot for column content."
+        }
+    }
 };
 
 
@@ -119,7 +127,7 @@ export default {
                 let indent = 0;
                 while (element && element.localName !== "x-treeview") {
                     element = element.parentElement; // Move directly to the parent
-                    if (element.localName == "x-treeview-item") indent++;
+                    if (element && element.localName == "x-treeview-item") indent++;
                 }
                 state.indent = indent;
             }

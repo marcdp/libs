@@ -368,7 +368,6 @@ export default class Navigation {
                 }
                 xpage.addEventListener("change", (event) => {
                     //page change
-                    debugger; // TODO ...
                     let xpages = this.getXPages();
                     if (xpages.indexOf(event.target) == 0) {
                         var label = event.target.label;

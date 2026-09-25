@@ -12,7 +12,15 @@ export const contract = {
         icon:     {type:"string",  default:"",    attribute:true, state:true, description:""},
         expanded: {type:"boolean", default:false, attribute:true, state:true, description:""}
     },
-    methods: {}
+    methods: {},
+    slots: {
+        "": {
+            description: "Content for the accordion panel body"
+        },
+        toolbar: {
+            description: "Content for the accordion panel toolbar"
+        }
+    }
 };
 
 
