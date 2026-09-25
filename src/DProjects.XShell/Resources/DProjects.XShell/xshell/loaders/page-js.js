@@ -248,9 +248,6 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
                     } else if (prop == "page") {
                         // get current page
                         return self;                    
-                    } else if (prop == "getHost") {
-                        // get current page function
-                        return () => this._host;
                     } else {
                         // resolve from services
                         return xshell.services.resolve(prop);                    
@@ -307,7 +304,6 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
             this._renderEngine = null;
             this._styleSheets = [];
             this._renderPending = false;
-            this._host = null;
             // controller may be async
             await super.unmount();
             // clean only resources captured from this mount
@@ -317,6 +313,8 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
             if (styleSheets.length) {
                 document.adoptedStyleSheets = document.adoptedStyleSheets.filter(stylesheet => !styleSheets.includes(stylesheet));
             }
+            // clear the reference to the host element
+            this._host = null;
         }
         async unload() {
             if (this._unloaded) return;

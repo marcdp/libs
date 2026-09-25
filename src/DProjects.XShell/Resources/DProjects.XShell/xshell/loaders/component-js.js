@@ -326,6 +326,10 @@ export async function createComponentClassFromJsDefinition(src, context, definit
             }
             // load
             this[invokeController]("load", {});
+        }        
+        // get host element
+        get host() {
+            return this._host;
         }
         // attributeChangedCallback
         attributeChangedCallback(name, oldValue, newValue) {
@@ -418,7 +422,7 @@ export async function createComponentClassFromJsDefinition(src, context, definit
             } finally {
                 this._reflectingAttributes.delete(attrName);
             }
-        }
+        }        
     };
     // add properties
     for (const [propName, property] of Object.entries(contract.properties)) {
