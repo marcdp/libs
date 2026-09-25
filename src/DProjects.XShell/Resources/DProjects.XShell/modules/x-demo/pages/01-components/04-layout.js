@@ -1,6 +1,6 @@
 // contract
 export const contract = {
-    description: "Layout page",
+    description: "Layout components",
     events: {},
     properties: {},
     methods: {}
@@ -9,7 +9,6 @@ export const contract = {
 // export page
 export default {
     template: `
-        <h1>Layout components</h1>
 
         <p>
             Components for grouping content, switching views, collapsing sections,
@@ -219,6 +218,63 @@ export default {
 
         <x-divider></x-divider>
 
+        <h2>Context menu and menu items</h2>
+
+        <div style="position:relative; height:8em;">
+            <x-contextmenu>
+                <x-menuitem label="Edit" icon="x-edit"></x-menuitem>
+                <x-menuitem label="More" icon="x-settings">
+                    <x-menuitem label="Duplicate" icon="x-file"></x-menuitem>
+                </x-menuitem>
+            </x-contextmenu>
+        </div>
+
+        <x-divider></x-divider>
+
+        <h2>Menu</h2>
+
+        <x-menu class="horizontal" x-prop:menu="state.demoMenu"></x-menu>
+
+        <x-divider></x-divider>
+
+        <h2>Responsive content</h2>
+
+        <x-desktop>
+            <x-notice type="info" label="Desktop" message="This content is shown above 768 pixels."></x-notice>
+        </x-desktop>
+
+        <x-mobile>
+            <x-notice type="info" label="Mobile" message="This content is shown at 768 pixels or below."></x-notice>
+        </x-mobile>
+
+        <x-divider></x-divider>
+
+        <h2>Splitter</h2>
+
+        <div style="display:flex; height:6em; border:var(--x-datafield-border);">
+            <div style="flex:1; padding:1em;">Left pane</div>
+            <x-splitter></x-splitter>
+            <div style="flex:1; padding:1em;">Right pane</div>
+        </div>
+
+        <x-divider></x-divider>
+
+        <h2>Wizard</h2>
+
+        <x-wizard>
+            <x-wizard-panel label="Account" message="Create your account" icon="x-person">
+                <p>Enter your account details.</p>
+            </x-wizard-panel>
+
+            <x-wizard-panel label="Preferences" message="Choose your settings" icon="x-settings">
+                <p>Choose the settings that suit you.</p>
+            </x-wizard-panel>
+
+            <x-button slot="buttons" class="submit" label="Finish"></x-button>
+        </x-wizard>
+
+        <x-divider></x-divider>
+
         <h2>Fill</h2>
 
 <!--
@@ -238,6 +294,10 @@ export default {
         return {
             load(params) {
                // load
+                state.demoMenu = [
+                    {label: "Home", href: "/pages/01-components/01-basics.js", icon: "x-home"},
+                    {label: "Components", href: "/pages/01-components/04-layout.js", icon: "x-menu", selected: true}
+                ];
             }
         };
     }

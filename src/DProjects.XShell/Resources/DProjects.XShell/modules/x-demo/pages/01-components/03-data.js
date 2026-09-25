@@ -1,6 +1,6 @@
 // contract
 export const contract = {
-    description: "Data page",
+    description: "Data components",
     events: {},
     properties: {},
     methods: {}
@@ -9,7 +9,6 @@ export const contract = {
 // export page
 export default {
     template: `
-        <h1>Data components</h1>
 
         <p>
             Components for displaying collections, structured data, dates, durations, and file sizes.
@@ -72,15 +71,43 @@ export default {
 
         <x-treeview>
 
-            <x-treeview-item label="Documents" icon="x-folder" has-childs expanded>
-                <x-treeview-item label="Reports" icon="x-folder"has-childs>
-                    <x-treeview-item label="Reportttt.pdf" icon="x-file"></x-treeview-item>
+            <x-treeview-head>
+                <x-treeview-column label="Name" width="16em"></x-treeview-column>
+                <x-treeview-column label="Type" width="10em"></x-treeview-column>
+                <x-treeview-column label="Size" width="10em"></x-treeview-column>
+            </x-treeview-head>
+
+            <x-treeview-body>
+                <x-treeview-item label="Documents" icon="x-folder" has-childs expanded>
+                    <div slot="column">Folder</div>
+                    <div slot="column">12 items</div>
+
+                    <x-treeview-item label="Reports" icon="x-folder" has-childs>
+                        <div slot="column">Folder</div>
+                        <div slot="column">3 items</div>
+
+                        <x-treeview-item label="Report.pdf" icon="x-file">
+                            <div slot="column">PDF file</div>
+                            <div slot="column">240 KB</div>
+                        </x-treeview-item>
+                    </x-treeview-item>
+
+                    <x-treeview-item label="Notes.txt" icon="x-file">
+                        <div slot="column">Text document</div>
+                        <div slot="column">8 KB</div>
+                    </x-treeview-item>
                 </x-treeview-item>
-                <x-treeview-item label="Notes.txt" icon="x-file"></x-treeview-item>
-            </x-treeview-item>
-            <x-treeview-item label="Images" icon="x-folder" has-childs>
-                <x-treeview-item label="Photo.jpg" icon="x-image"></x-treeview-item>
-            </x-treeview-item>
+
+                <x-treeview-item label="Images" icon="x-folder" has-childs>
+                    <div slot="column">Folder</div>
+                    <div slot="column">1 item</div>
+
+                    <x-treeview-item label="Photo.jpg" icon="x-image">
+                        <div slot="column">Image</div>
+                        <div slot="column">2.4 MB</div>
+                    </x-treeview-item>
+                </x-treeview-item>
+            </x-treeview-body>
 
         </x-treeview>
 
@@ -185,6 +212,12 @@ export default {
         <p>
             <x-time-ms value="1500"></x-time-ms>
         </p>
+
+        <x-divider></x-divider>
+
+        <h2>Pager</h2>
+
+        <x-pager total="95" index="1" size="20" label="records"></x-pager>
     `,  
     controller({ state }) {
         return {

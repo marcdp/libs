@@ -1,6 +1,6 @@
 // contract
 export const contract = {
-    description: "Forms page",
+    description: "Forms",
     events: {},
     properties: {},
     methods: {}
@@ -9,8 +9,6 @@ export const contract = {
 // export page
 export default {
     template: `
-        <h1>Forms</h1>
-
         <p>
             Form controls, validation-oriented fields, grouped data fields, and rich text editing.
         </p>
@@ -183,6 +181,24 @@ export default {
 
         <x-richtext class="standalone" value="<p>This is an editable <b>rich text</b> example.</p>">
         </x-richtext>
+
+        <x-divider></x-divider>
+
+        <h2>Code editor</h2>
+
+        <x-code-editor
+            mode="javascript"
+            wrap
+            value="const greeting = &quot;Hello, XShell!&quot;;">
+        </x-code-editor>
+
+        <x-divider></x-divider>
+
+        <h2>Playground</h2>
+
+        <x-playground>
+            <x-badge value="New"></x-badge>
+        </x-playground>
 
         <x-divider></x-divider>
 

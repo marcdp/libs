@@ -327,10 +327,6 @@ export async function createComponentClassFromJsDefinition(src, context, definit
             // load
             this[invokeController]("load", {});
         }        
-        // get host element
-        get host() {
-            return this._host;
-        }
         // attributeChangedCallback
         attributeChangedCallback(name, oldValue, newValue) {
             if (this._reflectingAttributes.has(name)) return;

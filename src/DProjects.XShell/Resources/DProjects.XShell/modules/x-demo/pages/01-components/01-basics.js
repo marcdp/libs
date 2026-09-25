@@ -1,12 +1,11 @@
 // contract
 export const contract = {
-    description: "Basics page"
+    description: "Basics components"
 };
 
 // export page
 export default {
     template: `
-        <h1>Basic components</h1>
 
         <p>
             Basic visual and interactive components provided by XShell.
@@ -80,6 +79,54 @@ export default {
         <h2>Spinner</h2>
 
         <x-spinner message="Loading..."></x-spinner>
+
+        <x-divider></x-divider>
+
+        <h2>Anchor</h2>
+
+        <x-anchor class="plain" href="/pages/01-components/02-forms.js">
+            Open the forms examples
+        </x-anchor>
+
+        <x-divider></x-divider>
+
+        <h2>Clock</h2>
+
+        <x-clock></x-clock>
+
+        <x-divider></x-divider>
+
+        <h2>Error</h2>
+
+        <x-error
+            code="404"
+            message="The requested example could not be found."
+            src="/pages/example.js">
+        </x-error>
+
+        <x-divider></x-divider>
+
+        <h2>HTML source</h2>
+
+        <x-html value="&lt;p&gt;A &lt;strong&gt;safe inline example&lt;/strong&gt;.&lt;/p&gt;"></x-html>
+
+        <x-divider></x-divider>
+
+        <h2>Internationalized text</h2>
+
+        <x-i18n text="Open the forms examples"></x-i18n>
+
+        <x-divider></x-divider>
+
+        <h2>Loading</h2>
+
+        <x-loading></x-loading>
+
+        <x-divider></x-divider>
+
+        <h2>Markdown</h2>
+
+        <x-markdown value="## Inline Markdown&#10;&#10;This **local** example uses no remote content."></x-markdown>
     `,    
     controller({ }) {
         return {

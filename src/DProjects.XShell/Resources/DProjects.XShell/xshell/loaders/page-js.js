@@ -355,13 +355,6 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
                 xshell.navigation.navigate({...item, page:this, replace:true});
             }
         }
-        // onCommand
-        onCommand(command, ...params) {
-            const handler = this._controller[command];
-            if (typeof(handler) === "function") {
-                return handler.apply(this._controller, params);
-            }
-        }
         // invalidate
         invalidate(path) {
             const renderEngine = this._renderEngine;
