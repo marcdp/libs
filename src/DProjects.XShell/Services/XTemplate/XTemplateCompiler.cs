@@ -288,7 +288,7 @@ namespace DProjects.XShell.Services.XTemplate {
         private static XTemplateExpression ParseExpression(string source, string directive, int offset) {
             if (string.IsNullOrWhiteSpace(source)) throw new InvalidOperationException($"Directive '{directive}' requires an XTemplate expression at template offset {offset}.");
             try { return XTemplateExpressions.Parse(source); }
-            catch (XTemplateExpressionException exception) { throw new InvalidOperationException($"Invalid XTemplate expression for '{directive}' at template offset {offset}: {exception.Message}", exception); }
+            catch (XTemplateExpressionException exception) { throw new InvalidOperationException($"Invalid XTemplate expression '{source}' for directive '{directive}' at template offset {offset}: {exception.Message}", exception); }
         }
         private static string ValidateKeyName(string? keyName, ElementNode element) {
             if (!IsXTemplateIdentifier(keyName)) throw TemplateError("Directive 'x-key' requires an XTemplate member name.", element);

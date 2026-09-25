@@ -20,6 +20,8 @@ public sealed class XTemplateJavaScriptConformanceTests {
     [Fact]
     public void GeneratedJavaScriptUsesStrictSingleEvaluationAssignmentPaths() {
         var cases = new[] {
+            new AssignmentCase("<input x-model=\"state.name\">", new Dictionary<string, object?> { ["name"] = "old" }, "updated", false),
+            new AssignmentCase("<input x-model=\"state.user.name\">", new Dictionary<string, object?> { ["user"] = new Dictionary<string, object?> { ["name"] = "old" } }, "updated", false),
             new AssignmentCase("<input x-model=\"state.object['name']\">", new Dictionary<string, object?> { ["object"] = new Dictionary<string, object?> { ["name"] = "old" } }, "updated", false),
             new AssignmentCase("<input x-model=\"state.items[0]\">", new Dictionary<string, object?> { ["items"] = new[] { "old" } }, "updated", false),
             new AssignmentCase("<input x-for=\"item in state.items\" x-model=\"state.items[index].name\">", new Dictionary<string, object?> { ["items"] = new object?[] { new Dictionary<string, object?> { ["name"] = "first" }, new Dictionary<string, object?> { ["name"] = "second" } } }, "updated", false, true),
@@ -27,16 +29,38 @@ public sealed class XTemplateJavaScriptConformanceTests {
             new AssignmentCase("<input x-model=\"state.items[-1]\">", new Dictionary<string, object?> { ["items"] = new[] { "old" } }, "updated", true),
             new AssignmentCase("<input x-model=\"state.items[999]\">", new Dictionary<string, object?> { ["items"] = new[] { "old" } }, "updated", true),
             new AssignmentCase("<input x-model=\"state.object[1]\">", new Dictionary<string, object?> { ["object"] = new Dictionary<string, object?> { ["name"] = "old" } }, "updated", true),
-            new AssignmentCase("<input x-model=\"state.user.name\">", new Dictionary<string, object?> { ["user"] = null }, "updated", true)
+            new AssignmentCase("<input x-model=\"state.items['0']\">", new Dictionary<string, object?> { ["items"] = new[] { "old" } }, "updated", true),
+            new AssignmentCase("<input x-model=\"state.user.name\">", new Dictionary<string, object?> { ["user"] = null }, "updated", true),
+            new AssignmentCase("<input x-model=\"state.missing.name\">", new Dictionary<string, object?>(), "updated", true),
+            new AssignmentCase("<input x-model=\"state.created\">", new Dictionary<string, object?>(), "updated", true)
         };
 
         var results = ExecuteAssignments(cases);
 
-        Assert.Equal("{\"object\":{\"name\":\"updated\"}}", results[0]);
-        Assert.Equal("{\"items\":[\"updated\"]}", results[1]);
-        Assert.Equal("{\"items\":[{\"name\":\"first\"},{\"name\":\"updated\"}]}", results[2]);
-        Assert.Equal("{\"groupIndex\":0,\"itemIndex\":0,\"groups\":[{\"items\":[{\"name\":\"updated\"}]}]}", results[3]);
-        Assert.Equal(new[] { "error", "error", "error", "error" }, results.Skip(4));
+        Assert.Equal("{\"name\":\"updated\"}", results[0]);
+        Assert.Equal("{\"user\":{\"name\":\"updated\"}}", results[1]);
+        Assert.Equal("{\"object\":{\"name\":\"updated\"}}", results[2]);
+        Assert.Equal("{\"items\":[\"updated\"]}", results[3]);
+        Assert.Equal("{\"items\":[{\"name\":\"first\"},{\"name\":\"updated\"}]}", results[4]);
+        Assert.Equal("{\"groupIndex\":0,\"itemIndex\":0,\"groups\":[{\"items\":[{\"name\":\"updated\"}]}]}", results[5]);
+        Assert.Equal(Enumerable.Repeat("error", 7), results.Skip(6));
+    }
+
+    [Fact]
+    public void GeneratedJavaScriptEvaluatesNestedAssignmentIndexesOnceFromLeftToRight() {
+        Assert.Equal("{\"order\":[\"group\",\"item\"],\"name\":\"updated\"}", ExecuteInstrumentedNestedAssignment());
+    }
+
+    [Fact]
+    public void GeneratedJavaScriptPreservesFormatterNullLaziness() {
+        var state = new Dictionary<string, object?>();
+        var results = EvaluateJavaScript([
+            new ConformanceCase("null | number(1 / 0)", state),
+            new ConformanceCase("null | number(1 / 0) | upper", state),
+            new ConformanceCase("1 | number(1 / 0)", state)
+        ]);
+
+        Assert.Equal(new[] { "null", "null", "error" }, results);
     }
 
     // methods (private)
@@ -165,6 +189,40 @@ public sealed class XTemplateJavaScriptConformanceTests {
             process.WaitForExit();
             Assert.True(process.ExitCode == 0, $"JavaScript assignment runtime failed:{Environment.NewLine}{error}");
             return JsonSerializer.Deserialize<string[]>(output) ?? throw new InvalidOperationException("JavaScript assignment runtime returned no results.");
+        } finally {
+            if (File.Exists(modulePath)) File.Delete(modulePath);
+        }
+    }
+
+    private static string ExecuteInstrumentedNestedAssignment() {
+        var runtimePath = Path.Combine(AppContext.BaseDirectory, "Resources", "DProjects.XShell", "xshell", "render-engines", "x.js");
+        var modulePath = Path.Combine(Path.GetTempPath(), $"xtemplate-assignment-order-{Guid.NewGuid():N}.mjs");
+        try {
+            var renderer = new XTemplateCompiler().Compile("<input x-model=\"state.groups[state.groupIndex].items[state.itemIndex].name\">");
+            File.WriteAllText(modulePath, $$"""
+                globalThis.HTMLElement = class {};
+                globalThis.CSSStyleSheet = class { replaceSync() {} };
+                globalThis.customElements = { get() {}, define() {} };
+                globalThis.window = { customElements: globalThis.customElements };
+                const { XTemplateRuntimeUtils } = await import({{JsonSerializer.Serialize(new Uri(runtimePath).AbsoluteUri)}});
+                const order = [];
+                const state = { groups: [{ items: [{ name: "old" }] }] };
+                Object.defineProperties(state, {
+                    groupIndex: { enumerable:true, get() { order.push("group"); return 0; } },
+                    itemIndex: { enumerable:true, get() { order.push("item"); return 0; } }
+                });
+                const renderer = {{renderer}};
+                const input = renderer(state, null, () => {}, XTemplateRuntimeUtils, { config: { lang: "en-US" } }, 0)[0];
+                order.length = 0;
+                input.events["change.stop"]({ target: { localName: "input", value: "updated" } });
+                console.log(JSON.stringify({ order, name: state.groups[0].items[0].name }));
+                """);
+            using var process = Process.Start(new ProcessStartInfo("node", modulePath) { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false })!;
+            var output = process.StandardOutput.ReadToEnd();
+            var error = process.StandardError.ReadToEnd();
+            process.WaitForExit();
+            Assert.True(process.ExitCode == 0, $"JavaScript assignment order runtime failed:{Environment.NewLine}{error}");
+            return output.Trim();
         } finally {
             if (File.Exists(modulePath)) File.Delete(modulePath);
         }

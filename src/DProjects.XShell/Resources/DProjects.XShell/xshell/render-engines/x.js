@@ -427,6 +427,33 @@ const utils = new class {
 		};
 		const truthy = (value) => !(value === null || value === false || value === "" || (typeof value === "number" && value === 0));
 		const own = (target, name) => Object.prototype.hasOwnProperty.call(target, name);
+		const assignmentError = (message) => fail(`Model assignment error: ${message}`);
+		const protectedMember = (name) => name === "__proto__" || name === "constructor" || name === "prototype";
+		const strictMember = (target, name) => {
+			if (target === null || typeof target !== "object" || Array.isArray(target)) return assignmentError("member target must be an object");
+			if (typeof name !== "string" || protectedMember(name)) return assignmentError("member name is not writable");
+			if (!own(target, name)) return assignmentError("member does not exist and member creation is unsupported");
+			return target;
+		};
+		const writableMember = (target, name) => {
+			strictMember(target, name);
+			const descriptor = Object.getOwnPropertyDescriptor(target, name);
+			if (!descriptor || (!descriptor.writable && typeof descriptor.set !== "function")) return assignmentError("member is read-only");
+			return target;
+		};
+		const strictIndex = (target, index) => {
+			if (!Array.isArray(target)) return assignmentError("numeric index target must be a collection");
+			if (typeof index !== "number" || !Number.isFinite(index) || !Number.isInteger(index)) return assignmentError("collection index must be a finite integer number");
+			if (index < 0) return assignmentError("collection index must be non-negative");
+			if (index >= target.length) return assignmentError("collection index is out of range");
+			return target;
+		};
+		const writableIndex = (target, index) => {
+			strictIndex(target, index);
+			const descriptor = Object.getOwnPropertyDescriptor(target, String(index));
+			if (!descriptor || (!descriptor.writable && typeof descriptor.set !== "function")) return assignmentError("collection index is read-only");
+			return target;
+		};
 		const compare = (left, right) => {
 			if (typeof left === "number" && typeof right === "number") return left < right ? -1 : left > right ? 1 : 0;
 			if (typeof left !== "string" || typeof right !== "string") return fail("Comparison requires two numbers or two strings");
@@ -517,30 +544,30 @@ const utils = new class {
 			member: (target, name) => target === null ? null : (typeof target === "string" || Array.isArray(target)) ? name === "length" ? target.length : null : (typeof target === "object" && own(target, name) ? normalize(target[name]) : null),
 			index: (target, index) => target === null ? null : typeof index === "string" ? (typeof target === "string" || Array.isArray(target) ? (index === "length" ? target.length : null) : (typeof target === "object" && own(target, index) ? normalize(target[index]) : null)) : (Number.isInteger(index) && index >= 0 && Array.isArray(target) ? normalize(target[index]) : fail("A collection index must be a non-negative integer number")),
 			assign: (root, path, value) => {
-				if (root === null || typeof root !== "object" || !Array.isArray(path) || path.length === 0) return fail("Model assignment requires a writable target");
+				if (root === null || typeof root !== "object" || !Array.isArray(path) || path.length === 0) return assignmentError("requires a writable target");
 				let target = root;
 				for (let position = 0; position < path.length; position++) {
 					const segment = path[position];
 					const isFinal = position === path.length - 1;
 					if (segment.kind === "member") {
-						if (target === null || typeof target !== "object" || Array.isArray(target) || !own(target, segment.name)) return fail("Model assignment requires an existing object member");
+						(isFinal ? writableMember : strictMember)(target, segment.name);
 						if (isFinal) { target[segment.name] = value; return value; }
 						target = normalize(target[segment.name]);
 					} else if (segment.kind === "index") {
 						const index = segment.value();
 						if (typeof index === "string") {
-							if (target === null || typeof target !== "object" || Array.isArray(target) || !own(target, index)) return fail("Model assignment requires an existing object member");
+							(isFinal ? writableMember : strictMember)(target, index);
 							if (isFinal) { target[index] = value; return value; }
 							target = normalize(target[index]);
 						} else {
-							if (!Array.isArray(target) || !Number.isInteger(index) || index < 0 || index >= target.length) return fail("Model assignment requires an in-range collection index");
+							(isFinal ? writableIndex : strictIndex)(target, index);
 							if (isFinal) { target[index] = value; return value; }
 							target = normalize(target[index]);
 						}
-					} else return fail("Model assignment requires a valid path segment");
-					if (target === null) return fail("Model assignment requires a non-null intermediate target");
+					} else return assignmentError("requires a valid path segment");
+					if (!isFinal && target === null) return assignmentError("intermediate target is null or missing");
 				}
-				return fail("Model assignment requires a writable target");
+				return assignmentError("requires a writable target");
 			},
 			not: (value) => !truthy(value), unaryPlus: (value) => number(value), unaryMinus: (value) => checked(-number(value)),
 			add: (left, right) => typeof left === "number" && typeof right === "number" ? checked(left + right) : (typeof left === "string" || typeof right === "string" ? scalar(left) + scalar(right) : fail("Operator '+' requires two numbers or a string operand")),

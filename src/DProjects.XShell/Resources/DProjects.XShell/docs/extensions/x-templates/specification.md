@@ -1936,6 +1936,10 @@ and traverses all suffixes except the final suffix as reads. Every intermediate 
 A missing intermediate, null, unsupported, out-of-range, or read-only target produces a model-assignment error. Write traversal does not use the
 null-propagating read behavior to silently discard an assignment.
 
+The browser runtime's plain-object adapter permits writes only to existing writable own properties. It does not create members during `x-model`
+assignment, and it rejects the `__proto__`, `constructor`, and `prototype` names. This deliberately narrow policy keeps browser writes aligned with
+the runtime's own-member read model until an explicit writable-object adapter contract is introduced.
+
 These are not assignable expressions and MUST be rejected during template validation:
 
 ```text
