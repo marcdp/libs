@@ -233,12 +233,12 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
                         return self._context;
                     } else if (prop == "timer") {
                         // timer
-                        const timer = new Timer((command, ...params) => { self._controller?.[command]?.(...params); });
+                        const timer = new Timer((command, ...params) => { self._controller[command]?.(...params); });
                         self._disposables.push(timer);
                         return timer;
                     } else if (prop == "events") {
                         // events
-                        const events = new Events((command, ...params) => { self._controller?.[command]?.(...params); });
+                        const events = new Events((command, ...params) => { self._controller[command]?.(...params); });
                         self._disposables.push(events);
                         return events;
                     } else if (prop == "page") {
@@ -251,7 +251,7 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
                 }
             });            
             // author script
-            this._controller = definition.controller?.(servicesProvider) ?? {};
+            this._controller = definition.controller(servicesProvider) ?? {};
             // validate public contract methods
             for (const methodName of Object.keys(contract.methods ?? {})) {
                 const method = this._controller[methodName];
@@ -280,7 +280,7 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
             document.adoptedStyleSheets = [...document.adoptedStyleSheets,...this._styleSheets];
             // render engine
             this._renderEngine = renderEngineFactory.create({ host, state: this._state, handler:(command, ...params) => {
-                this._controller?.[command]?.(...params);
+                this._controller[command](...params);
             }, invalidate: () => { 
                 this.invalidate(); 
             } })
