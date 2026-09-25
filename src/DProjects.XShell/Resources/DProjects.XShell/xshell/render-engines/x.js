@@ -68,24 +68,9 @@ class XTemplate {
 			this._render = render;
 			return;
 		}
-		//compiles
-		let funcs = [];
-		let code = [];
-		code.push("let _ifs = {};");
-		code.push("return [");
-		let name = "x-something";
-		let index = 0;
-		template.content.childNodes.forEach((subNode) => {
-			index += this._compileTemplateToJsRecursive(name, subNode, index, code, funcs, 0);
-		});
-		code.push("];");
-		for(let i = funcs.length-1; i>=0 ; i--) {
-			code.unshift("let _func" + i + " = " + funcs[i] + ";");
-			
-		}
-		code = code.join("\n");
-		this._render = new Function("state", "handler", "invalidate", "utils", "i18n", "renderCount", code);
+		throw new Error("XTemplate requires a server-precompiled templateRenderer; browser expression compilation is not supported.");
 	}
+	// legacy source generator retained only for source-history compatibility; _compile never invokes it
 	_compileTemplateToJsRecursive(name, node, index, js, funcs, level) {
 		let indent = " ".repeat((level + 1) * 4);
 		let incs = 0;
@@ -414,6 +399,112 @@ const utils = new class {
 			children: children ?? emptyArray
 		};
 	};
+	expr = (() => {
+		const currencies = new Set(["EUR", "USD", "JPY", "GBP", "CAD", "AUD", "CHF", "CNY", "KRW"]);
+		const locale = (i18n) => {
+			const value = i18n?.config?.lang || "en-US";
+			return value === "en" ? "en-US" : value === "es" ? "es-ES" : value === "tr" ? "tr-TR" : value;
+		};
+		const fail = (message) => { throw new Error(`XTemplate runtime error: ${message}`); };
+		const number = (value, message = "Numeric operand must be a finite number") => typeof value === "number" && Number.isFinite(value) ? value : fail(message);
+		const normalize = (value) => value === undefined ? null : typeof value === "number" ? number(value, "XTemplate numbers must be finite") : value;
+		const checked = (value) => Number.isFinite(value) ? value : fail("Arithmetic result must be a finite number");
+		const digits = (value) => Number.isInteger(value) && value >= 0 && value <= 15 ? value : fail("Formatter digits must be a supported non-negative integer");
+		const round = (value, precision) => {
+			const factor = 10 ** precision;
+			return Math.sign(value) * Math.floor(Math.abs(value) * factor + 0.5) / factor;
+		};
+		const scalar = (value) => {
+			if (value === null) return "";
+			if (typeof value === "string") return value;
+			if (typeof value === "boolean") return value ? "true" : "false";
+			if (typeof value === "number" && Number.isFinite(value)) return String(value);
+			return fail("Value cannot be converted to an XTemplate scalar");
+		};
+		const truthy = (value) => !(value === null || value === false || value === "" || (typeof value === "number" && value === 0));
+		const own = (target, name) => Object.prototype.hasOwnProperty.call(target, name);
+		const compare = (left, right) => {
+			if (typeof left === "number" && typeof right === "number") return left < right ? -1 : left > right ? 1 : 0;
+			if (typeof left !== "string" || typeof right !== "string") return fail("Comparison requires two numbers or two strings");
+			const leftValues = [...left];
+			const rightValues = [...right];
+			for (let index = 0; index < Math.min(leftValues.length, rightValues.length); index++) {
+				const difference = leftValues[index].codePointAt(0) - rightValues[index].codePointAt(0);
+				if (difference) return difference < 0 ? -1 : 1;
+			}
+			return leftValues.length - rightValues.length;
+		};
+		const parseDate = (value, allowDate) => {
+			if (typeof value !== "string") return fail("Date/time formatters require a string input");
+			let match = allowDate && /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+			if (match) return {year:+match[1], month:+match[2], day:+match[3], hour:0, minute:0, second:0};
+			match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(Z|[+-]\d{2}:\d{2})$/.exec(value);
+			if (!match) return fail("Formatter received an invalid ISO-8601 value");
+			return {year:+match[1], month:+match[2], day:+match[3], hour:+match[4], minute:+match[5], second:+match[6]};
+		};
+		const pattern = (value, format, culture, dateAllowed, timeAllowed) => {
+			if (typeof format !== "string") return fail("Formatter pattern requires a string argument");
+			const tokens = /yyyy|MMMM|MMM|MM|dd|HH|mm|ss|M|d|H/g;
+			let found = false;
+			const result = format.replace(tokens, (token) => {
+				found = true;
+				if (!dateAllowed && /^(yyyy|MMMM|MMM|MM|M|dd|d)$/.test(token)) return fail("Formatter pattern token is not allowed");
+				if (!timeAllowed && /^(HH|H|mm|ss)$/.test(token)) return fail("Formatter pattern token is not allowed");
+				if (token === "MMMM" || token === "MMM") return new Intl.DateTimeFormat(culture, {month:token === "MMMM" ? "long" : "short", timeZone:"UTC"}).format(new Date(Date.UTC(value.year, value.month - 1, 1)));
+				const values = {yyyy:String(value.year).padStart(4, "0"), MM:String(value.month).padStart(2, "0"), M:String(value.month), dd:String(value.day).padStart(2, "0"), d:String(value.day), HH:String(value.hour).padStart(2, "0"), H:String(value.hour), mm:String(value.minute).padStart(2, "0"), ss:String(value.second).padStart(2, "0")};
+				return values[token];
+			});
+			if (!found || /[A-Za-z]/.test(result.replace(/[^A-Za-z]/g, ""))) return fail("Formatter pattern contains an unsupported token");
+			return result;
+		};
+		const format = (value, name, getArguments, i18n) => {
+			if (value === null) return null;
+			const args = getArguments();
+			const culture = locale(i18n);
+			if (name === "number") {
+				if (args.length > 1) return fail("Formatter 'number' received an invalid argument count");
+				const precision = args.length ? digits(args[0]) : 3;
+				return new Intl.NumberFormat(culture, {minimumFractionDigits:args.length ? precision : 0, maximumFractionDigits:precision}).format(round(number(value, "Formatter 'number' requires a numeric input"), precision));
+			}
+			if (name === "percent") {
+				if (args.length > 1) return fail("Formatter 'percent' received an invalid argument count");
+				const precision = args.length ? digits(args[0]) : 3;
+				return new Intl.NumberFormat(culture, {style:"percent", minimumFractionDigits:args.length ? precision : 0, maximumFractionDigits:precision}).format(round(checked(number(value, "Formatter 'percent' requires a numeric input") * 100), precision) / 100);
+			}
+			if (name === "currency") {
+				if (args.length < 1 || args.length > 2 || typeof args[0] !== "string" || !currencies.has(args[0])) return fail("Formatter 'currency' requires a supported uppercase ISO 4217 currency code");
+				const precision = args.length === 2 ? digits(args[1]) : (["JPY", "KRW"].includes(args[0]) ? 0 : 2);
+				return new Intl.NumberFormat(culture, {style:"currency", currency:args[0], currencyDisplay:"narrowSymbol", minimumFractionDigits:precision, maximumFractionDigits:precision}).format(round(number(value, "Formatter 'currency' requires a numeric input"), precision));
+			}
+			if (name === "upper" || name === "lower") {
+				if (args.length || typeof value !== "string") return fail(`Formatter '${name}' requires a string input and no arguments`);
+				return name === "upper" ? value.toLocaleUpperCase(culture) : value.toLocaleLowerCase(culture);
+			}
+			if (name === "trim") {
+				if (args.length || typeof value !== "string") return fail("Formatter 'trim' requires a string input and no arguments");
+				return value.trim();
+			}
+			if (name === "date" || name === "datetime" || name === "time") {
+				if (args.length !== 1) return fail(`Formatter '${name}' requires one pattern argument`);
+				return pattern(parseDate(value, name === "date"), args[0], culture, name !== "time", name !== "date");
+			}
+			return fail(`Unknown formatter '${name}'`);
+		};
+		return {
+			truthy, scalar,
+			member: (target, name) => target === null ? null : (typeof target === "string" || Array.isArray(target)) ? name === "length" ? target.length : null : (typeof target === "object" && own(target, name) ? normalize(target[name]) : null),
+			index: (target, index) => target === null ? null : typeof index === "string" ? (typeof target === "string" || Array.isArray(target) ? (index === "length" ? target.length : null) : (typeof target === "object" && own(target, index) ? normalize(target[index]) : null)) : (Number.isInteger(index) && index >= 0 && Array.isArray(target) ? normalize(target[index]) : fail("A collection index must be a non-negative integer number")),
+			setMember: (target, name, value) => { if (target === null || typeof target !== "object" || Array.isArray(target)) fail("Member assignment requires an XTemplate object"); target[name] = value; return value; },
+			setIndex: (target, index, value) => { if (!Array.isArray(target) || !Number.isInteger(index) || index < 0) fail("Indexed assignment requires a collection non-negative integer index"); target[index] = value; return value; },
+			not: (value) => !truthy(value), unaryPlus: (value) => number(value), unaryMinus: (value) => checked(-number(value)),
+			add: (left, right) => typeof left === "number" && typeof right === "number" ? checked(left + right) : (typeof left === "string" || typeof right === "string" ? scalar(left) + scalar(right) : fail("Operator '+' requires two numbers or a string operand")),
+			subtract: (left, right) => checked(number(left) - number(right)), multiply: (left, right) => checked(number(left) * number(right)), divide: (left, right) => { const divisor = number(right); return divisor === 0 ? fail("Division by zero") : checked(number(left) / divisor); }, modulo: (left, right) => { const divisor = number(right); return divisor === 0 ? fail("Modulo by zero") : checked(number(left) % divisor); },
+			equal: (left, right) => left === right, notEqual: (left, right) => left !== right, less: (left, right) => compare(left, right) < 0, lessOrEqual: (left, right) => compare(left, right) <= 0, greater: (left, right) => compare(left, right) > 0, greaterOrEqual: (left, right) => compare(left, right) >= 0,
+			and: (left, right) => { const value = left(); return truthy(value) ? right() : value; }, or: (left, right) => { const value = left(); return truthy(value) ? value : right(); }, coalesce: (left, right) => { const value = left(); return value === null ? right() : value; }, conditional: (condition, whenTrue, whenFalse) => truthy(condition()) ? whenTrue() : whenFalse(),
+			format, collection: (value) => { if (Array.isArray(value)) return value; if (typeof value === "number" && Number.isInteger(value) && value >= 0) return Array.from({length:value}, (_, index) => index + 1); if (typeof value === "string") return [...value]; if (value !== null && typeof value === "object") return Object.keys(value); return fail("x-for requires a collection, string, object, or non-negative integer number"); },
+			attributes: (value) => { if (value === null || typeof value !== "object" || Array.isArray(value)) return fail("x-attr requires an object"); const result = {}; for (const key of Object.keys(value)) { const item = value[key]; if (typeof item === "string" || typeof item === "number" || item === true) result[key] = item; } return result; }, properties: (value) => value !== null && typeof value === "object" && !Array.isArray(value) ? Object.fromEntries(Object.keys(value).map((key) => [key, value[key] === undefined ? null : value[key]])) : fail("x-prop requires an object"), dynamicArgument: (name, value) => typeof name === "string" ? {[name]: value} : fail("Dynamic attribute name must be a string"), dynamicProperty: (name, value) => typeof name === "string" ? {[name]: value} : fail("Dynamic property name must be a string")
+		};
+	})();
 	toArray = (value) => {
 		if (Array.isArray(value)) return value;
 		if (typeof (value) == "number") return Array.from({ length: value }, (v, i) => i + 1);
@@ -569,7 +660,7 @@ class XTemplateInstance {
 					}
 					name = name.substring(0, name.indexOf("."));
 				}
-				if (typeof (eventHandler) == "string") eventHandler = new Function("event", eventHandler);                
+				if (typeof (eventHandler) == "string") throw new Error("XTemplate event handlers must be precompiled functions.");
 				el.addEventListener(name, (event, ...args) => {
 					//mouse button
 					if (options.left && !event.button == 0) return false;

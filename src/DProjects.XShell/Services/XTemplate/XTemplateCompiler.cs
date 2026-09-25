@@ -12,6 +12,9 @@ namespace DProjects.XShell.Services.XTemplate {
         };
         private static readonly HashSet<string> RawTextElements = new(StringComparer.OrdinalIgnoreCase) { "script", "style" };
 
+        // vars
+        private readonly XTemplateExpressionJavaScriptCompiler _expressionCompiler = new();
+
         // methods
         public string Compile(string template) {
             if (template == null) throw new ArgumentNullException(nameof(template));
@@ -25,22 +28,24 @@ namespace DProjects.XShell.Services.XTemplate {
                 indent + "return ["
             };
             var index = 0;
+            var scope = new XTemplateExpressionJavaScriptScope(["state"]);
             foreach (var node in root.Children) {
-                index += CompileNode(node, index, body, 1);
+                index += CompileNode(node, index, body, 1, scope);
             }
             body.Add(indent + "];");
             return "(state, handler, invalidate, utils, i18n, renderCount) => {\n" + indent + string.Join("\n" + indent, body) + "\n" + indent + "}";
         }
 
         // methods (private)
-        private static int CompileNode(TemplateNode node, int index, List<string> javascript, int level) {
+        private int CompileNode(TemplateNode node, int index, List<string> javascript, int level, XTemplateExpressionJavaScriptScope scope) {
             var indent = new string(' ', (level + 1) * 4);
             if (node is TextNode textNode) {
                 javascript.Add($"{indent}utils.createVDOM(\"#text\", null, null, null, {{index: {index}}}, {ToJavaScriptString(textNode.Text)}),");
                 return 1;
             }
             if (node is ExpressionNode expressionNode) {
-                javascript.Add($"{indent}utils.createVDOM(\"#text\", null, null, null, {{index: {index}}}, \"\" + ({expressionNode.Expression})),");
+                var expression = CompileExpression(expressionNode.Expression, "interpolation", expressionNode.SourceOffset, scope);
+                javascript.Add($"{indent}utils.createVDOM(\"#text\", null, null, null, {{index: {index}}}, utils.expr.scalar({expression})),");
                 return 1;
             }
             if (node is CommentNode commentNode) {
@@ -58,6 +63,16 @@ namespace DProjects.XShell.Services.XTemplate {
             var events = new List<string>();
             var options = new List<string> { $"index:{index}" };
             var classes = new List<string>();
+            var childScope = scope;
+            var expressionScope = scope;
+            var scopedLoop = element.Attributes.FirstOrDefault(attribute => attribute.Name is "x-for" or "x-recursive");
+            if (scopedLoop != null) {
+                var loop = ParseLoop(scopedLoop.Value, scopedLoop.Name, scopedLoop.Name == "x-recursive", element);
+                expressionScope = scopedLoop.Name == "x-recursive"
+                    ? scope.With(loop.Item, loop.Index, loop.AbsoluteIndex, loop.Indent)
+                    : scope.With(loop.Item, loop.Index);
+                childScope = expressionScope;
+            }
             string? text = null;
             string? childrenToAppend = null;
             var staticAttributes = element.Attributes.Where(attribute => IsStaticAttribute(attribute.Name)).ToArray();
@@ -78,45 +93,39 @@ namespace DProjects.XShell.Services.XTemplate {
                     continue;
                 } else if (name == "x-text") {
                     EnsureEmptyElement(element, name);
-                    EnsureExpression(value, name, element);
-                    text = $"\"\" + {value}";
+                    text = $"utils.expr.scalar({CompileExpression(value, name, element.SourceOffset, expressionScope)})";
                 } else if (name == "x-html") {
                     EnsureEmptyElement(element, name);
-                    EnsureExpression(value, name, element);
+                    var expression = CompileExpression(value, name, element.SourceOffset, expressionScope);
                     options.Add("format:\"html\"");
-                    text = $"\"\" + {value}";
+                    text = $"utils.expr.scalar({expression})";
                 } else if (name == "x-children") {
-                    EnsureExpression(value, name, element);
+                    text = CompileExpression(value, name, element.SourceOffset, expressionScope);
                     options.Add("format:\"node\"");
-                    text = value;
                 } else if (name == "x-attr") {
-                    EnsureExpression(value, name, element);
-                    attributes.Add($"...utils.toObject({value})");
+                    attributes.Add($"...utils.expr.attributes({CompileExpression(value, name, element.SourceOffset, expressionScope)})");
                 } else if (name.StartsWith("x-attr:", StringComparison.Ordinal)) {
-                    EnsureExpression(value, name, element);
+                    var expression = CompileExpression(value, name, element.SourceOffset, expressionScope);
                     var attributeName = name[(name.IndexOf(':') + 1)..];
-                    if (attributeName.StartsWith('[') && attributeName.EndsWith(']')) attributes.Add($"...utils.toDynamicArgument({attributeName[1..^1]}, {value})");
-                    else attributes.Add($"{ToJavaScriptString(attributeName)}:{value}");
+                    if (attributeName.StartsWith('[') && attributeName.EndsWith(']')) attributes.Add($"...utils.expr.dynamicArgument({CompileExpression(attributeName[1..^1], name, element.SourceOffset, expressionScope)}, {expression})");
+                    else attributes.Add($"{ToJavaScriptString(attributeName)}:{expression}");
                 } else if (name == "x-prop") {
-                    EnsureExpression(value, name, element);
-                    attributes.Add($"...{value}");
+                    properties.Add($"...utils.expr.properties({CompileExpression(value, name, element.SourceOffset, expressionScope)})");
                 } else if (name.StartsWith("x-prop:", StringComparison.Ordinal)) {
-                    EnsureExpression(value, name, element);
+                    var expression = CompileExpression(value, name, element.SourceOffset, expressionScope);
                     var propertyName = KebabToCamel(name[(name.IndexOf(':') + 1)..]);
-                    if (propertyName.StartsWith('[') && propertyName.EndsWith(']')) properties.Add($"...utils.toDynamicProperty({propertyName[1..^1]}, {value})");
-                    else properties.Add($"{propertyName}:{value}");
+                    if (propertyName.StartsWith('[') && propertyName.EndsWith(']')) properties.Add($"...utils.expr.dynamicProperty({CompileExpression(propertyName[1..^1], name, element.SourceOffset, expressionScope)}, {expression})");
+                    else properties.Add($"{propertyName}:{expression}");
                 } else if (name.StartsWith("x-on:", StringComparison.Ordinal)) {
                     if (string.IsNullOrWhiteSpace(value)) throw TemplateError($"Directive '{name}' requires an event handler name.", element);
                     var eventName = name[(name.IndexOf(':') + 1)..];
                     if (string.IsNullOrWhiteSpace(eventName)) throw TemplateError("An event binding requires an event name.", element);
                     events.Add($"{ToJavaScriptString(eventName)}: (event) => handler({ToJavaScriptString(value)}, event)");
                 } else if (name == "x-if") {
-                    EnsureExpression(value, name, element);
-                    line.Clear().Append(indent).Append($"...((_ifs.c{level} = ({value})) ? [utils.createVDOM({ToJavaScriptString(element.Name)}");
+                    line.Clear().Append(indent).Append($"...((_ifs.c{level} = utils.expr.truthy({CompileExpression(value, name, element.SourceOffset, expressionScope)})) ? [utils.createVDOM({ToJavaScriptString(element.Name)}");
                     postLine.Add($"] : [utils.createVDOM(\"#comment\", null, null, null, {{index: {index}}}, 'x-if')]),");
                 } else if (name == "x-elseif") {
-                    EnsureExpression(value, name, element);
-                    line.Clear().Append(indent).Append($"...(_ifs.c{level} ? [] : (_ifs.c{level} = ({value})) ? [utils.createVDOM({ToJavaScriptString(element.Name)}");
+                    line.Clear().Append(indent).Append($"...(_ifs.c{level} ? [] : (_ifs.c{level} = utils.expr.truthy({CompileExpression(value, name, element.SourceOffset, expressionScope)})) ? [utils.createVDOM({ToJavaScriptString(element.Name)}");
                     postLine.Add($"] : [utils.createVDOM(\"#comment\", null, null, null, {{index: {index}}}, 'x-elseif')]),");
                 } else if (name == "x-else") {
                     if (!string.IsNullOrEmpty(value)) throw TemplateError("Directive 'x-else' cannot have a value.", element);
@@ -126,10 +135,12 @@ namespace DProjects.XShell.Services.XTemplate {
                     var loop = ParseLoop(value, name, false, element);
                     var keyName = element.GetAttribute("x-key");
                     var forType = string.IsNullOrWhiteSpace(keyName) ? "position" : "key";
+                    var collection = CompileExpression(loop.Collection, name, element.SourceOffset, scope);
                     javascript.Add($"{indent}utils.createVDOM(\"#comment\", null, null, null, {{index: {index}, forType:'{forType}'}}, 'x-for-start'),");
-                    line.Clear().Append(indent).Append($"...(utils.toArray({loop.Collection}).map(({loop.Item}, {loop.Index}) => utils.createVDOM({ToJavaScriptString(element.Name)}");
+                    line.Clear().Append(indent).Append($"...(utils.expr.collection({collection}).map(({loop.Item}, {loop.Index}) => utils.createVDOM({ToJavaScriptString(element.Name)}");
                     postLine.Add(")),");
-                    if (!string.IsNullOrWhiteSpace(keyName)) options.Add($"\"key\":{loop.Item}.{keyName}");
+                    if (!string.IsNullOrWhiteSpace(keyName)) options.Add($"\"key\":utils.expr.member({loop.Item}, {ToJavaScriptString(ValidateKeyName(keyName, element))})");
+                    childScope = expressionScope;
                     post.Add($"{indent}utils.createVDOM(\"#comment\", null, null, null, {{index: {index}, forType:'{forType}'}}, 'x-for-end'),");
                 } else if (name == "x-key") {
                     if (!element.HasAttribute("x-for") && !element.HasAttribute("x-recursive")) throw TemplateError("Directive 'x-key' requires 'x-for' or 'x-recursive'.", element);
@@ -138,29 +149,29 @@ namespace DProjects.XShell.Services.XTemplate {
                     var loop = ParseLoop(value, name, true, element);
                     var keyName = element.GetAttribute("x-key");
                     var forType = string.IsNullOrWhiteSpace(keyName) ? "position" : "key";
-                    javascript.Add($"{indent}...(func = (_items, {loop.AbsoluteIndex}, {loop.Indent}, wrapper) => {{ let _itemsArray = utils.toArray(_items) || []; let _result = [");
+                    var collection = CompileExpression(loop.Collection, name, element.SourceOffset, scope);
+                    javascript.Add($"{indent}...(func = (_items, {loop.AbsoluteIndex}, {loop.Indent}, wrapper) => {{ let _itemsArray = utils.expr.collection(_items); let _result = [");
                     indent += "    ";
                     level++;
                     javascript.Add($"{indent}utils.createVDOM(\"#comment\", null, null, null, {{index: {index - 1}, forType:'{forType}'}}, 'x-for-start'),");
                     line.Clear().Append(indent).Append($"...(_itemsArray.map(({loop.Item}, {loop.Index}) => {{ let _result = utils.createVDOM({ToJavaScriptString(element.Name)}");
                     postLine.Add($"; {loop.AbsoluteIndex}++; return _result;}})),");
-                    if (!string.IsNullOrWhiteSpace(keyName)) options.Add($"\"key\":{loop.Item}.{keyName}");
+                    if (!string.IsNullOrWhiteSpace(keyName)) options.Add($"\"key\":utils.expr.member({loop.Item}, {ToJavaScriptString(ValidateKeyName(keyName, element))})");
                     post.Add($"{indent}utils.createVDOM(\"#comment\", null, null, null, {{index: {index - 1}, forType:'{forType}'}}, 'x-for-end'),");
                     var wrapper = element.GetAttribute("x-recursive-wrapper") ?? "";
-                    post.Add($"\n    {indent[..^4]}]; if (wrapper) _result = [utils.createVDOM(wrapper, null, null, null, {{index:1}}, _result)]; return _result;}})({loop.Collection}, 0, 0),");
-                    childrenToAppend = $"func({loop.Item}.children, {loop.AbsoluteIndex} + 1, {loop.Indent} + 1, {ToJavaScriptString(wrapper)})";
+                    post.Add($"\n    {indent[..^4]}]; if (wrapper) _result = [utils.createVDOM(wrapper, null, null, null, {{index:1}}, _result)]; return _result;}})({collection}, 0, 0),");
+                    childrenToAppend = $"func(utils.expr.member({loop.Item}, \"children\"), {loop.AbsoluteIndex} + 1, {loop.Indent} + 1, {ToJavaScriptString(wrapper)})";
+                    childScope = expressionScope;
                 } else if (name == "x-recursive-wrapper") {
                     if (!element.HasAttribute("x-recursive")) throw TemplateError("Directive 'x-recursive-wrapper' requires 'x-recursive'.", element);
                 } else if (name == "x-show") {
-                    EnsureExpression(value, name, element);
-                    attributes.Add($"...({value} ? null : {{style:'display:none'}})");
+                    attributes.Add($"hidden:utils.expr.truthy({CompileExpression(value, name, element.SourceOffset, expressionScope)}) ? null : true");
                 } else if (name.StartsWith("x-class:", StringComparison.Ordinal)) {
-                    EnsureExpression(value, name, element);
                     var className = name[(name.IndexOf(':') + 1)..];
                     if (string.IsNullOrWhiteSpace(className)) throw TemplateError("Directive 'x-class' requires a class name.", element);
-                    classes.Add($"({value} ? {ToJavaScriptString(className)} : null)");
+                    classes.Add($"(utils.expr.truthy({CompileExpression(value, name, element.SourceOffset, expressionScope)}) ? {ToJavaScriptString(className)} : null)");
                 } else if (name == "x-model") {
-                    CompileModel(element, value, properties, events);
+                    CompileModel(element, value, properties, events, expressionScope);
                 } else if (name == "x-once") {
                     if (!string.IsNullOrEmpty(value)) throw TemplateError("Directive 'x-once' cannot have a value.", element);
                     line.Clear().Append(indent).Append($"...((renderCount==0) ? [utils.createVDOM({ToJavaScriptString(element.Name)}");
@@ -193,7 +204,8 @@ namespace DProjects.XShell.Services.XTemplate {
                         element.Children[childIndex],
                         childIndex,
                         javascript,
-                        level + 1
+                        level + 1,
+                        childScope
                     );
                 }
 
@@ -222,24 +234,24 @@ namespace DProjects.XShell.Services.XTemplate {
             return 1;
         }
 
-        private static void CompileModel(ElementNode element, string expression, List<string> properties, List<string> events) {
-            EnsureExpression(expression, "x-model", element);
+        private void CompileModel(ElementNode element, string expression, List<string> properties, List<string> events, XTemplateExpressionJavaScriptScope scope) {
+            var model = ParseExpression(expression, "x-model", element.SourceOffset);
+            if (!XTemplateExpressions.IsAssignable(model)) throw TemplateError("Directive 'x-model' requires an assignable XTemplate expression.", element);
+            var value = _expressionCompiler.Compile(model, scope);
+            var assignment = _expressionCompiler.CompileAssignment(model, "value", scope);
             var propertyName = "value";
-            var propertyValue = expression;
+            var propertyValue = value;
             if (element.Name == "input") {
                 var type = element.GetAttribute("type");
                 if (type == "range") propertyName = "valueAsNumber";
                 else if (type == "checkbox") propertyName = "checked";
                 else if (type == "radio") {
                     propertyName = "checked";
-                    propertyValue = "function() { return state.value == this.attrs.value}";
+                    propertyValue = $"function() {{ return utils.expr.equal({value}, utils.expr.member(this.attrs, \"value\")); }}";
                 }
-            } else if (element.Name == "select" && element.HasAttribute("multiple")) {
-                propertyName = "selectedOptions";
-                propertyValue = "Array.from(event.target.selectedOptions).map(option => option.value)";
-            }
+            } else if (element.Name == "select" && element.HasAttribute("multiple")) throw TemplateError("x-model on select[multiple] is not supported.", element);
             properties.Add($"{propertyName}:{propertyValue}");
-            events.Add($"'change.stop': (event) => {{ let value = utils.getInputValue(event.target); {expression} = value; invalidate(); }}");
+            events.Add($"'change.stop': (event) => {{ let value = utils.getInputValue(event.target); {assignment}; invalidate(); }}");
         }
 
         private static LoopDefinition ParseLoop(string value, string directive, bool recursive, ElementNode element) {
@@ -272,12 +284,20 @@ namespace DProjects.XShell.Services.XTemplate {
         private static void EnsureEmptyElement(ElementNode element, string directive) {
             if (element.Children.Count > 0) throw TemplateError($"Directive '{directive}' requires an empty element.", element);
         }
-        private static void EnsureExpression(string expression, string directive, ElementNode element) {
-            if (string.IsNullOrWhiteSpace(expression)) throw TemplateError($"Directive '{directive}' requires a JavaScript expression.", element);
+        private string CompileExpression(string source, string directive, int offset, XTemplateExpressionJavaScriptScope scope) => _expressionCompiler.Compile(ParseExpression(source, directive, offset), scope);
+        private static XTemplateExpression ParseExpression(string source, string directive, int offset) {
+            if (string.IsNullOrWhiteSpace(source)) throw new InvalidOperationException($"Directive '{directive}' requires an XTemplate expression at template offset {offset}.");
+            try { return XTemplateExpressions.Parse(source); }
+            catch (XTemplateExpressionException exception) { throw new InvalidOperationException($"Invalid XTemplate expression for '{directive}' at template offset {offset}: {exception.Message}", exception); }
+        }
+        private static string ValidateKeyName(string? keyName, ElementNode element) {
+            if (!IsXTemplateIdentifier(keyName)) throw TemplateError("Directive 'x-key' requires an XTemplate member name.", element);
+            return keyName!;
         }
         private static InvalidOperationException TemplateError(string message, ElementNode element) => new($"{message} Near <{element.Name}> at template offset {element.Offset}.");
         private static bool IsStaticAttribute(string name) => !name.StartsWith("x-", StringComparison.Ordinal);
-        private static bool IsJavaScriptIdentifier(string value) => !string.IsNullOrEmpty(value) && (char.IsLetter(value[0]) || value[0] is '_' or '$') && value.Skip(1).All(character => char.IsLetterOrDigit(character) || character is '_' or '$');
+        private static bool IsJavaScriptIdentifier(string value) => IsXTemplateIdentifier(value);
+        private static bool IsXTemplateIdentifier(string? value) => !string.IsNullOrEmpty(value) && (char.IsAsciiLetter(value[0]) || value[0] == '_') && value.Skip(1).All(character => char.IsAsciiLetterOrDigit(character) || character == '_');
         private static string NormalizeLineEndings(string value) => value.Replace("\r\n", "\n", StringComparison.Ordinal).Replace('\r', '\n');
         private static string ToJavaScriptString(string value) => JsonSerializer.Serialize(value);
 

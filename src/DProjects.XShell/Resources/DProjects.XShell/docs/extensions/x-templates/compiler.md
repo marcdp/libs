@@ -73,6 +73,11 @@ browser runtime
 This direction removes the need for runtime template compilation and improves Content Security Policy compatibility. `new Function(...)` is a
 historical/current mechanism of the browser-side compiler, not an XTemplate language feature or a requirement of precompiled templates.
 
+The conforming path parses every expression on the server and emits JavaScript only from the validated XTemplate expression AST. Generated renderers
+call the private `utils.expr` semantic helpers for member access, arithmetic, truthiness, formatting, and collection handling. The browser does not
+parse XTemplate expressions, receive serialized expression ASTs, or compile template source dynamically; it only executes the precompiled
+`templateRenderer` with the trusted runtime helpers.
+
 ## Related documentation
 
 - [X Templates](index.md)
