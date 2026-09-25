@@ -63,6 +63,35 @@ public sealed class XTemplateJavaScriptConformanceTests {
         Assert.Equal(new[] { "null", "null", "error" }, results);
     }
 
+    [Fact]
+    public void GeneratedJavaScriptMatchesTheInvariantTransformerProfileWithoutALocale() {
+        var state = new Dictionary<string, object?>();
+        var cases = new[] {
+            new ConformanceCase("1234.5 | number(2)", state),
+            new ConformanceCase("0.25 | percent(1)", state),
+            new ConformanceCase("1234.5 | currency('EUR')", state),
+            new ConformanceCase("'2026-09-24' | date('MMMM')", state),
+            new ConformanceCase("'i' | upper", state),
+            new ConformanceCase("'I' | lower", state)
+        };
+
+        Assert.Equal(cases.Select(EvaluateServer), EvaluateJavaScript(cases));
+    }
+
+    [Fact]
+    public void GeneratedJavaScriptMatchesUnicodeStringPredicateSemantics() {
+        var state = new Dictionary<string, object?>();
+        var cases = new[] {
+            new ConformanceCase("'A😀B' | contains('😀')", state),
+            new ConformanceCase("'A😀' | endsWith('😀')", state),
+            new ConformanceCase("'😀ABC' | startsWith('😀')", state),
+            new ConformanceCase("'A😀B' | contains('😃')", state),
+            new ConformanceCase("'abc😀def' | contains('😀d')", state)
+        };
+
+        Assert.Equal(cases.Select(EvaluateServer), EvaluateJavaScript(cases));
+    }
+
     // methods (private)
     private static IReadOnlyList<ConformanceCase> CreateCases() {
         var state = new Dictionary<string, object?> {
@@ -129,7 +158,7 @@ public sealed class XTemplateJavaScriptConformanceTests {
         foreach (var test in cases) {
             if (runs.Length > 1) runs.Append(',');
             runs.Append("{state:").Append(JsonSerializer.Serialize(test.State));
-            runs.Append(",locale:").Append(JsonSerializer.Serialize(test.Locale ?? "en-US"));
+            if (test.Locale != null) runs.Append(",locale:").Append(JsonSerializer.Serialize(test.Locale));
             runs.Append(",renderer:").Append(new XTemplateCompiler().Compile($"<input x-prop:value=\"{test.Expression}\">"));
             runs.Append('}');
         }
@@ -144,7 +173,8 @@ public sealed class XTemplateJavaScriptConformanceTests {
             const normalize = value => value === null ? "null" : typeof value === "boolean" ? `boolean:${value}` : typeof value === "number" ? `number:${value}` : typeof value === "string" ? `string:${value}` : "unsupported";
             const results = runs.map(run => {
                 try {
-                    const result = run.renderer(run.state, null, () => {}, XTemplateRuntimeUtils, { config: { lang: run.locale } }, 0);
+                    const i18n = run.locale === undefined ? null : { config: { lang: run.locale } };
+                    const result = run.renderer(run.state, null, () => {}, XTemplateRuntimeUtils, i18n, 0);
                     return normalize(result[0].props.value);
                 } catch (error) {
                     return "error";

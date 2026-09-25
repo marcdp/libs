@@ -104,8 +104,10 @@ const utils = new class {
 		const currencies = new Map([["EUR", {digits:2, symbol:"€"}], ["USD", {digits:2, symbol:"$"}], ["JPY", {digits:0, symbol:"¥"}], ["GBP", {digits:2, symbol:"£"}], ["CAD", {digits:2, symbol:"CA$"}], ["AUD", {digits:2, symbol:"A$"}], ["CHF", {digits:2, symbol:"CHF"}], ["CNY", {digits:2, symbol:"CN¥"}], ["KRW", {digits:0, symbol:"₩"}]]);
 		const patternTokens = ["yyyy", "MMMM", "MMM", "MM", "dd", "HH", "mm", "ss", "M", "d", "H"];
 		const locale = (i18n) => {
-			const value = i18n?.config?.lang || "en-US";
-			return value === "en" ? "en-US" : value === "es" ? "es-ES" : value === "tr" ? "tr-TR" : value;
+			const value = i18n?.config?.lang;
+			if (typeof value !== "string" || !value.trim()) return {kind:"invariant"};
+			const name = value === "en" ? "en-US" : value === "es" ? "es-ES" : value === "tr" ? "tr-TR" : value;
+			return {kind:"locale", name};
 		};
 		const fail = (message) => { throw new Error(`XTemplate runtime error: ${message}`); };
 		const number = (value, message = "Numeric operand must be a finite number") => typeof value === "number" && Number.isFinite(value) ? value : fail(message);
@@ -119,6 +121,19 @@ const utils = new class {
 			if (!Number.isFinite(scaled)) return value;
 			return Math.sign(value) * Math.floor(scaled + 0.5) / factor;
 		};
+		const invariantMonths = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+		const invariantShortMonths = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+		const invariantNumber = (value, precision, exact) => {
+			const rounded = round(value, precision);
+			const sign = rounded < 0 ? "-" : "";
+			let [integer, fraction = ""] = Math.abs(rounded).toFixed(precision).split(".");
+			integer = integer.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+			if (!exact) fraction = fraction.replace(/0+$/, "");
+			return sign + integer + (fraction ? "." + fraction : "");
+		};
+		const formattedNumber = (value, precision, exact, culture) => culture.kind === "invariant"
+			? invariantNumber(value, precision, exact)
+			: new Intl.NumberFormat(culture.name, {useGrouping:true, minimumFractionDigits:exact ? precision : 0, maximumFractionDigits:precision}).format(round(value, precision));
 		const scalar = (value) => {
 			if (value === null) return "";
 			if (typeof value === "string") return value;
@@ -192,7 +207,7 @@ const utils = new class {
 					found = true;
 					if (!dateAllowed && /^(yyyy|MMMM|MMM|MM|M|dd|d)$/.test(token)) return fail("Transformer pattern token is not allowed");
 					if (!timeAllowed && /^(HH|H|mm|ss)$/.test(token)) return fail("Transformer pattern token is not allowed");
-					result += token === "MMMM" || token === "MMM" ? new Intl.DateTimeFormat(culture, {month:token === "MMMM" ? "long" : "short", timeZone:"UTC"}).format(new Date(Date.UTC(2000, value.month - 1, 1))) : values[token];
+					result += token === "MMMM" ? culture.kind === "invariant" ? invariantMonths[value.month - 1] : new Intl.DateTimeFormat(culture.name, {month:"long", timeZone:"UTC"}).format(new Date(Date.UTC(2000, value.month - 1, 1))) : token === "MMM" ? culture.kind === "invariant" ? invariantShortMonths[value.month - 1] : new Intl.DateTimeFormat(culture.name, {month:"short", timeZone:"UTC"}).format(new Date(Date.UTC(2000, value.month - 1, 1))) : values[token];
 					position += token.length;
 					continue;
 				}
@@ -210,28 +225,36 @@ const utils = new class {
 				if (args.length > 1) return fail("Transformer 'number' received an invalid argument count");
 				const culture = locale(i18n);
 				const precision = args.length ? digits(args[0]) : 3;
-				return new Intl.NumberFormat(culture, {useGrouping:true, minimumFractionDigits:args.length ? precision : 0, maximumFractionDigits:precision}).format(round(number(value, "Transformer 'number' requires a numeric input"), precision));
+				return formattedNumber(number(value, "Transformer 'number' requires a numeric input"), precision, args.length !== 0, culture);
 			}
 			if (name === "percent") {
 				if (args.length > 1) return fail("Transformer 'percent' received an invalid argument count");
 				const culture = locale(i18n);
 				const precision = args.length ? digits(args[0]) : 3;
-				return new Intl.NumberFormat(culture, {style:"percent", useGrouping:true, minimumFractionDigits:args.length ? precision : 0, maximumFractionDigits:precision}).format(round(checked(number(value, "Transformer 'percent' requires a numeric input") * 100), precision) / 100);
+				const percentage = checked(number(value, "Transformer 'percent' requires a numeric input") * 100);
+				if (culture.kind === "invariant") return formattedNumber(percentage, precision, args.length !== 0, culture) + "\u00A0%";
+				return new Intl.NumberFormat(culture.name, {style:"percent", useGrouping:true, minimumFractionDigits:args.length ? precision : 0, maximumFractionDigits:precision}).format(round(percentage, precision) / 100);
 			}
 			if (name === "currency") {
 				if (args.length < 1 || args.length > 2 || typeof args[0] !== "string" || !currencies.has(args[0])) return fail("Transformer 'currency' requires a supported uppercase ISO 4217 currency code");
 				const culture = locale(i18n);
 				const currency = currencies.get(args[0]);
 				const precision = args.length === 2 ? digits(args[1]) : currency.digits;
-				const currencyFormatter = new Intl.NumberFormat(culture, {style:"currency", currency:args[0], currencyDisplay:"symbol", useGrouping:true, minimumFractionDigits:precision, maximumFractionDigits:precision});
-				const parts = currencyFormatter.formatToParts(round(number(value, "Transformer 'currency' requires a numeric input"), precision));
-				if (culture === "tr-TR") return parts.filter(part => part.type !== "currency").map(part => part.value).join("").replaceAll(" ", "\u00A0") + "\u00A0" + currency.symbol;
+				const amount = number(value, "Transformer 'currency' requires a numeric input");
+				if (culture.kind === "invariant") {
+					const formatted = formattedNumber(Math.abs(amount), precision, true, culture);
+					const result = currency.symbol + formatted;
+					return round(amount, precision) < 0 ? "(" + result + ")" : result;
+				}
+				const currencyFormatter = new Intl.NumberFormat(culture.name, {style:"currency", currency:args[0], currencyDisplay:"symbol", useGrouping:true, minimumFractionDigits:precision, maximumFractionDigits:precision});
+				const parts = currencyFormatter.formatToParts(round(amount, precision));
+				if (culture.name === "tr-TR") return parts.filter(part => part.type !== "currency").map(part => part.value).join("").replaceAll(" ", "\u00A0") + "\u00A0" + currency.symbol;
 				return parts.map(part => part.type === "currency" ? currency.symbol : part.value).join("").replaceAll(" ", "\u00A0");
 			}
 			if (name === "upper" || name === "lower") {
 				if (args.length || typeof value !== "string") return fail(`Transformer '${name}' requires a string input and no arguments`);
 				const culture = locale(i18n);
-				return name === "upper" ? value.toLocaleUpperCase(culture) : value.toLocaleLowerCase(culture);
+				return culture.kind === "invariant" ? name === "upper" ? value.toUpperCase() : value.toLowerCase() : name === "upper" ? value.toLocaleUpperCase(culture.name) : value.toLocaleLowerCase(culture.name);
 			}
 			if (name === "trim") {
 				if (args.length || typeof value !== "string") return fail("Transformer 'trim' requires a string input and no arguments");
