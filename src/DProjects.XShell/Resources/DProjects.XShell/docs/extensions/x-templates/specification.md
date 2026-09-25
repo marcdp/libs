@@ -2513,6 +2513,7 @@ A compiler SHOULD validate structural constructs before code generation.
 
 Recommended rules:
 
+- An element **MUST** contain at most one primary structural directive: `x-if`, `x-elseif`, `x-else`, `x-for`, `x-recursive`, or `x-once`;
 - `x-elseif` requires a preceding `x-if` / `x-elseif` chain;
 - `x-else` requires a preceding chain and terminates that chain;
 - `x-key` requires `x-for` or `x-recursive`;
@@ -2686,7 +2687,7 @@ x-model
 x-on:*
 ```
 
-### Structural
+### Primary structural directives
 
 ```text
 x-if
@@ -2714,22 +2715,24 @@ A new implementation SHOULD model these categories explicitly.
 
 ---
 
-## 66. Multiple structural directives
+## 66. Multiple primary structural directives
 
-The reference compiler processes directives in raw attribute iteration order and some structural directives rewrite the same generated-code boundaries.
-
-This makes combinations of multiple primary structural directives on one element potentially order-dependent.
-
-Therefore a conforming template SHOULD NOT combine primary structural directives such as:
+An element **MUST** contain at most one primary structural directive. The primary structural directives are:
 
 ```text
-x-if + x-for
-x-if + x-recursive
-x-for + x-recursive
-x-once + x-for
+x-if
+x-elseif
+x-else
+x-for
+x-recursive
+x-once
 ```
 
-on the same element unless a future specification explicitly defines the combination.
+Combinations such as `x-if + x-for`, `x-for + x-recursive`, or `x-once + x-for` are compile-time errors. Implementations MUST reject them independently of attribute order and MUST NOT choose an implicit structural precedence.
+
+`x-key` and `x-recursive-wrapper` are structural auxiliaries, not primary structural directives. `x-key` requires `x-for` or `x-recursive`; `x-recursive-wrapper` requires `x-recursive`.
+
+Non-structural directives, including `x-show`, `x-class:*`, `x-attr`, `x-prop`, `x-on:*`, and `x-model`, may coexist with a primary structural directive subject to their own rules.
 
 Prefer nesting:
 
@@ -3539,9 +3542,7 @@ Earlier reference-runtime versions checked a misspelled Alt-key property. The ru
 
 ## 105. Structural directive combinations
 
-Because the reference compiler rewrites generated prefix/suffix code while iterating attributes, multiple structural directives on one element can be source-order-sensitive.
-
-A new compiler should normalize structural constructs in an AST and reject undefined combinations.
+The compiler classifies and validates an element's structural directives before code generation. It applies the single permitted primary structural wrapper in a dedicated path, so attribute order does not alter structural meaning.
 
 ---
 

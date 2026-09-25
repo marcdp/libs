@@ -11,6 +11,17 @@ namespace DProjects.XShell.Services.XTemplate {
             "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"
         };
         private static readonly HashSet<string> RawTextElements = new(StringComparer.OrdinalIgnoreCase) { "script", "style" };
+        private static readonly string[] PrimaryStructuralDirectiveNames = ["x-if", "x-elseif", "x-else", "x-for", "x-recursive", "x-once"];
+
+        private enum StructuralDirectiveKind {
+            None,
+            If,
+            ElseIf,
+            Else,
+            For,
+            Recursive,
+            Once
+        }
 
         // vars
         private readonly XTemplateExpressionJavaScriptCompiler _expressionCompiler = new();
@@ -20,6 +31,7 @@ namespace DProjects.XShell.Services.XTemplate {
             if (template == null) throw new ArgumentNullException(nameof(template));
             var root = new HtmlParser(NormalizeLineEndings(template).Trim()).Parse();
             var indent = "    ";
+            ValidateStructuralDirectives(root);
             ValidateConditionalChains(root);
             var body = new List<string> {
                 //indent + "debugger;",
@@ -65,7 +77,8 @@ namespace DProjects.XShell.Services.XTemplate {
             var classes = new List<string>();
             var childScope = scope;
             var expressionScope = scope;
-            var scopedLoop = element.Attributes.FirstOrDefault(attribute => attribute.Name is "x-for" or "x-recursive");
+            var structuralDirective = GetStructuralDirective(element);
+            var scopedLoop = structuralDirective.Kind is StructuralDirectiveKind.For or StructuralDirectiveKind.Recursive ? structuralDirective.Attribute : null;
             if (scopedLoop != null) {
                 var loop = ParseLoop(scopedLoop.Value, scopedLoop.Name, scopedLoop.Name == "x-recursive", element);
                 expressionScope = scopedLoop.Name == "x-recursive"
@@ -86,10 +99,62 @@ namespace DProjects.XShell.Services.XTemplate {
                 }
             }
 
+            // apply the element structural wrapper once, independently of attribute source order
+            switch (structuralDirective.Kind) {
+                case StructuralDirectiveKind.If:
+                    line.Clear().Append(indent).Append($"...((_ifs.c{level} = utils.expr.truthy({CompileExpression(structuralDirective.Attribute!.Value, structuralDirective.Attribute.Name, element.SourceOffset, expressionScope)})) ? [utils.createVDOM({ToJavaScriptString(element.Name)}");
+                    postLine.Add($"] : [utils.createVDOM(\"#comment\", null, null, null, {{index: {index}}}, 'x-if')]),");
+                    break;
+                case StructuralDirectiveKind.ElseIf:
+                    line.Clear().Append(indent).Append($"...(_ifs.c{level} ? [] : (_ifs.c{level} = utils.expr.truthy({CompileExpression(structuralDirective.Attribute!.Value, structuralDirective.Attribute.Name, element.SourceOffset, expressionScope)})) ? [utils.createVDOM({ToJavaScriptString(element.Name)}");
+                    postLine.Add($"] : [utils.createVDOM(\"#comment\", null, null, null, {{index: {index}}}, 'x-elseif')]),");
+                    break;
+                case StructuralDirectiveKind.Else:
+                    if (!string.IsNullOrEmpty(structuralDirective.Attribute!.Value)) throw TemplateError("Directive 'x-else' cannot have a value.", element);
+                    line.Clear().Append(indent).Append($"...(!_ifs.c{level} ? [utils.createVDOM({ToJavaScriptString(element.Name)}");
+                    postLine.Add($"] : [utils.createVDOM(\"#comment\", null, null, null, {{index: {index}}}, 'x-else')]),");
+                    break;
+                case StructuralDirectiveKind.For:
+                    var forLoop = ParseLoop(structuralDirective.Attribute!.Value, structuralDirective.Attribute.Name, false, element);
+                    var forKeyName = element.GetAttribute("x-key");
+                    var forType = string.IsNullOrWhiteSpace(forKeyName) ? "position" : "key";
+                    var forCollection = CompileExpression(forLoop.Collection, structuralDirective.Attribute.Name, element.SourceOffset, scope);
+                    javascript.Add($"{indent}utils.createVDOM(\"#comment\", null, null, null, {{index: {index}, forType:'{forType}'}}, 'x-for-start'),");
+                    line.Clear().Append(indent).Append($"...(utils.expr.collection({forCollection}).map(({forLoop.Item}, {forLoop.Index}) => utils.createVDOM({ToJavaScriptString(element.Name)}");
+                    postLine.Add(")),");
+                    if (!string.IsNullOrWhiteSpace(forKeyName)) options.Add($"\"key\":utils.expr.member({forLoop.Item}, {ToJavaScriptString(ValidateKeyName(forKeyName, element))})");
+                    post.Add($"{indent}utils.createVDOM(\"#comment\", null, null, null, {{index: {index}, forType:'{forType}'}}, 'x-for-end'),");
+                    break;
+                case StructuralDirectiveKind.Recursive:
+                    var recursiveLoop = ParseLoop(structuralDirective.Attribute!.Value, structuralDirective.Attribute.Name, true, element);
+                    var recursiveKeyName = element.GetAttribute("x-key");
+                    var recursiveForType = string.IsNullOrWhiteSpace(recursiveKeyName) ? "position" : "key";
+                    var recursiveCollection = CompileExpression(recursiveLoop.Collection, structuralDirective.Attribute.Name, element.SourceOffset, scope);
+                    javascript.Add($"{indent}...(func = (_items, {recursiveLoop.AbsoluteIndex}, {recursiveLoop.Indent}, wrapper) => {{ let _itemsArray = utils.expr.collection(_items); let _result = [");
+                    indent += "    ";
+                    level++;
+                    javascript.Add($"{indent}utils.createVDOM(\"#comment\", null, null, null, {{index: {index - 1}, forType:'{recursiveForType}'}}, 'x-for-start'),");
+                    line.Clear().Append(indent).Append($"...(_itemsArray.map(({recursiveLoop.Item}, {recursiveLoop.Index}) => {{ let _result = utils.createVDOM({ToJavaScriptString(element.Name)}");
+                    postLine.Add($"; {recursiveLoop.AbsoluteIndex}++; return _result;}})),");
+                    if (!string.IsNullOrWhiteSpace(recursiveKeyName)) options.Add($"\"key\":utils.expr.member({recursiveLoop.Item}, {ToJavaScriptString(ValidateKeyName(recursiveKeyName, element))})");
+                    post.Add($"{indent}utils.createVDOM(\"#comment\", null, null, null, {{index: {index - 1}, forType:'{recursiveForType}'}}, 'x-for-end'),");
+                    var wrapper = element.GetAttribute("x-recursive-wrapper") ?? "";
+                    post.Add($"\n    {indent[..^4]}]; if (wrapper) _result = [utils.createVDOM(wrapper, null, null, null, {{index:1}}, _result)]; return _result;}})({recursiveCollection}, 0, 0),");
+                    childrenToAppend = $"func(utils.expr.member({recursiveLoop.Item}, \"children\"), {recursiveLoop.AbsoluteIndex} + 1, {recursiveLoop.Indent} + 1, {ToJavaScriptString(wrapper)})";
+                    break;
+                case StructuralDirectiveKind.Once:
+                    if (!string.IsNullOrEmpty(structuralDirective.Attribute!.Value)) throw TemplateError("Directive 'x-once' cannot have a value.", element);
+                    line.Clear().Append(indent).Append($"...((renderCount==0) ? [utils.createVDOM({ToJavaScriptString(element.Name)}");
+                    postLine.Add($"] : [utils.createVDOM({ToJavaScriptString(element.Name)}, null, null, null, {{once:true}})]),");
+                    break;
+            }
+
             foreach (var attribute in element.Attributes) {
                 var name = attribute.Name;
                 var value = attribute.Value;
-                if (name == "class" && classes.Count > 0) {
+                if (IsPrimaryStructuralDirective(name)) {
+                    continue;
+                } else if (name == "class" && classes.Count > 0) {
                     continue;
                 } else if (name == "x-text") {
                     EnsureEmptyElement(element, name);
@@ -121,47 +186,9 @@ namespace DProjects.XShell.Services.XTemplate {
                     var eventName = name[(name.IndexOf(':') + 1)..];
                     if (string.IsNullOrWhiteSpace(eventName)) throw TemplateError("An event binding requires an event name.", element);
                     events.Add($"{ToJavaScriptString(eventName)}: (event) => handler({ToJavaScriptString(value)}, event)");
-                } else if (name == "x-if") {
-                    line.Clear().Append(indent).Append($"...((_ifs.c{level} = utils.expr.truthy({CompileExpression(value, name, element.SourceOffset, expressionScope)})) ? [utils.createVDOM({ToJavaScriptString(element.Name)}");
-                    postLine.Add($"] : [utils.createVDOM(\"#comment\", null, null, null, {{index: {index}}}, 'x-if')]),");
-                } else if (name == "x-elseif") {
-                    line.Clear().Append(indent).Append($"...(_ifs.c{level} ? [] : (_ifs.c{level} = utils.expr.truthy({CompileExpression(value, name, element.SourceOffset, expressionScope)})) ? [utils.createVDOM({ToJavaScriptString(element.Name)}");
-                    postLine.Add($"] : [utils.createVDOM(\"#comment\", null, null, null, {{index: {index}}}, 'x-elseif')]),");
-                } else if (name == "x-else") {
-                    if (!string.IsNullOrEmpty(value)) throw TemplateError("Directive 'x-else' cannot have a value.", element);
-                    line.Clear().Append(indent).Append($"...(!_ifs.c{level} ? [utils.createVDOM({ToJavaScriptString(element.Name)}");
-                    postLine.Add($"] : [utils.createVDOM(\"#comment\", null, null, null, {{index: {index}}}, 'x-else')]),");
-                } else if (name == "x-for") {
-                    var loop = ParseLoop(value, name, false, element);
-                    var keyName = element.GetAttribute("x-key");
-                    var forType = string.IsNullOrWhiteSpace(keyName) ? "position" : "key";
-                    var collection = CompileExpression(loop.Collection, name, element.SourceOffset, scope);
-                    javascript.Add($"{indent}utils.createVDOM(\"#comment\", null, null, null, {{index: {index}, forType:'{forType}'}}, 'x-for-start'),");
-                    line.Clear().Append(indent).Append($"...(utils.expr.collection({collection}).map(({loop.Item}, {loop.Index}) => utils.createVDOM({ToJavaScriptString(element.Name)}");
-                    postLine.Add(")),");
-                    if (!string.IsNullOrWhiteSpace(keyName)) options.Add($"\"key\":utils.expr.member({loop.Item}, {ToJavaScriptString(ValidateKeyName(keyName, element))})");
-                    childScope = expressionScope;
-                    post.Add($"{indent}utils.createVDOM(\"#comment\", null, null, null, {{index: {index}, forType:'{forType}'}}, 'x-for-end'),");
                 } else if (name == "x-key") {
                     if (!element.HasAttribute("x-for") && !element.HasAttribute("x-recursive")) throw TemplateError("Directive 'x-key' requires 'x-for' or 'x-recursive'.", element);
                     if (string.IsNullOrWhiteSpace(value)) throw TemplateError("Directive 'x-key' requires a property name.", element);
-                } else if (name == "x-recursive") {
-                    var loop = ParseLoop(value, name, true, element);
-                    var keyName = element.GetAttribute("x-key");
-                    var forType = string.IsNullOrWhiteSpace(keyName) ? "position" : "key";
-                    var collection = CompileExpression(loop.Collection, name, element.SourceOffset, scope);
-                    javascript.Add($"{indent}...(func = (_items, {loop.AbsoluteIndex}, {loop.Indent}, wrapper) => {{ let _itemsArray = utils.expr.collection(_items); let _result = [");
-                    indent += "    ";
-                    level++;
-                    javascript.Add($"{indent}utils.createVDOM(\"#comment\", null, null, null, {{index: {index - 1}, forType:'{forType}'}}, 'x-for-start'),");
-                    line.Clear().Append(indent).Append($"...(_itemsArray.map(({loop.Item}, {loop.Index}) => {{ let _result = utils.createVDOM({ToJavaScriptString(element.Name)}");
-                    postLine.Add($"; {loop.AbsoluteIndex}++; return _result;}})),");
-                    if (!string.IsNullOrWhiteSpace(keyName)) options.Add($"\"key\":utils.expr.member({loop.Item}, {ToJavaScriptString(ValidateKeyName(keyName, element))})");
-                    post.Add($"{indent}utils.createVDOM(\"#comment\", null, null, null, {{index: {index - 1}, forType:'{forType}'}}, 'x-for-end'),");
-                    var wrapper = element.GetAttribute("x-recursive-wrapper") ?? "";
-                    post.Add($"\n    {indent[..^4]}]; if (wrapper) _result = [utils.createVDOM(wrapper, null, null, null, {{index:1}}, _result)]; return _result;}})({collection}, 0, 0),");
-                    childrenToAppend = $"func(utils.expr.member({loop.Item}, \"children\"), {loop.AbsoluteIndex} + 1, {loop.Indent} + 1, {ToJavaScriptString(wrapper)})";
-                    childScope = expressionScope;
                 } else if (name == "x-recursive-wrapper") {
                     if (!element.HasAttribute("x-recursive")) throw TemplateError("Directive 'x-recursive-wrapper' requires 'x-recursive'.", element);
                 } else if (name == "x-show") {
@@ -172,10 +199,6 @@ namespace DProjects.XShell.Services.XTemplate {
                     classes.Add($"(utils.expr.truthy({CompileExpression(value, name, element.SourceOffset, expressionScope)}) ? {ToJavaScriptString(className)} : null)");
                 } else if (name == "x-model") {
                     CompileModel(element, value, properties, events, expressionScope);
-                } else if (name == "x-once") {
-                    if (!string.IsNullOrEmpty(value)) throw TemplateError("Directive 'x-once' cannot have a value.", element);
-                    line.Clear().Append(indent).Append($"...((renderCount==0) ? [utils.createVDOM({ToJavaScriptString(element.Name)}");
-                    postLine.Add($"] : [utils.createVDOM({ToJavaScriptString(element.Name)}, null, null, null, {{once:true}})]),");
                 } else if (name == "x-pre") {
                     if (!string.IsNullOrEmpty(value)) throw TemplateError("Directive 'x-pre' cannot have a value.", element);
                     options.Add("format:\"html\"");
@@ -271,15 +294,44 @@ namespace DProjects.XShell.Services.XTemplate {
             return new LoopDefinition(variables[0], variables.Length > 1 ? variables[1] : "index", variables.Length > 2 ? variables[2] : "indexAbsolute", "indent", collection);
         }
 
+        private static void ValidateStructuralDirectives(ElementNode parent) {
+            foreach (var child in parent.Children) {
+                if (child is ElementNode element) {
+                    var primaryDirectives = PrimaryStructuralDirectiveNames.Where(element.HasAttribute).ToArray();
+                    if (primaryDirectives.Length > 1) {
+                        var directives = string.Join(", ", primaryDirectives.Select(directive => $"'{directive}'"));
+                        throw TemplateError($"Element <{element.Name}> cannot contain more than one primary structural directive: {directives}.", element);
+                    }
+                    if (element.HasAttribute("x-key") && !element.HasAttribute("x-for") && !element.HasAttribute("x-recursive")) throw TemplateError("Directive 'x-key' requires 'x-for' or 'x-recursive'.", element);
+                    if (element.HasAttribute("x-recursive-wrapper") && !element.HasAttribute("x-recursive")) throw TemplateError("Directive 'x-recursive-wrapper' requires 'x-recursive'.", element);
+                    ValidateStructuralDirectives(element);
+                }
+            }
+        }
+
         private static void ValidateConditionalChains(ElementNode parent) {
             foreach (var child in parent.Children) {
                 if (child is ElementNode element) {
-                    var structuralCount = new[] { "x-if", "x-elseif", "x-else", "x-for", "x-recursive", "x-once" }.Count(element.HasAttribute);
-                    if (structuralCount > 1) throw TemplateError("An element cannot contain more than one structural directive.", element);
                     ValidateConditionalChains(element);
                 }
             }
         }
+
+        private static StructuralDirectiveInfo GetStructuralDirective(ElementNode element) {
+            var attribute = element.Attributes.FirstOrDefault(attribute => IsPrimaryStructuralDirective(attribute.Name));
+            return attribute == null ? new(StructuralDirectiveKind.None, null) : new(GetStructuralDirectiveKind(attribute.Name), attribute);
+        }
+
+        private static bool IsPrimaryStructuralDirective(string name) => GetStructuralDirectiveKind(name) != StructuralDirectiveKind.None;
+        private static StructuralDirectiveKind GetStructuralDirectiveKind(string name) => name switch {
+            "x-if" => StructuralDirectiveKind.If,
+            "x-elseif" => StructuralDirectiveKind.ElseIf,
+            "x-else" => StructuralDirectiveKind.Else,
+            "x-for" => StructuralDirectiveKind.For,
+            "x-recursive" => StructuralDirectiveKind.Recursive,
+            "x-once" => StructuralDirectiveKind.Once,
+            _ => StructuralDirectiveKind.None
+        };
 
         private static void EnsureEmptyElement(ElementNode element, string directive) {
             if (element.Children.Count > 0) throw TemplateError($"Directive '{directive}' requires an empty element.", element);
@@ -341,6 +393,7 @@ namespace DProjects.XShell.Services.XTemplate {
         private sealed record ExpressionNode(string Expression, int SourceOffset) : TemplateNode(SourceOffset);
         private sealed record CommentNode(string Text, int SourceOffset) : TemplateNode(SourceOffset);
         private sealed record TemplateAttribute(string Name, string Value, bool HasValue);
+        private sealed record StructuralDirectiveInfo(StructuralDirectiveKind Kind, TemplateAttribute? Attribute);
         private sealed record LoopDefinition(string Item, string Index, string AbsoluteIndex, string Indent, string Collection);
         private sealed record ElementNode(string Name, List<TemplateAttribute> Attributes, List<TemplateNode> Children, int SourceOffset) : TemplateNode(SourceOffset) {
             public bool HasAttribute(string name) => Attributes.Any(attribute => attribute.Name == name);

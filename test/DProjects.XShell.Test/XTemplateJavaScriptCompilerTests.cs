@@ -44,5 +44,58 @@ namespace DProjects.XShell.Test {
             Assert.Contains("hidden:utils.expr.truthy", javascript, StringComparison.Ordinal);
             Assert.DoesNotContain("state.choice = value", javascript, StringComparison.Ordinal);
         }
+
+        [Theory]
+        [InlineData("x-if", "x-elseif")]
+        [InlineData("x-if", "x-else")]
+        [InlineData("x-if", "x-for")]
+        [InlineData("x-if", "x-recursive")]
+        [InlineData("x-if", "x-once")]
+        [InlineData("x-elseif", "x-else")]
+        [InlineData("x-elseif", "x-for")]
+        [InlineData("x-elseif", "x-recursive")]
+        [InlineData("x-elseif", "x-once")]
+        [InlineData("x-else", "x-for")]
+        [InlineData("x-else", "x-recursive")]
+        [InlineData("x-else", "x-once")]
+        [InlineData("x-for", "x-recursive")]
+        [InlineData("x-for", "x-once")]
+        [InlineData("x-recursive", "x-once")]
+        public void RejectsEveryPrimaryStructuralDirectiveCombination(string first, string second) {
+            var exception = Assert.Throws<InvalidOperationException>(() => new XTemplateCompiler().Compile($"<div {Attribute(first)} {Attribute(second)}></div>"));
+
+            Assert.Contains("more than one primary structural directive", exception.Message, StringComparison.Ordinal);
+            Assert.Contains($"'{first}'", exception.Message, StringComparison.Ordinal);
+            Assert.Contains($"'{second}'", exception.Message, StringComparison.Ordinal);
+        }
+
+        [Theory]
+        [InlineData("x-if", "x-for")]
+        [InlineData("x-once", "x-recursive")]
+        public void RejectsPrimaryStructuralDirectivesIndependentlyOfAttributeOrder(string first, string second) {
+            var compiler = new XTemplateCompiler();
+            var firstException = Assert.Throws<InvalidOperationException>(() => compiler.Compile($"<div {Attribute(first)} {Attribute(second)}></div>"));
+            var secondException = Assert.Throws<InvalidOperationException>(() => compiler.Compile($"<div {Attribute(second)} {Attribute(first)}></div>"));
+
+            Assert.Equal(firstException.Message, secondException.Message);
+        }
+
+        [Fact]
+        public void AllowsPrimaryStructuralDirectivesWithAuxiliaryAndNonStructuralDirectives() {
+            var compiler = new XTemplateCompiler();
+
+            Assert.NotEmpty(compiler.Compile("<div x-if=\"state.visible\" x-show=\"state.enabled\"></div>"));
+            Assert.NotEmpty(compiler.Compile("<div x-for=\"item in state.items\" x-key=\"id\" x-class:selected=\"item.selected\"></div>"));
+            Assert.NotEmpty(compiler.Compile("<div x-recursive=\"item in state.items\" x-key=\"id\" x-recursive-wrapper=\"ul\"></div>"));
+            Assert.NotEmpty(compiler.Compile("<div x-once x-class:ready=\"state.ready\"></div>"));
+        }
+
+        // methods (private)
+        private static string Attribute(string directive) => directive switch {
+            "x-if" or "x-elseif" => $"{directive}=\"state.visible\"",
+            "x-for" or "x-recursive" => $"{directive}=\"item in state.items\"",
+            "x-else" or "x-once" => directive,
+            _ => throw new ArgumentOutOfRangeException(nameof(directive))
+        };
     }
 }
