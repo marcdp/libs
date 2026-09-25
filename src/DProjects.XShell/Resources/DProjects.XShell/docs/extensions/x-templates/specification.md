@@ -14,7 +14,7 @@ X Template (XTL) is the declarative template language used by the XShell `x` ren
 An X Template is an HTML fragment extended with:
 
 - restricted XTemplate expressions;
-- restricted presentation formatter pipelines;
+- restricted transformer pipelines;
 - text interpolation;
 - dynamic attributes and properties;
 - event-to-command bindings;
@@ -209,7 +209,7 @@ instead.
 ### 6.2 Conversion
 
 The result is converted with the XTemplate string conversion defined in section 7.8. Interpolation does not use host-language string coercion.
-This conversion is invariant and is not affected by the active XShell/i18n locale. Use an explicit formatter when locale-sensitive presentation is
+This conversion is invariant and is not affected by the active XShell/i18n locale. Use an explicit presentation transformer when locale-sensitive presentation is
 required.
 
 Examples:
@@ -333,7 +333,7 @@ The complete operator and punctuation token set is:
 ```
 
 Tokenization uses the longest valid token. Any other character or token, including a single `=` or `&`, is invalid. The single `|` token is reserved
-for the formatter pipeline below; `||` remains the logical-or operator. When an expression is read from an HTML attribute, HTML character-reference
+for the transformer pipeline below; `||` remains the logical-or operator. When an expression is read from an HTML attribute, HTML character-reference
 decoding occurs before expression tokenization.
 
 The contiguous character sequences `++` and `--` are invalid update-operator tokens; they MUST NOT be interpreted as two unary operators. Nested
@@ -345,8 +345,8 @@ The following grammar is normative. `{ X }` means zero or more repetitions and `
 
 ```ebnf
 expression       = pipeline ;
-pipeline         = conditional, { "|", formatter } ;
-formatter        = identifier, [ "(", [ expression, { ",", expression } ], ")" ] ;
+pipeline         = conditional, { "|", transformer } ;
+transformer      = identifier, [ "(", [ expression, { ",", expression } ], ")" ] ;
 conditional      = coalesce, [ "?", conditional, ":", conditional ] ;
 coalesce         = logical-or, { "??", logical-or } ;
 logical-or       = logical-and, { "||", logical-and } ;
@@ -362,20 +362,20 @@ literal          = "null" | "true" | "false" | number | string ;
 ```
 
 The grammar permits `??`, `||`, and `&&` to be mixed without additional host-language restrictions. Their precedence is exactly the precedence shown
-above. A formatter name is a single identifier; member access is not permitted in that position. Formatter arguments are full XTemplate expressions,
-and the comma is only an argument separator inside a formatter argument list, not a general comma or sequence operator. The conditional operator is
-right-associative because its branches use `conditional`: `a ? b : c ? d : e` is `a ? b : (c ? d : e)`. Repeated binary operators and formatter
+above. A transformer name is a single identifier; member access is not permitted in that position. Transformer arguments are full XTemplate expressions,
+and the comma is only an argument separator inside a transformer argument list, not a general comma or sequence operator. The conditional operator is
+right-associative because its branches use `conditional`: `a ? b : c ? d : e` is `a ? b : (c ? d : e)`. Repeated binary operators and transformer
 pipelines are left-associative.
 
-The `pipeline` production is deliberately outside `conditional`, so the formatter pipeline has lower precedence than `?:`. An unparenthesized
+The `pipeline` production is deliberately outside `conditional`, so the transformer pipeline has lower precedence than `?:`. An unparenthesized
 pipeline therefore operates on the complete preceding conditional expression. For example, `state.ok ? 'yes' : 'no' | upper` is parsed as
 `(state.ok ? 'yes' : 'no') | upper`, not as `state.ok ? 'yes' : ('no' | upper)`. To format only one conditional branch, that branch MUST be explicitly
 parenthesized, as in `state.ok ? ('yes' | upper) : 'no'` or `state.ok ? 'yes' : ('no' | upper)`.
 
-This precedence boundary applies only to the top-level expression. Formatter arguments remain full `expression` productions inside their parentheses,
+This precedence boundary applies only to the top-level expression. Transformer arguments remain full `expression` productions inside their parentheses,
 so `state.total | currency(state.code | trim | upper)` retains a nested pipeline in the argument expression. Parentheses in the primary
-production likewise establish a nested expression boundary. A formatter argument is evaluated only when the formatter is invoked. Thus
-`state.price + 1 | number(2)` formats the result of the addition, while a formatter result used by another operator must be parenthesized, for example
+production likewise establish a nested expression boundary. A transformer argument is evaluated only when the transformer is invoked. Thus
+`state.price + 1 | number(2)` transforms the result of the addition, while a transformer result used by another operator must be parenthesized, for example
 `(state.price | number(2)) == '12.00'`.
 
 The parser MUST consume the entire expression. Empty expressions and trailing tokens are syntax errors.
@@ -396,7 +396,7 @@ From highest to lowest precedence:
 | 8 | `||` | left |
 | 9 | `??` | left |
 | 10 | `?:` | right |
-| 11 | formatter pipeline `|` | left |
+| 11 | transformer pipeline `|` | left |
 
 Parentheses override this table.
 
@@ -404,19 +404,19 @@ The following groupings are normative:
 
 ```text
 true ? 'a' : 'b' | upper
-→ FormatExpression(ConditionalExpression(true, 'a', 'b'), upper) → 'A'
+→ TransformExpression(ConditionalExpression(true, 'a', 'b'), upper) → 'A'
 
 false ? 'a' : 'b' | upper
-→ FormatExpression(ConditionalExpression(false, 'a', 'b'), upper) → 'B'
+→ TransformExpression(ConditionalExpression(false, 'a', 'b'), upper) → 'B'
 
 (true ? 'a' : 'b') | upper
-→ FormatExpression(ConditionalExpression(true, 'a', 'b'), upper) → 'A'
+→ TransformExpression(ConditionalExpression(true, 'a', 'b'), upper) → 'A'
 
 true ? ('a' | upper) : 'b'
-→ ConditionalExpression(true, FormatExpression('a', upper), 'b') → 'A'
+→ ConditionalExpression(true, TransformExpression('a', upper), 'b') → 'A'
 
 false ? 'a' : ('b' | upper)
-→ ConditionalExpression(false, 'a', FormatExpression('b', upper)) → 'B'
+→ ConditionalExpression(false, 'a', TransformExpression('b', upper)) → 'B'
 
 a ? b : c ? d : e
 → ConditionalExpression(a, b, ConditionalExpression(c, d, e))
@@ -532,27 +532,51 @@ If neither operand is a number pair and neither is a string, `+` is an evaluatio
 conversion; a renderer MAY define directive-specific handling for object or collection content only where that directive explicitly requires such
 values.
 
-### 7.8.1 Restricted formatter pipeline
+### 7.8.1 Restricted transformer pipeline
 
-The formatter pipeline is a language-level presentation feature. It is not general function-call syntax and MUST NOT be implemented as access to
-host-language functions or methods.
+The transformer pipeline is a sequence of built-in, pure XTemplate transformations applied left-to-right to a value. It is a language operation,
+not general function-call syntax, and MUST NOT be implemented as access to host-language functions or methods.
 
 ```text
 state.price | number(2)
 state.createdAt | date('dd/MM/yyyy')
 state.name | trim | upper
+state.type | endsWith('_i18n')
+state.name | startsWith('A')
+state.code | contains('-')
 ```
 
-The pipeline evaluates its source expression, then applies each formatter from left to right. The following is equivalent in evaluation order:
+The pipeline evaluates its source expression, then applies each transformer from left to right. The following is equivalent in evaluation order:
 
 ```text
 state.name | trim | upper
 trim first, then upper
 ```
 
-Each formatter consumes the preceding result and may change its value kind. Formatter arguments are full XTemplate expressions, so
-`state.price | number(state.decimals)` is valid. Formatter names are case-sensitive and must be literal identifiers from the built-in set in this
+Each transformer declares the XTemplate value kind(s) it accepts and the XTemplate value kind it returns. A transformer result may be `null`,
+boolean, number, string, object, or collection only when that transformer explicitly defines that result; arbitrary host objects are never valid
+XTemplate results. Transformer arguments are full XTemplate expressions, so `state.price | number(state.decimals)` and
+`state.total | currency(state.code | trim | upper)` are valid. Transformer names are case-sensitive and must be literal identifiers from the built-in set in this
 section.
+
+Each subsequent transformer receives the preceding transformer result and MUST accept that value kind. For example,
+`state.price | number(2) | endsWith('0')` is valid because `number` returns a string and `endsWith` accepts a string. In contrast,
+`state.name | endsWith('x') | upper` is a transformer evaluation error because `endsWith` returns a boolean and `upper` requires a string.
+
+Mixed result kinds are therefore part of ordinary expression evaluation:
+
+```text
+state.name | trim | endsWith('x')
+state.name  string
+↓ trim      string
+↓ endsWith  boolean
+```
+
+The boolean result of `state.type | endsWith('_i18n')` can be used directly in a condition, for example:
+
+```html
+<span x-if="state.type | endsWith('_i18n')"></span>
+```
 
 The pipeline is valid anywhere an ordinary value expression is accepted, including interpolation, `x-text`, `x-html`, attribute/property bindings,
 conditions, class bindings, loop sources, and other value-expression positions. It is not an assignable expression and therefore cannot be the
@@ -560,25 +584,28 @@ write target of `x-model`.
 
 #### Locale
 
-Locale-sensitive formatters use the active XShell/i18n locale supplied by the rendering environment. The locale is formatter context, not an
+Locale-sensitive transformers use the active XShell/i18n locale supplied by the rendering environment. The locale is transformer context, not an
 XTemplate identifier and not a host API exposed to template source. JavaScript and C# implementations MAY use their platform locale libraries
 internally, but their observable XTemplate behavior MUST be equivalent for the conformance profile defined below. Outside that profile, they SHOULD
 use compatible locale data and preserve equivalent results where the host locale data permits.
 
+The locale-sensitive transformers are `number`, `percent`, `currency`, `date`, `datetime`, `time`, `upper`, and `lower`. The locale-insensitive
+transformers are `trim`, `startsWith`, `endsWith`, and `contains`.
+
 Locale behavior has three distinct parts:
 
-1. **Normative formatter semantics.** XTemplate defines the formatter names, accepted value kinds, exact requested fractional digits, default `number`
+1. **Normative transformer semantics.** XTemplate defines the transformer names, accepted value kinds, exact requested fractional digits, default `number`
    precision, null propagation, currency-code validation, ISO date/time input parsing, and supported date-pattern tokens. These rules are language
    semantics and remain fixed regardless of the host locale database version.
 2. **Locale-sensitive behavior.** The active locale supplies presentation details such as decimal and grouping separators, currency placement and
-   symbols, localized month names, and casing. These details are produced by the formatter operation, not by host-language calls exposed to templates.
+   symbols, localized month names, and casing. These details are produced by the transformer operation, not by host-language calls exposed to templates.
 3. **XTemplate locale conformance profile.** The cross-runtime guarantee is tested against the explicitly defined profile below. The profile is a
    required interoperability target, not a statement that other locales are unsupported.
 
-If no locale is available, formatters MUST use the deterministic invariant XTemplate locale: ASCII digits, `.` as the decimal separator, `,` as the
+If no locale is available, locale-sensitive transformers MUST use the deterministic invariant XTemplate locale: ASCII digits, `.` as the decimal separator, `,` as the
 grouping separator, invariant casing, and invariant English date/month names where a textual component is requested. Currency output uses the ISO code
 when no invariant symbol is defined. Raw scalar conversion remains invariant regardless of the active locale; locale-sensitive output requires an
-explicit formatter.
+explicit presentation transformer.
 
 For example, the same numeric value renders as `1.234,50` under `es-ES` and `1,234.50` under `en-US` in the conformance profile when formatted
 with `number(2)`, while `{{ state.price }}` continues to use the shortest invariant round-tripping number text from section 7.8.
@@ -595,7 +622,7 @@ The profile consists of `en-US`, `es-ES`, and `tr-TR`:
 
 For the cases below, JavaScript and C# implementations MUST produce the same XTemplate result, including the same string characters and errors.
 The non-breaking spaces shown in the table are U+00A0. This table defines representative profile cases; it does not freeze every locale-data entry
-or every possible formatter input.
+or every possible transformer input.
 
 | Locale | Expression | Required result |
 |---|---|---|
@@ -619,22 +646,25 @@ The profile MUST include the explicit Turkish casing cases in the casing table b
 supports them. Outside this profile, implementations SHOULD use compatible locale data and SHOULD preserve equivalent results, but byte-for-byte
 equivalence may depend on compatible CLDR/ICU data. The language specification does not freeze the entire evolving locale database.
 
-#### Built-in formatter set
+#### Built-in transformer set
 
-The portable formatter set is intentionally small. A conforming implementation MUST provide the following formatters and MUST NOT silently
+The portable transformer set is intentionally small. A conforming implementation MUST provide the following transformers and MUST NOT silently
 reinterpret their names as host-language calls.
 
-| Formatter | Arguments | Input | Result and semantics |
-|---|---|---|---|
-| `number` | none or `digits` | number | string; locale formatting; 0–3 digits omitted, exact digits supplied |
-| `currency` | `code` or `code, digits` | number | string; locale currency formatting |
-| `percent` | none or `digits` | number | string; locale percentage formatting after multiplying by 100 |
-| `date` | `pattern` | ISO date or offset date-time | string; date-pattern formatting |
-| `datetime` | `pattern` | offset date-time | string; combined date/time-pattern formatting |
-| `time` | `pattern` | offset date-time | string; time-pattern formatting |
-| `upper` | none | string | string; locale-aware uppercase using the active formatter locale. |
-| `lower` | none | string | string; locale-aware lowercase using the active formatter locale. |
-| `trim` | none | string | string; removes leading and trailing Unicode whitespace. |
+| Transformer | Input | Arguments | Result | Locale-sensitive |
+|---|---|---|---|---|
+| `trim` | string | none | string | no |
+| `upper` | string | none | string | yes |
+| `lower` | string | none | string | yes |
+| `startsWith` | string | exactly 1 string | boolean | no |
+| `endsWith` | string | exactly 1 string | boolean | no |
+| `contains` | string | exactly 1 string | boolean | no |
+| `number` | number | optional digits | string | yes |
+| `percent` | number | optional digits | string | yes |
+| `currency` | number | currency code, optional digits | string | yes |
+| `date` | ISO date/date-time string | pattern | string | yes |
+| `datetime` | offset date-time string | pattern | string | yes |
+| `time` | offset date-time string | pattern | string | yes |
 
 `number`, `currency`, and `percent` reject non-numeric input, non-finite numeric values, and invalid digit arguments. `digits` is evaluated as an
 XTemplate expression, then must be a number whose value is an integer greater than or equal to zero. Implementations MUST reject values outside
@@ -653,6 +683,11 @@ ISO 4217 representation, supplied as a string literal or an expression that eval
 
 `upper`, `lower`, and `trim` accept no arguments. Their casing is locale-aware but remains a pure XTemplate operation; an implementation MUST NOT
 call a method on the source object. Unicode whitespace for `trim` is the Unicode White_Space property, not just ASCII space.
+
+`startsWith`, `endsWith`, and `contains` each accept exactly one string argument and return a boolean. They use ordinal Unicode string semantics;
+they MUST NOT use locale-sensitive comparison or implicit type coercion. Thus `'abcdef' | startsWith('abc')`, `'abcdef' | endsWith('def')`, and
+`'abcdef' | contains('cd')` each return `true`. `123 | startsWith('1')`, `'abc' | endsWith(123)`, `'abc' | contains()`, and
+`'abc' | contains('a', 'b')` are transformer evaluation errors.
 
 Locale-aware casing MUST be equivalent across JavaScript and C# implementations. The conformance locale profile includes `en-US`, `es-ES`, and
 `tr-TR`; representative required results are:
@@ -674,13 +709,13 @@ These are XTemplate results, not a requirement to expose JavaScript or .NET casi
 
 #### Date and time patterns
 
-Date/time formatters do not add a date/time value kind; they accept only ISO-8601 strings and return strings. A date-only string has the form
+Date/time transformers do not add a date/time value kind; they accept only ISO-8601 strings and return strings. A date-only string has the form
 `yyyy-MM-dd`. A date-time string MUST contain seconds and an
 explicit `Z` or numeric offset such as `+02:00`; local date-time strings without an offset are unsupported so that host time zones cannot change
 the result. `date` accepts either form and uses the represented calendar date. `datetime` and `time` require an offset date-time string and use
 the date/time fields represented by that input offset; they MUST NOT silently convert through the host's local time zone.
 
-Invalid or unsupported date strings are formatting errors. Formatters MUST NOT guess at non-ISO input or accept arbitrary locale-dependent parsing.
+Invalid or unsupported date strings are formatting errors. Transformers MUST NOT guess at non-ISO input or accept arbitrary locale-dependent parsing.
 
 The portable pattern vocabulary is:
 
@@ -704,28 +739,23 @@ alphabetic sequence that is not a documented token is a formatting error. `date`
 allowed subsets.
 
 Token matching uses the longest token first, so `MMMM` is not parsed as four `M` tokens. A pattern MUST contain at least one token allowed for its
-formatter. The `date`, `datetime`, and `time` formatters
+transformer. The `date`, `datetime`, and `time` transformers
 therefore accept examples such as `dd/MM/yyyy`, `yyyy-MM-dd`, `MMMM`, `dd/MM/yyyy HH:mm`, and `HH:mm`, respectively.
 
 #### Result kinds and nulls
 
-All built-in formatters return a string when they run:
+The presentation transformers `number`, `currency`, `percent`, `date`, `datetime`, and `time` return strings. `trim`, `upper`, and `lower` are
+string-to-string transformers. `startsWith`, `endsWith`, and `contains` return booleans. A transformer MUST return only the XTemplate value kind
+declared by its signature. For example, `(state.price | number(2)) + 1` is string concatenation under the ordinary `+` rule; `number` MUST NOT
+silently convert its string result back to a number.
 
-```text
-number, currency, percent, date, datetime, time, upper, lower, trim → string
-```
+If the current pipeline value is `null`, the current transformer is not invoked, its arguments are not evaluated, and the remaining pipeline result
+remains `null`. Thus `null | number(1 / 0)` returns `null` without evaluating `1 / 0`, and `null | endsWith('_i18n')` returns `null`, not `false`
+or an error. This rule applies to presentation and predicate transformers alike.
 
-Formatter output remains a string for subsequent expression evaluation. Therefore `(state.price | number(2)) + 1` is not numeric arithmetic; under
-the ordinary `+` rule it is string concatenation after converting `1` to scalar text. A formatter MUST NOT silently convert its result back to a
-number.
-
-If the source value is `null`, every formatter returns `null` and its arguments are not evaluated. A null result continues through the rest of a
-formatter chain without invoking later formatters. Interpolation or a text directive then applies the ordinary scalar conversion, so a null source
-retains the existing empty-string text behavior. This rule is uniform across all formatters.
-
-Formatting failures are XTemplate evaluation errors with a formatting category. Unknown formatters, wrong input kinds, invalid arguments, malformed
-patterns, unsupported dates, and unsupported currency codes MUST be reported. Implementations MUST NOT ignore an unknown formatter or invoke a
-host function with the same name.
+Transformer failures are XTemplate evaluation errors. Unknown transformers, wrong input kinds, invalid arguments, malformed patterns, unsupported
+dates, and unsupported currency codes MUST be reported. Implementations MUST NOT ignore an unknown transformer or invoke a host function with the
+same name.
 
 ### 7.9 Equality and comparison
 
@@ -755,13 +785,14 @@ or mixed operand kinds are evaluation errors; there is no implicit conversion.
 ### 7.10 Unsupported constructs
 
 Arbitrary JavaScript is not valid XTemplate expression syntax. The language has no general calls, methods, assignments, updates, statements, object
-or array literals, or host-language escape hatch. Formatter syntax is the only call-like syntax and is limited to the built-in language operations
+or array literals, or host-language escape hatch. Transformer syntax is the only call-like syntax and is limited to the built-in language operations
 defined in section 7.8.1. The following are invalid:
 
 ```text
 foo()
 state.foo()
 Math.round(value)
+Math.floor(state.value)
 new Date()
 new Something()
 () => value
@@ -777,6 +808,7 @@ class {}
 import('module')
 eval('code')
 state.name.toUpperCase()
+state.type.endsWith('_i18n')
 formatPrice(state.price)
 state.price.toFixed(2)
 state.items.filter(x => x.enabled)
@@ -788,7 +820,7 @@ Specifically, this version does not support general function or method calls, fu
 assignments of any kind, increment/decrement, `await`, `yield`, `delete`, `typeof`, `instanceof`, `in`, comma/sequence expressions, template literals,
 optional chaining, object literals, or array literals.
 
-The corresponding formatter forms are valid because they are language-level operations:
+The corresponding transformer forms are valid because they are language-level operations:
 
 ```text
 state.price | number(2)
@@ -820,10 +852,11 @@ IndexAccess(target, index)
 UnaryExpression(operator, operand)
 BinaryExpression(operator, left, right)
 ConditionalExpression(condition, whenTrue, whenFalse)
-FormatExpression(source, formatterName, arguments[])
+TransformExpression(source, transformerName, arguments[])
 ```
 
-Nodes SHOULD retain source spans for diagnostics. Exact class names and storage layout are implementation details.
+Nodes SHOULD retain source spans for diagnostics. Exact class names and storage layout are implementation details. The normative language concept is a
+transformer pipeline; existing implementation types named `FormatExpression` and `FormatterStage` MAY temporarily retain their historical names.
 
 For example, `state.array[state.index].var2 + 3 / 12` parses conceptually as:
 
@@ -854,22 +887,22 @@ source expression
 ```
 
 Generated JavaScript may resemble the input, but only after validation. The emitter MUST preserve XTemplate null propagation, equality, truthiness,
-numeric, access, and formatter semantics; emitting a host operator directly is conforming only when it is observably equivalent for all permitted
-operands. Formatter syntax MUST NOT be translated into arbitrary host-language calls such as `value.toLocaleString(...)`, `value.toUpperCase()`,
+numeric, access, and transformer semantics; emitting a host operator directly is conforming only when it is observably equivalent for all permitted
+operands. Transformer syntax MUST NOT be translated into arbitrary host-language calls such as `value.toLocaleString(...)`, `value.toUpperCase()`,
 or `someFunction(value)`. A backend MAY use trusted runtime helpers or equivalent generated code only when it preserves the specified type checks,
 null propagation, locale behavior, and result kind.
 
-At render time, formatter evaluation MUST follow this target-neutral sequence:
+At render time, transformer evaluation MUST follow this target-neutral sequence:
 
 ```text
 evaluate source expression
 → if source is null, return null without evaluating arguments
-→ evaluate formatter arguments
-→ apply the named built-in formatter semantics
+→ evaluate transformer arguments
+→ apply the named built-in transformer semantics
 → pass the result to the next pipeline stage
 ```
 
-A C# or other direct renderer evaluates the same AST and MUST preserve the same formatter names, argument evaluation, left-to-right chaining, null
+A C# or other direct renderer evaluates the same AST and MUST preserve the same transformer names, argument evaluation, left-to-right chaining, null
 short-circuiting, locale rules, errors, and result kinds. Every valid XTemplate expression in this language version MUST be evaluable without Node.js,
 a browser, `eval`, `new Function`, a JavaScript interpreter, or arbitrary JavaScript execution.
 
@@ -882,9 +915,9 @@ Representative diagnostics include:
 
 ```text
 Unexpected token '(' after identifier 'foo': general function calls are not supported.
-Unknown formatter 'unknownFormatter'.
-Formatter 'number' requires a numeric input.
-Formatter 'date' received an invalid ISO-8601 value.
+Unknown transformer 'unknownTransformer'.
+Transformer 'number' requires a numeric input.
+Transformer 'date' received an invalid ISO-8601 value.
 Assignment operator '=' is not valid in XTemplate expressions.
 Unknown identifier 'window'.
 Expected expression after '+'.
@@ -909,13 +942,13 @@ The following constructs consume the restricted expression grammar:
 | `x-recursive` collection | value | evaluated in the enclosing context; nested content receives recursive locals |
 | `x-model` | assignable expression | restricted further by section 41 |
 
-Formatter pipelines are valid in every value-expression row above. For example, this is a valid attribute binding:
+Transformer pipelines are valid in every value-expression row above. For example, this is a valid attribute binding:
 
 ```html
 <div x-attr:data-price="state.price | number(2)"></div>
 ```
 
-The `x-model` row remains different: its expression must be an assignable location, so a formatter pipeline cannot be used as its write target.
+The `x-model` row remains different: its expression must be an assignable location, so a transformer pipeline cannot be used as its write target.
 
 `x-on:event` does not consume an expression; its value is a command name/string. `x-key` is a property name under the current XTemplate contract, not
 an arbitrary expression. Implementations MUST preserve these distinctions.
@@ -927,13 +960,35 @@ is not the language contract defined by this version. Unsupported JavaScript syn
 convenience.
 
 Migration consists of moving calls, transformations, and other complex computation into component logic/state and exposing their results as simple
-context values. This restriction is intentionally breaking for templates that relied on executable JavaScript.
+context values. This restriction is intentionally breaking for templates that relied on executable JavaScript. Where an equivalent built-in transformer
+exists, a historical method call can instead be migrated as follows:
 
-The repository at the time of this language change contains historical templates that use constructs such as `Math.floor(...)`, string methods
-(`endsWith`, `startsWith`, `indexOf`, `split`, `join`), and `i18n` method calls. Those templates require migration to precomputed state/context values
-before they conform to this specification. A historical `x-model="state.roles.join(', ')"` is additionally invalid because a call is not an assignable
-target. No current-language support for calls is implied by those legacy examples. The audit found no requirement for object or array literal syntax,
-so those literals remain unsupported.
+```text
+state.type.endsWith('_i18n')  →  state.type | endsWith('_i18n')
+state.name.startsWith('A')    →  state.name | startsWith('A')
+```
+
+The historical method-call forms remain invalid. Complex calls such as `filter`, `map`, `Math.floor`, and service calls have no such exception and
+MUST be moved into controller/state computation. A historical `x-model="state.roles.join(', ')"` is additionally invalid because a call is not an
+assignable target. No general call support is implied by these migration examples; object and array literals remain unsupported.
+
+For example, the historical JavaScript method-call form remains invalid:
+
+```html
+<span
+    class="langs"
+    x-if="state.type.endsWith('_i18n')">
+</span>
+```
+
+The canonical XTemplate form is:
+
+```html
+<span
+    class="langs"
+    x-if="state.type | endsWith('_i18n')">
+</span>
+```
 
 ### 7.16 Expression conformance
 
@@ -944,12 +999,14 @@ A conforming expression implementation MUST:
 - consume the complete input and preserve the precedence and associativity table;
 - implement short-circuit evaluation and evaluate only a selected conditional branch;
 - implement null/member/index access, equality, truthiness, string conversion, and numeric behavior exactly as specified;
-- parse formatter pipelines into the expression AST;
-- parse and evaluate formatter arguments using ordinary XTemplate expression semantics;
-- resolve only the built-in XTemplate formatter names;
-- apply formatter stages left-to-right while preserving null short-circuit behavior;
-- apply the active formatter locale rules and preserve formatter result kinds;
-- reject unknown formatter names and invalid formatter arguments;
+- parse transformer pipelines into the expression AST;
+- parse and evaluate transformer arguments using ordinary XTemplate expression semantics;
+- resolve only built-in XTemplate transformer names;
+- apply transformer stages left-to-right while preserving null short-circuit behavior and lazy argument evaluation;
+- validate typed transformer inputs and preserve typed XTemplate result values;
+- apply the active transformer locale rules and preserve transformer result kinds;
+- reject unknown transformer names and invalid transformer arguments;
+- preserve cross-backend transformer semantic equivalence;
 - resolve identifiers only from the explicit evaluation context;
 - distinguish ordinary expressions from assignable expressions;
 - produce equivalent observable values or equivalent errors across JavaScript and C# implementations.
@@ -2427,7 +2484,7 @@ ExpressionNode
   UnaryExpression
   BinaryExpression
   ConditionalExpression
-  FormatExpression(source, formatterName, arguments[])
+  TransformExpression(source, transformerName, arguments[])
 ```
 
 Suggested binding nodes:
@@ -2748,9 +2805,9 @@ language semantics. Null member/index reads themselves are not errors; they eval
 ## 69. Restricted expressions and template trust
 
 The restricted expression language prevents templates from invoking arbitrary JavaScript, accessing implicit host globals, or expressing assignments
-and statements. Its formatter pipeline adds only named, side-effect-free language operations. Formatters cannot execute user code or access host
+and statements. Its transformer pipeline adds only named, side-effect-free language operations. Transformers cannot execute user code or access host
 globals, invoke object methods, mutate state, perform I/O, or access DOM/browser APIs. They must be pure with respect to the expression context.
-Formatter behavior must remain equivalent across conforming backends. It enables static validation, portable server-side evaluation, and code
+Transformer behavior must remain equivalent across conforming backends. It enables static validation, portable server-side evaluation, and code
 generation that does not
 depend on `eval` or `new Function`.
 
@@ -2900,8 +2957,8 @@ Conformance is based on observable behavior, not byte-for-byte generated JavaScr
 
 The compiler MUST emit JavaScript from validated expression AST nodes. It MUST NOT assume source expression text is arbitrary valid JavaScript or
 splice unparsed expression text into generated code. Backend helpers MAY be used to preserve XTemplate null propagation, access, equality, truthiness,
-numeric, and formatter rules where JavaScript operators alone differ. Formatter evaluation follows the target-neutral sequence: evaluate the source,
-evaluate formatter arguments when the source is non-null, apply the named XTemplate formatter, and pass the result to the next pipeline stage.
+numeric, and transformer rules where JavaScript operators alone differ. Transformer evaluation follows the target-neutral sequence: evaluate the source,
+evaluate transformer arguments when the source is non-null, apply the named XTemplate transformer, and pass the result to the next pipeline stage.
 
 ---
 
@@ -2925,7 +2982,7 @@ It must still preserve:
 - `x-once`;
 - `x-pre`;
 - raw node/HTML behavior.
-- formatter type checks, locale behavior, null propagation, and result kinds.
+- transformer type checks, locale behavior, null propagation, and result kinds.
 
 ---
 
@@ -2933,8 +2990,8 @@ It must still preserve:
 
 Every valid XTemplate expression in this language version MUST be evaluable by a C# or other server-side renderer without Node.js, a browser, `eval`,
 `new Function`, a JavaScript interpreter, or arbitrary JavaScript execution. The renderer MUST evaluate the expression AST using the semantics in
-section 7, rather than translating behavior to host-language shortcuts with different coercion, access, locale, or formatter rules.
-In particular, server rendering MUST produce the same formatter results and formatting errors as JavaScript for the same context and active locale for
+section 7, rather than translating behavior to host-language shortcuts with different coercion, access, locale, or transformer rules.
+In particular, server rendering MUST produce the same transformer results and transformer evaluation errors as JavaScript for the same context and active locale for
 the conformance-profile cases. For other locales it SHOULD use compatible locale data and preserve equivalent results where that data is compatible.
 
 A server-side HTML renderer can implement the subset of template and DOM semantics meaningful without a browser.
@@ -3174,18 +3231,18 @@ Expression suites MUST run the same cases against every parser/evaluator backend
 | `1 == '1'` | none | boolean `false` |
 | `1 == 1` | none | boolean `true` |
 
-Parser and evaluator suites MUST additionally assert the formatter/conditional precedence and right-associative grouping shown below:
+Parser and evaluator suites MUST additionally assert the transformer/conditional precedence and right-associative grouping shown below:
 
 | Expression | Context condition | Required AST grouping or result |
 |---|---|---|
-| `true ? 'a' : 'b' \| upper` | none | `FormatExpression(ConditionalExpression(true, 'a', 'b'), upper)`; result `A` |
-| `false ? 'a' : 'b' \| upper` | none | `FormatExpression(ConditionalExpression(false, 'a', 'b'), upper)`; result `B` |
+| `true ? 'a' : 'b' \| upper` | none | `TransformExpression(ConditionalExpression(true, 'a', 'b'), upper)`; result `A` |
+| `false ? 'a' : 'b' \| upper` | none | `TransformExpression(ConditionalExpression(false, 'a', 'b'), upper)`; result `B` |
 | `(true ? 'a' : 'b') \| upper` | none | same grouping as the preceding `true` case; result `A` |
-| `true ? ('a' \| upper) : 'b'` | none | `ConditionalExpression(true, FormatExpression('a', upper), 'b')`; result `A` |
-| `false ? 'a' : ('b' \| upper)` | none | `ConditionalExpression(false, 'a', FormatExpression('b', upper))`; result `B` |
+| `true ? ('a' \| upper) : 'b'` | none | `ConditionalExpression(true, TransformExpression('a', upper), 'b')`; result `A` |
+| `false ? 'a' : ('b' \| upper)` | none | `ConditionalExpression(false, 'a', TransformExpression('b', upper))`; result `B` |
 | `a ? b : c ? d : e` | `a = false`, `c = true` | `ConditionalExpression(a, b, ConditionalExpression(c, d, e))`; result `d` |
 
-Formatter suites MUST additionally run the same cases against every parser/evaluator backend:
+Transformer suites MUST additionally run the same cases against every parser/evaluator backend:
 
 | Expression or template | Context condition | Expected result or rejection |
 |---|---|---|
@@ -3196,7 +3253,7 @@ Formatter suites MUST additionally run the same cases against every parser/evalu
 | `state.price \| number()` | `state.price = 12.3456` | same result as `number`: `12.346` |
 | `state.price \| number(2)` | `state.price = 12` | `12.00` in the invariant locale |
 | `state.price \| number(2)` | `state.price = 12.5` | `12.50` in the invariant locale |
-| `state.price \| number(state.decimals)` | `state.decimals = 2` | full-expression formatter argument is evaluated |
+| `state.price \| number(state.decimals)` | `state.decimals = 2` | full-expression transformer argument is evaluated |
 | `state.total \| currency(state.code \| trim \| upper)` | `total = 12`, `code = ' eur '` | nested pipeline argument; EUR currency result |
 | `state.price \| number(2)` | `es-ES`, `state.price = 1234.5` | grouping and decimal separators follow `es-ES` |
 | `state.price \| number(2)` | `en-US`, `state.price = 1234.5` | grouping and decimal separators follow `en-US` |
@@ -3217,8 +3274,18 @@ Formatter suites MUST additionally run the same cases against every parser/evalu
 | `'ı' \| upper` | `tr-TR` | `I` |
 | `state.name \| trim` | surrounding Unicode whitespace | trimmed string |
 | `state.name \| trim \| upper` | string input | trim first, then uppercase |
-| `state.value \| number(2)` | `state.value = null` | `null`, without invoking the formatter |
-| `state.name \| unknownFormatter` | any non-null string | unknown-formatter error |
+| `'abcdef' \| startsWith('abc')` | none | boolean `true` |
+| `'abcdef' \| startsWith('def')` | none | boolean `false` |
+| `'abcdef' \| endsWith('def')` | none | boolean `true` |
+| `'abcdef' \| endsWith('abc')` | none | boolean `false` |
+| `'abcdef' \| contains('cd')` | none | boolean `true` |
+| `'abcdef' \| contains('xy')` | none | boolean `false` |
+| `' abc ' \| trim \| startsWith('a')` | none | boolean `true` |
+| `null \| endsWith('x')` | none | `null`, without invoking the predicate transformer |
+| `12.5 \| number(1) \| endsWith('5')` | invariant locale | boolean `true` |
+| `'abc' \| endsWith('c') \| upper` | none | transformer type error |
+| `state.value \| number(2)` | `state.value = null` | `null`, without invoking the transformer |
+| `state.name \| unknownTransformer` | any non-null string | unknown-transformer error |
 | `'abc' \| number(2)` | none | wrong-input-type error |
 | `state.price \| number(-1)` | numeric price | invalid-argument error |
 | `state.createdAt \| date('unsupported-token')` | valid ISO input | unsupported-pattern error |
@@ -3240,7 +3307,11 @@ At minimum, invalid cases include:
 | `formatPrice(state.price)` | general function call |
 | `state.price.toFixed(2)` | method call |
 | `state.name.toUpperCase()` | method call |
-| `true ? 'a' \| upper : 'b'` | unparenthesized formatter pipeline in a conditional branch |
+| `true ? 'a' \| upper : 'b'` | unparenthesized transformer pipeline in a conditional branch |
+| `1 \| endsWith('1')` | transformer input type error |
+| `'abc' \| endsWith(1)` | transformer argument type error |
+| `'abc' \| contains()` | transformer argument count error |
+| `'abc' \| startsWith('a', 'b')` | transformer argument count error |
 | `1 === 1` | unsupported strict-equality operator |
 | `1 !== 2` | unsupported strict-inequality operator |
 | `new Date()` | constructor |
@@ -3646,8 +3717,12 @@ An X Template is:
 The most important distinctions are:
 
 ```text
-{{ ... }} / x-text     → text
-expr | formatter(...)   → explicit presentation formatting
+XTemplate expressions = values, member/index access, operators, conditionals, transformer pipelines
+```
+
+```text
+{{ ... }} / x-text       → text
+expr | transformer(...)  → built-in pure transformation (including presentation formatting)
 x-html                  → raw HTML
 x-children              → real DOM nodes
 
