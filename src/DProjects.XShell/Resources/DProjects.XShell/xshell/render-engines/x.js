@@ -453,11 +453,11 @@ class XTemplateInstance {
 				if (typeof (eventHandler) == "string") throw new Error("XTemplate event handlers must be precompiled functions.");
 				el.addEventListener(name, (event, ...args) => {
 					//mouse button
-					if (options.left && !event.button == 0) return false;
-					if (options.middle && !event.button == 1) return false;
-					if (options.right && !event.button == 2) return false;
+					if (options.left && event.button !== 0) return false;
+					if (options.middle && event.button !== 1) return false;
+					if (options.right && event.button !== 2) return false;
 					//keys
-					if (options.alt && !event.altlKey) return false;
+					if (options.alt && !event.altKey) return false;
 					if (options.shift && !event.shiftKey) return false;
 					if (options.ctrl && !event.ctrlKey) return false;
 					if (name == "keydown" || name == "keypress" || name == "keyup") {

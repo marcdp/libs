@@ -1444,9 +1444,7 @@ These actions occur after invocation of the bound event handler in the current r
 .right
 ```
 
-Intended semantics are to invoke only for the selected mouse button.
-
-The reference implementation currently contains suspicious boolean expressions for these checks. Implementers SHOULD follow the intended filter semantics rather than reproducing JavaScript operator-precedence bugs.
+The handler is invoked only when `event.button` is `0` for `.left`, `1` for `.middle`, or `2` for `.right`.
 
 ### 25.3 Modifier-key filters
 
@@ -1456,9 +1454,7 @@ The reference implementation currently contains suspicious boolean expressions f
 .ctrl
 ```
 
-The event is handled only when the corresponding modifier key is active.
-
-The reference implementation contains a likely typo for the Alt-key property (`altlKey` instead of `altKey`). This is an implementation defect, not a language rule.
+The event is handled only when the corresponding modifier key is active. `.alt` checks the standard `event.altKey` property.
 
 ### 25.4 Keyboard filters
 
@@ -3531,33 +3527,13 @@ Server rendering currently rejects `select[multiple]` with `x-model`; this remai
 
 ## 103. Mouse event modifier expressions
 
-The current runtime contains conditions such as:
-
-```js
-!event.button == 0
-```
-
-whose JavaScript precedence does not cleanly express the intended condition.
-
-The language semantics should be normal mouse-button filtering.
+Earlier reference-runtime versions used precedence-sensitive mouse-button expressions. The runtime now compares `event.button` directly; this correction does not change XTL modifier syntax or semantics.
 
 ---
 
 ## 104. Alt-key typo
 
-The current runtime checks a property resembling:
-
-```text
-altlKey
-```
-
-rather than the standard:
-
-```text
-altKey
-```
-
-This is a runtime defect.
+Earlier reference-runtime versions checked a misspelled Alt-key property. The runtime now uses the standard `event.altKey` property; this correction does not change XTL modifier syntax or semantics.
 
 ---
 
@@ -3808,7 +3784,6 @@ x-pre
 dynamic x-attr:[...]
 dynamic x-prop:[...]
 attribute object expansion edge cases
-event modifier combinations
 ```
 
 ## Ambiguous or defective in current reference code
@@ -3817,8 +3792,6 @@ event modifier combinations
 whole-object x-prop
 radio x-model generalized target
 multiple-select x-model
-some mouse modifier checks
-Alt modifier check
 multiple structural directives on one element
 ```
 

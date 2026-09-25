@@ -108,6 +108,30 @@ public sealed class XTemplateJavaScriptConformanceTests {
         Assert.Equal(cases.Select(EvaluateServer), EvaluateJavaScript(cases));
     }
 
+    [Fact]
+    public void BrowserRuntimeAppliesEventModifierFilters() {
+        var cases = new[] {
+            new EventModifierCase("<button x-on:click.alt=\"command\"></button>", new { altKey = true }, true),
+            new EventModifierCase("<button x-on:click.alt=\"command\"></button>", new { altKey = false, altlKey = true }, false),
+            new EventModifierCase("<button x-on:click.left=\"command\"></button>", new { button = 0 }, true),
+            new EventModifierCase("<button x-on:click.left=\"command\"></button>", new { button = 1 }, false),
+            new EventModifierCase("<button x-on:click.left=\"command\"></button>", new { button = 2 }, false),
+            new EventModifierCase("<button x-on:click.middle=\"command\"></button>", new { button = 0 }, false),
+            new EventModifierCase("<button x-on:click.middle=\"command\"></button>", new { button = 1 }, true),
+            new EventModifierCase("<button x-on:click.middle=\"command\"></button>", new { button = 2 }, false),
+            new EventModifierCase("<button x-on:click.right=\"command\"></button>", new { button = 0 }, false),
+            new EventModifierCase("<button x-on:click.right=\"command\"></button>", new { button = 1 }, false),
+            new EventModifierCase("<button x-on:click.right=\"command\"></button>", new { button = 2 }, true),
+            new EventModifierCase("<button x-on:click.ctrl.left=\"command\"></button>", new { ctrlKey = true, button = 0 }, true),
+            new EventModifierCase("<button x-on:click.ctrl.left=\"command\"></button>", new { ctrlKey = false, button = 0 }, false),
+            new EventModifierCase("<button x-on:click.ctrl.left=\"command\"></button>", new { ctrlKey = true, button = 2 }, false),
+            new EventModifierCase("<button x-on:click.alt.shift.right=\"command\"></button>", new { altKey = true, shiftKey = true, button = 2 }, true),
+            new EventModifierCase("<button x-on:click.alt.shift.right=\"command\"></button>", new { altKey = false, shiftKey = true, button = 2 }, false)
+        };
+
+        Assert.Equal(cases.Select(@case => @case.InvokesHandler), ExecuteEventModifierFilters(cases));
+    }
+
     // methods (private)
     private static IReadOnlyList<ConformanceCase> CreateCases() {
         var state = new Dictionary<string, object?> {
@@ -164,6 +188,79 @@ public sealed class XTemplateJavaScriptConformanceTests {
             process.WaitForExit();
             Assert.True(process.ExitCode == 0, $"JavaScript conformance runtime failed:{Environment.NewLine}{error}");
             return JsonSerializer.Deserialize<string[]>(output) ?? throw new InvalidOperationException("JavaScript conformance runtime returned no results.");
+        } finally {
+            if (File.Exists(modulePath)) File.Delete(modulePath);
+        }
+    }
+
+    private static bool[] ExecuteEventModifierFilters(IReadOnlyList<EventModifierCase> cases) {
+        var runtimePath = Path.Combine(AppContext.BaseDirectory, "Resources", "DProjects.XShell", "xshell", "render-engines", "x.js");
+        var modulePath = Path.Combine(Path.GetTempPath(), $"xtemplate-event-modifiers-{Guid.NewGuid():N}.mjs");
+        try {
+            var runs = new StringBuilder("[");
+            foreach (var @case in cases) {
+                if (runs.Length > 1) runs.Append(',');
+                runs.Append("{event:").Append(JsonSerializer.Serialize(@case.Event));
+                runs.Append(",renderer:").Append(new XTemplateCompiler().Compile(@case.Template));
+                runs.Append('}');
+            }
+            runs.Append(']');
+            File.WriteAllText(modulePath, $$"""
+                class FakeFragment {
+                    childNodes = [];
+                    appendChild(child) { this.childNodes.push(child); return child; }
+                    append(child) { this.appendChild(child); }
+                    querySelectorAll() { return []; }
+                }
+                class FakeElement {
+                    constructor(tag) { this.tagName = tag.toUpperCase(); this.localName = tag.toLowerCase(); this.listeners = {}; this.childNodes = []; }
+                    addEventListener(name, listener) { this.listeners[name] = listener; }
+                    appendChild(child) {
+                        if (child instanceof FakeFragment) this.childNodes.push(...child.childNodes);
+                        else this.childNodes.push(child);
+                        return child;
+                    }
+                    replaceChildren() { this.childNodes = []; }
+                    setAttribute() {}
+                }
+                globalThis.DocumentFragment = FakeFragment;
+                globalThis.HTMLElement = class {};
+                globalThis.CSSStyleSheet = class { replaceSync() {} };
+                globalThis.customElements = { get() {}, define() {} };
+                globalThis.window = { customElements: globalThis.customElements };
+                globalThis.document = {
+                    createElement(tag) {
+                        if (tag.toLowerCase() !== "template") return new FakeElement(tag);
+                        const element = new FakeElement(tag);
+                        element.content = new FakeFragment();
+                        Object.defineProperty(element, "innerHTML", { get() { return ""; }, set() {} });
+                        return element;
+                    },
+                    createDocumentFragment() { return new FakeFragment(); },
+                    createComment() { return new FakeElement("#comment"); },
+                    createTextNode() { return new FakeElement("#text"); }
+                };
+                const { default: createRenderEngineFactoryX } = await import({{JsonSerializer.Serialize(new Uri(runtimePath).AbsoluteUri)}});
+                const runs = {{runs}};
+                const results = runs.map(run => {
+                    const factoryContext = {};
+                    const factory = createRenderEngineFactoryX.call(factoryContext, "<button></button>", {}, run.renderer);
+                    factory.init();
+                    const host = new FakeElement("host");
+                    let calls = 0;
+                    const engine = factory.create({ host, state: {}, handler: () => calls++, invalidate: () => {} });
+                    engine.render();
+                    host.childNodes[0].listeners.click(run.event);
+                    return calls === 1;
+                });
+                console.log(JSON.stringify(results));
+                """);
+            using var process = Process.Start(new ProcessStartInfo("node", modulePath) { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false })!;
+            var output = process.StandardOutput.ReadToEnd();
+            var error = process.StandardError.ReadToEnd();
+            process.WaitForExit();
+            Assert.True(process.ExitCode == 0, $"JavaScript event modifier runtime failed:{Environment.NewLine}{error}");
+            return JsonSerializer.Deserialize<bool[]>(output) ?? throw new InvalidOperationException("JavaScript event modifier runtime returned no results.");
         } finally {
             if (File.Exists(modulePath)) File.Delete(modulePath);
         }
@@ -288,4 +385,5 @@ public sealed class XTemplateJavaScriptConformanceTests {
 
     private sealed record ConformanceCase(string Expression, Dictionary<string, object?> State, string? Locale = null);
     private sealed record AssignmentCase(string Template, Dictionary<string, object?> State, string Value, bool Fails, bool IsLoop = false);
+    private sealed record EventModifierCase(string Template, object Event, bool InvokesHandler);
 }
