@@ -71,19 +71,13 @@ export default {
     },
     controller({ state, host }) {
         return {
-            load(params) {
-                //load
-                this.refresh();
-            },
-
-            collapse(params) {
+            collapse() {
                 //collapse
                 if (state.expanded) {
                     this.toggle();
                 }
             },
-
-            toggle(params) {
+            toggle() {
                 //toggle
                 state.expanded = !state.expanded;
                 host.dispatchEvent(new CustomEvent("toggle", {bubbles: true, composed: false}));

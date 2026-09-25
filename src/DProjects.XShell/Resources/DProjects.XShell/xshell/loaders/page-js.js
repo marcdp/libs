@@ -174,6 +174,7 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
         _styleSheets = [];
         _disposables = [];
         _controller = null;
+        _host = null;
         // ctor
         constructor({ src, context }) {
             super({ src, context });
@@ -244,9 +245,12 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
                         const events = new Events((command, ...params) => { self[invokeController](command, ...params); });
                         self._disposables.push(events);
                         return events;
-                    } else if (prop == "host") {
-                        // get current web component
+                    } else if (prop == "page") {
+                        // get current page
                         return self;                    
+                    } else if (prop == "getHost") {
+                        // get current page function
+                        return () => this._host;
                     } else {
                         // resolve from services
                         return xshell.services.resolve(prop);                    
@@ -267,6 +271,7 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
         // mount/unmount
         async mount({ host }) {
             if (this._unloaded) return;
+            this._host = host;
             // style
             const cssPageSelector = `${host.nodeName.toLowerCase()}[src="${escapeCssString(host.getAttribute("src"))}"]`;
             if (typeof(definition.style) == "string" && definition.style) {
@@ -302,6 +307,7 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
             this._renderEngine = null;
             this._styleSheets = [];
             this._renderPending = false;
+            this._host = null;
             // controller may be async
             await super.unmount();
             // clean only resources captured from this mount
