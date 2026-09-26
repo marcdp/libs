@@ -222,6 +222,12 @@ namespace DProjects.XShell.Test {
         }
 
         [Fact]
+        public void NamedStylesRejectArraysAndKeepRuntimeImportantAsValueText() {
+            Assert.Throws<XTemplateException>(() => RenderAllowingStyles("<div x-style:border=\"state.border\"></div>", new { border = new[] { "red" } }));
+            Assert.Equal("<div style=\"display:none !important\"></div>", RenderAllowingStyles("<div x-style:display=\"state.display\"></div>", new { display = "none !important" }));
+        }
+
+        [Fact]
         public void EnforcesStylePolicyRecursivelyForRawContent() {
             const string template = "<div x-pre><section><article><span STYLE=\"color:red\"></span></article></section></div>";
 

@@ -198,6 +198,21 @@ public sealed class XTemplateJavaScriptConformanceTests {
     }
 
     [Fact]
+    public void BrowserNamedStylesPreserveSourceOrderNullScalarAndPrioritySemantics() {
+        using var result = JsonDocument.Parse(ExecuteNamedStyleCompilerSemantics());
+        var root = result.RootElement;
+
+        Assert.Equal("blue", root.GetProperty("literalThenDynamic").GetProperty("border").GetProperty("value").GetString());
+        Assert.Equal("red", root.GetProperty("dynamicThenLiteral").GetProperty("border").GetProperty("value").GetString());
+        Assert.Equal("red", root.GetProperty("literalThenNull").GetProperty("border").GetProperty("value").GetString());
+        Assert.Equal("red", root.GetProperty("dynamicThenNull").GetProperty("border").GetProperty("value").GetString());
+        Assert.Equal("none !important", root.GetProperty("dynamicImportant").GetProperty("display").GetProperty("value").GetString());
+        Assert.Equal(string.Empty, root.GetProperty("dynamicImportant").GetProperty("display").GetProperty("priority").GetString());
+        Assert.Equal("error", root.GetProperty("objectValue").GetString());
+        Assert.Equal("error", root.GetProperty("arrayValue").GetString());
+    }
+
+    [Fact]
     public void BrowserRuntimeRejectsSpreadAndDynamicGenericStyleAttributes() {
         Assert.Equal(new[] { true, true }, ExecuteGenericStyleRejections());
     }
@@ -550,6 +565,50 @@ public sealed class XTemplateJavaScriptConformanceTests {
             var error = process.StandardError.ReadToEnd();
             process.WaitForExit();
             Assert.True(process.ExitCode == 0, $"JavaScript named-style runtime failed:{Environment.NewLine}{error}");
+            return output.Trim();
+        } finally {
+            if (File.Exists(modulePath)) File.Delete(modulePath);
+        }
+    }
+
+    private static string ExecuteNamedStyleCompilerSemantics() {
+        var runtimePath = Path.Combine(AppContext.BaseDirectory, "Resources", "DProjects.XShell", "xshell", "render-engines", "x.js");
+        var modulePath = Path.Combine(Path.GetTempPath(), $"xtemplate-named-style-semantics-{Guid.NewGuid():N}.mjs");
+        var compiler = new XTemplateCompiler();
+        var literalThenDynamic = compiler.Compile("<div style=\"border:red\" x-style:border=\"state.border\"></div>");
+        var dynamicThenLiteral = compiler.Compile("<div x-style:border=\"state.border\" style=\"border:red\"></div>");
+        var literalThenNull = compiler.Compile("<div style=\"border:red\" x-style:border=\"state.border\"></div>");
+        var dynamicThenNull = compiler.Compile("<div x-style:border=\"state.border\" style=\"border:red\"></div>");
+        var dynamicImportant = compiler.Compile("<div x-style:display=\"state.display\"></div>");
+        var objectValue = compiler.Compile("<div x-style:border=\"state.border\"></div>");
+        var arrayValue = compiler.Compile("<div x-style:border=\"state.border\"></div>");
+        try {
+            File.WriteAllText(modulePath, $$$"""
+                globalThis.HTMLElement = class {};
+                globalThis.CSSStyleSheet = class { replaceSync() {} };
+                globalThis.customElements = { get() {}, define() {} };
+                globalThis.window = { customElements: globalThis.customElements };
+                const { XTemplateRuntimeUtils } = await import({{{JsonSerializer.Serialize(new Uri(runtimePath).AbsoluteUri)}}});
+                const runs = {
+                    literalThenDynamic: { renderer:{{{literalThenDynamic}}}, state:{border:"blue"} },
+                    dynamicThenLiteral: { renderer:{{{dynamicThenLiteral}}}, state:{border:"blue"} },
+                    literalThenNull: { renderer:{{{literalThenNull}}}, state:{border:null} },
+                    dynamicThenNull: { renderer:{{{dynamicThenNull}}}, state:{border:null} },
+                    dynamicImportant: { renderer:{{{dynamicImportant}}}, state:{display:"none !important"} },
+                    objectValue: { renderer:{{{objectValue}}}, state:{border:{}} },
+                    arrayValue: { renderer:{{{arrayValue}}}, state:{border:[]} }
+                };
+                const result = Object.fromEntries(Object.entries(runs).map(([name, run]) => {
+                    try { return [name, run.renderer(run.state, null, () => {}, XTemplateRuntimeUtils, null, 0)[0].styles]; }
+                    catch { return [name, "error"]; }
+                }));
+                console.log(JSON.stringify(result));
+                """);
+            using var process = Process.Start(new ProcessStartInfo("node", modulePath) { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false })!;
+            var output = process.StandardOutput.ReadToEnd();
+            var error = process.StandardError.ReadToEnd();
+            process.WaitForExit();
+            Assert.True(process.ExitCode == 0, $"JavaScript named-style semantic runtime failed:{Environment.NewLine}{error}");
             return output.Trim();
         } finally {
             if (File.Exists(modulePath)) File.Delete(modulePath);
