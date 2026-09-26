@@ -119,7 +119,7 @@ namespace DProjects.XShell.Services.XTemplate {
             var post = new List<string>();
             var attributes = new List<string>();
             var properties = new List<string>();
-            string? styles = null;
+            var styles = new List<string>();
             var events = new List<string>();
             var options = new List<string> { $"index:{index}" };
             var classes = new List<string>();
@@ -136,8 +136,6 @@ namespace DProjects.XShell.Services.XTemplate {
             }
             string? text = null;
             string? childrenToAppend = null;
-            var styleAttribute = element.Attributes.FirstOrDefault(attribute => attribute.Name == "style");
-            if (styleAttribute != null) styles = CompileStyles(styleAttribute);
             var staticAttributes = element.Attributes.Where(attribute => IsStaticAttribute(attribute.Name) && attribute.Name != "style").ToArray();
             var staticAttributesJavascript = "{" + string.Join(',', staticAttributes.Select(attribute => $"{ToJavaScriptString(attribute.Name)}:{ToJavaScriptString(attribute.Value)}")) + "}";
 
@@ -205,6 +203,12 @@ namespace DProjects.XShell.Services.XTemplate {
                 if (IsPrimaryStructuralDirective(name)) {
                     continue;
                 } else if (name == "style") {
+                    styles.Add(CompileStyles(attribute));
+                    continue;
+                } else if (name.StartsWith("x-style:", StringComparison.Ordinal)) {
+                    var styleName = name[8..];
+                    if (!XTemplateStyleNames.IsValid(styleName)) throw new XTemplateException($"Invalid style property name '{styleName}'", attribute.Offset);
+                    styles.Add($"utils.expr.style({ToJavaScriptString(XTemplateStyleNames.Normalize(styleName))}, {CompileExpression(value, name, element.SourceOffset, expressionScope)})");
                     continue;
                 } else if (name == "class" && classes.Count > 0) {
                     continue;
@@ -269,7 +273,8 @@ namespace DProjects.XShell.Services.XTemplate {
             if (classes.Count > 0) attributes.Add($"...{{class:[{string.Join(',', classes)}].filter(c => c).join(' ')}}");
             line.Append(", ").Append(attributes.Count > 0 ? $"{{{string.Join(',', attributes)}}}" : "null");
             line.Append(", ").Append(properties.Count > 0 ? $"{{{string.Join(',', properties)}}}" : "null");
-            line.Append(", ").Append(styles ?? "null");
+            var styleExpression = styles.Count == 0 ? null : styles.Count == 1 && styles[0] == "{}" ? "{}" : "{" + string.Join(',', styles.Select(style => $"...{style}")) + "}";
+            line.Append(", ").Append(styleExpression ?? "null");
             line.Append(", ").Append(events.Count > 0 ? $"{{{string.Join(',', events)}}}" : "null");
             line.Append(", ").Append(options.Count > 0 ? $"{{{string.Join(',', options)}}}" : "null");
             if (text != null) {
@@ -423,87 +428,8 @@ namespace DProjects.XShell.Services.XTemplate {
             }
         }
         private static string CompileStyles(TemplateAttribute attribute) {
-            var declarations = ParseStyleDeclarations(attribute.Value, attribute.Offset);
+            var declarations = XTemplateStyleDeclarations.Parse(attribute.Value, attribute.Offset);
             return "{" + string.Join(',', declarations.Select(declaration => $"[{ToJavaScriptString(declaration.Name)}]:{{value:{ToJavaScriptString(declaration.Value)},priority:{ToJavaScriptString(declaration.Priority)}}}")) + "}";
-        }
-        private static IReadOnlyList<StyleDeclaration> ParseStyleDeclarations(string source, int offset) {
-            var declarations = new Dictionary<string, StyleDeclaration>(StringComparer.Ordinal);
-            var position = 0;
-            while (position < source.Length) {
-                while (position < source.Length && (char.IsWhiteSpace(source[position]) || source[position] == ';')) position++;
-                if (position >= source.Length) break;
-                var start = position;
-                var colon = -1;
-                var quote = '\0';
-                var parentheses = 0;
-                var brackets = 0;
-                var braces = 0;
-                while (position < source.Length) {
-                    var character = source[position];
-                    if (character == '\\') {
-                        if (position + 1 >= source.Length) throw new XTemplateException("Invalid style declaration: incomplete escape", offset + position);
-                        position += 2;
-                        continue;
-                    }
-                    if (quote != '\0') {
-                        if (character == quote) quote = '\0';
-                        position++;
-                        continue;
-                    }
-                    if (character is '\'' or '"') { quote = character; position++; continue; }
-                    if (character == '(') parentheses++;
-                    else if (character == ')' && --parentheses < 0) throw new XTemplateException("Invalid style declaration: unmatched ')'", offset + position);
-                    else if (character == '[') brackets++;
-                    else if (character == ']' && --brackets < 0) throw new XTemplateException("Invalid style declaration: unmatched ']'", offset + position);
-                    else if (character == '{') braces++;
-                    else if (character == '}' && --braces < 0) throw new XTemplateException("Invalid style declaration: unmatched '}'", offset + position);
-                    else if (character == ':' && colon < 0 && parentheses == 0 && brackets == 0 && braces == 0) colon = position;
-                    else if (character == ';' && parentheses == 0 && brackets == 0 && braces == 0) break;
-                    position++;
-                }
-                if (quote != '\0' || parentheses != 0 || brackets != 0 || braces != 0) throw new XTemplateException("Invalid style declaration: unclosed string or function", offset + start);
-                var end = position;
-                if (position < source.Length && source[position] == ';') position++;
-                if (colon < start || colon >= end) throw new XTemplateException("Invalid style declaration: expected a property name followed by ':'", offset + start);
-                var name = source[start..colon].Trim();
-                var value = source[(colon + 1)..end].Trim();
-                if (!IsCssPropertyName(name)) throw new XTemplateException($"Invalid style declaration property name '{name}'", offset + start);
-                if (value.Length == 0) throw new XTemplateException($"Invalid style declaration for '{name}': value is empty", offset + colon + 1);
-                if (!name.StartsWith("--", StringComparison.Ordinal)) name = name.ToLowerInvariant();
-                var (normalizedValue, priority) = ExtractStylePriority(value, offset + colon + 1);
-                declarations[name] = new(name, normalizedValue, priority);
-            }
-            return declarations.Values.ToArray();
-        }
-        private static (string Value, string Priority) ExtractStylePriority(string value, int offset) {
-            var quote = '\0';
-            var parentheses = 0;
-            var brackets = 0;
-            var braces = 0;
-            var importantMarker = -1;
-            for (var position = 0; position < value.Length; position++) {
-                var character = value[position];
-                if (character == '\\') { position++; continue; }
-                if (quote != '\0') { if (character == quote) quote = '\0'; continue; }
-                if (character is '\'' or '"') { quote = character; continue; }
-                if (character == '(') parentheses++;
-                else if (character == ')') parentheses--;
-                else if (character == '[') brackets++;
-                else if (character == ']') brackets--;
-                else if (character == '{') braces++;
-                else if (character == '}') braces--;
-                else if (character == '!' && parentheses == 0 && brackets == 0 && braces == 0) importantMarker = position;
-            }
-            if (importantMarker < 0 || !string.Equals(value[(importantMarker + 1)..].Trim(), "important", StringComparison.OrdinalIgnoreCase)) return (value, string.Empty);
-            var normalizedValue = value[..importantMarker].TrimEnd();
-            if (normalizedValue.Length == 0) throw new XTemplateException("Invalid style declaration: '!important' requires a value", offset + importantMarker);
-            return (normalizedValue, "important");
-        }
-        private static bool IsCssPropertyName(string name) {
-            if (name.Length == 0 || name.Any(character => char.IsWhiteSpace(character) || char.IsControl(character) || character is ':' or ';')) return false;
-            if (name.StartsWith("--", StringComparison.Ordinal)) return name.Length > 2;
-            if (!char.IsLetter(name[0]) && name[0] != '-' && name[0] != '_') return false;
-            return name.Skip(1).All(character => char.IsLetterOrDigit(character) || character is '-' or '_');
         }
         private string CompileExpression(string source, string directive, int offset, XTemplateExpressionJavaScriptScope scope) => _expressionCompiler.Compile(ParseExpression(source, directive, offset), scope);
         private static XTemplateExpression ParseExpression(string source, string directive, int offset) {
@@ -562,7 +488,6 @@ namespace DProjects.XShell.Services.XTemplate {
         private sealed record ExpressionNode(string Expression, int SourceOffset) : TemplateNode(SourceOffset);
         private sealed record CommentNode(string Text, int SourceOffset) : TemplateNode(SourceOffset);
         private sealed record TemplateAttribute(string Name, string Value, bool HasValue, int Offset);
-        private sealed record StyleDeclaration(string Name, string Value, string Priority);
         private sealed record StructuralDirectiveInfo(StructuralDirectiveKind Kind, TemplateAttribute? Attribute);
         private sealed record LoopDefinition(string Item, string Index, string AbsoluteIndex, string Indent, string Collection);
         private sealed record ElementNode(string Name, List<TemplateAttribute> Attributes, List<TemplateNode> Children, int SourceOffset) : TemplateNode(SourceOffset) {

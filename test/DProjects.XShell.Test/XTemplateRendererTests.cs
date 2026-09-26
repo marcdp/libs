@@ -200,6 +200,28 @@ namespace DProjects.XShell.Test {
         }
 
         [Fact]
+        public void RendersNamedStylesOnlyWhenStyleSerializationIsEnabled() {
+            Assert.Throws<XTemplateException>(() => Render("<div x-style:border=\"'1px solid red'\"></div>"));
+            Assert.Equal("<div style=\"border:1px solid red\"></div>", RenderAllowingStyles("<div x-style:border=\"'1px solid red'\"></div>"));
+            Assert.Equal("<div style=\"margin-top:8px;--accent-color:red\"></div>", RenderAllowingStyles("<div x-style:margin-top=\"state.margin\" x-style:--accent-color=\"state.accent\"></div>", new { margin = "8px", accent = "red" }));
+        }
+
+        [Fact]
+        public void NamedStylesSupportScalarNullAndSourceOrderSemantics() {
+            Assert.Equal("<div></div>", RenderAllowingStyles("<div x-style:border=\"state.border\"></div>", new { border = (string?)null }));
+            Assert.Equal("<div style=\"border:blue;display:block\"></div>", RenderAllowingStyles("<div style=\"border:red;display:block\" x-style:border=\"state.border\"></div>", new { border = "blue" }));
+            Assert.Equal("<div style=\"border:red;display:block\"></div>", RenderAllowingStyles("<div x-style:border=\"state.border\" style=\"border:red;display:block\"></div>", new { border = "blue" }));
+            Assert.Equal("<div style=\"border:1\"></div>", RenderAllowingStyles("<div x-style:border=\"state.border\"></div>", new { border = 1 }));
+            Assert.Equal("<div style=\"border:true\"></div>", RenderAllowingStyles("<div x-style:border=\"state.border\"></div>", new { border = true }));
+        }
+
+        [Fact]
+        public void NamedStylesRejectObjectsAndRemainOpaqueInsideXPre() {
+            Assert.Throws<XTemplateException>(() => RenderAllowingStyles("<div x-style:border=\"state.border\"></div>", new { border = new { value = "red" } }));
+            Assert.Equal("<div><span x-style:border=\"'red'\"></span></div>", Render("<div x-pre><span x-style:border=\"'red'\"></span></div>"));
+        }
+
+        [Fact]
         public void EnforcesStylePolicyRecursivelyForRawContent() {
             const string template = "<div x-pre><section><article><span STYLE=\"color:red\"></span></article></section></div>";
 

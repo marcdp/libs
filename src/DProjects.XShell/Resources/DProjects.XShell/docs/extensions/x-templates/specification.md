@@ -938,6 +938,7 @@ The following constructs consume the restricted expression grammar:
 | `x-attr:[expression]` | dynamic name | bracket contents use this grammar |
 | `x-prop`, `x-prop:name` | value | whole-object form expands an object into the property map |
 | `x-prop:[expression]` | dynamic name | bracket contents use this grammar |
+| `x-style:css-property` | value | named structured style; CSS property names are not camel-cased |
 | `x-if`, `x-elseif`, `x-show`, `x-class:name` | condition | XTemplate truthiness |
 | `x-for` collection | value | evaluated in the enclosing context before loop locals exist |
 | `x-recursive` collection | value | evaluated in the enclosing context; nested content receives recursive locals |
@@ -1066,6 +1067,31 @@ for deploying a CSP compatible with emitted inline style attributes. This rule c
 element support.
 
 These semantics permit the browser XTemplate path to operate with `style-src-attr 'none'` and do not require `'unsafe-inline'`.
+
+### 8.2 Named dynamic styles
+
+The supported dynamic style syntax is the named form:
+
+```html
+<div x-style:border="state.border"></div>
+<div x-style:margin-top="state.margin"></div>
+<div x-style:--accent-color="state.accent"></div>
+```
+
+The property name MUST be non-empty and structurally valid for CSSOM use. CSS spelling is preserved, including hyphens and custom properties beginning
+with `--`; the compiler MUST NOT camel-case the name. The whole-object form `x-style="..."` and dynamic-name form `x-style:[...]` are not supported.
+
+The expression uses normal XTemplate evaluation. Strings, finite numbers, and booleans use scalar conversion; objects and collections are errors.
+`null` contributes no declaration. Dynamic values always use an empty priority and MUST NOT parse a runtime `!important` suffix. Literal and dynamic
+declarations share one ordered style map, so a later declaration for the same property wins.
+
+Browser targets MUST place effective declarations in `VNode.styles`, then apply them with `CSSStyleDeclaration.setProperty(name, value, "")` and remove
+XTemplate-owned declarations with `removeProperty(name)`. They MUST NOT materialize a browser `style` attribute. Generic `x-attr:style`, style keys
+from generic spreads, and dynamic generic names resolving to `style` remain invalid.
+
+The C# server renderer evaluates named styles as structured declarations. With `AllowStyleAttributes=false`, an active dynamic declaration is rejected;
+with `AllowStyleAttributes=true`, effective literal and dynamic declarations are merged into one deterministic `style` attribute. A null dynamic value
+contributes nothing, so it neither requires opt-in nor clears an unrelated literal declaration. Named styles inside `x-pre` raw content remain opaque.
 
 ---
 
@@ -2654,6 +2680,8 @@ dynamic-prop-binding
                   = "x-prop:[", expression, "]", "=", quoted-expression ;
 prop-spread       = "x-prop", "=", quoted-expression ;
 
+style-binding     = "x-style:", css-property-name, "=", quoted-expression ;
+
 event-binding     = "x-on:", event-spec, "=", quoted-command ;
 
 class-binding     = "x-class:", class-name, "=", quoted-expression ;
@@ -2780,6 +2808,7 @@ x-pre
 x-attr
 x-attr:*
 x-prop:*
+x-style:*
 x-class:*
 x-model
 ```
@@ -3807,7 +3836,8 @@ x-children              → real DOM nodes
 
 x-attr:*                → DOM attributes
 x-prop:name / x-prop:[...] / x-prop
-                         → DOM/custom-element property bindings; whole-object form expands the property map
+                          → DOM/custom-element property bindings; whole-object form expands the property map
+x-style:css-property    → named structured style binding; browser VNode.styles/CSSOM or opt-in server style serialization
 style="..."             → browser: structured styles / VNode.styles applied through CSSOM; C# server: rejected by default and serialized as an HTML
                            style attribute only when XTemplateRendererOptions.AllowStyleAttributes is enabled
 x-class:*               → conditional CSS classes
@@ -3841,6 +3871,7 @@ A correct implementation should preserve these semantics even if it uses a compl
 | `x-children` | Real DOM node content | expression |
 | `x-attr:name` | Dynamic attribute | expression |
 | `x-attr` | Attribute spread | expression/object |
+| `x-style:property` | Named dynamic style | expression |
 | `x-prop:name` | Dynamic property | expression |
 | `x-prop:[expr]` | Dynamic property name | name expression + value expression |
 | `x-prop` | Property object expansion | object expression |
@@ -3873,6 +3904,7 @@ x-attr
 x-attr:name
 x-prop
 x-prop:name
+x-style:property
 x-on:event
 x-class:name
 x-if

@@ -54,6 +54,11 @@ which the renderer applies through CSSOM without materializing an HTML style att
 HTML renderer rejects style attributes by default, including in x-pre raw content, and can serialize them only when
 `XTemplateRendererOptions.AllowStyleAttributes` is enabled.
 
+Named dynamic styles use `x-style:<css-property>="expression"`. The property name remains CSS syntax (`margin-top` is not camel-cased, and `--accent`
+is a custom property), values use scalar conversion, and `null` omits the declaration. Browser output remains structured `VNode.styles`/CSSOM; server
+serialization follows `XTemplateRendererOptions.AllowStyleAttributes`. Later literal or named declarations win by source order. Whole-object and
+dynamic-name `x-style` forms are not supported.
+
 The supported shorthand forms are `:name` for `x-attr:name`, `:` for `x-attr`, `.name` for `x-prop:name`, and `@event` for `x-on:event`.
 Canonical documentation and new templates should prefer the long `x-*` forms.
 

@@ -57,6 +57,22 @@ runtime. Dynamic style strings and interpolation are not supported. The C# serve
 attributes by default because it cannot serialize them without producing a CSP-sensitive inline attribute. An embedding environment may explicitly
 enable their serialization through `XTemplateRendererOptions.AllowStyleAttributes` and provide a compatible CSP.
 
+## Named dynamic styles
+
+Use `x-style:<css-property>="expression"` for one dynamic declaration:
+
+```html
+<div x-style:border="state.border" x-style:margin-top="state.margin" x-style:--accent-color="state.accent"></div>
+```
+
+Only the named form is supported. CSS property names remain CSS syntax, including hyphenated names and custom properties beginning with `--`; they
+are not camel-cased. Strings, numbers, and booleans use normal XTemplate scalar conversion; objects and collections are errors. `null` omits the
+declaration, and dynamic values do not parse `!important` or set a priority.
+
+Browser named styles contribute to `VNode.styles` and are applied through CSSOM. Server serialization follows `XTemplateRendererOptions.AllowStyleAttributes`;
+when enabled, effective literal and dynamic declarations are merged into one style attribute. Declarations follow source order, with later declarations
+for the same property winning. Whole-object `x-style` and dynamic-name `x-style:[...]` forms are not supported.
+
 ## Events
 
 `x-on:event="command"` dispatches a named command; it is not arbitrary inline JavaScript.

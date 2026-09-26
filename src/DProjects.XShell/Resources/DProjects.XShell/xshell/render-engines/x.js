@@ -126,6 +126,7 @@ const utils = new class {
 			if (typeof value === "number" && Number.isFinite(value)) return String(value);
 			return fail("Value cannot be converted to an XTemplate scalar");
 		};
+		const style = (name, value) => value === null ? {} : {[name]: {value: scalar(value), priority: ""}};
 		const truthy = (value) => !(value === null || value === false || value === "" || (typeof value === "number" && value === 0));
 		const own = (target, name) => Object.prototype.hasOwnProperty.call(target, name);
 		const assignmentError = (message) => fail(`Model assignment error: ${message}`);
@@ -257,7 +258,7 @@ const utils = new class {
 			return fail(`Unknown transformer '${name}'`);
 		};
 		return {
-			truthy, scalar,
+			truthy, scalar, style,
 			member: (target, name) => target === null ? null : (typeof target === "string" || Array.isArray(target)) ? name === "length" ? target.length : null : (typeof target === "object" && own(target, name) ? normalize(target[name]) : null),
 			index: (target, index) => target === null ? null : typeof index === "string" ? (typeof target === "string" || Array.isArray(target) ? (index === "length" ? target.length : null) : (typeof target === "object" && own(target, index) ? normalize(target[index]) : null)) : (Number.isInteger(index) && index >= 0 && Array.isArray(target) ? normalize(target[index]) : fail("A collection index must be a non-negative integer number")),
 			assign: (root, path, value) => {

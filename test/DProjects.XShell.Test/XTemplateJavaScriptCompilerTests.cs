@@ -73,6 +73,26 @@ namespace DProjects.XShell.Test {
         }
 
         [Fact]
+        public void CompilesNamedStylesIntoTheStructuredStylesArgument() {
+            var javascript = new XTemplateCompiler().Compile("<div x-style:border=\"state.border\" x-style:margin-top=\"state.margin\" x-style:--accent-color=\"state.accent\"></div>");
+
+            Assert.Contains("utils.expr.style(\"border\", utils.expr.member(state, \"border\"))", javascript, StringComparison.Ordinal);
+            Assert.Contains("utils.expr.style(\"margin-top\", utils.expr.member(state, \"margin\"))", javascript, StringComparison.Ordinal);
+            Assert.Contains("utils.expr.style(\"--accent-color\", utils.expr.member(state, \"accent\"))", javascript, StringComparison.Ordinal);
+            Assert.DoesNotContain("\"border\":utils.expr", javascript, StringComparison.Ordinal);
+            Assert.DoesNotContain("border:utils.expr", javascript, StringComparison.Ordinal);
+            Assert.DoesNotContain("marginTop", javascript, StringComparison.Ordinal);
+        }
+
+        [Theory]
+        [InlineData("<div x-style></div>")]
+        [InlineData("<div x-style:\"state.name\"=\"state.value\"></div>")]
+        [InlineData("<div x-style:margin.top=\"state.value\"></div>")]
+        public void RejectsInvalidNamedStyleBindings(string template) {
+            Assert.ThrowsAny<Exception>(() => new XTemplateCompiler().Compile(template));
+        }
+
+        [Fact]
         public void CompilesWholeObjectPropertiesIntoTheVNodePropertiesArgument() {
             var javascript = new XTemplateCompiler().Compile("<x-grid x-prop=\"state.props\"></x-grid>");
 

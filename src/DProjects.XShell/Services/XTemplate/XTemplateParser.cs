@@ -145,6 +145,10 @@ namespace DProjects.XShell.Services.XTemplate {
                     var name = directive[7..];
                     if (!IsValidAttributeName(name)) throw Error($"Invalid attribute name '{name}'", attribute.Offset);
                     attributes.Add(new XTemplateBoundAttribute(name, ParseExpression(attribute, "x-attr"), attribute.Offset));
+                } else if (directive.StartsWith("x-style:", StringComparison.OrdinalIgnoreCase)) {
+                    var name = directive[8..];
+                    if (!XTemplateStyleNames.IsValid(name)) throw Error($"Invalid style property name '{name}'", attribute.Offset);
+                    attributes.Add(new XTemplateStyleAttribute(XTemplateStyleNames.Normalize(name), ParseExpression(attribute, "x-style"), attribute.Offset));
                 } else if (directive.StartsWith("x-class:", StringComparison.OrdinalIgnoreCase)) {
                     var name = directive[8..];
                     if (string.IsNullOrWhiteSpace(name) || name.Any(char.IsWhiteSpace)) throw Error("x-class requires a class name", attribute.Offset);

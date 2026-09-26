@@ -181,6 +181,23 @@ public sealed class XTemplateJavaScriptConformanceTests {
     }
 
     [Fact]
+    public void BrowserNamedStylesUseStructuredCssomBindingsAndRemoveNullValues() {
+        using var result = JsonDocument.Parse(ExecuteNamedStyleRuntime());
+        var root = result.RootElement;
+
+        Assert.Equal("red", root.GetProperty("initial").GetProperty("border").GetProperty("value").GetString());
+        Assert.Equal("8", root.GetProperty("initial").GetProperty("margin-top").GetProperty("value").GetString());
+        Assert.Equal("blue", root.GetProperty("initial").GetProperty("--accent-color").GetProperty("value").GetString());
+        Assert.False(root.GetProperty("updated").TryGetProperty("border", out _));
+        Assert.Equal("kept", root.GetProperty("updated").GetProperty("external").GetProperty("value").GetString());
+        Assert.Equal(new[] { "border", "margin-top", "--accent-color" }, root.GetProperty("initialSetCalls").EnumerateArray().Select(item => item.GetString()));
+        Assert.Empty(root.GetProperty("setCalls").EnumerateArray());
+        Assert.Equal(new[] { "border" }, root.GetProperty("removeCalls").EnumerateArray().Select(item => item.GetString()));
+        Assert.False(root.GetProperty("attributes").TryGetProperty("style", out _));
+        Assert.Equal(2, root.GetProperty("borderReads").GetInt32());
+    }
+
+    [Fact]
     public void BrowserRuntimeRejectsSpreadAndDynamicGenericStyleAttributes() {
         Assert.Equal(new[] { true, true }, ExecuteGenericStyleRejections());
     }
@@ -464,6 +481,75 @@ public sealed class XTemplateJavaScriptConformanceTests {
             var error = process.StandardError.ReadToEnd();
             process.WaitForExit();
             Assert.True(process.ExitCode == 0, $"JavaScript style runtime failed:{Environment.NewLine}{error}");
+            return output.Trim();
+        } finally {
+            if (File.Exists(modulePath)) File.Delete(modulePath);
+        }
+    }
+
+    private static string ExecuteNamedStyleRuntime() {
+        var runtimePath = Path.Combine(AppContext.BaseDirectory, "Resources", "DProjects.XShell", "xshell", "render-engines", "x.js");
+        var modulePath = Path.Combine(Path.GetTempPath(), $"xtemplate-named-styles-{Guid.NewGuid():N}.mjs");
+        var renderer = new XTemplateCompiler().Compile("<div x-style:border=\"state.border\" x-style:margin-top=\"state.margin\" x-style:--accent-color=\"state.accent\"></div>");
+        try {
+            File.WriteAllText(modulePath, $$"""
+                class FakeStyle {
+                    constructor() { this.values = {}; this.setCalls = []; this.removeCalls = []; }
+                    setProperty(name, value, priority) { this.setCalls.push(name); this.values[name] = { value, priority }; }
+                    removeProperty(name) { this.removeCalls.push(name); delete this.values[name]; }
+                }
+                class FakeFragment {
+                    childNodes = [];
+                    appendChild(child) { if (child instanceof FakeFragment) this.childNodes.push(...child.childNodes); else this.childNodes.push(child); return child; }
+                    append(child) { this.appendChild(child); }
+                    querySelectorAll() { return []; }
+                }
+                class FakeElement {
+                    constructor(tag) { this.tagName = tag.toUpperCase(); this.localName = tag.toLowerCase(); this.childNodes = []; this.attributes = {}; this.style = new FakeStyle(); this.innerHTML = ""; }
+                    appendChild(child) { if (child instanceof FakeFragment) this.childNodes.push(...child.childNodes); else this.childNodes.push(child); return child; }
+                    append(child) { this.appendChild(child); }
+                    replaceChildren() { this.childNodes = []; }
+                    setAttribute(name, value) { this.attributes[name] = value; }
+                    removeAttribute(name) { delete this.attributes[name]; }
+                    querySelectorAll() { return []; }
+                }
+                globalThis.DocumentFragment = FakeFragment;
+                globalThis.HTMLElement = class {};
+                globalThis.CSSStyleSheet = class { replaceSync() {} };
+                globalThis.customElements = { get() {}, define() {} };
+                globalThis.window = { customElements: globalThis.customElements };
+                globalThis.document = {
+                    createElement(tag) { const element = new FakeElement(tag); if (tag.toLowerCase() === "template") element.content = new FakeFragment(); return element; },
+                    createDocumentFragment() { return new FakeFragment(); },
+                    createComment() { return new FakeElement("#comment"); },
+                    createTextNode() { return new FakeElement("#text"); }
+                };
+                const { default: createRenderEngineFactoryX } = await import({{JsonSerializer.Serialize(new Uri(runtimePath).AbsoluteUri)}});
+                const renderer = {{renderer}};
+                const factoryContext = {};
+                const factory = createRenderEngineFactoryX.call(factoryContext, "<div></div>", {}, { render:renderer, dependencies:[], slots:[] });
+                factory.init();
+                let borderReads = 0;
+                const state = { _border:"red", margin:8, accent:"blue" };
+                Object.defineProperty(state, "border", { get() { borderReads++; return this._border; } });
+                const host = new FakeElement("host");
+                const engine = factory.create({ host, state, handler:() => {}, invalidate:() => {} });
+                engine.render();
+                const element = host.childNodes[0];
+                const initial = structuredClone(element.style.values);
+                const initialSetCalls = [...element.style.setCalls];
+                element.style.setProperty("external", "kept", "");
+                element.style.setCalls = [];
+                element.style.removeCalls = [];
+                state._border = null;
+                engine.render();
+                console.log(JSON.stringify({ initial, updated:element.style.values, initialSetCalls, setCalls:element.style.setCalls, removeCalls:element.style.removeCalls, attributes:element.attributes, borderReads }));
+                """);
+            using var process = Process.Start(new ProcessStartInfo("node", modulePath) { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false })!;
+            var output = process.StandardOutput.ReadToEnd();
+            var error = process.StandardError.ReadToEnd();
+            process.WaitForExit();
+            Assert.True(process.ExitCode == 0, $"JavaScript named-style runtime failed:{Environment.NewLine}{error}");
             return output.Trim();
         } finally {
             if (File.Exists(modulePath)) File.Delete(modulePath);

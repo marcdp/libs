@@ -19,6 +19,7 @@ namespace DProjects.XShell.Services.XTemplate {
     internal sealed record XTemplateCommentNode(string Text, int Offset) : XTemplateNode(Offset);
     internal sealed record XTemplateStaticAttribute(string Name, string Value, bool HasValue, int Offset) : XTemplateElementAttribute(Offset);
     internal sealed record XTemplateBoundAttribute(string Name, XTemplateExpression Expression, int Offset) : XTemplateElementAttribute(Offset);
+    internal sealed record XTemplateStyleAttribute(string Name, XTemplateExpression Expression, int Offset) : XTemplateElementAttribute(Offset);
     internal sealed record XTemplateDynamicAttribute(XTemplateExpression NameExpression, XTemplateExpression ValueExpression, int Offset) : XTemplateElementAttribute(Offset);
     internal sealed record XTemplateAttributeSpread(XTemplateExpression Expression, int Offset) : XTemplateElementAttribute(Offset);
     internal sealed record XTemplateClassAttribute(string Name, XTemplateExpression Expression, int Offset) : XTemplateElementAttribute(Offset);
@@ -38,6 +39,22 @@ namespace DProjects.XShell.Services.XTemplate {
         public void AddClass(string name) { var current = _items.FirstOrDefault(item => string.Equals(item.Key, "class", StringComparison.OrdinalIgnoreCase)); var classes = (current.Value ?? string.Empty).Split(' ', StringSplitOptions.RemoveEmptyEntries).ToList(); if (!classes.Contains(name, StringComparer.Ordinal)) classes.Add(name); Set("class", string.Join(' ', classes)); }
         public bool Contains(string name) => _items.Any(item => string.Equals(item.Key, name, StringComparison.OrdinalIgnoreCase));
         public string? GetValue(string name) => _items.FirstOrDefault(item => string.Equals(item.Key, name, StringComparison.OrdinalIgnoreCase)).Value;
+    }
+    internal sealed class OrderedStyles {
+
+        // vars
+        private readonly List<XTemplateStyleDeclaration> mItems = new();
+
+        // props
+        public IReadOnlyList<XTemplateStyleDeclaration> Items => mItems;
+
+        // methods
+        public void Set(string name, string value, string priority) {
+            var index = mItems.FindIndex(item => string.Equals(item.Name, name, StringComparison.Ordinal));
+            var declaration = new XTemplateStyleDeclaration(name, value, priority);
+            if (index < 0) mItems.Add(declaration);
+            else mItems[index] = declaration;
+        }
     }
     public sealed class XTemplateRendererOptions {
         public bool AllowStyleAttributes { get; init; } = false;
@@ -196,13 +213,33 @@ namespace DProjects.XShell.Services.XTemplate {
         }
         private List<KeyValuePair<string, string?>> BuildAttributes(XTemplateElementNode element, XTemplateExpressionContext context) {
             var attributes = new OrderedAttributes();
+            var styles = new OrderedStyles();
             var hasShow = false;
             var isHidden = false;
+            var hasLiteralStyle = false;
+            var hasStylePlaceholder = false;
             foreach (var attribute in element.Attributes) {
                 switch (attribute) {
-                    case XTemplateStaticAttribute staticAttribute: attributes.Set(staticAttribute.Name, staticAttribute.HasValue ? staticAttribute.Value : null); break;
+                    case XTemplateStaticAttribute staticAttribute:
+                        if (string.Equals(staticAttribute.Name, "style", StringComparison.OrdinalIgnoreCase)) {
+                            EnsureAttributeAllowed("style", staticAttribute.Offset);
+                            foreach (var declaration in XTemplateStyleDeclarations.Parse(staticAttribute.Value, staticAttribute.Offset)) styles.Set(declaration.Name, declaration.Value, declaration.Priority);
+                            hasLiteralStyle = true;
+                            hasStylePlaceholder = true;
+                            attributes.Set("style", null);
+                        } else attributes.Set(staticAttribute.Name, staticAttribute.HasValue ? staticAttribute.Value : null);
+                        break;
                     case XTemplateAttributeSpread spread: AddSpread(attributes, XTemplateExpressions.Evaluate(spread.Expression, context), spread.Offset); break;
                     case XTemplateBoundAttribute bound: SetBoundAttribute(attributes, bound.Name, XTemplateExpressions.Evaluate(bound.Expression, context), bound.Offset); break;
+                    case XTemplateStyleAttribute styleAttribute:
+                        var evaluatedStyleValue = XTemplateExpressions.Evaluate(styleAttribute.Expression, context);
+                        if (evaluatedStyleValue == null) break;
+                        var styleValue = ScalarString(evaluatedStyleValue, styleAttribute.Offset);
+                        EnsureAttributeAllowed("style", styleAttribute.Offset);
+                        styles.Set(styleAttribute.Name, styleValue, string.Empty);
+                        hasStylePlaceholder = true;
+                        attributes.Set("style", null);
+                        break;
                     case XTemplateDynamicAttribute dynamicAttribute:
                         var name = ScalarString(XTemplateExpressions.Evaluate(dynamicAttribute.NameExpression, context), dynamicAttribute.Offset);
                         if (!IsValidAttributeName(name)) throw new XTemplateException($"Invalid dynamic attribute name '{name}'", dynamicAttribute.Offset);
@@ -221,6 +258,9 @@ namespace DProjects.XShell.Services.XTemplate {
                 if (isHidden) attributes.Set("hidden", null);
                 else attributes.Remove("hidden");
             }
+            if (styles.Items.Count > 0) attributes.Set("style", XTemplateStyleDeclarations.Serialize(styles.Items));
+            else if (hasLiteralStyle) attributes.Set("style", string.Empty);
+            else if (hasStylePlaceholder) attributes.Remove("style");
             return attributes.Items;
         }
         private static XTemplateSelectModel? ApplyModel(XTemplateElementNode element, XTemplateExpressionContext context, List<KeyValuePair<string, string?>> attributes) {

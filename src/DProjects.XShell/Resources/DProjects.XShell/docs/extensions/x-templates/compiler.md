@@ -130,6 +130,11 @@ bound, spread, dynamic, or x-pre raw content source because serializing that val
 style-attribute serialization through `XTemplateRendererOptions.AllowStyleAttributes`; the caller is then responsible for deploying a CSP compatible
 with emitted inline style attributes. The option does not affect `<style>` elements or the browser's structured CSSOM path.
 
+Named `x-style:<css-property>` bindings join the same ordered structured-style map as literal declarations. The compiler emits a single-evaluation
+`utils.expr.style(name, value)` helper call; the helper scalar-converts non-null values and returns an empty declaration map for `null`. The browser
+therefore retains the structured `VNode.styles` → CSSOM path, while the server parser stores the property-level expression and merges effective
+declarations only when style-attribute serialization is explicitly enabled.
+
 ## Property binding ABI
 
 The browser VDOM `properties` field is the DOM/custom-element property map. Named, dynamic-name, and whole-object `x-prop` bindings contribute
