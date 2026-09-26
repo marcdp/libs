@@ -1,5 +1,5 @@
 import ComponentContractSchema from "../schemas/component.contract.schema.json" with { type: "json" };
-import { Validator } from "../vendor/json-schema/json-schema.js"
+import { Validator } from "../vendor/json-schema/4.1.1/json-schema.js"
 
 // vars 
 const validator = new Validator(ComponentContractSchema, "2020-12");
