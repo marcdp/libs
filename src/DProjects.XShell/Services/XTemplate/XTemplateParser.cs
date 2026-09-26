@@ -105,7 +105,13 @@ namespace DProjects.XShell.Services.XTemplate {
         private XTemplateElementNode Freeze(MutableElement element) {
             var preAttribute = element.Attributes.FirstOrDefault(attribute => string.Equals(attribute.Name, "x-pre", StringComparison.OrdinalIgnoreCase));
             if (preAttribute != null && preAttribute.HasValue && !string.IsNullOrEmpty(preAttribute.Value)) throw Error("Directive 'x-pre' cannot have a value", preAttribute.Offset);
-            var children = preAttribute == null ? element.Children.Select(child => child is MutableElement childElement ? (XTemplateNode)Freeze(childElement) : (XTemplateNode)child).ToList() : new List<XTemplateNode> { new XTemplateRawHtmlNode(_source[element.ContentStart..element.ContentEnd], element.ContentStart) };
+            List<XTemplateNode> children;
+            if (preAttribute == null) children = element.Children.Select(child => child is MutableElement childElement ? (XTemplateNode)Freeze(childElement) : (XTemplateNode)child).ToList();
+            else {
+                // preserve raw markup while carrying structural facts needed by the renderer
+                var containsStyleAttributes = element.Children.OfType<MutableElement>().Any(ContainsStyleAttribute);
+                children = new() { new XTemplateRawHtmlNode(_source[element.ContentStart..element.ContentEnd], containsStyleAttributes, element.ContentStart) };
+            }
             var attributes = new List<XTemplateElementAttribute>();
             XTemplateExpression? condition = null;
             XTemplateExpression? elseIf = null;
@@ -214,6 +220,10 @@ namespace DProjects.XShell.Services.XTemplate {
         private static bool IsTagName(string value) => value.Length > 0 && char.IsLetter(value[0]) && value.All(character => char.IsLetterOrDigit(character) || character is '-' or '_' or ':');
         private static bool IsIdentifier(string value) => value.Length > 0 && (value[0] is >= 'A' and <= 'Z' or >= 'a' and <= 'z' or '_') && value.Skip(1).All(character => character is >= 'A' and <= 'Z' or >= 'a' and <= 'z' or >= '0' and <= '9' or '_');
         private static bool IsValidAttributeName(string name) => XTemplateAttributeNames.IsValid(name);
+        private static bool ContainsStyleAttribute(MutableElement element) {
+            return element.Attributes.Any(attribute => string.Equals(attribute.Name, "style", StringComparison.OrdinalIgnoreCase)) ||
+                element.Children.OfType<MutableElement>().Any(ContainsStyleAttribute);
+        }
         private static XTemplateException Error(string message, int offset) => new(message, offset);
         private sealed record RawAttribute(string Name, string Value, bool HasValue, int Offset);
         private sealed class MutableElement(string name, int offset, List<RawAttribute> attributes) {

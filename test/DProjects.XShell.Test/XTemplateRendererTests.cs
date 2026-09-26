@@ -188,6 +188,34 @@ namespace DProjects.XShell.Test {
         }
 
         [Fact]
+        public void RendersInlineStylesFromEverySupportedPathWhenEnabled() {
+            Assert.Equal("<div style=\"color:red\"></div>", RenderAllowingStyles("<div style=\"color:red\"></div>"));
+            Assert.Equal("<div style=\"color:red\"></div>",
+                RenderAllowingStyles("<div x-attr:style=\"state.style\"></div>", new { style = "color:red" }));
+            Assert.Equal("<div STYLE=\"color:red\"></div>",
+                RenderAllowingStyles("<div x-attr=\"state.attributes\"></div>", new { attributes = new Dictionary<string, object?> { ["STYLE"] = "color:red" } }));
+            Assert.Equal("<div Style=\"color:red\"></div>",
+                RenderAllowingStyles("<div x-attr:[state.name]=\"state.value\"></div>", new { name = "Style", value = "color:red" }));
+            Assert.Equal("<div><span style=\"color:red\"></span></div>", RenderAllowingStyles("<div x-pre><span style=\"color:red\"></span></div>"));
+        }
+
+        [Fact]
+        public void EnforcesStylePolicyRecursivelyForRawContent() {
+            const string template = "<div x-pre><section><article><span STYLE=\"color:red\"></span></article></section></div>";
+
+            Assert.Throws<XTemplateException>(() => Render(template));
+            Assert.Equal("<div><section><article><span STYLE=\"color:red\"></span></article></section></div>", RenderAllowingStyles(template));
+        }
+
+        [Fact]
+        public void DoesNotTreatRawStyleElementsAsStyleAttributes() {
+            const string template = "<div x-pre><style>span { color:red; }</style></div>";
+
+            Assert.Equal("<div><style>span { color:red; }</style></div>", Render(template));
+            Assert.Equal("<div><style>span { color:red; }</style></div>", RenderAllowingStyles(template));
+        }
+
+        [Fact]
         public void ReconcilesExistingHiddenAttributeWithShowWithoutDuplicates() {
             Assert.Equal("<div></div>", Render("<div hidden x-show=\"true\"></div>"));
             Assert.Equal("<div hidden></div>", Render("<div x-show=\"false\" hidden></div>"));
@@ -280,6 +308,10 @@ namespace DProjects.XShell.Test {
 
         // methods (private)
         private static string Render(string template, object? state = null, string? locale = null) => new XTemplateRenderer(new[] { new XTemplateReflectionObjectAdapter() }, locale).Render(template, state ?? new { });
+        private static string RenderAllowingStyles(string template, object? state = null) {
+            return new XTemplateRenderer(new[] { new XTemplateReflectionObjectAdapter() },
+                options: new XTemplateRendererOptions { AllowStyleAttributes = true }).Render(template, state ?? new { });
+        }
         private static bool XTemplateTruthiness(object? value) => value switch { null => false, bool boolean => boolean, double number => number != 0, int number => number != 0, string text => text.Length != 0, _ => true };
         private static string Scalar(object? value) => value switch { null => string.Empty, bool boolean => boolean ? "true" : "false", double number => number == 0 ? "0" : number.ToString("R", System.Globalization.CultureInfo.InvariantCulture), int number => number.ToString(System.Globalization.CultureInfo.InvariantCulture), string text => text, _ => throw new InvalidOperationException() };
     }

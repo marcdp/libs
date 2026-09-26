@@ -120,8 +120,10 @@ left intact. Generic `x-attr` paths reject the reserved case-insensitive name `s
 This path never calls `setAttribute("style", ...)` or assigns `style.cssText`, so it remains compatible with strict policies including
 `style-src-attr 'none'` and does not require `'unsafe-inline'`.
 
-`XTemplateRenderer` targets serialized server HTML rather than a browser CSSOM. It rejects a resolved style attribute from every static, bound, spread,
-or dynamic source because serializing that value would create `style="..."` and violate the browser-target invariant.
+`XTemplateRenderer` targets serialized server HTML rather than a browser CSSOM. By default, it rejects a resolved style attribute from every static,
+bound, spread, dynamic, or raw `x-pre` source because serializing that value creates `style="..."`. An embedding environment may explicitly enable
+style-attribute serialization through `XTemplateRendererOptions.AllowStyleAttributes`; the caller is then responsible for deploying a CSP compatible
+with emitted inline style attributes. The option does not affect `<style>` elements or the browser's structured CSSOM path.
 
 ## Browser `x-model` assignment policy
 

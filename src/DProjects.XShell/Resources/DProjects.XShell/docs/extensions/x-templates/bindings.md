@@ -42,8 +42,9 @@ Literal style declaration syntax is compiled to structured browser CSSOM operati
 ```
 
 The browser target applies these declarations with `setProperty` and reconciles removals with `removeProperty`; it does not parse the CSS text at
-runtime. Dynamic style strings and interpolation are not supported. The C# server HTML renderer rejects literal or generic style attributes because
-it cannot serialize them without producing a CSP-sensitive inline attribute.
+runtime. Dynamic style strings and interpolation are not supported. The C# server HTML renderer rejects literal, generic, and raw `x-pre` style
+attributes by default because it cannot serialize them without producing a CSP-sensitive inline attribute. An embedding environment may explicitly
+enable their serialization through `XTemplateRendererOptions.AllowStyleAttributes` and provide a compatible CSP.
 
 ## Events
 

@@ -1055,12 +1055,14 @@ were not present in the preceding XTemplate rendered node. It MUST NOT materiali
 The `style` name is reserved for this facility. `x-attr:style`, an `x-attr` spread containing a case-insensitive `style` key, and a dynamic attribute
 name that resolves case-insensitively to `style` are errors; generic attribute directives MUST NOT construct a style attribute.
 
-Literal style attributes inside `x-pre` raw content are invalid because that content bypasses structured VNode construction. This restriction does not
-change the separately explicit and security-sensitive `x-html` raw-HTML escape hatch.
+For the browser target, literal style attributes inside `x-pre` raw content are invalid because that content bypasses structured VNode construction.
+This restriction does not change the separately explicit and security-sensitive `x-html` raw-HTML escape hatch.
 
-The C# server HTML renderer cannot reproduce these CSSOM semantics without serializing an inline attribute. It therefore MUST reject any final
-case-insensitive `style` attribute, regardless of whether it originated from literal, bound, spread, or dynamic syntax. This rule concerns the
-`style="..."` attribute and does not redefine `<style>` element support.
+The C# server HTML renderer cannot reproduce these CSSOM semantics without serializing an inline attribute. It rejects final case-insensitive
+`style` attributes by default, regardless of whether they originated from literal, bound, spread, dynamic, or `x-pre` raw syntax. An embedding
+environment MAY explicitly enable style-attribute serialization through `XTemplateRendererOptions.AllowStyleAttributes`; the caller is responsible
+for deploying a CSP compatible with emitted inline style attributes. This rule concerns the `style="..."` attribute and does not redefine `<style>`
+element support.
 
 These semantics permit the browser XTemplate path to operate with `style-src-attr 'none'` and do not require `'unsafe-inline'`.
 

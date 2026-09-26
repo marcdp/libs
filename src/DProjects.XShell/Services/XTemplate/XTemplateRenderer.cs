@@ -14,7 +14,7 @@ namespace DProjects.XShell.Services.XTemplate {
     }
     internal abstract record XTemplateNode(int Offset);
     internal sealed record XTemplateTextNode(string Text, int Offset) : XTemplateNode(Offset);
-    internal sealed record XTemplateRawHtmlNode(string Html, int Offset) : XTemplateNode(Offset);
+    internal sealed record XTemplateRawHtmlNode(string Html, bool ContainsStyleAttributes, int Offset) : XTemplateNode(Offset);
     internal sealed record XTemplateInterpolationNode(XTemplateExpression Expression, int Offset) : XTemplateNode(Offset);
     internal sealed record XTemplateCommentNode(string Text, int Offset) : XTemplateNode(Offset);
     internal sealed record XTemplateStaticAttribute(string Name, string Value, bool HasValue, int Offset) : XTemplateElementAttribute(Offset);
@@ -119,7 +119,10 @@ namespace DProjects.XShell.Services.XTemplate {
                 case XTemplateTextNode text: result.Append(HtmlText(text.Text)); break;
                 case XTemplateInterpolationNode interpolation: result.Append(HtmlText(ScalarString(XTemplateExpressions.Evaluate(interpolation.Expression, context), interpolation.Offset))); break;
                 case XTemplateCommentNode comment: result.Append("<!--").Append(comment.Text).Append("-->"); break;
-                case XTemplateRawHtmlNode raw: result.Append(raw.Html); break;
+                case XTemplateRawHtmlNode raw:
+                    if (raw.ContainsStyleAttributes) EnsureAttributeAllowed("style", raw.Offset);
+                    result.Append(raw.Html);
+                    break;
                 case XTemplateElementNode element: RenderElement(element, context, result, selectModel); break;
                 default: throw new XTemplateException("Unsupported template node", node.Offset);
             }
