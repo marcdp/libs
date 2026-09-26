@@ -19,6 +19,10 @@ default through `definition.state`.
 Current contract metadata can mark a property with `attribute`. Runtime state definitions separately use `attr` to observe an HTML attribute and
 `reflect` to propagate selected state changes back to an attribute.
 
+Contract property metadata includes `type`, `default`, `state`, `attribute`, `reflect`, `query`, `required`, `readonly`, `enum`, and
+`description` where applicable. The shared contract schema validates the metadata shape; Page-specific rules for `query` are enforced by the Page
+loader.
+
 ## Property-to-state synchronization
 
 A contract may mark a property with `state: true`, expressing an intended explicit relationship with internal state. This must not be interpreted
@@ -32,9 +36,20 @@ in `definition.state`.
 The runtime loader creates public accessors from the contract. State-backed properties use the corresponding runtime state entry; other public
 properties retain their contract default independently of internal state.
 
-## TODO
+## Query-string initialization
 
-TODO: Define type conversion, nullability, attribute naming, reflection, and the authoritative source when a property and attribute change together.
+`query: true` is an explicit opt-in used only by the Page loader. It allows the initial value of a state-backed property to be supplied by the query
+string in the Page `src`; normal Components accept the metadata but do not read browser or Page URL query values.
+
+The query parameter name is the property name converted from camelCase to kebab-case. For example, `customerId` maps to `customer-id` and
+`pageIndex` maps to `page-index`. A query value overrides the contract default before the controller is created and before its `load()` handler runs.
+
+`query: true` requires `state: true` and supports only `string`, `number`, `integer`, and `boolean` properties. Strings are preserved, numbers must be
+finite, integers must be whole numbers, and booleans accept `true`, `1`, `false`, or `0` (case-insensitive for the words). Empty string values are
+valid for strings; malformed numeric or boolean values reject Page creation. If the parameter is absent, the contract default remains unchanged.
+
+Query initialization is input-only. It does not imply `attribute` or `reflect`, does not update the browser URL, and does not add state-to-query
+reflection.
 
 ## Related documentation
 

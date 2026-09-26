@@ -83,6 +83,72 @@ function validateSlots(slots, pageName) {
         throw new Error(`Page '${pageName}' template declares slot '${displayName}', but pages cannot declare slots.`);
     }
 }
+function validatePageQueryProperties(contract, pageName) {
+    // validate Page-specific query metadata
+    const supportedTypes = new Set(["string", "number", "integer", "boolean"]);
+    for (const [propertyName, property] of Object.entries(contract.properties || {})) {
+        if (property.query !== true) {
+            continue;
+        }
+        if (property.state !== true) {
+            throw new Error(`Page property '${propertyName}' declares query:true but is not state-backed.`);
+        }
+        if (!supportedTypes.has(property.type)) {
+            throw new Error(`Page property '${propertyName}' declares query:true with unsupported type '${property.type}'.`);
+        }
+    }
+}
+function parseQueryPropertyValue(propertyName, property, value) {
+    // convert one query-string value according to its contract type
+    switch (property.type) {
+        case "string":
+            return value;
+        case "number": {
+            if (value.trim() === "") {
+                throw new Error(`Page property '${propertyName}' has an invalid number query value.`);
+            }
+            const parsed = Number(value);
+            if (!Number.isFinite(parsed)) {
+                throw new Error(`Page property '${propertyName}' has an invalid number query value.`);
+            }
+            return parsed;
+        }
+        case "integer": {
+            if (value.trim() === "") {
+                throw new Error(`Page property '${propertyName}' has an invalid integer query value.`);
+            }
+            const parsed = Number(value);
+            if (!Number.isInteger(parsed)) {
+                throw new Error(`Page property '${propertyName}' has an invalid integer query value.`);
+            }
+            return parsed;
+        }
+        case "boolean": {
+            switch (value.toLowerCase()) {
+                case "true":
+                case "1":
+                    return true;
+                case "false":
+                case "0":
+                    return false;
+                default:
+                    throw new Error(`Page property '${propertyName}' has an invalid boolean query value.`);
+            }
+        }
+        default:
+            throw new Error(`Page property '${propertyName}' declares query:true with unsupported type '${property.type}'.`);
+    }
+}
+function getPageQueryParams(src) {
+    // parse query parameters from the Page source without using browser location
+    const queryStart = src.indexOf("?");
+    if (queryStart < 0) {
+        return new URLSearchParams();
+    }
+    const fragmentStart = src.indexOf("#", queryStart);
+    const query = src.slice(queryStart + 1, fragmentStart < 0 ? undefined : fragmentStart);
+    return new URLSearchParams(query);
+}
 
 
 // create page class from js definition
@@ -105,6 +171,7 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
     if (contract) {
         await validateComponentContract(src, contract);
     }
+    validatePageQueryProperties(contract, definition.meta?.name || src);
     // validateComponent definition against contract
     if (definition) {
         await validateComponent(src, definition);
@@ -114,8 +181,7 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
     const propertyAttributeNames = [];
     const reflectedPropertyNames = [];
     const stateMapAttributes = [];
-    const stateQsNames = [];
-    const stateReflectedQsNames = [];
+    const queryProperties = [];
     let stateContextNames = []; 
     for (const [propName, property] of Object.entries(contract.properties)) {
         if (property.attribute === true) {
@@ -127,8 +193,9 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
         if (property.state === true && property.attribute === true && isEmptyPlainObject(property.default)) {
             stateMapAttributes.push({ attributePrefix: camelToKebab(propName) + "-", stateName: propName });
         }
-        stateQsNames.push(propName);
-        if (property.reflect) stateReflectedQsNames.push(propName);
+        if (property.query === true) {
+            queryProperties.push({ name: propName, property });
+        }
     }
     for (const [stateName, value] of Object.entries(definition.state)) {
         if (Object.prototype.hasOwnProperty.call(contract.properties, stateName)) {
@@ -191,24 +258,13 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
                     self.invalidate(path);
                 }
             });
-            // stateQsNames
-            if (stateQsNames.length) {
-                var qs = new URLSearchParams(src.split("?")[1] || "");
-                for(let propName of stateQsNames) {
-                    const propNameKebabCase = camelToKebab(propName);
-                    if (qs.has(propNameKebabCase)) {
-                        let value = qs.get(propNameKebabCase);
-                        let oldValue = self._state[propName];
-                        const propDefinition = definition.state[propName];
-                        if (propDefinition.type == "boolean" || typeof(oldValue) == "boolean") {
-                            self._state[propName] = (value == "true" || value == "1");
-                        } else if (propDefinition.type == "number" || typeof(oldValue) == "number") {
-                            if (value !== "" && isNaN(value) == false){
-                                self._state[propName] = Number(value);
-                            }
-                        } else {
-                            self._state[propName] = value;
-                        }
+            // query-string initialization
+            if (queryProperties.length) {
+                const queryParams = getPageQueryParams(src);
+                for (const { name, property } of queryProperties) {
+                    const queryName = camelToKebab(name);
+                    if (queryParams.has(queryName)) {
+                        self._state[name] = parseQueryPropertyValue(name, property, queryParams.get(queryName));
                     }
                 }
             }
@@ -340,25 +396,6 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
         stateChange(prop, oldValue, newValue) {
             // state changed
             this._stateChanges.push({prop, oldValue, newValue});
-            // reflect to property to qs if needed
-            if (stateReflectedQsNames.includes(prop)) {
-                const src = this.src;
-                const qsName = camelToKebab(prop);
-                const item = xshell.navigation.parseUrl(src);
-                if (newValue === false || newValue === null) {
-                    self.removeAttribute(attrName);
-                    delete item.params[qsName];
-                } else if (typeof(newValue) == "boolean" && newValue === true) {
-                    item.params[qsName] = "true";
-                } else if (typeof(newValue) == "number") {
-                    item.params[qsName] = newValue.toString();
-                } else {
-                    item.params[qsName] = newValue;
-                }
-                const newUrl = xshell.navigation.buildUrl(item);
-                // call navigate, with replace true to avoid creating a new history entry for each state change
-                xshell.navigation.navigate({...item, page:this, replace:true});
-            }
         }
         // invalidate
         invalidate(path) {

@@ -6,6 +6,7 @@ export const contract = {
 // export page
 export default {
     style: `
+        div {--demo-accent:green;}
         .xt-style-box { padding: 1em; border-radius: 0.4em; }
         .xt-style-box.active { box-shadow: 0 0 0.75em var(--demo-accent, currentColor); }
         .xt-style-row { display: flex; gap: 0.75em; align-items: center; flex-wrap: wrap; }

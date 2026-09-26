@@ -32,7 +32,10 @@ export const contract = {
 
 Representative checked-in components such as `x-datafields` and `x-error` export this metadata as `contract`. Observed top-level fields are
 `description`, `events`, `properties`, `methods`, and `slots`. Observed property metadata includes `type`, `default`, `attribute`, `state`, and
-`description`; event metadata can include `description` and a typed `detail` shape.
+`description`, `reflect`, `query`, `required`, `readonly`, and `enum`; event metadata can include `description` and a typed `detail` shape.
+
+`query` is shared contract metadata, but its runtime meaning is Page-specific: `query: true` allows the Page loader to initialize a state-backed
+property from the Page `src` query string. The Component loader validates and ignores this field; it does not read URL query values.
 
 ## Slots
 

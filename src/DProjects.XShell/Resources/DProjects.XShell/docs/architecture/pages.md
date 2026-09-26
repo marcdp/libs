@@ -56,6 +56,17 @@ Definition-based Pages use the same public-property and state-default rule as co
 canonical for public properties, while `definition.state` supplies private/internal defaults. A state-backed public property may be repeated in
 `definition.state` only with a structurally equal value; a non-state-backed public property may not be repeated there.
 
+## Query-string initialization
+
+Page properties opt into query-string initialization with `query: true`. The Page loader reads the query portion of that Page's own `src`, converts
+the property name from camelCase to kebab-case, and applies the value to state before creating the controller. Only `string`, `number`, `integer`,
+and `boolean` properties are supported, and `query: true` requires `state: true`. Missing parameters leave the contract default unchanged; malformed
+numeric, integer, or boolean values reject Page creation. Boolean values are `true`, `1`, `false`, and `0`, with the textual values matched
+case-insensitively.
+
+Query binding is input-only and does not imply HTML attributes, property reflection, or URL updates. Properties without `query: true` never consume
+Page query parameters, and normal Components do not perform this Page-specific initialization.
+
 ## Page lifecycle
 
 A Page instance is loaded once and can be mounted and unmounted repeatedly. `x-page` preserves the Page controller and state while its host is
