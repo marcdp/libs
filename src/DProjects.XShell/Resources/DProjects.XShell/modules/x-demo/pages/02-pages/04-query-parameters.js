@@ -4,7 +4,7 @@ export const contract = {
     events: {},
     properties: {
         name: { type: "string", default:"", query: true, state: true },
-        count: { type: "number", default:0, query: true, state: true}
+        count: { type: "number", default:0, query: true, state: true }
     },
     methods: {}
 };

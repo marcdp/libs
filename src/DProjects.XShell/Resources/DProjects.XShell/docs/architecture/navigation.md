@@ -69,8 +69,9 @@ A non-empty Area prefix wraps both friendly paths and canonical hrefs. For examp
 `/customers/reports` in path mode, while `x-page` receives `/customers/_assets/reports/pages/report.js`. `x-page` removes the Area prefix before
 resolving the module resource; the `/_assets/reports/...` segment still denotes the resource owner.
 
-The query portion of a Page destination remains part of its canonical Page `src`. Navigation preserves that input, while `page-js` interprets
-query parameters only for contract properties explicitly marked `query: true`; Navigation does not parse or own Page property binding.
+The query portion of a Page destination remains part of its canonical Page `src`. Navigation preserves that input, while `page-js` exposes raw
+query access to a definition-based Page controller as `controller({ query })` and separately interprets query parameters for contract properties
+explicitly marked `query: true`. Navigation parses or owns neither mechanism; see [Pages](pages.md#controller-services).
 
 TODO: The `x-page` `replace` and `navigate` event handlers in `Navigation._stackToDom()` remain debugger-marked and manipulate hash state directly.
 Normal Navigation API and browser-history paths work, but those legacy event paths still need mode-neutral completion.
