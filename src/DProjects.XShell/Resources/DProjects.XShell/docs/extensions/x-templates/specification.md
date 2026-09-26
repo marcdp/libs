@@ -3616,17 +3616,7 @@ A validator should reject such templates.
 
 ---
 
-## 101. Radio `x-model`
-
-The render-side radio comparison hardcodes `state.value` in current generated code.
-
-This fails to generalize to arbitrary model expressions.
-
-Treat the intended behavior as comparison against the actual model target.
-
----
-
-## 102. Multi-select `x-model`
+## 101. Multi-select `x-model`
 
 Current compile-time code for the render-side multi-select property references `event`, which is not naturally defined in render scope.
 
@@ -3638,19 +3628,19 @@ Server rendering currently rejects `select[multiple]` with `x-model`; this remai
 
 ---
 
-## 103. Mouse event modifier expressions
+## 102. Mouse event modifier expressions
 
 Earlier reference-runtime versions used precedence-sensitive mouse-button expressions. The runtime now compares `event.button` directly; this correction does not change XTL modifier syntax or semantics.
 
 ---
 
-## 104. Alt-key typo
+## 103. Alt-key typo
 
 Earlier reference-runtime versions checked a misspelled Alt-key property. The runtime now uses the standard `event.altKey` property; this correction does not change XTL modifier syntax or semantics.
 
 ---
 
-## 105. Structural directive combinations
+## 104. Structural directive combinations
 
 The compiler classifies and validates an element's structural directives before code generation. It applies the single permitted primary structural wrapper in a dedicated path, so attribute order does not alter structural meaning.
 
@@ -3658,7 +3648,7 @@ The compiler classifies and validates an element's structural directives before 
 
 # Part XXV — Recommended Canonical XTL Profile
 
-## 107. Canonical authoring forms
+## 106. Canonical authoring forms
 
 For new XShell code and generated templates, prefer:
 
@@ -3690,7 +3680,7 @@ Whole-object `x-prop` is a supported canonical form and expands object members i
 
 # Part XXVI — Implementation Checklist for an LLM
 
-## 108. If asked to implement an XTL compiler
+## 107. If asked to implement an XTL compiler
 
 An implementation-generating LLM should perform these steps:
 
@@ -3717,7 +3707,7 @@ An implementation-generating LLM should perform these steps:
 
 ---
 
-## 109. If targeting current XShell JavaScript VDOM
+## 108. If targeting current XShell JavaScript VDOM
 
 Additionally:
 
@@ -3743,7 +3733,7 @@ Additionally:
 
 # Part XXVII — Language Boundaries
 
-## 110. XTL does not define
+## 109. XTL does not define
 
 This specification intentionally does not define:
 
@@ -3766,7 +3756,7 @@ Those systems may consume or produce XTL but are separate contracts.
 
 # Part XXVIII — Versioning Guidance
 
-## 111. Language version
+## 110. Language version
 
 The current repository does not expose a formal XTL language-version field.
 
@@ -3795,7 +3785,7 @@ Future changes that would benefit from versioning include:
 
 # Part XXIX — Summary Contract
 
-## 112. Minimal mental model
+## 111. Minimal mental model
 
 An X Template is:
 
