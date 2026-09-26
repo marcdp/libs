@@ -936,7 +936,7 @@ The following constructs consume the restricted expression grammar:
 | `x-text`, `x-html`, `x-children` | value | directive-specific output handling |
 | `x-attr`, `x-attr:name` | value | whole-object form expects an object |
 | `x-attr:[expression]` | dynamic name | bracket contents use this grammar |
-| `x-prop`, `x-prop:name` | value | subject to the support rules in Part IV |
+| `x-prop`, `x-prop:name` | value | whole-object form expands an object into the property map |
 | `x-prop:[expression]` | dynamic name | bracket contents use this grammar |
 | `x-if`, `x-elseif`, `x-show`, `x-class:name` | condition | XTemplate truthiness |
 | `x-for` collection | value | evaluated in the enclosing context before loop locals exist |
@@ -1179,6 +1179,18 @@ Use `x-attr:*` for attributes.
 
 Use `x-prop:*` for properties.
 
+The three property-binding forms are:
+
+```text
+x-prop:name="expression"       → bind one DOM/custom-element property
+x-prop:[nameExpression]="expr" → evaluate a property name and bind one property
+x-prop="objectExpression"       → expand an object into the property map
+```
+
+This is deliberately symmetrical with attributes: `x-attr` expands an attribute object, while `x-prop` expands a property object;
+`x-attr:name` and `x-prop:name` bind one named value; and the bracketed forms bind one dynamically named value. The two families do not share
+serialization semantics. Property bindings preserve values as DOM/custom-element property values rather than converting them to HTML attributes.
+
 Literal `style="..."` uses the dedicated style semantics in section 8.1. The name `style` is invalid through every generic `x-attr` form.
 
 This distinction is important for custom elements, complex objects, arrays, DOM objects, and values that cannot be represented faithfully as strings.
@@ -1334,18 +1346,34 @@ This syntax is implemented but not broadly evidenced in application templates an
 The current reference parser recognizes:
 
 ```html
-<element x-prop="expression"></element>
+<element x-prop="objectExpression"></element>
 ```
 
-The apparent intended meaning is property-object expansion.
+The expression MUST evaluate to an object. Whole-object `x-prop` expands the object's enumerable string-keyed members into the element's property
+map. It MUST expand the property map, never the attribute map.
 
-However, the current reference compiler places this expansion into the **attribute object**, not the property object.
+For example:
 
-Because implementation and naming disagree, whole-object `x-prop` is **not supported XTemplate syntax** and is not part of the normative language.
+```html
+<x-grid x-prop="state.gridProperties"></x-grid>
+```
 
-Implementers SHOULD support `x-prop:name`, which is well-defined.
+with `state.gridProperties` containing `items`, `selectedItem`, and `options` is equivalent to three named property bindings for those members.
+Each value is preserved as a value and may be a string, number, boolean, object, collection/array, or `null`; it is not stringified or serialized
+as HTML.
 
-A future specification revision should decide whether whole-object `x-prop` means property expansion and fix the reference implementation accordingly.
+Whole-object `x-prop` requires an object value. `null`, arrays/collections, and scalar values are errors; `null` is not treated as an empty object.
+
+Property bindings are applied in template attribute source order. A later binding overrides an earlier binding targeting the same property name,
+including when one of the bindings is a whole-object expansion. Thus an explicit later `x-prop:items` overrides an earlier `items` member from
+`x-prop`, while a later `x-prop` member overrides an earlier named `x-prop:items`.
+
+XTemplate uses `null` as its sole nullish language value. If a browser host/runtime member is `undefined`, the runtime ABI MAY normalize it to
+XTemplate `null` before property binding; JavaScript `undefined` is not a first-class XTemplate value.
+
+The C# server HTML renderer validates these bindings and their expressions but does not materialize `x-prop:name`, `x-prop:[...]`, or whole-object
+`x-prop` as serialized HTML attributes. Property bindings are browser/DOM operations and have no equivalent serialized property representation in
+server HTML.
 
 ---
 
@@ -2622,6 +2650,7 @@ attr-spread       = "x-attr", "=", quoted-expression ;
 prop-binding      = "x-prop:", prop-name, "=", quoted-expression ;
 dynamic-prop-binding
                   = "x-prop:[", expression, "]", "=", quoted-expression ;
+prop-spread       = "x-prop", "=", quoted-expression ;
 
 event-binding     = "x-on:", event-spec, "=", quoted-command ;
 
@@ -3100,6 +3129,10 @@ x-once reconciliation behavior
 
 A server renderer must document how it handles browser-only features.
 
+In particular, `x-prop:name`, `x-prop:[...]`, and whole-object `x-prop` are property-binding syntax. The C# server HTML renderer may validate their
+syntax and expressions, but MUST NOT convert their values into serialized HTML attributes. There is no server-HTML serialization equivalent for a
+DOM/custom-element property binding.
+
 ---
 
 # Part XXII — Examples
@@ -3422,11 +3455,16 @@ dynamic attribute names
 x-prop:name
 kebab-to-camel property names
 dynamic property names
+whole-object x-prop
+object property expansion
+property values preserved
+duplicate property precedence
+invalid non-object source
+named property plus whole-object property interaction
+dynamic property plus whole-object property interaction
 static + dynamic classes
 multiple x-class directives
 ```
-
-Whole-object `x-prop` should remain marked unstable until standardized.
 
 ---
 
@@ -3576,16 +3614,6 @@ A validator should reject such templates.
 
 ---
 
-## 100. Whole-object `x-prop`
-
-As noted earlier, whole-object `x-prop` currently feeds the attribute map.
-
-This appears inconsistent with the directive name and with `x-prop:name`.
-
-Do not encode that behavior into a new language implementation unless strict legacy compatibility requires it.
-
----
-
 ## 101. Radio `x-model`
 
 The render-side radio comparison hardcodes `state.value` in current generated code.
@@ -3634,7 +3662,9 @@ For new XShell code and generated templates, prefer:
 
 ```text
 x-attr:name
+x-attr object expansion
 x-prop:name
+x-prop
 x-on:event
 x-class:name
 x-if / x-elseif / x-else
@@ -3652,7 +3682,7 @@ x-children
 {{ expression }}
 ```
 
-Avoid unstable/ambiguous forms such as whole-object `x-prop` until their semantics are formally resolved.
+Whole-object `x-prop` is a supported canonical form and expands object members into the property map.
 
 ---
 
@@ -3784,7 +3814,8 @@ x-html                  → raw HTML
 x-children              → real DOM nodes
 
 x-attr:*                → DOM attributes
-x-prop:*                → DOM properties
+x-prop:name / x-prop:[...] / x-prop
+                         → DOM/custom-element property bindings; whole-object form expands the property map
 style="..."             → browser: structured styles / VNode.styles applied through CSSOM; C# server: rejected by default and serialized as an HTML
                            style attribute only when XTemplateRendererOptions.AllowStyleAttributes is enabled
 x-class:*               → conditional CSS classes
@@ -3819,6 +3850,8 @@ A correct implementation should preserve these semantics even if it uses a compl
 | `x-attr:name` | Dynamic attribute | expression |
 | `x-attr` | Attribute spread | expression/object |
 | `x-prop:name` | Dynamic property | expression |
+| `x-prop:[expr]` | Dynamic property name | name expression + value expression |
+| `x-prop` | Property object expansion | object expression |
 | `x-on:event` | Event command | command name |
 | `x-class:name` | Conditional class | expression |
 | `x-if` | Conditional branch | expression |
@@ -3869,10 +3902,9 @@ dynamic x-prop:[...]
 attribute object expansion edge cases
 ```
 
-## Ambiguous or defective in current reference code
+## Not part of the normative contract
 
 ```text
-whole-object x-prop
 radio x-model generalized target
 multiple-select x-model
 multiple structural directives on one element

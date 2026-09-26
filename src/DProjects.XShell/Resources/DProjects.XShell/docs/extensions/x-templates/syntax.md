@@ -42,9 +42,12 @@ specification for its required numeric, percent, currency, month-name, and casin
 <a x-attr:href="state.url">Open</a>
 <div x-attr="state.attributes"></div>
 <x-datafield x-prop:domain="state.domain"></x-datafield>
+<x-grid x-prop="state.gridProperties"></x-grid>
 ```
 
-`x-attr:name` binds an attribute, while `x-prop:name` binds a DOM or custom-element property. `x-attr` expands an attribute object.
+`x-attr:name` binds one attribute, while `x-prop:name` binds one DOM or custom-element property. The bracketed forms
+`x-attr:[nameExpression]` and `x-prop:[nameExpression]` bind one dynamically named value. Whole-object `x-attr` expands an attribute object;
+whole-object `x-prop` expands an object into the property map and preserves its values.
 
 Literal `style="display:none; width:100%"` is valid XTemplate source. In the browser target, the compiler produces structured styles / `VNode.styles`,
 which the renderer applies through CSSOM without materializing an HTML style attribute; generic `x-attr` bindings MUST NOT target `style`. The C# server

@@ -32,7 +32,15 @@ HTML attributes.
 <x-datafield x-prop:domain="state.domain" x-prop:value="state.value"></x-datafield>
 ```
 
-In short: `x-attr:*` targets DOM attributes; `x-prop:*` targets DOM properties. `.name` is the supported shorthand for `x-prop:name`.
+Use the whole-object form when several properties are derived together:
+
+```html
+<x-grid x-prop="state.gridProperties"></x-grid>
+```
+
+The expression must evaluate to an object; each enumerable string-keyed member is expanded into the property map. Values remain values, including
+objects and arrays. In short: `x-attr="..."` expands attributes, while `x-prop="..."` expands properties. `x-prop:[nameExpression]` binds one
+dynamically named property, and `.name` is the supported shorthand for `x-prop:name`.
 
 ## Literal styles
 
@@ -45,7 +53,7 @@ and never materialized as an HTML style attribute. The C# server HTML renderer r
 ```
 
 The browser target applies these declarations with `setProperty` and reconciles removals with `removeProperty`; it does not parse the CSS text at
-runtime. Dynamic style strings and interpolation are not supported. The C# server HTML renderer rejects literal, generic, and x-pre raw-content style
+runtime. Dynamic style strings and interpolation are not supported. The C# server HTML renderer rejects literal, generic, and x-pre raw content style
 attributes by default because it cannot serialize them without producing a CSP-sensitive inline attribute. An embedding environment may explicitly
 enable their serialization through `XTemplateRendererOptions.AllowStyleAttributes` and provide a compatible CSP.
 

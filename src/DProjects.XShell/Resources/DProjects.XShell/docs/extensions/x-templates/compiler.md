@@ -19,7 +19,9 @@ validation
     ↓
 expression AST evaluation/code generation, including restricted transformer pipelines
     ↓
-compiled XTemplate artifact: templateRenderer { render, dependencies, slots }
+compiled XTemplate artifact
+    ↓
+templateRenderer { render, dependencies, slots }
     ↓
 browser x.js → factory metadata + VDOM renderer
 ```
@@ -127,6 +129,16 @@ This path never calls `setAttribute("style", ...)` or assigns `style.cssText`, s
 bound, spread, dynamic, or x-pre raw content source because serializing that value creates `style="..."`. An embedding environment may explicitly enable
 style-attribute serialization through `XTemplateRendererOptions.AllowStyleAttributes`; the caller is then responsible for deploying a CSP compatible
 with emitted inline style attributes. The option does not affect `<style>` elements or the browser's structured CSSOM path.
+
+## Property binding ABI
+
+The browser VDOM `properties` field is the DOM/custom-element property map. Named, dynamic-name, and whole-object `x-prop` bindings contribute
+entries to that map in template attribute source order; later entries override earlier entries with the same property name. Property values are kept
+as values rather than serialized as HTML attributes. A host/runtime `undefined` member may be normalized to XTemplate `null` before binding, but
+`undefined` is not an XTemplate language value.
+
+The C# server HTML renderer validates `x-prop` syntax and expressions but does not serialize property bindings as HTML attributes. There is no
+server-HTML representation equivalent to a browser DOM/custom-element property operation.
 
 ## Browser `x-model` assignment policy
 
