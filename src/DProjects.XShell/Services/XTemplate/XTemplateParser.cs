@@ -105,7 +105,6 @@ namespace DProjects.XShell.Services.XTemplate {
         private XTemplateElementNode Freeze(MutableElement element) {
             var preAttribute = element.Attributes.FirstOrDefault(attribute => string.Equals(attribute.Name, "x-pre", StringComparison.OrdinalIgnoreCase));
             if (preAttribute != null && preAttribute.HasValue && !string.IsNullOrEmpty(preAttribute.Value)) throw Error("Directive 'x-pre' cannot have a value", preAttribute.Offset);
-            if (preAttribute != null) EnsureRawContentHasNoInlineStyles(element);
             var children = preAttribute == null ? element.Children.Select(child => child is MutableElement childElement ? (XTemplateNode)Freeze(childElement) : (XTemplateNode)child).ToList() : new List<XTemplateNode> { new XTemplateRawHtmlNode(_source[element.ContentStart..element.ContentEnd], element.ContentStart) };
             var attributes = new List<XTemplateElementAttribute>();
             XTemplateExpression? condition = null;
@@ -192,13 +191,6 @@ namespace DProjects.XShell.Services.XTemplate {
             if (!attribute.HasValue || string.IsNullOrWhiteSpace(attribute.Value)) throw Error("x-on requires a command name", attribute.Offset);
         }
         private XTemplateExpression ParseExpression(RawAttribute attribute, string directive) { if (!attribute.HasValue || string.IsNullOrWhiteSpace(attribute.Value)) throw Error($"Directive '{directive}' requires an expression", attribute.Offset); return ParseExpressionSource(attribute.Value, attribute.Offset); }
-        private static void EnsureRawContentHasNoInlineStyles(MutableElement element) {
-            foreach (var child in element.Children.OfType<MutableElement>()) {
-                var styleAttribute = child.Attributes.FirstOrDefault(attribute => string.Equals(attribute.Name, "style", StringComparison.OrdinalIgnoreCase));
-                if (styleAttribute != null) throw Error("Inline style attributes are not allowed by this XTemplate renderer.", styleAttribute.Offset);
-                EnsureRawContentHasNoInlineStyles(child);
-            }
-        }
         private XTemplateExpression ParseExpressionSource(string value, int offset) { try { return XTemplateExpressions.Parse(value); } catch (XTemplateExpressionException exception) { throw Error(exception.Message, offset + exception.Offset); } }
         private static void AddInterpolatedText(List<object> children, string value, int offset) {
             var position = 0;

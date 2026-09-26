@@ -152,7 +152,7 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
     const templateRenderer = definition.templateRenderer; 
     const renderEngineFactory = new renderEngineFactoryCreator(definition.template, context, templateRenderer);
     // validate compiled template slots through the render-engine factory contract
-    validateSlots(renderEngineFactory.slots || [], definition.meta?.name || "unknown");
+    validateSlots(renderEngineFactory.slots, definition.meta?.name || "unknown");
     // load render engine dependencies
     if (renderEngineFactory.dependencies.length) {
         await xshell.loader.load(renderEngineFactory.dependencies);

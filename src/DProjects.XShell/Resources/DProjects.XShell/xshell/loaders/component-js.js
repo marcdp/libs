@@ -191,7 +191,7 @@ export async function createComponentClassFromJsDefinition(src, context, definit
     const renderEngineFactoryCreator = await xshell.loader.load("render-engine:" + definition.meta.renderEngine);
     const renderEngineFactory = new renderEngineFactoryCreator(definition.template, context, definition.templateRenderer);
     // validate compiled template slots through the render-engine factory contract
-    validateSlots(renderEngineFactory.slots || [], contract, definition.meta.name || "unknown");
+    validateSlots(renderEngineFactory.slots, contract, definition.meta.name || "unknown");
     // load render engine dependencies
     if (renderEngineFactory.dependencies.length) {
         await xshell.loader.load(renderEngineFactory.dependencies);

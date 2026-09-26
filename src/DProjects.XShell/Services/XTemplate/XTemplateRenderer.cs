@@ -251,7 +251,6 @@ namespace DProjects.XShell.Services.XTemplate {
         private void AddSpread(OrderedAttributes attributes, object? value, int offset) {
             if (value == null) return;
             foreach (var member in ObjectMembers(value, offset)) {
-                EnsureAttributeAllowed(member.Key, offset);
                 if (member.Value is string or bool or byte or sbyte or short or ushort or int or uint or long or ulong or float or double or decimal) SetBoundAttribute(attributes, member.Key, member.Value, offset);
             }
         }
