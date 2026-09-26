@@ -301,10 +301,13 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
                         return events;
                     } else if (prop == "page") {
                         // get current page
-                        return self;                
+                        return self;
                     } else if (prop == "dependencies") {
                         // get dependencies
                         return dependencies;
+                    } else if (prop == "query") {
+                        // get query
+                        return new URLSearchParams(self.src.split("?")[1] ?? "");
                     } else {
                         // resolve from services
                         return xshell.services.resolve(prop);                    
