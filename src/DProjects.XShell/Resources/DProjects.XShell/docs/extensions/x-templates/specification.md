@@ -1343,7 +1343,7 @@ This syntax is implemented but not broadly evidenced in application templates an
 
 ## 20. Whole-object `x-prop`
 
-The current reference parser recognizes:
+Syntax:
 
 ```html
 <element x-prop="objectExpression"></element>
@@ -3877,7 +3877,9 @@ interpolation
 x-text
 x-html
 x-children
+x-attr
 x-attr:name
+x-prop
 x-prop:name
 x-on:event
 x-class:name
