@@ -135,6 +135,12 @@ Named `x-style:<css-property>` bindings join the same ordered structured-style m
 therefore retains the structured `VNode.styles` → CSSOM path, while the server parser stores the property-level expression and merges effective
 declarations only when style-attribute serialization is explicitly enabled.
 
+Whole-object `x-style="expression"` uses a dedicated style-spread AST node and emits one `utils.expr.styles(expression)` call into the structured styles
+argument. The expression is evaluated once. The helper requires a non-array object, walks only own enumerable string keys, validates and normalizes each
+CSS property name with the named-style contract, scalar-converts string/finite-number/boolean members, and omits null members. It never parses runtime
+`!important` text and always emits an empty priority. The server renderer uses the same ordered-style accumulator and applies the existing
+`AllowStyleAttributes` policy only when an effective declaration is present. Dynamic-name `x-style:[...]` is not generated or documented as supported.
+
 ## Property binding ABI
 
 The browser VDOM `properties` field is the DOM/custom-element property map. Named, dynamic-name, and whole-object `x-prop` bindings contribute

@@ -939,6 +939,7 @@ The following constructs consume the restricted expression grammar:
 | `x-prop`, `x-prop:name` | value | whole-object form expands an object into the property map |
 | `x-prop:[expression]` | dynamic name | bracket contents use this grammar |
 | `x-style:css-property` | value | named structured style; CSS property names are not camel-cased |
+| `x-style` | value | whole-object structured style; source must be a non-array object |
 | `x-if`, `x-elseif`, `x-show`, `x-class:name` | condition | XTemplate truthiness |
 | `x-for` collection | value | evaluated in the enclosing context before loop locals exist |
 | `x-recursive` collection | value | evaluated in the enclosing context; nested content receives recursive locals |
@@ -1079,7 +1080,7 @@ The supported dynamic style syntax is the named form:
 ```
 
 The property name MUST be non-empty and structurally valid for CSSOM use. CSS spelling is preserved, including hyphens and custom properties beginning
-with `--`; the compiler MUST NOT camel-case the name. The whole-object form `x-style="..."` and dynamic-name form `x-style:[...]` are not supported.
+with `--`; the compiler MUST NOT camel-case the name. The dynamic-name form `x-style:[...]` is not supported.
 
 The expression uses normal XTemplate evaluation. Strings, finite numbers, and booleans use scalar conversion; objects and collections are errors.
 `null` contributes no declaration. Dynamic values always use an empty priority and MUST NOT parse a runtime `!important` suffix. Literal and dynamic
@@ -1092,6 +1093,30 @@ from generic spreads, and dynamic generic names resolving to `style` remain inva
 The C# server renderer evaluates named styles as structured declarations. With `AllowStyleAttributes=false`, an active dynamic declaration is rejected;
 with `AllowStyleAttributes=true`, effective literal and dynamic declarations are merged into one deterministic `style` attribute. A null dynamic value
 contributes nothing, so it neither requires opt-in nor clears an unrelated literal declaration. Named styles inside `x-pre` raw content remain opaque.
+
+### 8.3 Whole-object structured styles
+
+The supported whole-object style syntax is:
+
+```html
+<div x-style="state.styles"></div>
+```
+
+The expression MUST evaluate to a non-array object. `null`, arrays/collections, strings, numbers, and booleans are invalid sources and MUST report the
+semantic error `x-style requires an object`; a null source MUST NOT be treated as an empty style map. Only own enumerable string-keyed members are used.
+Every member key MUST satisfy the same CSS property-name contract as named `x-style:<css-property>` and MUST NOT be camel-cased. Ordinary names are
+normalized consistently with named styles, while custom properties beginning with `--` preserve their spelling.
+
+Member values use normal XTemplate scalar conversion: strings, finite numbers, and booleans become scalar strings; `null` contributes no declaration;
+objects and collections are errors. Whole-object declarations always use priority `""`; runtime strings containing `!important` remain unchanged and are
+not parsed. The whole-object source contributes declarations to the same ordered structured style map as literal `style` declarations and named
+`x-style:<css-property>` bindings. Attribute source order determines precedence, and later effective declarations for the same normalized property win.
+A null member is not an explicit delete and therefore does not clear an earlier declaration in the same render.
+
+Browser targets place effective declarations in `VNode.styles` and apply/reconcile them with CSSOM `setProperty` and `removeProperty`; they MUST NOT
+materialize a browser `style` attribute. Server rendering applies `XTemplateRendererOptions.AllowStyleAttributes`: active declarations are rejected when
+the option is false and may be serialized when it is true. A valid object containing only null members contributes no effective declaration and does not
+require opt-in. Whole-object styles inside `x-pre` remain raw and opaque.
 
 ---
 
@@ -2681,6 +2706,7 @@ dynamic-prop-binding
 prop-spread       = "x-prop", "=", quoted-expression ;
 
 style-binding     = "x-style:", css-property-name, "=", quoted-expression ;
+style-spread      = "x-style", "=", quoted-expression ;
 
 event-binding     = "x-on:", event-spec, "=", quoted-command ;
 
@@ -2808,7 +2834,7 @@ x-pre
 x-attr
 x-attr:*
 x-prop:*
-x-style:*
+x-style / x-style:*
 x-class:*
 x-model
 ```
@@ -3704,6 +3730,8 @@ x-children
 ```
 
 Whole-object `x-prop` is a supported canonical form and expands object members into the property map.
+Whole-object `x-style` is a supported canonical form and expands object members into the ordered structured-style map. Dynamic-name `x-style:[...]`
+remains unsupported.
 
 ---
 
@@ -3838,6 +3866,7 @@ x-attr:*                → DOM attributes
 x-prop:name / x-prop:[...] / x-prop
                           → DOM/custom-element property bindings; whole-object form expands the property map
 x-style:css-property    → named structured style binding; browser VNode.styles/CSSOM or opt-in server style serialization
+x-style                  → whole-object structured style expansion; browser VNode.styles/CSSOM or opt-in server style serialization
 style="..."             → browser: structured styles / VNode.styles applied through CSSOM; C# server: rejected by default and serialized as an HTML
                            style attribute only when XTemplateRendererOptions.AllowStyleAttributes is enabled
 x-class:*               → conditional CSS classes
@@ -3872,6 +3901,7 @@ A correct implementation should preserve these semantics even if it uses a compl
 | `x-attr:name` | Dynamic attribute | expression |
 | `x-attr` | Attribute spread | expression/object |
 | `x-style:property` | Named dynamic style | expression |
+| `x-style` | Whole-object structured style expansion | object expression |
 | `x-prop:name` | Dynamic property | expression |
 | `x-prop:[expr]` | Dynamic property name | name expression + value expression |
 | `x-prop` | Property object expansion | object expression |
@@ -3905,6 +3935,7 @@ x-attr:name
 x-prop
 x-prop:name
 x-style:property
+x-style
 x-on:event
 x-class:name
 x-if

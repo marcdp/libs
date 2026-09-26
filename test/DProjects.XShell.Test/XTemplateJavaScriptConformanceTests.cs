@@ -96,6 +96,17 @@ public sealed class XTemplateJavaScriptConformanceTests {
     }
 
     [Fact]
+    public void WholeObjectXStyleExpandsStructuredStylesRejectsInvalidValuesAndRespectsSourceOrder() {
+        var results = ExecuteWholeObjectStyles();
+
+        Assert.Equal(new[] { "1px solid red", "", "8", "", "true", "", "false", "", "missing" }, results["basic"]);
+        Assert.Equal(new[] { "blue", "" }, results["custom"]);
+        Assert.All(results["invalid"], result => Assert.Contains("error:", result, StringComparison.Ordinal));
+        Assert.Equal(new[] { "blue", "red", "none !important", "", "blue", "red" }, results["order"]);
+        Assert.All(results["invalidMembers"], result => Assert.Contains("error:", result, StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void GeneratedJavaScriptMatchesTheInvariantTransformerProfileWithoutALocale() {
         var state = new Dictionary<string, object?>();
         var cases = new[] {
@@ -195,6 +206,19 @@ public sealed class XTemplateJavaScriptConformanceTests {
         Assert.Equal(new[] { "border" }, root.GetProperty("removeCalls").EnumerateArray().Select(item => item.GetString()));
         Assert.False(root.GetProperty("attributes").TryGetProperty("style", out _));
         Assert.Equal(2, root.GetProperty("borderReads").GetInt32());
+    }
+
+    [Fact]
+    public void BrowserWholeObjectStylesUseStructuredCssomBindingsAndRemoveNullValues() {
+        using var result = JsonDocument.Parse(ExecuteWholeObjectStyleRuntime());
+        var root = result.RootElement;
+
+        Assert.Equal("red", root.GetProperty("initial").GetProperty("border").GetProperty("value").GetString());
+        Assert.False(root.GetProperty("updated").TryGetProperty("border", out _));
+        Assert.Equal("kept", root.GetProperty("updated").GetProperty("external").GetProperty("value").GetString());
+        Assert.Equal(new[] { "border" }, root.GetProperty("initialSetCalls").EnumerateArray().Select(item => item.GetString()));
+        Assert.Equal(new[] { "border" }, root.GetProperty("removeCalls").EnumerateArray().Select(item => item.GetString()));
+        Assert.False(root.GetProperty("attributes").TryGetProperty("style", out _));
     }
 
     [Fact]
@@ -571,6 +595,72 @@ public sealed class XTemplateJavaScriptConformanceTests {
         }
     }
 
+    private static string ExecuteWholeObjectStyleRuntime() {
+        var runtimePath = Path.Combine(AppContext.BaseDirectory, "Resources", "DProjects.XShell", "xshell", "render-engines", "x.js");
+        var modulePath = Path.Combine(Path.GetTempPath(), $"xtemplate-whole-object-style-runtime-{Guid.NewGuid():N}.mjs");
+        var renderer = new XTemplateCompiler().Compile("<div x-style=\"state.styles\"></div>");
+        try {
+            File.WriteAllText(modulePath, $$"""
+                class FakeStyle {
+                    constructor() { this.values = {}; this.setCalls = []; this.removeCalls = []; }
+                    setProperty(name, value, priority) { this.setCalls.push(name); this.values[name] = { value, priority }; }
+                    removeProperty(name) { this.removeCalls.push(name); delete this.values[name]; }
+                }
+                class FakeFragment {
+                    childNodes = [];
+                    appendChild(child) { if (child instanceof FakeFragment) this.childNodes.push(...child.childNodes); else this.childNodes.push(child); return child; }
+                    append(child) { this.appendChild(child); }
+                    querySelectorAll() { return []; }
+                }
+                class FakeElement {
+                    constructor(tag) { this.tagName = tag.toUpperCase(); this.localName = tag.toLowerCase(); this.childNodes = []; this.attributes = {}; this.style = new FakeStyle(); this.innerHTML = ""; }
+                    appendChild(child) { if (child instanceof FakeFragment) this.childNodes.push(...child.childNodes); else this.childNodes.push(child); return child; }
+                    append(child) { this.appendChild(child); }
+                    replaceChildren() { this.childNodes = []; }
+                    setAttribute(name, value) { this.attributes[name] = value; }
+                    removeAttribute(name) { delete this.attributes[name]; }
+                    querySelectorAll() { return []; }
+                }
+                globalThis.DocumentFragment = FakeFragment;
+                globalThis.HTMLElement = class {};
+                globalThis.CSSStyleSheet = class { replaceSync() {} };
+                globalThis.customElements = { get() {}, define() {} };
+                globalThis.window = { customElements: globalThis.customElements };
+                globalThis.document = {
+                    createElement(tag) { const element = new FakeElement(tag); if (tag.toLowerCase() === "template") element.content = new FakeFragment(); return element; },
+                    createDocumentFragment() { return new FakeFragment(); },
+                    createComment() { return new FakeElement("#comment"); },
+                    createTextNode() { return new FakeElement("#text"); }
+                };
+                const { default: createRenderEngineFactoryX } = await import({{JsonSerializer.Serialize(new Uri(runtimePath).AbsoluteUri)}});
+                const renderer = {{renderer}};
+                const factory = createRenderEngineFactoryX.call({}, "<div></div>", {}, { render:renderer, dependencies:[], slots:[] });
+                factory.init();
+                const host = new FakeElement("host");
+                const state = { styles: { border: "red" } };
+                const engine = factory.create({ host, state, handler:() => {}, invalidate:() => {} });
+                engine.render();
+                const element = host.childNodes[0];
+                const initial = structuredClone(element.style.values);
+                const initialSetCalls = [...element.style.setCalls];
+                element.style.setProperty("external", "kept", "");
+                element.style.setCalls = [];
+                element.style.removeCalls = [];
+                state.styles = { border: null };
+                engine.render();
+                console.log(JSON.stringify({ initial, updated:element.style.values, initialSetCalls, removeCalls:element.style.removeCalls, attributes:element.attributes }));
+                """);
+            using var process = Process.Start(new ProcessStartInfo("node", modulePath) { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false })!;
+            var output = process.StandardOutput.ReadToEnd();
+            var error = process.StandardError.ReadToEnd();
+            process.WaitForExit();
+            Assert.True(process.ExitCode == 0, $"JavaScript whole-object style reconciliation failed:{Environment.NewLine}{error}");
+            return output.Trim();
+        } finally {
+            if (File.Exists(modulePath)) File.Delete(modulePath);
+        }
+    }
+
     private static string ExecuteNamedStyleCompilerSemantics() {
         var runtimePath = Path.Combine(AppContext.BaseDirectory, "Resources", "DProjects.XShell", "xshell", "render-engines", "x.js");
         var modulePath = Path.Combine(Path.GetTempPath(), $"xtemplate-named-style-semantics-{Guid.NewGuid():N}.mjs");
@@ -696,6 +786,62 @@ public sealed class XTemplateJavaScriptConformanceTests {
             process.WaitForExit();
             Assert.True(process.ExitCode == 0, $"JavaScript whole-object x-prop runtime failed:{Environment.NewLine}{error}");
             return JsonSerializer.Deserialize<Dictionary<string, string[]>>(output) ?? throw new InvalidOperationException("JavaScript whole-object x-prop runtime returned no results.");
+        } finally {
+            if (File.Exists(modulePath)) File.Delete(modulePath);
+        }
+    }
+
+    private static Dictionary<string, string[]> ExecuteWholeObjectStyles() {
+        var runtimePath = Path.Combine(AppContext.BaseDirectory, "Resources", "DProjects.XShell", "xshell", "render-engines", "x.js");
+        var modulePath = Path.Combine(Path.GetTempPath(), $"xtemplate-whole-object-styles-{Guid.NewGuid():N}.mjs");
+        try {
+            var compiler = new XTemplateCompiler();
+            var basic = compiler.Compile("<div x-style=\"state.styles\"></div>");
+            var literalThenSpread = compiler.Compile("<div style=\"border:red\" x-style=\"state.styles\"></div>");
+            var spreadThenLiteral = compiler.Compile("<div x-style=\"state.styles\" style=\"border:red\"></div>");
+            var spreadThenNamed = compiler.Compile("<div x-style=\"state.styles\" x-style:border=\"state.border\"></div>");
+            var namedThenSpread = compiler.Compile("<div x-style:border=\"state.border\" x-style=\"state.styles\"></div>");
+            var important = compiler.Compile("<div x-style=\"state.styles\"></div>");
+            var invalid = new[] { "null", "[]", "'text'", "1", "true" }.Select(_ => compiler.Compile("<div x-style=\"state.value\"></div>")).ToArray();
+            File.WriteAllText(modulePath, $$"""
+                globalThis.HTMLElement = class {};
+                globalThis.CSSStyleSheet = class { replaceSync() {} };
+                globalThis.customElements = { get() {}, define() {} };
+                globalThis.window = { customElements: globalThis.customElements };
+                const { XTemplateRuntimeUtils } = await import({{JsonSerializer.Serialize(new Uri(runtimePath).AbsoluteUri)}});
+                const summarize = styles => Object.fromEntries(Object.entries(styles).map(([name, value]) => [name, [value.value, value.priority]]));
+                const run = (renderer, state) => summarize(renderer(state, null, () => {}, XTemplateRuntimeUtils, null, 0)[0].styles);
+                const invalid = [{{string.Join(",", invalid.Select((renderer, index) => $"{{renderer:{renderer},state:{{value:{new[] { "null", "[]", "'text'", "1", "true" }[index]}}}}}"))}}].map(({renderer, state}) => {
+                    try { renderer(state, null, () => {}, XTemplateRuntimeUtils, null, 0); return "unexpected"; }
+                    catch (error) { return "error:" + error.message; }
+                });
+                const invalidMembers = [
+                    { styles: { border: {} } },
+                    { styles: { border: [] } },
+                    { styles: { "margin.top": "red" } }
+                ].map(state => {
+                    try { run({{basic}}, state); return "unexpected"; }
+                    catch (error) { return "error:" + error.message; }
+                });
+                const basic = run({{basic}}, { styles: { border: "1px solid red", "margin-top": 8, "--accent-color": true, display: null, visibility: false } });
+                const custom = run({{basic}}, { styles: { "--Accent-Color": "blue" } });
+                const importantStyle = run({{important}}, { styles: { display: "none !important" } }).display;
+                const spreadThenNamedStyle = run({{spreadThenNamed}}, { styles: { border: "red" }, border: "blue" }).border;
+                const namedThenSpreadStyle = run({{namedThenSpread}}, { styles: { border: "red" }, border: "blue" }).border;
+                console.log(JSON.stringify({
+                    basic: [basic.border[0], basic.border[1], basic["margin-top"][0], basic["margin-top"][1], basic["--accent-color"][0], basic["--accent-color"][1], basic.visibility[0], basic.visibility[1], basic.display === undefined ? "missing" : "present"],
+                    custom: custom["--Accent-Color"],
+                    invalid,
+                    invalidMembers,
+                    order: [run({{literalThenSpread}}, { styles: { border: "blue" } }).border[0], run({{spreadThenLiteral}}, { styles: { border: "blue" } }).border[0], importantStyle[0], importantStyle[1], spreadThenNamedStyle[0], namedThenSpreadStyle[0]]
+                }));
+                """);
+            using var process = Process.Start(new ProcessStartInfo("node", modulePath) { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false })!;
+            var output = process.StandardOutput.ReadToEnd();
+            var error = process.StandardError.ReadToEnd();
+            process.WaitForExit();
+            Assert.True(process.ExitCode == 0, $"JavaScript whole-object x-style runtime failed:{Environment.NewLine}{error}");
+            return JsonSerializer.Deserialize<Dictionary<string, string[]>>(output) ?? throw new InvalidOperationException("JavaScript whole-object x-style runtime returned no results.");
         } finally {
             if (File.Exists(modulePath)) File.Delete(modulePath);
         }

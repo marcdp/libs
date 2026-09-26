@@ -84,9 +84,30 @@ namespace DProjects.XShell.Test {
             Assert.DoesNotContain("marginTop", javascript, StringComparison.Ordinal);
         }
 
+        [Fact]
+        public void CompilesWholeObjectStylesIntoTheStructuredStylesArgument() {
+            var javascript = new XTemplateCompiler().Compile("<div x-style=\"state.styles\"></div>");
+
+            Assert.Contains("...utils.expr.styles(utils.expr.member(state, \"styles\"))", javascript, StringComparison.Ordinal);
+            Assert.DoesNotContain("utils.expr.attributes(utils.expr.member(state, \"styles\"))", javascript, StringComparison.Ordinal);
+            Assert.DoesNotContain("utils.expr.properties(utils.expr.member(state, \"styles\"))", javascript, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void CompilesWholeObjectStylesInAttributeSourceOrder() {
+            var javascript = new XTemplateCompiler().Compile("<div style=\"border:red\" x-style=\"state.styles\" x-style:border=\"state.border\"></div>");
+
+            var literal = javascript.IndexOf("[\"border\"]:{value:\"red\",priority:\"\"}", StringComparison.Ordinal);
+            var spread = javascript.IndexOf("utils.expr.styles(utils.expr.member(state, \"styles\"))", StringComparison.Ordinal);
+            var named = javascript.IndexOf("utils.expr.style(\"border\", utils.expr.member(state, \"border\"))", StringComparison.Ordinal);
+
+            Assert.True(literal >= 0 && literal < spread && spread < named);
+        }
+
         [Theory]
         [InlineData("<div x-style></div>")]
         [InlineData("<div x-style:\"state.name\"=\"state.value\"></div>")]
+        [InlineData("<div x-style:[state.name]=\"state.value\"></div>")]
         [InlineData("<div x-style:margin.top=\"state.value\"></div>")]
         public void RejectsInvalidNamedStyleBindings(string template) {
             Assert.ThrowsAny<Exception>(() => new XTemplateCompiler().Compile(template));

@@ -1,4 +1,4 @@
-import {marked} from "../vendor/marked/marked.esm.js";
+import {marked} from "../vendor/marked/17.0.1/marked.esm.js";
 
 // export
 export default function parse(markdown) {

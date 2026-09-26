@@ -228,6 +228,43 @@ namespace DProjects.XShell.Test {
         }
 
         [Fact]
+        public void WholeObjectStylesExpandIntoTheOrderedStructuredStyleMap() {
+            var styles = new Dictionary<string, object?> {
+                ["border"] = "1px solid red",
+                ["margin-top"] = 8,
+                ["--accent-color"] = "blue",
+                ["display"] = true,
+                ["visibility"] = null
+            };
+
+            Assert.Equal("<div style=\"border:1px solid red;margin-top:8;--accent-color:blue;display:true\"></div>", RenderAllowingStyles("<div x-style=\"state.styles\"></div>", new { styles }));
+        }
+
+        [Fact]
+        public void WholeObjectStylesValidateSourcesMembersNamesAndNullSemantics() {
+            Assert.Equal("<div></div>", Render("<div x-style=\"state.styles\"></div>", new { styles = new Dictionary<string, object?> { ["border"] = null } }));
+            Assert.Throws<XTemplateException>(() => Render("<div x-style=\"state.styles\"></div>", new { styles = (object?)null }));
+            Assert.Throws<XTemplateException>(() => Render("<div x-style=\"state.styles\"></div>", new { styles = new[] { "red" } }));
+            Assert.Throws<XTemplateException>(() => Render("<div x-style=\"state.styles\"></div>", new { styles = "red" }));
+            Assert.Throws<XTemplateException>(() => Render("<div x-style=\"state.styles\"></div>", new { styles = new Dictionary<string, object?> { ["border"] = new { value = "red" } } }));
+            Assert.Throws<XTemplateException>(() => Render("<div x-style=\"state.styles\"></div>", new { styles = new Dictionary<string, object?> { ["border"] = new[] { "red" } } }));
+            Assert.Throws<XTemplateException>(() => Render("<div x-style=\"state.styles\"></div>", new { styles = new Dictionary<string, object?> { ["margin.top"] = "red" } }));
+        }
+
+        [Fact]
+        public void WholeObjectStylesFollowSourceOrderAndStylePolicy() {
+            var styles = new Dictionary<string, object?> { ["border"] = "blue" };
+
+            Assert.Equal("<div style=\"border:blue\"></div>", RenderAllowingStyles("<div style=\"border:red\" x-style=\"state.styles\"></div>", new { styles }));
+            Assert.Equal("<div style=\"border:red\"></div>", RenderAllowingStyles("<div x-style=\"state.styles\" style=\"border:red\"></div>", new { styles }));
+            Assert.Equal("<div style=\"border:blue\"></div>", RenderAllowingStyles("<div x-style=\"state.styles\" x-style:border=\"state.border\"></div>", new { styles, border = "blue" }));
+            Assert.Equal("<div style=\"border:red\"></div>", RenderAllowingStyles("<div x-style:border=\"state.border\" x-style=\"state.styles\"></div>", new { styles = new Dictionary<string, object?> { ["border"] = "red" }, border = "blue" }));
+            Assert.Throws<XTemplateException>(() => Render("<div x-style=\"state.styles\"></div>", new { styles }));
+            Assert.Equal("<div></div>", Render("<div x-style=\"state.styles\"></div>", new { styles = new Dictionary<string, object?> { ["border"] = null } }));
+            Assert.Equal("<div><span x-style=\"state.styles\"></span></div>", Render("<div x-pre><span x-style=\"state.styles\"></span></div>", new { styles }));
+        }
+
+        [Fact]
         public void EnforcesStylePolicyRecursivelyForRawContent() {
             const string template = "<div x-pre><section><article><span STYLE=\"color:red\"></span></article></section></div>";
 

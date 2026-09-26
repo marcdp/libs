@@ -20,6 +20,7 @@ namespace DProjects.XShell.Services.XTemplate {
     internal sealed record XTemplateStaticAttribute(string Name, string Value, bool HasValue, int Offset) : XTemplateElementAttribute(Offset);
     internal sealed record XTemplateBoundAttribute(string Name, XTemplateExpression Expression, int Offset) : XTemplateElementAttribute(Offset);
     internal sealed record XTemplateStyleAttribute(string Name, XTemplateExpression Expression, int Offset) : XTemplateElementAttribute(Offset);
+    internal sealed record XTemplateStyleSpread(XTemplateExpression Expression, int Offset) : XTemplateElementAttribute(Offset);
     internal sealed record XTemplateDynamicAttribute(XTemplateExpression NameExpression, XTemplateExpression ValueExpression, int Offset) : XTemplateElementAttribute(Offset);
     internal sealed record XTemplateAttributeSpread(XTemplateExpression Expression, int Offset) : XTemplateElementAttribute(Offset);
     internal sealed record XTemplateClassAttribute(string Name, XTemplateExpression Expression, int Offset) : XTemplateElementAttribute(Offset);
@@ -230,6 +231,14 @@ namespace DProjects.XShell.Services.XTemplate {
                         } else attributes.Set(staticAttribute.Name, staticAttribute.HasValue ? staticAttribute.Value : null);
                         break;
                     case XTemplateAttributeSpread spread: AddSpread(attributes, XTemplateExpressions.Evaluate(spread.Expression, context), spread.Offset); break;
+                    case XTemplateStyleSpread styleSpread:
+                        var styleCount = styles.Items.Count;
+                        AddStyleSpread(styles, XTemplateExpressions.Evaluate(styleSpread.Expression, context), styleSpread.Offset);
+                        if (styles.Items.Count != styleCount) {
+                            hasStylePlaceholder = true;
+                            attributes.Set("style", null);
+                        }
+                        break;
                     case XTemplateBoundAttribute bound: SetBoundAttribute(attributes, bound.Name, XTemplateExpressions.Evaluate(bound.Expression, context), bound.Offset); break;
                     case XTemplateStyleAttribute styleAttribute:
                         var evaluatedStyleValue = XTemplateExpressions.Evaluate(styleAttribute.Expression, context);
@@ -295,6 +304,17 @@ namespace DProjects.XShell.Services.XTemplate {
             if (value == null) return;
             foreach (var member in ObjectMembers(value, offset)) {
                 if (member.Value is string or bool or byte or sbyte or short or ushort or int or uint or long or ulong or float or double or decimal) SetBoundAttribute(attributes, member.Key, member.Value, offset);
+            }
+        }
+        private void AddStyleSpread(OrderedStyles styles, object? value, int offset) {
+            if (value == null || !mObjectAccess.CanAdapt(value)) throw new XTemplateException("x-style requires an object", offset);
+            foreach (var member in ObjectMembers(value, offset)) {
+                if (!XTemplateStyleNames.IsValid(member.Key)) throw new XTemplateException($"Invalid style property name '{member.Key}'", offset);
+                if (member.Value == null) continue;
+                var name = XTemplateStyleNames.Normalize(member.Key);
+                var styleValue = ScalarString(member.Value, offset);
+                EnsureAttributeAllowed("style", offset);
+                styles.Set(name, styleValue, string.Empty);
             }
         }
         private void SetBoundAttribute(OrderedAttributes attributes, string name, object? value, int offset) {

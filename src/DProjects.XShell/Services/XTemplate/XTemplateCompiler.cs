@@ -205,6 +205,9 @@ namespace DProjects.XShell.Services.XTemplate {
                 } else if (name == "style") {
                     styles.Add(CompileStyles(attribute));
                     continue;
+                } else if (name == "x-style") {
+                    styles.Add($"utils.expr.styles({CompileExpression(value, name, element.SourceOffset, expressionScope)})");
+                    continue;
                 } else if (name.StartsWith("x-style:", StringComparison.Ordinal)) {
                     var styleName = name[8..];
                     if (!XTemplateStyleNames.IsValid(styleName)) throw new XTemplateException($"Invalid style property name '{styleName}'", attribute.Offset);

@@ -56,8 +56,18 @@ HTML renderer rejects style attributes by default, including in x-pre raw conten
 
 Named dynamic styles use `x-style:<css-property>="expression"`. The property name remains CSS syntax (`margin-top` is not camel-cased, and `--accent`
 is a custom property), values use scalar conversion, and `null` omits the declaration. Browser output remains structured `VNode.styles`/CSSOM; server
-serialization follows `XTemplateRendererOptions.AllowStyleAttributes`. Later literal or named declarations win by source order. Whole-object and
-dynamic-name `x-style` forms are not supported.
+serialization follows `XTemplateRendererOptions.AllowStyleAttributes`. Later literal, whole-object, or named declarations win by source order.
+
+Whole-object structured styles use `x-style="expression"`:
+
+```html
+<div x-style="state.styles"></div>
+```
+
+The source must be a non-array object. Own enumerable string-keyed members are validated as CSS property names; scalar string, finite number, and boolean
+values are converted with normal XTemplate scalar rules, `null` members are omitted, and object or collection members are errors. Whole-object values
+always have an empty priority, so runtime `!important` text is not parsed. The browser writes the resulting `VNode.styles` through CSSOM, while server
+serialization follows `XTemplateRendererOptions.AllowStyleAttributes`. Dynamic-name `x-style:[...]` remains unsupported.
 
 The supported shorthand forms are `:name` for `x-attr:name`, `:` for `x-attr`, `.name` for `x-prop:name`, and `@event` for `x-on:event`.
 Canonical documentation and new templates should prefer the long `x-*` forms.

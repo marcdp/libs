@@ -126,7 +126,25 @@ const utils = new class {
 			if (typeof value === "number" && Number.isFinite(value)) return String(value);
 			return fail("Value cannot be converted to an XTemplate scalar");
 		};
-		const style = (name, value) => value === null ? {} : {[name]: {value: scalar(value), priority: ""}};
+		const normalizeStyleName = (name) => {
+			if (typeof name !== "string" || name.length === 0 || [...name].some(character => /\s|\p{Cc}/u.test(character) || character === ":" || character === ";")) return fail(`Invalid style property name '${name}'`);
+			if (name.startsWith("--")) return name.length > 2 ? name : fail(`Invalid style property name '${name}'`);
+			const characters = name.split("");
+			if (!/^[\p{L}_-]$/u.test(characters[0]) || !characters.slice(1).every(character => /^[\p{L}\p{Nd}_-]$/u.test(character))) return fail(`Invalid style property name '${name}'`);
+			return name.toLowerCase();
+		};
+		const style = (name, value) => value === null ? {} : {[normalizeStyleName(name)]: {value: scalar(value), priority: ""}};
+		const styles = (value) => {
+			if (value === null || typeof value !== "object" || Array.isArray(value)) return fail("x-style requires an object");
+			const result = Object.create(null);
+			for (const key of Object.keys(value)) {
+				const name = normalizeStyleName(key);
+				const item = value[key];
+				if (item === null) continue;
+				result[name] = {value: scalar(item), priority: ""};
+			}
+			return result;
+		};
 		const truthy = (value) => !(value === null || value === false || value === "" || (typeof value === "number" && value === 0));
 		const own = (target, name) => Object.prototype.hasOwnProperty.call(target, name);
 		const assignmentError = (message) => fail(`Model assignment error: ${message}`);
@@ -258,7 +276,7 @@ const utils = new class {
 			return fail(`Unknown transformer '${name}'`);
 		};
 		return {
-			truthy, scalar, style,
+			truthy, scalar, style, styles,
 			member: (target, name) => target === null ? null : (typeof target === "string" || Array.isArray(target)) ? name === "length" ? target.length : null : (typeof target === "object" && own(target, name) ? normalize(target[name]) : null),
 			index: (target, index) => target === null ? null : typeof index === "string" ? (typeof target === "string" || Array.isArray(target) ? (index === "length" ? target.length : null) : (typeof target === "object" && own(target, index) ? normalize(target[index]) : null)) : (Number.isInteger(index) && index >= 0 && Array.isArray(target) ? normalize(target[index]) : fail("A collection index must be a non-negative integer number")),
 			assign: (root, path, value) => {
