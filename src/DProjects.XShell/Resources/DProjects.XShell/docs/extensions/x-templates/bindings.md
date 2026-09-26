@@ -17,7 +17,8 @@ Use `x-attr:*` to bind DOM attributes. Attributes are serialized values suitable
 must use string keys and non-string keys are not converted with `key.ToString()`. `:name` and `:` are supported shorthand forms, but the long
 forms are preferred in canonical templates.
 
-The name `style` is reserved and is invalid in named, dynamic-name, and object-spread `x-attr` bindings.
+For the browser XTemplate target, the name `style` is reserved and is invalid in named, dynamic-name, and object-spread `x-attr` bindings. The C#
+server HTML renderer rejects style attributes by default and may serialize them only when `XTemplateRendererOptions.AllowStyleAttributes` is enabled.
 
 The transformer pipeline is valid in this value-expression position. Presentation transformers produce locale-aware strings, while predicate
 transformers produce booleans; raw scalar conversion without a transformer remains invariant.
@@ -35,14 +36,16 @@ In short: `x-attr:*` targets DOM attributes; `x-prop:*` targets DOM properties. 
 
 ## Literal styles
 
-Literal style declaration syntax is compiled to structured browser CSSOM operations rather than an HTML style attribute:
+Literal `style="..."` syntax is valid XTemplate source. In the browser target it is compiled to structured styles / `VNode.styles`, applied through CSSOM,
+and never materialized as an HTML style attribute. The C# server HTML renderer rejects it by default and serializes it only when
+`XTemplateRendererOptions.AllowStyleAttributes` is enabled:
 
 ```html
 <div style="display: none; margin-top: 8px"></div>
 ```
 
 The browser target applies these declarations with `setProperty` and reconciles removals with `removeProperty`; it does not parse the CSS text at
-runtime. Dynamic style strings and interpolation are not supported. The C# server HTML renderer rejects literal, generic, and raw `x-pre` style
+runtime. Dynamic style strings and interpolation are not supported. The C# server HTML renderer rejects literal, generic, and x-pre raw-content style
 attributes by default because it cannot serialize them without producing a CSP-sensitive inline attribute. An embedding environment may explicitly
 enable their serialization through `XTemplateRendererOptions.AllowStyleAttributes` and provide a compatible CSP.
 

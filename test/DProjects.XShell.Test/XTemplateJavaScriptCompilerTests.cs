@@ -96,6 +96,7 @@ namespace DProjects.XShell.Test {
         public void CollectsDeterministicCustomElementDependenciesWithStructuralScopes() {
             var result = new XTemplateCompiler().CompileArtifact("<div><x-button></x-button><x-button x-if=\"state.visible\"></x-button><span></span><x-datafield x-for=\"item in state.items\"></x-datafield></div>");
 
+            Assert.NotEmpty(result.RenderJavaScript);
             Assert.Equal(new[] { "component:x-button", "component:x-datafield" }, result.Dependencies.Select(dependency => dependency.Resource));
             Assert.Single(result.Dependencies[0].AncestorPaths);
             Assert.Equal(new[] { "div" }, result.Dependencies[0].AncestorPaths[0]);

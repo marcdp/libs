@@ -1052,14 +1052,15 @@ A conforming browser target MUST apply the structured declarations through `CSSS
 structured styling mechanism. It MUST reconcile removed XTemplate-owned declarations through `removeProperty(name)` and MUST NOT clear properties that
 were not present in the preceding XTemplate rendered node. It MUST NOT materialize the source as an HTML `style` attribute or assign `style.cssText`.
 
-The `style` name is reserved for this facility. `x-attr:style`, an `x-attr` spread containing a case-insensitive `style` key, and a dynamic attribute
-name that resolves case-insensitively to `style` are errors; generic attribute directives MUST NOT construct a style attribute.
+For the browser XTemplate target, the `style` name is reserved for this facility. `x-attr:style`, an `x-attr` spread containing a case-insensitive
+`style` key, and a dynamic attribute name that resolves case-insensitively to `style` are errors; generic attribute directives MUST NOT construct a
+style attribute.
 
 For the browser target, literal style attributes inside `x-pre` raw content are invalid because that content bypasses structured VNode construction.
-This restriction does not change the separately explicit and security-sensitive `x-html` raw-HTML escape hatch.
+This restriction does not change the separately explicit and security-sensitive raw HTML produced by `x-html`.
 
 The C# server HTML renderer cannot reproduce these CSSOM semantics without serializing an inline attribute. It rejects final case-insensitive
-`style` attributes by default, regardless of whether they originated from literal, bound, spread, dynamic, or `x-pre` raw syntax. An embedding
+`style` attributes by default, regardless of whether they originated from literal, bound, spread, dynamic, or `x-pre` raw content. An embedding
 environment MAY explicitly enable style-attribute serialization through `XTemplateRendererOptions.AllowStyleAttributes`; the caller is responsible
 for deploying a CSP compatible with emitted inline style attributes. This rule concerns the `style="..."` attribute and does not redefine `<style>`
 element support.
@@ -2194,7 +2195,7 @@ Syntax:
 
 `x-pre` disables XTL compilation of the element's child markup.
 
-Its inner content is treated as literal HTML.
+Its inner content is treated as x-pre raw content: a literal child subtree that is opaque to XTemplate compilation.
 
 Example:
 
@@ -2208,7 +2209,7 @@ The interpolation markers inside the literal content remain literal text/HTML ra
 
 The current compiler restores synthetic `x:text` markers back into `{{` and `}}` when serializing the literal inner HTML.
 
-An implementation SHOULD treat the entire child subtree of `x-pre` as opaque to XTL directives/interpolation.
+An implementation SHOULD treat the entire x-pre raw subtree as opaque to XTL directives/interpolation.
 
 ---
 
@@ -2232,7 +2233,8 @@ The dependency name is normalized to lowercase.
 
 Dependency collection is static: elements below `x-if`, `x-elseif`, `x-else`, `x-for`, `x-recursive`, and `x-once` remain possible dependencies. The
 compiler records structural ancestor information so the browser factory can apply the configured lazy-component name without parsing template source.
-The browser exposes the resulting eager resources as `factory.dependencies`.
+The browser exposes the resulting eager resources as `factory.dependencies`. These are template dependencies: resources discovered from XTemplate
+structure. They are distinct from definition dependencies, which are explicitly declared on the Component or Page definition.
 
 ---
 
@@ -2275,7 +2277,7 @@ Only actual `<slot>` elements declare slots. A regular element with a `slot` att
 named slots preserve their static name. Names are unique in first-seen order, and structural directives do not make them conditional metadata. Dynamic
 slot-name bindings are rejected because `contract.slots` is a static API contract.
 
-An `x-pre` element renders its child subtree as opaque literal HTML. Custom elements and `<slot>` elements inside that subtree are therefore not active
+An `x-pre` element renders its x-pre raw subtree as opaque literal content. Custom elements and `<slot>` elements inside that subtree are therefore not active
 XTemplate metadata and are not collected. The `x-pre` element itself remains active structure.
 
 ---
@@ -2307,7 +2309,7 @@ properties  = DOM/custom-element properties
 styles      = structured CSS property/value/priority declarations
 events      = event bindings
 options     = renderer metadata
-children    = rendered child nodes, text, raw HTML, or raw DOM nodes
+children    = rendered child nodes, text, raw HTML produced by `x-html`, or raw DOM nodes
 ```
 
 An interpreter may apply this directly to DOM.
@@ -3783,7 +3785,8 @@ x-children              → real DOM nodes
 
 x-attr:*                → DOM attributes
 x-prop:*                → DOM properties
-style="..."             → structured CSSOM declarations (browser target only)
+style="..."             → browser: structured styles / VNode.styles applied through CSSOM; C# server: rejected by default and serialized as an HTML
+                           style attribute only when XTemplateRendererOptions.AllowStyleAttributes is enabled
 x-class:*               → conditional CSS classes
 
 x-on:*                  → named commands
@@ -3798,7 +3801,7 @@ x-recursive             → recursive repeated region through .children
 x-model                 → read/write binding
 
 x-once                  → render once
-x-pre                   → literal child subtree
+x-pre                   → x-pre raw content / literal child subtree
 ```
 
 A correct implementation should preserve these semantics even if it uses a completely different internal renderer from the current XShell VDOM implementation.

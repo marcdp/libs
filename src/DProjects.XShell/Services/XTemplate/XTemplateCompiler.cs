@@ -34,7 +34,7 @@ namespace DProjects.XShell.Services.XTemplate {
 
         // methods
         public string Compile(string template) {
-            return CompileArtifact(template).JavaScript;
+            return CompileArtifact(template).RenderJavaScript;
         }
         public XTemplateCompileResult CompileArtifact(string template) {
             if (template == null) throw new ArgumentNullException(nameof(template));

@@ -50,7 +50,7 @@ namespace DProjects.XShell.Services.XTemplate {
             var dependencies = artifact.Dependencies.Select(dependency =>
                 "{resource:" + JsonSerializer.Serialize(dependency.Resource) + ",ancestorPaths:[" +
                 string.Join(',', dependency.AncestorPaths.Select(path => "[" + string.Join(',', path.Select(value => JsonSerializer.Serialize(value))) + "]")) + "]}");
-            return "{render:" + artifact.JavaScript + ",dependencies:[" + string.Join(',', dependencies) + "],slots:[" +
+            return "{render:" + artifact.RenderJavaScript + ",dependencies:[" + string.Join(',', dependencies) + "],slots:[" +
                 string.Join(',', artifact.Slots.Select(value => JsonSerializer.Serialize(value))) + "]}";
         }
         private static ExportObject? FindDefaultExportObject(IReadOnlyList<Token> tokens) {

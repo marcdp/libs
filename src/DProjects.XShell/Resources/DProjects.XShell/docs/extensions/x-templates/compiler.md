@@ -13,13 +13,13 @@ HTML fragment parsing
 Template AST / parsed structure
     ↓
 validation
-    ├── eager dependency structure
+    ├── template dependency structure
     ├── declared slots
     └── render-program generation
     ↓
 expression AST evaluation/code generation, including restricted transformer pipelines
     ↓
-templateRenderer { render, dependencies, slots }
+compiled XTemplate artifact: templateRenderer { render, dependencies, slots }
     ↓
 browser x.js → factory metadata + VDOM renderer
 ```
@@ -56,6 +56,9 @@ the ABI requirements in the specification.
 Custom-element dependency discovery is also an implementation concern. The current compiler discovers applicable component dependencies so the
 general loader can load them before rendering.
 
+These are template dependencies: resources discovered from XTemplate structure and carried in `templateRenderer.dependencies`. They are distinct from
+definition dependencies, which are explicitly declared on the Component or Page definition and exposed to its controller.
+
 ## Ahead-of-time compilation direction
 
 The development/build server can compile XTemplate before browser execution:
@@ -65,7 +68,7 @@ development/build server
     → compiles XTemplate ahead of browser execution
 
 generated JavaScript
-    → contains templateRenderer { render, dependencies, slots }
+    → contains the compiled XTemplate artifact: templateRenderer { render, dependencies, slots }
 
 browser runtime
     → exposes precompiled dependencies and slots
@@ -115,13 +118,13 @@ browser never receives or reparses the original declaration string.
 
 On initial creation, the browser applies each declaration with `setProperty`. During reconciliation it updates added declarations, changed values, and
 changed priorities; it removes only properties present in the preceding XTemplate VNode and absent from the new VNode. Unrelated CSSOM properties are
-left intact. Generic `x-attr` paths reject the reserved case-insensitive name `style`, including spread and runtime-derived names.
+left intact. In the browser XTemplate target, generic `x-attr` paths reject the reserved case-insensitive name `style`, including spread and runtime-derived names.
 
 This path never calls `setAttribute("style", ...)` or assigns `style.cssText`, so it remains compatible with strict policies including
 `style-src-attr 'none'` and does not require `'unsafe-inline'`.
 
-`XTemplateRenderer` targets serialized server HTML rather than a browser CSSOM. By default, it rejects a resolved style attribute from every static,
-bound, spread, dynamic, or raw `x-pre` source because serializing that value creates `style="..."`. An embedding environment may explicitly enable
+`XTemplateRenderer` targets serialized server HTML rather than a browser CSSOM. It rejects a resolved style attribute by default from every static,
+bound, spread, dynamic, or x-pre raw content source because serializing that value creates `style="..."`. An embedding environment may explicitly enable
 style-attribute serialization through `XTemplateRendererOptions.AllowStyleAttributes`; the caller is then responsible for deploying a CSP compatible
 with emitted inline style attributes. The option does not affect `<style>` elements or the browser's structured CSSOM path.
 
