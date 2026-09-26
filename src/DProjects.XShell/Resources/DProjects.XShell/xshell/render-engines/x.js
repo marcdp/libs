@@ -774,11 +774,6 @@ export default function createRenderEngineFactoryX(template, context, templateRe
 	const componentLazy = typeof(context.componentLazy) === "string" ? context.componentLazy.toLowerCase() : null;
 	const dependencies = new Set();
 	for (const dependency of templateRenderer.dependencies) {
-		debugger;
-		if (typeof(dependency) === "string") {
-			dependencies.add(dependency);
-			continue;
-		}
 		if (!dependency || typeof(dependency.resource) !== "string" || !Array.isArray(dependency.ancestorPaths)) {
 			throw new Error("XTemplate templateRenderer contains invalid dependency metadata.");
 		}

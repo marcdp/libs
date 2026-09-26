@@ -120,7 +120,7 @@ function validateSlots(slots, contract, componentName) {
 }
 
 
-// create page class from js definition
+// create web component from js definition
 export async function createComponentClassFromJsDefinition(src, context, definition, contract) {
     // defaults
     if (!contract) contract = {};
@@ -288,7 +288,7 @@ export async function createComponentClassFromJsDefinition(src, context, definit
                     }                    
                 }
             });
-            // author script
+            // controller
             this._controller = definition.controller(servicesProvider) ?? {};
             // validate public contract methods
             for (const methodName of Object.keys(contract.methods ?? {})) {

@@ -2,401 +2,81 @@
 
 ## Scope
 
-These instructions apply to all files under:
+These instructions apply only to:
 
 ```text
-/src/DProjects.XShell
+src/DProjects.XShell/**
 ```
 
-This file is specific to the `DProjects.XShell` project.
+Do not inspect or infer architecture from sibling projects in `marcdp/libs` unless explicitly requested.
 
-Do not apply these rules to other projects in the `marcdp/libs` repository unless explicitly requested.
-
-## Project overview
-
-`DProjects.XShell` is the host project for XShell.
-
-XShell is a modular application framework built around:
-
-* Web Components
-* optional declarative X Templates extension
-* modules
-* resource resolution
-* pluggable loaders
-* browser-side runtime infrastructure
-* ASP.NET Core integration
-
-The project contains:
-
-* .NET hosting and integration code;
-* browser/runtime resources;
-* XShell modules and components;
-* samples;
-* XShell documentation that is also exposed as runtime content.
-
-## Project structure
-
-The project root is:
+When referring to **XShell**, **the project**, or **the repository code**, assume:
 
 ```text
-src/DProjects.XShell/
+marcdp/libs/src/DProjects.XShell
 ```
 
-Important files and directories include:
+Files inside this directory are the authoritative source for XShell.
 
-```text
-src/DProjects.XShell/
-├── AGENTS.md
-├── DProjects.XShell.csproj
-├── Extensions.cs
-├── Program.cs
-├── Services/
-|   └── XTemplate/
-└── Resources/
-    └── DProjects.XShell/
-        ├── docs/
-        ├── modules/
-        ├── samples/
-        └── xshell/
-```
+---
 
-The XShell documentation is located at:
+## Source of truth
 
-```text
-Resources/DProjects.XShell/docs/
-```
+When determining current behavior, use this order:
 
-The browser/runtime resources are located at:
+1. current implementation;
+2. schemas and validation;
+3. representative usages and tests;
+4. documentation;
+5. ADRs.
 
-```text
-Resources/DProjects.XShell/
-```
+Documentation marked **Draft**, **TODO**, **proposed**, or **future work** must not be treated as implemented behavior.
 
-The main browser-side modules are under:
+If implementation and documentation disagree, investigate the discrepancy rather than silently choosing one.
 
-```text
-Resources/DProjects.XShell/modules/
-```
+Do not infer XShell behavior from conventions in other frameworks.
 
-Current modules include:
+---
 
-```text
-x/
-x-debugger/
-x-help/
-```
+## Working procedure
 
-The core XShell module is:
-
-```text
-Resources/DProjects.XShell/modules/x/
-```
-
-Its structure includes areas such as:
-
-```text
-modules/x/
-├── components/
-├── controllers/
-├── css/
-├── icons/
-├── layouts/
-├── pages/
-├── utils/
-├── vendor/
-└── module.jsonc
-```
-
-## General working rules
-
-Before modifying XShell behavior:
+For non-trivial changes:
 
 1. Inspect the relevant implementation.
-2. Inspect nearby files that implement similar behavior.
-3. Inspect relevant documentation under `Resources/DProjects.XShell/docs/`.
-4. Search for consumers before changing public contracts.
-5. Preserve existing terminology and architectural boundaries.
-6. Prefer small coherent changes over broad refactors.
-7. Do not introduce speculative abstractions.
+2. Inspect nearby code implementing similar behavior.
+3. Search for consumers and usages.
+4. Inspect relevant documentation.
+5. Inspect schemas and ADRs where applicable.
+6. Preserve existing terminology and architectural boundaries.
+7. Implement the smallest coherent change.
+8. Update contracts, schemas, tests, demos, documentation, or ADRs when required.
+9. Run relevant validation when available.
 
-Do not assume that a mechanism works like an equivalent feature in another framework.
+Do not report tests or validation as passing unless they were actually executed.
 
-The existing implementation and project documentation together define the intended XShell design.
+---
 
-When implementation and documentation disagree:
-
-1. inspect the surrounding code and usages;
-2. determine whether the discrepancy is stale documentation or an implementation defect;
-3. do not silently choose one interpretation;
-4. update both when the requested task establishes the intended behavior.
-
-## Architectural principles
-
-Preserve separation of responsibilities.
-
-Important distinctions include:
-
-* resolver vs loader;
-* public properties vs internal state;
-* module specification vs module implementation;
-* template syntax vs generated JavaScript;
-* configuration vs runtime state;
-* browser runtime vs .NET hosting;
-* documentation content vs the UI used to browse it.
-
-Do not collapse these concepts merely to reduce code.
-
-Prefer explicit contracts and composable mechanisms.
-
-## Modules
-
-Modules are a primary organizational and runtime concept in XShell.
-
-Module specifications are stored in files such as:
+## Important paths
 
 ```text
-module.jsonc
+src/DProjects.XShell/
+├── Commands/                       # CLI commands
+├── Middlewares/                    # ASP.NET Core resource/dev middleware
+├── Services/                       # Server/build-time services
+│   └── XTemplate/                  # X Template compiler
+└── Resources/DProjects.XShell/
+    ├── docs/                       # Canonical documentation
+    ├── modules/
+    │   ├── x/                      # Core UI module
+    │   └── x-demo/                 # Demo/sample module
+    └── xshell/                     # Browser runtime
+        ├── loaders/
+        ├── render-engines/
+        ├── state-engines/
+        ├── schemas/
+        ├── validation/
+        └── tests/
 ```
-
-When modifying module behavior:
-
-* inspect existing `module.jsonc` files;
-* preserve JSONC support;
-* preserve comments where useful;
-* do not silently convert JSONC to strict JSON;
-* verify runtime support before adding new schema fields;
-* keep resources organized according to existing module conventions;
-* update the corresponding documentation when the module contract changes.
-
-Do not infer module schema fields from documentation alone; verify them against the runtime implementation.
-
-## Resolvers
-
-Resolvers determine how logical XShell resource references are resolved.
-
-Keep resolution separate from loading.
-
-A resolver should primarily determine:
-
-* what resource a logical reference represents;
-* how the reference is normalized or resolved;
-* which loading mechanism should handle the resolved resource.
-
-Do not move resource loading or transformation logic into resolvers without an explicit architectural reason.
-
-Before introducing a new resolver:
-
-* inspect existing resolver implementations;
-* reuse established conventions;
-* avoid hard-coded resource-type branching when a pluggable mechanism already exists;
-* inspect relevant architecture documentation.
-
-## Loaders
-
-Loaders are responsible for loading or producing concrete resources.
-
-A loader may delegate specialized work to loader-specific engines or processors.
-
-Keep loader responsibilities separate from resolver responsibilities.
-
-When modifying loaders:
-
-* preserve pluggability;
-* avoid coupling generic loader infrastructure to a single resource type;
-* inspect current loader registration and dispatch behavior;
-* preserve URL and module resolution contracts;
-* update relevant architecture documentation when behavior changes.
-
-## Web Components
-
-Core components are primarily located at:
-
-```text
-Resources/DProjects.XShell/modules/x/components/
-```
-
-Before creating or modifying a component:
-
-1. Inspect similar existing components.
-2. Inspect the component documentation.
-3. Follow the current lifecycle conventions.
-4. Reuse existing helpers where appropriate.
-5. Preserve existing custom element naming patterns.
-6. Do not introduce a parallel component model.
-
-Use existing components as the primary reference for implementation style.
-
-For component manifest work, inspect existing component manifests before changing manifest behavior.
-
-A useful reference implementation is:
-
-```text
-Resources/DProjects.XShell/modules/x/components/x-datafields.js
-```
-
-Do not assume that one component demonstrates every supported manifest feature.
-
-## Component manifests
-
-Component manifests describe component metadata and public contracts.
-
-When modifying manifests:
-
-* preserve existing field names and semantics;
-* verify runtime support before adding fields;
-* keep public API declarations explicit;
-* avoid placing arbitrary runtime state in manifests;
-* do not invent manifest fields based on conventions from other libraries;
-* update the component manifest documentation when the contract changes.
-
-Example shape:
-
-```js
-export const manifest = {
-    properties: {
-        label: {
-            type: "string",
-            default: "",
-            attribute: true,
-            state: true
-        }
-    }
-};
-```
-
-This is illustrative only. Supported fields must be verified against the current runtime.
-
-## Properties and state
-
-Properties and state are different concepts.
-
-### Properties
-
-Properties represent the public API of a component.
-
-They describe values exposed to component consumers.
-
-### State
-
-State represents internal reactive component data.
-
-State is generally a private implementation detail and should not automatically become public API.
-
-### Property-to-state synchronization
-
-Do not automatically map every property to state.
-
-Synchronization must be explicit.
-
-For example:
-
-```js
-label: {
-    type: "string",
-    default: "",
-    attribute: true,
-    state: true
-}
-```
-
-may indicate that the public `label` property participates in internal reactive state.
-
-This does not mean properties and state are the same abstraction.
-
-Internal-only reactive values should remain state and should not be promoted to public properties solely for convenience.
-
-If the property/state model changes, update both the implementation and the corresponding documentation or ADR.
-
-## X template language
-
-X Templates are an optional XShell-owned extension. They integrate with the core component model but are not part of it.
-
-Do not assume syntax or semantics from:
-
-* JSX
-* Vue
-* Angular
-* Svelte
-* Lit
-* Razor
-* Handlebars
-* other template systems
-
-When modifying the X template compiler:
-
-1. Inspect the existing compiler.
-2. Inspect real templates in this project.
-3. Inspect the template language documentation.
-4. Identify the currently supported syntax.
-5. Preserve backward compatibility unless explicitly changing the language.
-6. Keep parsing and code generation conceptually separate.
-7. Avoid accidentally widening the supported JavaScript expression subset.
-
-The existing compiler and templates are the source of truth for implemented behavior.
-
-The documentation is the source of truth for intended public language contracts where those contracts are explicitly specified.
-
-Do not invent undocumented syntax.
-
-Any intentional syntax change must be reflected in the template documentation.
-
-## JavaScript
-
-The browser-side XShell runtime is primarily JavaScript.
-
-Follow the style used by nearby files.
-
-Do not introduce TypeScript unless the task explicitly requires it.
-
-Prefer:
-
-* native browser APIs;
-* existing project utilities;
-* explicit APIs;
-* minimal dependencies.
-
-Avoid adding third-party JavaScript dependencies for functionality already available in the browser or existing XShell utilities.
-
-For framework APIs:
-
-* use stable names;
-* avoid unnecessary hidden side effects;
-* preserve compatibility where possible;
-* keep public contracts explicit.
-
-## C#
-
-The project targets:
-
-```text
-net10.0
-```
-
-Nullable reference types and implicit usings are enabled.
-
-The project uses ASP.NET Core through:
-
-```xml
-<FrameworkReference Include="Microsoft.AspNetCore.App" />
-```
-
-Resources under:
-
-```text
-Resources/**
-```
-
-are copied to the output directory.
-
-When modifying C# code:
-
-* preserve the existing project style;
-* prefer .NET and ASP.NET Core platform functionality;
-* avoid new NuGet dependencies unless clearly necessary;
-* keep hosting concerns separate from browser-runtime concerns;
-* do not move JavaScript framework behavior into C# without an explicit architectural reason.
-
-## Runtime resources
 
 Everything under:
 
@@ -404,431 +84,653 @@ Everything under:
 Resources/DProjects.XShell/
 ```
 
-is runtime content.
+is runtime content and may be referenced dynamically.
 
-This includes:
+Do not classify runtime resources as unused based only on static imports.
 
-* modules;
-* samples;
-* XShell runtime files;
-* documentation.
+---
 
-Be careful when renaming, moving, or deleting files.
+## Architectural invariants
 
-Resources may be referenced dynamically and therefore may not have static import references.
+Preserve these distinctions:
 
-Before deleting or moving a resource:
+```text
+resolver           ≠ loader
+contract           ≠ implementation
+public properties  ≠ private state
+state engine       ≠ render engine
+loader lifecycle   ≠ engine responsibility
+module definition  ≠ module import ≠ runtime module instance
+module defaults    ≠ global XShell UI configuration
+module             ≠ Area
+Page               ≠ Navigation
+configuration      ≠ runtime state
+configUrl          ≠ assetsUrl
+packaging          ≠ runtime ZIP loading
+```
 
-1. search JavaScript;
-2. search module specifications;
-3. search templates;
-4. search URLs and string references;
-5. search loader/resolver configuration;
-6. inspect samples;
-7. inspect documentation.
+Do not collapse these concepts merely to reduce code.
 
-Do not classify a resource as unused based only on static imports.
+---
 
-## Documentation as runtime content
+## Modules and configuration
 
-The documentation is intentionally located under:
+Module specifications are normally authored as:
+
+```text
+module.jsonc
+```
+
+JSONC is intentional.
+
+When changing module configuration:
+
+- preserve JSONC support and useful comments;
+- verify fields against implementation and schemas;
+- search consumers;
+- update specification documentation when contracts change.
+
+Modules may contribute metadata, imports, params, styles, controllers, menus, defaults, configuration, resolvers, UI resources, and public contract metadata.
+
+Do not assume declarative fields are runtime-enforced unless the implementation actually enforces them.
+
+Bootstrap recursively discovers imports and builds canonical module definitions.
+
+Repeated imports of the same canonical module do not imply multiple live runtime instances.
+
+Keep these concepts separate:
+
+```text
+module definition
+module import
+runtime module instance
+```
+
+---
+
+## Module defaults
+
+Resolved modules define defaults for:
+
+```text
+defaults.component
+defaults.page
+```
+
+Each currently selects:
+
+```text
+renderEngine
+stateEngine
+```
+
+Resource-level `meta` may override module defaults.
+
+Do not invent a global render/state-engine fallback under `xshell.ui`.
+
+Module defaults and global UI configuration are separate concerns.
+
+---
+
+## Areas and menus
+
+An **Area** is a navigation context composed from participating modules.
+
+Modules contribute reusable menus; Areas compose them.
+
+Do not treat Areas as module instances.
+
+Menu entries are navigation data, not module imports.
+
+When changing Area or menu behavior, inspect:
+
+```text
+xshell/areas.js
+xshell/navigation.js
+docs/subsystems/areas.md
+```
+
+plus relevant module definitions and ADRs.
+
+---
+
+## Resource namespace and Service Worker
+
+The current virtual asset namespace is configured through:
+
+```text
+xshell.assetsPrefix
+```
+
+The checked-in prefix is:
+
+```text
+_assets
+```
+
+producing URLs such as:
+
+```text
+/_assets/x/components/x-button.js
+```
+
+Do not describe `/_cdn` as the current namespace.
+
+Treat changes to `/_assets` as architectural and potentially breaking.
+
+Before changing resource URL behavior, inspect bootstrap, Service Worker mappings, resolvers, import maps, module URLs, documentation, and ADR-0001.
+
+Keep:
+
+```text
+configUrl
+```
+
+and:
+
+```text
+assetsUrl
+```
+
+conceptually separate.
+
+Do not assume ZIP-backed loading, arbitrary remote/CDN sources, or automatic module-file-manifest consumption unless the current implementation supports them.
+
+---
+
+## Resolvers and loaders
+
+The normal resource flow is:
+
+```text
+logical resource
+    ↓
+Resolver
+    ↓
+URL + loader
+    ↓
+Loader
+    ↓
+resource
+```
+
+A resolver determines what a logical reference means and which loader should handle it.
+
+A loader obtains or constructs the concrete resource.
+
+Do not move generic loading, lifecycle, state, or rendering responsibilities into resolvers.
+
+Preserve loader pluggability and resolver/loader separation.
+
+Definition-based Components and Pages may declare:
+
+```js
+dependencies: {
+    helper: "module:/some/resource.js"
+}
+```
+
+These dependencies must use the normal Resolver → Loader pipeline.
+
+This is declarative resource loading, not a separate dependency-injection framework.
+
+---
+
+## Components and Pages
+
+Core components live under:
+
+```text
+Resources/DProjects.XShell/modules/x/components/
+```
+
+A component module may default-export either:
+
+```text
+Web Component class
+```
+
+or:
+
+```text
+component definition object
+```
+
+For definition-based components, the loader constructs the final Web Component class.
+
+Definition-based Pages reuse the same general contract, controller, properties/state, dependencies, render-engine, and state-engine model.
+
+Conceptually:
+
+```text
+Page = Component + Navigation
+```
+
+Do not move navigation responsibilities into generic component infrastructure.
+
+Before modifying Components or Pages:
+
+- inspect similar implementations;
+- inspect their public contract;
+- follow current lifecycle conventions;
+- preserve existing naming and resource conventions;
+- reuse current utilities where appropriate.
+
+Do not introduce a parallel component model.
+
+---
+
+## Component contract and implementation
+
+The current public metadata export is:
+
+```js
+export const contract = {
+    ...
+};
+```
+
+Do not rename or describe it as `manifest` unless the implementation changes accordingly.
+
+The contract schema is:
+
+```text
+xshell/schemas/component.contract.schema.json
+```
+
+The implementation schema is:
+
+```text
+xshell/schemas/component.schema.json
+```
+
+The contract describes public API such as:
+
+```text
+description
+properties
+events
+methods
+slots
+examples
+```
+
+The default export describes runtime implementation, including concepts such as:
+
+```text
+dependencies
+meta
+style
+template
+templateRenderer
+state
+controller
+```
+
+Keep contract and implementation separate.
+
+Before adding fields, verify both schema support and runtime consumption.
+
+Do not invent contract fields.
+
+---
+
+## Properties, state, methods, and slots
+
+Properties are public API.
+
+State is private reactive implementation data.
+
+Do not treat them as the same abstraction.
+
+Public property defaults come from:
+
+```text
+contract.properties[*].default
+```
+
+A property may explicitly participate in state through:
+
+```js
+state: true
+```
+
+This does not mean every property automatically maps to state.
+
+Follow current loader behavior and ADR-0004 when changing property/state rules.
+
+Controller methods are private by default.
+
+Only methods declared in:
+
+```text
+contract.methods
+```
+
+should become public Web Component methods.
+
+Do not automatically expose every controller function.
+
+Public slots belong in:
+
+```text
+contract.slots
+```
+
+The empty key:
+
+```js
+""
+```
+
+represents the default slot.
+
+Slot metadata describes the public composition API; it does not create `<slot>` elements.
+
+Generic slot-contract validation belongs to the loader/contract layer, not to a specific render engine.
+
+---
+
+## State and render engines
+
+State engines live under:
+
+```text
+xshell/state-engines/
+```
+
+Render engines live under:
+
+```text
+xshell/render-engines/
+```
+
+A state engine owns reactive state behavior.
+
+A render engine owns rendered output.
+
+Neither should own generic loader responsibilities such as:
+
+- public contracts;
+- controller construction;
+- navigation;
+- general lifecycle orchestration.
+
+Do not merge state-engine and render-engine responsibilities.
+
+Module defaults select engines for definition-based Components and Pages unless overridden by resource `meta`.
+
+---
+
+## X Templates
+
+X Templates are an optional XShell rendering extension, not the core component model.
+
+Server/compiler code lives under:
+
+```text
+Services/XTemplate/
+```
+
+When changing X Templates:
+
+- inspect the parser/compiler;
+- inspect real templates;
+- inspect X Template documentation;
+- preserve parsing/code-generation boundaries;
+- update language documentation when syntax changes.
+
+Do not infer syntax or semantics from JSX, Vue, Angular, Svelte, Lit, Razor, Handlebars, or similar systems.
+
+Do not invent undocumented syntax.
+
+---
+
+## Navigation
+
+When modifying navigation:
+
+- inspect `xshell/navigation.js`;
+- inspect Areas and menus;
+- inspect Page behavior;
+- inspect navigation documentation;
+- inspect ADR-0003.
+
+Preserve the distinction between:
+
+```text
+friendly navigation path
+canonical Page/resource href
+```
+
+Do not make generic loaders responsible for translating menu paths.
+
+Global application UI resources under:
+
+```text
+xshell.ui
+```
+
+configure infrastructure such as layouts, dialogs, lazy components, and error components.
+
+They are not module render/state-engine defaults.
+
+---
+
+## Schemas and validation
+
+Schemas live under:
+
+```text
+xshell/schemas/
+```
+
+Validation code lives under:
+
+```text
+xshell/validation/
+```
+
+When changing a contract or configuration model:
+
+1. inspect the schema;
+2. inspect validation;
+3. inspect runtime consumers;
+4. update affected layers consistently;
+5. update documentation.
+
+Do not use documentation alone as proof that a field is supported.
+
+---
+
+## Packaging
+
+Modules are authored as expanded directories.
+
+The project also provides explicit module packaging using:
+
+```text
+Commands/Pack.cs
+Services/ModuleFilesIndexer.cs
+Services/ModuleFileCompiler.cs
+```
+
+Packaging can create immutable ZIP packages and physical file inventories.
+
+Do not infer from packaging support that the browser runtime can load modules directly from ZIP files.
+
+Do not manually list every module file in `module.jsonc` merely to support packaging inventory.
+
+The documentation currently records an unresolved naming inconsistency between:
+
+```text
+module.files.json
+modules.files.json
+```
+
+Do not establish either as a permanent public contract unless the implementation is unified.
+
+---
+
+## Documentation and ADRs
+
+Canonical documentation lives under:
 
 ```text
 Resources/DProjects.XShell/docs/
 ```
 
-This is not only repository documentation.
+It is runtime content.
 
-It is part of the XShell runtime resources so that XShell can browse and present its own documentation.
+Do not create a second canonical documentation tree.
 
-Treat this as an intentional architectural decision.
-
-Do not move the documentation outside `Resources/DProjects.XShell/` unless explicitly requested.
-
-Do not duplicate the documentation into a separate repository-level documentation tree.
-
-Prefer one canonical documentation source.
-
-The help or documentation UI should consume this documentation rather than maintaining a second copy of the same content.
-
-## Documentation structure
-
-Every documentation directory should use:
+Documentation section landing pages use:
 
 ```text
 index.md
 ```
 
-as its landing page.
+not `README.md`.
 
-Do not use `README.md` as a documentation section index.
+Use relative links.
 
-Prefer a structure such as:
+When public behavior or architecture changes, update the relevant documentation.
 
-```text
-Resources/DProjects.XShell/docs/
-├── index.md
-├── architecture/
-│   └── index.md
-├── components/
-│   └── index.md
-├── subsystems/
-│   └── index.md
-├── extensions/
-│   ├── index.md
-│   └── x-templates/
-│       └── index.md
-├── specifications/
-│   └── index.md
-└── adr/
-    └── index.md
-```
-
-`architecture/` documents system design. `components/` documents the core Web Component model. `subsystems/` documents runtime services such as authentication, identity, and i18n. `extensions/` documents optional capabilities; X Templates live under `extensions/x-templates/` and are not part of the core component model. `specifications/` contains formal configuration contracts, and `adr/` records architectural decisions.
-
-Use relative Markdown links.
-
-Prefer directory-style links where they can naturally resolve to `index.md`.
-
-For example:
-
-```md
-[Components](components/)
-```
-
-This keeps the documentation compatible with standard documentation browsers and XShell's own documentation browser.
-
-## Documentation rules
-
-Documentation must be source-backed.
-
-Before documenting implementation behavior:
-
-1. inspect the relevant source;
-2. inspect representative usages;
-3. verify terminology against existing documentation;
-4. avoid turning assumptions into contracts.
-
-If behavior cannot be established confidently, use an explicit placeholder such as:
+Architecture Decision Records live under:
 
 ```text
-TODO: Document this once the runtime contract is finalized.
+docs/adr/
 ```
 
-Do not invent framework behavior to make documentation appear complete.
-
-Keep documentation focused on:
-
-* architecture;
-* concepts;
-* public contracts;
-* supported behavior;
-* design decisions;
-* language specifications;
-* configuration specifications.
-
-Avoid duplicating trivial implementation details that are better expressed by the source code.
-
-## Documentation responsibilities
-
-When a code change modifies any of the following:
-
-* public behavior;
-* architecture;
-* component contracts;
-* manifest semantics;
-* module specifications;
-* template syntax;
-* navigation behavior;
-* resolver behavior;
-* loader behavior;
-* service-worker behavior;
-* reserved URL formats;
-
-inspect and update the corresponding documentation in the same task when appropriate.
-
-Conversely, documentation changes that define a new contract should not silently diverge from implementation.
-
-If documentation intentionally describes a future design rather than current behavior, mark that distinction clearly.
-
-## Documentation browsing
-
-The documentation is intended to be browsable from XShell itself.
-
-When changing documentation paths or navigation:
-
-* preserve stable relative links where practical;
-* preserve `index.md` conventions;
-* avoid assumptions tied to a single external documentation generator;
-* consider how XShell resolves and loads Markdown resources;
-* keep the documentation tree directly navigable.
-
-Do not add a static documentation framework unless explicitly requested.
-
-Do not introduce generated documentation output into the runtime resource tree unless that becomes an explicit architectural decision.
-
-## Architecture Decision Records
-
-Architecture decisions belong under:
+ADR filenames follow:
 
 ```text
-Resources/DProjects.XShell/docs/adr/
+NNNN-short-description.md
 ```
 
-Use ADRs for decisions that explain why XShell behaves or is structured a certain way.
+Do not renumber existing ADRs.
 
-Examples include:
+Before reversing an architectural decision, inspect and update the relevant ADR.
 
-* properties versus state;
-* JSONC specifications;
-* navigation strategy;
-* reserved resource URL namespaces;
-* documentation as runtime content.
+---
 
-Do not silently reverse an architectural decision in implementation code.
+## Tests and x-demo
 
-When making a significant architectural change:
-
-1. inspect the relevant ADR;
-2. update it or add a new decision document when appropriate;
-3. keep implementation and architectural documentation consistent.
-
-ADR filenames use stable four-digit numeric prefixes in the form `NNNN-short-description.md`. Assign the next sequential number to new ADRs; never reuse or renumber existing ADR numbers.
-
-## Service worker and reserved URLs
-
-XShell may use reserved URL namespaces for resources managed by its browser runtime or service worker.
-
-A prefix such as:
+Runtime tests live under:
 
 ```text
-/_cdn
+xshell/tests/
 ```
 
-may form part of the runtime contract.
+The `x-demo` module provides representative examples of supported behavior.
 
-Do not rename reserved URL prefixes as cleanup.
+Use tests and demo code as supporting evidence, but do not assume one example defines the entire public contract.
 
-Before changing one:
+When changing public behavior, inspect whether tests and `x-demo` should also change.
 
-* identify all producers;
-* identify all consumers;
-* inspect service-worker handling;
-* inspect resolvers;
-* inspect loaders;
-* inspect generated URLs;
-* inspect corresponding architecture documentation;
-* consider compatibility.
+---
 
-Treat such changes as architectural changes.
+## Coding rules
 
-When the design changes, update the corresponding ADR.
+### JavaScript
 
-## Navigation
+Prefer:
 
-Navigation is part of the XShell runtime architecture.
+- native ES modules;
+- browser APIs;
+- existing XShell utilities;
+- explicit APIs;
+- minimal dependencies.
 
-When modifying navigation:
+Preserve CSP compatibility.
 
-* inspect the existing navigation implementation;
-* inspect navigation documentation and ADRs;
-* preserve current URL semantics unless the task explicitly changes them;
-* distinguish hash-based navigation from path-based navigation;
-* do not mix both approaches accidentally;
-* consider browser history behavior and direct URL loading;
-* consider documentation navigation when changes affect generic resource browsing.
+Do not introduce TypeScript unless explicitly requested.
 
-Do not introduce a navigation framework solely to replace existing XShell mechanisms.
+Vendored third-party code should include the applicable license.
 
-## Authentication, identity, and i18n
+### C#
 
-Authentication, identity/IDP, and internationalization are intentional XShell subsystems.
-
-Do not remove them merely because they are not required by every application.
-
-Keep subsystem boundaries clear.
-
-Avoid adding unrelated application infrastructure to XShell core unless it belongs at framework level.
-
-When subsystem contracts change, update the corresponding documentation.
-
-## Configuration
-
-Prefer declarative configuration where XShell already provides configuration mechanisms.
-
-Do not add parallel configuration systems.
-
-For configuration formats:
-
-* preserve JSONC where used;
-* preserve comments when useful;
-* distinguish configuration from runtime state;
-* validate new fields against runtime consumers;
-* update specification documentation when configuration contracts change.
-
-## Samples
-
-Samples under:
+The project currently targets:
 
 ```text
-Resources/DProjects.XShell/samples/
+net10.0
 ```
 
-should reflect supported framework behavior.
+Prefer .NET and ASP.NET Core functionality over unnecessary dependencies.
 
-When changing a public XShell feature, inspect whether a relevant sample should be updated.
+Keep hosting/build-time concerns separate from browser runtime concerns.
 
-Do not modify samples to demonstrate behavior that is not actually supported by the runtime.
+Do not move browser framework logic into C# without an architectural reason.
 
-Samples may also be useful for manual validation when automated tests do not cover browser behavior.
+---
 
 ## Backward compatibility
 
-Treat the following as potentially public contracts:
+Treat these as potentially public contracts:
 
-* module specification fields;
-* component names;
-* custom element names;
-* manifest fields;
-* public JavaScript exports;
-* X template syntax;
-* resolver behavior;
-* loader behavior;
-* resource URL formats;
-* documentation URLs and navigation paths;
-* navigation semantics.
+- module configuration fields and ids;
+- component/custom-element names;
+- public contracts;
+- properties, methods, events, and slots;
+- public JavaScript exports;
+- render/state-engine names;
+- X Template syntax;
+- resolver resource types and loader names;
+- asset URL semantics;
+- navigation semantics;
+- documentation URLs.
 
-Do not break these accidentally.
+Do not break them accidentally.
 
-If a requested task requires a breaking change:
+For intentional breaking changes, update known consumers, schemas, tests/demo code, documentation, and ADRs as applicable.
 
-* make the change explicit;
-* update all known consumers;
-* update relevant samples;
-* update corresponding documentation;
-* update ADRs when the architectural decision changes.
-
-## Refactoring
-
-Prefer focused refactoring.
-
-Do not combine unrelated cleanup with feature changes.
-
-Do not rename concepts merely for stylistic preference.
-
-Before removing an abstraction, verify whether it participates in:
-
-* dynamic loading;
-* module configuration;
-* URL resolution;
-* runtime registration;
-* template compilation;
-* service-worker behavior;
-* documentation browsing;
-* documented public contracts.
-
-Avoid premature consolidation of subsystems that have intentionally different responsibilities.
-
-## Dependencies
-
-Avoid adding dependencies unless necessary.
-
-For JavaScript:
-
-* prefer native browser APIs;
-* prefer existing utilities;
-* avoid framework dependencies.
-
-For C#:
-
-* prefer the .NET platform and ASP.NET Core;
-* avoid unnecessary NuGet packages.
-
-For documentation:
-
-* do not add Docusaurus, MkDocs, VitePress, DocFX, or another documentation framework unless explicitly requested;
-* do not introduce a build-time documentation dependency merely to browse Markdown that XShell can already load.
-
-Any new dependency should have a clear architectural or functional justification.
-
-## Validation
-
-For C# changes, build the project when possible:
-
-```bash
-dotnet build src/DProjects.XShell/DProjects.XShell.csproj
-```
-
-For JavaScript, template, module, or runtime changes:
-
-* inspect affected consumers;
-* run relevant tests if they exist;
-* exercise the closest sample when practical;
-* verify browser/runtime assumptions;
-* verify module and resource resolution where affected.
-
-For URL, loader, resolver, service-worker, or documentation-serving changes, validate the complete resource flow rather than only the modified function.
-
-For documentation changes, verify:
-
-* relative links;
-* `index.md` navigation;
-* source paths;
-* terminology;
-* consistency with implementation;
-* consistency with related ADRs and specifications;
-* that the documentation remains loadable from its runtime resource location.
-
-Do not report tests or validation as passing unless they were actually executed.
-
-## Working procedure
-
-For non-trivial changes:
-
-1. Identify the relevant subsystem.
-2. Inspect nearby implementation files.
-3. Inspect relevant documentation.
-4. Search for usages and consumers.
-5. Understand the existing architectural boundary.
-6. Implement the smallest coherent change.
-7. Update samples when required.
-8. Update documentation when behavior or contracts change.
-9. Update ADRs when architectural decisions change.
-10. Run appropriate validation.
-11. Summarize unresolved architectural questions or inconsistencies.
+---
 
 ## Avoid
 
 Do not:
 
-* redesign unrelated subsystems;
-* introduce speculative abstractions;
-* duplicate existing mechanisms;
-* merge resolver and loader responsibilities;
-* equate properties with state;
-* expose private state unnecessarily;
-* invent manifest fields;
-* invent X template syntax;
-* silently change module schemas;
-* convert JSONC files to strict JSON without reason;
-* rename reserved URLs casually;
-* add dependencies without justification;
-* assume dynamically loaded files are dead code;
-* replace XShell mechanisms with third-party frameworks without explicit instruction;
-* let documentation and implementation silently diverge;
-* create `README.md` files as documentation indexes;
-* create a second canonical copy of the XShell documentation outside the runtime resource tree.
+- inspect sibling projects as XShell architectural evidence unless requested;
+- redesign unrelated subsystems;
+- introduce speculative abstractions;
+- duplicate existing mechanisms;
+- merge Resolver and Loader responsibilities;
+- merge render and state engine responsibilities;
+- equate public properties with private state;
+- expose controller methods unnecessarily;
+- invent contract fields;
+- call the current `contract` export `manifest`;
+- invent X Template syntax;
+- silently convert JSONC to JSON;
+- describe `/_cdn` as the current asset namespace;
+- casually rename `/_assets`;
+- treat Areas as module instances;
+- treat menus as module imports;
+- treat ZIP packaging as ZIP runtime loading;
+- assume dynamically referenced files are dead code;
+- introduce unnecessary dependencies;
+- create documentation `README.md` indexes;
+- document future work as implemented behavior;
+- claim tests or validation were run when they were not.
+
+---
 
 ## When uncertain
 
-Inspect the project before deciding.
+Inspect the current project before deciding.
 
-Prefer existing XShell patterns over generic framework conventions.
+Prefer:
 
-Consult both implementation and documentation.
+```text
+implementation
++ schemas
++ usages/tests
++ documentation
++ ADRs
+```
 
-If two implementations disagree, identify the inconsistency instead of silently choosing a new convention.
+over conventions from other frameworks.
 
-If implementation and documentation disagree, call out the discrepancy and determine which one reflects the intended contract.
+If sources disagree, identify the inconsistency rather than inventing a new convention.
 
-Preserve compatibility unless resolving the inconsistency is explicitly part of the task.
+Preserve existing architectural boundaries and compatibility unless the requested task explicitly changes them.

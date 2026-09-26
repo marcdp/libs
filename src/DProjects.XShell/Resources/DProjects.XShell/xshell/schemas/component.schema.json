@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://xshell.dev/schemas/component.implementation.schema.json",
+  "$id": "https://xshell.dev/schemas/component.schema.json",
   "title": "XShell Web Component Implementation",
   "description": "Describes the implementation object of an XShell web component.",
   "type": "object",

@@ -116,7 +116,7 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
     const stateMapAttributes = [];
     const stateQsNames = [];
     const stateReflectedQsNames = [];
-    let stateContextNames = []; // what we should do with context variables? now they are not implemented
+    let stateContextNames = []; 
     for (const [propName, property] of Object.entries(contract.properties)) {
         if (property.attribute === true) {
             propertyAttributeNames.push(camelToKebab(propName));
@@ -157,7 +157,7 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
     if (renderEngineFactory.dependencies.length) {
         await xshell.loader.load(renderEngineFactory.dependencies);
     }    
-    // load component dependencies
+    // load page dependencies
     let dependencies = {};
     if (definition.dependencies && Object.keys(definition.dependencies).length) {
         dependencies = await xshell.loader.load(definition.dependencies);
@@ -255,7 +255,7 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
                     }
                 }
             });            
-            // author script
+            // controller
             this._controller = definition.controller(servicesProvider) ?? {};
             // validate public contract methods
             for (const methodName of Object.keys(contract.methods ?? {})) {

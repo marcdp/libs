@@ -57,7 +57,7 @@ export default class Modules {
                     module.styles.push(styleSheet);
                 })());
             }    
-            // script
+            // controller
             if (moduleConfig.controller) {
                 tasks.push((async() => {
                     const moduleClass = await this._loader.load("module:" + moduleConfig.controller);
