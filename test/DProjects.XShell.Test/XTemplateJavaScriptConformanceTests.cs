@@ -132,6 +132,27 @@ public sealed class XTemplateJavaScriptConformanceTests {
         Assert.Equal(cases.Select(@case => @case.InvokesHandler), ExecuteEventModifierFilters(cases));
     }
 
+    [Fact]
+    public void BrowserRuntimeAppliesAndReconcilesStructuredStylesThroughCssom() {
+        using var result = JsonDocument.Parse(ExecuteStyleRuntime());
+        var root = result.RootElement;
+
+        Assert.Equal("none", root.GetProperty("initial").GetProperty("display").GetProperty("value").GetString());
+        Assert.Equal("block", root.GetProperty("updated").GetProperty("display").GetProperty("value").GetString());
+        Assert.Equal("important", root.GetProperty("updated").GetProperty("display").GetProperty("priority").GetString());
+        Assert.Equal("50%", root.GetProperty("updated").GetProperty("width").GetProperty("value").GetString());
+        Assert.False(root.GetProperty("updated").TryGetProperty("margin-top", out _));
+        Assert.Equal("kept", root.GetProperty("updated").GetProperty("external").GetProperty("value").GetString());
+        Assert.Equal(new[] { "display", "width" }, root.GetProperty("setCalls").EnumerateArray().Select(item => item.GetString()));
+        Assert.Equal(new[] { "margin-top" }, root.GetProperty("removeCalls").EnumerateArray().Select(item => item.GetString()));
+        Assert.False(root.GetProperty("attributes").TryGetProperty("style", out _));
+    }
+
+    [Fact]
+    public void BrowserRuntimeRejectsSpreadAndDynamicGenericStyleAttributes() {
+        Assert.Equal(new[] { true, true }, ExecuteGenericStyleRejections());
+    }
+
     // methods (private)
     private static IReadOnlyList<ConformanceCase> CreateCases() {
         var state = new Dictionary<string, object?> {
@@ -272,6 +293,100 @@ public sealed class XTemplateJavaScriptConformanceTests {
             process.WaitForExit();
             Assert.True(process.ExitCode == 0, $"JavaScript event modifier runtime failed:{Environment.NewLine}{error}");
             return JsonSerializer.Deserialize<bool[]>(output) ?? throw new InvalidOperationException("JavaScript event modifier runtime returned no results.");
+        } finally {
+            if (File.Exists(modulePath)) File.Delete(modulePath);
+        }
+    }
+
+    private static string ExecuteStyleRuntime() {
+        var runtimePath = Path.Combine(AppContext.BaseDirectory, "Resources", "DProjects.XShell", "xshell", "render-engines", "x.js");
+        var modulePath = Path.Combine(Path.GetTempPath(), $"xtemplate-styles-{Guid.NewGuid():N}.mjs");
+        try {
+            File.WriteAllText(modulePath, $$"""
+                class FakeStyle {
+                    constructor() { this.values = {}; this.setCalls = []; this.removeCalls = []; }
+                    setProperty(name, value, priority) { this.setCalls.push(name); this.values[name] = { value, priority }; }
+                    removeProperty(name) { this.removeCalls.push(name); delete this.values[name]; }
+                }
+                class FakeFragment {
+                    childNodes = [];
+                    appendChild(child) { if (child instanceof FakeFragment) this.childNodes.push(...child.childNodes); else this.childNodes.push(child); return child; }
+                    append(child) { this.appendChild(child); }
+                    querySelectorAll() { return []; }
+                }
+                class FakeElement {
+                    constructor(tag) { this.tagName = tag.toUpperCase(); this.localName = tag.toLowerCase(); this.childNodes = []; this.attributes = {}; this.style = new FakeStyle(); this.innerHTML = ""; }
+                    appendChild(child) { if (child instanceof FakeFragment) this.childNodes.push(...child.childNodes); else this.childNodes.push(child); return child; }
+                    append(child) { this.appendChild(child); }
+                    replaceChildren() { this.childNodes = []; }
+                    setAttribute(name, value) { this.attributes[name] = value; }
+                    removeAttribute(name) { delete this.attributes[name]; }
+                    querySelectorAll() { return []; }
+                }
+                globalThis.DocumentFragment = FakeFragment;
+                globalThis.HTMLElement = class {};
+                globalThis.CSSStyleSheet = class { replaceSync() {} };
+                globalThis.customElements = { get() {}, define() {} };
+                globalThis.window = { customElements: globalThis.customElements };
+                globalThis.document = {
+                    createElement(tag) { const element = new FakeElement(tag); if (tag.toLowerCase() === "template") element.content = new FakeFragment(); return element; },
+                    createDocumentFragment() { return new FakeFragment(); },
+                    createComment() { return new FakeElement("#comment"); },
+                    createTextNode() { return new FakeElement("#text"); }
+                };
+                const { default: createRenderEngineFactoryX } = await import({{JsonSerializer.Serialize(new Uri(runtimePath).AbsoluteUri)}});
+                const renderer = (state, handler, invalidate, utils) => [utils.createVDOM("div", null, null, state.styles, null, {index:0})];
+                const factoryContext = {};
+                const factory = createRenderEngineFactoryX.call(factoryContext, "<div></div>", {}, renderer);
+                factory.init();
+                const host = new FakeElement("host");
+                const state = { styles: { display:{value:"none",priority:""}, width:{value:"100%",priority:""}, "margin-top":{value:"8px",priority:""}, color:{value:"red",priority:""} } };
+                const engine = factory.create({ host, state, handler:() => {}, invalidate:() => {} });
+                engine.render();
+                const element = host.childNodes[0];
+                const initial = structuredClone(element.style.values);
+                element.style.setProperty("external", "kept", "");
+                element.style.setCalls = [];
+                element.style.removeCalls = [];
+                state.styles = { display:{value:"block",priority:"important"}, width:{value:"50%",priority:""}, color:{value:"red",priority:""} };
+                engine.render();
+                console.log(JSON.stringify({ initial, updated:element.style.values, setCalls:element.style.setCalls, removeCalls:element.style.removeCalls, attributes:element.attributes }));
+                """);
+            using var process = Process.Start(new ProcessStartInfo("node", modulePath) { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false })!;
+            var output = process.StandardOutput.ReadToEnd();
+            var error = process.StandardError.ReadToEnd();
+            process.WaitForExit();
+            Assert.True(process.ExitCode == 0, $"JavaScript style runtime failed:{Environment.NewLine}{error}");
+            return output.Trim();
+        } finally {
+            if (File.Exists(modulePath)) File.Delete(modulePath);
+        }
+    }
+
+    private static bool[] ExecuteGenericStyleRejections() {
+        var runtimePath = Path.Combine(AppContext.BaseDirectory, "Resources", "DProjects.XShell", "xshell", "render-engines", "x.js");
+        var modulePath = Path.Combine(Path.GetTempPath(), $"xtemplate-style-rejections-{Guid.NewGuid():N}.mjs");
+        try {
+            var spread = new XTemplateCompiler().Compile("<div x-attr=\"state.attributes\"></div>");
+            var dynamic = new XTemplateCompiler().Compile("<div x-attr:[state.name]=\"state.value\"></div>");
+            File.WriteAllText(modulePath, $$$"""
+                globalThis.HTMLElement = class {};
+                globalThis.CSSStyleSheet = class { replaceSync() {} };
+                globalThis.customElements = { get() {}, define() {} };
+                globalThis.window = { customElements: globalThis.customElements };
+                const { XTemplateRuntimeUtils } = await import({{{JsonSerializer.Serialize(new Uri(runtimePath).AbsoluteUri)}}});
+                const cases = [
+                    { renderer:{{{spread}}}, state:{attributes:{STYLE:"display:none"}} },
+                    { renderer:{{{dynamic}}}, state:{name:"Style",value:"display:none"} }
+                ];
+                console.log(JSON.stringify(cases.map(run => { try { run.renderer(run.state, null, () => {}, XTemplateRuntimeUtils, null, 0); return false; } catch { return true; } })));
+                """);
+            using var process = Process.Start(new ProcessStartInfo("node", modulePath) { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false })!;
+            var output = process.StandardOutput.ReadToEnd();
+            var error = process.StandardError.ReadToEnd();
+            process.WaitForExit();
+            Assert.True(process.ExitCode == 0, $"JavaScript generic style rejection runtime failed:{Environment.NewLine}{error}");
+            return JsonSerializer.Deserialize<bool[]>(output) ?? throw new InvalidOperationException("JavaScript generic style rejection runtime returned no results.");
         } finally {
             if (File.Exists(modulePath)) File.Delete(modulePath);
         }

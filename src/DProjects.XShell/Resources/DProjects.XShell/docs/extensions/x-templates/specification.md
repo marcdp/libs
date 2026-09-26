@@ -1035,6 +1035,34 @@ XTL does not evaluate ordinary attribute text as an expression.
 
 Dynamic values require an XTL binding directive.
 
+### 8.1 Literal inline styles
+
+The literal HTML-style syntax below is valid XTemplate source:
+
+```html
+<div style="display: none; width: 100%; margin-top: 8px"></div>
+```
+
+Within XTemplate, `style` is not an ordinary DOM attribute. The compiler MUST parse its CSS declaration list into structured style declarations,
+preserving CSS property names, values, custom properties, and `!important` priority. It MUST NOT include the source text in `attributes` or `attrs`.
+Attribute interpolation inside the declaration text is not defined.
+
+A conforming browser target MUST apply the structured declarations through `CSSStyleDeclaration.setProperty(name, value, priority)` or an equivalent
+structured styling mechanism. It MUST reconcile removed XTemplate-owned declarations through `removeProperty(name)` and MUST NOT clear properties that
+were not present in the preceding XTemplate rendered node. It MUST NOT materialize the source as an HTML `style` attribute or assign `style.cssText`.
+
+The `style` name is reserved for this facility. `x-attr:style`, an `x-attr` spread containing a case-insensitive `style` key, and a dynamic attribute
+name that resolves case-insensitively to `style` are errors; generic attribute directives MUST NOT construct a style attribute.
+
+Literal style attributes inside `x-pre` raw content are invalid because that content bypasses structured VNode construction. This restriction does not
+change the separately explicit and security-sensitive `x-html` raw-HTML escape hatch.
+
+The C# server HTML renderer cannot reproduce these CSSOM semantics without serializing an inline attribute. It therefore MUST reject any final
+case-insensitive `style` attribute, regardless of whether it originated from literal, bound, spread, or dynamic syntax. This rule concerns the
+`style="..."` attribute and does not redefine `<style>` element support.
+
+These semantics permit the browser XTemplate path to operate with `style-src-attr 'none'` and do not require `'unsafe-inline'`.
+
 ---
 
 ## 9. `x-text`
@@ -1141,10 +1169,13 @@ XTL distinguishes:
 
 - **attributes** — serialized DOM attributes;
 - **properties** — JavaScript properties on the DOM/custom element instance.
+- **styles** — compiler-structured literal CSS declarations applied through CSSOM.
 
 Use `x-attr:*` for attributes.
 
 Use `x-prop:*` for properties.
+
+Literal `style="..."` uses the dedicated style semantics in section 8.1. The name `style` is invalid through every generic `x-attr` form.
 
 This distinction is important for custom elements, complex objects, arrays, DOM objects, and values that cannot be represented faithfully as strings.
 
@@ -1373,7 +1404,7 @@ hidden
 ```
 
 When truthy, the `hidden` attribute is absent. `x-show` controls the resulting `hidden` attribute, so an authored `hidden` attribute is removed
-when the expression is truthy and retained as a single boolean attribute when it is falsy. Authored `style` attributes are unchanged.
+when the expression is truthy and retained as a single boolean attribute when it is falsy. `x-show` does not modify structured literal styles.
 
 This differs fundamentally from `x-if`.
 
@@ -2237,6 +2268,7 @@ RenderedNode {
     tag
     attributes
     properties
+    styles
     events
     options
     children
@@ -2249,6 +2281,7 @@ Where:
 tag         = HTML/custom tag, #text, or #comment
 attributes  = dynamic/static DOM attributes
 properties  = DOM/custom-element properties
+styles      = structured CSS property/value/priority declarations
 events      = event bindings
 options     = renderer metadata
 children    = rendered child nodes, text, raw HTML, or raw DOM nodes
@@ -2273,6 +2306,7 @@ utils.createVDOM(
     tag,
     attrs,
     props,
+    styles,
     events,
     options,
     children,
@@ -2287,13 +2321,24 @@ The resulting object is:
     tag,
     attrs,
     props,
+    styles,
     events,
     options,
     children
 }
 ```
 
-Null attribute/property/event objects are normalized to empty objects.
+Null attribute/property/style/event objects are normalized to shared empty objects.
+
+Each current XShell `styles` entry has the canonical shape:
+
+```js
+{
+    "display": { value: "none", priority: "important" }
+}
+```
+
+Ordinary declarations use an empty `priority`. CSS property names remain CSS names and are not converted to JavaScript camel case.
 
 ---
 
@@ -2327,6 +2372,7 @@ utils.createVDOM(
     null,
     null,
     null,
+    null,
     { index: N },
     text
 )
@@ -2341,6 +2387,7 @@ Conceptual VNode:
 ```js
 utils.createVDOM(
     "#comment",
+    null,
     null,
     null,
     null,
@@ -3705,6 +3752,7 @@ x-children              → real DOM nodes
 
 x-attr:*                → DOM attributes
 x-prop:*                → DOM properties
+style="..."             → structured CSSOM declarations (browser target only)
 x-class:*               → conditional CSS classes
 
 x-on:*                  → named commands

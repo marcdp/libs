@@ -81,6 +81,33 @@ parse XTemplate expressions, receive serialized expression ASTs, or compile temp
 The browser runtime requires a `templateRenderer`; it has no XTemplate source compiler, expression parser, `eval`, or `new Function` fallback. This
 keeps the normal browser path compatible with `script-src 'self'` and `style-src 'self'` without `unsafe-eval` or `unsafe-inline`.
 
+## Literal inline-style pipeline
+
+Literal XTemplate style declarations follow a separate compiler path from ordinary attributes:
+
+```text
+style declaration text
+    → C# declaration-list parser
+    → structured { value, priority } entries in generated JavaScript
+    → VNode.styles
+    → browser x.js
+    → CSSStyleDeclaration.setProperty()/removeProperty()
+```
+
+The C# parser recognizes declaration separators only at the top level, accounting for quoted strings, escapes, brackets, and nested functions. It
+preserves CSS property names such as `margin-top` and `--custom-value`, and separates a trailing `!important` into the entry's `priority` field. The
+browser never receives or reparses the original declaration string.
+
+On initial creation, the browser applies each declaration with `setProperty`. During reconciliation it updates added declarations, changed values, and
+changed priorities; it removes only properties present in the preceding XTemplate VNode and absent from the new VNode. Unrelated CSSOM properties are
+left intact. Generic `x-attr` paths reject the reserved case-insensitive name `style`, including spread and runtime-derived names.
+
+This path never calls `setAttribute("style", ...)` or assigns `style.cssText`, so it remains compatible with strict policies including
+`style-src-attr 'none'` and does not require `'unsafe-inline'`.
+
+`XTemplateRenderer` targets serialized server HTML rather than a browser CSSOM. It rejects a resolved style attribute from every static, bound, spread,
+or dynamic source because serializing that value would create `style="..."` and violate the browser-target invariant.
+
 ## Browser `x-model` assignment policy
 
 The browser's plain-object XTemplate model requires the final object member named by an `x-model` assignment to already exist and be writable.

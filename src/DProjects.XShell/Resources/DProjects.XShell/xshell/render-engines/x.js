@@ -82,8 +82,9 @@ class XTemplate {
 const emptyObject = {};
 const emptyArray = [];
 let freeId = 1;
+const isStyleAttribute = (name) => typeof name === "string" && name.toLowerCase() === "style";
 const utils = new class {
-	createVDOM = (tag, attrs, props, events, options, children, moreChildren) => {
+	createVDOM = (tag, attrs, props, styles, events, options, children, moreChildren) => {
 		if (children && children.length && moreChildren) {
 			let lastIndex = children[children.length - 1].options.index;
 			for(let child of moreChildren) {
@@ -95,6 +96,7 @@ const utils = new class {
 			tag: tag,
 			attrs: attrs ?? emptyObject,
 			props: props ?? emptyObject,
+			styles: styles ?? emptyObject,
 			events: events ?? emptyObject,
 			options: options ?? { index: 0 },
 			children: children ?? emptyArray
@@ -319,7 +321,7 @@ const utils = new class {
 			equal: (left, right) => left === right, notEqual: (left, right) => left !== right, less: (left, right) => compare(left, right) < 0, lessOrEqual: (left, right) => compare(left, right) <= 0, greater: (left, right) => compare(left, right) > 0, greaterOrEqual: (left, right) => compare(left, right) >= 0,
 			and: (left, right) => { const value = left(); return truthy(value) ? right() : value; }, or: (left, right) => { const value = left(); return truthy(value) ? value : right(); }, coalesce: (left, right) => { const value = left(); return value === null ? right() : value; }, conditional: (condition, whenTrue, whenFalse) => truthy(condition()) ? whenTrue() : whenFalse(),
 			transform, collection: (value) => { if (Array.isArray(value)) return value; if (typeof value === "number" && Number.isInteger(value) && value >= 0) return Array.from({length:value}, (_, index) => index + 1); if (typeof value === "string") return [...value]; if (value !== null && typeof value === "object") return Object.keys(value); return fail("x-for requires a collection, string, object, or non-negative integer number"); },
-			attributes: (value) => { if (value === null || typeof value !== "object" || Array.isArray(value)) return fail("x-attr requires an object"); const result = {}; for (const key of Object.keys(value)) { const item = value[key]; if (typeof item === "string" || typeof item === "number" || item === true) result[key] = item; } return result; }, properties: (value) => value !== null && typeof value === "object" && !Array.isArray(value) ? Object.fromEntries(Object.keys(value).map((key) => [key, value[key] === undefined ? null : value[key]])) : fail("x-prop requires an object"), dynamicArgument: (name, value) => typeof name === "string" ? {[name]: value} : fail("Dynamic attribute name must be a string"), dynamicProperty: (name, value) => typeof name === "string" ? {[name]: value} : fail("Dynamic property name must be a string")
+			attributes: (value) => { if (value === null || typeof value !== "object" || Array.isArray(value)) return fail("x-attr requires an object"); const result = {}; for (const key of Object.keys(value)) { if (isStyleAttribute(key)) return fail("Generic attributes cannot target 'style'"); const item = value[key]; if (typeof item === "string" || typeof item === "number" || item === true) result[key] = item; } return result; }, properties: (value) => value !== null && typeof value === "object" && !Array.isArray(value) ? Object.fromEntries(Object.keys(value).map((key) => [key, value[key] === undefined ? null : value[key]])) : fail("x-prop requires an object"), dynamicArgument: (name, value) => typeof name !== "string" ? fail("Dynamic attribute name must be a string") : isStyleAttribute(name) ? fail("Generic attributes cannot target 'style'") : {[name]: value}, dynamicProperty: (name, value) => typeof name === "string" ? {[name]: value} : fail("Dynamic property name must be a string")
 		};
 	})();
 	getFreeId() {
@@ -386,13 +388,6 @@ class XTemplateInstance {
 				index++;
 			}
 
-			
-			const div = document.createElement("div");
-			div.append(documentFragment.cloneNode(true));
-			if (div.innerHTML.indexOf("style")!=-1) {
-				debugger;
-			}
-
 			this._element.appendChild(documentFragment);			
 			this._vdom = vdom;
 		} else {
@@ -409,6 +404,7 @@ class XTemplateInstance {
 		} else {
 			let el = document.createElement(vNode.tag);
 			for (let attr in vNode.attrs) {
+				if (isStyleAttribute(attr)) throw new Error("XTemplate generic attributes cannot target 'style'.");
 				let attrValue = vNode.attrs[attr];
 				if (attrValue == null) {
 				} else if (typeof (attrValue) == "boolean") {
@@ -424,6 +420,11 @@ class XTemplateInstance {
 				} else {
 					el.setAttribute(attr, attrValue);
 				}
+			}
+			// apply compiler-structured styles through CSSOM without creating a style attribute
+			for (let name in vNode.styles) {
+				let style = vNode.styles[name];
+				el.style.setProperty(name, style.value, style.priority);
 			}
 			for (let prop in vNode.props) {
 				let propValue = vNode.props[prop];
@@ -575,7 +576,6 @@ class XTemplateInstance {
 				//slot
 			} else {
 				//diff node
-				if (!parent) debugger
 				let child = parent.childNodes[vNodeNew.options.index + inew];
 				this._diffDomElement(vNodeOld, vNodeNew, child, level + 1);
 			}
@@ -588,6 +588,7 @@ class XTemplateInstance {
 		//attrs
 		let validAttrs = [];
 		for (let attr in vNodeNew.attrs) {
+			if (isStyleAttribute(attr)) throw new Error("XTemplate generic attributes cannot target 'style'.");
 			let attrValue = vNodeNew.attrs[attr];
 			if (attrValue != vNodeOld.attrs[attr]) {
 				if (typeof (attrValue) == "boolean") {
@@ -614,6 +615,15 @@ class XTemplateInstance {
 			if (validAttrs.indexOf(attr) == -1) {
 				element.removeAttribute(attr);
 			}
+		}
+		// reconcile only style properties owned by the old and new XTemplate VNodes
+		for (let name in vNodeNew.styles) {
+			let oldStyle = vNodeOld.styles[name];
+			let newStyle = vNodeNew.styles[name];
+			if (!oldStyle || oldStyle.value !== newStyle.value || oldStyle.priority !== newStyle.priority) element.style.setProperty(name, newStyle.value, newStyle.priority);
+		}
+		for (let name in vNodeOld.styles) {
+			if (!Object.prototype.hasOwnProperty.call(vNodeNew.styles, name)) element.style.removeProperty(name);
 		}
 		//props  
 		let validProps = [];

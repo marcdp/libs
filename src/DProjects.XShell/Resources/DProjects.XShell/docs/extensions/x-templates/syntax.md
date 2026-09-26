@@ -46,6 +46,9 @@ specification for its required numeric, percent, currency, month-name, and casin
 
 `x-attr:name` binds an attribute, while `x-prop:name` binds a DOM or custom-element property. `x-attr` expands an attribute object.
 
+Literal `style="display:none; width:100%"` is a dedicated browser-target feature: the compiler produces structured styles and the renderer applies
+them through CSSOM. `style` is not available through `x-attr`, and the C# server HTML renderer rejects it.
+
 The supported shorthand forms are `:name` for `x-attr:name`, `:` for `x-attr`, `.name` for `x-prop:name`, and `@event` for `x-on:event`.
 Canonical documentation and new templates should prefer the long `x-*` forms.
 

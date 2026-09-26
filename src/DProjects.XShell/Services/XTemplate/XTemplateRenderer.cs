@@ -181,6 +181,7 @@ namespace DProjects.XShell.Services.XTemplate {
         private static void AppendElementStart(XTemplateElementNode element, IEnumerable<KeyValuePair<string, string?>> attributes, StringBuilder result) {
             result.Append('<').Append(element.Name);
             foreach (var attribute in attributes) {
+                if (string.Equals(attribute.Key, "style", StringComparison.OrdinalIgnoreCase)) throw new XTemplateException("Inline style attributes are not supported by the server XTemplate renderer", element.Offset);
                 result.Append(' ').Append(attribute.Key);
                 if (attribute.Value != null) result.Append("=\"").Append(HtmlAttribute(attribute.Value)).Append('"');
             }
@@ -246,11 +247,13 @@ namespace DProjects.XShell.Services.XTemplate {
         private void AddSpread(OrderedAttributes attributes, object? value, int offset) {
             if (value == null) return;
             foreach (var member in ObjectMembers(value, offset)) {
+                EnsureNotStyleAttribute(member.Key, offset);
                 if (member.Value is string or bool or byte or sbyte or short or ushort or int or uint or long or ulong or float or double or decimal) SetBoundAttribute(attributes, member.Key, member.Value, offset);
             }
         }
         private void SetBoundAttribute(OrderedAttributes attributes, string name, object? value, int offset) {
             if (!IsValidAttributeName(name)) throw new XTemplateException($"Invalid attribute name '{name}'", offset);
+            EnsureNotStyleAttribute(name, offset);
             if (value == null || value is false) { attributes.Remove(name); return; }
             if (value is true) { attributes.Set(name, null); return; }
             if (value is string text) { attributes.Set(name, text); return; }
@@ -307,6 +310,7 @@ namespace DProjects.XShell.Services.XTemplate {
             return WebUtility.HtmlDecode(text.ToString());
         }
         private static string HtmlAttribute(string value) => HtmlText(value).Replace("\"", "&quot;", StringComparison.Ordinal).Replace("'", "&#39;", StringComparison.Ordinal);
+        private static void EnsureNotStyleAttribute(string name, int offset) { if (string.Equals(name, "style", StringComparison.OrdinalIgnoreCase)) throw new XTemplateException("Inline style attributes are not supported by the server XTemplate renderer", offset); }
         private static bool IsValidAttributeName(string name) => XTemplateAttributeNames.IsValid(name);
     }
 

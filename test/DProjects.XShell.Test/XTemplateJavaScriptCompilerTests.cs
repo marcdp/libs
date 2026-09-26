@@ -45,6 +45,53 @@ namespace DProjects.XShell.Test {
             Assert.DoesNotContain("state.choice = value", javascript, StringComparison.Ordinal);
         }
 
+        [Fact]
+        public void CompilesLiteralStylesAsStructuredStylesInsteadOfAttributes() {
+            var javascript = new XTemplateCompiler().Compile("<div id=\"x\" title=\"y\" style=\" display : none ; width : 100% ; margin-top:8px; --my-value:123; background-image:url('/image?a=b:c;d=e') \" ></div>");
+
+            Assert.Contains("[\"display\"]:{value:\"none\",priority:\"\"}", javascript, StringComparison.Ordinal);
+            Assert.Contains("[\"width\"]:{value:\"100%\",priority:\"\"}", javascript, StringComparison.Ordinal);
+            Assert.Contains("[\"margin-top\"]:{value:\"8px\",priority:\"\"}", javascript, StringComparison.Ordinal);
+            Assert.Contains("[\"--my-value\"]:{value:\"123\",priority:\"\"}", javascript, StringComparison.Ordinal);
+            Assert.Contains("[\"background-image\"]:{value:", javascript, StringComparison.Ordinal);
+            Assert.Contains("a=b:c;d=e", javascript, StringComparison.Ordinal);
+            Assert.Contains("\"id\":utils.rewriteAttribute", javascript, StringComparison.Ordinal);
+            Assert.Contains("\"title\":utils.rewriteAttribute", javascript, StringComparison.Ordinal);
+            Assert.DoesNotContain("\"style\":utils.rewriteAttribute", javascript, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void CompilesImportantAndEmptyLiteralStyles() {
+            var important = new XTemplateCompiler().Compile("<div style=\"display:none !important\"></div>");
+            var empty = new XTemplateCompiler().Compile("<div style=\"\"></div>");
+
+            Assert.Contains("[\"display\"]:{value:\"none\",priority:\"important\"}", important, StringComparison.Ordinal);
+            Assert.Contains("utils.createVDOM(\"div\", null, null, {}, null, {index:0})", empty, StringComparison.Ordinal);
+        }
+
+        [Theory]
+        [InlineData("<div style=\"display\"></div>")]
+        [InlineData("<div style=\"display:\"></div>")]
+        [InlineData("<div style=\"display:url('x'\"></div>")]
+        [InlineData("<div style=\"display:'x\"></div>")]
+        public void RejectsMalformedLiteralStyles(string template) {
+            var exception = Assert.Throws<XTemplateException>(() => new XTemplateCompiler().Compile(template));
+
+            Assert.Contains("Invalid style declaration", exception.Message, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void RejectsStaticallyNamedGenericStyleBindings() {
+            var exception = Assert.Throws<XTemplateException>(() => new XTemplateCompiler().Compile("<div x-attr:style=\"state.value\"></div>"));
+
+            Assert.Contains("cannot target 'style'", exception.Message, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void RejectsInlineStylesInsideRawPreformattedContent() {
+            Assert.Throws<XTemplateException>(() => new XTemplateCompiler().Compile("<div x-pre><span style=\"display:none\"></span></div>"));
+        }
+
         [Theory]
         [InlineData("x-if", "x-elseif")]
         [InlineData("x-if", "x-else")]

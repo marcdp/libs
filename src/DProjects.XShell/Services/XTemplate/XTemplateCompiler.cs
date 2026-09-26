@@ -40,7 +40,6 @@ namespace DProjects.XShell.Services.XTemplate {
             ValidateStructuralDirectives(root);
             ValidateConditionalChains(root);
             var body = new List<string> {
-                //indent + "debugger;",
                 indent + "let _ifs = {};",
                 indent + "let func;",
                 indent + "return ["
@@ -58,16 +57,16 @@ namespace DProjects.XShell.Services.XTemplate {
         private int CompileNode(TemplateNode node, int index, List<string> javascript, int level, XTemplateExpressionJavaScriptScope scope) {
             var indent = new string(' ', (level + 1) * 4);
             if (node is TextNode textNode) {
-                javascript.Add($"{indent}utils.createVDOM(\"#text\", null, null, null, {{index: {index}}}, {ToJavaScriptString(textNode.Text)}),");
+                javascript.Add($"{indent}utils.createVDOM(\"#text\", null, null, null, null, {{index: {index}}}, {ToJavaScriptString(textNode.Text)}),");
                 return 1;
             }
             if (node is ExpressionNode expressionNode) {
                 var expression = CompileExpression(expressionNode.Expression, "interpolation", expressionNode.SourceOffset, scope);
-                javascript.Add($"{indent}utils.createVDOM(\"#text\", null, null, null, {{index: {index}}}, utils.expr.scalar({expression})),");
+                javascript.Add($"{indent}utils.createVDOM(\"#text\", null, null, null, null, {{index: {index}}}, utils.expr.scalar({expression})),");
                 return 1;
             }
             if (node is CommentNode commentNode) {
-                javascript.Add($"{indent}utils.createVDOM(\"#comment\", null, null, null, {{index: {index}}}, {ToJavaScriptString(commentNode.Text)}),");
+                javascript.Add($"{indent}utils.createVDOM(\"#comment\", null, null, null, null, {{index: {index}}}, {ToJavaScriptString(commentNode.Text)}),");
                 return 1;
             }
 
@@ -78,6 +77,7 @@ namespace DProjects.XShell.Services.XTemplate {
             var post = new List<string>();
             var attributes = new List<string>();
             var properties = new List<string>();
+            string? styles = null;
             var events = new List<string>();
             var options = new List<string> { $"index:{index}" };
             var classes = new List<string>();
@@ -94,7 +94,9 @@ namespace DProjects.XShell.Services.XTemplate {
             }
             string? text = null;
             string? childrenToAppend = null;
-            var staticAttributes = element.Attributes.Where(attribute => IsStaticAttribute(attribute.Name)).ToArray();
+            var styleAttribute = element.Attributes.FirstOrDefault(attribute => attribute.Name == "style");
+            if (styleAttribute != null) styles = CompileStyles(styleAttribute);
+            var staticAttributes = element.Attributes.Where(attribute => IsStaticAttribute(attribute.Name) && attribute.Name != "style").ToArray();
             var staticAttributesJavascript = "{" + string.Join(',', staticAttributes.Select(attribute => $"{ToJavaScriptString(attribute.Name)}:{ToJavaScriptString(attribute.Value)}")) + "}";
 
             // merge static classes into the conditional class binding
@@ -109,27 +111,27 @@ namespace DProjects.XShell.Services.XTemplate {
             switch (structuralDirective.Kind) {
                 case StructuralDirectiveKind.If:
                     line.Clear().Append(indent).Append($"...((_ifs.c{level} = utils.expr.truthy({CompileExpression(structuralDirective.Attribute!.Value, structuralDirective.Attribute.Name, element.SourceOffset, expressionScope)})) ? [utils.createVDOM({ToJavaScriptString(element.Name)}");
-                    postLine.Add($"] : [utils.createVDOM(\"#comment\", null, null, null, {{index: {index}}}, 'x-if')]),");
+                    postLine.Add($"] : [utils.createVDOM(\"#comment\", null, null, null, null, {{index: {index}}}, 'x-if')]),");
                     break;
                 case StructuralDirectiveKind.ElseIf:
                     line.Clear().Append(indent).Append($"...(_ifs.c{level} ? [] : (_ifs.c{level} = utils.expr.truthy({CompileExpression(structuralDirective.Attribute!.Value, structuralDirective.Attribute.Name, element.SourceOffset, expressionScope)})) ? [utils.createVDOM({ToJavaScriptString(element.Name)}");
-                    postLine.Add($"] : [utils.createVDOM(\"#comment\", null, null, null, {{index: {index}}}, 'x-elseif')]),");
+                    postLine.Add($"] : [utils.createVDOM(\"#comment\", null, null, null, null, {{index: {index}}}, 'x-elseif')]),");
                     break;
                 case StructuralDirectiveKind.Else:
                     if (!string.IsNullOrEmpty(structuralDirective.Attribute!.Value)) throw TemplateError("Directive 'x-else' cannot have a value.", element);
                     line.Clear().Append(indent).Append($"...(!_ifs.c{level} ? [utils.createVDOM({ToJavaScriptString(element.Name)}");
-                    postLine.Add($"] : [utils.createVDOM(\"#comment\", null, null, null, {{index: {index}}}, 'x-else')]),");
+                    postLine.Add($"] : [utils.createVDOM(\"#comment\", null, null, null, null, {{index: {index}}}, 'x-else')]),");
                     break;
                 case StructuralDirectiveKind.For:
                     var forLoop = ParseLoop(structuralDirective.Attribute!.Value, structuralDirective.Attribute.Name, false, element);
                     var forKeyName = element.GetAttribute("x-key");
                     var forType = string.IsNullOrWhiteSpace(forKeyName) ? "position" : "key";
                     var forCollection = CompileExpression(forLoop.Collection, structuralDirective.Attribute.Name, element.SourceOffset, scope);
-                    javascript.Add($"{indent}utils.createVDOM(\"#comment\", null, null, null, {{index: {index}, forType:'{forType}'}}, 'x-for-start'),");
+                    javascript.Add($"{indent}utils.createVDOM(\"#comment\", null, null, null, null, {{index: {index}, forType:'{forType}'}}, 'x-for-start'),");
                     line.Clear().Append(indent).Append($"...(utils.expr.collection({forCollection}).map(({forLoop.Item}, {forLoop.Index}) => utils.createVDOM({ToJavaScriptString(element.Name)}");
                     postLine.Add(")),");
                     if (!string.IsNullOrWhiteSpace(forKeyName)) options.Add($"\"key\":utils.expr.member({forLoop.Item}, {ToJavaScriptString(ValidateKeyName(forKeyName, element))})");
-                    post.Add($"{indent}utils.createVDOM(\"#comment\", null, null, null, {{index: {index}, forType:'{forType}'}}, 'x-for-end'),");
+                    post.Add($"{indent}utils.createVDOM(\"#comment\", null, null, null, null, {{index: {index}, forType:'{forType}'}}, 'x-for-end'),");
                     break;
                 case StructuralDirectiveKind.Recursive:
                     var recursiveLoop = ParseLoop(structuralDirective.Attribute!.Value, structuralDirective.Attribute.Name, true, element);
@@ -139,19 +141,19 @@ namespace DProjects.XShell.Services.XTemplate {
                     javascript.Add($"{indent}...(func = (_items, {recursiveLoop.AbsoluteIndex}, {recursiveLoop.Indent}, wrapper) => {{ let _itemsArray = utils.expr.collection(_items); let _result = [");
                     indent += "    ";
                     level++;
-                    javascript.Add($"{indent}utils.createVDOM(\"#comment\", null, null, null, {{index: {index - 1}, forType:'{recursiveForType}'}}, 'x-for-start'),");
+                    javascript.Add($"{indent}utils.createVDOM(\"#comment\", null, null, null, null, {{index: {index - 1}, forType:'{recursiveForType}'}}, 'x-for-start'),");
                     line.Clear().Append(indent).Append($"...(_itemsArray.map(({recursiveLoop.Item}, {recursiveLoop.Index}) => {{ let _result = utils.createVDOM({ToJavaScriptString(element.Name)}");
                     postLine.Add($"; {recursiveLoop.AbsoluteIndex}++; return _result;}})),");
                     if (!string.IsNullOrWhiteSpace(recursiveKeyName)) options.Add($"\"key\":utils.expr.member({recursiveLoop.Item}, {ToJavaScriptString(ValidateKeyName(recursiveKeyName, element))})");
-                    post.Add($"{indent}utils.createVDOM(\"#comment\", null, null, null, {{index: {index - 1}, forType:'{recursiveForType}'}}, 'x-for-end'),");
+                    post.Add($"{indent}utils.createVDOM(\"#comment\", null, null, null, null, {{index: {index - 1}, forType:'{recursiveForType}'}}, 'x-for-end'),");
                     var wrapper = element.GetAttribute("x-recursive-wrapper") ?? "";
-                    post.Add($"\n    {indent[..^4]}]; if (wrapper) _result = [utils.createVDOM(wrapper, null, null, null, {{index:1}}, _result)]; return _result;}})({recursiveCollection}, 0, 0),");
+                    post.Add($"\n    {indent[..^4]}]; if (wrapper) _result = [utils.createVDOM(wrapper, null, null, null, null, {{index:1}}, _result)]; return _result;}})({recursiveCollection}, 0, 0),");
                     childrenToAppend = $"func(utils.expr.member({recursiveLoop.Item}, \"children\"), {recursiveLoop.AbsoluteIndex} + 1, {recursiveLoop.Indent} + 1, {ToJavaScriptString(wrapper)})";
                     break;
                 case StructuralDirectiveKind.Once:
                     if (!string.IsNullOrEmpty(structuralDirective.Attribute!.Value)) throw TemplateError("Directive 'x-once' cannot have a value.", element);
                     line.Clear().Append(indent).Append($"...((renderCount==0) ? [utils.createVDOM({ToJavaScriptString(element.Name)}");
-                    postLine.Add($"] : [utils.createVDOM({ToJavaScriptString(element.Name)}, null, null, null, {{once:true}})]),");
+                    postLine.Add($"] : [utils.createVDOM({ToJavaScriptString(element.Name)}, null, null, null, null, {{once:true}})]),");
                     break;
             }
 
@@ -159,6 +161,8 @@ namespace DProjects.XShell.Services.XTemplate {
                 var name = attribute.Name;
                 var value = attribute.Value;
                 if (IsPrimaryStructuralDirective(name)) {
+                    continue;
+                } else if (name == "style") {
                     continue;
                 } else if (name == "class" && classes.Count > 0) {
                     continue;
@@ -179,7 +183,10 @@ namespace DProjects.XShell.Services.XTemplate {
                     var expression = CompileExpression(value, name, element.SourceOffset, expressionScope);
                     var attributeName = name[(name.IndexOf(':') + 1)..];
                     if (attributeName.StartsWith('[') && attributeName.EndsWith(']')) attributes.Add($"...utils.expr.dynamicArgument({CompileExpression(attributeName[1..^1], name, element.SourceOffset, expressionScope)}, {expression})");
-                    else attributes.Add($"{ToJavaScriptString(attributeName)}:{expression}");
+                    else {
+                        if (string.Equals(attributeName, "style", StringComparison.OrdinalIgnoreCase)) throw new XTemplateException("Generic attribute binding cannot target 'style'", attribute.Offset);
+                        attributes.Add($"{ToJavaScriptString(attributeName)}:{expression}");
+                    }
                 } else if (name == "x-prop") {
                     properties.Add($"...utils.expr.properties({CompileExpression(value, name, element.SourceOffset, expressionScope)})");
                 } else if (name.StartsWith("x-prop:", StringComparison.Ordinal)) {
@@ -207,6 +214,7 @@ namespace DProjects.XShell.Services.XTemplate {
                     CompileModel(element, value, properties, events, expressionScope);
                 } else if (name == "x-pre") {
                     if (!string.IsNullOrEmpty(value)) throw TemplateError("Directive 'x-pre' cannot have a value.", element);
+                    EnsureRawContentHasNoInlineStyles(element);
                     options.Add("format:\"html\"");
                     text = ToJavaScriptString(SerializeChildren(element));
                 } else if (name.StartsWith("x-", StringComparison.Ordinal)) {
@@ -219,6 +227,7 @@ namespace DProjects.XShell.Services.XTemplate {
             if (classes.Count > 0) attributes.Add($"...{{class:[{string.Join(',', classes)}].filter(c => c).join(' ')}}");
             line.Append(", ").Append(attributes.Count > 0 ? $"{{{string.Join(',', attributes)}}}" : "null");
             line.Append(", ").Append(properties.Count > 0 ? $"{{{string.Join(',', properties)}}}" : "null");
+            line.Append(", ").Append(styles ?? "null");
             line.Append(", ").Append(events.Count > 0 ? $"{{{string.Join(',', events)}}}" : "null");
             line.Append(", ").Append(options.Count > 0 ? $"{{{string.Join(',', options)}}}" : "null");
             if (text != null) {
@@ -364,6 +373,96 @@ namespace DProjects.XShell.Services.XTemplate {
         private static void EnsureEmptyElement(ElementNode element, string directive) {
             if (element.Children.Count > 0) throw TemplateError($"Directive '{directive}' requires an empty element.", element);
         }
+        private static void EnsureRawContentHasNoInlineStyles(ElementNode element) {
+            foreach (var child in element.Children.OfType<ElementNode>()) {
+                var styleAttribute = child.Attributes.FirstOrDefault(attribute => attribute.Name == "style");
+                if (styleAttribute != null) throw new XTemplateException("Inline style attributes are not supported inside x-pre raw content", styleAttribute.Offset);
+                EnsureRawContentHasNoInlineStyles(child);
+            }
+        }
+        private static string CompileStyles(TemplateAttribute attribute) {
+            var declarations = ParseStyleDeclarations(attribute.Value, attribute.Offset);
+            return "{" + string.Join(',', declarations.Select(declaration => $"[{ToJavaScriptString(declaration.Name)}]:{{value:{ToJavaScriptString(declaration.Value)},priority:{ToJavaScriptString(declaration.Priority)}}}")) + "}";
+        }
+        private static IReadOnlyList<StyleDeclaration> ParseStyleDeclarations(string source, int offset) {
+            var declarations = new Dictionary<string, StyleDeclaration>(StringComparer.Ordinal);
+            var position = 0;
+            while (position < source.Length) {
+                while (position < source.Length && (char.IsWhiteSpace(source[position]) || source[position] == ';')) position++;
+                if (position >= source.Length) break;
+                var start = position;
+                var colon = -1;
+                var quote = '\0';
+                var parentheses = 0;
+                var brackets = 0;
+                var braces = 0;
+                while (position < source.Length) {
+                    var character = source[position];
+                    if (character == '\\') {
+                        if (position + 1 >= source.Length) throw new XTemplateException("Invalid style declaration: incomplete escape", offset + position);
+                        position += 2;
+                        continue;
+                    }
+                    if (quote != '\0') {
+                        if (character == quote) quote = '\0';
+                        position++;
+                        continue;
+                    }
+                    if (character is '\'' or '"') { quote = character; position++; continue; }
+                    if (character == '(') parentheses++;
+                    else if (character == ')' && --parentheses < 0) throw new XTemplateException("Invalid style declaration: unmatched ')'", offset + position);
+                    else if (character == '[') brackets++;
+                    else if (character == ']' && --brackets < 0) throw new XTemplateException("Invalid style declaration: unmatched ']'", offset + position);
+                    else if (character == '{') braces++;
+                    else if (character == '}' && --braces < 0) throw new XTemplateException("Invalid style declaration: unmatched '}'", offset + position);
+                    else if (character == ':' && colon < 0 && parentheses == 0 && brackets == 0 && braces == 0) colon = position;
+                    else if (character == ';' && parentheses == 0 && brackets == 0 && braces == 0) break;
+                    position++;
+                }
+                if (quote != '\0' || parentheses != 0 || brackets != 0 || braces != 0) throw new XTemplateException("Invalid style declaration: unclosed string or function", offset + start);
+                var end = position;
+                if (position < source.Length && source[position] == ';') position++;
+                if (colon < start || colon >= end) throw new XTemplateException("Invalid style declaration: expected a property name followed by ':'", offset + start);
+                var name = source[start..colon].Trim();
+                var value = source[(colon + 1)..end].Trim();
+                if (!IsCssPropertyName(name)) throw new XTemplateException($"Invalid style declaration property name '{name}'", offset + start);
+                if (value.Length == 0) throw new XTemplateException($"Invalid style declaration for '{name}': value is empty", offset + colon + 1);
+                if (!name.StartsWith("--", StringComparison.Ordinal)) name = name.ToLowerInvariant();
+                var (normalizedValue, priority) = ExtractStylePriority(value, offset + colon + 1);
+                declarations[name] = new(name, normalizedValue, priority);
+            }
+            return declarations.Values.ToArray();
+        }
+        private static (string Value, string Priority) ExtractStylePriority(string value, int offset) {
+            var quote = '\0';
+            var parentheses = 0;
+            var brackets = 0;
+            var braces = 0;
+            var importantMarker = -1;
+            for (var position = 0; position < value.Length; position++) {
+                var character = value[position];
+                if (character == '\\') { position++; continue; }
+                if (quote != '\0') { if (character == quote) quote = '\0'; continue; }
+                if (character is '\'' or '"') { quote = character; continue; }
+                if (character == '(') parentheses++;
+                else if (character == ')') parentheses--;
+                else if (character == '[') brackets++;
+                else if (character == ']') brackets--;
+                else if (character == '{') braces++;
+                else if (character == '}') braces--;
+                else if (character == '!' && parentheses == 0 && brackets == 0 && braces == 0) importantMarker = position;
+            }
+            if (importantMarker < 0 || !string.Equals(value[(importantMarker + 1)..].Trim(), "important", StringComparison.OrdinalIgnoreCase)) return (value, string.Empty);
+            var normalizedValue = value[..importantMarker].TrimEnd();
+            if (normalizedValue.Length == 0) throw new XTemplateException("Invalid style declaration: '!important' requires a value", offset + importantMarker);
+            return (normalizedValue, "important");
+        }
+        private static bool IsCssPropertyName(string name) {
+            if (name.Length == 0 || name.Any(character => char.IsWhiteSpace(character) || char.IsControl(character) || character is ':' or ';')) return false;
+            if (name.StartsWith("--", StringComparison.Ordinal)) return name.Length > 2;
+            if (!char.IsLetter(name[0]) && name[0] != '-' && name[0] != '_') return false;
+            return name.Skip(1).All(character => char.IsLetterOrDigit(character) || character is '-' or '_');
+        }
         private string CompileExpression(string source, string directive, int offset, XTemplateExpressionJavaScriptScope scope) => _expressionCompiler.Compile(ParseExpression(source, directive, offset), scope);
         private static XTemplateExpression ParseExpression(string source, string directive, int offset) {
             if (string.IsNullOrWhiteSpace(source)) throw new InvalidOperationException($"Directive '{directive}' requires an XTemplate expression at template offset {offset}.");
@@ -420,7 +519,8 @@ namespace DProjects.XShell.Services.XTemplate {
         private sealed record TextNode(string Text, int SourceOffset) : TemplateNode(SourceOffset);
         private sealed record ExpressionNode(string Expression, int SourceOffset) : TemplateNode(SourceOffset);
         private sealed record CommentNode(string Text, int SourceOffset) : TemplateNode(SourceOffset);
-        private sealed record TemplateAttribute(string Name, string Value, bool HasValue);
+        private sealed record TemplateAttribute(string Name, string Value, bool HasValue, int Offset);
+        private sealed record StyleDeclaration(string Name, string Value, string Priority);
         private sealed record StructuralDirectiveInfo(StructuralDirectiveKind Kind, TemplateAttribute? Attribute);
         private sealed record LoopDefinition(string Item, string Index, string AbsoluteIndex, string Indent, string Collection);
         private sealed record ElementNode(string Name, List<TemplateAttribute> Attributes, List<TemplateNode> Children, int SourceOffset) : TemplateNode(SourceOffset) {
@@ -479,6 +579,7 @@ namespace DProjects.XShell.Services.XTemplate {
                     if (mPosition >= source.Length) break;
                     if (source[mPosition] == '>') { mPosition++; break; }
                     if (source[mPosition] == '/' && mPosition + 1 < source.Length && source[mPosition + 1] == '>') { selfClosing = true; mPosition += 2; break; }
+                    var attributeOffset = mPosition;
                     var attributeName = ReadAttributeName().ToLowerInvariant();
                     if (attributeName.Length == 0) throw new InvalidOperationException($"Malformed X template attribute at offset {mPosition}.");
                     if (attributes.Any(attribute => attribute.Name == attributeName)) throw new InvalidOperationException($"Malformed X template: duplicate attribute '{attributeName}' on <{name}>.");
@@ -486,7 +587,7 @@ namespace DProjects.XShell.Services.XTemplate {
                     var hasValue = mPosition < source.Length && source[mPosition] == '=';
                     var value = "";
                     if (hasValue) { mPosition++; SkipWhitespace(); value = WebUtility.HtmlDecode(ReadAttributeValue()); }
-                    attributes.Add(new TemplateAttribute(attributeName, value, hasValue));
+                    attributes.Add(new TemplateAttribute(attributeName, value, hasValue, attributeOffset));
                 }
                 var element = new ElementNode(name, attributes, new(), offset);
                 stack.Peek().Children.Add(element);

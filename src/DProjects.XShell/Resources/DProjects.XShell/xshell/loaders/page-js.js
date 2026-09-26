@@ -2,7 +2,9 @@ import Page from "../page.js"
 import Timer from "../timer.js"
 import Events from "../events.js"
 import xshell from "../xshell.js";
-import validateComponentContract from "../validation/component.js";
+import validateComponentContract from "../validation/component.contract.js";
+import validateComponent from "../validation/component.js";
+
 
 // utils
 function kebabToCamel(str) {
@@ -73,28 +75,18 @@ function isPlainObject(value) {
     return prototype === Object.prototype || prototype === null;
 }
 function escapeCssString(value) {
-    return value
-        .replace(/\\/g, "\\\\")
-        .replace(/"/g, '\\"')
-        .replace(/\n/g, "\\A ");
+    return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\A ");
 }
-function convertAttributeValue(property, value) {
-    // convert attribute value based on property type
-    switch (property.type) {
-        case "boolean":
-            return value !== null;
-        case "number":
-            return value === null ? null : Number(value);
-        case "array":
-        case "object":
-            if (value === null) return null;
-            try {
-                return JSON.parse(value);
-            } catch {
-                return value;
-            }
-        default:
-            return value;
+function validateSlots(definition, contract) {
+    const componentName = definition.meta?.name || "unknown";
+    const slotRegex = /<slot\b([^>]*)>/gi;
+    const nameRegex = /\bname\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/i;
+    for (const match of definition.template.matchAll(slotRegex)) {
+        const attributes = match[1];
+        const nameMatch = attributes.match(nameRegex);
+        const slotName = nameMatch ? (nameMatch[1] ?? nameMatch[2] ?? nameMatch[3] ?? "") : "";
+        const displayName = slotName || "(default)";
+        throw new Error(`Page '${componentName}' template declares slot '${displayName}', but pages cannot declare slots.`);
     }
 }
 
@@ -112,9 +104,21 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
     if (!definition.style) definition.style = "";
     if (!definition.template) definition.template = "";
     if (!definition.controller) definition.controller = () => ({});
+    // freeze definition and contract
     definition = Object.seal(Object.freeze(definition));
     contract = Object.seal(Object.freeze(contract));
-   
+    // validate contract
+    if (contract) {
+        await validateComponentContract(src, contract);
+    }
+    // validate slots
+    if (contract) {
+        validateSlots(definition, contract);
+    }
+    // validateComponent definition against contract
+    if (definition) {
+        await validateComponent(src, definition);
+    }
     // state skeleton
     const stateSkeleton = createStateSkeleton(src, definition, contract);
     const propertyAttributeNames = [];

@@ -110,22 +110,21 @@ function findClosestXPage(element) {
     return null;
 }
 function validateSlots(definition, contract) {
-    const template = document.createElement("template");
-    template.innerHTML = definition.template;
-
     const slots = contract.slots || {};
     const componentName = definition.meta?.name || "unknown";
-
-    for (const slot of template.content.querySelectorAll("slot")) {
-        const slotName = slot.getAttribute("name") || "";
-
+    const slotRegex = /<slot\b([^>]*)>/gi;
+    const nameRegex = /\bname\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/i;
+    for (const match of definition.template.matchAll(slotRegex)) {
+        const attributes = match[1];
+        const nameMatch = attributes.match(nameRegex);
+        const slotName = nameMatch ? (nameMatch[1] ?? nameMatch[2] ?? nameMatch[3] ?? "") : "";
         if (!Object.prototype.hasOwnProperty.call(slots, slotName)) {
             const displayName = slotName || "(default)";
-            debugger
             throw new Error(`Component '${componentName}' template declares slot '${displayName}', but it is not declared in contract.slots.`);
         }
     }
 }
+
 
 // create page class from js definition
 export async function createComponentClassFromJsDefinition(src, context, definition, contract) {

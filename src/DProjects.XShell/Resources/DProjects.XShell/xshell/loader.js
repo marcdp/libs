@@ -109,7 +109,7 @@ export default class Loader {
             let cacheItem = this._cache[resource];
             if (cacheItem) {
                 if (cacheItem.promise) {
-                    tasks.push(cacheItem.promise);
+                    tasks.push({index: result.length, promise: cacheItem.promise});
                     result.push(null);
                 } else {
                     result.push(cacheItem.value);
@@ -149,16 +149,17 @@ export default class Loader {
                         promise
                     };
                 }
-                tasks.push(promise);
+                tasks.push({index: result.length, promise});
                 result.push(null);
             }            
         }
         //wait until all resources have been settled
-        const taskResults = await Promise.allSettled(tasks);
+        const taskResults = await Promise.allSettled(tasks.map(task => task.promise));
         // process result
         let errors = [];
         for(let i = 0 ; i < taskResults.length; i++) {
             let taskResult = taskResults[i];
+            let resultIndex = tasks[i].index;
             if (taskResult != null) {
                 if (taskResult.status === 'fulfilled') {
                     let value = taskResult.value;
@@ -167,17 +168,17 @@ export default class Loader {
                     } else if (value.clone) {
                         value = value.clone();
                     }
-                    result[i] = value;
+                    result[resultIndex] = value;
                 } else if (taskResult.status === 'rejected') {
                     debugger
                     const exception = taskResult.reason instanceof Error ? taskResult.reason : new Error(String(taskResult.reason));
                     const error = new ResourceLoadError(
-                        resources[i], 
+                        resources[resultIndex],
                         exception.message, 
                         {
                             code: (exception.message.indexOf("Failed to fetch") != -1 ? 404 : 500),
-                            url: urls[i],
-                            path: paths[i],
+                            url: urls[resultIndex],
+                            path: paths[resultIndex],
                             cause: exception
                         }
                     );

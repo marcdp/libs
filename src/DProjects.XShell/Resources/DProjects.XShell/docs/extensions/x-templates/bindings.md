@@ -17,6 +17,8 @@ Use `x-attr:*` to bind DOM attributes. Attributes are serialized values suitable
 must use string keys and non-string keys are not converted with `key.ToString()`. `:name` and `:` are supported shorthand forms, but the long
 forms are preferred in canonical templates.
 
+The name `style` is reserved and is invalid in named, dynamic-name, and object-spread `x-attr` bindings.
+
 The transformer pipeline is valid in this value-expression position. Presentation transformers produce locale-aware strings, while predicate
 transformers produce booleans; raw scalar conversion without a transformer remains invariant.
 
@@ -30,6 +32,18 @@ HTML attributes.
 ```
 
 In short: `x-attr:*` targets DOM attributes; `x-prop:*` targets DOM properties. `.name` is the supported shorthand for `x-prop:name`.
+
+## Literal styles
+
+Literal style declaration syntax is compiled to structured browser CSSOM operations rather than an HTML style attribute:
+
+```html
+<div style="display: none; margin-top: 8px"></div>
+```
+
+The browser target applies these declarations with `setProperty` and reconciles removals with `removeProperty`; it does not parse the CSS text at
+runtime. Dynamic style strings and interpolation are not supported. The C# server HTML renderer rejects literal or generic style attributes because
+it cannot serialize them without producing a CSP-sensitive inline attribute.
 
 ## Events
 

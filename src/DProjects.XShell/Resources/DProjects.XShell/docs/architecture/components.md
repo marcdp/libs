@@ -252,7 +252,7 @@ export default {
 };
 ```
 
-`component-js` asks the Loader to load the declaration object. For each value, the Resolver selects the matching resource definition, URL, and
+`component-js` passes the dependencies object to the Loader. For each value, the Resolver selects the matching resource definition, URL, and
 resource-specific loader; the Loader then obtains the resolved resource. The resulting values retain their declared keys in `dependencies`.
 
 All declared dependencies are resolved before the generated Web Component class is returned and before a component instance creates its controller.

@@ -10,7 +10,7 @@ export const contract = {
 export default {
     template: `
 
-        <p>
+        <p style="border: 1px red solid;">
             Components for grouping content, switching views, collapsing sections,
             arranging actions, and progressively loading UI.
         </p>
@@ -220,6 +220,9 @@ export default {
 
         <h2>Context menu and menu items</h2>
 
+
+        <!--
+
         <div style="position:relative; height:8em;">
             <x-contextmenu>
                 <x-menuitem label="Edit" icon="x-edit"></x-menuitem>
@@ -277,7 +280,6 @@ export default {
 
         <h2>Fill</h2>
 
-<!--
         <p>
             x-fill is intended for layouts where content must occupy the complete
             available positioned container.

@@ -166,10 +166,23 @@ namespace DProjects.XShell.Test {
         }
 
         [Fact]
-        public void PreservesStaticStyleWhenShowIsFalsy() {
-            var html = Render("<div class=\"base\" x-class:selected=\"state.selected\" x-class:busy=\"state.busy\" style=\"color:red\" x-show=\"state.visible\"></div>", new { selected = true, busy = false, visible = false });
+        public void RejectsLiteralInlineStylesInsteadOfSerializingThem() {
+            var exception = Assert.Throws<XTemplateException>(() => Render("<div style=\"color:red\"></div>"));
 
-            Assert.Equal("<div class=\"base selected\" style=\"color:red\" hidden></div>", html);
+            Assert.Contains("Inline style attributes are not supported", exception.Message, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void RejectsInlineStylesFromEveryResolvedGenericAttributePath() {
+            var bound = Assert.Throws<XTemplateException>(() => Render("<div x-attr:style=\"state.value\"></div>", new { value = "color:red" }));
+            var spread = Assert.Throws<XTemplateException>(() => Render("<div x-attr=\"state.attributes\"></div>", new { attributes = new Dictionary<string, object?> { ["STYLE"] = "color:red" } }));
+            var dynamic = Assert.Throws<XTemplateException>(() => Render("<div x-attr:[state.name]=\"state.value\"></div>", new { name = "Style", value = "color:red" }));
+            var raw = Assert.Throws<XTemplateException>(() => Render("<div x-pre><span style=\"color:red\"></span></div>"));
+
+            Assert.Contains("Inline style attributes are not supported", bound.Message, StringComparison.Ordinal);
+            Assert.Contains("Inline style attributes are not supported", spread.Message, StringComparison.Ordinal);
+            Assert.Contains("Inline style attributes are not supported", dynamic.Message, StringComparison.Ordinal);
+            Assert.Contains("Inline style attributes are not supported", raw.Message, StringComparison.Ordinal);
         }
 
         [Fact]
