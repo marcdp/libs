@@ -61,6 +61,15 @@ namespace DProjects.XShell.Test {
         }
 
         [Fact]
+        public void CompilesWholeObjectPropertiesIntoTheVNodePropertiesArgument() {
+            var javascript = new XTemplateCompiler().Compile("<x-grid x-prop=\"state.props\"></x-grid>");
+
+            Assert.Contains("utils.createVDOM(\"x-grid\"", javascript, StringComparison.Ordinal);
+            Assert.Contains("...utils.expr.properties(utils.expr.member(state, \"props\"))", javascript, StringComparison.Ordinal);
+            Assert.DoesNotContain("utils.expr.attributes(utils.expr.member(state, \"props\"))", javascript, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void CompilesImportantAndEmptyLiteralStyles() {
             var important = new XTemplateCompiler().Compile("<div style=\"display:none !important\"></div>");
             var empty = new XTemplateCompiler().Compile("<div style=\"\"></div>");

@@ -64,6 +64,19 @@ public sealed class XTemplateJavaScriptConformanceTests {
     }
 
     [Fact]
+    public void WholeObjectXPropExpandsPreservesValuesRejectsInvalidSourcesAndRespectsSourceOrder() {
+        var results = ExecuteWholeObjectProperties();
+
+        Assert.Equal(new[] { "Grid", "3", "true" }, results["basic"]);
+        Assert.Equal(new[] { "true", "true", "true" }, results["identity"]);
+        Assert.Equal(new[] { "spread", "Grid" }, results["namedThenSpread"]);
+        Assert.Equal(new[] { "named", "Grid" }, results["spreadThenNamed"]);
+        Assert.Equal(new[] { "dynamic", "spread" }, results["dynamicOrder"]);
+        Assert.Equal(new[] { "null" }, results["undefined"]);
+        Assert.All(results["invalid"], result => Assert.Contains("x-prop requires an object", result, StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void GeneratedJavaScriptMatchesTheInvariantTransformerProfileWithoutALocale() {
         var state = new Dictionary<string, object?>();
         var cases = new[] {
@@ -420,6 +433,63 @@ public sealed class XTemplateJavaScriptConformanceTests {
             process.WaitForExit();
             Assert.True(process.ExitCode == 0, $"JavaScript generic style rejection runtime failed:{Environment.NewLine}{error}");
             return JsonSerializer.Deserialize<bool[]>(output) ?? throw new InvalidOperationException("JavaScript generic style rejection runtime returned no results.");
+        } finally {
+            if (File.Exists(modulePath)) File.Delete(modulePath);
+        }
+    }
+
+    private static Dictionary<string, string[]> ExecuteWholeObjectProperties() {
+        var runtimePath = Path.Combine(AppContext.BaseDirectory, "Resources", "DProjects.XShell", "xshell", "render-engines", "x.js");
+        var modulePath = Path.Combine(Path.GetTempPath(), $"xtemplate-whole-object-properties-{Guid.NewGuid():N}.mjs");
+        try {
+            var compiler = new XTemplateCompiler();
+            var basic = compiler.Compile("<x-grid x-prop=\"state.props\"></x-grid>");
+            var identity = compiler.Compile("<x-grid x-prop=\"state.props\"></x-grid>");
+            var namedThenSpread = compiler.Compile("<x-grid x-prop:items=\"state.items\" x-prop=\"state.props\"></x-grid>");
+            var spreadThenNamed = compiler.Compile("<x-grid x-prop=\"state.props\" x-prop:items=\"state.specialItems\"></x-grid>");
+            var dynamicThenSpread = compiler.Compile("<x-grid x-prop:[state.name]=\"state.value\" x-prop=\"state.props\"></x-grid>");
+            var spreadThenDynamic = compiler.Compile("<x-grid x-prop=\"state.props\" x-prop:[state.name]=\"state.value\"></x-grid>");
+            var undefined = compiler.Compile("<x-grid x-prop=\"state.props\"></x-grid>");
+            var invalid = new[] { "null", "[]", "'text'", "1", "true" }.Select(value => compiler.Compile($"<div x-prop=\"state.value\"></div>")).ToArray();
+            File.WriteAllText(modulePath, $$"""
+                globalThis.HTMLElement = class {};
+                globalThis.CSSStyleSheet = class { replaceSync() {} };
+                globalThis.customElements = { get() {}, define() {} };
+                globalThis.window = { customElements: globalThis.customElements };
+                const { XTemplateRuntimeUtils } = await import({{JsonSerializer.Serialize(new Uri(runtimePath).AbsoluteUri)}});
+                const run = (renderer, state) => renderer(state, null, () => {}, XTemplateRuntimeUtils, null, 0)[0].props;
+                const items = [{ id: 1 }];
+                const config = { mode: "compact" };
+                const basic = run({{basic}}, { props: { title: "Grid", count: 3, enabled: true } });
+                const identityState = { props: { items, config, nothing: null } };
+                const identity = run({{identity}}, identityState);
+                const namedThenSpread = run({{namedThenSpread}}, { items: "named", props: { items: "spread", title: "Grid" } });
+                const spreadThenNamed = run({{spreadThenNamed}}, { props: { items: "spread", title: "Grid" }, specialItems: "named" });
+                const dynamicOrder = [
+                    run({{spreadThenDynamic}}, { props: { items: "spread" }, name: "items", value: "dynamic" }).items,
+                    run({{dynamicThenSpread}}, { props: { items: "spread" }, name: "items", value: "dynamic" }).items
+                ];
+                const undefinedValue = run({{undefined}}, { props: { value: undefined } }).value;
+                const invalid = [{{string.Join(",", invalid.Select((renderer, index) => $"{{renderer:{renderer},state:{{value:{new[] { "null", "[]", "'text'", "1", "true" }[index]}}}}}"))}}].map(({renderer, state}) => {
+                    try { renderer(state, null, () => {}, XTemplateRuntimeUtils, null, 0); return "unexpected"; }
+                    catch (error) { return "error:" + error.message; }
+                });
+                console.log(JSON.stringify({
+                    basic: [basic.title, String(basic.count), String(basic.enabled)],
+                    identity: [identity.items === items, identity.config === config, identity.nothing === null].map(String),
+                    namedThenSpread: [namedThenSpread.items, namedThenSpread.title],
+                    spreadThenNamed: [spreadThenNamed.items, spreadThenNamed.title],
+                    dynamicOrder: [dynamicOrder[0], dynamicOrder[1]],
+                    undefined: [String(undefinedValue)],
+                    invalid
+                }));
+                """.Replace("undefined: [String(undefinedValue)]", "undefined: [undefinedValue === null ? \"null\" : String(undefinedValue)]"));
+            using var process = Process.Start(new ProcessStartInfo("node", modulePath) { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false })!;
+            var output = process.StandardOutput.ReadToEnd();
+            var error = process.StandardError.ReadToEnd();
+            process.WaitForExit();
+            Assert.True(process.ExitCode == 0, $"JavaScript whole-object x-prop runtime failed:{Environment.NewLine}{error}");
+            return JsonSerializer.Deserialize<Dictionary<string, string[]>>(output) ?? throw new InvalidOperationException("JavaScript whole-object x-prop runtime returned no results.");
         } finally {
             if (File.Exists(modulePath)) File.Delete(modulePath);
         }
