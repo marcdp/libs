@@ -121,9 +121,20 @@ initialization are `areas`, `auth`, `bus`, `config`, `container`, `debug`, `dial
 ## Query reflection ownership
 
 `page-js` owns the contract decision about which state-backed properties are query-enabled and reflected. `Page.replaceQuery(query)` is the Page-level
-patch API: it delegates to Navigation, uses replacement semantics, removes parameters whose value is `null`, ignores `undefined`, and does not reload
-the Page. Navigation owns stack mutation and browser URL serialization. Only Pages represented in the navigation stack affect the browser URL; dialog and
-embedded Pages may update their local `Page.src` query without changing the main browser navigation.
+patch API: despite its name, it patches the Page's current query parameters; it does not replace the complete query map. It delegates to Navigation,
+uses replacement semantics, removes parameters whose value is `null`, leaves parameters whose value is `undefined` unchanged, and does not reload the
+Page. For example:
+
+```js
+page.replaceQuery({
+    "page-index": "3", // set or replace
+    filter: null         // remove
+});
+```
+
+Each supplied value sets or replaces that query parameter, `null` removes it, and `undefined` leaves it unchanged; unrelated existing query parameters
+are preserved. Navigation owns stack mutation and browser URL serialization. Only Pages represented in the navigation stack affect the browser URL; dialog
+and embedded Pages may update their local `Page.src` query without changing the main browser navigation.
 
 Query reflection changes query state, not the Page resource. The navigation DOM synchronizer continues to compare stack item `href` values, so a
 query-only change keeps the same Page instance and lifecycle alive.

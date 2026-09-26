@@ -52,6 +52,31 @@ The query parameter name is the property name converted from camelCase to kebab-
 finite, integers must be whole numbers, and booleans accept `true`, `1`, `false`, or `0` (case-insensitive for the words). Empty string values are
 valid for strings; malformed numeric or boolean values reject Page creation. If the parameter is absent, the contract default remains unchanged.
 
+For example, a reflected query-backed Page property follows this lifecycle:
+
+```js
+export const contract = {
+    properties: {
+        pageIndex: {
+            type: "integer",
+            default: 0,
+            state: true,
+            query: true,
+            reflect: true
+        }
+    }
+};
+```
+
+```text
+/page.js?page-index=3  →  state.pageIndex === 3
+state.pageIndex = 4    →  /page.js?page-index=4
+state.pageIndex = 0    →  /page.js
+```
+
+`query: true` allows Page query initialization into state. Adding `reflect: true` also reflects later state changes to that Page's query; returning to
+the contract default removes the query parameter.
+
 Query initialization does not imply `attribute` or `reflect`. With `reflect: true`, later state changes patch the Page's own query parameters using
 replacement semantics; properties without `reflect: true` remain input-only. This behavior is Page-specific and normal Components continue to ignore
 `query` at runtime.

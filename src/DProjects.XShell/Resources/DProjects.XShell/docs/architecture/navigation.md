@@ -75,10 +75,19 @@ explicitly marked `query: true`. Navigation parses or owns neither mechanism; se
 
 ## Query-only Page updates
 
-`Page.replaceQuery(query)` patches only that Page's existing query parameters. The Page delegates to `Navigation.replacePageQuery(page, changes)`;
-Navigation locates the Page's `x-page` host in the current stack, clones only the matching stack item's `params`, preserves its `href` and `nav` metadata,
-and calls `_stackToBrowser(stack, { replace: true })`. `null` removes a parameter and `undefined` leaves it unchanged. The Page and its host synchronize
-their logical source internally without invoking the normal `src` loading setter.
+Despite its name, `Page.replaceQuery(query)` patches only that Page's existing query parameters; it does not replace the complete query map. The Page
+delegates to `Navigation.replacePageQuery(page, changes)`, which locates the Page's `x-page` host in the current stack, clones only the matching stack
+item's `params`, preserves its `href` and `nav` metadata, and calls `_stackToBrowser(stack, { replace: true })`.
+
+```js
+page.replaceQuery({
+    "page-index": "3", // set or replace
+    filter: null         // remove
+});
+```
+
+Each value sets or replaces that query parameter, `null` removes it, and `undefined` leaves it unchanged; unrelated existing query parameters are
+preserved. The Page and its host synchronize their logical source internally without invoking the normal `src` loading setter.
 
 Because `_stackToDom()` compares `href` rather than query parameters, a query-only reflection does not recreate, reload, unmount, or mount the Page.
 Pages opened as dialogs or embeds are outside the browser navigation stack; their local query may be patched, but they do not rewrite the main browser
