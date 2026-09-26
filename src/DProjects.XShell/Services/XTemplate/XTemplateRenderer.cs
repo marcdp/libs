@@ -4,6 +4,8 @@ using System.Text;
 
 namespace DProjects.XShell.Services.XTemplate {
 
+
+    // inner classes
     public sealed class XTemplateException : Exception {
         public int Offset { get; }
         public XTemplateException(string message, int offset) : base($"{message} (at template offset {offset}).") {
@@ -26,25 +28,19 @@ namespace DProjects.XShell.Services.XTemplate {
     internal sealed record XTemplateRecursiveDefinition(string ItemName, string IndexName, string AbsoluteIndexName, XTemplateExpression Collection, XTemplateExpression Children, string? WrapperName, int Offset);
     internal sealed record XTemplateSelectModel(object? Value, int Offset);
     internal sealed record XTemplateElementNode(string Name, List<XTemplateElementAttribute> Attributes, List<XTemplateNode> Children, int Offset, XTemplateExpression? If, XTemplateExpression? ElseIf, bool IsElse, XTemplateForDefinition? For, XTemplateRecursiveDefinition? Recursive, XTemplateExpression? Text, XTemplateExpression? Html, XTemplateExpression? Model, XTemplateExpression? ChildrenExpression) : XTemplateNode(Offset);
-
     internal sealed class OrderedAttributes {
-
-        // vars
         private readonly List<KeyValuePair<string, string?>> _items;
-
-        // props
         public List<KeyValuePair<string, string?>> Items => _items;
-
-        // ctor
         public OrderedAttributes() { _items = new(); }
         public OrderedAttributes(IEnumerable<KeyValuePair<string, string?>> items) { _items = new(items); }
-
-        // methods
         public void Set(string name, string? value) { var index = _items.FindIndex(item => string.Equals(item.Key, name, StringComparison.OrdinalIgnoreCase)); if (index < 0) _items.Add(new(name, value)); else _items[index] = new(name, value); }
         public void Remove(string name) { var index = _items.FindIndex(item => string.Equals(item.Key, name, StringComparison.OrdinalIgnoreCase)); if (index >= 0) _items.RemoveAt(index); }
         public void AddClass(string name) { var current = _items.FirstOrDefault(item => string.Equals(item.Key, "class", StringComparison.OrdinalIgnoreCase)); var classes = (current.Value ?? string.Empty).Split(' ', StringSplitOptions.RemoveEmptyEntries).ToList(); if (!classes.Contains(name, StringComparer.Ordinal)) classes.Add(name); Set("class", string.Join(' ', classes)); }
         public bool Contains(string name) => _items.Any(item => string.Equals(item.Key, name, StringComparison.OrdinalIgnoreCase));
         public string? GetValue(string name) => _items.FirstOrDefault(item => string.Equals(item.Key, name, StringComparison.OrdinalIgnoreCase)).Value;
+    }
+    public sealed class XTemplateRendererOptions {
+        public bool AllowStyleAttributes { get; init; } = false;
     }
 
     // class
@@ -55,13 +51,15 @@ namespace DProjects.XShell.Services.XTemplate {
         private static readonly HashSet<string> VoidElements = new(StringComparer.OrdinalIgnoreCase) { "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr" };
 
         // vars
+        private readonly XTemplateRendererOptions mOptions;
         private readonly XTemplateObjectAccess mObjectAccess;
         private readonly string? mLocale;
 
         // ctor
-        public XTemplateRenderer(IEnumerable<IXTemplateObjectAdapter>? objectAdapters = null, string? locale = null) {
+        public XTemplateRenderer(IEnumerable<IXTemplateObjectAdapter>? objectAdapters = null, string? locale = null, XTemplateRendererOptions? options = null) {
             mObjectAccess = new XTemplateObjectAccess(objectAdapters);
             mLocale = locale;
+            mOptions = options ?? new XTemplateRendererOptions();
         }
 
         // methods
@@ -74,6 +72,11 @@ namespace DProjects.XShell.Services.XTemplate {
         }
 
         // methods (private)
+        private void EnsureAttributeAllowed(string name, int offset) {
+            if (string.Equals(name, "style", StringComparison.OrdinalIgnoreCase) && !mOptions.AllowStyleAttributes) {
+                throw new XTemplateException("Inline style attributes are not allowed by this XTemplate renderer.",offset);
+            }
+        }
         private void RenderChildren(IReadOnlyList<XTemplateNode> children, XTemplateExpressionContext context, StringBuilder result, XTemplateSelectModel? selectModel) {
             for (var index = 0; index < children.Count; index++) {
                 if (children[index] is XTemplateElementNode element && element.If != null) {
@@ -179,10 +182,10 @@ namespace DProjects.XShell.Services.XTemplate {
             else RenderChildren(element.Children, context, result, selectModel);
             renderRecursiveChildren?.Invoke();
         }
-        private static void AppendElementStart(XTemplateElementNode element, IEnumerable<KeyValuePair<string, string?>> attributes, StringBuilder result) {
+        private void AppendElementStart(XTemplateElementNode element, IEnumerable<KeyValuePair<string, string?>> attributes, StringBuilder result) {
             result.Append('<').Append(element.Name);
             foreach (var attribute in attributes) {
-                if (string.Equals(attribute.Key, "style", StringComparison.OrdinalIgnoreCase)) throw new XTemplateException("Inline style attributes are not supported by the server XTemplate renderer", element.Offset);
+                EnsureAttributeAllowed(attribute.Key, element.Offset);
                 result.Append(' ').Append(attribute.Key);
                 if (attribute.Value != null) result.Append("=\"").Append(HtmlAttribute(attribute.Value)).Append('"');
             }
@@ -248,13 +251,13 @@ namespace DProjects.XShell.Services.XTemplate {
         private void AddSpread(OrderedAttributes attributes, object? value, int offset) {
             if (value == null) return;
             foreach (var member in ObjectMembers(value, offset)) {
-                EnsureNotStyleAttribute(member.Key, offset);
+                EnsureAttributeAllowed(member.Key, offset);
                 if (member.Value is string or bool or byte or sbyte or short or ushort or int or uint or long or ulong or float or double or decimal) SetBoundAttribute(attributes, member.Key, member.Value, offset);
             }
         }
         private void SetBoundAttribute(OrderedAttributes attributes, string name, object? value, int offset) {
             if (!IsValidAttributeName(name)) throw new XTemplateException($"Invalid attribute name '{name}'", offset);
-            EnsureNotStyleAttribute(name, offset);
+            EnsureAttributeAllowed(name, offset);
             if (value == null || value is false) { attributes.Remove(name); return; }
             if (value is true) { attributes.Set(name, null); return; }
             if (value is string text) { attributes.Set(name, text); return; }
@@ -281,6 +284,8 @@ namespace DProjects.XShell.Services.XTemplate {
             catch (XTemplateObjectAccessException exception) { throw new XTemplateException(exception.Message, offset); }
             catch (Exception exception) { throw new XTemplateException($"Unable to enumerate exposed object members: {exception.Message}", offset); }
         }
+
+        // private static methods
         private static bool IsNumeric(object? value) => XTemplateValues.IsNumeric(value);
         private static double NormalizeNumber(object value, int offset) {
             try { return XTemplateValues.NormalizeNumber(value); }
@@ -311,7 +316,6 @@ namespace DProjects.XShell.Services.XTemplate {
             return WebUtility.HtmlDecode(text.ToString());
         }
         private static string HtmlAttribute(string value) => HtmlText(value).Replace("\"", "&quot;", StringComparison.Ordinal).Replace("'", "&#39;", StringComparison.Ordinal);
-        private static void EnsureNotStyleAttribute(string name, int offset) { if (string.Equals(name, "style", StringComparison.OrdinalIgnoreCase)) throw new XTemplateException("Inline style attributes are not supported by the server XTemplate renderer", offset); }
         private static bool IsValidAttributeName(string name) => XTemplateAttributeNames.IsValid(name);
     }
 

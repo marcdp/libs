@@ -171,7 +171,7 @@ namespace DProjects.XShell.Test {
         public void RejectsLiteralInlineStylesInsteadOfSerializingThem() {
             var exception = Assert.Throws<XTemplateException>(() => Render("<div style=\"color:red\"></div>"));
 
-            Assert.Contains("Inline style attributes are not supported", exception.Message, StringComparison.Ordinal);
+            Assert.Contains("Inline style attributes are not allowed by this XTemplate renderer.", exception.Message, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -181,10 +181,10 @@ namespace DProjects.XShell.Test {
             var dynamic = Assert.Throws<XTemplateException>(() => Render("<div x-attr:[state.name]=\"state.value\"></div>", new { name = "Style", value = "color:red" }));
             var raw = Assert.Throws<XTemplateException>(() => Render("<div x-pre><span style=\"color:red\"></span></div>"));
 
-            Assert.Contains("Inline style attributes are not supported", bound.Message, StringComparison.Ordinal);
-            Assert.Contains("Inline style attributes are not supported", spread.Message, StringComparison.Ordinal);
-            Assert.Contains("Inline style attributes are not supported", dynamic.Message, StringComparison.Ordinal);
-            Assert.Contains("Inline style attributes are not supported", raw.Message, StringComparison.Ordinal);
+            Assert.Contains("Inline style attributes are not allowed by this XTemplate renderer.", bound.Message, StringComparison.Ordinal);
+            Assert.Contains("Inline style attributes are not allowed by this XTemplate renderer.", spread.Message, StringComparison.Ordinal);
+            Assert.Contains("Inline style attributes are not allowed by this XTemplate renderer.", dynamic.Message, StringComparison.Ordinal);
+            Assert.Contains("Inline style attributes are not allowed by this XTemplate renderer.", raw.Message, StringComparison.Ordinal);
         }
 
         [Fact]

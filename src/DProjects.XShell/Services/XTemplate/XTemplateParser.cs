@@ -195,7 +195,7 @@ namespace DProjects.XShell.Services.XTemplate {
         private static void EnsureRawContentHasNoInlineStyles(MutableElement element) {
             foreach (var child in element.Children.OfType<MutableElement>()) {
                 var styleAttribute = child.Attributes.FirstOrDefault(attribute => string.Equals(attribute.Name, "style", StringComparison.OrdinalIgnoreCase));
-                if (styleAttribute != null) throw Error("Inline style attributes are not supported by the server XTemplate renderer", styleAttribute.Offset);
+                if (styleAttribute != null) throw Error("Inline style attributes are not allowed by this XTemplate renderer.", styleAttribute.Offset);
                 EnsureRawContentHasNoInlineStyles(child);
             }
         }
