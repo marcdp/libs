@@ -3,8 +3,8 @@ export const contract = {
     description: "Query parameters test page",
     events: {},
     properties: {
-        name: { type: "string", default:"", query: true, state: true },
-        count: { type: "number", default:0, query: true, state: true }
+        name: { type: "string", default:"marcus", query: true, state: true },
+        count: { type: "number", default:123, query: true, state: true }
     },
     methods: {}
 };
@@ -37,8 +37,8 @@ export default {
     `,
 
     state: {
-        name: "",
-        count: 0,
+        name: "marcus",
+        count: 123,
         enabled: "",
     },
 

@@ -106,6 +106,25 @@ export default class Navigation {
         }
         return null;
     }
+    replacePageQuery(page, changes) {
+        // patch one Page query and replace the browser URL when the Page is in the stack
+        if (!changes || typeof(changes) !== "object" || Array.isArray(changes)) {
+            throw new TypeError("Navigation.replacePageQuery: changes must be an object.");
+        }
+        const xpage = page?.host || null;
+        const xpages = xpage ? this.getXPages() : [];
+        const index = xpages.indexOf(xpage);
+        if (index < 0 || index >= this._stack.length) {
+            return this._replacePageSrcQuery(page?.src || null, changes);
+        }
+        const item = this._stack[index];
+        const params = { ...(item.params || {}) };
+        this._applyQueryChanges(params, changes);
+        const stack = [...this._stack];
+        stack[index] = { ...item, params };
+        this._stackToBrowser(stack, { replace: true });
+        return this._buildUrlFinal(stack[index]);
+    }
     buildUrlAbsolute(...params){
         let href = this.buildUrl(...params);
         if (this._mode == "hash") {
@@ -267,6 +286,7 @@ export default class Navigation {
                 url += (url.includes("?") ? "&" : "?") + "nav=" + base64UrlEncode(JSON.stringify(aux));
             }
         }
+        this._stack = stack;
         if (this._mode === "hash") {
             if (replace) {
                 location.replace(this._hashPrefix + url);
@@ -279,10 +299,9 @@ export default class Navigation {
             } else {
                 history.pushState(null, "", this._appBasePath + url);
             }
-            this._stack = stack;
-            //this._browserUrlToStack(url);
-            this._stackToDom();
         }
+        // keep the live Page elements and the logical stack aligned without reloading href-identical Pages
+        this._stackToDom();
     }
     _browserUrlToStack(url) {
         if (!url || typeof url !== "string") {
@@ -452,6 +471,41 @@ export default class Navigation {
             ...item,
             href: menuitem?.href || item.href
         });
+    }
+    _applyQueryChanges(params, changes) {
+        // apply query patches while preserving unrelated parameters
+        for (const [key, value] of Object.entries(changes)) {
+            if (typeof(value) === "undefined") {
+                continue;
+            }
+            if (value === null) {
+                delete params[key];
+                continue;
+            }
+            if (typeof(value) === "number" && !Number.isFinite(value)) {
+                throw new TypeError(`Navigation.replacePageQuery: query parameter '${key}' must be finite.`);
+            }
+            if (!["string", "number", "boolean"].includes(typeof(value))) {
+                throw new TypeError(`Navigation.replacePageQuery: query parameter '${key}' must be a scalar, null, or undefined.`);
+            }
+            params[key] = String(value);
+        }
+    }
+    _replacePageSrcQuery(src, changes) {
+        // patch a dialog or embedded Page source without touching browser navigation
+        if (typeof(src) !== "string") {
+            return null;
+        }
+        const hashIndex = src.indexOf("#");
+        const hash = hashIndex < 0 ? "" : src.substring(hashIndex);
+        const source = hashIndex < 0 ? src : src.substring(0, hashIndex);
+        const queryIndex = source.indexOf("?");
+        const href = queryIndex < 0 ? source : source.substring(0, queryIndex);
+        const query = new URLSearchParams(queryIndex < 0 ? "" : source.substring(queryIndex + 1));
+        const params = Object.fromEntries(query.entries());
+        this._applyQueryChanges(params, changes);
+        const serialized = new URLSearchParams(params).toString();
+        return href + (serialized ? `?${serialized}` : "") + hash;
     }
 }
 

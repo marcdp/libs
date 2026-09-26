@@ -191,7 +191,9 @@ of a slot are allowed, and a declared slot does not have to appear in the templa
 It is separate from the runtime implementation.
 
 `query` is valid property metadata in the shared contract. The Page loader may use `query: true` to initialize state-backed public properties from
-the Page `src` query string; generic Component loading accepts the metadata but does not read query strings.
+the Page `src` query string; generic Component loading accepts the metadata but does not read or rewrite query strings. `reflect: true` applies to
+each explicitly enabled external representation: `attribute: true` enables attribute reflection and `query: true` enables Page-query reflection.
+`reflect` alone enables neither representation.
 
 When the component definition is loaded, the component loader validates template slot usage against the contract before registering the component.
 If the template uses a slot that is not declared in `contract.slots`, loading fails. This is component contract/loader validation, not render-engine

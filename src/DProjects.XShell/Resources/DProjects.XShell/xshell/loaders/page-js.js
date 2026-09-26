@@ -139,6 +139,36 @@ function parseQueryPropertyValue(propertyName, property, value) {
             throw new Error(`Page property '${propertyName}' declares query:true with unsupported type '${property.type}'.`);
     }
 }
+function serializeQueryPropertyValue(propertyName, property, value) {
+    // serialize one reflected query value according to its contract type
+    if (value === null || typeof(value) === "undefined") {
+        return null;
+    }
+    switch (property.type) {
+        case "string":
+            if (typeof(value) !== "string") {
+                throw new Error(`Page property '${propertyName}' has an invalid string query value.`);
+            }
+            return value;
+        case "number":
+            if (typeof(value) !== "number" || !Number.isFinite(value)) {
+                throw new Error(`Page property '${propertyName}' has an invalid number query value.`);
+            }
+            return String(value);
+        case "integer":
+            if (typeof(value) !== "number" || !Number.isInteger(value)) {
+                throw new Error(`Page property '${propertyName}' has an invalid integer query value.`);
+            }
+            return String(value);
+        case "boolean":
+            if (typeof(value) !== "boolean") {
+                throw new Error(`Page property '${propertyName}' has an invalid boolean query value.`);
+            }
+            return value ? "true" : "false";
+        default:
+            throw new Error(`Page property '${propertyName}' declares query:true with unsupported type '${property.type}'.`);
+    }
+}
 function getPageQueryParams(src) {
     // parse query parameters from the Page source without using browser location
     const queryStart = src.indexOf("?");
@@ -240,6 +270,7 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
         _renderPending = false;
         _styleSheets = [];
         _disposables = [];
+        _initializingQuery = true;
         // ctor
         constructor({ src, context }) {
             super({ src, context });
@@ -277,6 +308,7 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
                     }
                 }
             }
+            this._initializingQuery = false;
             // services provider
             const servicesProvider = new Proxy({}, {
                 get: (obj, prop) => {
@@ -399,6 +431,14 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
         stateChange(prop, oldValue, newValue) {
             // state changed
             this._stateChanges.push({prop, oldValue, newValue});
+            const queryProperty = queryProperties.find(item => item.name === prop);
+            if (this._initializingQuery || !queryProperty || queryProperty.property.reflect !== true) {
+                return;
+            }
+            const queryValue = areDeclarativeValuesEqual(newValue, queryProperty.property.default)
+                ? null
+                : serializeQueryPropertyValue(prop, queryProperty.property, newValue);
+            this.replaceQuery({ [camelToKebab(prop)]: queryValue });
         }
         // invalidate
         invalidate(path) {

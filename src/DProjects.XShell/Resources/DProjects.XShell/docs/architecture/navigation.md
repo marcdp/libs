@@ -73,6 +73,18 @@ The query portion of a Page destination remains part of its canonical Page `src`
 query access to a definition-based Page controller as `controller({ query })` and separately interprets query parameters for contract properties
 explicitly marked `query: true`. Navigation parses or owns neither mechanism; see [Pages](pages.md#controller-services).
 
+## Query-only Page updates
+
+`Page.replaceQuery(query)` patches only that Page's existing query parameters. The Page delegates to `Navigation.replacePageQuery(page, changes)`;
+Navigation locates the Page's `x-page` host in the current stack, clones only the matching stack item's `params`, preserves its `href` and `nav` metadata,
+and calls `_stackToBrowser(stack, { replace: true })`. `null` removes a parameter and `undefined` leaves it unchanged. The Page and its host synchronize
+their logical source internally without invoking the normal `src` loading setter.
+
+Because `_stackToDom()` compares `href` rather than query parameters, a query-only reflection does not recreate, reload, unmount, or mount the Page.
+Pages opened as dialogs or embeds are outside the browser navigation stack; their local query may be patched, but they do not rewrite the main browser
+URL. Contract-property reflection is decided by `page-js`: only `query: true` plus `reflect: true` participates, and query values use the property's
+declared scalar contract type.
+
 TODO: The `x-page` `replace` and `navigate` event handlers in `Navigation._stackToDom()` remain debugger-marked and manipulate hash state directly.
 Normal Navigation API and browser-history paths work, but those legacy event paths still need mode-neutral completion.
 

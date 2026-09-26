@@ -7,7 +7,8 @@ Page = Component + Navigation
 A Page uses the same state/render-engine infrastructure as Components. Its JavaScript default export can be a `Page` subclass or a definition object;
 `page-js` converts a definition into a `Page` subclass and orchestrates its contract, properties, public API, controller, lifecycle, and engines.
 The state engine owns reactive state only, and the render engine owns rendered output only. Navigation loads and mounts a Page as a destination. State
-properties marked `query: true` are initialized from query values by `page-js`.
+properties marked `query: true` are initialized from query values by `page-js`, and `query: true` plus `reflect: true` enables replacement-style query
+reflection for later state changes.
 
 ```text
 browser URL + query → Navigation → canonical Area-aware href → x-page → module resource → Loader → Page state → render engine
@@ -117,6 +118,16 @@ initialization are `areas`, `auth`, `bus`, `config`, `container`, `debug`, `dial
 `controller({ navigation, bus, loader })`. A missing name fails service resolution; Page injection does not manufacture unknown services.
 `navigation` is the shared service for navigation operations; it is not the current Page's `query` object.
 
+## Query reflection ownership
+
+`page-js` owns the contract decision about which state-backed properties are query-enabled and reflected. `Page.replaceQuery(query)` is the Page-level
+patch API: it delegates to Navigation, uses replacement semantics, removes parameters whose value is `null`, ignores `undefined`, and does not reload
+the Page. Navigation owns stack mutation and browser URL serialization. Only Pages represented in the navigation stack affect the browser URL; dialog and
+embedded Pages may update their local `Page.src` query without changing the main browser navigation.
+
+Query reflection changes query state, not the Page resource. The navigation DOM synchronizer continues to compare stack item `href` values, so a
+query-only change keeps the same Page instance and lifecycle alive.
+
 Definition-based Pages use the same public-property and state-default rule as components and layouts: `contract.properties[*].default` is
 canonical for public properties, while `definition.state` supplies private/internal defaults. A state-backed public property may be repeated in
 `definition.state` only with a structurally equal value; a non-state-backed public property may not be repeated there.
@@ -129,8 +140,9 @@ and `boolean` properties are supported, and `query: true` requires `state: true`
 numeric, integer, or boolean values reject Page creation. Boolean values are `true`, `1`, `false`, and `0`, with the textual values matched
 case-insensitively.
 
-Query binding is input-only and does not imply HTML attributes, property reflection, or URL updates. Properties without `query: true` never consume
-Page query parameters, and normal Components do not perform this Page-specific initialization.
+Query binding does not imply HTML attributes or reflection. Properties without `query: true` never consume Page query parameters. When `reflect: true`
+is also present, a state change is serialized back to the Page query using canonical scalar values (`true`/`false` for booleans); returning to the
+contract default removes the parameter. Normal Components do not perform this Page-specific initialization or URL reflection.
 
 Injected `query` and contract-property query binding can coexist, but they serve different purposes:
 

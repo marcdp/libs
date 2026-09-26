@@ -23,6 +23,10 @@ Contract property metadata includes `type`, `default`, `state`, `attribute`, `re
 `description` where applicable. The shared contract schema validates the metadata shape; Page-specific rules for `query` are enforced by the Page
 loader.
 
+`reflect: true` applies to every external representation explicitly enabled on the property. Therefore `attribute: true` plus `reflect: true`
+reflects state changes to the HTML attribute, while `query: true` plus `reflect: true` reflects a Page property's state to that Page's query. `reflect`
+does not imply either `attribute` or `query`.
+
 ## Property-to-state synchronization
 
 A contract may mark a property with `state: true`, expressing an intended explicit relationship with internal state. This must not be interpreted
@@ -48,8 +52,9 @@ The query parameter name is the property name converted from camelCase to kebab-
 finite, integers must be whole numbers, and booleans accept `true`, `1`, `false`, or `0` (case-insensitive for the words). Empty string values are
 valid for strings; malformed numeric or boolean values reject Page creation. If the parameter is absent, the contract default remains unchanged.
 
-Query initialization is input-only. It does not imply `attribute` or `reflect`, does not update the browser URL, and does not add state-to-query
-reflection.
+Query initialization does not imply `attribute` or `reflect`. With `reflect: true`, later state changes patch the Page's own query parameters using
+replacement semantics; properties without `reflect: true` remain input-only. This behavior is Page-specific and normal Components continue to ignore
+`query` at runtime.
 
 ## Related documentation
 

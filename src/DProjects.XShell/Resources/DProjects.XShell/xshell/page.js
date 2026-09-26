@@ -38,6 +38,18 @@ export default class Page {
 
     get src() { return this._src; }
 
+    // replace this Page's query parameters without navigating or reloading it
+    replaceQuery(query) {
+        const src = xshell.navigation?.replacePageQuery(this, query);
+        if (src !== null && typeof(src) !== "undefined") {
+            this._src = src;
+            if (this._host && typeof(this._host._synchronizePageSrc) === "function") {
+                this._host._synchronizePageSrc(src);
+            }
+        }
+        return src;
+    }
+
     get label() { return this._label; }
     set label(value) { 
         this._label = value; 

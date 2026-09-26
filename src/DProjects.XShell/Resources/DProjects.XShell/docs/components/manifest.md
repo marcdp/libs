@@ -35,7 +35,9 @@ Representative checked-in components such as `x-datafields` and `x-error` export
 `description`, `reflect`, `query`, `required`, `readonly`, and `enum`; event metadata can include `description` and a typed `detail` shape.
 
 `query` is shared contract metadata, but its runtime meaning is Page-specific: `query: true` allows the Page loader to initialize a state-backed
-property from the Page `src` query string. The Component loader validates and ignores this field; it does not read URL query values.
+property from the Page `src` query string. When it is combined with `reflect: true`, later state changes patch that Page's query representation.
+`reflect` applies to every external representation explicitly enabled by the property, so it does not imply `attribute` or `query`. The Component
+loader validates and ignores `query`; it does not read or rewrite URL query values.
 
 ## Slots
 
