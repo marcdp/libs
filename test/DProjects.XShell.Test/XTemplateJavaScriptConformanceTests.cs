@@ -18,6 +18,25 @@ public sealed class XTemplateJavaScriptConformanceTests {
     }
 
     [Fact]
+    public void BrowserRadioModelUsesScalarComparisonResolvedValuesAndRejectsNonScalars() {
+        var cases = new[] {
+            new RadioCase("a", "a"),
+            new RadioCase("b", "a"),
+            new RadioCase(1, "1"),
+            new RadioCase(2, "1"),
+            new RadioCase(true, "true"),
+            new RadioCase(false, "false"),
+            new RadioCase(null, ""),
+            new RadioCase(1, 1, true),
+            new RadioCase(1, "1", true),
+            new RadioCase(new Dictionary<string, object?>(), "a"),
+            new RadioCase(Array.Empty<object?>(), "a")
+        };
+
+        Assert.Equal(new[] { "true", "false", "true", "false", "true", "true", "false", "true", "true", "error", "error" }, ExecuteRadioChecked(cases));
+    }
+
+    [Fact]
     public void GeneratedJavaScriptUsesStrictSingleEvaluationAssignmentPaths() {
         var cases = new[] {
             new AssignmentCase("<input x-model=\"state.name\">", new Dictionary<string, object?> { ["name"] = "old" }, "updated", false),
@@ -255,6 +274,48 @@ public sealed class XTemplateJavaScriptConformanceTests {
             process.WaitForExit();
             Assert.True(process.ExitCode == 0, $"JavaScript conformance runtime failed:{Environment.NewLine}{error}");
             return JsonSerializer.Deserialize<string[]>(output) ?? throw new InvalidOperationException("JavaScript conformance runtime returned no results.");
+        } finally {
+            if (File.Exists(modulePath)) File.Delete(modulePath);
+        }
+    }
+
+    private static string[] ExecuteRadioChecked(IReadOnlyList<RadioCase> cases) {
+        var runtimePath = Path.Combine(AppContext.BaseDirectory, "Resources", "DProjects.XShell", "xshell", "render-engines", "x.js");
+        var modulePath = Path.Combine(Path.GetTempPath(), $"xtemplate-radio-{Guid.NewGuid():N}.mjs");
+        try {
+            var runs = new StringBuilder("[");
+            foreach (var test in cases) {
+                if (runs.Length > 1) runs.Append(',');
+                var state = new Dictionary<string, object?> { ["choice"] = test.Model, ["radioValue"] = test.Dynamic ? test.RadioValue : null };
+                runs.Append("{state:").Append(JsonSerializer.Serialize(state)).Append(",renderer:");
+                var template = test.Dynamic ? "<input type=\"radio\" x-attr:value=\"state.radioValue\" x-model=\"state.choice\">" : $"<input type=\"radio\" value=\"{test.RadioValue}\" x-model=\"state.choice\">";
+                runs.Append(new XTemplateCompiler().Compile(template)).Append('}');
+            }
+            runs.Append(']');
+            File.WriteAllText(modulePath, $$"""
+                globalThis.HTMLElement = class {};
+                globalThis.CSSStyleSheet = class { replaceSync() {} };
+                globalThis.customElements = { get() {}, define() {} };
+                globalThis.window = { customElements: globalThis.customElements };
+                const { XTemplateRuntimeUtils } = await import({{JsonSerializer.Serialize(new Uri(runtimePath).AbsoluteUri)}});
+                XTemplateRuntimeUtils.rewriteAttribute = (tag, attrs, attr, value) => value;
+                const runs = {{runs}};
+                const results = runs.map(run => {
+                    try {
+                        const input = run.renderer(run.state, null, () => {}, XTemplateRuntimeUtils, null, 0)[0];
+                        const checked = typeof input.props.checked === "function" ? input.props.checked.call(input) : input.props.checked;
+                        return String(checked);
+                    }
+                    catch (error) { return "error"; }
+                });
+                console.log(JSON.stringify(results));
+                """);
+            using var process = Process.Start(new ProcessStartInfo("node", modulePath) { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false })!;
+            var output = process.StandardOutput.ReadToEnd();
+            var error = process.StandardError.ReadToEnd();
+            process.WaitForExit();
+            Assert.True(process.ExitCode == 0, $"JavaScript radio runtime failed:{Environment.NewLine}{error}");
+            return JsonSerializer.Deserialize<string[]>(output) ?? throw new InvalidOperationException("JavaScript radio runtime returned no results.");
         } finally {
             if (File.Exists(modulePath)) File.Delete(modulePath);
         }
@@ -758,6 +819,7 @@ public sealed class XTemplateJavaScriptConformanceTests {
     };
 
     private sealed record ConformanceCase(string Expression, Dictionary<string, object?> State, string? Locale = null);
+    private sealed record RadioCase(object? Model, object? RadioValue, bool Dynamic = false);
     private sealed record AssignmentCase(string Template, Dictionary<string, object?> State, string Value, bool Fails, bool IsLoop = false);
     private sealed record EventModifierCase(string Template, object Event, bool InvokesHandler);
 }

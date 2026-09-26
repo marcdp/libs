@@ -40,9 +40,21 @@ namespace DProjects.XShell.Test {
             var javascript = new XTemplateCompiler().Compile("<input type=\"radio\" value=\"a\" x-model=\"state.choice\"><div x-show=\"state.visible\"></div>");
 
             Assert.Contains("utils.expr.assign(state, [{kind:\"member\", name:\"choice\"}], value)", javascript, StringComparison.Ordinal);
-            Assert.Contains("utils.expr.equal(utils.expr.member(state, \"choice\")", javascript, StringComparison.Ordinal);
+            Assert.Contains("const modelValue = utils.expr.member(state, \"choice\"); return modelValue !== null && utils.expr.scalar(modelValue) === utils.expr.scalar(utils.expr.member(this.attrs, \"value\"))", javascript, StringComparison.Ordinal);
             Assert.Contains("hidden:utils.expr.truthy", javascript, StringComparison.Ordinal);
             Assert.DoesNotContain("state.choice = value", javascript, StringComparison.Ordinal);
+        }
+
+        [Theory]
+        [InlineData("state.choice")]
+        [InlineData("state.form.choice")]
+        [InlineData("state.groups[state.index].choice")]
+        public void CompilesRadioModelComparisonAndWriteBackForTheActualAssignableTarget(string model) {
+            var javascript = new XTemplateCompiler().Compile($"<input type=\"radio\" value=\"a\" x-model=\"{model}\">");
+
+            Assert.Contains("utils.expr.scalar", javascript, StringComparison.Ordinal);
+            Assert.Contains("utils.expr.member(this.attrs, \"value\")", javascript, StringComparison.Ordinal);
+            Assert.DoesNotContain("state.value", javascript, StringComparison.Ordinal);
         }
 
         [Fact]

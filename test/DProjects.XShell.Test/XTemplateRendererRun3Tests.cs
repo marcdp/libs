@@ -111,6 +111,20 @@ namespace DProjects.XShell.Test {
         }
 
         [Fact]
+        public void RadioModelUsesScalarComparisonAndDoesNotSelectNull() {
+            Assert.Equal("<input type=\"radio\" value=\"1\" checked>", Render("<input type=\"radio\" value=\"1\" x-model=\"state.choice\">", new { choice = 1 }));
+            Assert.Equal("<input type=\"radio\" value=\"true\" checked>", Render("<input type=\"radio\" value=\"true\" x-model=\"state.choice\">", new { choice = true }));
+            Assert.Equal("<input type=\"radio\" value=\"\">", Render("<input type=\"radio\" value=\"\" x-model=\"state.choice\">", new { choice = (object?)null }));
+        }
+
+        [Fact]
+        public void RadioModelUsesResolvedDynamicValueAndNestedTarget() {
+            var html = Render("<input type=\"radio\" x-attr:value=\"state.radioValue\" x-model=\"state.form.choice\">", new { radioValue = 1, form = new { choice = "1" } });
+
+            Assert.Equal("<input type=\"radio\" value=\"1\" checked>", html);
+        }
+
+        [Fact]
         public void RejectsInvalidAndAmbiguousModelCases() {
             Assert.Throws<XTemplateException>(() => Render("<input x-model=\"state.a + state.b\">", new { a = 1, b = 2 }));
             Assert.Throws<XTemplateException>(() => Render("<select multiple x-model=\"state.value\"><option value=\"a\">A</option></select>", new { value = "a" }));

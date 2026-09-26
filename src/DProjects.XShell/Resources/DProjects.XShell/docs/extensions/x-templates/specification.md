@@ -2072,6 +2072,10 @@ state.enabled ? state.a : state.b
 
 An assignable expression is read with the normal expression semantics during rendering and is used as a validated location during write-back.
 
+For `input[type=radio]`, `x-model` may target any valid assignable XTemplate expression. The render-side `checked` state compares the evaluated
+model value with the resolved radio value after XTemplate scalar-string conversion. A null model value does not select a radio, and objects or
+collections are not valid scalar comparison values. When selected, write-back assigns the radio's value to the exact model target.
+
 ---
 
 ## 42. Model update event
@@ -2163,17 +2167,15 @@ semantics. Each descendant `<option>` is normalized so that only options whose e
 An option's effective value is its `value` attribute when present; otherwise it is its rendered text content. Non-matching options have `selected`
 removed, and no option is selected when there is no match. `<select multiple x-model="...">` remains unsupported by server rendering.
 
-### 44.1 Radio implementation defect
+### 44.1 Radio checked-state semantics
 
-The current compiler's radio checked-expression is effectively hardcoded around `state.value` rather than consistently using the actual `x-model` expression.
-
-This should be considered a reference implementation defect.
-
-Intended semantics are:
+The radio checked-state comparison is radio-specific and does not change general XTemplate equality semantics. It is equivalent to:
 
 ```text
-radio.checked = (modelValue == radio.value)
+radio.checked = modelValue != null && scalar(modelValue) == scalar(resolvedRadioValue)
 ```
+
+`resolvedRadioValue` is the radio VNode's resolved `value` attribute, including values produced by `x-attr:value`.
 
 ### 44.2 Multiple-select ambiguity
 
@@ -3907,7 +3909,6 @@ attribute object expansion edge cases
 ## Not part of the normative contract
 
 ```text
-radio x-model generalized target
 multiple-select x-model
 multiple structural directives on one element
 ```

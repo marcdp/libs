@@ -327,7 +327,7 @@ namespace DProjects.XShell.Services.XTemplate {
                 else if (type == "checkbox") propertyName = "checked";
                 else if (type == "radio") {
                     propertyName = "checked";
-                    propertyValue = $"function() {{ return utils.expr.equal({value}, utils.expr.member(this.attrs, \"value\")); }}";
+                    propertyValue = $"function() {{ const modelValue = {value}; return modelValue !== null && utils.expr.scalar(modelValue) === utils.expr.scalar(utils.expr.member(this.attrs, \"value\")); }}";
                 }
             } else if (element.Name == "select" && element.HasAttribute("multiple")) throw TemplateError("x-model on select[multiple] is not supported.", element);
             properties.Add($"{propertyName}:{propertyValue}");
