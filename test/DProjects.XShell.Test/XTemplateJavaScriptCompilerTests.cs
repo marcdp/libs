@@ -18,6 +18,37 @@ namespace DProjects.XShell.Test {
         }
 
         [Fact]
+        public void PreservesMemberCaseInDynamicAttributeNameExpressions() {
+            var javascript = new XTemplateCompiler().Compile("<div x-attr:[state.attributeName]=\"state.value\"></div>");
+
+            Assert.Contains("utils.expr.dynamicArgument(utils.expr.member(state, \"attributeName\"), utils.expr.member(state, \"value\"))", javascript, StringComparison.Ordinal);
+            Assert.DoesNotContain("utils.expr.member(state, \"attributename\")", javascript, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void PreservesMemberCaseInNestedDynamicDirectiveExpressions() {
+            var javascript = new XTemplateCompiler().Compile("<x-menu x-prop:[state.form.propertyName]=\"state.value\"></x-menu><div x-attr:[state.form.attributeName]=\"state.value\"></div>");
+
+            Assert.Contains("utils.expr.dynamicProperty(utils.expr.member(utils.expr.member(state, \"form\"), \"propertyName\"), utils.expr.member(state, \"value\"))", javascript, StringComparison.Ordinal);
+            Assert.Contains("utils.expr.dynamicArgument(utils.expr.member(utils.expr.member(state, \"form\"), \"attributeName\"), utils.expr.member(state, \"value\"))", javascript, StringComparison.Ordinal);
+            Assert.DoesNotContain("\"propertyname\"", javascript, StringComparison.Ordinal);
+            Assert.DoesNotContain("\"attributename\"", javascript, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void KeepsDirectiveMatchingCaseInsensitiveWhilePreservingDynamicExpressionCase() {
+            var javascript = new XTemplateCompiler().Compile("<div X-ATTR:[state.attributeName]=\"state.value\"></div><x-menu X-PROP:[state.propertyName]=\"state.value\"></x-menu>");
+
+            Assert.Contains("utils.expr.member(state, \"attributeName\")", javascript, StringComparison.Ordinal);
+            Assert.Contains("utils.expr.member(state, \"propertyName\")", javascript, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void RetainsCaseInsensitiveDuplicateAttributeDetection() {
+            Assert.Throws<InvalidOperationException>(() => new XTemplateCompiler().Compile("<div X-ATTR:title=\"state.first\" x-attr:title=\"state.second\"></div>"));
+        }
+
+        [Fact]
         public void CompilesLazyControlFlowAndTransformerArguments() {
             var javascript = new XTemplateCompiler().Compile("<div x-if=\"false && (1 / 0)\">{{ null | number(1 / 0) }}</div>");
 

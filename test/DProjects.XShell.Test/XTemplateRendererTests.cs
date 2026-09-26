@@ -96,6 +96,20 @@ namespace DProjects.XShell.Test {
             Assert.Equal("<input title=\"Hello\" checked count=\"2\" data-id=\"42\">", html);
         }
 
+        [Fact]
+        public void PreservesMemberCaseForDynamicAttributeNames() {
+            var html = Render("<p x-attr:[state.attributeName]=\"state.attributeValue\"></p>", new { attributeName = "data-demo", attributeValue = "ok" });
+
+            Assert.Equal("<p data-demo=\"ok\"></p>", html);
+        }
+
+        [Fact]
+        public void PreservesNestedMemberCaseForDynamicAttributeNames() {
+            var html = Render("<p x-attr:[state.form.attributeName]=\"state.value\"></p>", new { form = new { attributeName = "data-demo" }, value = "ok" });
+
+            Assert.Equal("<p data-demo=\"ok\"></p>", html);
+        }
+
         [Theory]
         [InlineData("data-id")]
         [InlineData("aria-label")]

@@ -550,7 +550,7 @@ namespace DProjects.XShell.Services.XTemplate {
                     if (source[mPosition] == '>') { mPosition++; break; }
                     if (source[mPosition] == '/' && mPosition + 1 < source.Length && source[mPosition + 1] == '>') { selfClosing = true; mPosition += 2; break; }
                     var attributeOffset = mPosition;
-                    var attributeName = ReadAttributeName().ToLowerInvariant();
+                    var attributeName = NormalizeAttributeName(ReadAttributeName());
                     if (attributeName.Length == 0) throw new InvalidOperationException($"Malformed X template attribute at offset {mPosition}.");
                     if (attributes.Any(attribute => attribute.Name == attributeName)) throw new InvalidOperationException($"Malformed X template: duplicate attribute '{attributeName}' on <{name}>.");
                     SkipWhitespace();
@@ -618,6 +618,13 @@ namespace DProjects.XShell.Services.XTemplate {
                 var start = mPosition;
                 while (mPosition < source.Length && !char.IsWhiteSpace(source[mPosition]) && source[mPosition] is not '=' and not '>' && !(source[mPosition] == '/' && mPosition + 1 < source.Length && source[mPosition + 1] == '>')) mPosition++;
                 return source[start..mPosition];
+            }
+            private static string NormalizeAttributeName(string rawName) {
+                var bracket = rawName.IndexOf('[', StringComparison.Ordinal);
+                if (bracket > 0 && (rawName[..bracket].Equals("x-attr:", StringComparison.OrdinalIgnoreCase) || rawName[..bracket].Equals("x-prop:", StringComparison.OrdinalIgnoreCase))) {
+                    return rawName[..bracket].ToLowerInvariant() + rawName[bracket..];
+                }
+                return rawName.ToLowerInvariant();
             }
             private string ReadAttributeValue() {
                 if (mPosition >= source.Length) throw new InvalidOperationException("Malformed X template: attribute value is missing.");
