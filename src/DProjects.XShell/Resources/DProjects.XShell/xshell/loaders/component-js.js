@@ -297,7 +297,7 @@ export async function createComponentClassFromJsDefinition(src, context, definit
                     throw new Error(`Component '${definition.meta.name}' declares public method '${methodName}' in contract.methods but controller.${methodName} is not a function.`);
                 }
             }
-            // attribute mutation observer (listen for changes in attributes that starts with state map attribute names, ex: qs-*)
+            // attribute mutation observer (listen for changes in attributes that start with state map attribute names)
             if (stateMapAttributes.length) {
                 const mutationObserver = new MutationObserver((mutationsList) => {
                     for (let mutation of mutationsList) {

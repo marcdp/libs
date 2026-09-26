@@ -6,7 +6,7 @@ export const contract = {
     properties: {
         href:       {type:"string", default:"", attribute:true, state:true, description:""},
         open:       {type:"string", default:"auto", attribute:true, state:true, description:"", enum: ["auto","top","dialog","stack","embed"]},
-        qs:         {type:"object", default:{}, attribute:true, state:true, description:""},
+        query:      {type:"object", default:{}, attribute:true, state:true, description:""},
         breadcrumb: {type:"boolean", default:false, attribute:true, state:true, description:""},
         title:      {type:"string", default:null, attribute:true, state:true, description:""},
         icon:       {type:"string", default:null, attribute:true, state:true, description:""},
@@ -64,7 +64,7 @@ export default {
                     const page = getPage();
                     const href = navigation.buildUrlAbsolute({
                         href:       state.href,
-                        params:     state.qs,
+                        params:     state.query,
                         open:       state.open,
                         replace:    state.replace,
                         page:       page,
@@ -87,7 +87,7 @@ export default {
                 const page = getPage();
                 navigation.navigate( {
                     href: state.href,
-                    params: state.qs,
+                    params: state.query,
                     open: state.open,
                     replace: state.replace,
                     page: page,
