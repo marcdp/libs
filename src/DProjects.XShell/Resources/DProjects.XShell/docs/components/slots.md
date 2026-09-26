@@ -65,8 +65,10 @@ export const contract = {
 
 Component loading fails when a template contains a slot that is not declared in `contract.slots`. Duplicate occurrences of the same slot name
 are allowed; the contract declares the slot interface, not each insertion point. A slot declared in `contract.slots` is not required to appear in
-the template. Validation occurs when the component definition is loaded, before the component is registered. It belongs to the component
-contract/loader layer, not to the render engine.
+the template. XTemplate slot names are static; dynamic `name` bindings are rejected. The server compiler deduplicates slot names in first-seen order
+and the render-engine factory exposes them through `factory.slots`. Validation occurs when the component definition is loaded, before the component is
+registered, and compares that factory metadata with the contract. It never scans raw template source in the browser. Validation belongs to the
+component contract/loader layer, not to the render engine.
 
 Slot metadata currently supports:
 

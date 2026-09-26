@@ -77,16 +77,10 @@ function isPlainObject(value) {
 function escapeCssString(value) {
     return value.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\A ");
 }
-function validateSlots(definition, contract) {
-    const componentName = definition.meta?.name || "unknown";
-    const slotRegex = /<slot\b([^>]*)>/gi;
-    const nameRegex = /\bname\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/i;
-    for (const match of definition.template.matchAll(slotRegex)) {
-        const attributes = match[1];
-        const nameMatch = attributes.match(nameRegex);
-        const slotName = nameMatch ? (nameMatch[1] ?? nameMatch[2] ?? nameMatch[3] ?? "") : "";
+function validateSlots(slots, pageName) {
+    for (const slotName of slots) {
         const displayName = slotName || "(default)";
-        throw new Error(`Page '${componentName}' template declares slot '${displayName}', but pages cannot declare slots.`);
+        throw new Error(`Page '${pageName}' template declares slot '${displayName}', but pages cannot declare slots.`);
     }
 }
 
@@ -110,10 +104,6 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
     // validate contract
     if (contract) {
         await validateComponentContract(src, contract);
-    }
-    // validate slots
-    if (contract) {
-        validateSlots(definition, contract);
     }
     // validateComponent definition against contract
     if (definition) {
@@ -161,6 +151,8 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
     const renderEngineFactoryCreator = await xshell.loader.load("render-engine:" + renderEnginePage);
     const templateRenderer = definition.templateRenderer; 
     const renderEngineFactory = new renderEngineFactoryCreator(definition.template, context, templateRenderer);
+    // validate compiled template slots through the render-engine factory contract
+    validateSlots(renderEngineFactory.slots || [], definition.meta?.name || "unknown");
     // load render engine dependencies
     if (renderEngineFactory.dependencies.length) {
         await xshell.loader.load(renderEngineFactory.dependencies);

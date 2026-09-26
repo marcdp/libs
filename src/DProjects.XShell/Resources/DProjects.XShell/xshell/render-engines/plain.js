@@ -22,7 +22,8 @@ export class RenderEnginePlain {
 
 
 }
-export default function createRenderEngineFactoryPlain(template, context) {
+export default function createRenderEngineFactoryPlain(template, context, templateRenderer) {
+	void templateRenderer;
 	// template
 	const templateElement = document.createElement("TEMPLATE");
 	templateElement.innerHTML = template;
@@ -37,6 +38,7 @@ export default function createRenderEngineFactoryPlain(template, context) {
 	// return
 	return {
 		dependencies: Object.freeze(Object.seal([...dependencies])),
+		slots: Object.freeze([]),
 		init: () => {
 			rewriteDocumentUrls(templateElement.content, context);
 		},

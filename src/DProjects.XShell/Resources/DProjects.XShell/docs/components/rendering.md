@@ -16,6 +16,21 @@ A render engine is responsible for:
 It does not own component or Page lifecycle, controller creation, public API exposure, contracts, property or attribute semantics, services, or
 navigation.
 
+## Factory interface
+
+Every render-engine module exports the same factory signature:
+
+```js
+export default function createRenderEngineFactory(template, context, templateRenderer)
+```
+
+`template` is the source template or input, `context` is the resource/render context, and `templateRenderer` is optional engine-specific precompiled
+information. The third argument is deliberately generic: its shape is defined by the selected render engine. Factories expose eager `dependencies`
+and declared `slots` as normalized metadata for generic loaders; engines without slot metadata expose an empty array.
+
+For the `x` engine, `templateRenderer` is a server-compiled artifact containing `render`, `dependencies`, and `slots`. The `template` parameter remains
+present for cross-engine consistency, but the browser `x` engine does not parse it.
+
 ## Command bridge
 
 A render engine can be given a callback such as:

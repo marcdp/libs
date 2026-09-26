@@ -276,7 +276,7 @@ public sealed class XTemplateJavaScriptConformanceTests {
                 const runs = {{runs}};
                 const results = runs.map(run => {
                     const factoryContext = {};
-                    const factory = createRenderEngineFactoryX.call(factoryContext, "<button></button>", {}, run.renderer);
+                    const factory = createRenderEngineFactoryX.call(factoryContext, "<button></button>", {}, { render:run.renderer, dependencies:[], slots:[] });
                     factory.init();
                     const host = new FakeElement("host");
                     let calls = 0;
@@ -337,7 +337,7 @@ public sealed class XTemplateJavaScriptConformanceTests {
                 const { default: createRenderEngineFactoryX } = await import({{JsonSerializer.Serialize(new Uri(runtimePath).AbsoluteUri)}});
                 const renderer = (state, handler, invalidate, utils) => [utils.createVDOM("div", null, null, state.styles, null, {index:0})];
                 const factoryContext = {};
-                const factory = createRenderEngineFactoryX.call(factoryContext, "<div></div>", {}, renderer);
+                const factory = createRenderEngineFactoryX.call(factoryContext, "<div></div>", {}, { render:renderer, dependencies:[], slots:[] });
                 factory.init();
                 const host = new FakeElement("host");
                 const state = { styles: { display:{value:"none",priority:""}, width:{value:"100%",priority:""}, "margin-top":{value:"8px",priority:""}, color:{value:"red",priority:""} } };

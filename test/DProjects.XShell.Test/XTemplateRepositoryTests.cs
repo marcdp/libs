@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Text.RegularExpressions;
 using DProjects.XShell.Services.XTemplate;
 
 namespace DProjects.XShell.Test {
@@ -34,6 +35,31 @@ namespace DProjects.XShell.Test {
             var transformed = (string)transform.Invoke(compiler, [source])!;
 
             Assert.Contains("templateRenderer:", transformed, StringComparison.Ordinal);
+            Assert.Contains("{render:", transformed, StringComparison.Ordinal);
+            Assert.Contains("dependencies:[", transformed, StringComparison.Ordinal);
+            Assert.Contains("slots:[", transformed, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void StaticModuleXTemplatesCompileToCompleteArtifacts() {
+            var resourceDirectory = GetResourceDirectory();
+            var compilerType = typeof(XTemplateCompiler).Assembly.GetType("DProjects.XShell.Services.XTemplate.XTemplateJavaScriptCompiler", throwOnError: true)!;
+            var compiler = Activator.CreateInstance(compilerType, new XTemplateCompiler())!;
+            var transform = compilerType.GetMethod("Transform", BindingFlags.Instance | BindingFlags.Public)!;
+            var errors = new List<string>();
+
+            foreach (var path in Directory.EnumerateFiles(Path.Combine(resourceDirectory, "modules"), "*.js", SearchOption.AllDirectories)) {
+                var source = File.ReadAllText(path);
+                if (!Regex.IsMatch(source, @"\btemplate\s*:")) continue;
+                try {
+                    var transformed = (string)transform.Invoke(compiler, [source])!;
+                    if (!transformed.Contains("templateRenderer:", StringComparison.Ordinal)) errors.Add($"{Path.GetRelativePath(resourceDirectory, path)}: no compiled artifact was emitted.");
+                } catch (TargetInvocationException exception) when (exception.InnerException != null) {
+                    errors.Add($"{Path.GetRelativePath(resourceDirectory, path)}: {exception.InnerException.Message}");
+                }
+            }
+
+            Assert.True(errors.Count == 0, "Static module XTemplate compilation failed:" + Environment.NewLine + string.Join(Environment.NewLine, errors));
         }
 
         [Fact]
@@ -44,6 +70,36 @@ namespace DProjects.XShell.Test {
             Assert.DoesNotContain("_compileTemplateToJsRecursive", runtime, StringComparison.Ordinal);
             Assert.DoesNotContain("new Function", runtime, StringComparison.Ordinal);
             Assert.DoesNotContain("eval", runtime, StringComparison.Ordinal);
+            Assert.DoesNotContain("innerHTML = template", runtime, StringComparison.Ordinal);
+            Assert.DoesNotContain("querySelectorAll(\"*\")", runtime, StringComparison.Ordinal);
+            Assert.DoesNotContain("rewriteDocumentUrls(template", runtime, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void RenderEnginesKeepTheCommonThreeArgumentFactoryContract() {
+            var renderEngineDirectory = Path.Combine(GetResourceDirectory(), "xshell", "render-engines");
+            var loaderDirectory = Path.Combine(GetResourceDirectory(), "xshell", "loaders");
+
+            Assert.Contains("(template, context, templateRenderer)", File.ReadAllText(Path.Combine(renderEngineDirectory, "x.js")), StringComparison.Ordinal);
+            Assert.Contains("(template, context, templateRenderer)", File.ReadAllText(Path.Combine(renderEngineDirectory, "plain.js")), StringComparison.Ordinal);
+            Assert.Contains("(template, context, templateRenderer)", File.ReadAllText(Path.Combine(renderEngineDirectory, "markdown.js")), StringComparison.Ordinal);
+            Assert.Contains("new renderEngineFactoryCreator(definition.template, context, definition.templateRenderer)", File.ReadAllText(Path.Combine(loaderDirectory, "component-js.js")), StringComparison.Ordinal);
+            Assert.Contains("new renderEngineFactoryCreator(definition.template, context, templateRenderer)", File.ReadAllText(Path.Combine(loaderDirectory, "page-js.js")), StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void ComponentAndPageSlotValidationDoNotParseRawTemplateSource() {
+            var loaderDirectory = Path.Combine(GetResourceDirectory(), "xshell", "loaders");
+            var component = File.ReadAllText(Path.Combine(loaderDirectory, "component-js.js"));
+            var page = File.ReadAllText(Path.Combine(loaderDirectory, "page-js.js"));
+
+            Assert.DoesNotContain("slotRegex", component, StringComparison.Ordinal);
+            Assert.DoesNotContain("nameRegex", component, StringComparison.Ordinal);
+            Assert.DoesNotContain("definition.template.matchAll", component, StringComparison.Ordinal);
+            Assert.DoesNotContain("slotRegex", page, StringComparison.Ordinal);
+            Assert.DoesNotContain("definition.template.matchAll", page, StringComparison.Ordinal);
+            Assert.Contains("renderEngineFactory.slots", component, StringComparison.Ordinal);
+            Assert.Contains("renderEngineFactory.slots", page, StringComparison.Ordinal);
         }
 
         [Fact]

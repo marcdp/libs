@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using System.Text.Json;
 
 namespace DProjects.XShell.Services.XTemplate {
 
@@ -27,7 +28,7 @@ namespace DProjects.XShell.Services.XTemplate {
                 throw new InvalidOperationException($"The exported X component 'template' at JavaScript offset {valueToken.Start} must be a static template literal.");
             }
             var templateText = DecodeStaticTemplateLiteral(source[valueToken.Start..valueToken.End], valueToken.Start);
-            var renderer = _templateCompiler.Compile(templateText);
+            var renderer = SerializeArtifact(_templateCompiler.CompileArtifact(templateText));
             var existingRenderer = properties.FirstOrDefault(property => property.Name == "templateRenderer");
             if (existingRenderer != null) {
                 var start = tokens[existingRenderer.ValueStartTokenIndex].Start;
@@ -45,6 +46,13 @@ namespace DProjects.XShell.Services.XTemplate {
         }
 
         // methods (private)
+        private static string SerializeArtifact(XTemplateCompileResult artifact) {
+            var dependencies = artifact.Dependencies.Select(dependency =>
+                "{resource:" + JsonSerializer.Serialize(dependency.Resource) + ",ancestorPaths:[" +
+                string.Join(',', dependency.AncestorPaths.Select(path => "[" + string.Join(',', path.Select(value => JsonSerializer.Serialize(value))) + "]")) + "]}");
+            return "{render:" + artifact.JavaScript + ",dependencies:[" + string.Join(',', dependencies) + "],slots:[" +
+                string.Join(',', artifact.Slots.Select(value => JsonSerializer.Serialize(value))) + "]}";
+        }
         private static ExportObject? FindDefaultExportObject(IReadOnlyList<Token> tokens) {
             for (var index = 0; index + 2 < tokens.Count; index++) {
                 if (!tokens[index].Is("export") || !tokens[index + 1].Is("default")) continue;

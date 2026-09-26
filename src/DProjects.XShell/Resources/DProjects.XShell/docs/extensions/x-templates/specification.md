@@ -124,7 +124,7 @@ The current XShell implementation compiles XTL into a JavaScript render function
 
 An X Template is parsed as an **HTML fragment**, not XML.
 
-A conforming browser-oriented implementation SHOULD behave like assigning the source to:
+A conforming parser SHOULD reproduce the relevant HTML-fragment behavior historically obtained by assigning source to:
 
 ```js
 const template = document.createElement("template");
@@ -140,7 +140,8 @@ Consequences include normal HTML parsing behavior:
 - normal HTML content-model rules apply;
 - custom elements follow HTML parsing rules, not XML rules.
 
-Implementers should not parse XTL with an XML parser unless they deliberately reproduce HTML-fragment behavior.
+Implementers should not parse XTL with an XML parser unless they deliberately reproduce HTML-fragment behavior. In XShell this parsing happens in the
+C# compiler. The browser `x` render engine never assigns raw XTemplate source to `template.innerHTML`.
 
 ### 5.1 Leading and trailing whitespace
 
@@ -2207,7 +2208,7 @@ An implementation SHOULD treat the entire child subtree of `x-pre` as opaque to 
 
 ## 47. Custom-element dependency discovery
 
-The current X template layer scans parsed template elements for tag names containing a hyphen:
+The server XTemplate compiler traverses parsed template elements for tag names containing a hyphen:
 
 ```text
 x-button
@@ -2220,6 +2221,10 @@ Such tags are considered component dependencies.
 Duplicates are removed.
 
 The dependency name is normalized to lowercase.
+
+Dependency collection is static: elements below `x-if`, `x-elseif`, `x-else`, `x-for`, `x-recursive`, and `x-once` remain possible dependencies. The
+compiler records structural ancestor information so the browser factory can apply the configured lazy-component name without parsing template source.
+The browser exposes the resulting eager resources as `factory.dependencies`.
 
 ---
 
@@ -2253,7 +2258,17 @@ x-heavy-component
 
 This rule affects dependency loading, not rendering syntax.
 
-A compiler that also emits dependency metadata SHOULD preserve this behavior.
+A compiler that also emits dependency metadata SHOULD preserve this behavior. The boundary name comes from `context.componentLazy`; it is not fixed by
+the XTemplate compiler. Lazy boundaries suppress eager descendant component dependencies but do not suppress slot declarations.
+
+## 48.1 Declared slot metadata
+
+Only actual `<slot>` elements declare slots. A regular element with a `slot` attribute does not. Missing `name` maps to the canonical empty string `""`;
+named slots preserve their static name. Names are unique in first-seen order, and structural directives do not make them conditional metadata. Dynamic
+slot-name bindings are rejected because `contract.slots` is a static API contract.
+
+An `x-pre` element renders its child subtree as opaque literal HTML. Custom elements and `<slot>` elements inside that subtree are therefore not active
+XTemplate metadata and are not collected. The `x-pre` element itself remains active structure.
 
 ---
 
@@ -2885,18 +2900,26 @@ to create the render function.
 
 That historical mechanism requires CSP allowances equivalent to dynamic code evaluation and does not define the current expression language.
 
-A server/build compiler can instead emit a normal JavaScript function, such as:
+A server/build compiler emits a complete artifact, such as:
 
 ```js
-templateRenderer: (state, handler, invalidate, utils, i18n, renderCount) => {
-    ...
+templateRenderer: {
+    render: (state, handler, invalidate, utils, i18n, renderCount) => {
+        ...
+    },
+    dependencies: [
+        { resource: "component:x-button", ancestorPaths: [[]] }
+    ],
+    slots: ["", "footer"]
 }
 ```
 
 The required expression pipeline is tokenize, parse, validate, build an AST, and then evaluate or emit code. A build compiler may emit a normal
 JavaScript function, preserving XTL semantics while avoiding runtime dynamic-code evaluation and allowing a stricter Content Security Policy.
 
-`eval` and `new Function` are neither expression-language features nor requirements of XTL.
+The common render-engine call remains `createRenderEngineFactory(template, context, templateRenderer)`. `template` is retained for interface
+consistency but is not parsed by `x.js`; generated attribute calls handle URL rewriting and structured styles reach the CSSOM directly. The browser does
+not reconstruct dependencies or slots from source. `eval` and `new Function` are neither expression-language features nor requirements of XTL.
 
 ---
 

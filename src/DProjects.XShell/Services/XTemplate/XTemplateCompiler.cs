@@ -34,11 +34,17 @@ namespace DProjects.XShell.Services.XTemplate {
 
         // methods
         public string Compile(string template) {
+            return CompileArtifact(template).JavaScript;
+        }
+        public XTemplateCompileResult CompileArtifact(string template) {
             if (template == null) throw new ArgumentNullException(nameof(template));
             var root = new HtmlParser(NormalizeLineEndings(template).Trim()).Parse();
             var indent = "    ";
             ValidateStructuralDirectives(root);
             ValidateConditionalChains(root);
+            var dependencies = new Dictionary<string, List<IReadOnlyList<string>>>(StringComparer.Ordinal);
+            var slots = new List<string>();
+            CollectMetadata(root, [], dependencies, slots, new HashSet<string>(StringComparer.Ordinal));
             var body = new List<string> {
                 indent + "let _ifs = {};",
                 indent + "let func;",
@@ -50,10 +56,46 @@ namespace DProjects.XShell.Services.XTemplate {
                 index += CompileNode(node, index, body, 1, scope);
             }
             body.Add(indent + "];");
-            return "(state, handler, invalidate, utils, i18n, renderCount) => {\n" + indent + string.Join("\n" + indent, body) + "\n" + indent + "}";
+            var javascript = "(state, handler, invalidate, utils, i18n, renderCount) => {\n" + indent + string.Join("\n" + indent, body) + "\n" + indent + "}";
+            var compiledDependencies = dependencies.Select(item => new XTemplateDependency(item.Key, item.Value)).ToArray();
+            return new XTemplateCompileResult(javascript, compiledDependencies, slots);
         }
 
         // methods (private)
+        private static void CollectMetadata(
+            ElementNode element,
+            IReadOnlyList<string> ancestors,
+            Dictionary<string, List<IReadOnlyList<string>>> dependencies,
+            List<string> slots,
+            HashSet<string> slotNames) {
+            foreach (var child in element.Children.OfType<ElementNode>()) {
+                if (child.Name.Contains('-', StringComparison.Ordinal)) {
+                    var resource = "component:" + child.Name;
+                    if (!dependencies.TryGetValue(resource, out var paths)) {
+                        paths = [];
+                        dependencies.Add(resource, paths);
+                    }
+                    if (!paths.Any(path => path.SequenceEqual(ancestors))) paths.Add(ancestors.ToArray());
+                }
+                if (child.Name == "slot") {
+                    ValidateStaticSlotName(child);
+                    var slotName = child.GetAttribute("name") ?? "";
+                    if (slotNames.Add(slotName)) slots.Add(slotName);
+                }
+                if (child.HasAttribute("x-pre")) continue;
+                var childAncestors = new string[ancestors.Count + 1];
+                for (var index = 0; index < ancestors.Count; index++) childAncestors[index] = ancestors[index];
+                childAncestors[^1] = child.Name;
+                CollectMetadata(child, childAncestors, dependencies, slots, slotNames);
+            }
+        }
+        private static void ValidateStaticSlotName(ElementNode element) {
+            foreach (var attribute in element.Attributes) {
+                if (attribute.Name == "x-attr" || attribute.Name.StartsWith("x-attr:[", StringComparison.Ordinal) || attribute.Name == "x-attr:name") {
+                    throw TemplateError("Slot names must be declared statically with the 'name' attribute.", element);
+                }
+            }
+        }
         private int CompileNode(TemplateNode node, int index, List<string> javascript, int level, XTemplateExpressionJavaScriptScope scope) {
             var indent = new string(' ', (level + 1) * 4);
             if (node is TextNode textNode) {

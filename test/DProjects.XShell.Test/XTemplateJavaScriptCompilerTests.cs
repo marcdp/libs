@@ -92,6 +92,59 @@ namespace DProjects.XShell.Test {
             Assert.Throws<XTemplateException>(() => new XTemplateCompiler().Compile("<div x-pre><span style=\"display:none\"></span></div>"));
         }
 
+        [Fact]
+        public void CollectsDeterministicCustomElementDependenciesWithStructuralScopes() {
+            var result = new XTemplateCompiler().CompileArtifact("<div><x-button></x-button><x-button x-if=\"state.visible\"></x-button><span></span><x-datafield x-for=\"item in state.items\"></x-datafield></div>");
+
+            Assert.Equal(new[] { "component:x-button", "component:x-datafield" }, result.Dependencies.Select(dependency => dependency.Resource));
+            Assert.Single(result.Dependencies[0].AncestorPaths);
+            Assert.Equal(new[] { "div" }, result.Dependencies[0].AncestorPaths[0]);
+        }
+
+        [Fact]
+        public void RecordsLazyDependencyScopesWithoutSuppressingStaticSlotMetadata() {
+            var result = new XTemplateCompiler().CompileArtifact("<x-lazy><x-heavy-component></x-heavy-component><slot name=\"details\"></slot></x-lazy>");
+
+            Assert.Equal(new[] { "component:x-lazy", "component:x-heavy-component" }, result.Dependencies.Select(dependency => dependency.Resource));
+            Assert.Empty(result.Dependencies[0].AncestorPaths[0]);
+            Assert.Equal(new[] { "x-lazy" }, result.Dependencies[1].AncestorPaths[0]);
+            Assert.Equal(new[] { "details" }, result.Slots);
+        }
+
+        [Fact]
+        public void CollectsOnlyActualUniqueStaticSlotDeclarations() {
+            var result = new XTemplateCompiler().CompileArtifact("<slot></slot><slot name=\"footer\"></slot><slot name=\"footer\"></slot><div slot=\"cancel\"></div><slot name=\"cancel\" x-if=\"state.visible\"></slot>");
+
+            Assert.Equal(new[] { "", "footer", "cancel" }, result.Slots);
+        }
+
+        [Fact]
+        public void TreatsXPreChildrenAsOpaqueForMetadata() {
+            var result = new XTemplateCompiler().CompileArtifact("<x-visible></x-visible><div x-pre><x-fake></x-fake><slot name=\"fake\"></slot></div>");
+
+            Assert.Equal(new[] { "component:x-visible" }, result.Dependencies.Select(dependency => dependency.Resource));
+            Assert.Empty(result.Slots);
+        }
+
+        [Theory]
+        [InlineData("<slot x-attr:name=\"state.slot\"></slot>")]
+        [InlineData("<slot x-attr:[state.attribute]=\"state.slot\"></slot>")]
+        [InlineData("<slot x-attr=\"state.attributes\"></slot>")]
+        public void RejectsDynamicSlotNames(string template) {
+            var exception = Assert.Throws<InvalidOperationException>(() => new XTemplateCompiler().CompileArtifact(template));
+
+            Assert.Contains("Slot names must be declared statically", exception.Message, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void CompilesUrlBearingAttributesThroughTheAttributeRewriterWithStaticSiblingAttributes() {
+            var javascript = new XTemplateCompiler().Compile("<a href=\"details\"></a><img src=\"images/a.png\"><input type=\"image\" src=\"send.png\">");
+
+            Assert.Contains("\"href\":utils.rewriteAttribute(\"a\", {\"href\":\"details\"}", javascript, StringComparison.Ordinal);
+            Assert.Contains("\"src\":utils.rewriteAttribute(\"img\", {\"src\":\"images/a.png\"}", javascript, StringComparison.Ordinal);
+            Assert.Contains("\"src\":utils.rewriteAttribute(\"input\", {\"type\":\"image\",\"src\":\"send.png\"}", javascript, StringComparison.Ordinal);
+        }
+
         [Theory]
         [InlineData("x-if", "x-elseif")]
         [InlineData("x-if", "x-else")]

@@ -38,6 +38,16 @@ public sealed class ComponentControllerRuntimeTests {
         Assert.Contains("cannot expose public method 'unload'", result.RuntimeCollisionError);
     }
 
+    [Fact]
+    public void SlotValidationUsesRenderEngineFactoryMetadataAndAllowsContractSupersets() {
+        var result = ExecuteRuntimeScenario();
+
+        Assert.True(result.RawTemplateIgnored);
+        Assert.True(result.ContractSupersetAccepted);
+        Assert.Contains("slot 'footer'", result.MissingNamedSlotError);
+        Assert.Contains("slot '(default)'", result.MissingDefaultSlotError);
+    }
+
     // methods (private)
     private static ControllerRuntimeResult ExecuteRuntimeScenario() {
         var runtimePath = Path.Combine(AppContext.BaseDirectory, "Resources", "DProjects.XShell", "xshell", "loaders", "component-js.js");
@@ -130,7 +140,10 @@ public sealed class ComponentControllerRuntimeTests {
             }
             let templateHandler;
             class RenderEngineFactory {
-                dependencies = [];
+                constructor(template, context, templateRenderer) {
+                    this.dependencies = [];
+                    this.slots = templateRenderer?.slots ?? [];
+                }
                 init() {}
                 create(options) {
                     templateHandler = options.handler;
@@ -214,6 +227,44 @@ public sealed class ComponentControllerRuntimeTests {
                 runtimeCollisionError = error.message;
             }
 
+            let rawTemplateIgnored = false;
+            try {
+                await createComponentClassFromJsDefinition("raw-slot-test", context, {
+                    meta: { name: "x-raw-slot-test" }, state: {}, style: "", template: '<slot name="ghost"></slot>',
+                    templateRenderer: { slots: [] }, controller() { return {}; }
+                }, { description: "Raw slot test.", properties: {}, events: {}, slots: {}, methods: {} });
+                rawTemplateIgnored = true;
+            } catch {}
+
+            let contractSupersetAccepted = false;
+            try {
+                await createComponentClassFromJsDefinition("slot-superset-test", context, {
+                    meta: { name: "x-slot-superset-test" }, state: {}, style: "", template: "",
+                    templateRenderer: { slots: ["footer"] }, controller() { return {}; }
+                }, { description: "Slot superset test.", properties: {}, events: {}, slots: { footer: { description: "Footer." }, tools: { description: "Tools." } }, methods: {} });
+                contractSupersetAccepted = true;
+            } catch {}
+
+            let missingNamedSlotError = "";
+            try {
+                await createComponentClassFromJsDefinition("missing-named-slot-test", context, {
+                    meta: { name: "x-missing-named-slot-test" }, state: {}, style: "", template: "",
+                    templateRenderer: { slots: ["footer"] }, controller() { return {}; }
+                }, { description: "Missing named slot test.", properties: {}, events: {}, slots: {}, methods: {} });
+            } catch (error) {
+                missingNamedSlotError = error.message;
+            }
+
+            let missingDefaultSlotError = "";
+            try {
+                await createComponentClassFromJsDefinition("missing-default-slot-test", context, {
+                    meta: { name: "x-missing-default-slot-test" }, state: {}, style: "", template: "",
+                    templateRenderer: { slots: [""] }, controller() { return {}; }
+                }, { description: "Missing default slot test.", properties: {}, events: {}, slots: {}, methods: {} });
+            } catch (error) {
+                missingDefaultSlotError = error.message;
+            }
+
             const count = name => contexts.filter(([contextName]) => contextName === name).length;
             const hasValidContext = name => contexts.filter(([contextName]) => contextName === name).every(([, valid]) => valid) && count(name) > 0;
             console.log(JSON.stringify({
@@ -236,7 +287,11 @@ public sealed class ComponentControllerRuntimeTests {
                 unmountCount: count("unmount"),
                 unloadCount: count("unload"),
                 missingMethodError,
-                runtimeCollisionError
+                runtimeCollisionError,
+                rawTemplateIgnored,
+                contractSupersetAccepted,
+                missingNamedSlotError,
+                missingDefaultSlotError
             }));
             """;
     }
@@ -261,5 +316,9 @@ public sealed class ComponentControllerRuntimeTests {
         int UnmountCount,
         int UnloadCount,
         string MissingMethodError,
-        string RuntimeCollisionError);
+        string RuntimeCollisionError,
+        bool RawTemplateIgnored,
+        bool ContractSupersetAccepted,
+        string MissingNamedSlotError,
+        string MissingDefaultSlotError);
 }

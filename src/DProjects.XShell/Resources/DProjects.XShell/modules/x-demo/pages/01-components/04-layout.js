@@ -221,7 +221,6 @@ export default {
         <h2>Context menu and menu items</h2>
 
 
-        <!--
 
         <div style="position:relative; height:8em;">
             <x-contextmenu>
@@ -237,7 +236,6 @@ export default {
         <h2>Menu</h2>
 
         <x-menu class="horizontal" x-prop:menu="state.demoMenu"></x-menu>
-
         <x-divider></x-divider>
 
         <h2>Responsive content</h2>
@@ -285,16 +283,19 @@ export default {
             available positioned container.
         </p>
 
-            <x-fill>
+        <div style="width:25em; height:25em; position:relative; border:1px red solid;">
+            <x-fill >
                 <div>
                     This content fills the available container.
                 </div>
             </x-fill>
-            -->
+        </div>
+
+            
     `,  
     controller({ state }) {
         return {
-            load(params) {
+            load() {
                // load
                 state.demoMenu = [
                     {label: "Home", href: "/pages/01-components/01-basics.js", icon: "x-home"},

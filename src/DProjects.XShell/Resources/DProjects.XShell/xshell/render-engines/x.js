@@ -1,41 +1,25 @@
 import xshell from '../xshell.js';
-import {rewriteDocumentUrls, rewriteTemplateAttribute} from "../utils/rewriteDocumentUrls.js";
+import {rewriteTemplateAttribute} from "../utils/rewriteDocumentUrls.js";
 
 class XTemplate {
 
 	//fields
-	_template = "";
 	_styleSheets = null;
-	_dependencies = null;
 	_render = null;
 	_utils = null;
 
 	//ctor
-	constructor({ template, styleSheets = [], render = null, context = null }) {
-		this._compile({ template, styleSheets, render, context });
+	constructor({ styleSheets = [], render, context = null }) {
+		this._compile({ styleSheets, render, context });
 	}
 
 	//props
-	get template() {return this._template;}
 	get styleSheets() {return this._styleSheets;}
-	get dependencies() {return this._dependencies;}
 	get render() {return this._render;}
 	get utils() {return this._utils;}
 	
 	//methods
-	_compile({ template, styleSheets = [], render = null, context = null }) {
-		//create template from string if required
-		if (template instanceof DocumentFragment) {
-			let templateElement = document.createElement("template");
-			templateElement.content.append(template); 
-			template = templateElement.innerHTML;
-		}
-		if (typeof(template)=="string") {
-			let templateElement = document.createElement("template");
-			templateElement.innerHTML = template.replaceAll("{{", "<x:text>").replaceAll("}}", "</x:text>").trim();
-			template = templateElement;
-		}
-		this._template = template;
+	_compile({ styleSheets = [], render, context = null }) {
 		//create array of styleSheets if required
 		if (styleSheets != null && !Array.isArray(styleSheets)) {
 			styleSheets = [styleSheets];
@@ -51,24 +35,11 @@ class XTemplate {
 			}
 		}
 		this._styleSheets = styleSheets;
-		//get dependencies
-		this._dependencies = [...new Set(Array.from(template.content.querySelectorAll('*')).filter(el =>{ 
-			if (el.tagName.includes('-')) {
-				if (el.tagName == "X-LAZY" || el.closest("x-lazy") == null) {
-					return true;
-				}
-			}
-			return false;
-		}).map(el => el.tagName.toLowerCase()))];
 		// bind source URL rewriting to this template's resource context
 		this._utils = Object.create(utils);
 		this._utils.rewriteAttribute = (tag, attrs, attr, value) => rewriteTemplateAttribute(tag, attrs, attr, value, context);
-		// use server-compiled render code when present, avoiding runtime code generation under strict CSP
-		if (render) {
-			this._render = render;
-			return;
-		}
-		throw new Error("XTemplate requires a server-precompiled templateRenderer; browser expression compilation is not supported.");
+		// use only the server-compiled render code, avoiding runtime source parsing and code generation under strict CSP
+		this._render = render;
 	}
 	//public methods
 	createInstance(handler, invalidate, element) {
@@ -320,7 +291,7 @@ const utils = new class {
 			subtract: (left, right) => checked(number(left) - number(right)), multiply: (left, right) => checked(number(left) * number(right)), divide: (left, right) => { const divisor = number(right); return divisor === 0 ? fail("Division by zero") : checked(number(left) / divisor); }, modulo: (left, right) => { const divisor = number(right); return divisor === 0 ? fail("Modulo by zero") : checked(number(left) % divisor); },
 			equal: (left, right) => left === right, notEqual: (left, right) => left !== right, less: (left, right) => compare(left, right) < 0, lessOrEqual: (left, right) => compare(left, right) <= 0, greater: (left, right) => compare(left, right) > 0, greaterOrEqual: (left, right) => compare(left, right) >= 0,
 			and: (left, right) => { const value = left(); return truthy(value) ? right() : value; }, or: (left, right) => { const value = left(); return truthy(value) ? value : right(); }, coalesce: (left, right) => { const value = left(); return value === null ? right() : value; }, conditional: (condition, whenTrue, whenFalse) => truthy(condition()) ? whenTrue() : whenFalse(),
-			transform, collection: (value) => { if (Array.isArray(value)) return value; if (typeof value === "number" && Number.isInteger(value) && value >= 0) return Array.from({length:value}, (_, index) => index + 1); if (typeof value === "string") return [...value]; if (value !== null && typeof value === "object") return Object.keys(value); return fail("x-for requires a collection, string, object, or non-negative integer number"); },
+			transform, collection: (value) => { if (Array.isArray(value)) return value; if (typeof value === "number" && Number.isInteger(value) && value >= 0) return Array.from({length:value}, (_, index) => index + 1); if (typeof value === "string") return [...value]; if (value !== null && typeof value === "object") return Object.keys(value); debugger; return fail("x-for requires a collection, string, object, or non-negative integer number"); },
 			attributes: (value) => { if (value === null || typeof value !== "object" || Array.isArray(value)) return fail("x-attr requires an object"); const result = {}; for (const key of Object.keys(value)) { if (isStyleAttribute(key)) return fail("Generic attributes cannot target 'style'"); const item = value[key]; if (typeof item === "string" || typeof item === "number" || item === true) result[key] = item; } return result; }, properties: (value) => value !== null && typeof value === "object" && !Array.isArray(value) ? Object.fromEntries(Object.keys(value).map((key) => [key, value[key] === undefined ? null : value[key]])) : fail("x-prop requires an object"), dynamicArgument: (name, value) => typeof name !== "string" ? fail("Dynamic attribute name must be a string") : isStyleAttribute(name) ? fail("Generic attributes cannot target 'style'") : {[name]: value}, dynamicProperty: (name, value) => typeof name === "string" ? {[name]: value} : fail("Dynamic property name must be a string")
 		};
 	})();
@@ -792,34 +763,43 @@ export class RenderEngineX {
 		this._host.replaceChildren();
 	}
 }
-export default function createRenderEngineFactoryX(template, context, templateRenderer = null) {
-	// template
-	const templateElement = document.createElement("TEMPLATE");
-	templateElement.innerHTML = template;
-	// dependencies
+export default function createRenderEngineFactoryX(template, context, templateRenderer) {
+	// retain template only as the first parameter of the common render-engine interface
+	void template;
+	if (!templateRenderer || typeof(templateRenderer) !== "object" || typeof(templateRenderer.render) !== "function" ||
+		!Array.isArray(templateRenderer.dependencies) || !Array.isArray(templateRenderer.slots)) {
+		throw new Error("XTemplate requires a server-precompiled templateRenderer artifact with render, dependencies, and slots.");
+	}
+	// normalize compiler metadata without inspecting raw XTemplate source
+	const componentLazy = typeof(context.componentLazy) === "string" ? context.componentLazy.toLowerCase() : null;
 	const dependencies = new Set();
-	templateElement.content.querySelectorAll("*").forEach(el => {
-		if (el.tagName.includes("-")) {
-			if (context.componentLazy && (el.localName != context.componentLazy && el.closest(context.componentLazy) != null)) return;
-			dependencies.add("component:" + el.tagName.toLowerCase());
+	for (const dependency of templateRenderer.dependencies) {
+		if (typeof(dependency) === "string") {
+			dependencies.add(dependency);
+			continue;
 		}
-	});
+		if (!dependency || typeof(dependency.resource) !== "string" || !Array.isArray(dependency.ancestorPaths)) {
+			throw new Error("XTemplate templateRenderer contains invalid dependency metadata.");
+		}
+		if (!componentLazy || dependency.ancestorPaths.some(path => Array.isArray(path) && !path.includes(componentLazy))) dependencies.add(dependency.resource);
+	}
+	if (!templateRenderer.slots.every(slot => typeof(slot) === "string")) throw new Error("XTemplate templateRenderer contains invalid slot metadata.");
+	const slots = [...new Set(templateRenderer.slots)];
+	let xtemplate = null;
 	// return
 	return {
-		dependencies: Object.freeze(Object.seal([...dependencies])),
+		dependencies: Object.freeze([...dependencies]),
+		slots: Object.freeze(slots),
 		init: () => {
-			// url rewrite
-			rewriteDocumentUrls(templateElement.content, context)
 			// xtemplate
-			this._xtemplate =new XTemplate({ 
-				template: templateElement.content,
+			xtemplate = new XTemplate({
 				styleSheets: [],
-				render: templateRenderer,
+				render: templateRenderer.render,
 				context: context
 			})
 		},
 		create: ({host, state, handler, invalidate}) => {
-			return new RenderEngineX({ host, xtemplate: this._xtemplate, state, handler, invalidate });
+			return new RenderEngineX({ host, xtemplate, state, handler, invalidate });
 		}
 	};
 }

@@ -109,16 +109,10 @@ function findClosestXPage(element) {
     }
     return null;
 }
-function validateSlots(definition, contract) {
-    const slots = contract.slots || {};
-    const componentName = definition.meta?.name || "unknown";
-    const slotRegex = /<slot\b([^>]*)>/gi;
-    const nameRegex = /\bname\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+))/i;
-    for (const match of definition.template.matchAll(slotRegex)) {
-        const attributes = match[1];
-        const nameMatch = attributes.match(nameRegex);
-        const slotName = nameMatch ? (nameMatch[1] ?? nameMatch[2] ?? nameMatch[3] ?? "") : "";
-        if (!Object.prototype.hasOwnProperty.call(slots, slotName)) {
+function validateSlots(slots, contract, componentName) {
+    const contractSlots = contract.slots || {};
+    for (const slotName of slots) {
+        if (!Object.prototype.hasOwnProperty.call(contractSlots, slotName)) {
             const displayName = slotName || "(default)";
             throw new Error(`Component '${componentName}' template declares slot '${displayName}', but it is not declared in contract.slots.`);
         }
@@ -145,10 +139,6 @@ export async function createComponentClassFromJsDefinition(src, context, definit
     // validate contract
     if (contract) {
         await validateComponentContract(src, contract);
-    }
-    // validate slots
-    if (contract) {
-        validateSlots(definition, contract);
     }
     // validateComponent definition against contract
     if (definition) {
@@ -200,6 +190,8 @@ export async function createComponentClassFromJsDefinition(src, context, definit
     // render engine
     const renderEngineFactoryCreator = await xshell.loader.load("render-engine:" + definition.meta.renderEngine);
     const renderEngineFactory = new renderEngineFactoryCreator(definition.template, context, definition.templateRenderer);
+    // validate compiled template slots through the render-engine factory contract
+    validateSlots(renderEngineFactory.slots || [], contract, definition.meta.name || "unknown");
     // load render engine dependencies
     if (renderEngineFactory.dependencies.length) {
         await xshell.loader.load(renderEngineFactory.dependencies);

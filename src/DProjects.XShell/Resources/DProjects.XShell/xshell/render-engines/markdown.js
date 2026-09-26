@@ -24,7 +24,8 @@ export class RenderEngineMarkdown {
 
 
 }
-export default function createRenderEngineFactoryMarkdown(template, context) {
+export default function createRenderEngineFactoryMarkdown(template, context, templateRenderer) {
+	void templateRenderer;
 	// convert to markdown
 	const templateElement = document.createElement("TEMPLATE");
 	templateElement.innerHTML = marked.parse(template);
@@ -39,6 +40,7 @@ export default function createRenderEngineFactoryMarkdown(template, context) {
 	// return
 	return {
 		dependencies: Object.freeze(Object.seal([...dependencies])),
+		slots: Object.freeze([]),
 		init: () => {
 			rewriteDocumentUrls(templateElement.content, context);
 		},

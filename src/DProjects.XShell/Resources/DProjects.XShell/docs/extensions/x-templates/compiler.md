@@ -13,14 +13,15 @@ HTML fragment parsing
 Template AST / parsed structure
     ↓
 validation
-    ↓
-dependency discovery
+    ├── eager dependency structure
+    ├── declared slots
+    └── render-program generation
     ↓
 expression AST evaluation/code generation, including restricted transformer pipelines
     ↓
-render-program generation
+templateRenderer { render, dependencies, slots }
     ↓
-runtime renderer
+browser x.js → factory metadata + VDOM renderer
 ```
 
 This pipeline separates parsing, validation, dependency discovery, and rendering concerns. An implementation can choose a different internal
@@ -64,9 +65,10 @@ development/build server
     → compiles XTemplate ahead of browser execution
 
 generated JavaScript
-    → contains templateRenderer
+    → contains templateRenderer { render, dependencies, slots }
 
 browser runtime
+    → exposes precompiled dependencies and slots
     → executes the precompiled render function
 ```
 
@@ -78,8 +80,16 @@ call the private `utils.expr` semantic helpers for member access, arithmetic, tr
 parse XTemplate expressions, receive serialized expression ASTs, or compile template source dynamically; it only executes the precompiled
 `templateRenderer` with the trusted runtime helpers.
 
-The browser runtime requires a `templateRenderer`; it has no XTemplate source compiler, expression parser, `eval`, or `new Function` fallback. This
-keeps the normal browser path compatible with `script-src 'self'` and `style-src 'self'` without `unsafe-eval` or `unsafe-inline`.
+The common render-engine factory signature remains `(template, context, templateRenderer)`. The first argument is retained for consistency with plain,
+Markdown, and other engines. `x.js` does not parse that source: it interprets the third argument, exposes immutable normalized `dependencies` and
+`slots`, and executes `render`. Dependency metadata retains ancestor paths so `x.js` can apply the configured `context.componentLazy` boundary without
+scanning DOM. Slots remain static metadata even below lazy or structural directives. Descendants of `x-pre` are opaque and contribute neither kind of
+metadata.
+
+The browser runtime requires the complete artifact; renderer-function-only artifacts fail with a compatibility error and must be regenerated. It has
+no raw-XTemplate `template.innerHTML` path, source compiler, expression parser, `eval`, or `new Function` fallback. URL-bearing attributes are rewritten
+by generated `utils.rewriteAttribute(...)` calls using their static sibling attributes, not by mutating a temporary template DOM. This keeps the normal
+browser path compatible with `script-src 'self'`, `style-src 'self'`, and `style-src-attr 'none'` without `unsafe-eval` or `unsafe-inline`.
 
 ## Literal inline-style pipeline
 
