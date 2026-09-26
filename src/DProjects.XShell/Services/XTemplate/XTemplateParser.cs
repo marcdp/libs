@@ -152,7 +152,7 @@ namespace DProjects.XShell.Services.XTemplate {
                 } else if (string.Equals(directive, "x-show", StringComparison.OrdinalIgnoreCase)) attributes.Add(new XTemplateShowAttribute(ParseExpression(attribute, "x-show"), attribute.Offset));
                 else if (string.Equals(directive, "x-key", StringComparison.OrdinalIgnoreCase)) { if (!attribute.HasValue || !IsIdentifier(attribute.Value)) throw Error("x-key requires a property-name value", attribute.Offset); }
                 else if (directive.StartsWith("x-on:", StringComparison.OrdinalIgnoreCase)) ValidateEvent(attribute);
-                else if (string.Equals(directive, "x-prop", StringComparison.OrdinalIgnoreCase)) throw Error("Whole-object x-prop is not supported by XTemplate", attribute.Offset);
+                else if (string.Equals(directive, "x-prop", StringComparison.OrdinalIgnoreCase)) ParseExpression(attribute, "x-prop");
                 else if (directive.StartsWith("x-prop:[", StringComparison.OrdinalIgnoreCase) && directive.EndsWith(']')) { var source = directive[8..^1]; if (string.IsNullOrWhiteSpace(source)) throw Error("Dynamic property name expression is empty", attribute.Offset); ParseExpressionSource(source, attribute.Offset); ParseExpression(attribute, "x-prop"); }
                 else if (directive.StartsWith("x-prop:", StringComparison.OrdinalIgnoreCase)) { if (!IsValidAttributeName(directive[7..])) throw Error("Invalid property name", attribute.Offset); ParseExpression(attribute, "x-prop"); }
                 else if (string.Equals(directive, "x-once", StringComparison.OrdinalIgnoreCase)) { if (attribute.HasValue && !string.IsNullOrEmpty(attribute.Value)) throw Error("Directive 'x-once' cannot have a value", attribute.Offset); }

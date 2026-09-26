@@ -155,7 +155,6 @@ namespace DProjects.XShell.Test {
         [Theory]
         [InlineData("<button x-on:=\"save\"></button>")]
         [InlineData("<button x-on:click=\"\"></button>")]
-        [InlineData("<div x-prop=\"state.value\"></div>")]
         public void RejectsMalformedBrowserOnlyDirectives(string template) {
             Assert.Throws<XTemplateException>(() => Render(template, new { value = "x" }));
         }

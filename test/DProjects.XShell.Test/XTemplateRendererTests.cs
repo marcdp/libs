@@ -277,6 +277,41 @@ namespace DProjects.XShell.Test {
             Assert.Equal("<button>1</button><button>2</button>", html);
         }
 
+        [Fact]
+        public void AcceptsAndSuppressesWholeObjectPropertyBinding() {
+            var html = Render("<x-grid x-prop=\"state.props\"></x-grid>", new { props = new { title = "Grid", count = 2 } });
+
+            Assert.Equal("<x-grid></x-grid>", html);
+        }
+
+        [Fact]
+        public void PreservesSerializableAttributesWhenSuppressingWholeObjectPropertyBinding() {
+            var html = Render("<x-grid id=\"main\" x-prop=\"state.props\"></x-grid>", new { props = new { title = "Grid" } });
+
+            Assert.Equal("<x-grid id=\"main\"></x-grid>", html);
+        }
+
+        [Fact]
+        public void SuppressesWholeObjectNamedAndDynamicPropertyBindings() {
+            var named = Render("<x-grid x-prop=\"state.props\" x-prop:value=\"state.value\"></x-grid>", new { props = new { title = "Grid" }, value = "value" });
+            var dynamic = Render("<x-grid x-prop=\"state.props\" x-prop:[state.name]=\"state.value\"></x-grid>", new { props = new { title = "Grid" }, name = "value", value = "value" });
+
+            Assert.Equal("<x-grid></x-grid>", named);
+            Assert.Equal("<x-grid></x-grid>", dynamic);
+        }
+
+        [Fact]
+        public void RejectsMalformedWholeObjectPropertyBindingExpression() {
+            Assert.Throws<XTemplateException>(() => Render("<x-grid x-prop=\"state.\"></x-grid>"));
+        }
+
+        [Theory]
+        [InlineData("<x-grid x-prop></x-grid>")]
+        [InlineData("<x-grid x-prop=\"\"></x-grid>")]
+        public void RejectsMissingWholeObjectPropertyBindingExpression(string template) {
+            Assert.Throws<XTemplateException>(() => Render(template));
+        }
+
         [Theory]
         [InlineData("<div>{{ state.value }}</div>", "<div>value</div>")]
         [InlineData("<div x-text=\"state.value\">child</div>", null)]
