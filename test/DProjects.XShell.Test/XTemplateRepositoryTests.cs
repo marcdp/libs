@@ -63,7 +63,7 @@ namespace DProjects.XShell.Test {
         }
 
         [Fact]
-        public void BrowserRuntimeUsesOnlyPrecompiledRenderers() {
+        public void ClientRuntimeUsesOnlyPrecompiledRenderers() {
             var runtime = File.ReadAllText(Path.Combine(GetResourceDirectory(), "xshell", "render-engines", "x.js"));
 
             Assert.Contains("server-precompiled templateRenderer", runtime, StringComparison.Ordinal);

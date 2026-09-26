@@ -3,7 +3,7 @@ using System.Text.Json;
 
 namespace DProjects.XShell.Test;
 
-public sealed class ComponentControllerRuntimeTests {
+public sealed class ComponentControllerDomRuntimeTests {
 
     // methods
     [Fact]

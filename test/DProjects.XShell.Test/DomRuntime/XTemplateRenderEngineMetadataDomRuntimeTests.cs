@@ -3,11 +3,11 @@ using System.Text.Json;
 
 namespace DProjects.XShell.Test;
 
-public sealed class XTemplateRenderEngineMetadataTests {
+public sealed class XTemplateRenderEngineMetadataDomRuntimeTests {
 
     // methods
     [Fact]
-    public void BrowserFactoryUsesOnlyCompiledMetadataAndPreservesConfiguredLazyBoundary() {
+    public void DomRuntimeFactoryUsesOnlyCompiledMetadataAndPreservesConfiguredLazyBoundary() {
         var result = ExecuteRuntimeScenario();
 
         Assert.Equal(new[] { "component:x-lazy", "component:x-shared" }, result.Dependencies);
