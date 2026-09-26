@@ -53,6 +53,13 @@ namespace DProjects.XShell.Test {
         }
 
         [Fact]
+        public void TreatsNullRecursiveRootSourcesAsEmptyCollections() {
+            var html = Render("<ul><li x-recursive=\"item in state.items\">{{ item.label }}</li></ul>", new { items = (object?)null });
+
+            Assert.Equal("<ul></ul>", html);
+        }
+
+        [Fact]
         public void RendersNoRecursiveChildrenForEmptyCollection() {
             var html = Render("<li x-recursive=\"item in state.items\">{{ item.label }}</li>", new { items = new[] { new { label = "Root", children = (object?)Array.Empty<object>() } } });
 

@@ -1658,6 +1658,11 @@ index
 An `x-for` or `x-recursive` source is normalized with the following XTemplate rules. These rules describe language behavior; a renderer MUST NOT
 depend on a JavaScript `.map` method or other host collection API.
 
+### Null
+
+`null` normalizes to an empty collection. Therefore an `x-for` or `x-recursive` source whose evaluated value is `null` renders zero items and does
+not produce an evaluation error. Template authors do not need to coalesce a nullable collection source before using either directive.
+
 ### Array
 
 ```text
@@ -1719,10 +1724,10 @@ Thus an object loop exposes the string member names:
 
 The order is the deterministic member order supplied by the object adapter.
 
-### Other values
+### Booleans and other invalid values
 
-`null` and booleans are not iterable and produce an evaluation error. A finite non-negative integer is required for number iteration; negative,
-fractional, and non-finite numbers produce an evaluation error.
+Booleans are not iterable and produce an evaluation error. A finite non-negative integer is required for number iteration; negative, fractional,
+and non-finite numbers produce an evaluation error. Any other unsupported value also produces an evaluation error.
 
 ---
 
@@ -1915,7 +1920,8 @@ renderRecursive(
 )
 ```
 
-`null` or empty children produce no recursive item content.
+Recursive child sources use the same collection normalization as `x-for` and the root `x-recursive` source. Therefore `null` and empty children
+produce no recursive item content.
 
 ---
 

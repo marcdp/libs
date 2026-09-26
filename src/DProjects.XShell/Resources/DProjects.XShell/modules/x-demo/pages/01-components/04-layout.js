@@ -299,7 +299,10 @@ export default {
                // load
                 state.demoMenu = [
                     {label: "Home", href: "/pages/01-components/01-basics.js", icon: "x-home"},
-                    {label: "Components", href: "/pages/01-components/04-layout.js", icon: "x-menu", selected: true}
+                    {label: "Components", href: "/pages/01-components/04-layout.js", icon: "x-menu", selected: true, children: [
+                        {label: "Comp 1", href: "/pages/01-components/01-basics.js", children: []},
+                        {label: "Comp 2", href: "/pages/01-components/01-basics.js", children: []}
+                    ]}
                 ];
             }
         };

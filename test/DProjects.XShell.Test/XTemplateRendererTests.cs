@@ -82,6 +82,8 @@ namespace DProjects.XShell.Test {
             Assert.Throws<XTemplateExpressionEvaluationException>(() => XTemplateExpressions.Evaluate("state.value + 0", new XTemplateExpressionContext(new Dictionary<string, object?> { ["state"] = new { value = double.NaN } }, new[] { new XTemplateReflectionObjectAdapter() })));
             Assert.Throws<XTemplateExpressionEvaluationException>(() => Render("<span>{{ state.value }}</span>", new { value = double.PositiveInfinity }));
             Assert.Throws<XTemplateException>(() => Render("<div x-attr=\"state.attributes\"></div>", new { attributes = new Dictionary<string, object?> { ["value"] = double.NegativeInfinity } }));
+            Assert.Throws<XTemplateExpressionEvaluationException>(() => Render("<i x-for=\"item in state.items\"></i>", new { items = double.NaN }));
+            Assert.Throws<XTemplateExpressionEvaluationException>(() => Render("<i x-for=\"item in state.items\"></i>", new { items = double.PositiveInfinity }));
         }
 
         [Fact]
@@ -220,6 +222,24 @@ namespace DProjects.XShell.Test {
             var html = Render("<i x-for=\"n in state.number\">{{ n }}</i><b x-for=\"c in state.text\">{{ c }}</b><em x-for=\"key in state.values\">{{ key }}</em>", new { number = 3, text = "A😀", values = dictionary });
 
             Assert.Equal("<i>1</i><i>2</i><i>3</i><b>A</b><b>😀</b><em>one</em><em>two</em>", html);
+        }
+
+        [Fact]
+        public void TreatsNullLoopSourcesAsEmptyCollections() {
+            var html = Render("<ul><li x-for=\"item in state.items\">{{ item }}</li></ul>", new { items = (object?)null });
+
+            Assert.Equal("<ul></ul>", html);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        [InlineData(-1)]
+        [InlineData(1.5)]
+        public void RejectsInvalidLoopCollectionSources(object items) {
+            var exception = Assert.Throws<XTemplateException>(() => Render("<i x-for=\"item in state.items\">{{ item }}</i>", new { items }));
+
+            Assert.Contains("XTemplate collection source", exception.Message, StringComparison.Ordinal);
         }
 
         [Fact]

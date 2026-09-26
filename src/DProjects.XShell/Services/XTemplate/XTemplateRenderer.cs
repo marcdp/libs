@@ -51,6 +51,7 @@ namespace DProjects.XShell.Services.XTemplate {
     public sealed class XTemplateRenderer {
 
         // consts
+        private const string CollectionSourceError = "XTemplate collection source must be null, a collection, string, object, or non-negative integer number";
         private static readonly HashSet<string> VoidElements = new(StringComparer.OrdinalIgnoreCase) { "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr" };
 
         // vars
@@ -145,7 +146,7 @@ namespace DProjects.XShell.Services.XTemplate {
                 var currentAbsolute = indexAbsolute++;
                 var locals = new Dictionary<string, object?> { [definition.ItemName] = item, [definition.IndexName] = siblingIndex, [definition.AbsoluteIndexName] = currentAbsolute, ["indent"] = indent };
                 RenderElementOnce(element, context.With(locals), result, () => {
-                    var childItems = NormalizeCollectionOrEmpty(XTemplateExpressions.Evaluate(definition.Children, context.With(locals)), definition.Offset);
+                    var childItems = NormalizeCollection(XTemplateExpressions.Evaluate(definition.Children, context.With(locals)), definition.Offset);
                     var descendants = new StringBuilder();
                     indexAbsolute = RenderRecursiveItems(element, childItems, context.With(locals), indexAbsolute, indent + 1, descendants, selectModel);
                     if (descendants.Length == 0) return;
@@ -262,10 +263,11 @@ namespace DProjects.XShell.Services.XTemplate {
             attributes.Set(name, string.Join(' ', keys));
         }
         private IEnumerable<object?> NormalizeCollection(object? value, int offset) {
-            if (value == null || value is bool) throw new XTemplateException("x-for requires a collection, string, object, or non-negative integer number", offset);
+            if (value == null) return Array.Empty<object?>();
+            if (value is bool) throw new XTemplateException(CollectionSourceError, offset);
             if (IsNumeric(value)) {
                 var number = NormalizeNumber(value, offset);
-                if (!double.IsFinite(number) || number < 0 || number != Math.Truncate(number)) throw new XTemplateException("x-for numeric sources must be finite non-negative integers", offset);
+                if (!double.IsFinite(number) || number < 0 || number != Math.Truncate(number)) throw new XTemplateException(CollectionSourceError, offset);
                 if (number > int.MaxValue) throw new XTemplateException("x-for numeric source is too large", offset);
                 return Enumerable.Range(1, (int)number).Cast<object?>();
             }
@@ -274,7 +276,6 @@ namespace DProjects.XShell.Services.XTemplate {
             if (value is IEnumerable enumerable) return enumerable.Cast<object?>().ToArray();
             return ObjectMembers(value, offset).Select(member => (object?)member.Key).ToArray();
         }
-        private IEnumerable<object?> NormalizeCollectionOrEmpty(object? value, int offset) => value == null ? Array.Empty<object?>() : NormalizeCollection(value, offset);
         private IEnumerable<KeyValuePair<string, object?>> ObjectMembers(object value, int offset) {
             try { return mObjectAccess.GetMembers(value).ToArray(); }
             catch (XTemplateObjectAccessException exception) { throw new XTemplateException(exception.Message, offset); }

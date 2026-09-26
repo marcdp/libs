@@ -153,6 +153,39 @@ public sealed class XTemplateJavaScriptConformanceTests {
         Assert.Equal(new[] { true, true }, ExecuteGenericStyleRejections());
     }
 
+    [Fact]
+    public void BrowserRuntimeNormalizesCollectionSourcesAccordingToTheLanguageContract() {
+        Assert.Equal(new[] {
+            "[]", "[]", "[1,2]", "[]", "[1]", "[1,2,3]", "[]", "[\"a\",\"😀\"]", "[]", "[\"a\",\"b\"]",
+            "error", "error", "error", "error", "error", "error", "error", "error", "same-array"
+        }, ExecuteCollectionNormalization());
+    }
+
+    [Fact]
+    public void CompiledJavaScriptAndServerRendererMatchCollectionNormalization() {
+        var values = new object?[] {
+            null, Array.Empty<object>(), new object?[] { 1, 2 }, 0, 1, 3, string.Empty, "A😀",
+            new Dictionary<string, object?>(), new Dictionary<string, object?> { ["a"] = 1, ["b"] = 2 }, true, false, -1, 1.5
+        };
+        var renderer = new XTemplateRenderer();
+        var expected = values.Select(value => {
+            try { return renderer.Render("<i x-for=\"item in state.items\">{{ item }}</i>", new Dictionary<string, object?> { ["items"] = value }); }
+            catch (XTemplateException) { return "error"; }
+        }).ToArray();
+
+        Assert.Equal(expected, ExecuteCollectionDirectiveConformance(values));
+    }
+
+    [Fact]
+    public void BrowserRuntimeReconcilesNullCollectionTransitions() {
+        using var result = JsonDocument.Parse(ExecuteNullCollectionTransitions());
+        var root = result.RootElement;
+
+        Assert.Equal(new[] { 0, 2, 0, 0 }, root.GetProperty("positional").EnumerateArray().Select(item => item.GetInt32()));
+        Assert.Equal(new[] { 0, 2, 0, 0 }, root.GetProperty("keyed").EnumerateArray().Select(item => item.GetInt32()));
+        Assert.Equal(new[] { 0, 1, 2, 1, 0 }, root.GetProperty("recursive").EnumerateArray().Select(item => item.GetInt32()));
+    }
+
     // methods (private)
     private static IReadOnlyList<ConformanceCase> CreateCases() {
         var state = new Dictionary<string, object?> {
@@ -387,6 +420,151 @@ public sealed class XTemplateJavaScriptConformanceTests {
             process.WaitForExit();
             Assert.True(process.ExitCode == 0, $"JavaScript generic style rejection runtime failed:{Environment.NewLine}{error}");
             return JsonSerializer.Deserialize<bool[]>(output) ?? throw new InvalidOperationException("JavaScript generic style rejection runtime returned no results.");
+        } finally {
+            if (File.Exists(modulePath)) File.Delete(modulePath);
+        }
+    }
+
+    private static string[] ExecuteCollectionNormalization() {
+        var runtimePath = Path.Combine(AppContext.BaseDirectory, "Resources", "DProjects.XShell", "xshell", "render-engines", "x.js");
+        var modulePath = Path.Combine(Path.GetTempPath(), $"xtemplate-collection-normalization-{Guid.NewGuid():N}.mjs");
+        try {
+            File.WriteAllText(modulePath, $$"""
+                globalThis.HTMLElement = class {};
+                globalThis.CSSStyleSheet = class { replaceSync() {} };
+                globalThis.customElements = { get() {}, define() {} };
+                globalThis.window = { customElements: globalThis.customElements };
+                const { XTemplateRuntimeUtils } = await import({{JsonSerializer.Serialize(new Uri(runtimePath).AbsoluteUri)}});
+                const original = [1, 2];
+                const values = [null, [], [1, 2], 0, 1, 3, "", "a😀", {}, {a:1,b:2}, true, false, -1, 1.5, NaN, Infinity, undefined, () => {}, original];
+                const results = values.map((value, index) => {
+                    try {
+                        const normalized = XTemplateRuntimeUtils.expr.collection(value);
+                        return index === values.length - 1 && normalized === original ? "same-array" : JSON.stringify(normalized);
+                    } catch {
+                        return "error";
+                    }
+                });
+                console.log(JSON.stringify(results));
+                """);
+            using var process = Process.Start(new ProcessStartInfo("node", modulePath) { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false })!;
+            var output = process.StandardOutput.ReadToEnd();
+            var error = process.StandardError.ReadToEnd();
+            process.WaitForExit();
+            Assert.True(process.ExitCode == 0, $"JavaScript collection normalization runtime failed:{Environment.NewLine}{error}");
+            return JsonSerializer.Deserialize<string[]>(output) ?? throw new InvalidOperationException("JavaScript collection normalization runtime returned no results.");
+        } finally {
+            if (File.Exists(modulePath)) File.Delete(modulePath);
+        }
+    }
+
+    private static string[] ExecuteCollectionDirectiveConformance(IReadOnlyList<object?> values) {
+        var runtimePath = Path.Combine(AppContext.BaseDirectory, "Resources", "DProjects.XShell", "xshell", "render-engines", "x.js");
+        var modulePath = Path.Combine(Path.GetTempPath(), $"xtemplate-collection-directives-{Guid.NewGuid():N}.mjs");
+        try {
+            var renderer = new XTemplateCompiler().Compile("<i x-for=\"item in state.items\">{{ item }}</i>");
+            File.WriteAllText(modulePath, $$$"""
+                globalThis.HTMLElement = class {};
+                globalThis.CSSStyleSheet = class { replaceSync() {} };
+                globalThis.customElements = { get() {}, define() {} };
+                globalThis.window = { customElements: globalThis.customElements };
+                const { XTemplateRuntimeUtils } = await import({{{JsonSerializer.Serialize(new Uri(runtimePath).AbsoluteUri)}}});
+                const renderer = {{{renderer}}};
+                const values = {{{JsonSerializer.Serialize(values)}}};
+                const results = values.map(items => {
+                    try {
+                        const vdom = renderer({items}, null, () => {}, XTemplateRuntimeUtils, null, 0);
+                        return vdom.filter(node => node.tag === "i").map(node => `<i>${node.children.map(child => child.children).join("")}</i>`).join("");
+                    } catch {
+                        return "error";
+                    }
+                });
+                console.log(JSON.stringify(results));
+                """);
+            using var process = Process.Start(new ProcessStartInfo("node", modulePath) { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false })!;
+            var output = process.StandardOutput.ReadToEnd();
+            var error = process.StandardError.ReadToEnd();
+            process.WaitForExit();
+            Assert.True(process.ExitCode == 0, $"JavaScript collection directive conformance runtime failed:{Environment.NewLine}{error}");
+            return JsonSerializer.Deserialize<string[]>(output) ?? throw new InvalidOperationException("JavaScript collection directive conformance runtime returned no results.");
+        } finally {
+            if (File.Exists(modulePath)) File.Delete(modulePath);
+        }
+    }
+
+    private static string ExecuteNullCollectionTransitions() {
+        var runtimePath = Path.Combine(AppContext.BaseDirectory, "Resources", "DProjects.XShell", "xshell", "render-engines", "x.js");
+        var modulePath = Path.Combine(Path.GetTempPath(), $"xtemplate-null-transitions-{Guid.NewGuid():N}.mjs");
+        try {
+            var positionalRenderer = new XTemplateCompiler().Compile("<li x-for=\"item in state.items\">{{ item.label }}</li>");
+            var keyedRenderer = new XTemplateCompiler().Compile("<li x-for=\"item in state.items\" x-key=\"id\">{{ item.label }}</li>");
+            var recursiveRenderer = new XTemplateCompiler().Compile("<li x-recursive=\"item in state.items\" x-key=\"id\">{{ item.label }}</li>");
+            File.WriteAllText(modulePath, $$$"""
+                class FakeStyle { setProperty() {} removeProperty() {} }
+                class FakeNode {
+                    constructor(tag, text = "") { this.localName = tag.toLowerCase(); this.tagName = tag.toUpperCase(); this.childNodes = []; this.attributes = {}; this.listeners = {}; this.style = new FakeStyle(); this._text = text; }
+                    get firstChild() { return this.childNodes[0] ?? null; }
+                    get lastChild() { return this.childNodes[this.childNodes.length - 1] ?? null; }
+                    get textContent() { return this._text + this.childNodes.map(child => child.textContent).join(""); }
+                    set textContent(value) { this._text = value ?? ""; this.childNodes = []; }
+                    appendChild(child) { if (child instanceof FakeFragment) this.childNodes.push(...child.childNodes); else this.childNodes.push(child); return child; }
+                    append(child) { return this.appendChild(child); }
+                    insertBefore(child, reference) { const current = this.childNodes.indexOf(child); if (current >= 0) this.childNodes.splice(current, 1); const index = reference == null ? this.childNodes.length : this.childNodes.indexOf(reference); this.childNodes.splice(index < 0 ? this.childNodes.length : index, 0, child); return child; }
+                    removeChild(child) { const index = this.childNodes.indexOf(child); if (index >= 0) this.childNodes.splice(index, 1); return child; }
+                    replaceChild(child, oldChild) { const index = this.childNodes.indexOf(oldChild); this.childNodes[index] = child; return oldChild; }
+                    replaceChildren(...children) { this.childNodes = []; this._text = ""; for (const child of children) this.appendChild(child); }
+                    setAttribute(name, value) { this.attributes[name] = value; }
+                    removeAttribute(name) { delete this.attributes[name]; }
+                    addEventListener(name, listener) { this.listeners[name] = listener; }
+                    querySelectorAll() { return []; }
+                }
+                class FakeFragment extends FakeNode { constructor() { super("#fragment"); } }
+                globalThis.DocumentFragment = FakeFragment;
+                globalThis.HTMLElement = class {};
+                globalThis.CSSStyleSheet = class { replaceSync() {} };
+                globalThis.customElements = { get() {}, define() {} };
+                globalThis.window = { customElements: globalThis.customElements };
+                globalThis.document = {
+                    createElement(tag) { return new FakeNode(tag); },
+                    createDocumentFragment() { return new FakeFragment(); },
+                    createComment(text) { return new FakeNode("#comment", text); },
+                    createTextNode(text) { return new FakeNode("#text", text); }
+                };
+                const { default:createRenderEngineFactoryX } = await import({{{JsonSerializer.Serialize(new Uri(runtimePath).AbsoluteUri)}}});
+                const count = (node) => (node.localName === "li" ? 1 : 0) + node.childNodes.reduce((total, child) => total + count(child), 0);
+                const create = (renderer, state) => {
+                    const factory = createRenderEngineFactoryX("", {}, {render:renderer, dependencies:[], slots:[]});
+                    factory.init();
+                    const host = new FakeNode("host");
+                    return {engine:factory.create({host, state, handler:() => {}, invalidate:() => {}}), host};
+                };
+                const transitionList = (renderer) => {
+                    const state = {items:null};
+                    const {engine, host} = create(renderer, state);
+                    const result = [];
+                    engine.render(); result.push(count(host));
+                    state.items = [{id:1,label:"A"},{id:2,label:"B"}]; engine.render(); result.push(count(host));
+                    state.items = null; engine.render(); result.push(count(host));
+                    state.items = []; engine.render(); result.push(count(host));
+                    return result;
+                };
+                const root = {id:1,label:"Root",children:null};
+                const recursiveState = {items:null};
+                const recursiveEngine = create({{{recursiveRenderer}}}, recursiveState);
+                const recursive = [];
+                recursiveEngine.engine.render(); recursive.push(count(recursiveEngine.host));
+                recursiveState.items = [root]; recursiveEngine.engine.render(); recursive.push(count(recursiveEngine.host));
+                root.children = [{id:2,label:"Child",children:null}]; recursiveEngine.engine.render(); recursive.push(count(recursiveEngine.host));
+                root.children = null; recursiveEngine.engine.render(); recursive.push(count(recursiveEngine.host));
+                recursiveState.items = null; recursiveEngine.engine.render(); recursive.push(count(recursiveEngine.host));
+                console.log(JSON.stringify({positional:transitionList({{{positionalRenderer}}}), keyed:transitionList({{{keyedRenderer}}}), recursive}));
+                """);
+            using var process = Process.Start(new ProcessStartInfo("node", modulePath) { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false })!;
+            var output = process.StandardOutput.ReadToEnd();
+            var error = process.StandardError.ReadToEnd();
+            process.WaitForExit();
+            Assert.True(process.ExitCode == 0, $"JavaScript null collection transition runtime failed:{Environment.NewLine}{error}");
+            return output.Trim();
         } finally {
             if (File.Exists(modulePath)) File.Delete(modulePath);
         }

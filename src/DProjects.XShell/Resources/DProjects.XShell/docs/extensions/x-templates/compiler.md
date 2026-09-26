@@ -80,6 +80,11 @@ call the private `utils.expr` semantic helpers for member access, arithmetic, tr
 parse XTemplate expressions, receive serialized expression ASTs, or compile template source dynamically; it only executes the precompiled
 `templateRenderer` with the trusted runtime helpers.
 
+Collection-taking directives use equivalent normalization in the browser `utils.expr.collection` helper and the C# server renderer. In particular,
+`null` normalizes to an empty collection for `x-for`, the root `x-recursive` source, and recursive child sources. Arrays and enumerables yield their
+items, finite non-negative integers yield `1..N`, strings yield Unicode code points, and objects yield exposed member names; booleans, invalid numbers,
+and unsupported values remain errors. Templates therefore use the collection expression directly without a template-side null-coalescing workaround.
+
 The common render-engine factory signature remains `(template, context, templateRenderer)`. The first argument is retained for consistency with plain,
 Markdown, and other engines. `x.js` does not parse that source: it interprets the third argument, exposes immutable normalized `dependencies` and
 `slots`, and executes `render`. Dependency metadata retains ancestor paths so `x.js` can apply the configured `context.componentLazy` boundary without
