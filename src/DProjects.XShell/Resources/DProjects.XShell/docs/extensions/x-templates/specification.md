@@ -1675,6 +1675,9 @@ A conforming template MUST treat these branches as one contiguous sibling chain.
 
 `x-elseif` and `x-else` SHOULD immediately follow a previous branch in the same chain, ignoring only insignificant authoring conventions specifically allowed by a validator.
 
+In the current XShell VDOM backend, every structural directive position contributes exactly one VNode: the rendered element when active, or a comment
+placeholder when inactive. This keeps each position stable during reconciliation.
+
 ### 29.1 Reference-compiler detail
 
 The current compiler stores condition state by template nesting depth.

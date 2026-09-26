@@ -87,6 +87,32 @@ public sealed class XTemplateDomRuntimeTests {
         Assert.Equal(new[] { 0, 2, 0, 0 }, root.GetProperty("keyed").EnumerateArray().Select(item => item.GetInt32()));
         Assert.Equal(new[] { 0, 1, 2, 1, 0 }, root.GetProperty("recursive").EnumerateArray().Select(item => item.GetInt32()));
     }
+
+    [Fact]
+    public void DomRuntimePreservesConditionalVNodePositionsAcrossTransitions() {
+        using var result = JsonDocument.Parse(ExecuteConditionalRuntime());
+        var root = result.RootElement;
+        var expected = new[] {
+            new[] { "div:Ready", "#comment:x-elseif", "#comment:x-else" },
+            new[] { "#comment:x-if", "div:Working", "#comment:x-else" },
+            new[] { "#comment:x-if", "#comment:x-elseif", "div:Other" },
+            new[] { "div:Ready", "#comment:x-elseif", "#comment:x-else" },
+            new[] { "#comment:x-if", "#comment:x-elseif", "div:Other" },
+            new[] { "#comment:x-if", "div:Working", "#comment:x-else" }
+        };
+
+        var readyVNodes = root.GetProperty("readyVNodes").EnumerateArray().Select(node => $"{node.GetProperty("tag").GetString()}:{node.GetProperty("label").GetString()}");
+        Assert.Equal(expected[0], readyVNodes);
+
+        var snapshots = root.GetProperty("snapshots").EnumerateArray().ToArray();
+        Assert.Equal(expected.Length, snapshots.Length);
+        for (var index = 0; index < expected.Length; index++) {
+            var actual = snapshots[index].EnumerateArray().Select(node => $"{node.GetProperty("tag").GetString()}:{node.GetProperty("text").GetString()}");
+            Assert.Equal(expected[index], actual);
+        }
+
+        Assert.Equal(new[] { 1, 2, 2, 1, 2, 2 }, root.GetProperty("statusReads").EnumerateArray().Select(item => item.GetInt32()));
+    }
     // methods (private)
     private static bool[] ExecuteEventModifierFilters(IReadOnlyList<EventModifierCase> cases) {
         var runtimePath = Path.Combine(AppContext.BaseDirectory, "Resources", "DProjects.XShell", "xshell", "render-engines", "x.js");
@@ -443,6 +469,77 @@ public sealed class XTemplateDomRuntimeTests {
             var error = process.StandardError.ReadToEnd();
             process.WaitForExit();
             Assert.True(process.ExitCode == 0, $"JavaScript null collection transition runtime failed:{Environment.NewLine}{error}");
+            return output.Trim();
+        } finally {
+            if (File.Exists(modulePath)) File.Delete(modulePath);
+        }
+    }
+
+    private static string ExecuteConditionalRuntime() {
+        var runtimePath = Path.Combine(AppContext.BaseDirectory, "Resources", "DProjects.XShell", "xshell", "render-engines", "x.js");
+        var modulePath = Path.Combine(Path.GetTempPath(), $"xtemplate-conditional-runtime-{Guid.NewGuid():N}.mjs");
+        var renderer = new XTemplateCompiler().Compile("<div x-if=\"state.status == 'ready'\">Ready</div><div x-elseif=\"state.status == 'working'\">Working</div><div x-else>Other</div>");
+        try {
+            File.WriteAllText(modulePath, $$$"""
+                class FakeStyle { setProperty() {} removeProperty() {} }
+                class FakeNode {
+                    constructor(tag, text = "") { this.localName = tag.toLowerCase(); this.tagName = tag.toUpperCase(); this.childNodes = []; this.attributes = {}; this.listeners = {}; this.style = new FakeStyle(); this._text = text; }
+                    get firstChild() { return this.childNodes[0] ?? null; }
+                    get lastChild() { return this.childNodes[this.childNodes.length - 1] ?? null; }
+                    get textContent() { return this._text + this.childNodes.map(child => child.textContent).join(""); }
+                    set textContent(value) { this._text = value ?? ""; this.childNodes = []; }
+                    appendChild(child) { if (child instanceof FakeFragment) this.childNodes.push(...child.childNodes); else this.childNodes.push(child); return child; }
+                    append(child) { return this.appendChild(child); }
+                    insertBefore(child, reference) { const index = reference == null ? this.childNodes.length : this.childNodes.indexOf(reference); this.childNodes.splice(index < 0 ? this.childNodes.length : index, 0, child); return child; }
+                    removeChild(child) { const index = this.childNodes.indexOf(child); if (index >= 0) this.childNodes.splice(index, 1); return child; }
+                    replaceChild(child, oldChild) { const index = this.childNodes.indexOf(oldChild); this.childNodes[index] = child; return oldChild; }
+                    replaceChildren(...children) { this.childNodes = []; this._text = ""; for (const child of children) this.appendChild(child); }
+                    setAttribute(name, value) { this.attributes[name] = value; }
+                    removeAttribute(name) { delete this.attributes[name]; }
+                    addEventListener(name, listener) { this.listeners[name] = listener; }
+                    querySelectorAll() { return []; }
+                }
+                class FakeFragment extends FakeNode { constructor() { super("#fragment"); } }
+                globalThis.DocumentFragment = FakeFragment;
+                globalThis.HTMLElement = class {};
+                globalThis.CSSStyleSheet = class { replaceSync() {} };
+                globalThis.customElements = { get() {}, define() {} };
+                globalThis.window = { customElements: globalThis.customElements };
+                globalThis.document = {
+                    createElement(tag) { const element = new FakeNode(tag); if (tag.toLowerCase() === "template") element.content = new FakeFragment(); return element; },
+                    createDocumentFragment() { return new FakeFragment(); },
+                    createComment(text) { return new FakeNode("#comment", text); },
+                    createTextNode(text) { return new FakeNode("#text", text); }
+                };
+                const { default:createRenderEngineFactoryX, XTemplateRuntimeUtils } = await import({{{JsonSerializer.Serialize(new Uri(runtimePath).AbsoluteUri)}}});
+                const renderer = {{{renderer}}};
+                const summarizeVNode = node => ({ tag:node.tag, index:node.options.index, label:node.tag === "#comment" ? node.children : node.children[0]?.children });
+                const readyVNodes = renderer({status:"ready"}, () => {}, () => {}, XTemplateRuntimeUtils, {}, 0).map(summarizeVNode);
+                const factory = createRenderEngineFactoryX("", {}, {render:renderer, dependencies:[], slots:[]});
+                factory.init();
+                let statusReads = 0;
+                const state = { _status:"ready" };
+                Object.defineProperty(state, "status", { get() { statusReads++; return this._status; } });
+                const host = new FakeNode("host");
+                const engine = factory.create({host, state, handler:() => {}, invalidate:() => {}});
+                const statuses = ["ready", "working", "other", "ready", "other", "working"];
+                const snapshots = [];
+                const reads = [];
+                for (const status of statuses) {
+                    state._status = status;
+                    const before = statusReads;
+                    engine.render();
+                    reads.push(statusReads - before);
+                    snapshots.push(host.childNodes.map(node => ({tag:node.localName, text:node.textContent})));
+                }
+                console.log(JSON.stringify({readyVNodes, snapshots, statusReads:reads}));
+                """
+            );
+            using var process = Process.Start(new ProcessStartInfo("node", modulePath) { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false })!;
+            var output = process.StandardOutput.ReadToEnd();
+            var error = process.StandardError.ReadToEnd();
+            process.WaitForExit();
+            Assert.True(process.ExitCode == 0, $"JavaScript conditional runtime failed:{Environment.NewLine}{error}");
             return output.Trim();
         } finally {
             if (File.Exists(modulePath)) File.Delete(modulePath);

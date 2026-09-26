@@ -58,6 +58,19 @@ namespace DProjects.XShell.Test {
         }
 
         [Fact]
+        public void CompilesElseIfWithAPlaceholderAndPreviousMatchShortCircuit() {
+            var javascript = new XTemplateCompiler().Compile("<div x-if=\"state.first\"></div><div x-elseif=\"state.second\"></div><div x-elseif=\"state.third\"></div><div x-else></div>");
+
+            Assert.DoesNotContain("? []", javascript, StringComparison.Ordinal);
+            Assert.Contains("(!_ifs.c1 && (_ifs.c1 = utils.expr.truthy(", javascript, StringComparison.Ordinal);
+            Assert.Contains("{index: 1}", javascript, StringComparison.Ordinal);
+            Assert.Contains("{index: 2}", javascript, StringComparison.Ordinal);
+            Assert.Contains("{index: 3}", javascript, StringComparison.Ordinal);
+            Assert.Contains("'x-elseif')", javascript, StringComparison.Ordinal);
+            Assert.Contains("'x-else')", javascript, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void RejectsHostGlobalsAndUsesLexicalLoopScope() {
             Assert.Throws<XTemplateExpressionSyntaxException>(() => new XTemplateCompiler().Compile("<p>{{ window.location }}</p>"));
 

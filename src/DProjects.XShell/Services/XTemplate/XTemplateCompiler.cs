@@ -154,7 +154,7 @@ namespace DProjects.XShell.Services.XTemplate {
                     postLine.Add($"] : [utils.createVDOM(\"#comment\", null, null, null, null, {{index: {index}}}, 'x-if')]),");
                     break;
                 case StructuralDirectiveKind.ElseIf:
-                    line.Clear().Append(indent).Append($"...(_ifs.c{level} ? [] : (_ifs.c{level} = utils.expr.truthy({CompileExpression(structuralDirective.Attribute!.Value, structuralDirective.Attribute.Name, element.SourceOffset, expressionScope)})) ? [utils.createVDOM({ToJavaScriptString(element.Name)}");
+                    line.Clear().Append(indent).Append($"...((!_ifs.c{level} && (_ifs.c{level} = utils.expr.truthy({CompileExpression(structuralDirective.Attribute!.Value, structuralDirective.Attribute.Name, element.SourceOffset, expressionScope)}))) ? [utils.createVDOM({ToJavaScriptString(element.Name)}");
                     postLine.Add($"] : [utils.createVDOM(\"#comment\", null, null, null, null, {{index: {index}}}, 'x-elseif')]),");
                     break;
                 case StructuralDirectiveKind.Else:
