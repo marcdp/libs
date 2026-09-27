@@ -1,0 +1,61 @@
+<style>
+    .user-card {padding: 1rem;}
+</style>
+
+<template>
+    <div class="user-card">
+        <h2>{{ user.name }}</h2>
+
+        <p x-if="user.email">
+            {{ user.email }}
+        </p>
+
+        <button x-on:click="editUser">
+            Edit
+        </button>
+    </div>
+</template>
+
+
+
+<script type="module">
+    // contract
+    export const contract = {
+        "description": "Test page for user card component",
+        "properties": {
+            "name": {
+                "type": "string",
+                "description": "Name of the user"
+            },
+            "email": {
+                "type": "string",
+                "description": "Email of the user"
+            }
+        },
+        "methods": {},
+        "events": {}
+    }
+
+    // implementation
+    export default {
+        // metadata 
+        meta: {
+            renderEngine: "x",
+            stateEngine: "proxy"
+        },
+
+        // state
+        state: {
+            value: 123
+        },
+
+        // controller
+        controller: ({ state, navigation, getPage }) => {
+            return {
+                load() {
+                    debugger;
+                }
+            };
+        }
+    };
+</script>

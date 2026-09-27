@@ -1,4 +1,6 @@
 using System.Text.Json;
+
+using DProjects.Utils;
 namespace DProjects.XShell.Services {
 
     public sealed class ModuleFileCompiler {
@@ -21,10 +23,15 @@ namespace DProjects.XShell.Services {
             public PageDefaults Page { get; init; } = new();
             public ComponentDefaults Component { get; init; } = new();
         }
+        public sealed class FileContent {
+            public string Content { get; init; } = "";
+            public string ContentType { get; init; } = "";
+        }
+
 
 
         // methods
-        public async Task<string> CompileAsync(string modulePath, string filePath) {
+        public async Task<FileContent> CompileAsync(string modulePath, string filePath) {
             // read module config
             var moduleDescriptorPath = Path.GetFullPath(modulePath);
             var configJson = await File.ReadAllTextAsync(moduleDescriptorPath);
@@ -32,7 +39,8 @@ namespace DProjects.XShell.Services {
             var config = JsonSerializer.Deserialize<Config>(configJson, new JsonSerializerOptions() {
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             });
-            if (config == null) return await File.ReadAllTextAsync(filePath);
+            var mimeType = MimeTypeUtils.GetMimeType(Path.GetExtension(filePath));
+            if (config == null) return new FileContent { ContentType = mimeType, Content = await File.ReadAllTextAsync(filePath) };
             // create the shared compilation context
             var moduleDirectory = Path.GetDirectoryName(moduleDescriptorPath);
             if (moduleDirectory == null) throw new ArgumentException("Module descriptor path must have a containing directory.", nameof(modulePath));
@@ -41,16 +49,16 @@ namespace DProjects.XShell.Services {
             var content = await File.ReadAllTextAsync(context.FilePath);
             // compile the file based on its extension
             if (Path.GetExtension(filePath).Equals(".html", StringComparison.OrdinalIgnoreCase)) {
-                content = new ModuleFileCompilerHtml().Compile(context, content);
+                return new ModuleFileCompilerHtml().Compile(context, content);
             } else if (Path.GetExtension(filePath).Equals(".md", StringComparison.OrdinalIgnoreCase)) {
-                content = new ModuleFileCompilerMarkdown().Compile(context, content);
+                return new ModuleFileCompilerMarkdown().Compile(context, content);
             } else if (Path.GetExtension(filePath).Equals(".css", StringComparison.OrdinalIgnoreCase)) {
-                content = new ModuleFileCompilerCss().Compile(context, content);
+                return new ModuleFileCompilerCss().Compile(context, content);
             } else if (Path.GetExtension(filePath).Equals(".js", StringComparison.OrdinalIgnoreCase)) {
-                content = new ModuleFileCompilerJs().Compile(context, content);
+                return new ModuleFileCompilerJs().Compile(context, content);
             };
             // return the compiled js
-            return content;
+            return new FileContent { ContentType = mimeType, Content = content };
         }
     }
 }

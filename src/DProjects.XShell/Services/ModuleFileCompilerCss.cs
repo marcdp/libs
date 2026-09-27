@@ -5,7 +5,7 @@ namespace DProjects.XShell.Services {
     public class ModuleFileCompilerCss {
 
         // methods
-        public string Compile(ModuleFileCompilerContext context, string css) {
+        public ModuleFileCompiler.FileContent Compile(ModuleFileCompilerContext context, string css) {
             ArgumentNullException.ThrowIfNull(context);
             ArgumentNullException.ThrowIfNull(css);
 
@@ -26,7 +26,7 @@ namespace DProjects.XShell.Services {
                     index++;
                 }
             }
-            return result.ToString();
+            return new ModuleFileCompiler.FileContent { ContentType = "text/css", Content = result.ToString() };
         }
 
         // methods (private)

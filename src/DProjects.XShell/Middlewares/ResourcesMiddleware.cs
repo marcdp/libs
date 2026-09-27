@@ -127,15 +127,11 @@ namespace DProjects.XShell.Middlewares {
                         return;
                     }
                     // compile to js
-                    var content = await new Services.ModuleFileCompiler().CompileAsync(moduleJson, file);
+                    var fileContent = await new Services.ModuleFileCompiler().CompileAsync(moduleJson, file);
                     // return response
-                    if (contentTypeProvider.TryGetContentType(file, out string? contentType)) {
-                        context.Response.ContentType = contentType;
-                    } else {
-                        context.Response.ContentType = "application/octet-stream";
-                    }
                     SetNoCacheHeaders(context.Response);
-                    await context.Response.WriteAsync(content);
+                    context.Response.ContentType = fileContent.ContentType;
+                    await context.Response.WriteAsync(fileContent.Content);
                 });
             }
 

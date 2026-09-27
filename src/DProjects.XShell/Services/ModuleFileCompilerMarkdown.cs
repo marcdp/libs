@@ -3,9 +3,9 @@ namespace DProjects.XShell.Services {
     public class ModuleFileCompilerMarkdown {
 
         // methods
-        public string Compile(ModuleFileCompilerContext context, string markdown) {
+        public ModuleFileCompiler.FileContent Compile(ModuleFileCompilerContext context, string markdown) {
             // TODO ...
-            return markdown;
+            return new ModuleFileCompiler.FileContent { ContentType = "text/markdown", Content = markdown };
         }
     }
 }
