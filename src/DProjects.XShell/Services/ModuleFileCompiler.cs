@@ -26,37 +26,28 @@ namespace DProjects.XShell.Services {
 
 
         // methods
-        public async Task<string> CompileToJsAsync(string modulePath, string jsPath) {
-            // load module
-            var moduleJson = FileUtils.ReadTextFile(modulePath);
-            moduleJson = DProjects.Utils.JsonUtils.RemoveComments(moduleJson);
-            var config = JsonSerializer.Deserialize<Config>(moduleJson, new JsonSerializerOptions() {
+        public async Task<string> CompileAsync(string modulePath, string filePath) {
+            // read content
+            var content = FileUtils.ReadTextFile(filePath);
+            // read module config
+            var configJson = FileUtils.ReadTextFile(modulePath);
+            configJson = DProjects.Utils.JsonUtils.RemoveComments(configJson);
+            var config = JsonSerializer.Deserialize<Config>(configJson, new JsonSerializerOptions() {
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             });
-            var content = FileUtils.ReadTextFile(jsPath);
-            // check the default render engine
-            var usesXTemplate = config?.Modules?.Values.Any(module => module.Defaults.Page.RenderEngine == "x" || module.Defaults.Component.RenderEngine == "x") == true;
-            if (usesXTemplate && Path.GetExtension(jsPath).Equals(".js", StringComparison.OrdinalIgnoreCase)) {
-                content = CompileXTemplate(content);
-            }
+            if (config == null) return content;
+            // compile the file based on its extension
+            if (Path.GetExtension(filePath).Equals(".html", StringComparison.OrdinalIgnoreCase)) {
+                content = new ModuleFileCompilerHtml().Compile(config, content);
+            } else if (Path.GetExtension(filePath).Equals(".md", StringComparison.OrdinalIgnoreCase)) {
+                content = new ModuleFileCompilerMarkdown().Compile(config, content);
+            } else if (Path.GetExtension(filePath).Equals(".css", StringComparison.OrdinalIgnoreCase)) {
+                content = new ModuleFileCompilerCss().Compile(config, content);
+            } else if (Path.GetExtension(filePath).Equals(".js", StringComparison.OrdinalIgnoreCase)) {
+                content = new ModuleFileCompilerJs().Compile(config, content, filePath);
+            };
             // return the compiled js
             return content;
         }
-
-
-        // private methods
-        private string CompileHtml(string html) {
-            // TODO ...
-            throw new NotImplementedException();
-        }
-        private string CompileMarkdown(string html) {
-            // TODO ...
-            throw new NotImplementedException();
-        }
-        private string CompileXTemplate(string js) {
-            // preserve the module source and only transform the exported component definition
-            return new Services.XTemplate.XTemplateJavaScriptCompiler(new Services.XTemplate.XTemplateCompiler()).Transform(js);
-        }
-
     }
 }

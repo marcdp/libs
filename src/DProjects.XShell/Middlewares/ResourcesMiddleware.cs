@@ -35,6 +35,7 @@ namespace DProjects.XShell.Middlewares {
             if (isDevelopment) {
                 app.Use(async (context, nextMiddleware) => {
 
+                    // validate request path
                     if (!context.Request.Path.StartsWithSegments(requestPath, out var remaining)) {
                         await nextMiddleware();
                         return;
@@ -88,7 +89,8 @@ namespace DProjects.XShell.Middlewares {
                     var relativePath = remaining.Value ?? "";
                     if (!relativePath.EndsWith(".js", StringComparison.OrdinalIgnoreCase) && 
                         !relativePath.EndsWith(".html", StringComparison.OrdinalIgnoreCase) && 
-                        !relativePath.EndsWith(".md", StringComparison.OrdinalIgnoreCase)) {
+                        !relativePath.EndsWith(".md", StringComparison.OrdinalIgnoreCase) &&
+                        !relativePath.EndsWith(".css", StringComparison.OrdinalIgnoreCase)) {
                         await nextMiddleware();
                         return;
                     }
@@ -125,11 +127,15 @@ namespace DProjects.XShell.Middlewares {
                         return;
                     }
                     // compile to js
-                    var js = await new Services.ModuleFileCompiler().CompileToJsAsync(moduleJson, file);
+                    var content = await new Services.ModuleFileCompiler().CompileAsync(moduleJson, file);
                     // return response
-                    context.Response.ContentType = "application/javascript";
+                    if (contentTypeProvider.TryGetContentType(file, out string? contentType)) {
+                        context.Response.ContentType = contentType;
+                    } else {
+                        context.Response.ContentType = "application/octet-stream";
+                    }
                     SetNoCacheHeaders(context.Response);
-                    await context.Response.WriteAsync(js);
+                    await context.Response.WriteAsync(content);
                 });
             }
 
