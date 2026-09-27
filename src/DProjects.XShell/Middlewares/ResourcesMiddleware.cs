@@ -89,7 +89,6 @@ namespace DProjects.XShell.Middlewares {
                     var relativePath = remaining.Value ?? "";
                     if (!relativePath.EndsWith(".js", StringComparison.OrdinalIgnoreCase) && 
                         !relativePath.EndsWith(".html", StringComparison.OrdinalIgnoreCase) && 
-                        !relativePath.EndsWith(".md", StringComparison.OrdinalIgnoreCase) &&
                         !relativePath.EndsWith(".css", StringComparison.OrdinalIgnoreCase)) {
                         await nextMiddleware();
                         return;
@@ -103,7 +102,12 @@ namespace DProjects.XShell.Middlewares {
                         context.Response.StatusCode = StatusCodes.Status404NotFound;
                         return;
                     }
-                    if (!File.Exists(file)) {
+                    if (extension.Equals(".js") && !File.Exists(file) && File.Exists(Path.ChangeExtension(file, ".html"))) {
+                        file = Path.ChangeExtension(file, ".html");
+                    } else if (extension.Equals(".html")) {
+                        context.Response.StatusCode = StatusCodes.Status404NotFound;
+                        return;
+                    } else if (!File.Exists(file)) {
                         context.Response.StatusCode = StatusCodes.Status404NotFound;
                         return;
                     }

@@ -50,8 +50,6 @@ namespace DProjects.XShell.Services {
             // compile the file based on its extension
             if (Path.GetExtension(filePath).Equals(".html", StringComparison.OrdinalIgnoreCase)) {
                 return new ModuleFileCompilerHtml().Compile(context, content);
-            } else if (Path.GetExtension(filePath).Equals(".md", StringComparison.OrdinalIgnoreCase)) {
-                return new ModuleFileCompilerMarkdown().Compile(context, content);
             } else if (Path.GetExtension(filePath).Equals(".css", StringComparison.OrdinalIgnoreCase)) {
                 return new ModuleFileCompilerCss().Compile(context, content);
             } else if (Path.GetExtension(filePath).Equals(".js", StringComparison.OrdinalIgnoreCase)) {

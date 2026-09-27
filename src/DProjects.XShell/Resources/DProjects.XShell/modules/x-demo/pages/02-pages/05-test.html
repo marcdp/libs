@@ -23,8 +23,8 @@
     export const contract = {
         "description": "Test page for user card component",
         "properties": {
-            "name": {"type": "string", "description": "Name of the user"},
-            "email": { "type": "string", "description": "Email of the user"}
+            "name": {"type": "string", "default": "John Doe", "description": "Name of the user", "state":true},
+            "email": { "type": "string", "default": "john.doe@example.com", "description": "Email of the user", "state":true}
         }
     }
 
@@ -38,10 +38,10 @@
             name: "John Doe",
             email: "john.doe@example.com"
         },
-        controller: ({ state, navigation, getPage }) => {
+        controller: ({ state, navigation }) => {
             return {
-                load() {
-                    debugger;
+                editUser() {
+                    alert(state.name + " - " + state.email)
                 }
             };
         }

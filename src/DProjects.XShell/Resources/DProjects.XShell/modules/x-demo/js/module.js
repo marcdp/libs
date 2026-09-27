@@ -5,7 +5,7 @@ export default class {
 
     // ctor
     constructor({ config, areas, moduleAssetsPath }) {
-        const menu = this._createMenuFromModuleFiles(files, "/pages", "Demo", ".js", moduleAssetsPath, true);
+        const menu = this._createMenuFromModuleFiles(files, "/pages", "Demo", [".js", ".html"], moduleAssetsPath, true);
         areas.registerSource("x-demo-dynamic-navigation-menu-source", {
             resolve: () => {
                 return menu;
@@ -21,8 +21,18 @@ export default class {
     }
 
     // private methods
-    _createMenuFromModuleFiles(files, root, rootItemLabel, extension, assetsPrefix, createPaths) {
+    _createMenuFromModuleFiles(files, root, rootItemLabel, extensions, assetsPrefix, createPaths) {
         const paths = new Set(files.map(file => file.path));
+
+        const getExtension = (path) =>
+            extensions.find(extension => path.endsWith(extension));
+
+        const toRuntimePath = (path) => {
+            const extension = getExtension(path);
+            return extension
+                ? path.substring(0, path.length - extension.length) + ".js"
+                : path;
+        };
 
         const toTitle = (name) => name
             .replace(/^\d+-/, "")
@@ -39,33 +49,41 @@ export default class {
             return match ? Number(match[1]) : Number.MAX_SAFE_INTEGER;
         };
 
-        const createPath = (parts) => "/" + parts.map(toPathPart).filter(Boolean).join("/");
+        const createPath = (parts) =>
+            "/" + parts.map(toPathPart).filter(Boolean).join("/");
 
         const ensureNode = (items, name, href = null, pathParts = []) => {
-            let node = items.find(item => item._name === name);
+            let node = items.find(item => item._name === toPathPart(name));
 
             if (!node) {
                 node = {
-                    _name: name,
+                    _name: toPathPart(name),
                     _order: getOrder(name),
                     label: toTitle(name),
-                    href: href ? assetsPrefix + href : null,
+                    href: href ? assetsPrefix + toRuntimePath(href) : null,
                     ...(createPaths ? { path: createPath(pathParts) } : {}),
                     children: []
                 };
 
                 items.push(node);
+            } else if (href) {
+                node.href = assetsPrefix + toRuntimePath(href);
             }
 
             return node;
         };
 
-        // Root menu item is /pages/index.js.
-        const rootIndexPath = `${root}/index${extension}`;
+        // Root menu item may physically be index.js or index.html,
+        // but its runtime URL is always index.js.
+        const rootIndex = files.find(file =>
+            extensions.some(extension =>
+                file.path === `${root}/index${extension}`
+            )
+        );
 
         const rootItem = {
             label: rootItemLabel,
-            href: assetsPrefix + rootIndexPath,
+            href: assetsPrefix + `${root}/index.js`,
             ...(createPaths ? { path: "/" } : {}),
             default: true,
             children: []
@@ -75,10 +93,11 @@ export default class {
 
         for (const file of files) {
             if (!file.path.startsWith(root + "/")) continue;
-            if (!file.path.endsWith(extension)) continue;
 
-            // Root index file already represents the top-level menu item.
-            if (file.path === rootIndexPath) continue;
+            const extension = getExtension(file.path);
+            if (!extension) continue;
+
+            if (rootIndex && file.path === rootIndex.path) continue;
 
             const relative = file.path.substring(root.length + 1);
             const parts = relative.split("/");
@@ -89,26 +108,46 @@ export default class {
                 const isFile = i === parts.length - 1;
 
                 if (isFile) {
-                    // Directory index file is represented by the directory node itself.
-                    if (part === `index${extension}`) continue;
+                    if (extensions.some(ext => part === `index${ext}`)) continue;
 
-                    ensureNode(items, part, file.path, parts.slice(0, i + 1));
+                    ensureNode(
+                        items,
+                        part,
+                        file.path,
+                        parts.slice(0, i + 1)
+                    );
+
                     continue;
                 }
 
-                const node = ensureNode(items, part, null, parts.slice(0, i + 1));
+                const node = ensureNode(
+                    items,
+                    part,
+                    null,
+                    parts.slice(0, i + 1)
+                );
 
                 const directory = parts.slice(0, i + 1).join("/");
-                const indexPath = `${root}/${directory}/index${extension}`;
 
-                if (paths.has(indexPath)) node.href = assetsPrefix + indexPath;
+                const indexFile = files.find(file =>
+                    extensions.some(ext =>
+                        file.path === `${root}/${directory}/index${ext}`
+                    )
+                );
+
+                if (indexFile) {
+                    node.href = assetsPrefix + toRuntimePath(indexFile.path);
+                }
 
                 items = node.children;
             }
         }
 
         const clean = (items) => items
-            .sort((a, b) => a._order - b._order || a.label.localeCompare(b.label))
+            .sort((a, b) =>
+                a._order - b._order ||
+                a.label.localeCompare(b.label)
+            )
             .map(({ _name, _order, children, ...item }) => ({
                 ...item,
                 ...(children.length ? { children: clean(children) } : {})
