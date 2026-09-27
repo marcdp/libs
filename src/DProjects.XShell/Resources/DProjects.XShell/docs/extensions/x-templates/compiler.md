@@ -90,9 +90,10 @@ Collection-taking directives use equivalent normalization in the browser `utils.
 items, finite non-negative integers yield `1..N`, strings yield Unicode code points, and objects yield exposed member names; booleans, invalid numbers,
 and unsupported values remain errors. Templates therefore use the collection expression directly without a template-side null-coalescing workaround.
 
-The common render-engine factory signature remains `(template, context, templateRenderer)`. The first argument is retained for consistency with plain,
-Markdown, and other engines. `x.js` does not parse that source: it interprets the third argument, exposes immutable normalized `dependencies` and
-`slots`, and executes `render`. Dependency metadata retains ancestor paths so `x.js` can apply the configured `context.componentLazy` boundary without
+The common render-engine factory signature remains `(template, context, templateRenderer)`. The first argument is retained for consistency with the
+`html`, `markdown`, and other engines. `x.js` does not parse that source: it interprets the third argument, exposes immutable normalized
+`dependencies` and `slots`, and executes `render`. Dependency metadata retains ancestor paths so `x.js` can apply the configured
+`context.componentLazy` boundary without
 scanning DOM. Slots remain static metadata even below lazy or structural directives. Descendants of `x-pre` are opaque and contribute neither kind of
 metadata.
 

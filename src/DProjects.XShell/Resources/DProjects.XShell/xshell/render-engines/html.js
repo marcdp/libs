@@ -1,7 +1,7 @@
 import {rewriteDocumentUrls} from "../utils/rewriteDocumentUrls.js";
 
 // export
-export class RenderEnginePlain {
+export class RenderEngineHtml {
 	
 	// ctor
 	constructor({ host, template, state }){
@@ -22,7 +22,7 @@ export class RenderEnginePlain {
 
 
 }
-export default function createRenderEngineFactoryPlain(template, context, templateRenderer) {
+export default function createRenderEngineFactoryHtml(template, context, templateRenderer) {
 	void templateRenderer;
 	// template
 	const templateElement = document.createElement("TEMPLATE");
@@ -43,7 +43,7 @@ export default function createRenderEngineFactoryPlain(template, context, templa
 			rewriteDocumentUrls(templateElement.content, context);
 		},
 		create: ({host, state}) => {
-			return new RenderEnginePlain({ host, template: templateElement, state });
+			return new RenderEngineHtml({ host, template: templateElement, state });
 		}
 	};
 }

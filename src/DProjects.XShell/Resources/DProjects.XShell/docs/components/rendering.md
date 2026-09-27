@@ -31,6 +31,18 @@ and declared `slots` as normalized metadata for generic loaders; engines without
 For the `x` engine, `templateRenderer` is a server-compiled artifact containing `render`, `dependencies`, and `slots`. The `template` parameter remains
 present for cross-engine consistency, but the browser `x` engine does not parse it.
 
+## Built-in engines
+
+| Engine | Template format |
+| --- | --- |
+| `html` | Standard HTML templates |
+| `markdown` | Markdown templates |
+| `x` | XShell X-template syntax |
+
+The `html` engine does not provide a template-expression language. It parses and mounts standard HTML templates. This does not mean that content is
+completely untouched: before mounting, XShell still performs framework-level processing such as dependency discovery and rewriting module-relative
+resource and navigation URLs.
+
 ## Command bridge
 
 A render engine can be given a callback such as:
