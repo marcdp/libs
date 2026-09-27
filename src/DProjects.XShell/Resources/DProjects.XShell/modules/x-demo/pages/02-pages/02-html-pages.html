@@ -1,21 +1,13 @@
-<style>
-    .user-card {padding: 1rem;}
-</style>
-
 <template>
-    <div class="user-card">
-        <h2>{{ state.name }}</h2>
+    <h2>{{ state.name }}</h2>
 
-        <p x-if="state.email">
-            {{ state.email }}
-        </p>
+    <p x-if="state.email">
+        {{ state.email }}
+    </p>
 
-        <button x-on:click="editUser">
-            Edit
-        </button>
-    </div>
+    <button x-on:click="editUser">Edit</button>
+    
 </template>
-
 
 
 <script type="module">

@@ -1,6 +1,6 @@
 // contract
 export const contract = {
-    description: "Pages html page",
+    description: "Pages javascript page",
     events: {},
     properties: {},
     methods: {}
@@ -10,13 +10,20 @@ export const contract = {
 export default {
     template: `
         <p>
-            this is the pages html page
+            This is a sample js page
         </p>
+
+        <pre>{{ state.content }}</pre>
     `,    
+    state: {
+        content: "This should be the content of the current file"
+    },
     controller({ state }) {
         return {
             load(params) {
                // load
+               // TODO 
+               // state.content = ....
             }
         };
     }

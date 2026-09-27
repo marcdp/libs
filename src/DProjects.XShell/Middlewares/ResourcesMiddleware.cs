@@ -79,7 +79,7 @@ namespace DProjects.XShell.Middlewares {
                 });
             }
 
-            // compile files .js, .html and .md, to .js files
+            // compile module resources during development
             if (isDevelopment) {
                 app.Use(async (context, nextMiddleware) => {
                     if (!context.Request.Path.StartsWithSegments(requestPath, out var remaining)) {
@@ -102,8 +102,19 @@ namespace DProjects.XShell.Middlewares {
                         context.Response.StatusCode = StatusCodes.Status404NotFound;
                         return;
                     }
-                    if (extension.Equals(".js") && !File.Exists(file) && File.Exists(Path.ChangeExtension(file, ".html"))) {
-                        file = Path.ChangeExtension(file, ".html");
+                    if (extension.Equals(".js")) {
+                        var htmlFile = Path.ChangeExtension(file, ".html");
+                        var jsExists = File.Exists(file);
+                        var htmlExists = File.Exists(htmlFile);
+                        if (jsExists && htmlExists) {
+                            throw new InvalidOperationException($"Conflicting development resources '{file}' and '{htmlFile}' both resolve to '{relativePath}'.");
+                        }
+                        if (!jsExists && htmlExists) {
+                            file = htmlFile;
+                        } else if (!jsExists) {
+                            context.Response.StatusCode = StatusCodes.Status404NotFound;
+                            return;
+                        }
                     } else if (extension.Equals(".html")) {
                         context.Response.StatusCode = StatusCodes.Status404NotFound;
                         return;

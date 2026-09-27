@@ -22,8 +22,6 @@ export default class {
 
     // private methods
     _createMenuFromModuleFiles(files, root, rootItemLabel, extensions, assetsPrefix, createPaths) {
-        const paths = new Set(files.map(file => file.path));
-
         const getExtension = (path) =>
             extensions.find(extension => path.endsWith(extension));
 
