@@ -9,6 +9,7 @@
 
     <ItemGroup>
         <Content Include="Resources\**\*" CopyToOutputDirectory="PreserveNewest" />
+        <Compile Remove="Tests\**\*.cs" />
     </ItemGroup>
     
     <ItemGroup>

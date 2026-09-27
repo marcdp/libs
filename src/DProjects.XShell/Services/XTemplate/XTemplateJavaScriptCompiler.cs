@@ -44,6 +44,27 @@ namespace DProjects.XShell.Services.XTemplate {
             var prefix = separator ? "" : ",";
             return source[..insertionOffset] + prefix + newline + indentation + "templateRenderer: " + renderer + "," + source[insertionOffset..];
         }
+        public static string InsertDefaultExportProperties(string source, IReadOnlyList<KeyValuePair<string, string>> properties, IReadOnlyList<string> reservedPropertyNames) {
+            ArgumentNullException.ThrowIfNull(source);
+            ArgumentNullException.ThrowIfNull(properties);
+            ArgumentNullException.ThrowIfNull(reservedPropertyNames);
+
+            // locate the actual default export without interpreting strings or comments as source structure
+            var tokens = JavaScriptLexer.Tokenize(source);
+            var export = RequireDefaultExportObject(tokens);
+            foreach (var propertyName in reservedPropertyNames) {
+                if (HasTopLevelProperty(tokens, export.OpenBraceIndex, export.CloseBraceIndex, propertyName)) {
+                    throw new InvalidOperationException($"The HTML X Template module default export already declares '{propertyName}'. The HTML section is authoritative.");
+                }
+            }
+
+            // insert the generated static properties without reconstructing the surrounding module source
+            var newline = source.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";
+            var indentation = GetLineIndentation(source, tokens[export.OpenBraceIndex].Start) + "    ";
+            var insertion = new StringBuilder();
+            foreach (var property in properties) insertion.Append(newline).Append(indentation).Append(property.Key).Append(": ").Append(property.Value).Append(',');
+            return source[..tokens[export.OpenBraceIndex].End] + insertion + source[tokens[export.OpenBraceIndex].End..];
+        }
 
         // methods (private)
         private static string SerializeArtifact(XTemplateCompileResult artifact) {
@@ -62,6 +83,39 @@ namespace DProjects.XShell.Services.XTemplate {
                 return new ExportObject(index + 2, closeBrace);
             }
             return null;
+        }
+        private static ExportObject RequireDefaultExportObject(IReadOnlyList<Token> tokens) {
+            for (var index = 0; index + 1 < tokens.Count; index++) {
+                if (!tokens[index].Is("export") || !tokens[index + 1].Is("default")) continue;
+                if (index + 2 >= tokens.Count || !tokens[index + 2].Is("{")) {
+                    throw new InvalidOperationException("The HTML X Template module default export must be an object literal.");
+                }
+                var closeBrace = FindMatchingToken(tokens, index + 2, "{", "}");
+                if (closeBrace < 0) throw new InvalidOperationException($"Malformed JavaScript: exported component object at offset {tokens[index + 2].Start} is not closed.");
+                return new ExportObject(index + 2, closeBrace);
+            }
+            throw new InvalidOperationException("The HTML X Template module script must contain a default export whose value is an object literal.");
+        }
+        private static bool HasTopLevelProperty(IReadOnlyList<Token> tokens, int openBraceIndex, int closeBraceIndex, string propertyName) {
+            var index = openBraceIndex + 1;
+            while (index < closeBraceIndex) {
+                if (tokens[index].Is(",")) { index++; continue; }
+                var separator = FindPropertySeparator(tokens, index, closeBraceIndex);
+                var end = separator >= 0 ? separator : closeBraceIndex;
+                if (GetExplicitPropertyName(tokens, index, end) == propertyName) return true;
+                index = separator >= 0 ? separator + 1 : closeBraceIndex;
+            }
+            return false;
+        }
+        private static string? GetExplicitPropertyName(IReadOnlyList<Token> tokens, int start, int end) {
+            if (start >= end) return null;
+            if (tokens[start].Is("get") || tokens[start].Is("set") || tokens[start].Is("async")) start++;
+            if (start < end && tokens[start].Is("*")) start++;
+            if (start >= end) return null;
+            if (tokens[start].Is("[") && start + 2 < end && tokens[start + 2].Is("]") && tokens[start + 1].Kind == TokenKind.String) {
+                return DecodeQuotedString(tokens[start + 1].Text);
+            }
+            return GetPropertyName(tokens[start]);
         }
 
         private static List<ObjectProperty> ReadTopLevelProperties(IReadOnlyList<Token> tokens, int openBraceIndex, int closeBraceIndex) {
