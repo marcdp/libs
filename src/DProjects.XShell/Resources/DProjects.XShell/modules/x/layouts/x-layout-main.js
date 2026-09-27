@@ -265,7 +265,7 @@ export default {
                     <h1>
                         <x-page-title></x-page-title>
                     </h1>
-                    <x-page-description></x-page-description>
+                    <x-page-description></x-page-description>                   
                     <slot></slot>
                 </div>
             </main>
