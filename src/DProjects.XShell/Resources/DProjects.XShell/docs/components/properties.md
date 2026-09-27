@@ -16,8 +16,9 @@ default through `definition.state`.
 
 ## Attributes
 
-Current contract metadata can mark a property with `attribute`. Runtime state definitions separately use `attr` to observe an HTML attribute and
-`reflect` to propagate selected state changes back to an attribute.
+Contract metadata can expose a property through `attribute`, while `reflect` controls whether changes are propagated back to explicitly enabled
+external representations such as attributes and, for Pages, query parameters. Runtime state definitions separately use `attr` to observe an
+HTML attribute; that mechanism is distinct from the contract-level `reflect` flag.
 
 Contract property metadata includes `type`, `default`, `state`, `attribute`, `reflect`, `query`, `required`, `readonly`, `enum`, and
 `description` where applicable. The shared contract schema validates the metadata shape; Page-specific rules for `query` are enforced by the Page
