@@ -23,6 +23,10 @@ Bootstrap generates conventional rules for module icons, layouts, components, pa
 `resolver.js` reads nested `config.xshell.resolver` rule objects. Bootstrap adds defaults for each canonical module id after merging. Resolver
 matching and loader dispatch still require the usual resource URL and loader metadata.
 
+Resolver entries may set `cache: true` and optionally select `cacheMode: "full"` or `cacheMode: "path"`. The default `full` mode includes the query
+in Loader cache identity. The `path` mode excludes the query from cache identity without changing resolution or the URL passed to the
+resource-specific loader. Bootstrap uses `path` for its generated Page rules; unrelated generated rules retain the default `full` behavior.
+
 ## Declarative component and Page dependencies
 
 Values in a Component or Page implementation's `dependencies` object are ordinary logical resource references, such as

@@ -27,6 +27,29 @@ class LoaderException extends AggregateError {
 const loaders = {
 };
 
+// utils
+function removeQuery(resource) {
+    // remove only the URL query while preserving the logical resource scheme and fragment
+    const queryIndex = resource.indexOf("?");
+    const fragmentIndex = resource.indexOf("#");
+    if (queryIndex === -1 || (fragmentIndex !== -1 && queryIndex > fragmentIndex)) {
+        return resource;
+    }
+    return resource.substring(0, queryIndex) + (fragmentIndex === -1 ? "" : resource.substring(fragmentIndex));
+}
+function getCacheKey(resource, definition) {
+    // select cache identity without changing the resource passed through resolution and loading
+    const cacheMode = definition.cacheMode ?? "full";
+    switch (cacheMode) {
+        case "full":
+            return resource;
+        case "path":
+            return removeQuery(resource);
+        default:
+            throw new Error(`Unsupported cache mode '${cacheMode}'.`);
+    }
+}
+
 // class
 export default class Loader {
 
@@ -59,7 +82,7 @@ export default class Loader {
     get registry() { 
         let result = [];
         for(let item of this._registry){
-            result.push({ resource: item.resource, src: item.src, status: item.status });
+            result.push({ resource: item.resource, src: item.url, status: item.status });
         }
         return Object.freeze(result);
     }
@@ -88,6 +111,7 @@ export default class Loader {
                 throw new LoaderException([new Error(`Resource not found: ${resource}`)]);
             }
             let {definition, url, path} = definitionObject;
+            const cacheKey = getCacheKey(resource, definition);
             urls.push(url);
             paths.push(path);
             // get or load handler
@@ -106,7 +130,7 @@ export default class Loader {
                 loader = loaderToUse;
             }
             // check cache
-            let cacheItem = this._cache[resource];
+            let cacheItem = this._cache[cacheKey];
             if (cacheItem) {
                 if (cacheItem.promise) {
                     tasks.push({index: result.length, promise: cacheItem.promise});
@@ -144,7 +168,7 @@ export default class Loader {
                     return value;
                 })();
                 if (definition.cache) {
-                    this._cache[resource] = {
+                    this._cache[cacheKey] = {
                         value: null,
                         promise
                     };

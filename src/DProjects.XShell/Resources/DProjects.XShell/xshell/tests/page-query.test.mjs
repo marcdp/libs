@@ -155,14 +155,21 @@ test("The controller and load lifecycle see query-derived state", async () => {
 
 test("query values are isolated between Page instances", async () => {
     configureDefinitionLoaders();
-    const PageClass = await createPageClassFromJsDefinition("/page.js", createContext(), createDefinition(), createContract({
+    const observedQueryIds = [];
+    const PageClass = await createPageClassFromJsDefinition("/page.js", createContext(), createDefinition(({ query }) => {
+        observedQueryIds.push(query.get("id"));
+        return {};
+    }), createContract({
         id: { type: "string", default: "", state: true, query: true }
     }));
     const pageA = new PageClass({ src: "/page.js?id=A", context: {} });
     const pageB = new PageClass({ src: "/page.js?id=B", context: {} });
 
+    assert.equal(pageA.src, "/page.js?id=A");
+    assert.equal(pageB.src, "/page.js?id=B");
     assert.equal(pageA._state.id, "A");
     assert.equal(pageB._state.id, "B");
+    assert.deepEqual(observedQueryIds, ["A", "B"]);
 });
 
 test("the shared schema accepts query booleans and rejects other query values", async () => {

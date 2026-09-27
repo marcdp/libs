@@ -362,6 +362,7 @@
         "url": {"type": "string", "description": "Concrete resource URL or URL template."},
         "loader": {"type": "string", "description": "Loader used to load the resolved resource."},
         "cache": {"type": "boolean", "description": "Whether the resolved resource may be cached."},
+        "cacheMode": {"type": "string", "enum": ["full", "path"], "default": "full", "description": "Cache identity strategy. Full includes the query; path excludes it."},
         "moduleId": {"type": "string", "description": "Identifier of the module that owns the resource."},
         "modulePath": {"type": "string", "description": "Virtual asset path of the module that owns the resource."}
       },

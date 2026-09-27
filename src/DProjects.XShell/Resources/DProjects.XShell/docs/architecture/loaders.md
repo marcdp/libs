@@ -33,6 +33,22 @@ page-js
     → load or build a Page component
 ```
 
+## Cache identity
+
+A resolver rule can opt into Loader caching and choose how the logical resource reference contributes to cache identity:
+
+```js
+{ cache: true, cacheMode: "full" }
+{ cache: true, cacheMode: "path" }
+```
+
+`full` is the default when `cacheMode` is omitted. It uses the full logical resource reference, including its query, so `object:/data.json?page=1`
+and `object:/data.json?page=2` remain separate cache entries. `path` excludes only the query from cache identity, so query variants share the same
+cached value and any in-flight load promise. The logical resource scheme is preserved, and fragments remain part of identity.
+
+`cacheMode` affects only the Loader's internal cache key. It does not rewrite the requested resource, resolved URL, registry diagnostics, or values
+such as a Page instance's `src`. Use `path` only for resource types whose implementation identity is genuinely independent of query state.
+
 ## Flow
 
 ```text
@@ -94,6 +110,9 @@ loader=page-js
     ↓
 Page component
 ```
+
+Generated Page resolver rules use `cacheMode: "path"`: the Page implementation is identified by its path, while each Page instance retains the full
+navigation `src` and query.
 
 ## Loader vs resource-specific loader
 

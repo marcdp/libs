@@ -139,6 +139,12 @@ and embedded Pages may update their local `Page.src` query without changing the 
 Query reflection changes query state, not the Page resource. The navigation DOM synchronizer continues to compare stack item `href` values, so a
 query-only change keeps the same Page instance and lifecycle alive.
 
+Generated Page resolver rules use `cache: true` with `cacheMode: "path"`. This makes Page implementation identity path-based: Page URLs that differ
+only by query reuse the same cached implementation/class. Page instance and navigation identity remain the complete path plus query. `x-page`
+therefore constructs each instance with its original full `src`, and `controller({ query })`, `query: true` initialization, and query reflection all
+continue to use that instance-specific query. The Resolver already removes query before producing the URL passed to `page-js`, so JavaScript Page
+modules are imported by path rather than creating query-specific browser module identities.
+
 Definition-based Pages use the same public-property and state-default rule as components and layouts: `contract.properties[*].default` is
 canonical for public properties, while `definition.state` supplies private/internal defaults. A state-backed public property may be repeated in
 `definition.state` only with a structurally equal value; a non-state-backed public property may not be repeated there.
