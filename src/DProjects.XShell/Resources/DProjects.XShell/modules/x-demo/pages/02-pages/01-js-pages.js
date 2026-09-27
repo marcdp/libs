@@ -8,6 +8,9 @@ export const contract = {
 
 // export page
 export default {
+    dependencies: {
+        code: "string:/_assets/x-demo/pages/02-pages/01-js-pages.js"
+    },
     template: `
         <p>
             This is a sample js page
@@ -18,12 +21,11 @@ export default {
     state: {
         content: "This should be the content of the current file"
     },
-    controller({ state }) {
+    controller({ state, dependencies }) {
         return {
             load(params) {
                // load
-               // TODO 
-               // state.content = ....
+               state.content = dependencies.code;
             }
         };
     }

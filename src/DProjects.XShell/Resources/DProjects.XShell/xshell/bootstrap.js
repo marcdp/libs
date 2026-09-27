@@ -157,7 +157,8 @@ async function loadConfig() {
         resolver.module[`/${assetsPrefix}/${moduleId}/{path}.js`] = resolver.module[`/${assetsPrefix}/${moduleId}/{path}.js`] || { url: `/${assetsPrefix}/${moduleId}/{path}.js`, loader: 'module-js', cache: true, moduleId: moduleId, modulePath: `/${assetsPrefix}/${moduleId}`};
         resolver.style = resolver.style || {};
         resolver.style[`/${assetsPrefix}/${moduleId}/{path}.css`] = resolver.style[`/${assetsPrefix}/${moduleId}/{path}.css`] || { url: `/${assetsPrefix}/${moduleId}/{path}.css`, loader: 'style-css', cache: true, moduleId: moduleId, modulePath: `/${assetsPrefix}/${moduleId}`};
-    }
+        resolver.string = resolver.string || {};
+        resolver.string[`/${assetsPrefix}/${moduleId}/{path}`] = resolver.string[`/${assetsPrefix}/${moduleId}/{path}`] || { url: `/${assetsPrefix}/${moduleId}/{path}`, loader: 'string', cache: true, moduleId: moduleId, modulePath: `/${assetsPrefix}/${moduleId}`};    }
 
     // console
     console.log("Config:", configMerged);
