@@ -1,6 +1,9 @@
 namespace DProjects.XShell.Services {
+
     public class ModuleFileCompilerJsXTemplate {
-        public string Compile(ModuleFileCompiler.Config config, string js, string filePath) {
+
+        // methods
+        public string Compile(ModuleFileCompilerContext context, string js) {
             // compile js file with x template
             return new Services.XTemplate.XTemplateJavaScriptCompiler(new Services.XTemplate.XTemplateCompiler()).Transform(js);
         }

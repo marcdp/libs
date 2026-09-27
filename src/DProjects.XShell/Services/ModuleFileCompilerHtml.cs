@@ -1,6 +1,9 @@
 namespace DProjects.XShell.Services {
+
     public class ModuleFileCompilerHtml {
-        public string Compile(ModuleFileCompiler.Config config, string html) {
+
+        // methods
+        public string Compile(ModuleFileCompilerContext context, string html) {
             // TODO ...
             return html;
         }

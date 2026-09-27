@@ -1,6 +1,9 @@
 namespace DProjects.XShell.Services {
+
     public class ModuleFileCompilerCss {
-        public string Compile(ModuleFileCompiler.Config config, string css) {
+
+        // methods
+        public string Compile(ModuleFileCompilerContext context, string css) {
             // TODO ...
             return css;
         }
