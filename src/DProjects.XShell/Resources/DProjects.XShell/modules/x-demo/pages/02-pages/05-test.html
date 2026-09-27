@@ -30,19 +30,14 @@
 
     // implementation
     export default {
-        // metadata 
         meta: {
             renderEngine: "x",
             stateEngine: "proxy"
         },
-
-        // state
         state: {
             name: "John Doe",
             email: "john.doe@example.com"
         },
-
-        // controller
         controller: ({ state, navigation, getPage }) => {
             return {
                 load() {

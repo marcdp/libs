@@ -20,6 +20,7 @@ namespace DProjects.XShell.Services {
             var sections = ReadSections(html);
             if (sections.Template == null) throw new InvalidOperationException("An HTML X Template must contain exactly one <template> element.");
             var moduleScript = sections.ModuleScript ?? "export default {};";
+            moduleScript = moduleScript.Trim().Replace("\n    ", "\n", StringComparison.Ordinal);
 
             // insert static source properties into the canonical JavaScript definition
             var properties = new List<KeyValuePair<string, string>>();
@@ -49,11 +50,13 @@ namespace DProjects.XShell.Services {
                     var close = FindRawTextCloseTag(html, tag.End, "style");
                     if (style != null) throw new InvalidOperationException("An HTML X Template cannot contain multiple <style> elements.");
                     style = html[tag.End..close.Start];
+                    style = style.Replace("\n", "\n    ", StringComparison.Ordinal);
                     position = close.End;
                 } else if (tag.Name == "template") {
                     var close = FindTemplateCloseTag(html, tag.End);
                     if (template != null) throw new InvalidOperationException("An HTML X Template cannot contain multiple <template> elements.");
                     template = html[tag.End..close.Start];
+                    template = template.Replace("\n", "\n    ", StringComparison.Ordinal);
                     position = close.End;
                 }
             }

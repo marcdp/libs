@@ -46,17 +46,17 @@ namespace DProjects.XShell.Services.XTemplate {
             var slots = new List<string>();
             CollectMetadata(root, [], dependencies, slots, new HashSet<string>(StringComparer.Ordinal));
             var body = new List<string> {
-                indent + "let _ifs = {};",
-                indent + "let func;",
-                indent + "return ["
+                indent + "    let _ifs = {};",
+                indent + "    let func;",
+                indent + "    return ["
             };
             var index = 0;
             var scope = new XTemplateExpressionJavaScriptScope(["state"]);
             foreach (var node in root.Children) {
                 index += CompileNode(node, index, body, 1, scope);
             }
-            body.Add(indent + "];");
-            var javascript = "(state, handler, invalidate, utils, i18n, renderCount) => {\n" + indent + string.Join("\n" + indent, body) + "\n" + indent + "}";
+            body.Add(indent + "    ];");
+            var javascript = "(state, handler, invalidate, utils, i18n, renderCount) => {\n" + indent + string.Join("\n" + indent, body) + "\n" + indent + "    }";
             var compiledDependencies = dependencies.Select(item => new XTemplateDependency(item.Key, item.Value)).ToArray();
             return new XTemplateCompileResult(javascript, compiledDependencies, slots);
         }
@@ -97,7 +97,7 @@ namespace DProjects.XShell.Services.XTemplate {
             }
         }
         private int CompileNode(TemplateNode node, int index, List<string> javascript, int level, XTemplateExpressionJavaScriptScope scope) {
-            var indent = new string(' ', (level + 1) * 4);
+            var indent = new string(' ', (level + 2) * 4);
             if (node is TextNode textNode) {
                 javascript.Add($"{indent}utils.createVDOM(\"#text\", null, null, null, null, {{index: {index}}}, {ToJavaScriptString(textNode.Text)}),");
                 return 1;

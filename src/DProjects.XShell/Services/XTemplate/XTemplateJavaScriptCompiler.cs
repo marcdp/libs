@@ -71,8 +71,7 @@ namespace DProjects.XShell.Services.XTemplate {
             var dependencies = artifact.Dependencies.Select(dependency =>
                 "{resource:" + JsonSerializer.Serialize(dependency.Resource) + ",ancestorPaths:[" +
                 string.Join(',', dependency.AncestorPaths.Select(path => "[" + string.Join(',', path.Select(value => JsonSerializer.Serialize(value))) + "]")) + "]}");
-            return "{render:" + artifact.RenderJavaScript + ",dependencies:[" + string.Join(',', dependencies) + "],slots:[" +
-                string.Join(',', artifact.Slots.Select(value => JsonSerializer.Serialize(value))) + "]}";
+            return "{\n        render:" + artifact.RenderJavaScript + ",\n        dependencies:[" + string.Join(',', dependencies) + "],\n        slots:[" + string.Join(',', artifact.Slots.Select(value => JsonSerializer.Serialize(value))) + "]\n    }";
         }
         private static ExportObject? FindDefaultExportObject(IReadOnlyList<Token> tokens) {
             for (var index = 0; index + 2 < tokens.Count; index++) {
