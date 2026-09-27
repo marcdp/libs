@@ -77,6 +77,12 @@ browser runtime
     → executes the precompiled render function
 ```
 
+An HTML X Template requires exactly one `<template>` section. It may also contain at most one `<style>` section and at most one
+`<script type="module">` section. When the module script is omitted, the HTML compiler supplies `export default {};`, injects the HTML-owned `template`
+and optional `style` properties into that definition, and continues through the same JavaScript and XTemplate compilation pipeline used for an explicit
+module script. An explicitly authored module script must still contain a default-exported object literal; an empty or otherwise invalid script is a
+compilation error.
+
 This direction removes the need for runtime template compilation and improves Content Security Policy compatibility. `new Function(...)` is a
 historical/current mechanism of the browser-side compiler, not an XTemplate language feature or a requirement of precompiled templates.
 

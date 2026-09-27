@@ -6,6 +6,11 @@ namespace DProjects.XShell.Services {
 
     public class ModuleFileCompilerHtml {
 
+        // inner classes
+        private readonly record struct HtmlTag(string Name, int End, string Source);
+        private readonly record struct HtmlCloseTag(int Start, int End);
+        private sealed record Sections(string? Style, string? Template, string? ModuleScript);
+
         // methods
         public ModuleFileCompiler.FileContent Compile(ModuleFileCompilerContext context, string html) {
             ArgumentNullException.ThrowIfNull(context);
@@ -14,20 +19,20 @@ namespace DProjects.XShell.Services {
             // extract the developer-facing HTML sections
             var sections = ReadSections(html);
             if (sections.Template == null) throw new InvalidOperationException("An HTML X Template must contain exactly one <template> element.");
-            if (sections.ModuleScript == null) throw new InvalidOperationException("An HTML X Template must contain exactly one <script type=\"module\"> element.");
+            var moduleScript = sections.ModuleScript ?? "export default {};";
 
             // insert static source properties into the canonical JavaScript definition
             var properties = new List<KeyValuePair<string, string>>();
             if (sections.Style != null) properties.Add(new KeyValuePair<string, string>("style", EncodeTemplateLiteral(sections.Style)));
             properties.Add(new KeyValuePair<string, string>("template", EncodeTemplateLiteral(sections.Template)));
-            var js = XTemplateJavaScriptCompiler.InsertDefaultExportProperties(sections.ModuleScript, properties, ["style", "template"]);
+            var js = XTemplateJavaScriptCompiler.InsertDefaultExportProperties(moduleScript, properties, ["style", "template"]);
 
             // delegate canonical JavaScript processing to the existing compiler pipeline
             return new ModuleFileCompilerJs().Compile(context, js);
         }
 
         // methods (private)
-        private static Sections ReadSections(string html) {
+        private Sections ReadSections(string html) {
             string? style = null;
             string? template = null;
             string? moduleScript = null;
@@ -54,7 +59,7 @@ namespace DProjects.XShell.Services {
             }
             return new Sections(style, template, moduleScript);
         }
-        private static bool TryReadNextStartTag(string html, ref int position, out HtmlTag tag) {
+        private bool TryReadNextStartTag(string html, ref int position, out HtmlTag tag) {
             while (position < html.Length) {
                 var start = html.IndexOf('<', position);
                 if (start < 0) break;
@@ -79,7 +84,7 @@ namespace DProjects.XShell.Services {
             tag = default;
             return false;
         }
-        private static HtmlCloseTag FindRawTextCloseTag(string html, int position, string name) {
+        private HtmlCloseTag FindRawTextCloseTag(string html, int position, string name) {
             while (position < html.Length) {
                 var start = html.IndexOf("</", position, StringComparison.Ordinal);
                 if (start < 0) break;
@@ -94,7 +99,7 @@ namespace DProjects.XShell.Services {
             }
             throw new InvalidOperationException($"Malformed HTML: <{name}> element is not closed.");
         }
-        private static HtmlCloseTag FindTemplateCloseTag(string html, int position) {
+        private HtmlCloseTag FindTemplateCloseTag(string html, int position) {
             var depth = 1;
             while (position < html.Length) {
                 var start = html.IndexOf('<', position);
@@ -128,7 +133,7 @@ namespace DProjects.XShell.Services {
             }
             throw new InvalidOperationException("Malformed HTML: <template> element is not closed.");
         }
-        private static int FindTagEnd(string html, int position, int tagStart) {
+        private int FindTagEnd(string html, int position, int tagStart) {
             char quote = '\0';
             while (position < html.Length) {
                 var character = html[position++];
@@ -142,7 +147,7 @@ namespace DProjects.XShell.Services {
             }
             throw new InvalidOperationException($"Malformed HTML: tag at offset {tagStart} is not closed.");
         }
-        private static bool IsModuleScript(string tag) {
+        private bool IsModuleScript(string tag) {
             var position = 1;
             while (position < tag.Length && !char.IsWhiteSpace(tag[position]) && tag[position] != '>') position++;
             while (position < tag.Length) {
@@ -173,7 +178,7 @@ namespace DProjects.XShell.Services {
             }
             return false;
         }
-        private static string EncodeTemplateLiteral(string value) {
+        private string EncodeTemplateLiteral(string value) {
             var result = new StringBuilder(value.Length + 2).Append('`');
             for (var index = 0; index < value.Length; index++) {
                 if (value[index] == '\\') result.Append("\\\\");
@@ -183,16 +188,13 @@ namespace DProjects.XShell.Services {
             }
             return result.Append('`').ToString();
         }
-        private static bool IsSelfClosingTag(string html, int start, int end) {
+        private bool IsSelfClosingTag(string html, int start, int end) {
             var position = end - 1;
             while (position > start && char.IsWhiteSpace(html[position])) position--;
             return html[position] == '/';
         }
-        private static bool IsTagNameCharacter(char character) => char.IsLetterOrDigit(character) || character is '-' or ':';
-        private static bool IsAttributeNameCharacter(char character) => !char.IsWhiteSpace(character) && character is not '=' and not '>' and not '/';
+        private bool IsTagNameCharacter(char character) => char.IsLetterOrDigit(character) || character is '-' or ':';
+        private bool IsAttributeNameCharacter(char character) => !char.IsWhiteSpace(character) && character is not '=' and not '>' and not '/';
 
-        private readonly record struct HtmlTag(string Name, int End, string Source);
-        private readonly record struct HtmlCloseTag(int Start, int End);
-        private sealed record Sections(string? Style, string? Template, string? ModuleScript);
     }
 }

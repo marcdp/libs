@@ -52,6 +52,31 @@ namespace DProjects.XShell.Tests {
             Assert.Contains("templateRenderer: {render:", result.Content);
         }
         [Fact]
+        public void Compile_WithoutModuleScript_UsesDefaultModuleDefinition() {
+            var result = Compile("""
+                <template><div>Hello</div></template>
+                """);
+
+            Assert.Contains("export default {", result.Content);
+            Assert.Contains("template: `<div>Hello</div>`", result.Content);
+            Assert.DoesNotContain("style: `", result.Content);
+            Assert.Contains("templateRenderer: {render:", result.Content);
+        }
+        [Fact]
+        public void Compile_StyleAndTemplateWithoutModuleScript_InjectsBothProperties() {
+            var result = Compile("""
+                <style>
+                .title { font-weight: bold; }
+                </style>
+                <template><div class="title">Hello</div></template>
+                """);
+
+            Assert.Contains("style: `", result.Content);
+            Assert.Contains(".title { font-weight: bold; }", result.Content);
+            Assert.Contains("template: `<div class=\"title\">Hello</div>`", result.Content);
+            Assert.Contains("templateRenderer: {render:", result.Content);
+        }
+        [Fact]
         public void Compile_BackticksSubstitutionsAndBackslashes_ProducesStaticTemplateLiterals() {
             var result = Compile("""
                 <style>.sample::before { content: "` ${style}"; background: url(C:\assets\image.png); }</style>
@@ -84,13 +109,13 @@ namespace DProjects.XShell.Tests {
         [InlineData("<style>a</style><style>b</style><template>x</template><script type=\"module\">export default {};</script>", "multiple <style>")]
         [InlineData("<template>x</template><script type=\"module\">export default {};</script><script type=\"module\">export default {};</script>", "multiple <script type=\"module\">")]
         [InlineData("<script type=\"module\">export default {};</script>", "exactly one <template>")]
-        [InlineData("<template>x</template><script>export default {};</script>", "exactly one <script type=\"module\">")]
         public void Compile_InvalidSectionCounts_Throws(string html, string message) {
             var exception = Assert.Throws<InvalidOperationException>(() => Compile(html));
 
             Assert.Contains(message, exception.Message, StringComparison.OrdinalIgnoreCase);
         }
         [Theory]
+        [InlineData("", "must contain a default export")]
         [InlineData("const value = 1;", "must contain a default export")]
         [InlineData("export default createDefinition();", "must be an object literal")]
         public void Compile_InvalidDefaultExport_Throws(string moduleScript, string message) {

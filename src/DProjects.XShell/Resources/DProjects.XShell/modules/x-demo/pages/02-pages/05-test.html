@@ -4,10 +4,10 @@
 
 <template>
     <div class="user-card">
-        <h2>{{ user.name }}</h2>
+        <h2>{{ state.name }}</h2>
 
-        <p x-if="user.email">
-            {{ user.email }}
+        <p x-if="state.email">
+            {{ state.email }}
         </p>
 
         <button x-on:click="editUser">
@@ -23,17 +23,9 @@
     export const contract = {
         "description": "Test page for user card component",
         "properties": {
-            "name": {
-                "type": "string",
-                "description": "Name of the user"
-            },
-            "email": {
-                "type": "string",
-                "description": "Email of the user"
-            }
-        },
-        "methods": {},
-        "events": {}
+            "name": {"type": "string", "description": "Name of the user"},
+            "email": { "type": "string", "description": "Email of the user"}
+        }
     }
 
     // implementation
@@ -46,7 +38,8 @@
 
         // state
         state: {
-            value: 123
+            name: "John Doe",
+            email: "john.doe@example.com"
         },
 
         // controller
