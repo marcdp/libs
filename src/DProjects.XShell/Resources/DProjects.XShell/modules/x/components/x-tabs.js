@@ -16,7 +16,7 @@ export const contract = {
 };
 
 
-// definition
+// implementation
 export default {
     style: `
         :host {display:block; margin-bottom:1.5em;}

@@ -8,7 +8,7 @@ export const contract = {
 };
 
 
-// definition
+// implementation
 export default {
     style: ``,
     template: `{{ state.description }}`,

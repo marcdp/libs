@@ -25,7 +25,7 @@ export const contract = {
 };
 
 
-// definition
+// implementation
 export default {
     meta: {
         renderEngine: "x",

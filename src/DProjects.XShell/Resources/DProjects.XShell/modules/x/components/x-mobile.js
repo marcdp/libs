@@ -12,7 +12,7 @@ export const contract = {
 };
 
 
-// definition
+// implementation
 export default {
     style: `
         @media (min-width: 769px) {

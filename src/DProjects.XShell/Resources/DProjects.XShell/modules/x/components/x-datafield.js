@@ -78,7 +78,7 @@ export const contract = {
 };
 
 
-// definition
+// implementation
 export default {
     style: `
         :host {display:block; position:relative; }

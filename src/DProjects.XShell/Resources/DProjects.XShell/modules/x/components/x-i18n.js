@@ -10,7 +10,7 @@ export const contract = {
 };
 
 
-// definition
+// implementation
 export default {
     template: `
         {{ state.localizedText }}

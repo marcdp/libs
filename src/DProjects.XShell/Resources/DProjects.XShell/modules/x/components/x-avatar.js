@@ -23,7 +23,7 @@ export const contract = {
 };
 
 
-// definition
+// implementation
 export default {
     style: `
         :host {display:flex; flex-direction:row; user-select:none;}

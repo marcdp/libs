@@ -43,12 +43,12 @@ function areDeclarativeValuesEqual(left, right) {
     }
     return leftKeys.every(key => Object.prototype.hasOwnProperty.call(right, key) && areDeclarativeValuesEqual(left[key], right[key]));
 }
-function createStateSkeleton(src, definition, contract) {
+function createStateSkeleton(src, implementation, contract) {
     // build state with contract defaults as the canonical values for public properties
     const stateSkeleton = {};
     const properties = contract.properties || {};
-    const state = definition.state || {};
-    const name = definition.meta?.name || src;
+    const state = implementation.state || {};
+    const name = implementation.meta?.name || src;
     for (const [propName, property] of Object.entries(properties)) {
         if (property.state === true) {
             stateSkeleton[propName] = property.default;
@@ -61,10 +61,10 @@ function createStateSkeleton(src, definition, contract) {
             continue;
         }
         if (property.state !== true) {
-            throw new Error(`Page '${name}' declares public property '${stateName}' in definition.state, but the contract property is not state-backed.`);
+            throw new Error(`Page '${name}' declares public property '${stateName}' in implementation.state, but the contract property is not state-backed.`);
         }
         if (!areDeclarativeValuesEqual(property.default, value)) {
-            throw new Error(`Page '${name}' declares different defaults for public property '${stateName}' in contract.properties and definition.state.`);
+            throw new Error(`Page '${name}' declares different defaults for public property '${stateName}' in contract.properties and implementation.state.`);
         }
     }
     return stateSkeleton;
@@ -181,33 +181,33 @@ function getPageQueryParams(src) {
 }
 
 
-// create page class from js definition
-export async function createPageClassFromJsDefinition(src, context, definition, contract) {
+// create page class from js implementation
+export async function createPageClassFromJsDefinition(src, context, implementation, contract) {
     // defaults
     if (!contract) contract = {};
     if (!contract.properties) contract.properties = {};
     if (!contract.events) contract.events = {};
     if (!contract.slots) contract.slots = {};
     if (!contract.methods) contract.methods = {};
-    if (!definition.dependencies) definition.dependencies = {};
-    if (!definition.state) definition.state = {};
-    if (!definition.style) definition.style = "";
-    if (!definition.template) definition.template = "";
-    if (!definition.controller) definition.controller = () => ({});
-    // freeze definition and contract
-    definition = Object.seal(Object.freeze(definition));
+    if (!implementation.dependencies) implementation.dependencies = {};
+    if (!implementation.state) implementation.state = {};
+    if (!implementation.style) implementation.style = "";
+    if (!implementation.template) implementation.template = "";
+    if (!implementation.controller) implementation.controller = () => ({});
+    // freeze implementation and contract
+    implementation = Object.seal(Object.freeze(implementation));
     contract = Object.seal(Object.freeze(contract));
     // validate contract
     if (contract) {
         await validateComponentContract(src, contract);
     }
-    validatePageQueryProperties(contract, definition.meta?.name || src);
-    // validateComponent definition against contract
-    if (definition) {
-        await validateComponent(src, definition);
+    validatePageQueryProperties(contract, implementation.meta?.name || src);
+    // validateComponent implementation against contract
+    if (implementation) {
+        await validateComponent(src, implementation);
     }
     // state skeleton
-    const stateSkeleton = createStateSkeleton(src, definition, contract);
+    const stateSkeleton = createStateSkeleton(src, implementation, contract);
     const propertyAttributeNames = [];
     const reflectedPropertyNames = [];
     const stateMapAttributes = [];
@@ -227,7 +227,7 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
             queryProperties.push({ name: propName, property });
         }
     }
-    for (const [stateName, value] of Object.entries(definition.state)) {
+    for (const [stateName, value] of Object.entries(implementation.state)) {
         if (Object.prototype.hasOwnProperty.call(contract.properties, stateName)) {
             continue;
         }
@@ -239,25 +239,25 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
     const moduleConfig = xshell.config.modules[context.resourceDefinition.moduleId];
     // state engine
     const stateEngineModule = moduleConfig.defaults.page.stateEngine;
-    const stateEnginePage = definition.meta?.stateEngine || stateEngineModule;
+    const stateEnginePage = implementation.meta?.stateEngine || stateEngineModule;
     const stateEngineFactoryCreator = await xshell.loader.load("state-engine:" + stateEnginePage);
     const stateEngineFactory = new stateEngineFactoryCreator(stateSkeleton, context);
     // render engine
     const renderEngineModule = moduleConfig.defaults.page.renderEngine;
-    const renderEnginePage = definition.meta?.renderEngine || renderEngineModule;
+    const renderEnginePage = implementation.meta?.renderEngine || renderEngineModule;
     const renderEngineFactoryCreator = await xshell.loader.load("render-engine:" + renderEnginePage);
-    const templateRenderer = definition.templateRenderer; 
-    const renderEngineFactory = new renderEngineFactoryCreator(definition.template, context, templateRenderer);
+    const templateRenderer = implementation.templateRenderer; 
+    const renderEngineFactory = new renderEngineFactoryCreator(implementation.template, context, templateRenderer);
     // validate compiled template slots through the render-engine factory contract
-    validateSlots(renderEngineFactory.slots, definition.meta?.name || "unknown");
+    validateSlots(renderEngineFactory.slots, implementation.meta?.name || "unknown");
     // load render engine dependencies
     if (renderEngineFactory.dependencies.length) {
         await xshell.loader.load(renderEngineFactory.dependencies);
     }    
     // load page dependencies
     let dependencies = {};
-    if (definition.dependencies && Object.keys(definition.dependencies).length) {
-        dependencies = await xshell.loader.load(definition.dependencies);
+    if (implementation.dependencies && Object.keys(implementation.dependencies).length) {
+        dependencies = await xshell.loader.load(implementation.dependencies);
     }
     // init 
     renderEngineFactory.init();
@@ -276,9 +276,9 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
             super({ src, context });
             const self = this;
             // meta
-            this._label = definition.meta.title || "";
-            this._description = definition.meta.description || "";
-            this._icon = definition.meta.icon || "";
+            this._label = implementation.meta.title || "";
+            this._description = implementation.meta.description || "";
+            this._icon = implementation.meta.icon || "";
             // state
             this._state = stateEngineFactory.create({
                 stateChange(prop, oldValue, newValue) {
@@ -312,9 +312,9 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
             // services provider
             const servicesProvider = new Proxy({}, {
                 get: (obj, prop) => {
-                    if (prop == "definition") {
-                        // page definition
-                        return definition;
+                    if (prop == "implementation") {
+                        // page implementation
+                        return implementation;
                     } else if (prop == "state") {
                         // state
                         return self._state;
@@ -347,12 +347,12 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
                 }
             });            
             // controller
-            this._controller = definition.controller(servicesProvider) ?? {};
+            this._controller = implementation.controller(servicesProvider) ?? {};
             // validate public contract methods
             for (const methodName of Object.keys(contract.methods ?? {})) {
                 const method = this._controller[methodName];
                 if (typeof(method) !== "function") {
-                    throw new Error(`Page '${definition.meta.name}' declares public method '${methodName}' in contract.methods but controller.${methodName} is not a function.`);
+                    throw new Error(`Page '${implementation.meta.name}' declares public method '${methodName}' in contract.methods but controller.${methodName} is not a function.`);
                 }
             }
             
@@ -362,12 +362,12 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
             if (this._unloaded) return;
             // style
             const cssPageSelector = `${host.nodeName.toLowerCase()}[src="${escapeCssString(host.getAttribute("src"))}"]`;
-            if (typeof(definition.style) == "string" && definition.style) {
+            if (typeof(implementation.style) == "string" && implementation.style) {
                 const cssStyleSheet = new CSSStyleSheet();
-                cssStyleSheet.replaceSync(`@scope (${cssPageSelector}) {${definition.style}}`);
+                cssStyleSheet.replaceSync(`@scope (${cssPageSelector}) {${implementation.style}}`);
                 this._styleSheets.push(cssStyleSheet);        
-            } else if (Array.isArray(definition.style) && definition.style.length) {
-                for(let styleText of definition.style) {
+            } else if (Array.isArray(implementation.style) && implementation.style.length) {
+                for(let styleText of implementation.style) {
                     const cssStyleSheet = new CSSStyleSheet();
                     cssStyleSheet.replaceSync(`@scope (${cssPageSelector}) {${styleText}}`);
                     this._styleSheets.push(cssStyleSheet);
@@ -458,7 +458,7 @@ export async function createPageClassFromJsDefinition(src, context, definition, 
     // add methods
     for (const methodName of Object.keys(contract.methods)) {
         if (methodName in PageClass.prototype) {
-            throw new Error(`Page '${definition.meta.name}' cannot expose public method '${methodName}' because it would overwrite a framework or Page method.`);
+            throw new Error(`Page '${implementation.meta.name}' cannot expose public method '${methodName}' because it would overwrite a framework or Page method.`);
         }
         Object.defineProperty(PageClass.prototype, methodName, {
             value: function(...args) {
@@ -476,24 +476,24 @@ export default class LoaderPageJs {
     async load(src, context) {
         // import
         const module = await import(src);
-        let definition = module.default;
+        let implementation = module.default;
         let contract = module.contract;
         // check if its a promise
-        if (typeof(definition) === "object" && typeof(definition.then) === "function") {
-            definition = await definition;
+        if (typeof(implementation) === "object" && typeof(implementation.then) === "function") {
+            implementation = await implementation;
         }
         // check if its a class
-        if (typeof(definition) === "function"  && /^class\s/.test(Function.prototype.toString.call(definition))) {
-            return definition;
+        if (typeof(implementation) === "function"  && /^class\s/.test(Function.prototype.toString.call(implementation))) {
+            return implementation;
         }
-        // else, asume its a definition object
-        if (!definition.meta) definition.meta = {};
-        if (!definition.meta.name) {
+        // else, asume its a implementation object
+        if (!implementation.meta) implementation.meta = {};
+        if (!implementation.meta.name) {
             let aux = src.split("?")[0];
             aux = aux.substring(aux.lastIndexOf("/")+1).split(".")[0];
-            definition.meta.name = aux;
+            implementation.meta.name = aux;
         }
-        // create class definition
-        return await createPageClassFromJsDefinition(src, context, definition, contract);        
+        // create class implementation
+        return await createPageClassFromJsDefinition(src, context, implementation, contract);        
     }
 };

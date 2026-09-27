@@ -20,7 +20,7 @@ export const contract = {
 };
 
 
-// definition
+// implementation
 export default {
     style: `
         :host {display:inline-block; position:relative;}
