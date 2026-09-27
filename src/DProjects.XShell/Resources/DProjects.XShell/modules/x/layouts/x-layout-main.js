@@ -149,7 +149,7 @@ export default {
                 flex:1;                
             }
             .body main > div {
-                max-width:100em;
+                max-width:75em;
                 margin-left:auto; 
                 margin-right:auto;
             }
