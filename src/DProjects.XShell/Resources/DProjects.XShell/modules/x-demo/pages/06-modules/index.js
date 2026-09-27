@@ -46,10 +46,11 @@ assetsUrl</code></pre>
             stable <code>/_assets/&lt;module-id&gt;/...</code> namespace even when the module's storage layout changes.
         </p>
 
-        <h3>Six topics</h3>
+        <h3>Seven topics</h3>
 
         <ul>
             <li><strong>Definition</strong> — the canonical metadata and contributions for a module.</li>
+            <li><strong>Configuration</strong> — how framework and discovered module fragments become one effective config.</li>
             <li><strong>Imports</strong> — recursive discovery, URL deduplication, and first-registration parameters.</li>
             <li><strong>Resources</strong> — virtual asset URLs and Service Worker mapping.</li>
             <li><strong>Controller</strong> — startup and shutdown hooks for a live module instance.</li>
