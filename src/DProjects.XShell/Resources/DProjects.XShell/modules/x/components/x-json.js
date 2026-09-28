@@ -72,9 +72,10 @@ export default {
     },
     controller({ state, events }) {
         return {
-            load(params) {
+            load() {
                 //load
                 events.on(state, "change:value", (event) => {
+                    debugger
                     state.colorized = syntaxHighlight(event.newValue);
                 });
             }

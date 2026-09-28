@@ -21,7 +21,7 @@ namespace DProjects.XShell {
             public string ResourcesBase { get; init; } = "";
             public string[] UnhandledPrefixes { get; init; } = new string[] {"/_", "/api", "/temp"};
             public string TempPath { get; init; } = Path.Combine(Path.GetTempPath(), ResourceName, "temp");
-            public string TempUrl { get; init; } = "/temp2";
+            public string TempUrl { get; init; } = "/temp";
             public string CSPValue { get; init; } = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; ";
         }
         
@@ -77,7 +77,7 @@ namespace DProjects.XShell {
                         <meta name="xshell:app.configPath"     content="{config.AppConfigPath}">
                         <meta name="xshell:app.params"         content="{string.Join("&", config.AppParams.Select(kv => kv.Key + "=" + kv.Value))}">
                         <meta name="xshell:xshell.environment" content="{(environment)}">
-                        <meta name="xshell:xshell.temp.url"    content="{(config.TempUrl)}">
+                        <meta name="xshell:xshell.temp.url"    content="url:{(config.TempUrl)}">
                         
 
                         <!-- bootstrap xshell -->

@@ -86,7 +86,7 @@
 
         // temp
         "temp": {
-            "url": "/tmp"   
+            "url": "url:./"   
         }
 
     }

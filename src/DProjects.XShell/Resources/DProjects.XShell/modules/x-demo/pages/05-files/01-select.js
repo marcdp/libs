@@ -17,12 +17,16 @@ export default {
 
         <x-form>
             <x-datafields>
+                <x-datafield label="Select number" type="number" x-model="state.a"></x-datafield>
                 <x-datafield label="Select a single file" type="file" x-model="state.file"></x-datafield>
                 <x-datafield label="Select a multiple files" type="file" x-model="state.files" multiple></x-datafield>
             </x-datafields>
+
         </x-form>
 
-        <x-json x-prop:value="state"></x-json>
+        <x-json x-attr:value="state | json"></x-json>
+
+        
 
     `,
     state: {

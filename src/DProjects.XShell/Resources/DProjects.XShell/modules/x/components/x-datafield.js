@@ -5,6 +5,15 @@ const getFreeId = function() {return "id" + freeId++;};
 const urlPattern = /^(https?:\/\/)?(www\.)?([a-zA-Z0-9-]+)\.([a-zA-Z]{2,})(\/[a-zA-Z0-9#-]+\/?)*$/;
 const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 const telPattern = /^(\+?\d{1,3}[-.\s]?)?(\(?\d{3}\)?[-.\s]?)?\d{3}[-.\s]?\d{4,7}$/;
+const formatFileSize = function(bytes) {
+    if (bytes === -1) return '';
+    if (bytes === 0) return '0 Bytes';
+    let sizes = ['bytes', 'KB', 'MB', 'GB', 'TB'];
+    let i = Math.floor(Math.log(bytes) / Math.log(1024)); // Determine the unit index
+    let formattedSize = (bytes / Math.pow(1024, i)).toFixed(2); // Format the number to 2 decimal places
+    if (i==0) formattedSize = formattedSize.replace(".00", ""); // Remove the decimal point if it's a whole number
+    return `${formattedSize} ${sizes[i]}`;
+}
 
 // contract
 export const contract = {
@@ -133,6 +142,9 @@ export default {
             padding:.35em;
         }
         :host .input.file {padding-left:.35em}
+        :host .input.file ul {margin:0; padding:0;}
+        :host .input.file ul li {margin:0; padding:0; list-style:none;}
+        :host .input.file x-icon {vertical-align:text-bottom;}
 
         input[type='range'] {
             padding:.35em;            
@@ -324,8 +336,29 @@ export default {
         </div>
         
         <div x-elseif="state.type=='file'" class="input file">
+            <div x-if="state.files">
+                <ul x-for="(filename, index) in state.files">
+                    <li>
+                        <x-anchor class="plain" x-attr:href="state.files[filename].url" target="_blank"><x-icon icon="x-file"></x-icon>{{ filename }}</x-anchor>
+                        <span x-if="state.files[filename].size"> ({{ state.files[filename].sizeFormatted }})</span>
+                        <span x-if="state.files[filename].progress">, {{ state.files[filename].progress }} %</span>                        
+                        <x-button x-on:click="fileRemove" x-attr:data-file="state.files[filename].id" icon="x-close" class="anchor"></x-button>
+                    </li>                    
+                </ul>
+            </div>            
+            <div x-if="state.filesTemp">
+                <ul x-for="(filename, index) in state.filesTemp">
+                    <li>
+                        <x-anchor class="plain" x-attr:href="state.filesTemp[filename].url" target="_blank"><x-spinner></x-spinner><x-icon icon="x-file"></x-icon> {{ filename }}</x-anchor>
+                        <span x-if="state.filesTemp[filename].size">({{ state.filesTemp[filename].sizeFormatted }})</span>
+                        <span x-if="state.filesTemp[filename].progress">, {{ state.filesTemp[filename].progress }} %</span>                        
+                        <x-button x-on:click="fileRemove" x-attr:data-file="state.filesTemp[filename].id" icon="x-close" class="anchor"></x-button>
+                    </li>                    
+                </ul>
+            </div>            
             <input 
                 type="file"
+                x-if="!(!state.multiple && state.value)"
                 x-on:change="fileChanged"
                 x-attr:id="state.inputId"
                 x-attr:disabled="state.disabled"
@@ -458,7 +491,8 @@ export default {
         langLabels: {},
         emptyTranslations: {},
         localizedValues: {},
-        selectedOptions: {}
+        selectedOptions: {},
+        files: []
     },
     controller({ state, events, timer, navigation, i18n, host, temp }) {
         const updateTemplateState = () => {
@@ -475,6 +509,22 @@ export default {
                 selectedOptions[option.value] = state.multiple ? values.indexOf("," + option.value + ",") != -1 : option.value == value;
             }
             state.selectedOptions = selectedOptions;
+            if (typeof state.type == "string" && state.type.startsWith("file")) {
+                const files = {};
+                const values = (Array.isArray(state.value) ? state.value : [state.value || ""]);
+                for(const val of values) {
+                    if (val.startsWith("temp:")) {
+                        // e.g: temp:/folder/filename.txt?size=123
+                        let name = val.substring(5); // remove "temp:" prefix
+                        if (name.indexOf("?")!=-1) name = name.substring(0, name.indexOf("?"));
+                        const filename = name.substring(name.lastIndexOf("/") + 1); // extract filename from path
+                        const fileurl = temp.getAbsoluteUrl(val);
+                        const filesize = parseInt(new URL(fileurl).searchParams.get("size")) || 0;
+                        files[filename] = {id: val, name: filename, url: fileurl, size: filesize, sizeFormatted: formatFileSize(filesize)};
+                    }
+                }
+                state.files = files;
+            }
         };
         return {
             async load(args) {
@@ -566,9 +616,37 @@ export default {
 
             async fileChanged(args) {
                 // fileChanged
-                var files = args.event.target.files;
-                alert(123)
-                // ... todo
+                const files = args.event.target.files;
+                // temp upload
+                let filesTemp = {};
+                for(const file of files) {
+                    filesTemp[file.name] = { id:file.name, name: file.name, size: file.size, sizeFormatted: formatFileSize(file.size), type: file.type, progress: 25};
+                }
+                // action
+                state.filesTemp = filesTemp;
+                const result = await temp.upload(files, (name, progress) => {
+                    filesTemp[name].progress = progress;
+                    alert(progress)
+                });
+                
+                // remove tempUpload
+                for(const file of files) {
+                    delete filesTemp[file.name];
+                }        
+                // assign
+                if (state.multiple) {
+                    state.value = result;
+                } else {
+                    state.value = result[0];
+                }
+            },
+            async fileRemove(args) {
+                const file = args.event.target.dataset.file;
+                if (state.multiple) {
+                    state.value = state.value.filter(item => item !== file);
+                } else {
+                    state.value = null;    
+                }
             },
 
             async listAdd(args) {
@@ -678,7 +756,7 @@ export default {
                                 result.push({type:"error", label: host.label, message:"Invalid format"});
                             }
                         }
-                        }
+                    }
                 } else if (state.type == "number") {
                     if (state.value && isNaN(state.value)) {
                         result.push({type:"error", label: host.label, message:"Invalid number"});

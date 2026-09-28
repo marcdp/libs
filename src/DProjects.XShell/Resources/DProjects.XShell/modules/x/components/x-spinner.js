@@ -18,7 +18,7 @@ export default {
     `,
     style:`
         :host {
-            display:flex; 
+            display:inline-flex; 
         }
         :host .loader {
             width: 1em;
