@@ -149,16 +149,10 @@ export async function createComponentClassFromJsDefinition(src, context, impleme
     contract = Object.seal(Object.freeze(contract));
     // stylesheets
     const stylesheets = []
-    if (typeof(implementation.style) == "string") {
+    if (implementation.style) {
         const stylesheet = new CSSStyleSheet();
         stylesheet.replaceSync(implementation.style);
         stylesheets.push(stylesheet);
-    } else if (Array.isArray(implementation.style)) {
-        for(let styleText of implementation.style) {
-            const stylesheet = new CSSStyleSheet();
-            stylesheet.replaceSync(styleText);
-            stylesheets.push(stylesheet);
-        }
     }
     // state skeleton
     const stateSkeleton = createStateSkeleton(src, implementation, contract);

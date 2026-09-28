@@ -24,13 +24,8 @@
       "additionalProperties": false
     },
     "style": {
-      "description": "Component CSS source.",
-      "oneOf": [
-        { "type": "string" },
-        { "type": "array",
-          "items": { "type": "string" }
-        }
-      ]
+      "type": "string",
+      "description": "Component CSS source."
     },
     "template": {
       "type": "string",

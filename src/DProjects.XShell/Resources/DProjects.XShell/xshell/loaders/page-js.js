@@ -362,17 +362,11 @@ export async function createPageClassFromJsDefinition(src, context, implementati
             if (this._unloaded) return;
             // style
             const cssPageSelector = `${host.nodeName.toLowerCase()}[src="${escapeCssString(host.getAttribute("src"))}"]`;
-            if (typeof(implementation.style) == "string" && implementation.style) {
+            if (implementation.style) {
                 const cssStyleSheet = new CSSStyleSheet();
                 cssStyleSheet.replaceSync(`@scope (${cssPageSelector}) {${implementation.style}}`);
                 this._styleSheets.push(cssStyleSheet);        
-            } else if (Array.isArray(implementation.style) && implementation.style.length) {
-                for(let styleText of implementation.style) {
-                    const cssStyleSheet = new CSSStyleSheet();
-                    cssStyleSheet.replaceSync(`@scope (${cssPageSelector}) {${styleText}}`);
-                    this._styleSheets.push(cssStyleSheet);
-                }
-            }    
+            }
             document.adoptedStyleSheets = [...document.adoptedStyleSheets,...this._styleSheets];
             // render engine
             this._renderEngine = renderEngineFactory.create({ host, state: this._state, handler:(command, ...params) => {

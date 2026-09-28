@@ -229,6 +229,9 @@ The implementation object is not itself a browser Web Component class.
 
 It must first be converted into one.
 
+Its optional `style` property is one CSS source string. Put all CSS rules for the Component in that string; `style` does not accept an array of
+strings.
+
 ## Declarative dependencies
 
 A definition-based Component can declare resources that its controller needs through `dependencies`. It is a declarative resource request, not a

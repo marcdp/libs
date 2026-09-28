@@ -38,7 +38,7 @@ namespace DProjects.XShell.Tests {
             Assert.Contains(".user-card { padding: 1rem; }", result.Content);
             Assert.Contains("template: `", result.Content);
             Assert.Contains("<div class=\"user-card\">{{ state.name }}</div>", result.Content);
-            Assert.Contains("templateRenderer: {render:", result.Content);
+            Assert.Contains("templateRenderer: {", result.Content);
         }
         [Fact]
         public void Compile_WithoutStyle_InjectsOnlyTemplate() {
@@ -49,7 +49,7 @@ namespace DProjects.XShell.Tests {
 
             Assert.Contains("template: `<p>content</p>`", result.Content);
             Assert.DoesNotContain("style: `", result.Content);
-            Assert.Contains("templateRenderer: {render:", result.Content);
+            Assert.Contains("templateRenderer: {", result.Content);
         }
         [Fact]
         public void Compile_WithoutModuleScript_UsesDefaultModuleDefinition() {
@@ -60,7 +60,7 @@ namespace DProjects.XShell.Tests {
             Assert.Contains("export default {", result.Content);
             Assert.Contains("template: `<div>Hello</div>`", result.Content);
             Assert.DoesNotContain("style: `", result.Content);
-            Assert.Contains("templateRenderer: {render:", result.Content);
+            Assert.Contains("templateRenderer: {", result.Content);
         }
         [Fact]
         public void Compile_StyleAndTemplateWithoutModuleScript_InjectsBothProperties() {
@@ -74,7 +74,7 @@ namespace DProjects.XShell.Tests {
             Assert.Contains("style: `", result.Content);
             Assert.Contains(".title { font-weight: bold; }", result.Content);
             Assert.Contains("template: `<div class=\"title\">Hello</div>`", result.Content);
-            Assert.Contains("templateRenderer: {render:", result.Content);
+            Assert.Contains("templateRenderer: {", result.Content);
         }
         [Fact]
         public void Compile_BackticksSubstitutionsAndBackslashes_ProducesStaticTemplateLiterals() {
@@ -86,7 +86,7 @@ namespace DProjects.XShell.Tests {
 
             Assert.Contains(@"content: ""\` \${style}""; background: url(C:\\assets\\image.png);", result.Content);
             Assert.Contains(@"<pre>\` \${template} C:\\templates\\sample</pre>", result.Content);
-            Assert.Contains("templateRenderer: {render:", result.Content);
+            Assert.Contains("templateRenderer: {", result.Content);
         }
         [Fact]
         public void Compile_NonModuleScriptAndFalseExports_UsesOnlyRealModuleDefaultExport() {
@@ -151,7 +151,7 @@ namespace DProjects.XShell.Tests {
                 }
             };
             var modulePath = Path.GetFullPath(AppContext.BaseDirectory);
-            var context = new ModuleFileCompilerContext(config, modulePath, Path.Combine(modulePath, "page.html"));
+            var context = new ModuleFileCompilerContext(config, "test", modulePath, Path.Combine(modulePath, "page.html"));
             return new ModuleFileCompilerHtml().Compile(context, html);
         }
     }

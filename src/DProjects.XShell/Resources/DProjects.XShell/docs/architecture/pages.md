@@ -211,6 +211,9 @@ to each mount; Page state, controller, timers, events, and disposables belong to
 Mounting does not recreate the controller. The Page instance owns its state, controller, Timers, Events helpers, and other disposables across
 mount/unmount cycles, and final unload disposes the helpers and releases the controller.
 
+A definition-based Page may provide `style` as one CSS source string. `page-js` scopes that source to the mounted Page host; arrays of CSS strings
+are not supported.
+
 ## Layouts
 
 Layouts are presentation containers for Pages. They do not resolve routes. Checked-in layout names are `default`, `dialog`, `main`, `stack`, and

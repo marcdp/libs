@@ -4,13 +4,15 @@ namespace DProjects.XShell.Services {
 
         // props
         public ModuleFileCompiler.Config Config { get; }
+        public string ModuleId { get; }
         public string ModulePath { get; }
         public string FilePath { get; }
         public string RelativePath { get; }
 
         // ctor
-        public ModuleFileCompilerContext(ModuleFileCompiler.Config config, string modulePath, string filePath) {
+        public ModuleFileCompilerContext(ModuleFileCompiler.Config config, string moduleId, string modulePath, string filePath) {
             ArgumentNullException.ThrowIfNull(config);
+            if (string.IsNullOrWhiteSpace(moduleId)) throw new ArgumentException("Module ID is required.", nameof(moduleId));
             if (string.IsNullOrWhiteSpace(modulePath)) throw new ArgumentException("Module path is required.", nameof(modulePath));
             if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path is required.", nameof(filePath));
 
@@ -26,6 +28,7 @@ namespace DProjects.XShell.Services {
             }
 
             Config = config;
+            ModuleId = moduleId;
             ModulePath = normalizedModulePath;
             FilePath = normalizedFilePath;
             RelativePath = "/" + relativePath.Replace('\\', '/');

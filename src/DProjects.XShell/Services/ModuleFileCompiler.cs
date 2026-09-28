@@ -41,13 +41,17 @@ namespace DProjects.XShell.Services {
             });
             var mimeType = MimeTypeUtils.GetMimeType(Path.GetExtension(filePath));
             if (config == null) return new FileContent { ContentType = mimeType, Content = await File.ReadAllTextAsync(filePath) };
+            var moduleId = config.Modules.Keys.First();
+
             // create the shared compilation context
             var moduleDirectory = Path.GetDirectoryName(moduleDescriptorPath);
             if (moduleDirectory == null) throw new ArgumentException("Module descriptor path must have a containing directory.", nameof(modulePath));
-            var context = new ModuleFileCompilerContext(config, moduleDirectory, filePath);
+            var context = new ModuleFileCompilerContext(config, moduleId, moduleDirectory, filePath);
+
             // read content
             var content = await File.ReadAllTextAsync(context.FilePath);
-            // compile the file based on its extension
+
+            // compile the file based on its type
             if (Path.GetExtension(filePath).Equals(".html", StringComparison.OrdinalIgnoreCase)) {
                 return new ModuleFileCompilerHtml().Compile(context, content);
             } else if (Path.GetExtension(filePath).Equals(".css", StringComparison.OrdinalIgnoreCase)) {
@@ -55,7 +59,8 @@ namespace DProjects.XShell.Services {
             } else if (Path.GetExtension(filePath).Equals(".js", StringComparison.OrdinalIgnoreCase)) {
                 return new ModuleFileCompilerJs().Compile(context, content);
             };
-            // return the compiled js
+
+            // return the compiled resource
             return new FileContent { ContentType = mimeType, Content = content };
         }
     }
