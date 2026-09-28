@@ -20,6 +20,7 @@ export const contract = {
 // implementation
 export default {
     style: `
+        @import 'custom.css';
         :host {display:block;}
 
         :host > div {display:flex; border:var(--x-notice-border); border-radius:var(--x-notice-border-radius); margin-top:0em; margin-bottom:.5em; align-items:start;}
