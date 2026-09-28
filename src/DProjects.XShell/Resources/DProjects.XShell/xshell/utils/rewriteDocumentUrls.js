@@ -7,7 +7,8 @@ const rules = [
     { selector: "area", attr: "href", type:"navigation"},
     { selector: "form", attr: "action", type:"navigation"},
     { selector: "button[formaction]", attr: "formaction", type:"navigation"},
-    { selector: "x-page", attr: "src", type:"virtual_navigation"},
+    //{ selector: "x-page", attr: "src", type:"virtual_navigation"},
+    //{ selector: "x-anchor", attr: "src", type:"virtual_navigation"},
     // resources
     { selector: "img", attr: "src", type:"resource" },
     { selector: "img", attr: "srcset", type:"resource" },
@@ -59,8 +60,6 @@ export function rewrite( el, attr, type, url, context ) {
     //if (url.indexOf("colibri")!=-1) debugger;
     if (url.indexOf(":") != -1) {
         return url;
-    } else if (url.startsWith("xshell/")) {
-        return url;
     } else if (type == "resource") {
         if (url.startsWith("/")) {
             return context.appBasePath + context.resourceDefinition.modulePath + url;
@@ -83,16 +82,16 @@ export function rewrite( el, attr, type, url, context ) {
             realUrl = context.appBasePath + virtualUrl;
         }
         return realUrl;
-    } else if (type == "virtual_navigation") {
-        let virtualUrl = null;
-        if (url.startsWith("/")) {
-            virtualUrl = context.resourceDefinition.modulePath + url;
-        } else if (url.startsWith("#")) {
-            virtualUrl = context.resourcePath + url;
-        } else {
-            virtualUrl = combineUrls(context.resourcePath, url);
-        }
-        return virtualUrl;
+    //} else if (type == "virtual_navigation") {
+    //    let virtualUrl = null;
+    //   if (url.startsWith("/")) {
+    //        virtualUrl = context.resourceDefinition.modulePath + url;
+    //    } else if (url.startsWith("#")) {
+    //        virtualUrl = context.resourcePath + url;
+    //    } else {
+    //        virtualUrl = combineUrls(context.resourcePath, url);
+    //    }
+    //    return virtualUrl;
     } else {
         throw new Error("Unknown rewrite type: " + type);
     }
