@@ -1,5 +1,3 @@
-using System.Text;
-
 using DProjects.XShell.Services.XTemplate;
 
 namespace DProjects.XShell.Services {
@@ -24,8 +22,8 @@ namespace DProjects.XShell.Services {
 
             // insert static source properties into the canonical JavaScript definition
             var properties = new List<KeyValuePair<string, string>>();
-            if (sections.Style != null) properties.Add(new KeyValuePair<string, string>("style", EncodeTemplateLiteral(sections.Style)));
-            properties.Add(new KeyValuePair<string, string>("template", EncodeTemplateLiteral(sections.Template)));
+            if (sections.Style != null) properties.Add(new KeyValuePair<string, string>("style", JavaScriptSource.EncodeStaticTemplateLiteral(sections.Style)));
+            properties.Add(new KeyValuePair<string, string>("template", JavaScriptSource.EncodeStaticTemplateLiteral(sections.Template)));
             var js = XTemplateJavaScriptCompiler.InsertDefaultExportProperties(moduleScript, properties, ["style", "template"]);
 
             // delegate canonical JavaScript processing to the existing compiler pipeline
@@ -180,16 +178,6 @@ namespace DProjects.XShell.Services {
                 if (position == nameStart) position++;
             }
             return false;
-        }
-        private string EncodeTemplateLiteral(string value) {
-            var result = new StringBuilder(value.Length + 2).Append('`');
-            for (var index = 0; index < value.Length; index++) {
-                if (value[index] == '\\') result.Append("\\\\");
-                else if (value[index] == '`') result.Append("\\`");
-                else if (value[index] == '$' && index + 1 < value.Length && value[index + 1] == '{') { result.Append("\\${"); index++; }
-                else result.Append(value[index]);
-            }
-            return result.Append('`').ToString();
         }
         private bool IsSelfClosingTag(string html, int start, int end) {
             var position = end - 1;

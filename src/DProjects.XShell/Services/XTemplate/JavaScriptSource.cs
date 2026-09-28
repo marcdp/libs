@@ -22,6 +22,19 @@ namespace DProjects.XShell.Services.XTemplate {
             ArgumentNullException.ThrowIfNull(source);
             return new JavaScriptSource(source, JavaScriptLexer.Tokenize(source));
         }
+        public static string EncodeStaticTemplateLiteral(string value) {
+            ArgumentNullException.ThrowIfNull(value);
+            var result = new StringBuilder(value.Length + 2).Append('`');
+            for (var index = 0; index < value.Length; index++) {
+                if (value[index] == '\\') result.Append("\\\\");
+                else if (value[index] == '`') result.Append("\\`");
+                else if (value[index] == '$' && index + 1 < value.Length && value[index + 1] == '{') {
+                    result.Append("\\${");
+                    index++;
+                } else result.Append(value[index]);
+            }
+            return result.Append('`').ToString();
+        }
         public JavaScriptObject? FindDefaultExportObject() {
             var exportIndex = FindDefaultExportIndex();
             if (exportIndex < 0 || exportIndex + 2 >= _tokens.Count || !_tokens[exportIndex + 2].Is("{")) return null;

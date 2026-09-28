@@ -1,5 +1,3 @@
-using System.Text.Json;
-
 namespace DProjects.XShell.Services {
 
     public class ModuleFileCompilerJs {
@@ -29,8 +27,7 @@ namespace DProjects.XShell.Services {
                 var contextToUse = new ModuleFileCompilerContext(context.Config, context.ModuleId, context.ModulePath, context.FilePath + ".css");
                 var styleProcessed = new ModuleFileCompilerCss().Compile(contextToUse, style);
                 // replace old style property with new one
-                //var styleJs = JsonSerializer.Serialize(styleProcessed.Content);
-                var styleJs = "`" + styleProcessed.Content + "`";
+                var styleJs = XTemplate.JavaScriptSource.EncodeStaticTemplateLiteral(styleProcessed.Content);
                 js = js[..styleProperty.Value.Start] + styleJs + js[styleProperty.Value.End..];
                 // reparse because offsets in 'document' refer to the old source
                 document = XTemplate.JavaScriptSource.Parse(js);
@@ -45,8 +42,7 @@ namespace DProjects.XShell.Services {
                 var contextToUse = new ModuleFileCompilerContext(context.Config, context.ModuleId, context.ModulePath, context.FilePath + ".html");
                 var templateProcessed = new ModuleFileCompilerHtml().Compile(contextToUse, template);
                 // replace old template property with new one
-                //var templateJs = JsonSerializer.Serialize(templateProcessed.Content);
-                var templateJs = "`" + templateProcessed.Content + "`";
+                var templateJs = XTemplate.JavaScriptSource.EncodeStaticTemplateLiteral(templateProcessed.Content);
                 js = js[..templateProperty.Value.Start] + templateJs + js[templateProperty.Value.End..];
                 // reparse because offsets in 'document' refer to the old source
                 document = XTemplate.JavaScriptSource.Parse(js);

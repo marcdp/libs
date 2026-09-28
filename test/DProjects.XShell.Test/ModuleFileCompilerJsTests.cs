@@ -1,4 +1,5 @@
 using DProjects.XShell.Services;
+using DProjects.XShell.Services.XTemplate;
 
 using Xunit;
 
@@ -81,6 +82,73 @@ namespace DProjects.XShell.Test {
 
             Assert.Contains("templateRenderer: {", result.Content);
         }
+        [Theory]
+        [InlineData("\".x { background: url('./image.png'); }\"")]
+        [InlineData("'.x { background: url(\"./image.png\"); }'")]
+        [InlineData("`.x { background: url('./image.png'); }`")]
+        public void Compile_StaticCssForms_ReinsertAsStaticTemplateLiteral(string style) {
+            var result = Compile($"export default {{ style: {style} }};", "html");
+
+            Assert.Contains("/image.png", ReadProperty(result.Content, "style"));
+            Assert.StartsWith("export default", result.Content);
+        }
+        [Theory]
+        [InlineData("\"<img src='./image.png'>\"")]
+        [InlineData("'<img src=\"./image.png\">'")]
+        [InlineData("`<img src='./image.png'>`")]
+        public void Compile_StaticHtmlForms_ReinsertAsStaticTemplateLiteral(string template) {
+            var result = Compile($"export default {{ template: {template} }};", "html");
+
+            Assert.Contains("/image.png", ReadProperty(result.Content, "template"));
+        }
+        [Fact]
+        public void Compile_ProcessedCss_EscapesTemplateLiteralSyntaxAndRoundTrips() {
+            const string source = "export default { style: \".x::before { content: \\\"C:\\\\assets\\\\image.png ${value} `\\\"; }\\n.y { background: url('./image.png'); }\" };";
+            var result = Compile(source, "html");
+            var style = ReadProperty(result.Content, "style");
+
+            Assert.Contains("content: \"C:\\assets\\image.png ${value} `\";", style);
+            Assert.Contains('\n', style);
+            Assert.Contains("/image.png", style);
+            Assert.Contains("\\`", result.Content);
+            Assert.Contains("\\${value}", result.Content);
+            Assert.Contains("C:\\\\assets", result.Content);
+        }
+        [Fact]
+        public void Compile_ProcessedHtml_EscapesTemplateLiteralSyntaxAndRoundTrips() {
+            const string source = "export default { template: \"<p title=\\\"` ${value} C:\\\\assets\\\\image.png\\\">Hello</p>\" };";
+            var result = Compile(source, "html");
+
+            Assert.Equal("<p title=\"` ${value} C:\\assets\\image.png\">Hello</p>", ReadProperty(result.Content, "template"));
+            Assert.Contains("\\`", result.Content);
+            Assert.Contains("\\${value}", result.Content);
+        }
+        [Fact]
+        public void Compile_MultilineCss_PreservesPhysicalFormatting() {
+            const string source = "export default { style: `.card {\\n    background: url(\"./image.png\");\\n}` };";
+            var result = Compile(source, "html");
+
+            Assert.Contains("`.card {\n", result.Content);
+            Assert.Contains("\n    background: url(\"/image.png\");", result.Content);
+            Assert.Equal(".card {\n    background: url(\"/image.png\");\n}", ReadProperty(result.Content, "style"));
+        }
+        [Fact]
+        public void Compile_RejectsNonStaticStyleAndTemplateValues() {
+            var styleException = Assert.Throws<InvalidOperationException>(() => Compile("export default { style: `color:${value}` };", "html"));
+            var templateException = Assert.Throws<InvalidOperationException>(() => Compile("export default { template: `<p>${value}</p>` };", "html"));
+
+            Assert.Equal("'style' must be a static string.", styleException.Message);
+            Assert.Equal("'template' must be a static string.", templateException.Message);
+        }
+        [Fact]
+        public void HtmlSfc_UsesSafeStaticTemplateLiteralEncoding() {
+            const string html = "<template><p title=\"` ${value} C:\\assets\\image.png\">Hello</p></template>";
+            var result = new ModuleFileCompilerHtmlSfc().Compile(CreateContext("components/example.html", "html"), html);
+
+            Assert.Equal("<p title=\"` ${value} C:\\assets\\image.png\">Hello</p>", ReadProperty(result.Content, "template"));
+            Assert.Contains("\\`", result.Content);
+            Assert.Contains("\\${value}", result.Content);
+        }
         [Fact]
         public void Compile_NonStaticRenderEngine_ThrowsClearError() {
             var exception = Assert.Throws<InvalidOperationException>(() => Compile("export default { meta: { renderEngine: getRenderEngine() } };", "other"));
@@ -117,6 +185,24 @@ namespace DProjects.XShell.Test {
             var modulePath = Path.GetFullPath(AppContext.BaseDirectory);
             var context = new ModuleFileCompilerContext(config, "test", modulePath, Path.Combine(modulePath, "page.js"));
             return new ModuleFileCompilerJs().Compile(context, source);
+        }
+        private static ModuleFileCompilerContext CreateContext(string relativePath, string renderEngine) {
+            var config = new ModuleFileCompiler.Config {
+                Modules = new Dictionary<string, ModuleFileCompiler.ModuleConfig> {
+                    ["test"] = new ModuleFileCompiler.ModuleConfig {
+                        Defaults = new ModuleFileCompiler.Defaults {
+                            Page = new ModuleFileCompiler.PageDefaults { RenderEngine = renderEngine }
+                        }
+                    }
+                }
+            };
+            var modulePath = Path.GetFullPath(AppContext.BaseDirectory);
+            return new ModuleFileCompilerContext(config, "test", modulePath, Path.Combine(modulePath, relativePath));
+        }
+        private static string ReadProperty(string source, string property) {
+            var value = JavaScriptSource.Parse(source).FindDefaultExportObject()?.FindProperty(property)?.Value.GetStaticString();
+            Assert.NotNull(value);
+            return value;
         }
     }
 }

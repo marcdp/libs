@@ -8,8 +8,11 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <InternalsVisibleTo Include="DProjects.XShell.Test" />
+    </ItemGroup>
+
+    <ItemGroup>
         <Content Include="Resources\**\*" CopyToOutputDirectory="PreserveNewest" />
-        <Compile Remove="Tests\**\*.cs" />
     </ItemGroup>
     
     <ItemGroup>
