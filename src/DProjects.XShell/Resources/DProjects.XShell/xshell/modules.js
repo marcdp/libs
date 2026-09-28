@@ -1,3 +1,4 @@
+import { loadStyleSheetRecursive } from './utils/stylesheets.js';
 
 // class
 export default class Modules {
@@ -48,12 +49,14 @@ export default class Modules {
             for (let style of moduleConfig.styles || []) {
                 let styleUrl = this._resolver.resolveUrl("style:" + style);
                 tasks.push((async() => {
-                    let response = await fetch(styleUrl);
-                    if (!response.ok) throw new Error(`Error ${response.status}: ${response.statusText}: ${styleUrl}`);
-                    let css = await response.text();
-                    //alert(styleUrl + "\n" +css)
-                    let styleSheet = new CSSStyleSheet();
-                    await styleSheet.replace(css);
+
+                    //let response = await fetch(styleUrl);
+                    //if (!response.ok) throw new Error(`Error ${response.status}: ${response.statusText}: ${styleUrl}`);
+                    //let styleSheet = await loadStyleSheetRecursive(styleUrl);
+                    //css = css.replace("/css/styles2","/_assets/x-demo/css/styles2.css")
+                    let styleSheet = await this._loader.load("style:" + style);
+                    //alert(css)
+                    //await styleSheet.replace(css);
                     module.styles.push(styleSheet);
                 })());
             }    
