@@ -53,9 +53,9 @@ namespace DProjects.XShell.Services.XTemplate {
         private object? EvaluateTransform(TransformExpression expression) {
             object? value = Evaluate(expression.Source);
             foreach (var transformer in expression.Transformers) {
-                if (value == null) return null;
+                if (value == null && transformer.Name != "json_stringify") return null;
                 var arguments = transformer.Arguments.Select(Evaluate).ToArray();
-                value = XTemplateTransformers.Apply(transformer.Name, value, arguments, _context.Locale, transformer.Offset);
+                value = XTemplateTransformers.Apply(transformer.Name, value, arguments, _context.Locale, transformer.Offset, _context.ObjectAccess);
             }
             return value;
         }

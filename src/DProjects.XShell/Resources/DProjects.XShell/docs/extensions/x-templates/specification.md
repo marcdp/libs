@@ -545,6 +545,8 @@ state.name | trim | upper
 state.type | endsWith('_i18n')
 state.name | startsWith('A')
 state.code | contains('-')
+state.value | json_stringify
+state.json | json_parse
 ```
 
 The pipeline evaluates its source expression, then applies each transformer from left to right. The following is equivalent in evaluation order:
@@ -591,7 +593,7 @@ internally, but their observable XTemplate behavior MUST be equivalent for the c
 use compatible locale data and preserve equivalent results where the host locale data permits.
 
 The locale-sensitive transformers are `number`, `percent`, `currency`, `date`, `datetime`, `time`, `upper`, and `lower`. The locale-insensitive
-transformers are `trim`, `startsWith`, `endsWith`, and `contains`.
+transformers are `trim`, `startsWith`, `endsWith`, `contains`, `json_stringify`, and `json_parse`.
 
 Locale behavior has three distinct parts:
 
@@ -666,6 +668,8 @@ reinterpret their names as host-language calls.
 | `date` | ISO date/date-time string | pattern | string | yes |
 | `datetime` | offset date-time string | pattern | string | yes |
 | `time` | offset date-time string | pattern | string | yes |
+| `json_stringify` | any JSON-compatible XTemplate value | none | compact JSON string | no |
+| `json_parse` | JSON string | none | corresponding XTemplate value | no |
 
 `number`, `currency`, and `percent` reject non-numeric input, non-finite numeric values, and invalid digit arguments. `digits` is evaluated as an
 XTemplate expression, then must be a number whose value is an integer greater than or equal to zero. Implementations MUST reject values outside
@@ -689,6 +693,19 @@ call a method on the source object. Unicode whitespace for `trim` is the Unicode
 they MUST NOT use locale-sensitive comparison or implicit type coercion. Thus `'abcdef' | startsWith('abc')`, `'abcdef' | endsWith('def')`, and
 `'abcdef' | contains('cd')` each return `true`. `123 | startsWith('1')`, `'abc' | endsWith(123)`, `'abc' | contains()`, and
 `'abc' | contains('a', 'b')` are transformer evaluation errors.
+
+`json_stringify` accepts exactly zero arguments and serializes a JSON-compatible XTemplate value to compact JSON with no optional indentation. It
+produces a JSON string for every successful input: `null` becomes `null`, `true` becomes `true`, `123` becomes `123`, the XTemplate string `abc`
+becomes `"abc"`, and an insertion-ordered object with members `name = Marc` and `enabled = true` becomes
+`{"name":"Marc","enabled":true}`. Implementations MUST NOT add custom property sorting. Cyclic values, unsupported host values, non-finite
+numbers, and other values that cannot be represented as XTemplate JSON are transformer evaluation errors.
+
+`json_parse` accepts exactly zero arguments and requires a string input. It parses standard JSON into ordinary XTemplate values: JSON null, booleans,
+strings, objects, and arrays become their corresponding XTemplate kinds, and JSON numbers become finite XTemplate binary64 numbers. Parsed objects and
+arrays MUST support normal member access, indexing, collection use, and subsequent transformers; implementations MUST NOT expose host-specific JSON
+node types such as `JsonElement`. Invalid JSON and numbers outside the finite XTemplate numeric range are transformer evaluation errors. Therefore
+`state.value | json_stringify | json_parse` round-trips JSON-compatible values, and
+`'{ "name": "Marc", "enabled": true }' | json_parse | json_stringify` produces `{"name":"Marc","enabled":true}`.
 
 Locale-aware casing MUST be equivalent across JavaScript and C# implementations. The conformance locale profile includes `en-US`, `es-ES`, and
 `tr-TR`; representative required results are:
@@ -746,13 +763,16 @@ therefore accept examples such as `dd/MM/yyyy`, `yyyy-MM-dd`, `MMMM`, `dd/MM/yyy
 #### Result kinds and nulls
 
 The presentation transformers `number`, `currency`, `percent`, `date`, `datetime`, and `time` return strings. `trim`, `upper`, and `lower` are
-string-to-string transformers. `startsWith`, `endsWith`, and `contains` return booleans. A transformer MUST return only the XTemplate value kind
-declared by its signature. For example, `(state.price | number(2)) + 1` is string concatenation under the ordinary `+` rule; `number` MUST NOT
-silently convert its string result back to a number.
+string-to-string transformers. `startsWith`, `endsWith`, and `contains` return booleans. `json_stringify` returns a string, while `json_parse` may
+return any JSON-compatible XTemplate value kind. A transformer MUST return only the XTemplate value kind declared by its signature. For example,
+`(state.price | number(2)) + 1` is string concatenation under the ordinary `+` rule; `number` MUST NOT silently convert its string result back to a
+number.
 
 If the current pipeline value is `null`, the current transformer is not invoked, its arguments are not evaluated, and the remaining pipeline result
-remains `null`. Thus `null | number(1 / 0)` returns `null` without evaluating `1 / 0`, and `null | endsWith('_i18n')` returns `null`, not `false`
-or an error. This rule applies to presentation and predicate transformers alike.
+remains `null`, except that `json_stringify` is invoked so it can return the JSON string `null`. Thus `null | number(1 / 0)` returns `null` without
+evaluating `1 / 0`, and `null | endsWith('_i18n')` returns `null`, not `false` or an error. In contrast, `null | json_stringify` returns `null` as a
+string and evaluates the transformer argument list so that the required zero-argument contract is enforced. This rule otherwise applies to
+presentation, predicate, and `json_parse` transformers alike.
 
 Transformer failures are XTemplate evaluation errors. Unknown transformers, wrong input kinds, invalid arguments, malformed patterns, unsupported
 dates, and unsupported currency codes MUST be reported. Implementations MUST NOT ignore an unknown transformer or invoke a host function with the

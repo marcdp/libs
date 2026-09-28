@@ -223,8 +223,34 @@ const utils = new class {
 			return found ? result : fail("Transformer pattern must contain a token");
 		};
 		const transform = (value, name, getArguments, i18n) => {
+			if (name === "json_stringify") {
+				const args = getArguments();
+				if (args.length) return fail("Transformer 'json_stringify' received an invalid argument count");
+				try {
+					const result = JSON.stringify(value, (_, item) => {
+						if (item === undefined) return null;
+						if ((typeof item === "number" && !Number.isFinite(item)) || typeof item === "function" || typeof item === "symbol") throw new TypeError();
+						return item;
+					});
+					if (typeof result === "string") return result;
+				} catch {}
+				return fail("Transformer 'json_stringify' received a value that cannot be serialized");
+			}
 			if (value === null) return null;
 			const args = getArguments();
+			if (name === "json_parse") {
+				if (args.length) return fail("Transformer 'json_parse' received an invalid argument count");
+				if (typeof value !== "string") return fail("Transformer 'json_parse' requires a string input");
+				try {
+					const result = JSON.parse(value);
+					const valid = (item) => {
+						if (typeof item === "number") return Number.isFinite(item);
+						if (Array.isArray(item)) return item.every(valid);
+						return item !== null && typeof item === "object" ? Object.values(item).every(valid) : true;
+					};
+					return valid(result) ? result : fail("Transformer 'json_parse' received invalid JSON");
+				} catch { return fail("Transformer 'json_parse' received invalid JSON"); }
+			}
 			if (name === "number") {
 				if (args.length > 1) return fail("Transformer 'number' received an invalid argument count");
 				const culture = locale(i18n);

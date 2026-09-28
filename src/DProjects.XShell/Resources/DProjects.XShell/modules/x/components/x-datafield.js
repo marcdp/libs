@@ -517,7 +517,7 @@ export default {
                         // e.g: temp:/folder/filename.txt?size=123
                         let name = val.substring(5); // remove "temp:" prefix
                         if (name.indexOf("?")!=-1) name = name.substring(0, name.indexOf("?"));
-                        const filename = name.substring(name.lastIndexOf("/") + 1); // extract filename from path
+                        const filename = decodeURI(name.substring(name.lastIndexOf("/") + 1)); // extract filename from path
                         const fileurl = temp.getAbsoluteUrl(val);
                         const filesize = parseInt(new URL(fileurl).searchParams.get("size")) || 0;
                         files[filename] = {id: val, name: filename, url: fileurl, size: filesize, sizeFormatted: formatFileSize(filesize)};
@@ -616,7 +616,8 @@ export default {
 
             async fileChanged(args) {
                 // fileChanged
-                const files = args.event.target.files;
+                const input = args.event.target;
+                const files = input.files;
                 // temp upload
                 let filesTemp = {};
                 for(const file of files) {
@@ -638,7 +639,9 @@ export default {
                     state.value = result;
                 } else {
                     state.value = result[0];
-                }
+                }               
+                input.value = ""; 
+                
             },
             async fileRemove(args) {
                 const file = args.event.target.dataset.file;

@@ -75,7 +75,6 @@ export default {
             load() {
                 //load
                 events.on(state, "change:value", (event) => {
-                    debugger
                     state.colorized = syntaxHighlight(event.newValue);
                 });
             }

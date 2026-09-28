@@ -1,4 +1,7 @@
+using System.Collections;
 using System.Globalization;
+using System.Text.Encodings.Web;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace DProjects.XShell.Services.XTemplate {
@@ -12,11 +15,15 @@ namespace DProjects.XShell.Services.XTemplate {
         private static readonly IReadOnlyDictionary<string, (int Digits, string Symbol)> Currencies = new Dictionary<string, (int, string)> {
             ["EUR"] = (2, "€"), ["USD"] = (2, "$"), ["JPY"] = (0, "¥"), ["GBP"] = (2, "£"), ["CAD"] = (2, "CA$"), ["AUD"] = (2, "A$"), ["CHF"] = (2, "CHF"), ["CNY"] = (2, "CN¥"), ["KRW"] = (0, "₩")
         };
+        private static readonly JsonSerializerOptions JsonOptions = new() { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
         private static readonly string[] PatternTokens = ["yyyy", "MMMM", "MMM", "MM", "dd", "HH", "mm", "ss", "M", "d", "H"];
 
         // methods
-        public static object? Apply(string name, object input, IReadOnlyList<object?> arguments, string? locale, int offset) {
+        public static object? Apply(string name, object? input, IReadOnlyList<object?> arguments, string? locale, int offset, XTemplateObjectAccess? objectAccess = null) {
+            if (name == "json_stringify") return JsonStringify(input, arguments, objectAccess, offset);
+            if (input == null) return null;
             return name switch {
+                "json_parse" => JsonParse(input, arguments, offset),
                 "number" => Number(input, arguments, GetCulture(locale, offset), offset),
                 "percent" => Percent(input, arguments, GetCulture(locale, offset), offset),
                 "currency" => Currency(input, arguments, GetCulture(locale, offset), offset),
@@ -34,6 +41,74 @@ namespace DProjects.XShell.Services.XTemplate {
         }
 
         // methods (private)
+        private static string JsonStringify(object? input, IReadOnlyList<object?> arguments, XTemplateObjectAccess? objectAccess, int offset) {
+            RequireCount("json_stringify", arguments, 0, 0, offset);
+            try {
+                var value = JsonValue(input, objectAccess, new HashSet<object>(ReferenceEqualityComparer.Instance));
+                return JsonSerializer.Serialize(value, JsonOptions);
+            } catch (Exception) { throw Error("Transformer 'json_stringify' received a value that cannot be serialized", offset); }
+        }
+        private static object? JsonParse(object input, IReadOnlyList<object?> arguments, int offset) {
+            RequireCount("json_parse", arguments, 0, 0, offset);
+            if (input is not string text) throw Error("Transformer 'json_parse' requires a string input", offset);
+            try {
+                using var document = JsonDocument.Parse(text);
+                return JsonValue(document.RootElement);
+            } catch (JsonException) { throw Error("Transformer 'json_parse' received invalid JSON", offset); }
+        }
+        private static object? JsonValue(object? value, XTemplateObjectAccess? objectAccess, HashSet<object> visiting) {
+            if (value == null || value is bool or string) return value;
+            if (value is char character) return character.ToString();
+            if (XTemplateValues.IsNumeric(value)) return XTemplateValues.NormalizeNumber(value);
+            if (!visiting.Add(value)) throw new JsonException("Cyclic XTemplate value");
+            try {
+                if (value is IDictionary dictionary) {
+                    var result = new Dictionary<string, object?>(StringComparer.Ordinal);
+                    foreach (DictionaryEntry entry in dictionary) {
+                        if (entry.Key is not string key) throw new NotSupportedException("XTemplate JSON objects require string keys");
+                        result[key] = JsonValue(entry.Value, objectAccess, visiting);
+                    }
+                    return result;
+                }
+                if (value is IReadOnlyDictionary<string, object?> readonlyDictionary) {
+                    var result = new Dictionary<string, object?>(StringComparer.Ordinal);
+                    foreach (var entry in readonlyDictionary) result[entry.Key] = JsonValue(entry.Value, objectAccess, visiting);
+                    return result;
+                }
+                if (objectAccess?.CanAdapt(value) == true) {
+                    var result = new Dictionary<string, object?>(StringComparer.Ordinal);
+                    foreach (var member in objectAccess.GetMembers(value)) result[member.Key] = JsonValue(member.Value, objectAccess, visiting);
+                    return result;
+                }
+                if (value is IEnumerable collection) {
+                    return collection.Cast<object?>().Select(item => JsonValue(item, objectAccess, visiting)).ToArray();
+                }
+                throw new NotSupportedException("Unsupported XTemplate JSON value");
+            } finally { visiting.Remove(value); }
+        }
+        private static object? JsonValue(JsonElement value) {
+            return value.ValueKind switch {
+                JsonValueKind.Null => null,
+                JsonValueKind.True => true,
+                JsonValueKind.False => false,
+                JsonValueKind.String => value.GetString(),
+                JsonValueKind.Number => JsonNumber(value),
+                JsonValueKind.Array => value.EnumerateArray().Select(JsonValue).ToArray(),
+                JsonValueKind.Object => JsonObject(value),
+                _ => throw new JsonException("Unsupported JSON value")
+            };
+        }
+        private static double JsonNumber(JsonElement value) {
+            if (!value.TryGetDouble(out var number) || !double.IsFinite(number)) {
+                throw new JsonException("JSON number is outside the XTemplate numeric range");
+            }
+            return number == 0 ? 0 : number;
+        }
+        private static Dictionary<string, object?> JsonObject(JsonElement value) {
+            var result = new Dictionary<string, object?>(StringComparer.Ordinal);
+            foreach (var property in value.EnumerateObject()) result[property.Name] = JsonValue(property.Value);
+            return result;
+        }
         private static string Number(object input, IReadOnlyList<object?> arguments, CultureInfo culture, int offset) {
             RequireCount("number", arguments, 0, 1, offset);
             int? digits = arguments.Count == 0 ? null : Digits(arguments[0], offset);

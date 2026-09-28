@@ -26,6 +26,8 @@ accepted, including attribute bindings:
 <p>{{ state.createdAt | date('dd/MM/yyyy') }}</p>
 <p>{{ state.createdAt | datetime('dd/MM/yyyy HH:mm') }}</p>
 <p>{{ state.name | trim | upper }}</p>
+<code>{{ state.value | json_stringify }}</code>
+<span x-text="state.json | json_parse | json_stringify"></span>
 <span x-if="state.type | endsWith('_i18n')">Languages</span>
 <div x-attr:data-price="state.price | number(2)"></div>
 ```
@@ -35,6 +37,12 @@ parenthesize a branch when only that branch should be transformed. Locale-sensit
 ordinary scalar conversion remains invariant. General function calls and object methods remain invalid; use `number(2)` instead of `toFixed(2)` and
 `upper` instead of `toUpperCase()`. The JavaScript and C# backends share the `en-US`, `es-ES`, and `tr-TR` locale conformance profile; see the
 specification for its required numeric, percent, currency, month-name, and casing cases.
+
+`json_stringify` accepts any JSON-compatible XTemplate value, takes no arguments, and returns compact JSON. `json_parse` accepts a JSON string, takes no
+arguments, and returns the corresponding XTemplate value. Parsed objects and arrays participate in ordinary member access, indexing, and collection
+operations. For example, an object value `{ name: "Marc", enabled: true }` stringifies as `{"name":"Marc","enabled":true}`, and
+`state.value | json_stringify | json_parse` round-trips a JSON-compatible value. Unlike other transformers, `json_stringify` serializes `null` as
+the string `null`; `json_parse` converts the JSON string `"null"` back to the XTemplate value `null`.
 
 ## Attributes and properties
 

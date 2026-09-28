@@ -94,9 +94,17 @@ namespace DProjects.XShell.Middlewares {
             context.Response.StatusCode = StatusCodes.Status201Created;
 
             // Build the public URL for the saved file
-            var url = $"temp:/{id}/{Uri.EscapeDataString(filename)}?size={file.Length}&type={MimeTypeUtils.GetMimeType(filename)}";
+            var url = $"temp:/{id}/{Uri.EscapeDataString(filename)}?size={file.Length}&type={MimeTypeUtils.GetMimeType(filename)}&hash={ComputeHash(filePath)}";
             context.Response.ContentType = "text/plain";
             await context.Response.WriteAsync(url, context.RequestAborted);
+        }
+
+        private string ComputeHash(string filePath) {
+            // Compute SHA256 hash of the file for integrity verification
+            using var sha256 = System.Security.Cryptography.SHA256.Create();
+            using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            var hashBytes = sha256.ComputeHash(stream);
+            return Convert.ToHexString(hashBytes).ToLowerInvariant();
         }
 
         // Handles GET requests: validates id/filename and streams the file back

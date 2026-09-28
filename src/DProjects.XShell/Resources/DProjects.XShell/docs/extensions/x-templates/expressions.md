@@ -30,6 +30,8 @@ Transformers are the restricted pipeline extension:
 <p>{{ state.price | number(2) }}</p>
 <p>{{ state.createdAt | date('dd/MM/yyyy') }}</p>
 <p>{{ state.name | trim | upper }}</p>
+<code>{{ state.value | json_stringify }}</code>
+<span x-text="state.json | json_parse | json_stringify"></span>
 <span x-if="state.type | endsWith('_i18n')">Languages</span>
 <div x-attr:data-price="state.price | number(2)"></div>
 ```
@@ -41,6 +43,12 @@ The transformer pipeline has lower precedence than the conditional operator. An 
 so `state.ok ? 'yes' : 'no' | upper` means `(state.ok ? 'yes' : 'no') | upper`. Parenthesize a branch to transform only that branch. Transformer-call
 parentheses establish a nested expression boundary, so full expressions such as `state.total | currency(state.code | trim | upper)` remain valid;
 this does not add general function-call syntax.
+
+`json_stringify` takes no arguments and converts a JSON-compatible XTemplate value to compact JSON. `json_parse` takes no arguments and converts a JSON
+string to the corresponding XTemplate value, so parsed objects and arrays support ordinary member access, indexing, and collection operations. For
+example, `{ name: "Marc", enabled: true }` becomes `{"name":"Marc","enabled":true}`, while
+`state.value | json_stringify | json_parse` round-trips a JSON-compatible value. `json_stringify` is the deliberate exception to normal transformer
+null propagation: it converts `null` to the string `null`; parsing the JSON string `"null"` produces the XTemplate value `null`.
 
 ## Where expressions are used
 
