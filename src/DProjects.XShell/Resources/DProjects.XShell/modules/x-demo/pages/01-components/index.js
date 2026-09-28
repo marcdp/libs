@@ -16,8 +16,12 @@ export default {
         <img src="/img/random1.jpg" style="width:10em;display:block;">
 
         <a href="01-basics.js">Basics A</a>
+        
         <br/>
-        <x-anchor href="01-basics.js">Basics x.anchor</x-anchor>
+
+        <x-anchor href="01-basics.js?a=123&b=312">Basics x.anchor</x-anchor>
+
+        <br/>
     `,    
     controller({ state }) {
         return {

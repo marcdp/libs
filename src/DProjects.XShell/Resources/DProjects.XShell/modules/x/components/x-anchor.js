@@ -62,7 +62,6 @@ export default {
                 // refresh
                 if (state.href) {
                     const page = getPage();
-                    debugger
                     const href = navigation.buildUrlAbsolute({
                         href:       state.href,
                         params:     state.query,

@@ -7,8 +7,8 @@ const rules = [
     { selector: "area", attr: "href", type:"navigation"},
     { selector: "form", attr: "action", type:"navigation"},
     { selector: "button[formaction]", attr: "formaction", type:"navigation"},
-    //{ selector: "x-page", attr: "src", type:"virtual_navigation"},
-    //{ selector: "x-anchor", attr: "src", type:"virtual_navigation"},
+    { selector: "x-page", attr: "src", type:"virtual_navigation"},
+    { selector: "x-anchor", attr: "href", type:"virtual_navigation"},
     // resources
     { selector: "img", attr: "src", type:"resource" },
     { selector: "img", attr: "srcset", type:"resource" },
@@ -29,7 +29,7 @@ const rules = [
 // add a rewrite rule
 export function addRewriteRule(selector, attr, type) {
     rules.push({ selector, attr, type });
-}
+} 
 
 // rewrite a static attribute emitted by a precompiled X template handler
 export function rewriteTemplateAttribute(tag, attrs, attr, value, context) {
@@ -58,6 +58,7 @@ export function normalizeModuleResourceUrl(url, modulePath, resourcePath) {
 // export
 export function rewrite( el, attr, type, url, context ) {
     //if (url.indexOf("colibri")!=-1) debugger;
+    if (url.indexOf("basic")!=-1) debugger;
     if (url.indexOf(":") != -1) {
         return url;
     } else if (type == "resource") {
@@ -82,16 +83,16 @@ export function rewrite( el, attr, type, url, context ) {
             realUrl = context.appBasePath + virtualUrl;
         }
         return realUrl;
-    //} else if (type == "virtual_navigation") {
-    //    let virtualUrl = null;
-    //   if (url.startsWith("/")) {
-    //        virtualUrl = context.resourceDefinition.modulePath + url;
-    //    } else if (url.startsWith("#")) {
-    //        virtualUrl = context.resourcePath + url;
-    //    } else {
-    //        virtualUrl = combineUrls(context.resourcePath, url);
-    //    }
-    //    return virtualUrl;
+    } else if (type == "virtual_navigation") {
+        let virtualUrl = null;
+        if (url.startsWith("/")) {
+            virtualUrl = context.resourceDefinition.modulePath + url;
+        } else if (url.startsWith("#")) {
+            virtualUrl = context.resourcePath + url;
+        } else {
+            virtualUrl = combineUrls(context.resourcePath, url);
+        }
+        return virtualUrl;
     } else {
         throw new Error("Unknown rewrite type: " + type);
     }
