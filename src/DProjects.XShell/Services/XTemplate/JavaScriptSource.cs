@@ -135,9 +135,21 @@ namespace DProjects.XShell.Services.XTemplate {
             return closeBraceIndex == valueEndTokenIndex ? new JavaScriptObject(this, valueStartTokenIndex, closeBraceIndex) : null;
         }
         private string? GetStaticString(int valueStartTokenIndex, int valueEndTokenIndex) {
-            if (valueStartTokenIndex != valueEndTokenIndex || _tokens[valueStartTokenIndex].Kind != TokenKind.String) return null;
+            if (valueStartTokenIndex != valueEndTokenIndex) return null;
             var token = _tokens[valueStartTokenIndex];
+            if (token.Kind == TokenKind.Template && HasTemplateSubstitution(token.Text)) return null;
+            if (token.Kind is not TokenKind.String and not TokenKind.Template) return null;
             return DecodeQuotedString(token.Text, token.Start);
+        }
+        private static bool HasTemplateSubstitution(string literal) {
+            for (var index = 1; index < literal.Length - 1; index++) {
+                if (literal[index] == '\\') {
+                    index++;
+                } else if (literal[index] == '$' && index + 1 < literal.Length - 1 && literal[index + 1] == '{') {
+                    return true;
+                }
+            }
+            return false;
         }
         private static string DecodeQuotedString(string literal, int sourceOffset) {
             var result = new StringBuilder(literal.Length - 2);

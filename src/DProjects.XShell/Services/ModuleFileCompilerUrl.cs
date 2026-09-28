@@ -24,7 +24,7 @@ namespace DProjects.XShell.Services {
                 if (segment.Length == 0 || segment == ".") continue;
                 if (segment == "..") {
                     if (segments.Count == 0) {
-                        throw new InvalidOperationException($"CSS resource reference '{url}' in '{relativePath}' escapes the module root.");
+                        throw new InvalidOperationException($"Resource reference '{url}' in '{relativePath}' escapes the module root.");
                     }
                     segments.RemoveAt(segments.Count - 1);
                 } else {

@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Text;
 using System.Text.Json;
 
@@ -24,10 +23,8 @@ namespace DProjects.XShell.Services.XTemplate {
             if (export == null) return source;
             var template = export.FindProperty("template");
             if (template == null) throw new InvalidOperationException("The exported X component definition does not declare a static 'template' property.");
-            if (!template.Value.IsTemplateLiteral) {
-                throw new InvalidOperationException($"The exported X component 'template' at JavaScript offset {template.Value.Start} must be a static template literal.");
-            }
-            var templateText = DecodeStaticTemplateLiteral(template.Value.Text, template.Value.Start);
+            var templateText = template.Value.GetStaticString();
+            if (templateText == null) throw new InvalidOperationException($"The exported X component 'template' at JavaScript offset {template.Value.Start} must be a static string.");
             var renderer = SerializeArtifact(_templateCompiler.CompileArtifact(templateText));
             var existingRenderer = export.FindProperty("templateRenderer");
             if (existingRenderer != null) return source[..existingRenderer.Value.Start] + renderer + source[existingRenderer.Value.End..];
@@ -69,47 +66,6 @@ namespace DProjects.XShell.Services.XTemplate {
                 "{resource:" + JsonSerializer.Serialize(dependency.Resource) + ",ancestorPaths:[" +
                 string.Join(',', dependency.AncestorPaths.Select(path => "[" + string.Join(',', path.Select(value => JsonSerializer.Serialize(value))) + "]")) + "]}");
             return "{\n        render:" + artifact.RenderJavaScript + ",\n        dependencies:[" + string.Join(',', dependencies) + "],\n        slots:[" + string.Join(',', artifact.Slots.Select(value => JsonSerializer.Serialize(value))) + "]\n    }";
-        }
-        private static string DecodeStaticTemplateLiteral(string literal, int sourceOffset) {
-            var result = new StringBuilder(literal.Length);
-            for (var index = 1; index < literal.Length - 1; index++) {
-                var character = literal[index];
-                if (character == '$' && index + 1 < literal.Length - 1 && literal[index + 1] == '{') {
-                    throw new InvalidOperationException($"The X component template at JavaScript offset {sourceOffset} must be static; template substitutions are not supported.");
-                }
-                if (character != '\\') { result.Append(character); continue; }
-                if (++index >= literal.Length - 1) throw new InvalidOperationException($"Invalid escape sequence in template literal at JavaScript offset {sourceOffset + index}.");
-                character = literal[index];
-                if (character == '\r' || character == '\n') {
-                    if (character == '\r' && index + 1 < literal.Length - 1 && literal[index + 1] == '\n') index++;
-                    continue;
-                }
-                result.Append(character switch {
-                    'b' => '\b', 'f' => '\f', 'n' => '\n', 'r' => '\r', 't' => '\t', 'v' => '\v', '0' => '\0',
-                    'x' => DecodeFixedEscape(literal, ref index, 2, sourceOffset),
-                    'u' => DecodeUnicodeEscape(literal, ref index, sourceOffset),
-                    _ => character
-                });
-            }
-            return result.ToString();
-        }
-        private static string DecodeFixedEscape(string literal, ref int index, int digits, int sourceOffset) {
-            if (index + digits >= literal.Length - 1) throw new InvalidOperationException($"Incomplete escape sequence at JavaScript offset {sourceOffset + index}.");
-            var hex = literal.Substring(index + 1, digits);
-            if (!int.TryParse(hex, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var value)) throw new InvalidOperationException($"Invalid escape sequence at JavaScript offset {sourceOffset + index}.");
-            index += digits;
-            return char.ConvertFromUtf32(value);
-        }
-        private static string DecodeUnicodeEscape(string literal, ref int index, int sourceOffset) {
-            if (index + 1 < literal.Length - 1 && literal[index + 1] == '{') {
-                var end = literal.IndexOf('}', index + 2);
-                if (end < 0 || end >= literal.Length - 1) throw new InvalidOperationException($"Incomplete Unicode escape at JavaScript offset {sourceOffset + index}.");
-                var hex = literal[(index + 2)..end];
-                if (!int.TryParse(hex, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var value) || value > 0x10FFFF) throw new InvalidOperationException($"Invalid Unicode escape at JavaScript offset {sourceOffset + index}.");
-                index = end;
-                return char.ConvertFromUtf32(value);
-            }
-            return DecodeFixedEscape(literal, ref index, 4, sourceOffset);
         }
     }
 }

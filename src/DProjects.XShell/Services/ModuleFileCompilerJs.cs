@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace DProjects.XShell.Services {
 
     public class ModuleFileCompilerJs {
@@ -22,12 +24,14 @@ namespace DProjects.XShell.Services {
             var styleProperty = document.FindDefaultExportObject()?.FindProperty("style");
             if (styleProperty != null) {
                 // compile CSS and inject into JS
-                var style = styleProperty.Value.Text;
+                var style = styleProperty.Value.GetStaticString();
                 if (style == null) throw new InvalidOperationException("'style' must be a static string.");
                 var contextToUse = new ModuleFileCompilerContext(context.Config, context.ModuleId, context.ModulePath, context.FilePath + ".css");
                 var styleProcessed = new ModuleFileCompilerCss().Compile(contextToUse, style);
                 // replace old style property with new one
-                js = js[..styleProperty.Value.Start] + styleProcessed.Content + js[styleProperty.Value.End..];
+                //var styleJs = JsonSerializer.Serialize(styleProcessed.Content);
+                var styleJs = "`" + styleProcessed.Content + "`";
+                js = js[..styleProperty.Value.Start] + styleJs + js[styleProperty.Value.End..];
                 // reparse because offsets in 'document' refer to the old source
                 document = XTemplate.JavaScriptSource.Parse(js);
             }
@@ -36,12 +40,14 @@ namespace DProjects.XShell.Services {
             var templateProperty = document.FindDefaultExportObject()?.FindProperty("template");
             if (templateProperty != null) {
                 // compile HTML and inject into JS
-                var template = templateProperty.Value.Text;
+                var template = templateProperty.Value.GetStaticString();
                 if (template == null) throw new InvalidOperationException("'template' must be a static string.");
                 var contextToUse = new ModuleFileCompilerContext(context.Config, context.ModuleId, context.ModulePath, context.FilePath + ".html");
                 var templateProcessed = new ModuleFileCompilerHtml().Compile(contextToUse, template);
                 // replace old template property with new one
-                js = js[..templateProperty.Value.Start] + templateProcessed.Content + js[templateProperty.Value.End..];
+                //var templateJs = JsonSerializer.Serialize(templateProcessed.Content);
+                var templateJs = "`" + templateProcessed.Content + "`";
+                js = js[..templateProperty.Value.Start] + templateJs + js[templateProperty.Value.End..];
                 // reparse because offsets in 'document' refer to the old source
                 document = XTemplate.JavaScriptSource.Parse(js);
             }
