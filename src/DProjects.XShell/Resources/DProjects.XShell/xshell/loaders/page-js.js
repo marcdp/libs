@@ -208,23 +208,18 @@ export async function createPageClassFromJsDefinition(src, context, implementati
     }
     // state skeleton
     const stateSkeleton = createStateSkeleton(src, implementation, contract);
-    const propertyAttributeNames = [];
-    const reflectedPropertyNames = [];
     const stateMapAttributes = [];
     const queryProperties = [];
-    let stateContextNames = []; 
+    let contextProperties = []; 
     for (const [propName, property] of Object.entries(contract.properties)) {
-        if (property.attribute === true) {
-            propertyAttributeNames.push(camelToKebab(propName));
-        }
-        if (property.reflect === true) {
-            reflectedPropertyNames.push(propName);
-        }
         if (property.state === true && property.attribute === true && isEmptyPlainObject(property.default)) {
             stateMapAttributes.push({ attributePrefix: camelToKebab(propName) + "-", stateName: propName });
         }
         if (property.query === true) {
             queryProperties.push({ name: propName, property });
+        }
+        if (property.context === true) {
+            contextProperties.push({ name: propName, property });
         }
     }
     for (const [stateName, value] of Object.entries(implementation.state)) {
@@ -271,6 +266,7 @@ export async function createPageClassFromJsDefinition(src, context, implementati
         _styleSheets = [];
         _disposables = [];
         _initializingQuery = true;
+        _commandsPending = [];
         // ctor
         constructor({ src, context }) {
             super({ src, context });
@@ -299,12 +295,11 @@ export async function createPageClassFromJsDefinition(src, context, implementati
                     }
                 }
             }
-            // stateContextNames
-            if (stateContextNames.length) {
-                for(let propName of stateContextNames) {
-                    if (typeof(this._context[propName]) != "undefined") {
-                        let value = this._context[propName];
-                        self._state[propName] = value;
+            // contextProperties
+            if (contextProperties.length) {
+                for (const { name, property } of contextProperties) {
+                    if (typeof context[name] != "undefined") {
+                        self._state[name] = context[name];
                     }
                 }
             }
@@ -315,6 +310,9 @@ export async function createPageClassFromJsDefinition(src, context, implementati
                     if (prop == "implementation") {
                         // page implementation
                         return implementation;
+                    } else if (prop == "contract") {
+                        // contract
+                        return contract;
                     } else if (prop == "state") {
                         // state
                         return self._state;
@@ -340,6 +338,11 @@ export async function createPageClassFromJsDefinition(src, context, implementati
                     } else if (prop == "query") {
                         // get query
                         return new URLSearchParams(self.src.split("?")[1] ?? "");
+                    } else if (prop == "commands") {
+                        // get commands
+                        return {
+                            enqueue: (command, ...params) => { self._commandsPending.push( { command, params: [...params] }); }
+                        };
                     } else {
                         // resolve from services
                         return xshell.services.resolve(prop);                    
@@ -446,6 +449,10 @@ export async function createPageClassFromJsDefinition(src, context, implementati
                 this._stateChanges = [];
                 this._renderPending = false;
                 renderEngine.render();
+                while (this._commandsPending.length > 0) {
+                    const cmd = this._commandsPending.shift();
+                    this.onCommand(cmd.command, ...cmd.params);
+                }
             });
         }
     };

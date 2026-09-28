@@ -36,7 +36,7 @@ export default {
     },
     controller({ state, identity, dialog, auth }) {
         return {
-            async load(params) {
+            async load() {
                 // load
                 state.id = identity.id;
                 state.name = identity.name;
@@ -45,7 +45,7 @@ export default {
                 state.claims = Object.entries(identity.claims).map(([key, value]) => ({ key: key, value: value }));
             },
 
-            async logout(params) {
+            async logout() {
                 // logout
                 const result = await dialog.confirm({
                     title: "Logout",

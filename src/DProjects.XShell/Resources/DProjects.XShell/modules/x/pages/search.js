@@ -45,9 +45,9 @@ export default {
         keyword: "",
         results: []
     },
-    controller({ state, events, bus, modules, areas, config }) {
+    controller({ state, events, bus, areas }) {
         return {
-            load(params) {
+            load() {
                 // load
                 events.on(bus, "xshell:search", (event) => {
                     state.keyword = event.detail.keyword
@@ -55,7 +55,7 @@ export default {
                 events.on(state, "change:keyword", "search");
             },
 
-            search(params) {
+            search() {
                 // search
                 let keyword = state.keyword.toLowerCase();
                 let results = [];

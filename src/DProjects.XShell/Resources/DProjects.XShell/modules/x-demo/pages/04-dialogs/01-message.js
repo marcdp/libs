@@ -17,10 +17,10 @@ export default {
         <p>Each button uses the same API with a different supported message type.</p>
 
         <p>
-            <x-button label="Info" command="message-info"></x-button>
-            <x-button label="Success" command="message-success"></x-button>
-            <x-button label="Warning" command="message-warning"></x-button>
-            <x-button label="Error" command="message-error"></x-button>
+            <x-button label="Info" command="messageInfo"></x-button>
+            <x-button label="Success" command="messageSuccess"></x-button>
+            <x-button label="Warning" command="messageWarning"></x-button>
+            <x-button label="Error" command="messageError"></x-button>
         </p>
 
         <pre x-pre><code>const result = await dialog.message({
@@ -36,10 +36,10 @@ export default {
         </p>
 
         <p>
-            <x-button label="Yes / No" command="confirm-yesno"></x-button>
-            <x-button label="Yes / No / Cancel" command="confirm-yesnocancel"></x-button>
-            <x-button label="OK / Cancel" command="confirm-okcancel"></x-button>
-            <x-button label="OK" command="confirm-ok"></x-button>
+            <x-button label="Yes / No" command="confirmYesNo"></x-button>
+            <x-button label="Yes / No / Cancel" command="confirmYesNoCancel"></x-button>
+            <x-button label="OK / Cancel" command="confirmOkCancel"></x-button>
+            <x-button label="OK" command="confirmOk"></x-button>
         </p>
 
         <pre x-pre><code>const result = await dialog.confirm({
@@ -75,28 +75,28 @@ export default {
         };
 
         return {
-            async "message-info"() {
+            async messageInfo() {
                 await showMessage("info", "Information", "This is an informational message.");
             },
-            async "message-success"() {
+            async messageSuccess() {
                 await showMessage("success", "Saved", "The operation completed successfully.");
             },
-            async "message-warning"() {
+            async messageWarning() {
                 await showMessage("warning", "Review needed", "Check the values before continuing.");
             },
-            async "message-error"() {
+            async messageError() {
                 await showMessage("error", "Operation failed", "The sample operation could not be completed.");
             },
-            async "confirm-yesno"() {
+            async confirmYesNo() {
                 await showConfirmation("yesno");
             },
-            async "confirm-yesnocancel"() {
+            async confirmYesNoCancel() {
                 await showConfirmation("yesnocancel");
             },
-            async "confirm-okcancel"() {
+            async confirmOkCancel() {
                 await showConfirmation("okcancel");
             },
-            async "confirm-ok"() {
+            async confirmOk() {
                 await showConfirmation("ok");
             }
         };

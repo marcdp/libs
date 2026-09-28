@@ -3,8 +3,8 @@ export const contract = {
     description: "Shows a confirmation dialog with various button options.",
     events: {},
     properties: {
-        message: {type:"string", default:"", state:true, description:"The message to display in the confirmation dialog."},
-        variant: {type:"string", default:"yesno", state:true, enum:["yesno","yesnocancel","okcancel","ok"], description:"The type of confirmation dialog to display."},
+        message: {type:"string", default:"", state:true, description:"The message to display in the confirmation dialog.", context:true},
+        variant: {type:"string", default:"yesno", state:true, enum:["yesno","yesnocancel","okcancel","ok"], description:"The type of confirmation dialog to display.", context:true},
     },
     methods: {}
 };
@@ -27,30 +27,26 @@ export default {
         message: "",
         variant: "yesno",
     },
-    controller({ state, context, host }) {
+    controller({ page }) {
         return {
-            load(params) {
-                // load
-            },
-
-            yes(params) {
+            yes() {
                 //yes
-                host.close("yes");
+                page.close("yes");
             },
 
             no(params) {
                 //no
-                host.close("no");
+                page.close("no");
             },
 
             cancel(params) {
                 //cancel
-                host.close("cancel");
+                page.close("cancel");
             },
 
             ok(params) {
                 //ok
-                host.close("ok");
+                page.close("ok");
             }
         };
     }

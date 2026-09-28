@@ -208,6 +208,8 @@ export async function createComponentClassFromJsDefinition(src, context, impleme
         _controller = null;
         _renderEngine = null;
         _renderPending = false;
+        _renderCount = 0;
+        _commandsPending = [];
         _unloaded = false;
         // static
         static get observedAttributes() { 
@@ -276,6 +278,11 @@ export async function createComponentClassFromJsDefinition(src, context, impleme
                     } else if (prop == "dependencies") {
                         // get dependencies
                         return dependencies;
+                    } else if (prop == "commands") {
+                        // get commands
+                        return {
+                            enqueue: (command, ...params) => { self._commandsPending.push( { command, params: [...params] }); }
+                        };
                     } else {
                         // resolve from services
                         return xshell.services.resolve(prop);
@@ -393,6 +400,10 @@ export async function createComponentClassFromJsDefinition(src, context, impleme
                 this._stateChanges = [];
                 this._renderPending = false;
                 renderEngine.render();
+                while (this._commandsPending.length > 0) {
+                    const cmd = this._commandsPending.shift();
+                    this.onCommand(cmd.command, ...cmd.params);
+                }
             });
         }
         // invoke controller

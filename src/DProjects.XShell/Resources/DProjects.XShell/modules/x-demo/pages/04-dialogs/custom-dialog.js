@@ -1,7 +1,10 @@
 export const contract = {
     description: "Custom dialog Page",
     events: {},
-    properties: {},
+    properties: {
+        message: {type:"string", default:"", state:true, description:"The context message.", context:true},
+        value: {type:"string", default:"", state:true, description:"The initial value.", context:true},
+    },
     methods: {}
 };
 
@@ -38,17 +41,15 @@ export default {
         message: "",
         value: ""
     },
-    controller({ state, context, host }) {
+    controller({ state, context, page }) {
         return {
-            load() {
-                state.message = context?.message ?? "No context message was supplied.";
-                state.value = context?.initialValue ?? "";
-            },
             save() {
-                host.close({accepted: true, value: state.value});
+                // save
+                page.close({accepted: true, value: state.value});
             },
             cancel() {
-                host.close(null);
+                // cancel
+                page.close(null);
             }
         };
     }

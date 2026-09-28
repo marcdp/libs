@@ -27,10 +27,6 @@ export const contract = {
 
 // implementation
 export default {
-    meta: {
-        renderEngine: "x",
-        stateEngine:  "proxy"
-    },
     style: `
         :host {}
         :host a {display:inline; align-items:center; width:100%; }

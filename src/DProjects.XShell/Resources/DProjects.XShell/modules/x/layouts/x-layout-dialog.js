@@ -71,12 +71,12 @@ export default {
         
     `,
     template: `
-        <dialog x-class:opened="state.opened" x-on:cancel="query-close">
+        <dialog x-class:opened="state.opened" x-on:cancel="queryClose">
             <div class="container">
                 <x-loading x-if="state.status=='loading'"></x-loading>
                 <div class="header">
                     <h2><x-page-title></x-page-title></h2>
-                    <x-button class="anchor" icon="x-close" x-on:click="query-close"></x-button>                                        
+                    <x-button class="anchor" icon="x-close" x-on:click="queryClose"></x-button>                                        
                 </div>
                 <div class="body">
                     <slot></slot>
@@ -85,27 +85,28 @@ export default {
         </dialog>
 
     `,
-    controller({ state, events, bus, getPage, host }) {
+    controller({ state, events, bus, getPage, host, commands }) {
         return {
             load() {
                 //load
                 events.on(bus, "xshell:page:load", "refresh");
+                commands.enqueue("open");
                 this.refresh();
-                setTimeout(() => {
-                    host.shadowRoot.querySelector("DIALOG").showModal();
-                    setTimeout(() => {
-                        state.opened = true;
-                    }, 0);
-                }, 0);
             },
-
+            open() {
+                const dialog = host.shadowRoot.querySelector("dialog");
+                if (dialog) {
+                    dialog.showModal();
+                    state.opened = true;
+                }
+            },
             refresh() {
                 //refresh
                 const page = getPage();
-                state.label = page.label;
+                if (page) state.label = page.label;
             },
 
-            "query-close"() {
+            queryClose(args) {
                 //query close
                 args.event.preventDefault();
                 host.dispatchEvent(new CustomEvent("query-close", { composed: true }));

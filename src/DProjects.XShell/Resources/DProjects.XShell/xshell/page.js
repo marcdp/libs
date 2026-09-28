@@ -84,7 +84,8 @@ export default class Page {
         const params = {
             query: Object.fromEntries(url.searchParams.entries()),
             path: url.pathname,
-            hash: url.hash
+            hash: url.hash,
+            context: this._context
         };
         await this.onCommand("load", params);
         // bus event

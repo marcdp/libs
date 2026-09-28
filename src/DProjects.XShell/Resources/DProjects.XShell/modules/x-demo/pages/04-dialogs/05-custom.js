@@ -60,7 +60,7 @@ export default {
                     title: "Custom dialog",
                     context: {
                         message: state.contextMessage,
-                        initialValue: state.initialValue
+                        value: state.initialValue
                     }
                 });
                 state.resultText = result === null ? "null — the custom dialog was cancelled." : JSON.stringify(result);
