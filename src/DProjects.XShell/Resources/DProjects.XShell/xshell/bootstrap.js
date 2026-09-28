@@ -53,9 +53,9 @@ async function loadConfig() {
     const xshellConfig = await xshellConfigTask;
     const assetsPrefix = xshellConfig.xshell.assetsPrefix;
     xshellConfig.app.basePath = appBasePath;
-    xshellConfig.xshell.environment = xshellConfig.xshell.environment || xshellEnvironment;
-    xshellConfig.xshell.configUrl = xshellConfig.xshell.configUrl || xshellConfigUrl;
-    xshellConfig.xshell.temp.url = xshellConfig.xshell.temp.url || xshellTempUrl;
+    xshellConfig.xshell.environment = xshellEnvironment || xshellConfig.xshell.environment;
+    xshellConfig.xshell.configUrl = xshellConfigUrl || xshellConfig.xshell.configUrl;
+    xshellConfig.xshell.temp.url = xshellTempUrl || xshellConfig.xshell.temp.url;
     xshellConfig.xshell.assetsUrl = xshellConfig.xshell.assetsUrl || "url:./";
     absolutizePrefixedUrl("", xshellConfig, xshellConfigUrl);    
     relativizeModulePaths(xshellConfig, "/" + assetsPrefix + "/xshell");

@@ -12,10 +12,10 @@ Implemented transport behavior. Temporary-file cleanup and application persisten
 ```text
 browser File
     -> xshell.temp.upload(...)
-    -> POST /temp
+    -> POST <configured temp URL>
     -> TempMiddleware
     -> server-local temporary file
-    -> /temp/<guid>/<filename>
+    -> <configured temp URL>/<guid>/<filename>
     -> GET or application JSON reference
     -> application layer decides final persistence
 ```
@@ -44,6 +44,9 @@ promotion API and has no knowledge of documents, customers, invoices, avatars, d
 XShell creates the service as `xshell.temp` and also registers it as the `temp` runtime service. It uses native `File`, `FormData`, and `fetch`;
 there is no client-side upload framework.
 
+The host supplies `Configuration.TempUrl` through bootstrap and the effective XShell configuration as `xshell.temp.url`. `xshell.temp` reads that
+configured URL for uploads. The `/temp` URLs in the examples below are illustrative; the actual temp URL is configurable.
+
 ```js
 const result = await xshell.temp.upload(file);
 console.log(result.url);
@@ -60,14 +63,14 @@ for (const result of results) {
 }
 ```
 
-For each request, the service appends the file to `FormData` with the field name `file`, posts it to `/temp`, throws an `Error` for a non-successful
-HTTP response, and returns the parsed JSON response. Supplying neither a `File` nor an iterable causes JavaScript iteration to fail; supplying a
-non-`File` item throws `TypeError` before it is sent.
+For each request, the service appends the file to `FormData` with the field name `file`, posts it to the configured temp URL, throws an `Error` for a
+non-successful HTTP response, and returns the parsed JSON response. Supplying neither a `File` nor an iterable causes JavaScript iteration to fail;
+supplying a non-`File` item throws `TypeError` before it is sent.
 
 ## Host middleware
 
-`Extensions.UseXShell()` registers `TempMiddleware` with `Configuration.TempPath` and `Configuration.TempUrl`. By default these are a server local
-temporary directory under the system temporary path and `/temp`, respectively. The middleware constructor receives these as distinct values:
+`Extensions.UseXShell()` registers `TempMiddleware` with `Configuration.TempPath` and `Configuration.TempUrl`. `TempMiddleware` is registered on
+the same configured request path that is exposed to `xshell.temp` as `xshell.temp.url`. The middleware constructor receives these as distinct values:
 
 - **Physical path** is the server-local directory where temporary files are stored.
 - **Request path** is the public URL prefix, normalized to begin with one slash and not allowed to be the root path.
@@ -109,11 +112,6 @@ any access controls must be supplied by the surrounding ASP.NET Core pipeline.
 
 Temporary cleanup is therefore pending or owned by hosting/application infrastructure. Applications must not assume a temporary file persists for
 a particular lifetime.
-
-## Current configuration limitation
-
-Although the host can configure `TempUrl`, the shipped `xshell.temp` instance is constructed without options and therefore posts to `/temp`.
-Applications using a different `TempUrl` need a matching client-side arrangement; XShell does not currently pass that host setting into `temp.js`.
 
 ## Related documentation
 
