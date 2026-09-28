@@ -2,7 +2,7 @@ using DProjects.XShell.Services;
 
 using Xunit;
 
-namespace DProjects.XShell.Tests {
+namespace DProjects.XShell.Test {
 
     public sealed class ModuleFileCompilerJsTests {
 

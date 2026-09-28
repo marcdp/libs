@@ -2,9 +2,9 @@ using DProjects.XShell.Services;
 
 using Xunit;
 
-namespace DProjects.XShell.Tests {
+namespace DProjects.XShell.Test {
 
-    public sealed class ModuleFileCompilerHtmlTests {
+    public sealed class ModuleFileCompilerHtmlSfcTests {
 
         // methods
         [Fact]
@@ -152,7 +152,7 @@ namespace DProjects.XShell.Tests {
             };
             var modulePath = Path.GetFullPath(AppContext.BaseDirectory);
             var context = new ModuleFileCompilerContext(config, "test", modulePath, Path.Combine(modulePath, "page.html"));
-            return new ModuleFileCompilerHtml().Compile(context, html);
+            return new ModuleFileCompilerHtmlSfc().Compile(context, html);
         }
     }
 }

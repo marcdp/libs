@@ -20,7 +20,6 @@ export const contract = {
 // implementation
 export default {
     style: `
-        @import 'custom.css';
         :host {display:block;}
 
         :host > div {display:flex; border:var(--x-notice-border); border-radius:var(--x-notice-border-radius); margin-top:0em; margin-bottom:.5em; align-items:start;}
@@ -48,6 +47,11 @@ export default {
 
     `,
     template: `
+        <img src="lucas.png">
+        <img src="../img/lucas.png">
+        <x-anchor href="https://example.com"></x-anchor>
+        <x-anchor href="example.html"></x-anchor>
+
         <div x-if="state.visible" x-attr:class="state.type" >
             <div class="header">
                 <x-spinner x-if="state.type=='working'"></x-spinner>

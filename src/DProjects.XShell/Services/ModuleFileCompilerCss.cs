@@ -66,7 +66,7 @@ namespace DProjects.XShell.Services {
             if (end > index + 1 && css[end - 1] == quote) {
                 var quotedUrl = css.Substring(index + 1, end - index - 2);
                 result.Append(quote);
-                result.Append(NormalizeUrl(relativePath, quotedUrl));
+                result.Append(ModuleFileCompilerUrl.Normalize(relativePath, quotedUrl));
                 result.Append(quote);
                 index = end;
             }
@@ -92,7 +92,7 @@ namespace DProjects.XShell.Services {
                 }
                 var url = css.Substring(index + 1, end - index - 2);
                 result.Append(quote);
-                result.Append(NormalizeUrl(relativePath, url));
+                result.Append(ModuleFileCompilerUrl.Normalize(relativePath, url));
                 result.Append(quote);
                 index = end;
                 return;
@@ -109,52 +109,9 @@ namespace DProjects.XShell.Services {
             var contentEnd = tokenEnd;
             while (contentEnd > tokenStart && char.IsWhiteSpace(css[contentEnd - 1])) contentEnd--;
             var unquotedUrl = css.Substring(tokenStart, contentEnd - tokenStart);
-            result.Append(unquotedUrl.Contains("/*", StringComparison.Ordinal) ? unquotedUrl : NormalizeUrl(relativePath, unquotedUrl));
+            result.Append(unquotedUrl.Contains("/*", StringComparison.Ordinal) ? unquotedUrl : ModuleFileCompilerUrl.Normalize(relativePath, unquotedUrl));
             result.Append(css, contentEnd, tokenEnd - contentEnd + 1);
             index = tokenEnd + 1;
-        }
-        private static string NormalizeUrl(string relativePath, string url) {
-            // leave non-local and already module-root-relative references untouched
-            if (string.IsNullOrEmpty(url) || url[0] == '#' || url[0] == '/' || HasExplicitScheme(url)) return url;
-
-            // separate suffixes that are not part of logical path traversal
-            var queryIndex = url.IndexOf('?');
-            var fragmentIndex = url.IndexOf('#');
-            var suffixIndex = queryIndex < 0 ? fragmentIndex : fragmentIndex < 0 ? queryIndex : Math.Min(queryIndex, fragmentIndex);
-            var path = suffixIndex < 0 ? url : url[..suffixIndex];
-            var suffix = suffixIndex < 0 ? "" : url[suffixIndex..];
-            if (path.Length == 0) return url;
-
-            // resolve against the logical CSS directory using URL separators
-            var lastSlash = relativePath.LastIndexOf('/');
-            var directory = lastSlash <= 0 ? "" : relativePath[1..lastSlash];
-            var segments = new List<string>();
-            if (directory.Length > 0) segments.AddRange(directory.Split('/', StringSplitOptions.RemoveEmptyEntries));
-            foreach (var segment in path.Split('/')) {
-                if (segment.Length == 0 || segment == ".") continue;
-                if (segment == "..") {
-                    if (segments.Count == 0) {
-                        throw new InvalidOperationException($"CSS resource reference '{url}' in '{relativePath}' escapes the module root.");
-                    }
-                    segments.RemoveAt(segments.Count - 1);
-                } else {
-                    segments.Add(segment);
-                }
-            }
-            return "/" + string.Join('/', segments) + suffix;
-        }
-        private static bool HasExplicitScheme(string url) {
-            // recognize the URI scheme grammar without treating drive-like physical paths specially
-            if (!IsAsciiLetter(url[0])) return false;
-            for (var index = 1; index < url.Length; index++) {
-                var character = url[index];
-                if (character == ':') return true;
-                if (!IsAsciiLetter(character) && !char.IsDigit(character) && character != '+' && character != '-' && character != '.') return false;
-            }
-            return false;
-        }
-        private static bool IsAsciiLetter(char character) {
-            return character is >= 'A' and <= 'Z' or >= 'a' and <= 'z';
         }
         private static bool IsCommentStart(string css, int index) {
             return css[index] == '/' && index + 1 < css.Length && css[index + 1] == '*';
