@@ -252,12 +252,16 @@ export async function createComponentClassFromJsDefinition(src, context, impleme
                         return self._state;
                     } else if (prop == "timer") {
                         // timer helper
-                        const timer = new Timer((command, ...params) => { self._controller[command](...params); });
+                        const timer = new Timer((command, ...params) => { 
+                            self._controller[command](...params); 
+                        });
                         self._disposables.push(timer);
                         return timer;
                     } else if (prop == "events") {
                         // events helper
-                        const events = new Events((command, ...params) => { self._controller[command](...params); });
+                        const events = new Events((command, ...params) => { 
+                            self._controller[command](...params); 
+                        });
                         self._disposables.push(events);
                         return events;
                     } else if (prop == "moduleConfig") {

@@ -389,6 +389,7 @@ export default class Navigation {
                         let index = xpages.indexOf(event.target);
                         this._stack.splice(index, 1);
                         this._stackToBrowser(this._stack, { replace: false });
+                        this._stackToDom();
                     });
                 }
                 xpage.addEventListener("change", (event) => {

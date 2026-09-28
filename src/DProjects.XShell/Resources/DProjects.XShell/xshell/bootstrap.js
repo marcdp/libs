@@ -14,6 +14,7 @@ const appConfigPath = meta("xshell:app.configPath");
 const appParams = meta("xshell:app.params");
 const appBasePath = document.location.origin + meta("xshell:app.basePath");
 const xshellEnvironment = meta("xshell:xshell.environment");
+const xshellTempUrl = meta("xshell:xshell.temp.url");
 const bootstrapUrl = new URL(document.currentScript.src);
 const bootstrapUrlDir = bootstrapUrl.href.substring(0, bootstrapUrl.href.lastIndexOf("/") );
 
@@ -52,8 +53,9 @@ async function loadConfig() {
     const xshellConfig = await xshellConfigTask;
     const assetsPrefix = xshellConfig.xshell.assetsPrefix;
     xshellConfig.app.basePath = appBasePath;
-    xshellConfig.xshell.environment = xshellEnvironment;
-    xshellConfig.xshell.configUrl = xshellConfigUrl;
+    xshellConfig.xshell.environment = xshellConfig.xshell.environment || xshellEnvironment;
+    xshellConfig.xshell.configUrl = xshellConfig.xshell.configUrl || xshellConfigUrl;
+    xshellConfig.xshell.temp.url = xshellConfig.xshell.temp.url || xshellTempUrl;
     xshellConfig.xshell.assetsUrl = xshellConfig.xshell.assetsUrl || "url:./";
     absolutizePrefixedUrl("", xshellConfig, xshellConfigUrl);    
     relativizeModulePaths(xshellConfig, "/" + assetsPrefix + "/xshell");

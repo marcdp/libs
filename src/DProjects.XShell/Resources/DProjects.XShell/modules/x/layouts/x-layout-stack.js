@@ -93,12 +93,12 @@ export default {
         }
     `,
     template: `
-        <div class="backdrop" x-class:expanded="state.expanded" x-on:click="query-close"></div>
-        <div class="panel"    x-class:expanded="state.expanded" x-on:transitionend="transition-end">
+        <div class="backdrop" x-class:expanded="state.expanded" x-on:click="queryClose"></div>
+        <div class="panel"    x-class:expanded="state.expanded" x-on:transitionend="transitionEnd">
             <x-loading x-if="state.status=='loading'"></x-loading>
             <div class="header">            
                 <h2><x-page-title></x-page-title></h2>
-                <x-button class="anchor" icon="x-close" x-on:click="query-close"></x-button>
+                <x-button class="anchor" icon="x-close" x-on:click="queryClose"></x-button>
             </div>
             <div class="body">                
                 <slot></slot>
@@ -109,10 +109,9 @@ export default {
         return {
             load() {
                 //load
-                events.on(bus, "xshell:page:load", "refresh");
-                this.refresh();
-                host.shadowRoot.addEventListener("transitionend", () => this["transition-end"]());
+                //events.on(bus, "xshell:page:load", "refresh");
                 //this.render();
+                host.shadowRoot.addEventListener("transitionend", () => this.transitionEnd());
                 const msSinceLoad = runtime.uptimeMs;
                 if (msSinceLoad < 500) {
                     state.expanded = true;
@@ -123,17 +122,17 @@ export default {
                 }
             },
 
-            "query-close"() {
-                //query close
-                host.dispatchEvent(new CustomEvent("query-close", { composed: true }));
-            },
-
-            "transition-end"() {
+            transitionEnd() {
                 //transition end
                 if (!state.expanded) {
                     let page = getPage();
                     page.close();
                 }
+            },
+
+            queryClose() {
+                //query close
+                host.dispatchEvent(new CustomEvent("queryClose", { composed: true }));
             },
 
             unload() {

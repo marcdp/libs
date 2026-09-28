@@ -245,7 +245,8 @@
         "identity": {"$ref": "#/$defs/xshellIdentity", "description": "Identity subsystem configuration."},
         "areas": {"$ref": "#/$defs/xshellAreas", "description": "Application area configuration."},
         "navigation": {"$ref": "#/$defs/xshellNavigation", "description": "Navigation configuration."},
-        "resolver": {"$ref": "#/$defs/resolver", "description": "Logical resource resolver configuration."}
+        "resolver": {"$ref": "#/$defs/resolver", "description": "Logical resource resolver configuration."},
+        "temp": {"$ref": "#/$defs/xshellTemp", "description": "Temp configuration."}
       },
       "additionalProperties": false,
       "description": "Core XShell runtime configuration."
@@ -368,7 +369,17 @@
       },
       "additionalProperties": false,
       "description": "Resolution rule for a concrete resource."
+    },
+    "xshellTemp": {
+      "type": "object",
+      "required": ["url"],
+      "properties": {
+        "url": {"type": "string", "description": "Temporary storage URL (e.g /temp)"}
+      },
+      "additionalProperties": false,
+      "description": "Temporary storage configuration."
     }
+
   },
   "description": "Schema for the final merged and normalized XShell configuration passed to xshell.init()."
 }

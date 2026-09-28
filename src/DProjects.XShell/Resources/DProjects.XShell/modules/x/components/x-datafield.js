@@ -326,7 +326,7 @@ export default {
         <div x-elseif="state.type=='file'" class="input file">
             <input 
                 type="file"
-                x-on:change="file-changed"
+                x-on:change="fileChanged"
                 x-attr:id="state.inputId"
                 x-attr:disabled="state.disabled"
                 x-attr:readonly="state.readonly"
@@ -460,7 +460,7 @@ export default {
         localizedValues: {},
         selectedOptions: {}
     },
-    controller({ state, events, timer, navigation, i18n, host }) {
+    controller({ state, events, timer, navigation, i18n, host, temp }) {
         const updateTemplateState = () => {
             const value = state.value || "";
             const languages = state.langs || [];
@@ -567,6 +567,7 @@ export default {
             async fileChanged(args) {
                 // fileChanged
                 var files = args.event.target.files;
+                alert(123)
                 // ... todo
             },
 

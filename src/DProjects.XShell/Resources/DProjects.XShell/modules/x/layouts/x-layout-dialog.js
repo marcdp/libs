@@ -109,7 +109,7 @@ export default {
             queryClose(args) {
                 //query close
                 args.event.preventDefault();
-                host.dispatchEvent(new CustomEvent("query-close", { composed: true }));
+                host.dispatchEvent(new CustomEvent("queryClose", { composed: true }));
             }
         }
     }

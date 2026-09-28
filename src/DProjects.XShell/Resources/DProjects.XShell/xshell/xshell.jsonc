@@ -82,6 +82,12 @@
             "schema": {
                 "{name}.json": {"url": "/schemas/{name}.json","loader": "object-json"}
             }
+        },
+
+        // temp
+        "temp": {
+            "url": "/tmp"   
         }
+
     }
 }

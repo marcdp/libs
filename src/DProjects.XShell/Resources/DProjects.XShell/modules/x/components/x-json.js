@@ -28,8 +28,7 @@ export const contract = {
     description: "Displays syntax-highlighted JSON source.",
     events: {},
     properties: {
-        value:     {type:"string", default:"", attribute:true, state:true, description:""},
-        colorized: {type:"string", default:"", attribute:true, state:true, description:""}
+        value:     {type:"string", default:"", attribute:true, state:true, description:""}
     },
     methods: {}
 };
@@ -69,6 +68,7 @@ export default {
         <pre><code x-html="state.colorized"></code></pre>
     `,
     state: {
+        colorized: null
     },
     controller({ state, events }) {
         return {

@@ -36,7 +36,7 @@ class XPage extends HTMLElement {
         super();
         this.attachShadow({ mode: "open" });
         this.shadowRoot.adoptedStyleSheets = [stylesheet];
-        this.addEventListener("query-close", () => {
+        this.addEventListener("queryClose", () => {
             // query close
             this.queryClose();
         });

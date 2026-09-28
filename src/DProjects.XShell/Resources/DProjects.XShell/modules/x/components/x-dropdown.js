@@ -95,10 +95,10 @@ export default {
         }
     `,
     template: `
-        <div class="header" x-class:expanded="state.expanded" x-on:focusin="focus-head" x-on:mousedown.stop="mousedown-head" x-on:click="click-head" x-on:keydown.enter="click-head">
+        <div class="header" x-class:expanded="state.expanded" x-on:focusin="focusHead" x-on:mousedown.stop="mousedownHead" x-on:click="clickHead" x-on:keydown.enter="clickHead">
             <slot></slot>
         </div>
-        <div class="body" x-class:expanded="state.expanded" x-on:collapse.stop="collapse" x-on:mousedown.stop="mousedown-body" x-on:click="click-body">
+        <div class="body" x-class:expanded="state.expanded" x-on:collapse.stop="collapse" x-on:mousedown.stop="mousedown-body" x-on:click="clickBody">
             <span class="helper"></span>
             <span class="helper2"></span>
             <div>
@@ -132,19 +132,19 @@ export default {
                 });
             },
 
-            "focus-head"() {
+            focusHead() {
                 //focus-head
                 if (!state.collapseOnClick) {
                     this.expand();
                 }
             },
 
-            "mousedown-head"() {
+            mousedownHead() {
                 //mousedown (remember mousedown time)
                 this._mousedownHeadAt = performance.now();
             },
 
-            "click-head"() {
+            clickHead() {
                 //click-head
                 if (state.collapseOnClick) {
                     if (state.expanded) {
@@ -160,12 +160,12 @@ export default {
                 }
             },
 
-            "mousedown-body"() {
+            mousedownBody() {
                 //mousedown (remember mousedown time)
                 this._mousedownBodyAt = performance.now();
             },
 
-            "click-body"() {
+            clickBody() {
                 //click-body
                 let a = findFocusableElement(host);
                 let activeElement = getDeepActiveElement();

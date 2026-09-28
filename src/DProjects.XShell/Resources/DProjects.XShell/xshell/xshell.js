@@ -85,7 +85,7 @@ class XShell {
         this._tabs = new Tabs( { bus: this._bus } );
         this._urlRewriter = new UrlRewriter();
         this._dialog = new Dialog( { config: config, navigation: this._navigation, i18n: this._i18n } );
-        this._temp = new Temp();
+        this._temp = new Temp( { config: config } );
         this._runtime = new Runtime();
         // services
         this._services.register("areas", this._areas);

@@ -5,8 +5,8 @@ export default class Temp {
     _url = null;
 
     // ctor
-    constructor({ url = "/temp" } = {}) {
-        this._url = url.replace(/\/+$/, "");
+    constructor({ config }) {
+        this._url = config.xshell.temp.url.replace(/\/+$/, "");
     }
 
     // methods

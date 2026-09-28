@@ -67,13 +67,13 @@ export default {
                 events.on(bus, "xshell:navigation:end", (event) => {
                     let href = event.detail.src;
                     if (href.indexOf("#")!=-1) href = href.substring(0, href.indexOf("#"));
-                    //if (href.indexOf("?")!=-1) href = href.substring(0, href.indexOf("?"));
+                    if (href.indexOf("?")!=-1) href = href.substring(0, href.indexOf("?"));
                     state.selected = href;
                 })
 
                 let href = navigation.src;
                 if (href.indexOf("#")!=-1) href = href.substring(0, href.indexOf("#"));
-                //if (href.indexOf("?")!=-1) href = href.substring(0, href.indexOf("?"));
+                if (href.indexOf("?")!=-1) href = href.substring(0, href.indexOf("?"));
                 state.selected = href;
             },
 
