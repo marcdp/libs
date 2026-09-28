@@ -47,11 +47,6 @@ export default {
 
     `,
     template: `
-        <img src="lucas.png">
-        <img src="../img/lucas.png">
-        <x-anchor href="https://example.com"></x-anchor>
-        <x-anchor href="example.html"></x-anchor>
-
         <div x-if="state.visible" x-attr:class="state.type" >
             <div class="header">
                 <x-spinner x-if="state.type=='working'"></x-spinner>

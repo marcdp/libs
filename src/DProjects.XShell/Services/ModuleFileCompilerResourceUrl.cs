@@ -1,6 +1,6 @@
 namespace DProjects.XShell.Services {
 
-    internal static class ModuleFileCompilerUrl {
+    internal static class ModuleFileCompilerResourceUrl {
 
         // methods
         public static string Normalize(string relativePath, string url) {

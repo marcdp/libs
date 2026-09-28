@@ -94,7 +94,7 @@ namespace DProjects.XShell.Services {
                 return EscapeAttributeValue(css, quote);
             }
             if (name.Equals("srcset", StringComparison.OrdinalIgnoreCase)) return NormalizeSrcset(context.RelativePath, value);
-            if (IsUrlAttribute(name)) return ModuleFileCompilerUrl.Normalize(context.RelativePath, value);
+            if (IsUrlAttribute(name)) return ModuleFileCompilerResourceUrl.Normalize(context.RelativePath, value);
             return value;
         }
         private static string NormalizeSrcset(string relativePath, string value) {
@@ -108,7 +108,7 @@ namespace DProjects.XShell.Services {
                 while (position < value.Length && !char.IsWhiteSpace(value[position])) position++;
                 var urlEnd = position;
                 while (urlEnd > urlStart && value[urlEnd - 1] == ',') urlEnd--;
-                result.Append(ModuleFileCompilerUrl.Normalize(relativePath, value[urlStart..urlEnd]));
+                result.Append(ModuleFileCompilerResourceUrl.Normalize(relativePath, value[urlStart..urlEnd]));
                 result.Append(value, urlEnd, position - urlEnd);
                 while (position < value.Length && value[position] != ',') result.Append(value[position++]);
             }

@@ -66,7 +66,7 @@ namespace DProjects.XShell.Services {
             if (end > index + 1 && css[end - 1] == quote) {
                 var quotedUrl = css.Substring(index + 1, end - index - 2);
                 result.Append(quote);
-                result.Append(ModuleFileCompilerUrl.Normalize(relativePath, quotedUrl));
+                result.Append(ModuleFileCompilerResourceUrl.Normalize(relativePath, quotedUrl));
                 result.Append(quote);
                 index = end;
             }
@@ -92,7 +92,7 @@ namespace DProjects.XShell.Services {
                 }
                 var url = css.Substring(index + 1, end - index - 2);
                 result.Append(quote);
-                result.Append(ModuleFileCompilerUrl.Normalize(relativePath, url));
+                result.Append(ModuleFileCompilerResourceUrl.Normalize(relativePath, url));
                 result.Append(quote);
                 index = end;
                 return;
@@ -109,7 +109,7 @@ namespace DProjects.XShell.Services {
             var contentEnd = tokenEnd;
             while (contentEnd > tokenStart && char.IsWhiteSpace(css[contentEnd - 1])) contentEnd--;
             var unquotedUrl = css.Substring(tokenStart, contentEnd - tokenStart);
-            result.Append(unquotedUrl.Contains("/*", StringComparison.Ordinal) ? unquotedUrl : ModuleFileCompilerUrl.Normalize(relativePath, unquotedUrl));
+            result.Append(unquotedUrl.Contains("/*", StringComparison.Ordinal) ? unquotedUrl : ModuleFileCompilerResourceUrl.Normalize(relativePath, unquotedUrl));
             result.Append(css, contentEnd, tokenEnd - contentEnd + 1);
             index = tokenEnd + 1;
         }
