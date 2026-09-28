@@ -20,19 +20,19 @@ export default {
 
         <ul>
             <li>
-                <x-anchor href="/demo/navigation/basic">Basic</x-anchor>
+                <x-anchor href="01-basic.js">Basic</x-anchor>
                 replaces or navigates the current top-level destination.
             </li>
             <li>
-                <x-anchor href="/demo/navigation/areas">Areas</x-anchor>
+                <x-anchor href="02-areas.js">Areas</x-anchor>
                 shows how a navigation context adds its prefix and composes module menus.
             </li>
             <li>
-                <x-anchor href="/demo/navigation/stack">Stack</x-anchor>
+                <x-anchor href="03-stack.js">Stack</x-anchor>
                 opens multiple Pages represented in Navigation's Page stack.
             </li>
             <li>
-                <x-anchor href="/demo/navigation/embedded">Embedded</x-anchor>
+                <x-anchor href="04-embedded.js">Embedded</x-anchor>
                 renders a Page into a local named outlet instead of the main navigation stack.
             </li>
         </ul>

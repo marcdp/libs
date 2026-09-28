@@ -18,7 +18,7 @@ export default {
 
         <p>
             <x-anchor
-                href="/demo/_assets/x-demo/pages/index.js"
+                href="../02-pages/index.js"
                 open="embed"
                 outlet="demo">
                 Load the demo landing Page into the outlet
@@ -26,7 +26,7 @@ export default {
         </p>
 
         <pre x-pre><code>&lt;x-anchor
-    href="/demo/_assets/x-demo/pages/index.js"
+    href="../02-pages/index.js"
     open="embed"
     outlet="demo"&gt;
     Load embedded Page

@@ -51,17 +51,9 @@ export default {
         </ul>
 
         <p>
-            <x-anchor href="/demo/_assets/x-demo/pages/03-navigation/02-areas.js">Open this canonical Area-aware href</x-anchor>
+            <x-anchor href="02-areas.js">Open this canonical Area-aware href</x-anchor>
         </p>
 
-        <p>
-            The friendly menu path <code>/demo/navigation/areas</code> resolves to the same Page. Navigation performs that path-to-href translation
-            before <code>x-page</code> removes the Area prefix for module resource loading.
-        </p>
-
-        <p>
-            <x-anchor href="/demo/navigation/areas">Open the friendly path</x-anchor>
-        </p>
     `,
 
     state: {

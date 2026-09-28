@@ -58,7 +58,6 @@ export function normalizeModuleResourceUrl(url, modulePath, resourcePath) {
 // export
 export function rewrite( el, attr, type, url, context ) {
     //if (url.indexOf("colibri")!=-1) debugger;
-    if (url.indexOf("basic")!=-1) debugger;
     if (url.indexOf(":") != -1) {
         return url;
     } else if (type == "resource") {

@@ -33,7 +33,7 @@ export default {
         </p>
 
         <pre x-pre><code>const result = await dialog.open({
-    href: ".../custom-dialog.js",
+    href: "custom-dialog.js",
     title: "Custom dialog",
     context: {
         message: "Hello from the parent Page"

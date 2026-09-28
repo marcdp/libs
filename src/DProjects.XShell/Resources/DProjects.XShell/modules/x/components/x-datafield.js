@@ -236,7 +236,7 @@ export default {
             x-model="state.value" 
             x-attr:id="state.inputId"
             x-attr:multiple="state.multiple">
-            <option x-if="!state.multiple" x-text="state.placeholder" class="placeholder"></option>
+            <option x-if="!state.multiple" x-text="state.placeholder" class="placeholder" value=""></option>
             <option x-for="option in state.domain" x-attr:value="option.value" x-text="option.label" x-attr:disabled="option.disabled" x-attr:selected="state.selectedOptions[option.value]"></option>
         </select>
 
@@ -471,7 +471,9 @@ export default {
             state.langLabels = Object.fromEntries(languages.map(lang => [lang, i18n.getLangLabel(lang)]));
             state.emptyTranslations = Object.fromEntries(languages.map(lang => [lang, value.indexOf("i18n:" + lang + "=") == -1]));
             state.localizedValues = Object.fromEntries(languages.map(lang => [lang, i18n.formatText(value, lang)]));
-            for (const option of state.domain || []) selectedOptions[option.value] = state.multiple ? values.indexOf("," + option.value + ",") != -1 : option.value == value;
+            for (const option of state.domain || []) {
+                selectedOptions[option.value] = state.multiple ? values.indexOf("," + option.value + ",") != -1 : option.value == value;
+            }
             state.selectedOptions = selectedOptions;
         };
         return {

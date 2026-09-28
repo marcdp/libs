@@ -5,7 +5,6 @@ export const contract = {
     properties: {
         title: {type:"string", default:"", state:true, description:"The title of the prompt dialog.", context:true},
         message: {type:"string", default:"", state:true, description:"The message to display in the prompt dialog.", context:true},
-        defaultValue: {type:"any", default:null, state:true, description:"The default value of the prompt.", context:true},
         inputType: {type:"string", default:"text", state:true, enum:["text","number","password"], description:"The type of input for the prompt.", context:true},
         placeholder: {type:"string", default:"", state:true, description:"The placeholder text for the prompt.", context:true},
         required: {type:"boolean", default:false, state:true, description:"Whether the prompt is required.", context:true},
@@ -29,14 +28,13 @@ export default {
                     x-attr:type="state.inputType"
                 ></x-datafield>
             </x-datafields>
-            <x-button slot="cancel" label="Cancel" command="cancel" class="cancel"></x-button>
             <x-button slot="footer" label="Save" command="submit" class="submit"></x-button>            
+            <x-button slot="footer" label="Cancel" command="cancel" class="cancel"></x-button>
         </x-form>
     `,    
     state: {
         title: "",
         message: "",
-        defaultValue: null,
         inputType: "text",
         placeholder: "",
         required: false,

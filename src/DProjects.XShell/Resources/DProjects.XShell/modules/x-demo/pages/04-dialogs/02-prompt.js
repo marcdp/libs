@@ -79,7 +79,7 @@ export default {
                 const result = await dialog.prompt({
                     title: "Prompt example",
                     message: "Enter a value and choose Save, or choose Cancel.",
-                    defaultValue: state.defaultValue,
+                    value: state.defaultValue,
                     inputType: state.inputType,
                     placeholder: state.placeholder,
                     required: state.required

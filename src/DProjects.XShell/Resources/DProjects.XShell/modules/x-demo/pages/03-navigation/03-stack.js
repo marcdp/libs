@@ -17,11 +17,11 @@ export default {
         </p>
 
         <p>
-            <x-anchor href="/demo/" open="stack" title="Demo landing Page">Open the demo landing Page on the stack</x-anchor>
+            <x-anchor href="01-basic.js" open="stack" title="Demo landing Page">Open the demo landing Page on the stack</x-anchor>
         </p>
 
         <pre x-pre><code>&lt;x-anchor
-    href="/demo/"
+    href="01-basic.js"
     open="stack"&gt;
     Open the demo landing Page on the stack
 &lt;/x-anchor&gt;</code></pre>
@@ -52,7 +52,7 @@ export default {
         </p>
 
         <p>
-            <x-anchor href="/demo/navigation/areas" open="auto">Navigate this Page position to the Areas demo</x-anchor>
+            <x-anchor href="02-areas.js" open="auto">Navigate this Page position to the Areas demo</x-anchor>
         </p>
     `,
 

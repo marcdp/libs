@@ -33,8 +33,8 @@ export default {
     }
 }</code></pre>
 
-            <x-button slot="cancel" label="Cancel" command="cancel" class="cancel"></x-button>
             <x-button slot="footer" label="Save" command="save" class="submit"></x-button>
+            <x-button slot="footer" label="Cancel" command="cancel" class="cancel"></x-button>
         </x-form>
     `,
     state: {

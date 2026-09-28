@@ -19,8 +19,8 @@ export default {
             </p>
             <x-button slot="footer" x-if="state.variant == 'yesno' || state.variant == 'yesnocancel'" command="yes" label="Yes" class="submit" autofocus></x-button>
             <x-button slot="footer" x-if="state.variant == 'yesno' || state.variant == 'yesnocancel'" command="no" label="No"></x-button>
-            <x-button slot="footer" x-if="state.variant == 'yesnocancel'" command="cancel" label="Cancel"></x-button>
             <x-button slot="footer" x-if="state.variant == 'okcancel' || state.variant == 'ok'" command="ok" label="OK" class="submit"></x-button>
+            <x-button slot="footer" x-if="state.variant == 'yesnocancel' || state.variant == 'okcancel'" command="cancel" label="Cancel"></x-button>
         </x-form>
     `,    
     state: {

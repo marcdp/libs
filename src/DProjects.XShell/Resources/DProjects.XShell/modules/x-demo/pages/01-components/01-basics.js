@@ -84,7 +84,7 @@ export default {
 
         <h2>Anchor</h2>
 
-        <x-anchor class="plain" href="/pages/01-components/02-forms.js">
+        <x-anchor class="plain" href="02-forms.js">
             Open the forms examples
         </x-anchor>
 

@@ -17,11 +17,11 @@ export default {
         </p>
 
         <p>
-            <x-anchor href="/demo/pages" open="auto">Open the Pages demos</x-anchor>
+            <x-anchor href="./index.js" open="auto">Open the Navigation demos</x-anchor>
         </p>
 
-        <pre x-pre><code>&lt;x-anchor href="/demo/pages" open="auto"&gt;
-    Open the Pages demos
+        <pre x-pre><code>&lt;x-anchor href="./index.js" open="auto"&gt;
+    Open the Navigation demos
 &lt;/x-anchor&gt;</code></pre>
 
         <p>
@@ -37,11 +37,11 @@ export default {
         </p>
 
         <p>
-            <x-anchor href="/demo/pages/query-parameters" query-name="lucas" query-count="123">Open the query demo with values</x-anchor>
+            <x-anchor href="../02-pages/04-query-parameters.js" query-name="lucas" query-count="123">Open the query demo with values</x-anchor>
         </p>
 
         <pre x-pre><code>&lt;x-anchor
-    href="/demo/pages/query-parameters"
+    href="../02-pages/04-query-parameters.js"
     query-name="lucas"
     query-count="123"&gt;
     Open the query demo with values
@@ -69,14 +69,14 @@ export default {
         </p>
 
         <p>
-            <x-button label="Navigate from the controller" command="navigate-programmatically"></x-button>
+            <x-button label="Navigate from the controller" command="navigateProgrammatically"></x-button>
         </p>
 
         <pre x-pre><code>controller({ navigation, page }) {
     return {
-        "navigate-programmatically"() {
+        navigateProgrammatically() {
             navigation.navigate({
-                href: "/demo/navigation/areas",
+                href: "...",
                 page,
                 open: "auto"
             });
@@ -109,13 +109,14 @@ export default {
                 state.mode = navigation.mode;
             },
 
-            "navigate-programmatically"() {
+            navigateProgrammatically() {
                 // navigate with the controller API
-                navigation.navigate({
-                    href: "/demo/navigation/areas",
-                    page,
-                    open: "auto"
-                });
+                //navigation.navigate({
+                //    href: "../02-pages/04-query-parameters.js",
+                //    page,
+                //    open: "auto"
+                //});
+                alert("TODO");
             }
         };
     }

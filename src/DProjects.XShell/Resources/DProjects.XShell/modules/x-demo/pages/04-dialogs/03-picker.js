@@ -17,7 +17,7 @@ export default {
         <x-datafields columns="2">
             <x-datafield
                 type="select"
-                label="Default value"
+                label="Value"
                 x-prop:domain="state.domain"
                 x-model="state.defaultValue">
             </x-datafield>
@@ -31,7 +31,7 @@ export default {
         </x-datafields>
 
         <p>
-            <x-button label="Open picker" command="open-picker" class="submit"></x-button>
+            <x-button label="Open picker" command="openPicker" class="submit"></x-button>
         </p>
 
         <pre x-pre><code>const result = await dialog.picker({
@@ -43,7 +43,7 @@ export default {
         {value: "blue", label: "Blue"}
     ],
     inputType: "select",
-    defaultValue: "green",
+    value: "green",
     required: true
 });</code></pre>
 
@@ -64,19 +64,19 @@ export default {
             {value: "green", label: "Green"},
             {value: "blue", label: "Blue"}
         ],
-        defaultValue: "green",
+        defaultValue: null,
         required: false,
         resultText: "No picker has been opened yet."
     },
     controller({ state, dialog }) {
         return {
-            async "open-picker"() {
+            async openPicker() {
                 const result = await dialog.picker({
                     title: "Choose a color",
                     message: "Select the color used for the example.",
                     domain: state.domain,
                     inputType: "select",
-                    defaultValue: state.defaultValue,
+                    value: state.defaultValue,
                     placeholder: "Choose a color",
                     multiple: false,
                     required: state.required

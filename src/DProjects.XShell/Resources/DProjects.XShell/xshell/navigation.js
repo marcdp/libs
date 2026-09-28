@@ -24,7 +24,7 @@ export default class Navigation {
         this._container = container;
         this._mode = config.xshell.navigation.mode;
         this._hashPrefix = config.xshell.navigation.hashPrefix;
-        this._appBasePath = new URL(config.app.basePath).pathname;
+        this._appBasePath = new URL(config.app.basePath).pathname.replace(/\/+$/, "");
         if (this._appBasePath == "/") this._appBasePath = "";
     }
 
@@ -125,8 +125,9 @@ export default class Navigation {
         this._stackToBrowser(stack, { replace: true });
         return this._buildUrlFinal(stack[index]);
     }
-    buildUrlAbsolute(...params){
-        let href = this.buildUrl(...params);
+    buildUrlAbsolute(params){
+        let href = this._buildUrlPublic(params);
+        if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(href)) return href;
         if (this._mode == "hash") {
             href = this._appBasePath + "/" + this._hashPrefix + href;
         } else {
@@ -137,11 +138,11 @@ export default class Navigation {
     buildUrl({
             href,           // url relative to app base
             params = {},    // ws variables to be added as query string parameters
-            nav = {         // navigation data to be added as query string parameters (nav.title, nav.icon, nav.breadcrumb)
-                title,      // nav.title
-                description,// nav.description
-                icon,       // nav.icon
-                breadcrumb},// nav.breadcrumb
+            nav = {              // navigation data to be added as query string parameters (nav.title, nav.icon, nav.breadcrumb)
+                title: null,      // nav.title
+                description: null,// nav.description
+                icon: null,       // nav.icon
+                breadcrumb: null},// nav.breadcrumb
             page,           // current page element for resolving relative urls
         }) {
         // produces real, navigable URLS
@@ -152,11 +153,11 @@ export default class Navigation {
         if (!href.startsWith("/")) href = combineUrls(page ? page.src : "/", href);
         // params
         for (const [k, v] of Object.entries(params)) {
-            href += (href.includes("?") ? "&" : "?") + encodeURIComponent(k) + "=" + encodeURIComponent(v);
+            href = this._appendQueryParameter(href, encodeURIComponent(k), encodeURIComponent(v));
         }    
         // nav
         if (nav && (nav.title || nav.description || nav.icon || nav.breadcrumb)) {
-            href += (href.includes("?") ? "&" : "?") + "nav=" + base64UrlEncode(JSON.stringify(nav));
+            href = this._appendQueryParameter(href, "nav", base64UrlEncode(JSON.stringify(nav)));
         }
         // return
         return href;
@@ -165,10 +166,15 @@ export default class Navigation {
         if (!url || typeof url !== "string") throw new Error("parseUrl: url must be a non-empty string");
         // remove hash prefix if present (#!)
         if (url.startsWith("#!")) url = url.substring(2);
-        // separate path and query
-        const [pathPart, queryPart] = url.split("?");
+        // separate path, query and fragment while retaining the fragment as part of the logical href
+        const hashIndex = url.indexOf("#");
+        const fragment = hashIndex === -1 ? "" : url.substring(hashIndex);
+        const source = hashIndex === -1 ? url : url.substring(0, hashIndex);
+        const queryIndex = source.indexOf("?");
+        const pathPart = queryIndex === -1 ? source : source.substring(0, queryIndex);
+        const queryPart = queryIndex === -1 ? "" : source.substring(queryIndex + 1);
         const result = {
-            href: pathPart || "",
+            href: (pathPart || "") + fragment,
             params: {},
             nav: {
                 title: null,
@@ -214,7 +220,7 @@ export default class Navigation {
             replace = false
         }) {
         //navigate
-        const hrefAbsolute = this.buildUrl({ href, params, nav, page });
+        const hrefAbsolute = this.buildUrl({ href: this._resolveCanonicalHref(href, page), params, nav, page });
         // open
         if (open == "auto") {
             // auto
@@ -270,7 +276,7 @@ export default class Navigation {
         if (stack.length) {
             // root page
             const root = stack[0];
-            url = this.buildUrl({
+            url = this._buildUrlPublic({
                 href: root.href,
                 params: root.params,
                 nav: (stack.length == 1 ? root.nav : null)
@@ -466,11 +472,56 @@ export default class Navigation {
         });
     }
     _buildUrlFinal(item) {
-        const menuitem = this._areas.resolvePath(item.href);
+        const { identity, suffix } = this._splitHref(item.href);
+        const menuitem = this._areas.resolvePath(identity);
         return this.buildUrl({
             ...item,
-            href: menuitem?.href || item.href
+            href: (menuitem?.href || identity) + suffix
         });
+    }
+    _buildUrlPublic(params) {
+        const href = this._resolvePublicHref(params.href, params.page);
+        return this.buildUrl({ ...params, href });
+    }
+    _resolvePublicHref(href, page) {
+        // leave external targets under native browser control
+        if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(href)) return href;
+        const canonicalHref = this._resolveCanonicalHref(href, page);
+        const { identity, suffix } = this._splitHref(canonicalHref);
+        const areaId = this._areas.resolveAreaId?.(identity);
+        const area = this._areas.getArea?.(areaId);
+        if (!area) return canonicalHref;
+        const menuitem = this._areas.resolveHref?.(identity, area.id);
+        return (menuitem?.path || identity) + suffix;
+    }
+    _resolveCanonicalHref(href, page) {
+        // resolve relative targets and apply the originating navigation context
+        if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(href)) return href;
+        if (href.startsWith("#!")) href = href.substring(2);
+        if (!href.startsWith("/")) href = combineUrls(page ? page.src : "/", href);
+        const { identity, suffix } = this._splitHref(href);
+        const targetArea = this._areas.getArea?.(this._areas.resolveAreaId?.(identity));
+        if (targetArea?.prefix) return identity + suffix;
+        const pageAreaId = page?.src ? this._areas.resolveAreaId?.(page.src) : null;
+        const menuitem = this._areas.resolveHref?.(identity, pageAreaId) || this._areas.resolveHref?.(identity);
+        if (menuitem) return menuitem.href + suffix;
+        const area = page ? this._areas.getArea?.(pageAreaId) : this._areas.getCurrentArea?.() || this._areas.getDefaultArea?.();
+        if (!area) return href;
+        const canonicalHref = area.prefix && identity !== area.prefix && !identity.startsWith(area.prefix + "/") ? area.prefix + identity : identity;
+        return canonicalHref + suffix;
+    }
+    _splitHref(href) {
+        const queryIndex = href.indexOf("?");
+        const hashIndex = href.indexOf("#");
+        const suffixIndexes = [queryIndex, hashIndex].filter(index => index !== -1);
+        const suffixIndex = suffixIndexes.length ? Math.min(...suffixIndexes) : href.length;
+        return { identity: href.substring(0, suffixIndex), suffix: href.substring(suffixIndex) };
+    }
+    _appendQueryParameter(href, key, value) {
+        const hashIndex = href.indexOf("#");
+        const fragment = hashIndex === -1 ? "" : href.substring(hashIndex);
+        const source = hashIndex === -1 ? href : href.substring(0, hashIndex);
+        return source + (source.includes("?") ? "&" : "?") + key + "=" + value + fragment;
     }
     _applyQueryChanges(params, changes) {
         // apply query patches while preserving unrelated parameters

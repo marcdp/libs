@@ -72,6 +72,10 @@ Bootstrap first maps module-relative menu hrefs into `/_assets/<module-id>/...`.
 the selected mode's empty/root URL, Navigation requires the default Area to have a home.
 
 `xshell.areas.getMenu("navigation")` selects the current Area; `getMenu("navigation", "inventory")` selects one explicitly.
+`resolveHref(href, areaId = null)` searches all effective menus recursively in only the selected Area when `areaId` is supplied. Without an explicit
+Area, it derives the module id from the canonical `/_assets/<module-id>/...` href and searches only Areas that compose that module. Static and
+dynamic effective menus participate equally. Query parameters and fragments are ignored when comparing canonical href identity. The matching
+effective item lets Navigation expose its optional friendly `path`.
 `getMenuitemBreadcrumb(href, areaId = null)` searches only that Area's effective menus by canonical href, defaulting to the current Area. Its
 entries retain both the canonical `href` and optional friendly `path`, so breadcrumb UI can use a ready-to-navigate friendly link without
 performing translation itself.

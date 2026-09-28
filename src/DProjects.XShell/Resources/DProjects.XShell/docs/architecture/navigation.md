@@ -33,6 +33,13 @@ item's canonical `href` before setting `x-page.src`; when no path matches, it pr
 `/main/_assets/x-demo/pages/01-components/index.js` navigation both remain valid. Navigation translates to the Area-aware canonical href, not to
 the final module resource URL.
 
+For browser-facing links, Navigation performs the inverse lookup through `Areas.resolveHref(href, areaId)`. For an unprefixed module resource,
+Areas derives the module id from `/_assets/<module-id>/...`, searches the effective menus of Areas associated with that module, and returns the
+matching item, including items materialized from dynamic menu sources. The originating Page's Area is tried first when applicable; otherwise the
+target module's participating Areas determine the public path. Query parameters and fragments remain attached to the public path. When no matching
+item or friendly `path` exists, the Area-aware canonical href remains the browser-facing fallback. The logical target retained by `x-anchor` stays
+canonical, so normal clicks and native browser link actions share the same destination identity without making the component aware of Areas or menus.
+
 `x-page` receives that canonical Area-aware href, identifies its Area, and removes only the Area prefix before asking the loader/resolver for the
 module resource. The loader/resolver therefore sees `/_assets/x-demo/pages/01-components/index.js`; it does not know about menu `path` values or
 perform path-to-href translation.

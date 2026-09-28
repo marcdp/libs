@@ -5,7 +5,6 @@ export const contract = {
     properties: {
         title: {type:"string", default:"", state:true, description:"The title of the picker dialog.", context:true},
         message: {type:"string", default:"", state:true, description:"The message to display in the picker dialog.", context:true},
-        defaultValue: {type:"any", default:null, state:true, description:"The default value of the picker.", context:true},
         domain: {type:"array", default:[], state:true, description:"The list of keypairs (value and label) for the picker.", context:true},
         inputType: {type:"string", default:"select", state:true, enum:["select"], description:"The type of input for the picker.", context:true}, 
         placeholder: {type:"string", default:"", state:true, description:"The placeholder text for the picker.", context:true},
@@ -33,14 +32,13 @@ export default {
                     x-model="state.value" 
                 ></x-datafield>
             </x-datafields>
-            <x-button slot="cancel" label="Cancel" command="cancel" class="cancel"></x-button>
             <x-button slot="footer" label="Save" command="submit" class="submit"></x-button>            
+            <x-button slot="footer" label="Cancel" command="cancel" class="cancel"></x-button>
         </x-form>
     `,    
     state: {
         title: "",
         message: "",
-        defaultValue: null,
         domain: [],
         inputType: "select",
         placeholder: "",

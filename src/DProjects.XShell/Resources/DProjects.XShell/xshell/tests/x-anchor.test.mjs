@@ -75,20 +75,26 @@ class RenderEngineFactory {
     init() {}
 }
 
-function createNavigation() {
+function createNavigation({ areas = null, mode = "path" } = {}) {
     return new Navigation({
-        areas: {},
+        areas: areas || {
+            resolveAreaId() { return null; },
+            getArea() { return null; },
+            getCurrentArea() { return null; },
+            getDefaultArea() { return null; },
+            resolveHref() { return null; },
+            resolvePath() { return null; }
+        },
         bus: {},
         config: {
             app: { basePath: "https://example.test/" },
-            xshell: { navigation: { mode: "path", hashPrefix: "#!" } }
+            xshell: { navigation: { mode, hashPrefix: "#!" } }
         },
         container: {}
     });
 }
 
-async function createAnchor(attributes = {}) {
-    const navigation = createNavigation();
+async function createAnchor(attributes = {}, navigation = createNavigation()) {
     const navigateCalls = [];
     navigation.navigate = params => navigateCalls.push(params);
     xshell._config = {
@@ -174,4 +180,90 @@ test("x-anchor accepts its query object programmatically", async () => {
     anchor.onCommand("stateChange", {});
 
     assert.equal(anchor._state.hrefReal, "/customers?name=lucas&count=123");
+});
+
+test("x-anchor retains its canonical href while exposing and navigating the friendly URL", async () => {
+    const area = { id: "demo", prefix: "/demo" };
+    const areas = {
+        resolveAreaId(src) { return src.startsWith("/demo/") ? "demo" : null; },
+        getArea(id) { return id === "demo" ? area : null; },
+        getCurrentArea() { return area; },
+        getDefaultArea() { return area; },
+        resolveHref(href, areaId) {
+            return areaId === "demo" && href === "/demo/_assets/x-demo/pages/basic.js" ? { path: "/demo/navigation/basic" } : null;
+        },
+        resolvePath() { return null; }
+    };
+    const navigation = createNavigation({ areas });
+    const { anchor, navigateCalls } = await createAnchor({}, navigation);
+    anchor.parentNode.page.src = "/demo/_assets/x-demo/pages/origin.js";
+    anchor.href = "/_assets/x-demo/pages/basic.js";
+    anchor.query = { name: "lucas" };
+
+    anchor.onCommand("stateChange", {});
+
+    assert.equal(anchor.href, "/_assets/x-demo/pages/basic.js");
+    assert.equal(anchor._state.href, "/_assets/x-demo/pages/basic.js");
+    assert.equal(anchor._state.hrefReal, "/demo/navigation/basic?name=lucas");
+    assert.match(anchorDefinition.template, /x-attr:href="state\.hrefReal"/);
+
+    const event = {
+        button: 0,
+        defaultPrevented: false,
+        metaKey: false,
+        ctrlKey: false,
+        shiftKey: false,
+        altKey: false,
+        preventDefault() { this.defaultPrevented = true; }
+    };
+    anchor.onCommand("click", { event });
+
+    assert.equal(navigateCalls.length, 1);
+    assert.equal(navigateCalls[0].href, "/_assets/x-demo/pages/basic.js");
+    assert.equal(event.defaultPrevented, true);
+});
+
+test("x-anchor leaves target and modifier clicks to native browser behavior", async () => {
+    const { anchor, navigateCalls } = await createAnchor();
+    anchor.href = "/customers";
+    const targetEvent = {
+        button: 0,
+        defaultPrevented: false,
+        metaKey: false,
+        ctrlKey: false,
+        shiftKey: false,
+        altKey: false,
+        preventDefault() { this.defaultPrevented = true; }
+    };
+    anchor.target = "_blank";
+    anchor.onCommand("click", { event: targetEvent });
+
+    const modifierEvent = { ...targetEvent, defaultPrevented: false, ctrlKey: true };
+    anchor.target = null;
+    anchor.onCommand("click", { event: modifierEvent });
+
+    assert.equal(navigateCalls.length, 0);
+    assert.equal(targetEvent.defaultPrevented, false);
+    assert.equal(modifierEvent.defaultPrevented, false);
+});
+
+test("x-anchor leaves external links to native browser behavior", async () => {
+    const { anchor, navigateCalls } = await createAnchor();
+    anchor.href = "mailto:user@example.com";
+    anchor.onCommand("stateChange", {});
+    const event = {
+        button: 0,
+        defaultPrevented: false,
+        metaKey: false,
+        ctrlKey: false,
+        shiftKey: false,
+        altKey: false,
+        preventDefault() { this.defaultPrevented = true; }
+    };
+
+    anchor.onCommand("click", { event });
+
+    assert.equal(anchor._state.hrefReal, "mailto:user@example.com");
+    assert.equal(navigateCalls.length, 0);
+    assert.equal(event.defaultPrevented, false);
 });

@@ -38,7 +38,7 @@ export default class Dialog {
             } 
         });
     }
-    async prompt({ title, message, defaultValue, inputType, placeholder, required }) {
+    async prompt({ title, message, value, inputType, placeholder, required }) {
         const href = this._config.xshell.ui.dialog.prompt; 
         return await this._navigation.navigate({ 
             href, 
@@ -46,14 +46,14 @@ export default class Dialog {
             context: {
                 title,
                 message,
-                defaultValue, 
+                value, 
                 inputType, 
                 placeholder, 
                 required  
             } 
         });
     }
-    async picker({ title, message, defaultValue, inputType, placeholder, domain, multiple, required }) {
+    async picker({ title, message, value, inputType, placeholder, domain, multiple, required }) {
         const href = this._config.xshell.ui.dialog.picker;
         return await this._navigation.navigate({ 
             href, 
@@ -62,7 +62,7 @@ export default class Dialog {
                 title,
                 message,
                 domain,
-                defaultValue, 
+                value, 
                 inputType, 
                 placeholder, 
                 multiple,
@@ -70,7 +70,7 @@ export default class Dialog {
             } 
         });
     }
-    async language({ title = "Select language", message = "Language", defaultValue, required=true } =  {}) {
+    async language({ title = "Select language", message = "Language", value, required=true } =  {}) {
         let domain = [];
         for (let item of this._i18n.config.langs) {
             domain.push({

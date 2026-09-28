@@ -1,11 +1,10 @@
-import { findObjectsPath } from "./utils/object.js";
-
 // class
 export default class Areas {
 
     // vars
     _bus = null;
     _areas = [];
+    _assetsPrefix = "_assets";
     _currentAreaId = null;
     _sources = {};
     _sourceTargets = {};
@@ -13,6 +12,7 @@ export default class Areas {
     // ctor
     constructor({ config, bus }) {
         this._bus = bus;
+        this._assetsPrefix = (config.xshell.assetsPrefix || "_assets").replace(/^\/+|\/+$/g, "");
         const areasConfig = config.xshell.areas || {};
         const definitions = areasConfig.definitions || {};
         const defaultAreaId = areasConfig.default || null;
@@ -126,8 +126,30 @@ export default class Areas {
     resolvePath(path) {
         for (const area of this._areas) {
             for (const menu of Object.values(area.menus)) {
-                const item = this._findMenuitemByPath(menu, path);
+                const item = this._findMenuitemPath(menu, menuitem => menuitem.path === path)?.at(-1);
                 if (item) return item;
+            }
+        }
+        return null;
+    }
+    resolveHref(href, areaId = null) {
+        if (!href) return null;
+        // search the selected Area or only Areas associated with the target module
+        const targetHref = this._getHrefIdentity(href);
+        const moduleId = this._getModuleId(targetHref);
+        let areas;
+        if (areaId) {
+            areas = [this.getArea(areaId)].filter(Boolean);
+        } else if (moduleId) {
+            areas = this._areas.filter(area => area.modules.includes(moduleId));
+        } else {
+            areas = [this.getCurrentArea()].filter(Boolean);
+        }
+        for (const area of areas) {
+            const areaHref = this._buildAreaHref(targetHref, area);
+            for (const menu of Object.values(area.menus)) {
+                const menuitems = this._findMenuitemPath(menu, menuitem => this._getHrefIdentity(menuitem.href) === areaHref);
+                if (menuitems) return menuitems.at(-1);
             }
         }
         return null;
@@ -140,19 +162,18 @@ export default class Areas {
         const area = areaId ? this.getArea(areaId) : this.getCurrentArea();
         if (!area || !href) return null;
         // search only the selected area's effective menus
-        for (const targetHref of this._getHrefVariants(href)) {
-            for (const menu of Object.values(area.menus)) {
-                const menuitems = findObjectsPath(menu, "href", targetHref);
-                if (menuitems) {
-                    return menuitems.map(menuitem => ({
-                        label: menuitem.label,
-                        href: menuitem.href,
-                        path: menuitem.path,
-                        ...(menuitem.icon ? { icon: menuitem.icon } : {}),
-                        module: menuitem.module,
-                        area: menuitem.area
-                    }));
-                }
+        const targetHref = this._getHrefIdentity(href);
+        for (const menu of Object.values(area.menus)) {
+            const menuitems = this._findMenuitemPath(menu, menuitem => this._getHrefIdentity(menuitem.href) === targetHref);
+            if (menuitems) {
+                return menuitems.map(menuitem => ({
+                    label: menuitem.label,
+                    href: menuitem.href,
+                    path: menuitem.path,
+                    ...(menuitem.icon ? { icon: menuitem.icon } : {}),
+                    module: menuitem.module,
+                    area: menuitem.area
+                }));
             }
         }
         return null;
@@ -212,15 +233,20 @@ export default class Areas {
         if (!href) return null;
         if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(href)) return href;
         const path = href.startsWith("/") ? href : "/" + href;
+        if (area.prefix && (path === area.prefix || path.startsWith(area.prefix + "/"))) return path;
         return area.prefix + path;
     }
-    _getHrefVariants(href) {
-        const result = [href];
-        const hashIndex = href.indexOf("#");
-        if (hashIndex !== -1) result.push(href.substring(0, hashIndex));
+    _getHrefIdentity(href) {
+        if (!href) return href;
         const queryIndex = href.indexOf("?");
-        if (queryIndex !== -1) result.push(href.substring(0, queryIndex));
-        return [...new Set(result)];
+        const hashIndex = href.indexOf("#");
+        const suffixIndexes = [queryIndex, hashIndex].filter(index => index !== -1);
+        return suffixIndexes.length ? href.substring(0, Math.min(...suffixIndexes)) : href;
+    }
+    _getModuleId(href) {
+        const parts = href.split("/");
+        const assetsIndex = parts.indexOf(this._assetsPrefix);
+        return assetsIndex === -1 ? null : parts[assetsIndex + 1] || null;
     }
     _normalizePrefix(prefix) {
         if (!prefix || prefix === "/") return "";
@@ -245,10 +271,11 @@ export default class Areas {
             prefixes.add(area.prefix);
         }
     }
-    _findMenuitemByPath(items, path) {
+    _findMenuitemPath(items, predicate, parents = []) {
         for (const item of items || []) {
-            if (item.path === path) return item;
-            const found = this._findMenuitemByPath(item.children, path);
+            const path = [...parents, item];
+            if (predicate(item)) return path;
+            const found = this._findMenuitemPath(item.children, predicate, path);
             if (found) return found;
         }
         return null;
