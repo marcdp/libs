@@ -1500,14 +1500,15 @@ Syntax:
 
 `x-show` does not structurally remove the element.
 
-When the expression is falsy, the renderer adds the boolean HTML attribute:
+When the expression is falsy, the browser renderer sets the element's inline display value to:
 
-```html
-hidden
+```css
+display: none
 ```
 
-When truthy, the `hidden` attribute is absent. `x-show` controls the resulting `hidden` attribute, so an authored `hidden` attribute is removed
-when the expression is truthy and retained as a single boolean attribute when it is falsy. `x-show` does not modify structured literal styles.
+Before `x-show` changes the display value, it captures the original inline display value once. When the expression is truthy, that captured value is
+restored, including an empty value or values such as `flex`, `grid`, and `inline-block`. `x-show` does not add, remove, or otherwise control the
+HTML `hidden` attribute.
 
 This differs fundamentally from `x-if`.
 
@@ -3933,7 +3934,7 @@ A correct implementation should preserve these semantics even if it uses a compl
 | `x-if` | Conditional branch | expression |
 | `x-elseif` | Conditional branch | expression |
 | `x-else` | Fallback branch | none |
-| `x-show` | HTML hidden visibility | expression |
+| `x-show` | CSS display visibility | expression |
 | `x-for` | Repetition | loop expression |
 | `x-key` | Item identity | property name |
 | `x-recursive` | Recursive repetition | recursive loop expression |

@@ -254,7 +254,7 @@ namespace DProjects.XShell.Services.XTemplate {
                 } else if (name == "x-recursive-wrapper") {
                     if (!element.HasAttribute("x-recursive")) throw TemplateError("Directive 'x-recursive-wrapper' requires 'x-recursive'.", element);
                 } else if (name == "x-show") {
-                    attributes.Add($"hidden:utils.expr.truthy({CompileExpression(value, name, element.SourceOffset, expressionScope)}) ? null : true");
+                    options.Add($"show:utils.expr.truthy({CompileExpression(value, name, element.SourceOffset, expressionScope)})");
                 } else if (name.StartsWith("x-class:", StringComparison.Ordinal)) {
                     var className = name[(name.IndexOf(':') + 1)..];
                     if (string.IsNullOrWhiteSpace(className)) throw TemplateError("Directive 'x-class' requires a class name.", element);

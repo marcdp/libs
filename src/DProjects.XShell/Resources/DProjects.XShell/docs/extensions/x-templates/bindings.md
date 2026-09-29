@@ -116,7 +116,7 @@ supported shorthand. Use the specification for the complete modifier contract.
 ## Visibility
 
 Use `x-if` when a condition should structurally render or omit content. Use `x-show` when the content should remain structurally present while
-its visibility changes.
+a falsy expression applies `display: none`; when it becomes truthy, the prior inline display value is restored.
 
 ```html
 <x-spinner x-if="state.loading"></x-spinner>

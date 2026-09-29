@@ -89,7 +89,7 @@ Canonical documentation and new templates should prefer the long `x-*` forms.
 ```
 
 `x-on:event` binds a named command. `x-class:name` conditionally adds a class. `x-show` keeps the element in the rendered structure while
-controlling its visibility.
+using `display: none` for a falsy expression and restoring the prior inline display value when it becomes truthy.
 
 ## Structure
 

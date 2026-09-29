@@ -8,7 +8,7 @@ export default {
     template: `
         <p>
             Structural conditionals choose which nodes exist in the rendered structure. Visibility conditionals keep their element and control its
-            <code>hidden</code> attribute.
+            CSS <code>display</code> value.
         </p>
 
         <h2>Interactive state</h2>
@@ -40,7 +40,7 @@ export default {
         <h2>x-show</h2>
 
         <div class="conditional-card" x-show="state.visible">
-            This element remains in the rendered structure while <code>state.visible</code> controls its <code>hidden</code> attribute.
+            This element remains in the rendered structure while <code>state.visible</code> controls its CSS <code>display</code> value.
         </div>
 
         <pre x-pre><code>&lt;div x-show="state.visible"&gt;

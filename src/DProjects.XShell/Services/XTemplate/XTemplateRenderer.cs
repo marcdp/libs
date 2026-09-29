@@ -264,8 +264,11 @@ namespace DProjects.XShell.Services.XTemplate {
                 }
             }
             if (hasShow) {
-                if (isHidden) attributes.Set("hidden", null);
-                else attributes.Remove("hidden");
+                if (isHidden) {
+                    styles.Set("display", "none", string.Empty);
+                    hasStylePlaceholder = true;
+                    attributes.Set("style", null);
+                }
             }
             if (styles.Items.Count > 0) attributes.Set("style", XTemplateStyleDeclarations.Serialize(styles.Items));
             else if (hasLiteralStyle) attributes.Set("style", string.Empty);

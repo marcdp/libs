@@ -54,6 +54,7 @@ const emptyObject = {};
 const emptyArray = [];
 let freeId = 1;
 const isStyleAttribute = (name) => typeof name === "string" && name.toLowerCase() === "style";
+const showDisplays = new WeakMap();
 const utils = new class {
 	createVDOM = (tag, attrs, props, styles, events, options, children, moreChildren) => {
 		if (children && children.length && moreChildren) {
@@ -442,6 +443,7 @@ class XTemplateInstance {
 				let style = vNode.styles[name];
 				el.style.setProperty(name, style.value, style.priority);
 			}
+			this._applyShow(vNode, el);
 			for (let prop in vNode.props) {
 				let propValue = vNode.props[prop];
 				if (typeof(propValue) == "function") {
@@ -646,6 +648,7 @@ class XTemplateInstance {
 		for (let name in vNodeOld.styles) {
 			if (!Object.prototype.hasOwnProperty.call(vNodeNew.styles, name)) element.style.removeProperty(name);
 		}
+		this._applyShow(vNodeNew, element);
 		//props  
 		let validProps = [];
 		for (let prop in vNodeNew.props) {
@@ -686,6 +689,11 @@ class XTemplateInstance {
 				}
 			}
 		}
+	}
+	_applyShow(vNode, element) {
+		if (vNode.options.show === undefined) return;
+		if (!showDisplays.has(element)) showDisplays.set(element, element.style.display);
+		element.style.display = vNode.options.show ? showDisplays.get(element) : "none";
 	}
 	_diffDomListByPosition(vNodesOld, oldStartIndex, oldEndIndex, vNodesNew, newStartIndex, newEndIndex, parent, parentBaseIndex, level) {
 		//diff by position
