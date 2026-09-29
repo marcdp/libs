@@ -286,7 +286,7 @@ export async function createComponentClassFromJsDefinition(src, context, impleme
                             if (!xpage) return Promise.resolve(null);
                             if (xpage.page) return Promise.resolve(xpage.page);
                             return new Promise(resolve => {
-                                xpage.addEventListener("ready", event => {
+                                xpage.addEventListener("load", event => {
                                     resolve(event.detail.page);
                                 }, { once: true });
                             });

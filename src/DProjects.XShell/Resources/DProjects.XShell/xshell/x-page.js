@@ -284,10 +284,6 @@ class XPage extends HTMLElement {
         this.dispatchEvent(new CustomEvent("load", {
             detail: { page }
         }));
-        // raise ready event
-        this.dispatchEvent(new CustomEvent("ready", {
-            detail: { page }
-        }));
     }
     async unmount() {
         // unmount

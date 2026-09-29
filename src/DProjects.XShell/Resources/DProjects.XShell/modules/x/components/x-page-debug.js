@@ -56,6 +56,7 @@ export default {
             async mount() {
                 // mount
                 const page = await whenPage();
+                console.log(page)
                 state.title = page.title || "";
                 state.icon = page.icon || "";
                 state.href = page.href || "";
