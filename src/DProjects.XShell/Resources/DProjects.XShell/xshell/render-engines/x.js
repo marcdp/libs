@@ -125,6 +125,10 @@ const utils = new class {
 			if (typeof value === "string") return value;
 			if (typeof value === "boolean") return value ? "true" : "false";
 			if (typeof value === "number" && Number.isFinite(value)) return String(value);
+			if (value instanceof Date) {
+				if (!Number.isFinite(value.getTime())) return fail("Invalid date/time value");
+				return value.toISOString();
+			}
 			return fail("Value cannot be converted to an XTemplate scalar: " + value);
 		};
 		const normalizeStyleName = (name) => {
@@ -187,7 +191,11 @@ const utils = new class {
 			return leftValues.length - rightValues.length;
 		};
 		const parseDate = (value, allowDate) => {
-			if (typeof value !== "string") return fail("Date/time transformers require a string input");
+			if (value instanceof Date) {
+				if (!Number.isFinite(value.getTime())) return fail("Invalid date/time value");
+				return dateParts(value.getUTCFullYear(), value.getUTCMonth() + 1, value.getUTCDate(), value.getUTCHours(), value.getUTCMinutes(), value.getUTCSeconds(), 0, 0);
+			}
+			if (typeof value !== "string") return fail("Date/time transformers require an ISO-8601 string or date/time value");
 			let match = allowDate && /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
 			if (match) return dateParts(+match[1], +match[2], +match[3], 0, 0, 0, 0, 0);
 			match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(Z|[+-]\d{2}:\d{2})$/.exec(value);

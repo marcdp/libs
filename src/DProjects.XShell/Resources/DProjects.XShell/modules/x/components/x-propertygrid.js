@@ -15,10 +15,14 @@ export default {
     style: `
         :host {display:block;}
         table {width:100%; background:#cccccc; border-spacing:1px;}
-        td:first-child {width:10em;}
+        th:first-child, td:first-child {width:10em;}
         th, td {text-align:left; padding:.3em; vertical-align:top; background:white}
-        td.object {padding:0}
-        td.object x-propertygrid {margin:-1px;}
+        td.object, td.array {padding:0}
+        td.object x-propertygrid, td.array x-propertygrid {margin:-1px;}
+        .date {color:Red;}
+        .number {color:green;}
+        .text {color:blue;}
+
     `,
     template: `
         <table>
@@ -33,13 +37,21 @@ export default {
                     <td class="key">
                         {{ key }}:
                     </td>
-                    <td x-if="state.schema[key].type == 'object'" class="object">
-                        <x-propertygrid headers="false" x-prop:value="state.value[key]"></x-propertygrid>
+                    <td x-if="state.value[key] == null">
+                        null
                     </td>
-                    <td x-elseif="state.schema[key].type == 'date'">
+                    <td x-elseif="state.schema[key].type == 'object'" class="object">
+                        <x-propertygrid headers="true" x-prop:value="state.value[key]"></x-propertygrid>
+                    </td>
+                    <td x-elseif="state.schema[key].type == 'array'" class="array">
+                        <div x-for="(item, index) in state.value[key]">
+                            <x-propertygrid headers="true" x-prop:value="item"></x-propertygrid>
+                        </div>
+                    </td>
+                    <td x-elseif="state.schema[key].type == 'date'" class="date">
                         {{ state.value[key] }}                        
                     </td>
-                    <td x-else>
+                    <td x-else x-attr:class="state.schema[key].type">
                         {{ state.value[key]}}                        
                     </td>
                 </tr>
@@ -69,6 +81,8 @@ export default {
                         type = "checkbox";
                     } else if (state.value[key] instanceof Date) {
                         type = "date";
+                    } else if (Array.isArray(state.value[key])) {
+                        type = "array";
                     } else if (typeof state.value[key] === "object") {
                         type = "object";
                     }

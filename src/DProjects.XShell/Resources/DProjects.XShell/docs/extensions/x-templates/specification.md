@@ -527,11 +527,13 @@ other operand with this scalar string conversion:
 | boolean | `true` or `false` |
 | number | shortest invariant-culture decimal text that round-trips to the same binary64 value; `-0` is `0` |
 | string | unchanged |
+| date/time | canonical ISO-8601 UTC text with millisecond precision, for example `2026-09-29T17:30:00.000Z` |
 | object or collection | evaluation error |
 
 If neither operand is a number pair and neither is a string, `+` is an evaluation error. Interpolation and text directives use the same scalar string
 conversion; a renderer MAY define directive-specific handling for object or collection content only where that directive explicitly requires such
-values.
+values. Date/time scalar conversion is invariant, locale-independent, and always represents the UTC instant. It is separate from the locale-sensitive
+presentation formatting performed by the `date`, `datetime`, and `time` transformers.
 
 ### 7.8.1 Restricted transformer pipeline
 
@@ -665,9 +667,9 @@ reinterpret their names as host-language calls.
 | `number` | number | optional digits | string | yes |
 | `percent` | number | optional digits | string | yes |
 | `currency` | number | currency code, optional digits | string | yes |
-| `date` | ISO date/date-time string | pattern | string | yes |
-| `datetime` | offset date-time string | pattern | string | yes |
-| `time` | offset date-time string | pattern | string | yes |
+| `date` | ISO date/date-time string or native date/time value | pattern | string | yes |
+| `datetime` | offset date-time string or native date/time value | pattern | string | yes |
+| `time` | offset date-time string or native date/time value | pattern | string | yes |
 | `json_stringify` | any JSON-compatible XTemplate value | none | compact JSON string | no |
 | `json_parse` | JSON string | none | corresponding XTemplate value | no |
 
@@ -727,11 +729,20 @@ These are XTemplate results, not a requirement to expose JavaScript or .NET casi
 
 #### Date and time patterns
 
-Date/time transformers do not add a date/time value kind; they accept only ISO-8601 strings and return strings. A date-only string has the form
+Date/time values are XTemplate scalar values. Their scalar conversion is the canonical, invariant, locale-independent UTC ISO-8601 representation
+with millisecond precision: `yyyy-MM-ddTHH:mm:ss.fffZ` (for example, `2026-09-29T17:30:00.000Z`). Locale-sensitive presentation remains the
+responsibility of the `date`, `datetime`, and `time` transformers.
+
+The date/time transformers return strings and accept either ISO-8601 strings or native date/time state values. A date-only string has the form
 `yyyy-MM-dd`. A date-time string MUST contain seconds and an
 explicit `Z` or numeric offset such as `+02:00`; local date-time strings without an offset are unsupported so that host time zones cannot change
 the result. `date` accepts either form and uses the represented calendar date. `datetime` and `time` require an offset date-time string and use
 the date/time fields represented by that input offset; they MUST NOT silently convert through the host's local time zone.
+
+Browser native date/time values are JavaScript `Date` values. They represent their UTC instant; invalid `Date` values are evaluation errors. Server
+native date/time values are `DateTime` and `DateTimeOffset`. `DateTimeOffset` values are converted to their UTC instant. A `DateTime` whose kind is
+`Utc` is used directly, whose kind is `Local` is converted with `ToUniversalTime()`, and whose kind is `Unspecified` is interpreted as UTC without
+conversion through the server's local time zone. These rules ensure portable XTemplate behavior independent of host locale and machine time zone.
 
 Invalid or unsupported date strings are formatting errors. Transformers MUST NOT guess at non-ISO input or accept arbitrary locale-dependent parsing.
 
@@ -1102,7 +1113,8 @@ The supported dynamic style syntax is the named form:
 The property name MUST be non-empty and structurally valid for CSSOM use. CSS spelling is preserved, including hyphens and custom properties beginning
 with `--`; the compiler MUST NOT camel-case the name. The dynamic-name form `x-style:[...]` is not supported.
 
-The expression uses normal XTemplate evaluation. Strings, finite numbers, and booleans use scalar conversion; objects and collections are errors.
+The expression uses normal XTemplate evaluation. Strings, finite numbers, booleans, and date/time values use scalar conversion; objects and
+collections are errors.
 `null` contributes no declaration. Dynamic values always use an empty priority and MUST NOT parse a runtime `!important` suffix. Literal and dynamic
 declarations share one ordered style map, so a later declaration for the same property wins.
 
@@ -1122,12 +1134,14 @@ The supported whole-object style syntax is:
 <div x-style="state.styles"></div>
 ```
 
-The expression MUST evaluate to a non-array object. `null`, arrays/collections, strings, numbers, and booleans are invalid sources and MUST report the
-semantic error `x-style requires an object`; a null source MUST NOT be treated as an empty style map. Only own enumerable string-keyed members are used.
+The expression MUST evaluate to a non-array object. `null`, arrays/collections, strings, numbers, booleans, and date/time values are invalid sources
+and MUST report the semantic error `x-style requires an object`; a null source MUST NOT be treated as an empty style map. Only own enumerable
+string-keyed members are used.
 Every member key MUST satisfy the same CSS property-name contract as named `x-style:<css-property>` and MUST NOT be camel-cased. Ordinary names are
 normalized consistently with named styles, while custom properties beginning with `--` preserve their spelling.
 
-Member values use normal XTemplate scalar conversion: strings, finite numbers, and booleans become scalar strings; `null` contributes no declaration;
+Member values use normal XTemplate scalar conversion: strings, finite numbers, booleans, and date/time values become scalar strings; `null`
+contributes no declaration;
 objects and collections are errors. Whole-object declarations always use priority `""`; runtime strings containing `!important` remain unchanged and are
 not parsed. The whole-object source contributes declarations to the same ordered structured style map as literal `style` declarations and named
 `x-style:<css-property>` bindings. Attribute source order determines precedence, and later effective declarations for the same normalized property win.

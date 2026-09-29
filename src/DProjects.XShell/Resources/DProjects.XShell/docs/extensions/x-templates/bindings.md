@@ -66,8 +66,8 @@ Use `x-style:<css-property>="expression"` for one dynamic declaration:
 ```
 
 CSS property names remain CSS syntax, including hyphenated names and custom properties beginning with `--`; they are not camel-cased. Strings, numbers,
-and booleans use normal XTemplate scalar conversion; objects and collections are errors. `null` omits the declaration, and dynamic values do not parse
-`!important` or set a priority.
+booleans, and date/time values use normal XTemplate scalar conversion; objects and collections are errors. `null` omits the declaration, and dynamic
+values do not parse `!important` or set a priority.
 
 Browser named styles contribute to `VNode.styles` and are applied through CSSOM. Server serialization follows `XTemplateRendererOptions.AllowStyleAttributes`;
 when enabled, effective literal and dynamic declarations are merged into one style attribute. Declarations follow source order, with later declarations
@@ -83,7 +83,8 @@ Use `x-style="expression"` to expand a style object into the same ordered struct
 
 The expression must evaluate to a non-array object. Only own enumerable string-keyed members are considered. Each key is validated as a CSS property
 name using the same rules as named `x-style:<css-property>`; names remain CSS syntax and ordinary names are normalized consistently with named bindings.
-String, finite number, and boolean members use XTemplate scalar conversion, `null` members are omitted, and object or collection members are errors.
+String, finite number, boolean, and date/time members use XTemplate scalar conversion; `null` members are omitted, and object or collection members
+are errors.
 Whole-object declarations always have an empty priority, so runtime `!important` text remains part of the value. Declarations from `style`, whole-object
 `x-style`, and named `x-style:<css-property>` are merged in attribute source order, with later effective declarations winning. A null member contributes
 nothing and does not clear an earlier declaration in the same render.

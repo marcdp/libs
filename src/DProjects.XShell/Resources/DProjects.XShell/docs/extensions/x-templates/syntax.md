@@ -72,9 +72,10 @@ Whole-object structured styles use `x-style="expression"`:
 <div x-style="state.styles"></div>
 ```
 
-The source must be a non-array object. Own enumerable string-keyed members are validated as CSS property names; scalar string, finite number, and boolean
-values are converted with normal XTemplate scalar rules, `null` members are omitted, and object or collection members are errors. Whole-object values
-always have an empty priority, so runtime `!important` text is not parsed. The browser writes the resulting `VNode.styles` through CSSOM, while server
+The source must be a non-array object. Own enumerable string-keyed members are validated as CSS property names; scalar string, finite number,
+boolean, and date/time values are converted with normal XTemplate scalar rules. `null` members are omitted, and object or collection members are
+errors. Whole-object values always have an empty priority, so runtime `!important` text is not parsed. The browser writes the resulting `VNode.styles`
+through CSSOM, while server
 serialization follows `XTemplateRendererOptions.AllowStyleAttributes`. Dynamic-name `x-style:[...]` remains unsupported.
 
 The supported shorthand forms are `:name` for `x-attr:name`, `:` for `x-attr`, `.name` for `x-prop:name`, and `@event` for `x-on:event`.

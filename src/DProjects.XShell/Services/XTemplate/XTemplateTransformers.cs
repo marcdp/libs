@@ -191,7 +191,9 @@ namespace DProjects.XShell.Services.XTemplate {
             if (culture.Name.Equals("tr-TR", StringComparison.OrdinalIgnoreCase)) numberFormat.CurrencyPositivePattern = 3;
         }
         private static DateTimeOffset ParseDate(object input, int offset, bool dateAllowed) {
-            if (input is not string text) throw Error("Date/time transformers require a string input", offset);
+            if (input is DateTime dateTime) return XTemplateValues.ToUtcDateTimeOffset(dateTime);
+            if (input is DateTimeOffset dateTimeOffset) return dateTimeOffset.ToUniversalTime();
+            if (input is not string text) throw Error("Date/time transformers require an ISO-8601 string or date/time value", offset);
             if (dateAllowed && Regex.IsMatch(text, "^\\d{4}-\\d{2}-\\d{2}$")) {
                 if (DateOnly.TryParseExact(text, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var date)) return new DateTimeOffset(date.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
             } else if (Regex.IsMatch(text, "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(Z|[+-]\\d{2}:\\d{2})$") && DateTimeOffset.TryParseExact(text, new[] { "yyyy-MM-dd'T'HH:mm:ss'Z'", "yyyy-MM-dd'T'HH:mm:sszzz" }, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var value)) return value;
