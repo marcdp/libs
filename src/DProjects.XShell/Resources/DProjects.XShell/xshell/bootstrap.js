@@ -6,7 +6,7 @@ function deepFreeze(obj) {if (obj === null || typeof obj !== "object") {return o
 function absolutizePrefixedUrl(key, obj, url) {return typeof obj === "string" ? (obj.startsWith("url:") ? ((obj = obj.substring(4).trim()), (obj.startsWith("/") || obj.startsWith("./") || obj.startsWith("../") || obj === ".") ? combineUrls(url, obj) : obj) : obj) : Array.isArray(obj) ? (obj.forEach((v, i) => obj[i] = absolutizePrefixedUrl(i, v, url)), obj) : obj instanceof Object ? (Object.keys(obj).forEach(k => obj[k] = absolutizePrefixedUrl(k, obj[k], url)), obj) : obj;}
 function relativizePaths(key, obj, path) { return typeof obj === "string" ? (obj.startsWith("/") ? ((obj = path + obj), obj.startsWith(document.location.origin) ? obj.substring(document.location.origin.length) : obj) : (obj.startsWith("./") || obj.startsWith("../") || obj === ".") ? ((obj = combineUrls(path + "/", obj)), obj.startsWith(document.location.origin) ? obj.substring(document.location.origin.length) : obj) : obj) : Array.isArray(obj) ? (obj.forEach((v, i) => obj[i] = relativizePaths(i, v, path)), obj) : obj instanceof Object ? (Object.keys(obj).forEach(k => obj[k] = relativizePaths(k, obj[k], path)), obj) : obj; }
 function relativizeModulePaths(config, path) {const definitions = config.xshell?.areas?.definitions || {};const prefixes = Object.fromEntries(Object.entries(definitions).filter(([, area]) => Object.hasOwn(area, "prefix")).map(([id, area]) => [id, area.prefix]));relativizePaths("", config, path);for (const [id, prefix] of Object.entries(prefixes)) definitions[id].prefix = prefix;}
-async function loadJsonWithComments(url) {const request = await fetch(url);if (!request.ok) throw new Error(`Failed to load JSON file: ${url}`);let json = await request.text();return JSON.parse(stripJsonComments(json));}
+async function loadJsonWithComments(url) {const request = await fetch(url);if (!request.ok) throw new Error(`Failed to json file: ${result.url}`);let json = await request.text();return JSON.parse(stripJsonComments(json));}
  
 
 // consts
@@ -52,6 +52,21 @@ function hideSpinner(){
     const spinner = document.querySelector(".spinner");
     if (spinner) spinner.remove();
 }
+async function loadModuleConfig(url) {
+    // load module config from the given URL
+    const request = await fetch(url);
+    if (!request.ok) throw new Error(`Failed to json file: ${url}`);
+    let json = await request.text();
+    var module = JSON.parse(stripJsonComments(json));
+    // absolutize all values starting with "url:"
+    for (let key in module) {
+        let value = module[key];
+        if (typeof value === "string" && value.startsWith("url:")) {
+            module[key] = new URL(value.substring(4), url).href;
+        }
+    }
+    return module;
+}
 async function loadConfig() {
     // load config
     console.log("bootstrap: loading config ...");
@@ -80,23 +95,59 @@ async function loadConfig() {
     
     // get root module config
     const rootModuleConfig = await rootModuleConfigTask;
-    const { discoverModuleConfigs, mergeConfigs } = await import(bootstrapUrlDir + "/bootstrap-config.js");
-    const graph = await discoverModuleConfigs(rootModuleConfig, rootModuleUrl, loadJsonWithComments);
-    const rootModule = graph.rootNode.definition;
-    const rootModuleId = graph.rootNode.id;
+    const rootModule = Object.values(rootModuleConfig.modules)[0];
+    const rootModuleId = Object.keys(rootModuleConfig.modules)[0];
+    rootModule.configUrl = rootModuleUrl;
+    rootModule.assetsUrl = rootModule.assetsUrl || "url:./";
     rootModule.params = Object.fromEntries(new URLSearchParams(appParams));
     xshellConfig.app.params = rootModule.params;
-
-    // normalize every local definition against the document that owns it
-    for (const node of graph.mergeOrder) {
-        node.definition.configUrl = node.configUrl;
-        node.definition.assetsUrl = node.definition.assetsUrl || "url:./";
-        absolutizePrefixedUrl("", node.config, node.configUrl);
-        relativizeModulePaths(node.config, "/" + assetsPrefix + "/" + node.id);
+    absolutizePrefixedUrl("", rootModuleConfig, rootModuleUrl);    
+    relativizeModulePaths(rootModuleConfig, "/" + assetsPrefix + "/" + rootModuleId);
+    
+    // load modules
+    const configs = {}    
+    configs[rootModuleUrl] = rootModuleConfig;    
+    while (true) {       
+        // get urls to load
+        const urls = [];
+        for (let config of Object.values(configs)) {
+            for(const module of Object.values(config.modules)) {
+                if (!configs[module.configUrl]) urls.push(module.configUrl);
+            }
+        }
+        // if no urls to load, break the loop
+        if (urls.length == 0) break;
+        // load module configurations for the urls
+        const tasks = urls.map(url => loadModuleConfig(url));
+        const configsLoaded = await Promise.all(tasks);
+        for (let i = 0; i < configsLoaded.length; i++) {
+            const configLoaded = configsLoaded[i];
+            const moduleId = Object.keys(configLoaded.modules)[0];
+            configLoaded.modules[moduleId].configUrl = urls[i];
+            configLoaded.modules[moduleId].assetsUrl = configLoaded.modules[moduleId].assetsUrl || "url:./";
+            absolutizePrefixedUrl("", configLoaded, urls[i]);    
+            relativizeModulePaths(configLoaded, "/" + assetsPrefix + "/" + moduleId);
+            configs[urls[i]] = configsLoaded[i];
+        }
     }
+    configs[xshellConfigUrl] = xshellConfig;
 
-    // merge framework defaults, dependencies, dependents, and finally the root
-    const configMerged = mergeConfigs([xshellConfig, ...graph.mergeOrder.map(node => node.config)]);
+    // merge configs
+    const configsToMerge = Object.values(configs).reverse().map(item => item);
+    const isObject = value => value !== null && typeof value === "object" && !Array.isArray(value);
+    const merge = (target, source) => {
+        for (const [key, value] of Object.entries(source)) {
+            if (Array.isArray(value)) {
+                target[key] = Array.isArray(target[key]) ? [...target[key], ...value] : [...value];
+            } else if (isObject(value)) {
+                target[key] = merge(isObject(target[key]) ? target[key] : {}, value);
+            } else {
+                target[key] = value;
+            }
+        }
+        return target;
+    };
+    const configMerged =  configsToMerge.reduce((result, config) => merge(result, config), {});
 
     // default contract for modules
     for(const moduleId in configMerged.modules)   {
