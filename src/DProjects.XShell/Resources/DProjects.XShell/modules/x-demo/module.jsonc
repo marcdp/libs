@@ -17,9 +17,6 @@
             "icon": "",
             "copyright": "",
             "controller": "/js/module.js",
-            "imports": [
-                {"configUrl": "url:../x/module.jsonc", "params": {"aaa":123, "bbb":456}}
-            ],
             "defaults": {
                 "component": { 
                     "renderEngine": "x",
@@ -41,6 +38,13 @@
                     { "label": "My things 1", "href": "/pages/test1.js"},
                     { "label": "My things 2", "href": "/pages/test1.js"}
                 ]
+            }
+        },
+        "x": {
+            "configUrl": "url:../x/module.jsonc",
+            "params": {
+                "aaa": 890,
+                "bbb": 987
             }
         }
     },

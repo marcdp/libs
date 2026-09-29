@@ -46,11 +46,6 @@
         },
         "assetsUrl": {"type": "string", "format": "uri", "description": "URL of the directory or package containing the module assets."},
         "controller": {"type": "string", "description": "Module controller resource."},
-        "imports": {
-          "type": "array",
-          "items": {"$ref": "#/$defs/moduleImport"},
-          "description": "Modules imported by this module."
-        },
         "menus": {"$ref": "#/$defs/menus", "description": "Menu contributions exposed by the module."},
         "defaults": {"$ref": "#/$defs/moduleDefaults", "description": "Defaults for that module."},
         "contract": {"$ref": "#/$defs/moduleContract", "description": "Public contract exposed by the module."}
@@ -58,16 +53,6 @@
       "required": ["label", "version", "copyright", "icon", "configUrl", "assetsUrl", "defaults"],
       "additionalProperties": false,
       "description": "Effective configuration of a resolved XShell module."
-    },
-    "moduleImport": {
-      "type": "object",
-      "required": ["configUrl"],
-      "properties": {
-        "configUrl": {"type": "string", "format": "uri", "description": "URL of the imported module configuration document."},
-        "params": {"type": "object", "additionalProperties": true, "description": "Parameters supplied to the imported module."}
-      },
-      "additionalProperties": false,
-      "description": "Reference to another module configuration and optional import parameters."
     },
     "moduleDefaults": {
       "type": "object",

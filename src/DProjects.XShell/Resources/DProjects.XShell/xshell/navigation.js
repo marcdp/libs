@@ -157,7 +157,12 @@ export default class Navigation {
         }    
         // nav
         if (nav && (nav.title || nav.description || nav.icon || nav.breadcrumb)) {
-            href = this._appendQueryParameter(href, "nav", base64UrlEncode(JSON.stringify(nav)));
+            debugger;
+            const navJson = JSON.stringify(nav, (key, value) => {
+                if (value !== null) return value;
+                return undefined;
+            });
+            href = this._appendQueryParameter(href, "nav", base64UrlEncode(navJson));
         }
         // return
         return href;
@@ -289,7 +294,11 @@ export default class Navigation {
                 aux.icon = root.nav.icon;
                 aux.breadcrumb = root.nav.breadcrumb;
                 aux.stack = stack.slice(1);
-                url += (url.includes("?") ? "&" : "?") + "nav=" + base64UrlEncode(JSON.stringify(aux));
+                const navJson = JSON.stringify(aux, (key, value) => {
+                    if (value !== null) return value;
+                    return undefined;
+                });
+                url += (url.includes("?") ? "&" : "?") + "nav=" + base64UrlEncode(navJson);
             }
         }
         this._stack = stack;

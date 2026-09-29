@@ -33,10 +33,6 @@ inspect / read / upload / process</code></pre>
 
         <ul>
             <li><strong>Select</strong> — choose one file and inspect safe display metadata.</li>
-            <li><strong>Metadata</strong> — inspect the standard properties of a browser <code>File</code>.</li>
-            <li><strong>Read</strong> — read a text file asynchronously with a bounded preview.</li>
-            <li><strong>Multiple</strong> — work with a browser <code>FileList</code> as an array of metadata objects.</li>
-            <li><strong>Download</strong> — create a <code>Blob</code> and download it in the browser.</li>
         </ul>
 
         <h3>Files are different from module resources</h3>

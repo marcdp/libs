@@ -74,12 +74,12 @@ async function handleRequest(request) {
 
     // if request is outside scope, just fetch
     if (!request.url.startsWith(self.registration.scope)) {
-        return fetch(request, { cache: "no-store" });
+        return;
     }
 
     // if no rules, just fetch
     if (!state || state.rules.length == 0) {
-        return fetch(request, { cache: "no-store" });
+        return;
     }
 
     const requestUrl = new URL(request.url);
@@ -103,16 +103,15 @@ async function handleRequest(request) {
         }
     }
 
-    // no matching rule
+    // no matching rule    
     if (!rule) {
+        //console.log("REdirect : " +request.url)
         return fetch(request, { cache: "no-store" });
     }
 
-    // resolve virtual /_assets/... path against the physical assetsUrl
-    const relativePath = requestUrl.pathname
-        .substring(ruleSrcUrl.pathname.length)
-        .replace(/^\//, "");
 
+    // resolve virtual /_assets/... path against the physical assetsUrl
+    const relativePath = requestUrl.pathname.substring(ruleSrcUrl.pathname.length).replace(/^\//, "");
     const baseUrl = rule.dst.endsWith("/") ? rule.dst : rule.dst + "/";
     const url = new URL(relativePath, baseUrl);
 

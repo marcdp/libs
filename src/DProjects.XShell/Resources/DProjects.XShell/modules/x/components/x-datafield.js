@@ -145,6 +145,7 @@ export default {
         :host .input.file ul {margin:0; padding:0;}
         :host .input.file ul li {margin:0; padding:0; list-style:none;}
         :host .input.file x-icon {vertical-align:text-bottom;}
+        :host .input.file .error {color:var(--x-datafield-error-color);}
 
         input[type='range'] {
             padding:.35em;            
@@ -347,12 +348,17 @@ export default {
                 </ul>
             </div>            
             <div x-if="state.filesTemp">
-                <ul x-for="(filename, index) in state.filesTemp">
-                    <li>
-                        <x-anchor class="plain" x-attr:href="state.filesTemp[filename].url" target="_blank"><x-spinner></x-spinner><x-icon icon="x-file"></x-icon> {{ filename }}</x-anchor>
-                        <span x-if="state.filesTemp[filename].size">({{ state.filesTemp[filename].sizeFormatted }})</span>
-                        <span x-if="state.filesTemp[filename].progress">, {{ state.filesTemp[filename].progress }} %</span>                        
-                        <x-button x-on:click="fileRemove" x-attr:data-file="state.filesTemp[filename].id" icon="x-close" class="anchor"></x-button>
+                <ul x-for="file in state.filesTemp" x-key="name">
+                    <li x-if="file.error" class="error">
+                        <x-icon icon="x-file"></x-icon> {{ file.name }}
+                        ({{ file.error }})
+                        <x-button x-on:click="fileRemove" x-attr:data-file="file.id" icon="x-close" class="anchor"></x-button>
+                    </li>
+                    <li x-else>
+                        <x-anchor class="plain" x-attr:href="file.url" target="_blank"><x-spinner></x-spinner><x-icon icon="x-file"></x-icon> {{ file.name }}</x-anchor>
+                        <span x-if="file.size">({{ file.sizeFormatted }})</span>
+                        <span x-if="file.progress">, {{ file.progress }} %</span>                        
+                        <x-button x-on:click="fileRemove" x-attr:data-file="file.id" icon="x-close" class="anchor"></x-button>
                     </li>                    
                 </ul>
             </div>            
@@ -510,6 +516,7 @@ export default {
             }
             state.selectedOptions = selectedOptions;
             if (typeof state.type == "string" && state.type.startsWith("file")) {
+                debugger
                 const files = {};
                 const values = (Array.isArray(state.value) ? state.value : [state.value || ""]);
                 for(const val of values) {
@@ -619,32 +626,67 @@ export default {
                 const input = args.event.target;
                 const files = input.files;
                 // temp upload
-                let filesTemp = {};
+                let filesTemp = [];
                 for(const file of files) {
-                    filesTemp[file.name] = { id:file.name, name: file.name, size: file.size, sizeFormatted: formatFileSize(file.size), type: file.type, progress: 25};
+                    filesTemp.push({ id:file.name, name: file.name, size: file.size, sizeFormatted: formatFileSize(file.size), type: file.type, progress: 25});
                 }
                 // action
                 state.filesTemp = filesTemp;
                 const result = await temp.upload(files, (name, progress) => {
-                    filesTemp[name].progress = progress;
-                    alert(progress)
+                    const fileTemp = filesTemp.find(f => f.name === name);
+                    if (fileTemp) {
+                        fileTemp.progress = (progress == 100 ? 99 : Math.min(Math.max(progress, 0), 100));
+                    }
+                    host.invalidate();                        
                 });
-                
+                let index = 0;
+                for(const fileTemp of filesTemp) {
+                    const fileResult = result[index++];
+                    fileTemp.progress = 100;
+                    if (fileResult.startsWith("error:")) {
+                        fileTemp.error = fileResult;
+                        fileTemp.value = null;
+                    } else{
+                        fileTemp.error = null;
+                        fileTemp.value = fileResult;
+                    }
+                }                                
                 // remove tempUpload
-                for(const file of files) {
-                    delete filesTemp[file.name];
-                }        
-                // assign
+                let newValue = (state.multiple ? [...state.value || []] : state.value);
                 if (state.multiple) {
-                    state.value = result;
+                    let indexToRemove = [];
+                    for(let i = 0; i < filesTemp.length; i++) {
+                        const fileTemp = filesTemp[i];
+                        if (!fileTemp.error) {
+                            newValue.push(fileTemp.value);
+                            indexToRemove.push(i);
+                        }
+                    }
+                    for(let i = indexToRemove.length - 1; i >= 0; i--) {
+                        filesTemp.splice(indexToRemove[i], 1);
+                    }
                 } else {
-                    state.value = result[0];
-                }               
+                    if (result[0].startsWith("error:")) {
+                        newValue = null;
+                    } else {
+                        newValue = result[0];
+                        filesTemp = [];
+                    }
+                }
+                // set state
+                state.filesTemp = [...filesTemp];
+                state.value = newValue;
+                // reset
                 input.value = ""; 
-                
+                // reset
+                host.invalidate();
             },
             async fileRemove(args) {
+                // remove file
                 const file = args.event.target.dataset.file;
+                const index = state.filesTemp.findIndex(f => f.id === file);
+                if (index !== -1) state.filesTemp.splice(index, 1);
+                state.filesTemp = [...state.filesTemp];
                 if (state.multiple) {
                     state.value = state.value.filter(item => item !== file);
                 } else {

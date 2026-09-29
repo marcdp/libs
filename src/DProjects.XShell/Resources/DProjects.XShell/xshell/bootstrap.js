@@ -19,6 +19,39 @@ const bootstrapUrl = new URL(document.currentScript.src);
 const bootstrapUrlDir = bootstrapUrl.href.substring(0, bootstrapUrl.href.lastIndexOf("/") );
 
 // methods
+function showSpinner (){
+    document.addEventListener("DOMContentLoaded", (event) => {
+        const stylesheet = new CSSStyleSheet();
+        stylesheet.replaceSync(`
+            body {padding:0; margin:0;}
+            .spinner {
+                display:block;width:100%; 
+                background:#cccccc;height:.4em;border-radius:.25em;position:absolute;top: 50%;left: 50%;transform: translate(-50%, -50%);width:12em;
+                visibility: hidden;
+                animation: spinnerShowDiv 0s forwards;
+                animation-delay: 200ms;
+            }
+            .spinner div {display:block;animation: spinnerProgressBar 2s ease-in-out; animation-delay: 200ms;   animation-fill-mode: both; animation-iteration-count: infinite;background:#006CE0;height:.4em;border-radius:.25em;position:absolute;}
+            @keyframes spinnerProgressBar {
+                0% { left:0; width: 0; }
+                50% { left:0; width: 100%;}
+                100% {left:100%; width: 0;}
+            } 
+            @keyframes spinnerShowDiv {
+                to {visibility: visible;}
+            }
+        `);
+        document.adoptedStyleSheets = [...document.adoptedStyleSheets, stylesheet];
+        const div = document.createElement("DIV")
+        div.innerHTML = "<div></div>";
+        div.className = "spinner";
+        document.body.appendChild(div);
+    });
+}
+function hideSpinner(){
+    const spinner = document.querySelector(".spinner");
+    if (spinner) spinner.remove();
+}
 async function loadModuleConfig(url) {
     // load module config from the given URL
     const request = await fetch(url);
@@ -71,53 +104,36 @@ async function loadConfig() {
     absolutizePrefixedUrl("", rootModuleConfig, rootModuleUrl);    
     relativizeModulePaths(rootModuleConfig, "/" + assetsPrefix + "/" + rootModuleId);
     
-    // load referenced modules
-    const registered = {}
-    registered[rootModuleUrl] = {
-        configUrl: rootModuleUrl,
-        config: rootModuleConfig
-    }
-    while (true) {        
-        for (let registeredItem of Object.values(registered)) {
-            if (registeredItem.config && registeredItem.config.modules) {
-                for (let moduleConfig of Object.values(registeredItem.config.modules)) {
-                    if (moduleConfig.imports) {
-                        for(let importItem of Object.values(moduleConfig.imports)) {
-                            let importItemUrl = importItem.configUrl;
-                            let importItemParams = importItem.params;
-                            if (!registered[importItemUrl]) {
-                                registered[importItemUrl] = { 
-                                    configUrl: importItemUrl,
-                                    params: importItemParams,
-                                    task: loadModuleConfig(importItemUrl) 
-                                };
-                            }
-                        }
-                    }
-                }
+    // load modules
+    const configs = {}    
+    configs[rootModuleUrl] = rootModuleConfig;    
+    while (true) {       
+        // get urls to load
+        const urls = [];
+        for (let config of Object.values(configs)) {
+            for(const module of Object.values(config.modules)) {
+                if (!configs[module.configUrl]) urls.push(module.configUrl);
             }
         }
-        // check if there are any pending module configurations to be loaded
-        let pending = Object.values(registered).some(item => item.task && !item.config);
-        if (pending == 0) break;
-        // wait until all pending dependencies are loaded
-        for (let registeredItem of Object.values(registered)) {
-            if (registeredItem.task && !registeredItem.config) {
-                registeredItem.config = await registeredItem.task;
-                const registeredModule = Object.values(registeredItem.config.modules)[0];
-                const registeredModuleId = Object.keys(registeredItem.config.modules)[0];
-                registeredModule.configUrl = registeredItem.configUrl;
-                registeredModule.assetsUrl = registeredModule.assetsUrl || "url:./";
-                registeredModule.params = registeredItem.params;
-                absolutizePrefixedUrl("", registeredItem.config, registeredItem.configUrl);    
-                relativizeModulePaths(registeredItem.config, "/" + assetsPrefix + "/" + registeredModuleId);
-                delete registeredItem.task;
-            }
+        // if no urls to load, break the loop
+        if (urls.length == 0) break;
+        // load module configurations for the urls
+        const tasks = urls.map(url => loadModuleConfig(url));
+        const configsLoaded = await Promise.all(tasks);
+        for (let i = 0; i < configsLoaded.length; i++) {
+            const configLoaded = configsLoaded[i];
+            const moduleId = Object.keys(configLoaded.modules)[0];
+            configLoaded.modules[moduleId].configUrl = urls[i];
+            configLoaded.modules[moduleId].assetsUrl = configLoaded.modules[moduleId].assetsUrl || "url:./";
+            absolutizePrefixedUrl("", configLoaded, urls[i]);    
+            relativizeModulePaths(configLoaded, "/" + assetsPrefix + "/" + moduleId);
+            configs[urls[i]] = configsLoaded[i];
         }
     }
+    configs[xshellConfigUrl] = xshellConfig;
 
     // merge configs
-    const configs = [xshellConfig, ...Object.values(registered).reverse().map(item => item.config)];
+    const configsToMerge = Object.values(configs).reverse().map(item => item);
     const isObject = value => value !== null && typeof value === "object" && !Array.isArray(value);
     const merge = (target, source) => {
         for (const [key, value] of Object.entries(source)) {
@@ -131,7 +147,7 @@ async function loadConfig() {
         }
         return target;
     };
-    const configMerged =  configs.reduce((result, config) => merge(result, config), {});
+    const configMerged =  configsToMerge.reduce((result, config) => merge(result, config), {});
 
     // default contract for modules
     for(const moduleId in configMerged.modules)   {
@@ -141,6 +157,7 @@ async function loadConfig() {
         if (!module.contract.intents) module.contract.intents = {};
         if (!module.contract.actions) module.contract.actions = {};
     }
+    
     // default resolvers for modules
     for(const moduleId in configMerged.modules)   {
         const module = configMerged.modules[moduleId];
@@ -236,7 +253,10 @@ async function installServiceWorker(config) {
 }
 
 async function bootstrap() {
-    
+
+    // show spinner
+    showSpinner();
+
     // load config
     let config = await loadConfig();
     
@@ -253,6 +273,9 @@ async function bootstrap() {
     
     // init xshell
     await xshell.init(deepFreeze(config));
+
+    // hide spinner
+    hideSpinner();
 }
 
 // exec bootstrap
