@@ -157,7 +157,6 @@ export default class Navigation {
         }    
         // nav
         if (nav && (nav.title || nav.description || nav.icon || nav.breadcrumb)) {
-            debugger;
             const navJson = JSON.stringify(nav, (key, value) => {
                 if (value !== null) return value;
                 return undefined;

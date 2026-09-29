@@ -19,7 +19,7 @@ marked `default: true` in depth-first traversal determines its home through `pat
 retaining one runtime module instance. An Area prefix denotes navigation context; `/_assets/<module-id>/...` denotes the resource namespace.
 
 Root ownership is a composition convention rather than an enforced fragment boundary: the configuration merger accepts `xshell` settings from
-imports. Area membership does not create module imports or routes.
+references. Area membership does not create module dependencies or routes.
 
 ## Consequences and open work
 

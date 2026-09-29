@@ -1,8 +1,10 @@
-# Module Specification
+# Module Configuration Specification
 
-A `module.jsonc` file is declarative JSONC. Its `modules` object contains canonical definitions keyed by module id. A root file may also
-provide `app` metadata. Any module file may contribute nested `xshell` settings. Bootstrap records each loaded definition's resolved
-`configUrl` and `assetsUrl`; the module id does not need a duplicate `name` field.
+A module configuration is a JSONC document whose `modules` object contains exactly one local definition and zero or more external references.
+
+## Local definition
+
+The local definition is the one entry without `configUrl`. Its object key is the canonical module id.
 
 ```jsonc
 {
@@ -12,75 +14,67 @@ provide `app` metadata. Any module file may contribute nested `xshell` settings.
             "version": "1.0.0",
             "copyright": "",
             "icon": "",
-            "styles": ["/css/orders.css"],
-            "controller": "./js/module.js",
+            "styles": ["/css/styles.css"],
+            "controller": "/js/module.js",
             "defaults": {
                 "page": { "renderEngine": "x", "stateEngine": "proxy" },
                 "component": { "renderEngine": "x", "stateEngine": "proxy" }
             },
-            "imports": [
-                { "configUrl": "url:../customer/module.jsonc", "params": { "region": "eu" } }
-            ],
-            "menus": {
-                "navigation": [{ "label": "Orders", "path": "/orders", "href": "/pages/orders.js", "default": true }],
-                "tools": [{ "label": "New order", "href": "/pages/new-order.js" }]
-            }
+            "menus": {},
+            "contract": { "events": {}, "actions": {}, "intents": {} }
         }
     }
 }
 ```
 
-An import declares a dependency on the definition at `configUrl` and may provide params for that target module. Imports are array entries, not
-local instance names. Bootstrap registers a resolved URL once, loads its JSONC once, and retains params from the **first registered import**.
-Later imports of the same URL do not override or merge params. Discovery order determines which import registers first. One URL contributes one
-canonical `config.modules` entry and one live runtime instance for its module id.
+Do not duplicate identity in `name`, `id`, or `moduleId`. Property order does not determine ownership. A document with no local definition or more
+than one local definition is invalid.
 
-Definition metadata and contributions, including menus, resolvers, pages, and styles, belong to the canonical definition. Import params are
-runtime input, not definition metadata. `configUrl` identifies the module configuration document. `assetsUrl` identifies its physical asset
-container and defaults to the configuration document's directory. Module-relative static paths normalize into `/_assets/<module-id>/...`; the
-Service Worker maps those virtual URLs to `assetsUrl`, hiding the physical representation from normal resource consumers. Expanded directories are
-supported; ZIP-backed assets are not yet implemented.
+## External reference
 
-`modules.<module-id>.menus.<menu-name>` is an area-independent contribution to a named menu slot. A value is either an array of static menu items
-or a non-empty string naming a dynamic menu source registered with `Areas.registerSource(name, source)`. The source's `resolve()` method returns
-the menu-item array used for that complete contribution. A source name is a runtime lookup identifier, not a URL. This differs from
-`childrenSource` on a static item, which dynamically supplies only that item's child items. A menu item has a required `label`, an optional
-`path`, and an optional `href`. `path` is a friendly/public navigation alias; `href` is the canonical XShell navigation target. Both may be
-present. UI derived from a menu item navigates with `path || href`, preserving href-only items. The root application selects participating modules
-through `xshell.areas.definitions.<area-id>.modules`; a child module does not declare Area membership. One module can contribute to multiple Areas
-without creating another runtime module instance. Menu entries are navigation data, not imports or route declarations. Bootstrap normalizes authored
-module-relative hrefs such as `/pages/orders.js` into the module asset namespace before Areas applies its prefix to both local fields. The first
-navigation item marked `default: true` in depth-first Area module order determines that Area's home through `path || href`; absent such an item,
-home is null. Dynamic sources return the same menu-item shape, so their items may use both `path` and `href` just like static items.
+Every non-local entry must declare `configUrl`:
 
-The optional `controller` points to a JavaScript module loaded through `module:<controller>`. Its default export must be constructable. Runtime
-requests named XShell services through its constructor argument, supplies `params` from the final module config, and calls `start()` after controller
-and style loads. `Modules.stop()` can call controller `stop()`, but no automatic application-shutdown lifecycle currently invokes it. See
-[Modules](../architecture/modules.md) for current injection and controller-free startup limits.
+```jsonc
+{
+    "modules": {
+        "orders": { "label": "Orders", "version": "1.0.0" },
+        "x": { "configUrl": "url:../x/module.jsonc" },
+        "customers": { "configUrl": "url:../customers/module.jsonc" }
+    }
+}
+```
 
-**Module defaults** are required for every resolved module. `defaults` must contain both `page` and `component`; each requires non-empty-string
-`renderEngine` and `stateEngine` values. They define how the module's own definition-based Pages and Components execute. Page engines resolve from
-Page `meta` and then `defaults.page`; Component engines resolve from component `meta` and then `defaults.component`. There is no XShell
-render-engine or state-engine fallback.
+The key is the expected identity. `modules.x` must resolve to a document whose local definition is `modules.x`. Bootstrap rejects identity mismatch,
+conflicting URLs for the same id, wrong ids for an already known URL, and cycles.
 
-Module defaults do not define layouts or standard dialog infrastructure. A module may provide layout resources or Page resources used as dialogs,
-but application-wide layout contexts belong to `xshell.ui.layout` and standard dialog pages belong to `xshell.ui.dialog`. No current
-tooling uses render-engine defaults for publish-time X-template compilation.
+A reusable non-root module may declare dependencies but must not supply dependency `params`. Only the root application can compose those values.
+No reference may override `assetsUrl`; the referenced local definition owns its physical resource location.
 
-The effective schema requires `label`, `version`, `copyright`, `icon`, `configUrl`, `assetsUrl`, and `defaults` for every resolved module.
-Bootstrap supplies the two URLs during normalization. Optional fields are `params`, `styles`, `controller`, `imports`, `menus`, and `contract`.
+## Normalized effective module
 
-## Public module contract
+Bootstrap resolves references recursively and the final effective entry is a complete definition:
 
-The schema explicitly supports:
+```jsonc
+"x": {
+    "label": "X",
+    "version": "1.0.0",
+    "copyright": "",
+    "icon": "",
+    "configUrl": "https://example.test/modules/x/module.jsonc",
+    "assetsUrl": "https://example.test/modules/x/",
+    "params": { "mode": "compact" },
+    "defaults": {
+        "page": { "renderEngine": "x", "stateEngine": "proxy" },
+        "component": { "renderEngine": "x", "stateEngine": "proxy" }
+    }
+}
+```
 
-- `events`: things the module publishes; an event may describe named fields in its `detail` payload;
-- `actions`: request/response public capabilities; an action may describe named `input` fields and one typed `output`; and
-- `intents`: semantic fire-and-forget requests; an intent may describe named `input` fields.
+`configUrl` is the source document. `assetsUrl` is the physical resource container and defaults to that document's directory. Runtime resource
+references use `/_assets/<module-id>/...` rather than the physical URL.
 
-Typed fields use `string`, `number`, `integer`, `boolean`, `object`, or `array`; input/detail fields may also carry `required`, `default`, and
-`description` metadata. These declarations are accepted and validated as configuration. The current browser runtime does not register, dispatch,
-or enforce actions or intents, and it does not enforce declared event payloads. The Bus is a separate event mechanism.
+The effective schema requires `label`, `version`, `copyright`, `icon`, `configUrl`, `assetsUrl`, and `defaults`. Optional effective fields include
+`params`, `styles`, `controller`, `menus`, and `contract`. `contract` may declare events, actions, and intents; those declarations are metadata and
+do not by themselves implement runtime dispatch.
 
-See [Modules](../architecture/modules.md), [Configuration](../architecture/configuration.md), [Root Module](application.md), and
-[Areas](../subsystems/areas.md).
+See [Root Module](application.md), [Modules](../architecture/modules.md), and [Configuration](../architecture/configuration.md).

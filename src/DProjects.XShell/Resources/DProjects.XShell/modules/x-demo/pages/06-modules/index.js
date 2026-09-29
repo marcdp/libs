@@ -19,7 +19,7 @@ export default {
         <h3>The module mental model</h3>
 
         <pre x-pre><code>root module
-    ↓ imports
+    ↓ modules.&lt;id&gt;.configUrl references
 module definitions
     ↓ bootstrap
 canonical effective config
@@ -27,7 +27,7 @@ canonical effective config
 one module instance per module id</code></pre>
 
         <p>
-            The root module is the application entry point. Its imports are discovered recursively, definitions are deduplicated by resolved
+            The root module is the application entry point. Its dependencies are discovered recursively, definitions are deduplicated by resolved
             configuration URL, and the effective <code>config.modules</code> object is used to create runtime module records.
         </p>
 
@@ -51,7 +51,7 @@ assetsUrl</code></pre>
         <ul>
             <li><strong>Definition</strong> — the canonical metadata and contributions for a module.</li>
             <li><strong>Configuration</strong> — how framework and discovered module fragments become one effective config.</li>
-            <li><strong>Imports</strong> — recursive discovery, URL deduplication, and first-registration parameters.</li>
+            <li><strong>Module dependencies</strong> — references, recursive discovery, identity validation, and root composition.</li>
             <li><strong>Resources</strong> — virtual asset URLs and Service Worker mapping.</li>
             <li><strong>Controller</strong> — startup and shutdown hooks for a live module instance.</li>
             <li><strong>Menus</strong> — static and dynamic contributions composed by Areas.</li>

@@ -516,7 +516,6 @@ export default {
             }
             state.selectedOptions = selectedOptions;
             if (typeof state.type == "string" && state.type.startsWith("file")) {
-                debugger
                 const files = {};
                 const values = (Array.isArray(state.value) ? state.value : [state.value || ""]);
                 for(const val of values) {

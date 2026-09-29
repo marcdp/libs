@@ -38,7 +38,7 @@
         "copyright": {"type": "string", "description": "Module copyright notice."},
         "icon": {"type": "string", "description": "Module icon resource."},
         "configUrl": {"type": "string", "format": "uri", "description": "URL of the module configuration document."},
-        "params": {"type": "object", "additionalProperties": true, "description": "Parameters supplied to the module."},
+        "params": {"type": "object", "additionalProperties": true, "description": "Parameters supplied to the canonical module by root application composition."},
         "styles": {
           "type": "array",
           "items": {"type": "string"},

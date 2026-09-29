@@ -13,7 +13,8 @@ export default {
 
         <p>
             A module definition is the canonical declarative entry at <code>config.modules.&lt;module-id&gt;</code>. It describes the metadata and
-            contributions that belong to one module: imports, styles, a controller, menus, defaults, and optional contract declarations.
+            contributions that belong to one module: styles, a controller, menus, defaults, and optional contract declarations. The object key is
+            the authoritative module id; the definition does not repeat it in a <code>name</code> or <code>moduleId</code> field.
         </p>
 
         <h3>Definition fragment</h3>
@@ -25,7 +26,6 @@ export default {
             "version": "1.0.0",
             "copyright": "",
             "icon": "",
-            "imports": [],
             "controller": "./js/module.js",
             "styles": [],
             "defaults": {

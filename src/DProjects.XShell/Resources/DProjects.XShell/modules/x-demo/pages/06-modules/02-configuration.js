@@ -13,7 +13,7 @@ export default {
 
         <p>
             Bootstrap builds one effective configuration before the browser runtime starts. It loads the framework's <code>xshell.jsonc</code>
-            and the root module's <code>module.jsonc</code>, discovers imported module definitions, normalizes them, and merges the fragments.
+            and the root module's <code>module.jsonc</code>, discovers referenced module definitions, normalizes them, and merges the fragments.
             XShell then receives that one object through <code>xshell.init(config)</code>; it does not query every module configuration separately.
         </p>
 
@@ -21,7 +21,7 @@ export default {
     +
 root module.jsonc
     +
-imported module.jsonc files
+dependency module.jsonc files
         ↓
 discovery + normalization + merge
         ↓
@@ -40,8 +40,9 @@ xshell.init(config)</code></pre>
         <h3>Root module</h3>
 
         <p>
-            The root module is the application's entry configuration. Its first module definition can import other module definitions recursively.
-            The root module is a module; <code>xshell.jsonc</code> is the separate framework configuration source.
+            The root module is the application's entry configuration. It is the single <code>modules</code> entry without <code>configUrl</code>,
+            regardless of property order. Other entries reference dependencies. The root module is a module; <code>xshell.jsonc</code> is the
+            separate framework configuration source.
         </p>
 
         <pre x-pre><code>{
@@ -49,9 +50,14 @@ xshell.init(config)</code></pre>
         "app": {
             "label": "Application",
             "version": "1.0.0",
-            "imports": [
-                { "configUrl": "url:../x/module.jsonc" }
-            ]
+            "defaults": {
+                "page": { "renderEngine": "x", "stateEngine": "proxy" },
+                "component": { "renderEngine": "x", "stateEngine": "proxy" }
+            }
+        },
+        "x": {
+            "configUrl": "url:../x/module.jsonc",
+            "params": { "mode": "compact" }
         }
     }
 }</code></pre>
@@ -59,7 +65,7 @@ xshell.init(config)</code></pre>
         <h3>Discovery, normalization, and merge</h3>
 
         <p>
-            Discovery finds the root and imported configuration documents recursively. Normalization resolves <code>url:</code> references,
+            Discovery finds the root and referenced configuration documents recursively. Normalization resolves <code>url:</code> references,
             records each module's <code>configUrl</code>, derives <code>assetsUrl</code> when needed, and maps module-relative resources into the
             runtime namespace <code>/_assets/&lt;module-id&gt;/...</code>. Merge combines the resulting fragments using the current Bootstrap
             registration and merge behavior.
@@ -67,9 +73,8 @@ xshell.init(config)</code></pre>
 
         <p>
             Plain objects merge recursively, arrays concatenate, and scalar values are replaced by the later value. The architecture documentation
-            describes the intended precedence, while the current implementation merges framework defaults followed by definitions in reverse
-            registration order. Exact precedence therefore follows Bootstrap's current discovery/registration behavior; repeated-import parameter
-            behavior remains documented on the Imports page.
+            uses deterministic dependency-first precedence: framework defaults, dependencies, their dependents, and the root application last.
+            Only the root may supply dependency <code>params</code>, so application composition has final authority without discovery-order races.
         </p>
 
         <h3>Read-only runtime view</h3>

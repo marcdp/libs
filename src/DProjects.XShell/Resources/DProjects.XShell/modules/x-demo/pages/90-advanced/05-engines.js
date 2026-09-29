@@ -60,14 +60,14 @@ export default {
         componentState: ""
     },
 
-    controller({ state, definition, config }) {
+    controller({ state, implementation, config }) {
         return {
             load() {
                 // calculate the same meta-then-module fallback used by page-js
                 const moduleDefaults = config.modules["x-demo"]?.defaults || {};
                 const pageDefaults = moduleDefaults.page || {};
                 const componentDefaults = moduleDefaults.component || {};
-                const pageMeta = definition.meta || {};
+                const pageMeta = implementation.meta || {};
                 state.pageMetaRender = pageMeta.renderEngine || "(not set)";
                 state.pageMetaState = pageMeta.stateEngine || "(not set)";
                 state.pageRender = pageMeta.renderEngine || pageDefaults.renderEngine || "(missing)";

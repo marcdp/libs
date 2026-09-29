@@ -11,18 +11,19 @@ XShell's human-authored configuration benefits from comments. Earlier checked-in
 
 ## Decision
 
-Use JSONC for root and imported module definitions. The application is the root module. Compose nested `app`, `modules`, and `xshell` objects into one
-effective configuration. Merge plain objects recursively, concatenate arrays, and let later scalar values replace earlier ones. Dependencies should
-precede importers, with the root last.
+Use JSONC for root and dependency module definitions. The application is the root module. Each document has one local `modules.<id>` definition
+without `configUrl`; its other module entries are external references. Compose nested `app`, `modules`, and `xshell` objects into one effective
+configuration. Merge plain objects recursively, concatenate arrays, and let later scalar values replace earlier ones. Dependencies precede their
+dependents, with the root last. Only the root may provide dependency params.
 
 Use JSON Schema as the validation language for the final merged object. Fragments may be partial; the effective configuration is the main validation
 boundary. Deeply freeze it before handing it to XShell. No browser-native schema validator is assumed.
 
 ## Consequences and current status
 
-Bootstrap parses JSONC, deduplicates imported definitions by URL, and merges nested data in reverse registration order. The first registered
-import retains its params; later imports do not replace or merge them. Reverse registration order does not guarantee dependency-first precedence
-for every graph. Bootstrap deeply freezes the merged configuration before XShell receives it, but performs no JSON Schema validation. The X module
+Bootstrap parses JSONC, validates local and referenced module identities, deduplicates referenced definitions by URL, rejects conflicting identities
+and cycles, and merges nested data in deterministic dependency-first order with the root last. Bootstrap deeply freezes the merged configuration
+before XShell receives it, but performs no JSON Schema validation. The X module
 controller validates during `start()` and throws on errors, without an environment gate. The canonical schema is
 `xshell/schemas/config.schema.json`; it requires module defaults for definition-based Page and Component engines and defines XShell UI defaults
 for layouts, lazy/error components, and standard dialog pages, plus `contract.events`/`actions`/`intents`. Its `$id` still uses the stale

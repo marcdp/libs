@@ -10,6 +10,7 @@
 
     // module
     "modules": {
+        // local root module definition
         "x-demo": {
             "label": "test module",
             "version": "1.0.0",
@@ -40,6 +41,7 @@
                 ]
             }
         },
+        // root application composition reference
         "x": {
             "configUrl": "url:../x/module.jsonc",
             "params": {

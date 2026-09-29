@@ -94,14 +94,9 @@ export default {
             padding:1.3em;
             padding-left:2em;
         }
-        .body .menu div {
-            top:4em; 
-            position: sticky;
-            box-sizing: border-box;
-        }
         .body .menu div x-button {
             position:absolute; 
-            right:0
+            right: 1em;
         }
 
         /* main */
@@ -130,14 +125,32 @@ export default {
                 transition:margin var(--x-transition-duration);
                 --x-fill-height: calc(100vh - 6.3em);
             }
+            .body .menu {
+                position:sticky;
+                top:3em;
+                max-height:calc(100dvh - 6.5em);
+                overflow-y:auto;
+                align-self: flex-start;
+                z-index:1;
+                background:#f9f9f9;
+            }
+            .body .menu {overflow: auto;scrollbar-width: none;}
+            .body .menu::-webkit-scrollbar {width: 0;height: 0;}
+            .body .menu:hover {scrollbar-width: thin;}
+            .body .menu:hover::-webkit-scrollbar {width: 8px;height: 8px;}
             .body.toggled {
                 margin-left: calc(var(--x-layout-main-drawer-width) * -1);	
             }
+            .body .menu div x-button {
+                right: unset;
+                left:calc(var(--x-layout-main-drawer-width) - 2.5em);
+            }
+
             .body .menu x-button[icon='x-close'] {
                 display:none;
             }
             .body .divider {
-                border-left: var(--x-layout-main-border);
+                _border-left: var(--x-layout-main-border);
                 position:fixed; top:0; bottom:0;
                 left: var(--x-layout-main-drawer-width);;
                 transition:transform var(--x-transition-duration);
@@ -277,7 +290,7 @@ export default {
         menuTools:       null,
         menuProfile:     null
     },
-    controller({ state, events, navigation, areas, bus, getPage, identity }) {
+    controller({ state, events, areas, bus, getPage, identity, host }) {
         return {
             async load(params) {
                 //load
@@ -302,6 +315,18 @@ export default {
             async mount(params) {
                 // refresh
                 this.refresh();
+
+                // Initialize menu and update its height on scroll and resize
+                let menu = null;
+                function updateMenuHeight() {
+                    menu  = menu || host.shadowRoot.querySelector(".body > .menu");
+                    if (!menu) return;
+                    const top = menu.getBoundingClientRect().top;
+                    menu.style.maxHeight = `${window.innerHeight - top}px`;
+                }
+                window.addEventListener("scroll", updateMenuHeight, { passive: true });
+                window.addEventListener("resize", updateMenuHeight);
+                updateMenuHeight();
             },
 
             async refresh(params) {

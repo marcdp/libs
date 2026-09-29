@@ -4,7 +4,8 @@ XShell is a browser-native modular application framework built around Web Compon
 
 X Templates are an optional rendering extension built on top of the core Component and Page model.
 
-The application itself is the **root module**. From it, XShell discovers imported modules, builds the effective configuration, prepares resource mappings, initializes the runtime, starts module instances, composes Areas, and starts navigation.
+The application itself is the **root module**. From its `modules.<id>.configUrl` references, XShell discovers dependencies, builds the effective
+configuration, prepares resource mappings, initializes the runtime, starts module instances, composes Areas, and starts navigation.
 
 ## Documentation
 

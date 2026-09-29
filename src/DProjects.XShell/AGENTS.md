@@ -100,7 +100,7 @@ contract           ≠ implementation
 public properties  ≠ private state
 state engine       ≠ render engine
 loader lifecycle   ≠ engine responsibility
-module definition  ≠ module import ≠ runtime module instance
+module definition  ≠ module reference ≠ runtime module instance
 module defaults    ≠ global XShell UI configuration
 module             ≠ Area
 Page               ≠ Navigation
@@ -130,19 +130,23 @@ When changing module configuration:
 - search consumers;
 - update specification documentation when contracts change.
 
-Modules may contribute metadata, imports, params, styles, controllers, menus, defaults, configuration, resolvers, UI resources, and public contract metadata.
+Modules may contribute metadata, params, styles, controllers, menus, defaults, configuration, resolvers, UI resources, and public contract metadata.
 
 Do not assume declarative fields are runtime-enforced unless the implementation actually enforces them.
 
-Bootstrap recursively discovers imports and builds canonical module definitions.
+Bootstrap recursively discovers `modules.<id>.configUrl` references and builds canonical module definitions.
 
-Repeated imports of the same canonical module do not imply multiple live runtime instances.
+Repeated references to the same canonical module do not imply multiple live runtime instances.
+
+Each `module.jsonc` contains exactly one local module definition: the `modules.<id>` entry without `configUrl`. Every other entry is an external
+reference whose key must match the referenced document's local module id. Only the root application document selected by `app.configPath` may
+supply dependency `params`.
 
 Keep these concepts separate:
 
 ```text
 module definition
-module import
+module reference
 runtime module instance
 ```
 
@@ -180,7 +184,7 @@ Modules contribute reusable menus; Areas compose them.
 
 Do not treat Areas as module instances.
 
-Menu entries are navigation data, not module imports.
+Menu entries are navigation data, not module references.
 
 When changing Area or menu behavior, inspect:
 
@@ -705,7 +709,7 @@ Do not:
 - describe `/_cdn` as the current asset namespace;
 - casually rename `/_assets`;
 - treat Areas as module instances;
-- treat menus as module imports;
+- treat menus as module references;
 - treat ZIP packaging as ZIP runtime loading;
 - assume dynamically referenced files are dead code;
 - introduce unnecessary dependencies;

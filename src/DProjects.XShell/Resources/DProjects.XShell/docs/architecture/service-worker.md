@@ -5,8 +5,8 @@ of where their source files reside.
 
 The checked-in `xshell.assetsPrefix` is `_assets`, producing URLs such as `/_assets/x/components/x-button.js`. Bootstrap sends a mapping for each
 canonical module definition and the XShell framework files. Each rule maps the virtual prefix to `assetsUrl` and excludes `configUrl`, keeping the
-configuration document distinct from the asset namespace. The worker rewrites matching requests and fetches the physical resource. Repeated imports
-of a definition share one mapping; they do not create additional live module instances.
+configuration document distinct from the asset namespace. The worker rewrites matching requests and fetches the physical resource. Repeated
+references to a definition share one mapping; they do not create additional live module instances.
 
 ```text
 client: /_assets/<module-id>/<resource>

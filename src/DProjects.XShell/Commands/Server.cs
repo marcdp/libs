@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Builder;
 namespace DProjects.XShell.Commands {
 
     [Description("Launch a web server")]
-    [Example("DProjects.XShell server --app-config /_resources/DProjects.XShell/modules/test/module.jsonc --param a=123 --param b=456", "")]
+    [Example("DProjects.XShell server --app-config /_resources/DProjects.XShell/modules/x-demo/module.jsonc --param a=123 --param b=456", "")]
     public class Server() : ICommand {
 
 
@@ -36,7 +36,7 @@ namespace DProjects.XShell.Commands {
             // use XShell
             app.UseXShell(new Extensions.Configuration {
                 AppBasePath = AppBasePath,
-                AppConfigPath = (string.IsNullOrEmpty(AppConfigPath) ? ResourceBase + "/_resources/DProjects.XShell/modules/test/module.jsonc" : AppConfigPath),
+                AppConfigPath = (string.IsNullOrEmpty(AppConfigPath) ? ResourceBase + "/_resources/DProjects.XShell/modules/x-demo/module.jsonc" : AppConfigPath),
                 AppParams = Param.ToDictionary(p => p.Split('=')[0], p => p.Split('=')[1]),
                 ResourcesBase = ResourceBase
             });
