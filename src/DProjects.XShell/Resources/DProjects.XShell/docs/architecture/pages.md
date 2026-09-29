@@ -214,6 +214,9 @@ mount/unmount cycles, and final unload disposes the helpers and releases the con
 A definition-based Page may provide `style` as one CSS source string. `page-js` scopes that source to the mounted Page host; arrays of CSS strings
 are not supported.
 
+Components can obtain their containing Page from the `<x-page>` host with the `getPage()` and `whenPage()` Component services. Their lookup and
+`<x-page>` `load` event semantics are documented in [Containing Page lookup](components.md#containing-page-lookup).
+
 ## Layouts
 
 Layouts are presentation containers for Pages. They do not resolve routes. Checked-in layout names are `default`, `dialog`, `main`, `stack`, and

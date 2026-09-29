@@ -310,6 +310,81 @@ For definition-based components, `component-js`:
 
 The result is a standard browser Web Component.
 
+## Containing Page lookup
+
+Definition-based Component controllers can request `getPage` and `whenPage` as Component services:
+
+```js
+controller({ getPage, whenPage }) {
+    // ...
+}
+```
+
+Both services locate the closest containing `<x-page>` host. The lookup walks ordinary DOM parents and, when it reaches a Shadow DOM root, continues
+through `getRootNode().host`. Consequently, it can find a containing Page across Shadow DOM boundaries. A Component and a Page remain separate
+runtime systems; this lookup only gives a Component access to its containing Page.
+
+### `getPage()`
+
+`getPage()` is synchronous and returns the current value of the closest `<x-page>` host's `page` property. Its effective return type is
+`Page | null`: it returns `null` when there is no containing `<x-page>`, and it can also return `null` while that host has no current Page instance.
+It is therefore not guaranteed to return a Page during Component `mount()`.
+
+```js
+controller({ getPage }) {
+    return {
+        mount() {
+            const page = getPage();
+            if (!page) return;
+
+            // use containing Page
+        }
+    };
+}
+```
+
+### `whenPage()`
+
+`whenPage()` is the asynchronous companion to `getPage()`, with an effective return type of `Promise<Page | null>`. It finds the containing
+`<x-page>` at call time and behaves as follows:
+
+1. Without a containing `<x-page>`, it resolves immediately with `null`.
+2. When the host already has a Page instance and its status is `loaded`, it resolves immediately with that Page.
+3. Otherwise, it waits for that host's `load` event and resolves with `event.detail.page`.
+
+```js
+controller({ whenPage }) {
+    return {
+        async mount() {
+            const page = await whenPage();
+            if (!page) return;
+
+            // use containing Page
+        }
+    };
+}
+```
+
+The immediate path is not a guarantee that the Page has completed its full load/mount lifecycle. `<x-page>` assigns its Page instance and sets its
+status to `loaded` before awaiting `Page.load()` and `Page.mount()`, so a later `whenPage()` call can resolve while those operations are still in
+progress. The current contract is that `whenPage()` resolves when the containing `<x-page>` has a Page instance available; if it is not yet
+available for the immediate path, it waits for the host `load` event.
+
+After its normal loading sequence completes, `<x-page>` dispatches:
+
+```js
+new CustomEvent("load", {
+    detail: { page }
+})
+```
+
+The sequence is `Page.load()` → `Page.mount()` → `<x-page>` `load` event. `whenPage()` listens for this event only when it cannot use its immediate
+path.
+
+These are current implementation characteristics rather than extra lifecycle APIs: a pending `whenPage()` call remains tied to the `<x-page>` found
+when it was called, does not retarget if the Component later moves under another `<x-page>`, and is not explicitly cancellable when the Component
+disconnects. If no containing `<x-page>` exists at call time, it resolves with `null`; it does not wait for the Component to be inserted into one.
+
 ## Controller and Web Component ownership
 
 The generated Web Component owns DOM/custom-element integration, public properties, public contract methods, its `ShadowRoot`, and framework

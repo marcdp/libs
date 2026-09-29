@@ -284,7 +284,7 @@ export async function createComponentClassFromJsDefinition(src, context, impleme
                         return function() {
                             const xpage = findClosestXPage(self);
                             if (!xpage) return Promise.resolve(null);
-                            if (xpage.page) return Promise.resolve(xpage.page);
+                            if (xpage.page && xpage.status == "loaded") return Promise.resolve(xpage.page);
                             return new Promise(resolve => {
                                 xpage.addEventListener("load", event => {
                                     resolve(event.detail.page);
