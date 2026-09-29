@@ -50,11 +50,24 @@ namespace DProjects.XShell.Services {
 
             // compile static X Templates without evaluating the module
             if (pageRenderEngine == "x") {
-                js = new XTemplate.XTemplateJavaScriptCompiler(new XTemplate.XTemplateCompiler()).Transform(js);
+                var currentComponentName = ResolveCurrentComponentName(context, document);
+                js = new XTemplate.XTemplateJavaScriptCompiler(new XTemplate.XTemplateCompiler()).Transform(js, currentComponentName);
             }
 
             // return
             return new ModuleFileCompiler.FileContent { ContentType = "application/javascript", Content = js };
+        }
+
+        // methods (private)
+        private static string? ResolveCurrentComponentName(ModuleFileCompilerContext context, XTemplate.JavaScriptSource document) {
+            // use the module resource convention to keep page templates independent from component identity
+            if (!context.RelativePath.StartsWith("/components/", StringComparison.OrdinalIgnoreCase)) return null;
+
+            var componentName = document.FindDefaultExportObject()?.FindProperty("meta")?.Value.AsObject()?.FindProperty("name");
+            if (componentName != null) {
+                return componentName.Value.GetStaticString() ?? throw new InvalidOperationException("'meta.name' must be a static string.");
+            }
+            return Path.GetFileNameWithoutExtension(context.FilePath);
         }
     }
 }

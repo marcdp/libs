@@ -15,6 +15,9 @@ namespace DProjects.XShell.Services.XTemplate {
 
         // methods
         public string Transform(string source) {
+            return Transform(source, null);
+        }
+        public string Transform(string source, string? currentComponentName) {
             if (source == null) throw new ArgumentNullException(nameof(source));
 
             // locate the exported definition without interpreting strings or comments as source structure
@@ -26,8 +29,7 @@ namespace DProjects.XShell.Services.XTemplate {
             var templateText = template.Value.GetStaticString();
             if (templateText == null) throw new InvalidOperationException($"The exported X component 'template' at JavaScript offset {template.Value.Start} must be a static string.");
 
-            // pass only the authoritative static component identity into dependency discovery
-            var currentComponentName = export.FindProperty("meta")?.Value.AsObject()?.FindProperty("name")?.Value.GetStaticString();
+            // pass the caller-resolved component identity into dependency discovery
             var renderer = SerializeArtifact(_templateCompiler.CompileArtifact(templateText, currentComponentName));
             var existingRenderer = export.FindProperty("templateRenderer");
             if (existingRenderer != null) return source[..existingRenderer.Value.Start] + renderer + source[existingRenderer.Value.End..];

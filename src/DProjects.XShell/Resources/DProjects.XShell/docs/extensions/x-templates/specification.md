@@ -2336,8 +2336,10 @@ Duplicates are removed.
 
 The dependency name is normalized to lowercase.
 
-A template's own component element is not reported as a template dependency. Self-reference is runtime composition or recursion, not an external
-resource dependency; this exclusion is based on component identity and applies independently of structural directives.
+A Component template's own component element is not reported as a template dependency. Its identity comes from an explicit static `meta.name`, when
+present, otherwise from its JavaScript filename without the extension. Self-reference is runtime composition or recursion, not an external resource
+dependency; this exclusion is based on Component identity and applies independently of structural directives. Page templates continue to collect every
+referenced Component as a dependency.
 
 Dependency collection is static: elements below `x-if`, `x-elseif`, `x-else`, `x-for`, `x-recursive`, and `x-once` remain possible dependencies. The
 compiler records structural ancestor information so the browser factory can apply the configured lazy-component name without parsing template source.
