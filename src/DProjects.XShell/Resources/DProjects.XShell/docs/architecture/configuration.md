@@ -27,8 +27,8 @@ Every module configuration has exactly one local definition and zero or more ext
 }
 ```
 
-`app` is local because it has no `configUrl`. `x` is a reference. The example is valid only for the root application because it configures
-dependency `params`; a reusable child module must omit those params.
+`app` is local because it has no `configUrl`. `x` is a reference. Both root and child references may contribute `params` or other configuration
+to the canonical effective module.
 
 ## Effective configuration
 
@@ -74,8 +74,8 @@ XShell defaults
     -> root application configuration
 ```
 
-Bootstrap derives that order from the dependency graph, retains sibling declaration/discovery order, and rejects cycles. Root composition therefore
-has final authority over dependency params; fetch completion order has no effect.
+Bootstrap derives that order from the dependency graph, retains sibling declaration/discovery order, and rejects cycles. Reference contributions
+merge after the referenced local definition; the root merges last and therefore has final authority. Fetch completion order has no effect.
 
 ## Defaults, URLs, and validation
 

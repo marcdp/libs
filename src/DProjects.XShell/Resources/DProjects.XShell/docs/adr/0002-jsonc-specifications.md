@@ -14,7 +14,8 @@ XShell's human-authored configuration benefits from comments. Earlier checked-in
 Use JSONC for root and dependency module definitions. The application is the root module. Each document has one local `modules.<id>` definition
 without `configUrl`; its other module entries are external references. Compose nested `app`, `modules`, and `xshell` objects into one effective
 configuration. Merge plain objects recursively, concatenate arrays, and let later scalar values replace earlier ones. Dependencies precede their
-dependents, with the root last. Only the root may provide dependency params.
+dependents, with the root last. References may contribute configuration to their canonical effective modules; `assetsUrl` remains owned by the
+referenced local definition.
 
 Use JSON Schema as the validation language for the final merged object. Fragments may be partial; the effective configuration is the main validation
 boundary. Deeply freeze it before handing it to XShell. No browser-native schema validator is assumed.

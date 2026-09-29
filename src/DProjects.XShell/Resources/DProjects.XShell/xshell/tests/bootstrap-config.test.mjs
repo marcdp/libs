@@ -232,16 +232,31 @@ test("transitive dependencies load and merge before their dependents", async () 
     assert.deepEqual(effective.trace, ["x", "a", "root"]);
 });
 
-for (const property of ["params", "assetsUrl", "whatever"]) {
-    test(`child dependency references reject '${property}'`, async () => {
-        const aUrl = "https://example.test/modules/a/module.jsonc";
-        const xUrl = "https://example.test/modules/x/module.jsonc";
-        const root = { modules: { app: definition("app"), a: reference(aUrl) } };
-        const configs = { [aUrl]: { modules: { a: definition("a"), x: { configUrl: xUrl, [property]: {} } } } };
+test("child references retain params and arbitrary configuration contributions", async () => {
+    const aUrl = "https://example.test/modules/a/module.jsonc";
+    const xUrl = "https://example.test/modules/x/module.jsonc";
+    const root = { modules: { app: definition("app"), a: reference(aUrl) } };
+    const configs = {
+        [aUrl]: { modules: { a: definition("a"), x: { configUrl: xUrl, params: { mode: "compact" }, someFeature: true } } },
+        [xUrl]: { modules: { x: definition("x", { params: { mode: "normal", retained: true }, someFeature: false }) } }
+    };
+    const graph = await discover(root, configs);
+    const effective = plain(api.mergeConfigs(Array.from(graph.mergeOrder, node => node.config)));
 
-        await assert.rejects(() => discover(root, configs), new RegExp(`Child module 'a'.*unsupported property: '${property}'`));
-    });
-}
+    assert.deepEqual(orderOf(graph), ["x", "a", "app"]);
+    assert.deepEqual(effective.modules.x.params, { mode: "compact", retained: true });
+    assert.equal(effective.modules.x.someFeature, true);
+});
+
+test("references reject assetsUrl but require configUrl", async () => {
+    const aUrl = "https://example.test/modules/a/module.jsonc";
+    const xUrl = "https://example.test/modules/x/module.jsonc";
+    const root = { modules: { app: definition("app"), a: reference(aUrl) } };
+    const configs = { [aUrl]: { modules: { a: definition("a"), x: { configUrl: xUrl, assetsUrl: "url:./assets" } } } };
+
+    await assert.rejects(() => discover(root, configs), /cannot override assetsUrl/);
+    await assert.rejects(() => discover({ modules: { app: definition("app"), x: { configUrl: "" } } }), /must declare a non-empty configUrl/);
+});
 
 test("root dependency references accept params and merge them last", async () => {
     const xUrl = "https://example.test/modules/x/module.jsonc";
@@ -254,12 +269,58 @@ test("root dependency references accept params and merge them last", async () =>
     assert.deepEqual(effective.modules.x.params, { retained: true, mode: "compact" });
 });
 
-test("root references reject assetsUrl and arbitrary composition properties", async () => {
+test("root references reject assetsUrl but accept arbitrary composition properties", async () => {
     const xUrl = "https://example.test/modules/x/module.jsonc";
-    for (const property of ["assetsUrl", "version"]) {
-        const root = { modules: { app: definition("app"), x: { configUrl: xUrl, [property]: "override" } } };
-        await assert.rejects(() => discover(root), new RegExp(`Root module references.*unsupported property: '${property}'`));
-    }
+    const root = { modules: { app: definition("app"), x: { configUrl: xUrl, version: "override" } } };
+    const graph = await discover(root, { [xUrl]: { modules: { x: definition("x", { version: "dependency" }) } } });
+    const effective = plain(api.mergeConfigs(Array.from(graph.mergeOrder, node => node.config)));
+
+    assert.equal(effective.modules.x.version, "override");
+    await assert.rejects(() => discover({ modules: { app: definition("app"), x: { configUrl: xUrl, assetsUrl: "url:./assets" } } }), /cannot override assetsUrl/);
+});
+
+test("sibling contributions to a shared dependency follow declaration order", async () => {
+    const aUrl = "https://example.test/modules/a/module.jsonc";
+    const bUrl = "https://example.test/modules/b/module.jsonc";
+    const xUrl = "https://example.test/modules/x/module.jsonc";
+    const root = {
+        modules: {
+            app: definition("app"),
+            a: reference(aUrl),
+            b: reference(bUrl)
+        }
+    };
+    const configs = {
+        [aUrl]: { modules: { a: definition("a"), x: { configUrl: xUrl, params: { mode: "a" } } } },
+        [bUrl]: { modules: { b: definition("b"), x: { configUrl: xUrl, params: { mode: "b" } } } },
+        [xUrl]: { modules: { x: definition("x", { params: { mode: "definition" } }) } }
+    };
+    const graph = await discover(root, configs);
+    const effective = plain(api.mergeConfigs(Array.from(graph.mergeOrder, node => node.config)));
+
+    assert.deepEqual(orderOf(graph), ["x", "a", "b", "app"]);
+    assert.equal(effective.modules.x.params.mode, "b");
+});
+
+test("root contributions to a shared dependency have final precedence", async () => {
+    const aUrl = "https://example.test/modules/a/module.jsonc";
+    const xUrl = "https://example.test/modules/x/module.jsonc";
+    const root = {
+        modules: {
+            app: definition("app"),
+            a: reference(aUrl),
+            x: { configUrl: xUrl, params: { mode: "root" } }
+        }
+    };
+    const configs = {
+        [aUrl]: { modules: { a: definition("a"), x: { configUrl: xUrl, params: { mode: "child" } } } },
+        [xUrl]: { modules: { x: definition("x", { params: { mode: "definition" } }) } }
+    };
+    const graph = await discover(root, configs);
+    const effective = plain(api.mergeConfigs(Array.from(graph.mergeOrder, node => node.config)));
+
+    assert.deepEqual(orderOf(graph), ["x", "a", "app"]);
+    assert.equal(effective.modules.x.params.mode, "root");
 });
 
 test("diamond dependency order is deterministic and follows sibling declaration order", async () => {

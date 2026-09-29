@@ -14,7 +14,7 @@ export default {
         :host {display:block; }
         ul {margin:0; padding:0;}
         li {list-style:none; }
-        li > x-anchor {display:block; margin-bottom:.5em;}
+        li > x-anchor {display:block; padding-bottom:.5em;}
         li > li > li  {padding-left:1.5em;}
         ul > li > ul > li > ul {padding-left:1.25em;}
         hr {border-top:var(--x-layout-main-border); margin-top:1.5em; margin-bottom:1.5em; display:block;}
@@ -36,7 +36,7 @@ export default {
             <ul x-if="state.menu">
                 <li class="menuitem new" x-recursive="menuitem in state.menu" x-key="href" x-recursive-wrapper="ul">
                     <hr x-if="menuitem.label=='-'" />
-                    <x-anchor x-else x-attr:href="menuitem.path || menuitem.href" x-attr:target="menuitem.target" x-attr:icon="menuitem.icon" class="plain" x-class:selected="state.selected == menuitem.href || (menuitem.path && state.selected == menuitem.path)" >
+                    <x-anchor x-else x-attr:href="menuitem.path || menuitem.href" x-attr:target="menuitem.target" x-attr:icon="menuitem.icon" class="plain block" x-class:selected="state.selected == menuitem.href || (menuitem.path && state.selected == menuitem.path)" >
                         <x-icon x-if="menuitem.icon" x-attr:icon="menuitem.icon"></x-icon>
                         <span x-text="menuitem.label"></span>
                         <x-icon x-if="menuitem.target" class="new" icon="x-open_in_new"></x-icon>

@@ -2,7 +2,7 @@
 
 XShell authors configuration as JSONC. The root module uses the same `module.jsonc` composition model as dependency modules; there is no separate
 application file format. See [Root Module](application.md) for the application-specific `app` section and [Module](module.md) for local definitions,
-external references, root-composed params, asset locations, and the declarative public contract.
+external reference contributions, asset locations, and the declarative public contract.
 The root also composes [Areas](../subsystems/areas.md) from module ids. Module menu contributions remain independent of that placement.
 
 The main validation boundary is the single nested effective configuration after loading, URL normalization, and merging. Bootstrap does not perform

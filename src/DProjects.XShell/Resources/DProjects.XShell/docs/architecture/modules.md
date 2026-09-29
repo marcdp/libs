@@ -9,7 +9,7 @@ definitions. The `modules` object is both the module identity registry and the d
 | --- | --- | --- |
 | Local module definition | The one `modules.<id>` entry without `configUrl` | The module owned by the current configuration document. |
 | External module reference | A `modules.<id>` entry with `configUrl` | A dependency whose key is the expected canonical module id. |
-| Root composition reference | An external reference in the root file | May supply `configUrl` and `params`. |
+| Reference contribution | Properties on an external reference besides `configUrl` | Configuration merged into the canonical effective module. |
 | Canonical effective module | Final `config.modules.<id>` | The resolved definition plus root composition values and normalized URLs. |
 | Runtime module instance | `xshell.modules` | One runtime record per canonical effective module id. |
 
@@ -39,10 +39,10 @@ documents with zero or several local definitions.
 The key is authoritative identity. A reference named `x` must resolve to a document whose local definition is also `modules.x`. Bootstrap rejects an
 identity mismatch, one id mapped to different URLs, or two ids that point at a document defining only one of them.
 
-## Root application composition
+## Reference contributions and root composition
 
-Reusable child modules declare dependencies using only their canonical id and `configUrl`. They cannot supply dependency `params` or other
-configuration. The root file is identified because the host's `xshell:app.configPath` points to it, and its references may also compose `params`:
+Any reference may contribute configuration in addition to its canonical id and `configUrl`. The root file is identified because the host's
+`xshell:app.configPath` points to it:
 
 ```jsonc
 {
@@ -73,8 +73,9 @@ Bootstrap follows references recursively, resolves each `configUrl` against the 
 References introduced in one discovery pass are collected in a `Set`-equivalent map, so `A -> X` and `B -> X` fetch X once. The final effective
 configuration contains the full resolved definition, not the lightweight reference stub.
 
-Dependencies are merged before their dependents, with the root last. Sibling traversal follows declaration/discovery order, so fetch completion
-timing cannot select precedence. Dependency cycles are rejected because they make this precedence ambiguous.
+Dependencies are merged before their dependents, with the root last. A reference contribution merges after the referenced local definition and
+before its owner module's own configuration. Sibling traversal follows declaration/discovery order, so fetch completion timing cannot select
+precedence. Dependency cycles are rejected because they make this precedence ambiguous.
 
 The normalized `configUrl` records the definition document. `assetsUrl` identifies its physical resource container and defaults to that document's
 directory. References cannot override `assetsUrl`; physical resource ownership stays with the local definition. Runtime resources use

@@ -81,27 +81,23 @@ function resolveModuleConfigUrl(configUrl, ownerConfigUrl, moduleId) {
     const value = configUrl.startsWith("url:") ? configUrl.substring(4).trim() : configUrl;
     return new URL(value, ownerConfigUrl).href;
 }
-function validateModuleReference(ownerModuleId, moduleId, reference, ownerConfigUrl, isRoot) {
-    // enforce the root-composition and child-dependency reference contracts
+function validateModuleReference(moduleId, reference, ownerConfigUrl) {
+    // preserve reference contributions while protecting local asset ownership
     if (!reference || typeof reference !== "object" || Array.isArray(reference)) {
         throw new Error(`Module reference '${moduleId}' in '${ownerConfigUrl}' must be an object that declares configUrl.`);
     }
-    const allowedProperties = isRoot ? new Set(["configUrl", "params"]) : new Set(["configUrl"]);
-    const unsupportedProperties = Object.keys(reference).filter(property => !allowedProperties.has(property));
-    if (unsupportedProperties.length) {
-        const properties = unsupportedProperties.map(property => `'${property}'`).join(", ");
-        const authority = isRoot ? "Root module references may contain only 'configUrl' and 'params'" : `Child module '${ownerModuleId}' may declare dependency '${moduleId}' using only 'configUrl'`;
-        throw new Error(`${authority}; unsupported ${unsupportedProperties.length === 1 ? "property" : "properties"}: ${properties}.`);
+    if (Object.hasOwn(reference, "assetsUrl")) {
+        throw new Error(`Module reference '${moduleId}' in '${ownerConfigUrl}' cannot override assetsUrl; it is owned by the local definition.`);
     }
     return resolveModuleConfigUrl(reference.configUrl, ownerConfigUrl, moduleId);
 }
-function prepareModuleConfig(config, configUrl, assetsPrefix, isRoot) {
+function prepareModuleConfig(config, configUrl, assetsPrefix) {
     // validate identity and references before adding normalized runtime fields
     const localModule = getLocalModule(config, configUrl);
     const references = [];
     for (const [moduleId, reference] of Object.entries(config.modules)) {
         if (moduleId === localModule.id) continue;
-        reference.configUrl = validateModuleReference(localModule.id, moduleId, reference, configUrl, isRoot);
+        reference.configUrl = validateModuleReference(moduleId, reference, configUrl);
         references.push({ id: moduleId, configUrl: reference.configUrl });
     }
     localModule.definition.configUrl = configUrl;
@@ -165,7 +161,7 @@ async function discoverModuleConfigs(rootConfig, rootConfigUrl, loadConfig, asse
     };
 
     // register the root before following references back to it
-    const rootNode = prepareModuleConfig(rootConfig, rootConfigUrl, assetsPrefix, true);
+    const rootNode = prepareModuleConfig(rootConfig, rootConfigUrl, assetsPrefix);
     registerNode(rootNode, new Set([rootNode.id]));
     let currentNodes = [rootNode];
     while (currentNodes.length) {
@@ -192,7 +188,7 @@ async function discoverModuleConfigs(rootConfig, rootConfigUrl, loadConfig, asse
         currentNodes = [];
         for (let i = 0; i < urls.length; i++) {
             const url = urls[i];
-            const node = prepareModuleConfig(loadedConfigs[i], url, assetsPrefix, false);
+            const node = prepareModuleConfig(loadedConfigs[i], url, assetsPrefix);
             registerNode(node, pendingByUrl.get(url).expectedIds);
             currentNodes.push(node);
         }

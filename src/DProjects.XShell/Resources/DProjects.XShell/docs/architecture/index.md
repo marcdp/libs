@@ -11,8 +11,8 @@ HTML/bootstrap inputs → root module → recursive module references → canoni
 
 `config.modules` contains canonical definitions keyed by module id. `xshell.modules` is the runtime service. Repeated references to one definition
 URL are fetched once and produce one live module instance. Bootstrap merges dependencies before dependents and the root last; cycles are rejected.
-Only the root application can configure dependency params. Optional module controllers are constructed once and started during module
-initialization. See [Bootstrap](bootstrap.md).
+References can configure canonical dependency modules; the root still merges last. Optional module controllers are constructed once and started
+during module initialization. See [Bootstrap](bootstrap.md).
 
 Module resources use `/_assets/<module>/...` with the checked-in `_assets` prefix. The Service Worker maps that namespace to source files. Resource
 resolution selects a URL and loader; the loader obtains the resource. A Page uses the normal Component model plus Navigation.

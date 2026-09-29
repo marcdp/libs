@@ -74,7 +74,7 @@ xshell.init(config)</code></pre>
         <p>
             Plain objects merge recursively, arrays concatenate, and scalar values are replaced by the later value. The architecture documentation
             uses deterministic dependency-first precedence: framework defaults, dependencies, their dependents, and the root application last.
-            Only the root may supply dependency <code>params</code>, so application composition has final authority without discovery-order races.
+            Any reference may contribute dependency configuration; the root still has final authority without discovery-order races.
         </p>
 
         <h3>Read-only runtime view</h3>

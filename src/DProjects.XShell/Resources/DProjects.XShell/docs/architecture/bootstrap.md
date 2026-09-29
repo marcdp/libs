@@ -21,8 +21,8 @@ host HTML
 The root is the document selected by `app.configPath`. Within it, as in every module document, bootstrap finds the one `modules.<id>` entry without
 `configUrl`. It never uses the first property. Zero or multiple local definitions are configuration errors.
 
-The optional host `xshell:app.params` value becomes both the root definition's params and `app.params`. A root reference may also provide params for
-a dependency. References in non-root documents may not do so.
+The optional host `xshell:app.params` value becomes both the root definition's params and `app.params`. References in both root and non-root
+documents may contribute params or other configuration to a dependency.
 
 ## Recursive discovery
 
@@ -42,8 +42,9 @@ dependencies therefore load once.
 Each local definition receives its configuration document URL as `configUrl`. Its `assetsUrl` defaults to the same document's directory unless the
 definition owns an explicit value. External reference URLs are resolved in the referencing document; they are not asset namespace URLs.
 
-The dependency graph supplies a post-order merge sequence. Dependencies precede dependents, sibling references retain declaration/discovery order,
-and the root is last. This produces deterministic root-authoritative composition independent of network completion order. The final
+The dependency graph supplies a post-order merge sequence. Dependencies precede dependents, reference contributions merge after the referenced
+local definition, sibling references retain declaration/discovery order, and the root is last. This produces deterministic root-authoritative
+composition independent of network completion order. The final
 `config.modules` entries are full canonical definitions rather than unresolved stubs.
 
 ## Runtime handoff

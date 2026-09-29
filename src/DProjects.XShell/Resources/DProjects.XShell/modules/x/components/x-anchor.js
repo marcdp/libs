@@ -35,6 +35,9 @@ export default {
         :host(.menuitem) {}
         :host(.menuitem) a {display:flex; padding-left:.6em; padding-right:.6em; text-decoration:none;}
 
+        :host(.block) {}
+        :host(.block) a {display:block;}
+
         :host(.plain) {}
         :host(.plain) a {text-decoration:none; color:var(--x-color-text)}
         :host(.plain) a:hover {color:var(--x-color-primary);}

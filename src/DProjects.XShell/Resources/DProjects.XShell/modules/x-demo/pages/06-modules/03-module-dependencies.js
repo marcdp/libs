@@ -40,8 +40,8 @@ one canonical module definition/runtime instance</code></pre>
 
         <p>
             Repeating the same id and resolved URL fetches the definition once and does not create another runtime instance. A mismatched local id,
-            conflicting URLs for one id, or a dependency cycle is rejected. Child modules may declare dependencies but cannot supply their
-            <code>params</code>; only the root application composes parameter values and overrides.
+            conflicting URLs for one id, or a dependency cycle is rejected. Any reference may contribute <code>params</code> or other
+            configuration to the canonical module. References cannot override <code>assetsUrl</code>, and root contributions merge last.
         </p>
 
         <h3>Current x-demo dependency references</h3>
