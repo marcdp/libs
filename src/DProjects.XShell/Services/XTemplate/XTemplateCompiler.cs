@@ -37,6 +37,9 @@ namespace DProjects.XShell.Services.XTemplate {
             return CompileArtifact(template).RenderJavaScript;
         }
         public XTemplateCompileResult CompileArtifact(string template) {
+            return CompileArtifact(template, null);
+        }
+        public XTemplateCompileResult CompileArtifact(string template, string? currentComponentName) {
             if (template == null) throw new ArgumentNullException(nameof(template));
             var root = new HtmlParser(NormalizeLineEndings(template).Trim()).Parse();
             var indent = "    ";
@@ -44,7 +47,7 @@ namespace DProjects.XShell.Services.XTemplate {
             ValidateConditionalChains(root);
             var dependencies = new Dictionary<string, List<IReadOnlyList<string>>>(StringComparer.Ordinal);
             var slots = new List<string>();
-            CollectMetadata(root, [], dependencies, slots, new HashSet<string>(StringComparer.Ordinal));
+            CollectMetadata(root, currentComponentName, [], dependencies, slots, new HashSet<string>(StringComparer.Ordinal));
             var body = new List<string> {
                 indent + "    let _ifs = {};",
                 indent + "    let func;",
@@ -62,14 +65,9 @@ namespace DProjects.XShell.Services.XTemplate {
         }
 
         // methods (private)
-        private static void CollectMetadata(
-            ElementNode element,
-            IReadOnlyList<string> ancestors,
-            Dictionary<string, List<IReadOnlyList<string>>> dependencies,
-            List<string> slots,
-            HashSet<string> slotNames) {
+        private static void CollectMetadata(ElementNode element, string? currentComponentName, IReadOnlyList<string> ancestors, Dictionary<string, List<IReadOnlyList<string>>> dependencies, List<string> slots, HashSet<string> slotNames) {
             foreach (var child in element.Children.OfType<ElementNode>()) {
-                if (child.Name.Contains('-', StringComparison.Ordinal)) {
+                if (child.Name.Contains('-', StringComparison.Ordinal) && !string.Equals(child.Name, currentComponentName, StringComparison.OrdinalIgnoreCase)) {
                     var resource = "component:" + child.Name;
                     if (!dependencies.TryGetValue(resource, out var paths)) {
                         paths = [];
@@ -86,7 +84,7 @@ namespace DProjects.XShell.Services.XTemplate {
                 var childAncestors = new string[ancestors.Count + 1];
                 for (var index = 0; index < ancestors.Count; index++) childAncestors[index] = ancestors[index];
                 childAncestors[^1] = child.Name;
-                CollectMetadata(child, childAncestors, dependencies, slots, slotNames);
+                CollectMetadata(child, currentComponentName, childAncestors, dependencies, slots, slotNames);
             }
         }
         private static void ValidateStaticSlotName(ElementNode element) {

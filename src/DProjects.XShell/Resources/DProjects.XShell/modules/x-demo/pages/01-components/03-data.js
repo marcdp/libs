@@ -149,8 +149,7 @@ export default {
 
         <h2>JSON</h2>
 
-        <x-json
-            value='{"name":"XShell","enabled":true,"version":1,"items":["one","two","three"]}'>
+        <x-json value='{"name":"XShell","enabled":true,"version":1,"items":["one","two","three"]}'>
         </x-json>
 
         <x-divider></x-divider>

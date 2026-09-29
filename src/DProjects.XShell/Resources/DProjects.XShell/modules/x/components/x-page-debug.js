@@ -14,6 +14,9 @@ export default {
         :host {}
     `,
     template: `
+
+        <x-propertygrid x-prop:value="state"></x-propertygrid>
+
         <x-datatable>
             <table>
                 <thead>
@@ -24,48 +27,88 @@ export default {
                 </thead>
                 <tbody>
                     <tr>
-                        <td>href</td>
+                        <td>id:</td>
+                        <td>{{ state.id }}</td>
+                    </tr>
+                    <tr>
+                        <td>label:</td>
+                        <td>{{ state.label }}</td>
+                    </tr>
+                    <tr>
+                        <td>href:</td>
                         <td>{{ state.href }}</td>
                     </tr>
                     <tr>
-                        <td>Contract</td>
-                        <td><x-json x-prop:value="state.contract"></x-json></td>
+                        <td>path:</td>
+                        <td>{{ state.path }}</td>
                     </tr>
                     <tr>
-                        <td>Implementation</td>
-                        <td><x-json x-prop:value="state.implementation"></x-json></td>  
+                        <td>module:</td>
+                        <td>{{ state.module }}</td>
+                    </tr>
+                    <tr>
+                        <td>context:</td>
+                        <td>{{ state.context | json_stringify }}</td>
+                    </tr>
+                    <tr>
+                        <td>status:</td>
+                        <td>{{ state.status }}</td>
+                    </tr>
+                    <tr>
+                        <td>breadcrumb:</td>
+                        <td>
+                        {{ state.breadcrumb | json_stringify }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>renderEngine:</td>
+                        <td>{{ state.implementation.meta.renderEngine }}</td>
+                    </tr>
+                    <tr>
+                        <td>stateEngine:</td>
+                        <td>{{ state.implementation.meta.stateEngine }}</td>
+                    </tr>
+                    <tr>
+                        <td>counter:</td>
+                        <td>{{ state.count }}</td>
                     </tr>
                 </tbody>
             </table>
         </x-datatable>
     `,
     state: {
-        title: "",
-        icon: "",      
+        id: "",
+        label: "",
         href: "",
-        hrefReal:"",
         path: "",
-        query: {},
+        module: "",
+        status: "",
+        breadcrumb: [],
         context: {},
         contract: null,
-        implementation: null,
-
+        implementation: null        
     },
-    controller({ state, whenPage }) {
+    controller({ state, whenPage, areas, navigation }) {
         return {
             async mount() {
                 // mount
                 const page = await whenPage();
+                const url = areas.resolveHref(page.src);
                 console.log(page)
-                state.title = page.title || "";
-                state.icon = page.icon || "";
-                state.href = page.href || "";
-                state.hrefReal = page.hrefReal || "";
-                state.path = page.path || "";
-                state.query = page.query || {};
+                state.id = page.id; 
+                state.label = page.label; 
+                state.href = page.src;
+                state.path = url.path;
+                state.module = url.module;
+                state.status = page.host.status;
+                state.breadcrumb = page.breadcrumb;
                 state.context = page.context || {};
                 state.contract = page.contract;
                 state.implementation = page.implementation;
+                state.count = 123;
+
+                //alert(JSON.stringify(areas.resolveHref(page.src)));
+                
             }
         }
     }

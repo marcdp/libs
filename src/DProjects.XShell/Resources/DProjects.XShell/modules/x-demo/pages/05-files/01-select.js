@@ -24,7 +24,7 @@ export default {
 
         </x-form>
 
-        <x-json x-prop:value="state | json_stringify"></x-json>
+        <x-json x-prop:value="state"></x-json>
 
     `,
     state: {

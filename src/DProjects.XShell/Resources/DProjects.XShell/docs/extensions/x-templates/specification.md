@@ -2336,6 +2336,9 @@ Duplicates are removed.
 
 The dependency name is normalized to lowercase.
 
+A template's own component element is not reported as a template dependency. Self-reference is runtime composition or recursion, not an external
+resource dependency; this exclusion is based on component identity and applies independently of structural directives.
+
 Dependency collection is static: elements below `x-if`, `x-elseif`, `x-else`, `x-for`, `x-recursive`, and `x-once` remain possible dependencies. The
 compiler records structural ancestor information so the browser factory can apply the configured lazy-component name without parsing template source.
 The browser exposes the resulting eager resources as `factory.dependencies`. These are template dependencies: resources discovered from XTemplate
