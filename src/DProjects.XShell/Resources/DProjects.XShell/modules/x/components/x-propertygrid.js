@@ -3,7 +3,8 @@ export const contract = {
     description: "Propertygrid.",
     events: {},
     properties: {
-        value: {type: "object", default: {}, state:true, description:"The object containing the properties to be displayed in the property grid."}
+        headers: {type: "boolean", default: true, attribute:true, state:true, description:"Whether to display the headers in the property grid."},
+        value: {type: "object", default: null, state:true, description:"The object containing the properties to be displayed in the property grid."}
     },
     methods: {}
 };
@@ -13,13 +14,15 @@ export const contract = {
 export default {
     style: `
         :host {display:block;}
-        table {width:100%;border-collapse:collapse;}
-        th:first-child {width:15em;}
-        th, td {border:1px solid #ccc;text-align:left; padding:.2em;}
+        table {width:100%; background:#cccccc; border-spacing:1px;}
+        td:first-child {width:10em;}
+        th, td {text-align:left; padding:.3em; vertical-align:top; background:white}
+        td.object {padding:0}
+        td.object x-propertygrid {margin:-1px;}
     `,
     template: `
         <table>
-            <thead>
+            <thead x-if="state.headers">
                 <tr>
                     <th>Property</th>
                     <th>Value</th>
@@ -27,29 +30,34 @@ export default {
             </thead>
             <tbody>
                 <tr x-for="(key, index) in state.schema">
-                    <td>{{ key }}</td>
-                    <td>
-                        <div x-if="state.schema[key].type == 'object'">
-                            <x-propertygrid x-prop:value="123"></x-propertygrid>
-                        </div>
-                        <div x-if="state.schema[key].type != 'object'">
-                            <x-datafield x-attr:type="state.schema[key].type" x-model="state.value[key]"></x-datafield>
-                        </div>
+                    <td class="key">
+                        {{ key }}:
+                    </td>
+                    <td x-if="state.schema[key].type == 'object'" class="object">
+                        <x-propertygrid headers="false" x-prop:value="state.value[key]"></x-propertygrid>
+                    </td>
+                    <td x-elseif="state.schema[key].type == 'date'">
+                        {{ state.value[key] }}                        
+                    </td>
+                    <td x-else>
+                        {{ state.value[key]}}                        
                     </td>
                 </tr>
             </tbody>
         </table>
 
-        <x-json x-prop:value="state.value"></x-json>
+        
     `,
     state: {
-        value: {},  
+        headers: true,
+        value: null,  
         schema: {}
     },
-    controller({ events, state }) {
+    controller({ events, state, host}) {
         return {
             async load() {
-                events.on(state, "change:value", "refresh");
+                events.on(state, "change:value", "refresh");                
+                this.refresh();
             },
             refresh() {
                 const schema = {};
@@ -59,12 +67,12 @@ export default {
                         type = "number";
                     } else if (typeof state.value[key] === "boolean") {
                         type = "checkbox";
+                    } else if (state.value[key] instanceof Date) {
+                        type = "date";
                     } else if (typeof state.value[key] === "object") {
                         type = "object";
                     }
-                    schema[key] = { 
-                        type: type
-                    };
+                    schema[key] = { type: type };
                 }
                 state.schema = schema;
             }

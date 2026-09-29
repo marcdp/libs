@@ -76,6 +76,8 @@ function convertAttributeValue(property, value) {
     // convert attribute value based on property type
     switch (property.type) {
         case "boolean":
+            if (value == "false") return false;
+            if (value == "0") return false;
             return value !== null;
         case "number":
             return value === null ? null : Number(value);

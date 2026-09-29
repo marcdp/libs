@@ -105,7 +105,15 @@ export default {
                 state.context = page.context || {};
                 state.contract = page.contract;
                 state.implementation = page.implementation;
+
+
+                state.context =  {
+                    hello:123,
+                    bye: new Date(),
+                    other: "world"
+                }
                 state.count = 123;
+                state.count2 = false;
 
                 //alert(JSON.stringify(areas.resolveHref(page.src)));
                 
