@@ -276,20 +276,7 @@ export default {
 
         <x-divider></x-divider>
 
-        <h2>Fill</h2>
-
-        <p>
-            x-fill is intended for layouts where content must occupy the complete
-            available positioned container.
-        </p>
-
-        <div style="width:25em; height:25em; position:relative; border:1px red solid;">
-            <x-fill >
-                <div>
-                    This content fills the available container.
-                </div>
-            </x-fill>
-        </div>
+        
 
             
     `,  

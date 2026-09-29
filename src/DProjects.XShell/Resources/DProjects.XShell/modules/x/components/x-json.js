@@ -1,5 +1,4 @@
 
-
 //utils
 function syntaxHighlight(json) {
     if (typeof json != 'string') {
@@ -28,7 +27,8 @@ export const contract = {
     description: "Displays syntax-highlighted JSON source.",
     events: {},
     properties: {
-        value:     {type:"string", default:"", attribute:true, state:true, description:""}
+        value: {type:"object", default:null, state:true, description:"Object to be displayed as syntax-highlighted JSON."},
+        indent: {type:"number", default:0, state:true, attribute:true, description:"Indentation level for JSON formatting."}
     },
     methods: {}
 };
@@ -41,41 +41,34 @@ export default {
         pre {
             margin: 0;
             padding: 0;
-            white-space: wrap;
-            word-break: break-all;
+            overflow:auto;
         }
-        .string {
-            color: green;
+        pre.indent {
+            white-space: normal;
         }
-        .number {
-            color: darkorange;
-        }
-        .boolean {
-            color: blue;
-        }
-        .null {
-            color: magenta;
-        }
-        .key {
-            color: red;
-        }
-        :host(.plain) pre {
-            border: none;
-            padding: 0;
-        }
+        pre .string {color: green;}
+        pre .number {color: darkorange;}
+        pre .boolean {color: blue;}
+        pre .null {color: magenta;}
+        pre .key {color: red;}
+        
+        :host(.plain) pre {border: none; padding: 0;}
     `,
     template: `
-        <pre><code x-html="state.colorized"></code></pre>
+        <pre x-class:indent="!state.indent"><code x-html="state.jsonColorized"></code></pre>
     `,
     state: {
-        colorized: null
+        value: null,
+        indent: 0,
+        jsonColorized: null
     },
     controller({ state, events }) {
         return {
             load() {
                 //load
-                events.on(state, "change:value", (event) => {
-                    state.colorized = syntaxHighlight(event.newValue);
+                events.on(state, ["change:value", "change:indent"], (event) => {
+                    const json = JSON.stringify(state.value, null, state.indent);
+                    state.jsonColorized = syntaxHighlight(json);
                 });
             }
         }

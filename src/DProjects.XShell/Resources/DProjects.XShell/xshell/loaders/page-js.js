@@ -184,11 +184,15 @@ function getPageQueryParams(src) {
 // create page class from js implementation
 export async function createPageClassFromJsDefinition(src, context, implementation, contract) {
     // defaults
+    const moduleConfig = xshell.config.modules[context.resourceDefinition.moduleId];
     if (!contract) contract = {};
     if (!contract.properties) contract.properties = {};
     if (!contract.events) contract.events = {};
     if (!contract.slots) contract.slots = {};
     if (!contract.methods) contract.methods = {};
+    if (!implementation.meta) implementation.meta = {};
+    if (!implementation.meta.stateEngine) implementation.meta.stateEngine = moduleConfig.defaults.page.stateEngine;
+    if (!implementation.meta.renderEngine) implementation.meta.renderEngine = moduleConfig.defaults.page.renderEngine;
     if (!implementation.dependencies) implementation.dependencies = {};
     if (!implementation.state) implementation.state = {};
     if (!implementation.style) implementation.style = "";
@@ -231,16 +235,11 @@ export async function createPageClassFromJsDefinition(src, context, implementati
         }
     }
     // modules
-    const moduleConfig = xshell.config.modules[context.resourceDefinition.moduleId];
     // state engine
-    const stateEngineModule = moduleConfig.defaults.page.stateEngine;
-    const stateEnginePage = implementation.meta?.stateEngine || stateEngineModule;
-    const stateEngineFactoryCreator = await xshell.loader.load("state-engine:" + stateEnginePage);
+    const stateEngineFactoryCreator = await xshell.loader.load("state-engine:" + implementation.meta.stateEngine);
     const stateEngineFactory = new stateEngineFactoryCreator(stateSkeleton, context);
     // render engine
-    const renderEngineModule = moduleConfig.defaults.page.renderEngine;
-    const renderEnginePage = implementation.meta?.renderEngine || renderEngineModule;
-    const renderEngineFactoryCreator = await xshell.loader.load("render-engine:" + renderEnginePage);
+    const renderEngineFactoryCreator = await xshell.loader.load("render-engine:" + implementation.meta.renderEngine);
     const templateRenderer = implementation.templateRenderer; 
     const renderEngineFactory = new renderEngineFactoryCreator(implementation.template, context, templateRenderer);
     // validate compiled template slots through the render-engine factory contract
@@ -360,6 +359,9 @@ export async function createPageClassFromJsDefinition(src, context, implementati
             }
             
         }
+        // props
+        get implementation() {return implementation;}
+        get contract() {return contract;}
         // mount/unmount
         async mount({ host }) {
             if (this._unloaded) return;

@@ -123,8 +123,16 @@ html {
     scrollbar-gutter: var(--x-scrollbar-gutter);
 }
 html:has(body > x-page[layout='stack']) {
+    scrollbar-gutter: auto;
     overflow-y: hidden;
 }
+html:has(body > x-page > x-fill) {
+    scrollbar-gutter: auto;
+    overflow: hidden;
+}
+
+
+
 :not(:defined) {
     visibility: hidden;
 }

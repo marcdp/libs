@@ -123,7 +123,7 @@ export default {
             .body {
                 display:flex;
                 transition:margin var(--x-transition-duration);
-                --x-fill-height: calc(100vh - 6.3em);
+                --x-fill-height: calc(100vh - 6.5em);
             }
             .body .menu {
                 position:sticky;
@@ -186,7 +186,7 @@ export default {
             .breadcrumb x-icon.toggle:active {background:var(--x-color-xxxx-gray)}
 
             .body {
-                --x-fill-height: calc(100vh - 6.3em);
+                --x-fill-height: calc(100vh - 6.5em);
             }
             .body .menu {
                 width: 100vw;
@@ -279,6 +279,7 @@ export default {
                         <x-page-title></x-page-title>
                     </h1>
                     <x-page-description></x-page-description>                   
+                    <x-page-debug></x-page-debug>
                     <slot></slot>
                 </div>
             </main>

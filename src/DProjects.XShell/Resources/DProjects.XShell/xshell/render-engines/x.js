@@ -125,7 +125,7 @@ const utils = new class {
 			if (typeof value === "string") return value;
 			if (typeof value === "boolean") return value ? "true" : "false";
 			if (typeof value === "number" && Number.isFinite(value)) return String(value);
-			return fail("Value cannot be converted to an XTemplate scalar");
+			return fail("Value cannot be converted to an XTemplate scalar: " + value);
 		};
 		const normalizeStyleName = (name) => {
 			if (typeof name !== "string" || name.length === 0 || [...name].some(character => /\s|\p{Cc}/u.test(character) || character === ":" || character === ";")) return fail(`Invalid style property name '${name}'`);
