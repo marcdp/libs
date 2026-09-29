@@ -41,8 +41,8 @@ Bootstrap applies the same exactly-one-local-definition rule used for every modu
 ```
 
 `modules.app` is local because it has no `configUrl`. The other entries are dependency references. The root has the additional responsibility of
-application composition, so it may supply `params` and legitimate overrides for those references. Child module documents cannot configure
-dependency params.
+application composition, so its references may supply `configUrl` and `params`. Child module references contain only `configUrl`; no reference may
+override `assetsUrl` or other definition properties.
 
 The optional host `xshell:app.params` meta value becomes the local root definition's `params` and effective `app.params`. Bootstrap also supplies
 `app.basePath`. No `root`, `isRoot`, `moduleType`, separate root id, or separate application file format is required.

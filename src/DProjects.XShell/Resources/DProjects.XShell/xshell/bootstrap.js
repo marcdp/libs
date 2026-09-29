@@ -6,7 +6,7 @@ function deepFreeze(obj) {if (obj === null || typeof obj !== "object") {return o
 function absolutizePrefixedUrl(key, obj, url) {return typeof obj === "string" ? (obj.startsWith("url:") ? ((obj = obj.substring(4).trim()), (obj.startsWith("/") || obj.startsWith("./") || obj.startsWith("../") || obj === ".") ? combineUrls(url, obj) : obj) : obj) : Array.isArray(obj) ? (obj.forEach((v, i) => obj[i] = absolutizePrefixedUrl(i, v, url)), obj) : obj instanceof Object ? (Object.keys(obj).forEach(k => obj[k] = absolutizePrefixedUrl(k, obj[k], url)), obj) : obj;}
 function relativizePaths(key, obj, path) { return typeof obj === "string" ? (obj.startsWith("/") ? ((obj = path + obj), obj.startsWith(document.location.origin) ? obj.substring(document.location.origin.length) : obj) : (obj.startsWith("./") || obj.startsWith("../") || obj === ".") ? ((obj = combineUrls(path + "/", obj)), obj.startsWith(document.location.origin) ? obj.substring(document.location.origin.length) : obj) : obj) : Array.isArray(obj) ? (obj.forEach((v, i) => obj[i] = relativizePaths(i, v, path)), obj) : obj instanceof Object ? (Object.keys(obj).forEach(k => obj[k] = relativizePaths(k, obj[k], path)), obj) : obj; }
 function relativizeModulePaths(config, path) {const definitions = config.xshell?.areas?.definitions || {};const prefixes = Object.fromEntries(Object.entries(definitions).filter(([, area]) => Object.hasOwn(area, "prefix")).map(([id, area]) => [id, area.prefix]));relativizePaths("", config, path);for (const [id, prefix] of Object.entries(prefixes)) definitions[id].prefix = prefix;}
-async function loadJsonWithComments(url) {const request = await fetch(url);if (!request.ok) throw new Error(`Failed to json file: ${result.url}`);let json = await request.text();return JSON.parse(stripJsonComments(json));}
+async function loadJsonWithComments(url) {const request = await fetch(url);if (!request.ok) throw new Error(`Failed to json file: ${url}`);let json = await request.text();return JSON.parse(stripJsonComments(json));}
  
 
 // consts
@@ -57,15 +57,164 @@ async function loadModuleConfig(url) {
     const request = await fetch(url);
     if (!request.ok) throw new Error(`Failed to json file: ${url}`);
     let json = await request.text();
-    var module = JSON.parse(stripJsonComments(json));
-    // absolutize all values starting with "url:"
-    for (let key in module) {
-        let value = module[key];
-        if (typeof value === "string" && value.startsWith("url:")) {
-            module[key] = new URL(value.substring(4), url).href;
+    return JSON.parse(stripJsonComments(json));
+}
+function getLocalModule(config, configUrl) {
+    // identify the single definition owned by this configuration document
+    const modules = config?.modules;
+    if (!modules || typeof modules !== "object" || Array.isArray(modules)) {
+        throw new Error(`Module configuration '${configUrl}' must contain a modules object with exactly one local module definition.`);
+    }
+    const entries = Object.entries(modules).filter(([, module]) => module && typeof module === "object" && !Array.isArray(module) && !Object.hasOwn(module, "configUrl"));
+    if (entries.length !== 1) {
+        const ids = entries.map(([id]) => `'${id}'`);
+        const suffix = ids.length ? `: ${ids.join(", ")}.` : ".";
+        throw new Error(`Module configuration '${configUrl}' must contain exactly one local module definition, but found ${entries.length}${suffix}`);
+    }
+    return { id: entries[0][0], definition: entries[0][1] };
+}
+function resolveModuleConfigUrl(configUrl, ownerConfigUrl, moduleId) {
+    // resolve reference URLs against the document that declares them
+    if (typeof configUrl !== "string" || !configUrl.trim()) {
+        throw new Error(`Module reference '${moduleId}' in '${ownerConfigUrl}' must declare a non-empty configUrl.`);
+    }
+    const value = configUrl.startsWith("url:") ? configUrl.substring(4).trim() : configUrl;
+    return new URL(value, ownerConfigUrl).href;
+}
+function validateModuleReference(ownerModuleId, moduleId, reference, ownerConfigUrl, isRoot) {
+    // enforce the root-composition and child-dependency reference contracts
+    if (!reference || typeof reference !== "object" || Array.isArray(reference)) {
+        throw new Error(`Module reference '${moduleId}' in '${ownerConfigUrl}' must be an object that declares configUrl.`);
+    }
+    const allowedProperties = isRoot ? new Set(["configUrl", "params"]) : new Set(["configUrl"]);
+    const unsupportedProperties = Object.keys(reference).filter(property => !allowedProperties.has(property));
+    if (unsupportedProperties.length) {
+        const properties = unsupportedProperties.map(property => `'${property}'`).join(", ");
+        const authority = isRoot ? "Root module references may contain only 'configUrl' and 'params'" : `Child module '${ownerModuleId}' may declare dependency '${moduleId}' using only 'configUrl'`;
+        throw new Error(`${authority}; unsupported ${unsupportedProperties.length === 1 ? "property" : "properties"}: ${properties}.`);
+    }
+    return resolveModuleConfigUrl(reference.configUrl, ownerConfigUrl, moduleId);
+}
+function prepareModuleConfig(config, configUrl, assetsPrefix, isRoot) {
+    // validate identity and references before adding normalized runtime fields
+    const localModule = getLocalModule(config, configUrl);
+    const references = [];
+    for (const [moduleId, reference] of Object.entries(config.modules)) {
+        if (moduleId === localModule.id) continue;
+        reference.configUrl = validateModuleReference(localModule.id, moduleId, reference, configUrl, isRoot);
+        references.push({ id: moduleId, configUrl: reference.configUrl });
+    }
+    localModule.definition.configUrl = configUrl;
+    localModule.definition.assetsUrl = localModule.definition.assetsUrl || "url:./";
+    absolutizePrefixedUrl("", config, configUrl);
+    relativizeModulePaths(config, "/" + assetsPrefix + "/" + localModule.id);
+    return { id: localModule.id, config, configUrl, references };
+}
+function getDependencyFirstOrder(rootNode, nodesById) {
+    // traverse references in declaration order and reject cycles explicitly
+    const order = [];
+    const states = new Map();
+    const path = [];
+    const visit = node => {
+        const state = states.get(node.id);
+        if (state === "visited") return;
+        if (state === "visiting") {
+            const cycleStart = path.indexOf(node.id);
+            const cycle = [...path.slice(cycleStart), node.id].map(id => `'${id}'`).join(" -> ");
+            throw new Error(`Module dependency cycle detected: ${cycle}.`);
+        }
+        states.set(node.id, "visiting");
+        path.push(node.id);
+        for (const reference of node.references) {
+            visit(nodesById.get(reference.id));
+        }
+        path.pop();
+        states.set(node.id, "visited");
+        order.push(node);
+    };
+    visit(rootNode);
+    return order;
+}
+async function discoverModuleConfigs(rootConfig, rootConfigUrl, loadConfig, assetsPrefix) {
+    // discover the graph in deterministic breadth-first passes
+    const configs = {};
+    const nodesById = new Map();
+    const nodesByUrl = new Map();
+    const moduleUrls = new Map();
+    const registerModuleUrl = (moduleId, configUrl) => {
+        const existingUrl = moduleUrls.get(moduleId);
+        if (existingUrl && existingUrl !== configUrl) {
+            throw new Error(`Module '${moduleId}' is referenced with conflicting configUrl values: '${existingUrl}' and '${configUrl}'.`);
+        }
+        moduleUrls.set(moduleId, configUrl);
+    };
+    const registerNode = (node, expectedIds) => {
+        for (const expectedId of expectedIds) {
+            if (expectedId !== node.id) {
+                throw new Error(`Module reference '${expectedId}' points to '${node.configUrl}', but that configuration defines local module '${node.id}'.`);
+            }
+        }
+        registerModuleUrl(node.id, node.configUrl);
+        const existingNode = nodesById.get(node.id);
+        if (existingNode && existingNode.configUrl !== node.configUrl) {
+            throw new Error(`Module '${node.id}' is referenced with conflicting configUrl values: '${existingNode.configUrl}' and '${node.configUrl}'.`);
+        }
+        nodesById.set(node.id, node);
+        nodesByUrl.set(node.configUrl, node);
+        configs[node.id] = node.config;
+    };
+
+    // register the root before following references back to it
+    const rootNode = prepareModuleConfig(rootConfig, rootConfigUrl, assetsPrefix, true);
+    registerNode(rootNode, new Set([rootNode.id]));
+    let currentNodes = [rootNode];
+    while (currentNodes.length) {
+        // collect each unresolved URL once while preserving declaration and discovery order
+        const pendingByUrl = new Map();
+        for (const node of currentNodes) {
+            for (const reference of node.references) {
+                registerModuleUrl(reference.id, reference.configUrl);
+                const loadedNode = nodesByUrl.get(reference.configUrl);
+                if (loadedNode) {
+                    if (loadedNode.id !== reference.id) {
+                        throw new Error(`Module reference '${reference.id}' points to '${reference.configUrl}', but that configuration defines local module '${loadedNode.id}'.`);
+                    }
+                    continue;
+                }
+                const pending = pendingByUrl.get(reference.configUrl) || { expectedIds: new Set() };
+                pending.expectedIds.add(reference.id);
+                pendingByUrl.set(reference.configUrl, pending);
+            }
+        }
+        if (!pendingByUrl.size) break;
+        const urls = [...pendingByUrl.keys()];
+        const loadedConfigs = await Promise.all(urls.map(url => loadConfig(url)));
+        currentNodes = [];
+        for (let i = 0; i < urls.length; i++) {
+            const url = urls[i];
+            const node = prepareModuleConfig(loadedConfigs[i], url, assetsPrefix, false);
+            registerNode(node, pendingByUrl.get(url).expectedIds);
+            currentNodes.push(node);
         }
     }
-    return module;
+    return { configs, rootNode, nodesById, mergeOrder: getDependencyFirstOrder(rootNode, nodesById) };
+}
+function mergeConfigs(configs) {
+    // merge arrays and objects while allowing later scalar values to override
+    const isObject = value => value !== null && typeof value === "object" && !Array.isArray(value);
+    const merge = (target, source) => {
+        for (const [key, value] of Object.entries(source)) {
+            if (Array.isArray(value)) {
+                target[key] = Array.isArray(target[key]) ? [...target[key], ...value] : [...value];
+            } else if (isObject(value)) {
+                target[key] = merge(isObject(target[key]) ? target[key] : {}, value);
+            } else {
+                target[key] = value;
+            }
+        }
+        return target;
+    };
+    return configs.reduce((result, config) => merge(result, config), {});
 }
 async function loadConfig() {
     // load config
@@ -95,59 +244,18 @@ async function loadConfig() {
     
     // get root module config
     const rootModuleConfig = await rootModuleConfigTask;
-    const rootModule = Object.values(rootModuleConfig.modules)[0];
-    const rootModuleId = Object.keys(rootModuleConfig.modules)[0];
-    rootModule.configUrl = rootModuleUrl;
-    rootModule.assetsUrl = rootModule.assetsUrl || "url:./";
-    rootModule.params = Object.fromEntries(new URLSearchParams(appParams));
-    xshellConfig.app.params = rootModule.params;
-    absolutizePrefixedUrl("", rootModuleConfig, rootModuleUrl);    
-    relativizeModulePaths(rootModuleConfig, "/" + assetsPrefix + "/" + rootModuleId);
-    
-    // load modules
-    const configs = {}    
-    configs[rootModuleUrl] = rootModuleConfig;    
-    while (true) {       
-        // get urls to load
-        const urls = [];
-        for (let config of Object.values(configs)) {
-            for(const module of Object.values(config.modules)) {
-                if (!configs[module.configUrl]) urls.push(module.configUrl);
-            }
-        }
-        // if no urls to load, break the loop
-        if (urls.length == 0) break;
-        // load module configurations for the urls
-        const tasks = urls.map(url => loadModuleConfig(url));
-        const configsLoaded = await Promise.all(tasks);
-        for (let i = 0; i < configsLoaded.length; i++) {
-            const configLoaded = configsLoaded[i];
-            const moduleId = Object.keys(configLoaded.modules)[0];
-            configLoaded.modules[moduleId].configUrl = urls[i];
-            configLoaded.modules[moduleId].assetsUrl = configLoaded.modules[moduleId].assetsUrl || "url:./";
-            absolutizePrefixedUrl("", configLoaded, urls[i]);    
-            relativizeModulePaths(configLoaded, "/" + assetsPrefix + "/" + moduleId);
-            configs[urls[i]] = configsLoaded[i];
-        }
-    }
-    configs[xshellConfigUrl] = xshellConfig;
+    const rootModule = getLocalModule(rootModuleConfig, rootModuleUrl);
+    rootModule.definition.params = Object.fromEntries(new URLSearchParams(appParams));
+    xshellConfig.app.params = rootModule.definition.params;
+
+    // load canonical modules and determine dependency-first order
+    const graph = await discoverModuleConfigs(rootModuleConfig, rootModuleUrl, loadModuleConfig, assetsPrefix);
+    const configs = graph.configs;
+    configs["xshell"] = xshellConfig;
 
     // merge configs
-    const configsToMerge = Object.values(configs).reverse().map(item => item);
-    const isObject = value => value !== null && typeof value === "object" && !Array.isArray(value);
-    const merge = (target, source) => {
-        for (const [key, value] of Object.entries(source)) {
-            if (Array.isArray(value)) {
-                target[key] = Array.isArray(target[key]) ? [...target[key], ...value] : [...value];
-            } else if (isObject(value)) {
-                target[key] = merge(isObject(target[key]) ? target[key] : {}, value);
-            } else {
-                target[key] = value;
-            }
-        }
-        return target;
-    };
-    const configMerged =  configsToMerge.reduce((result, config) => merge(result, config), {});
+    const configsToMerge = [configs["xshell"], ...graph.mergeOrder.map(node => node.config)];
+    const configMerged = mergeConfigs(configsToMerge);
 
     // default contract for modules
     for(const moduleId in configMerged.modules)   {

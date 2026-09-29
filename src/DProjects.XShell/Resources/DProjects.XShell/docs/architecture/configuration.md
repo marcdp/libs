@@ -74,8 +74,8 @@ XShell defaults
     -> root application configuration
 ```
 
-Bootstrap derives that order from the dependency graph, sorts sibling references by id, and rejects cycles. Root composition therefore has final
-authority over dependency params and permitted overrides; fetch completion order has no effect.
+Bootstrap derives that order from the dependency graph, retains sibling declaration/discovery order, and rejects cycles. Root composition therefore
+has final authority over dependency params; fetch completion order has no effect.
 
 ## Defaults, URLs, and validation
 

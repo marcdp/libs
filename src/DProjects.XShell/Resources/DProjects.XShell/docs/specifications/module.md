@@ -47,8 +47,9 @@ Every non-local entry must declare `configUrl`:
 The key is the expected identity. `modules.x` must resolve to a document whose local definition is `modules.x`. Bootstrap rejects identity mismatch,
 conflicting URLs for the same id, wrong ids for an already known URL, and cycles.
 
-A reusable non-root module may declare dependencies but must not supply dependency `params`. Only the root application can compose those values.
-No reference may override `assetsUrl`; the referenced local definition owns its physical resource location.
+A reusable non-root module declares dependencies using only `configUrl`; it must not supply dependency `params`, `assetsUrl`, definition fields, or
+arbitrary extra properties. A root reference may additionally supply `params`. No reference may override `assetsUrl`; the referenced local
+definition owns its physical resource location.
 
 ## Normalized effective module
 
