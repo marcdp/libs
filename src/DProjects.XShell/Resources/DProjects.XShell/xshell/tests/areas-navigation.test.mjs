@@ -80,6 +80,23 @@ function createNavigation({ areas = createAreas(), mode = "path", basePath = "ht
     });
 }
 
+function createSharedRouteContext({ definitions, defaultArea, mode = "path", basePath = "https://example.test/" }) {
+    const config = {
+        xshell: {
+            assetsPrefix: "_assets",
+            areas: { default: defaultArea, definitions }
+        }
+    };
+    const module = {
+        id: "shared",
+        routes: { "/repository/{repositoryId}/items": "/_assets/shared/pages/items.js" },
+        config: { menus: {} }
+    };
+    const areas = new Areas({ config, bus: { addEventListener() {}, emit() {} } });
+    areas.init({ modules: { getModuleById(id) { return id === module.id ? module : null; } } });
+    return { areas, navigation: createNavigation({ areas, mode, basePath }), module };
+}
+
 test("Areas.resolveHref searches recursively across selected Area menus and ignores query and fragment", () => {
     const areas = createAreas();
 
@@ -416,6 +433,70 @@ test("Navigation reverse routing applies an existing Area prefix exactly once", 
         navigation.buildUrlAbsolute({ href: "/demo/_assets/x-demo/pages/about.js" }),
         "/demo/something"
     );
+});
+
+test("Navigation keeps Area routes relative while applying a non-root Area prefix exactly once in both directions", () => {
+    const navigation = createNavigation();
+    const publicHref = "/demo/repository/12/projects/7/items?sort=name#details";
+    const canonicalHref = "/demo/_assets/x-demo/pages/items.js?repositoryId=12&projectId=7&sort=name#details";
+
+    assert.equal(navigation._buildUrlFinal(navigation.parseUrl(publicHref)), canonicalHref);
+    assert.equal(navigation.buildUrlAbsolute({ href: canonicalHref }), publicHref);
+    assert.equal(navigation.buildUrlAbsolute({ href: canonicalHref }).includes("/demo/demo/"), false);
+    assert.equal(navigation._areas.getArea("demo").routes[2].path, "/repository/{repositoryId}/projects/{projectId}/items");
+});
+
+test("Navigation supports forward and reverse routes in an empty-prefix root Area", () => {
+    const { areas, navigation, module } = createSharedRouteContext({
+        defaultArea: "root",
+        definitions: { root: { prefix: "", modules: ["shared"] } }
+    });
+    const publicHref = "/repository/12/items?sort=name#details";
+    const canonicalHref = "/_assets/shared/pages/items.js?repositoryId=12&sort=name#details";
+
+    assert.equal(navigation._buildUrlFinal(navigation.parseUrl(publicHref)), canonicalHref);
+    assert.equal(navigation.buildUrlAbsolute({ href: canonicalHref }), publicHref);
+    assert.equal(navigation.buildUrlAbsolute({ href: canonicalHref }).startsWith("//"), false);
+    assert.deepEqual(module.routes, { "/repository/{repositoryId}/items": "/_assets/shared/pages/items.js" });
+    assert.equal(areas.getArea("root").routes[0].path, "/repository/{repositoryId}/items");
+});
+
+test("Navigation preserves explicit and originating Area context when one module participates in multiple Areas", () => {
+    const { navigation } = createSharedRouteContext({
+        defaultArea: "sales",
+        definitions: {
+            sales: { prefix: "/sales", modules: ["shared"] },
+            admin: { prefix: "/admin", modules: ["shared"] }
+        }
+    });
+    const adminPage = { src: "/admin/_assets/shared/pages/origin.js" };
+
+    assert.equal(
+        navigation._buildUrlFinal(navigation.parseUrl("/admin/repository/12/items")),
+        "/admin/_assets/shared/pages/items.js?repositoryId=12"
+    );
+    assert.equal(
+        navigation.buildUrlAbsolute({ href: "/admin/_assets/shared/pages/items.js?repositoryId=12" }),
+        "/admin/repository/12/items"
+    );
+    assert.equal(
+        navigation.buildUrlAbsolute({ href: "/_assets/shared/pages/items.js?repositoryId=12", page: adminPage }),
+        "/admin/repository/12/items"
+    );
+    assert.equal(
+        navigation.buildUrlAbsolute({ href: "/_assets/shared/pages/items.js?repositoryId=12" }),
+        "/sales/repository/12/items"
+    );
+});
+
+test("Navigation wraps root and prefixed route URLs through path and hash AppBasePath modes", () => {
+    const definitions = { demo: { prefix: "/demo", modules: ["shared"] } };
+    const path = createSharedRouteContext({ definitions, defaultArea: "demo", mode: "path", basePath: "https://example.test/app/" }).navigation;
+    const hash = createSharedRouteContext({ definitions, defaultArea: "demo", mode: "hash", basePath: "https://example.test/app/" }).navigation;
+    const canonicalHref = "/_assets/shared/pages/items.js?repositoryId=12&sort=name#details";
+
+    assert.equal(path.buildUrlAbsolute({ href: canonicalHref }), "/app/demo/repository/12/items?sort=name#details");
+    assert.equal(hash.buildUrlAbsolute({ href: canonicalHref }), "/app/#!/demo/repository/12/items?sort=name#details");
 });
 
 test("Navigation reverse routing requires intrinsic target query parameters", () => {

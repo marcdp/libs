@@ -42,6 +42,27 @@ For example, canonical
 `/demo/repository/12/projects/7/items?sort=name`. Reverse routing remains private to Navigation; `x-anchor` continues to request a browser-facing URL
 without understanding route syntax.
 
+Area prefixes form the boundary between public URLs and Area-relative routes. Route paths in `module.routes` and `area.routes` never acquire the
+prefix. For forward resolution, Navigation selects the Area and removes its prefix before matching; it then applies that prefix exactly once to the
+canonical Page href. Reverse resolution removes an existing canonical Area prefix for target comparison and applies the selected Area's prefix
+exactly once to the generated route. An empty/root prefix performs neither operation, preserving the route's single leading slash. When one module
+participates in multiple Areas, the existing explicit href, originating Page, target-module, and current/default Area selection rules choose the
+public context.
+
+For example, a route `/repository/{repositoryId}/items` in Area `demo` round-trips as follows:
+
+```text
+canonical: /_assets/x-demo/pages/items.js?repositoryId=12
+public:    /demo/repository/12/items
+forward:   /demo/repository/12/items → /demo/_assets/x-demo/pages/items.js?repositoryId=12
+```
+
+`x-anchor` preserves its logical `href` as the canonical target and delegates its rendered native `<a href>` to
+`Navigation.buildUrlAbsolute(...)`. The native href can therefore expose the friendly route for status-bar previews, copying, middle-click, and new
+tabs, while intercepted navigation still sends the unchanged canonical href to Navigation. The component does not read `area.routes`, parse route
+patterns, or substitute placeholders. Path and hash modes apply AppBasePath and the configured hash prefix only after Navigation has selected the
+menu alias, reverse route, or canonical fallback.
+
 A menu item may provide both `path` and `href`. `path` is an optional friendly/public navigation path; `href` is the canonical XShell navigation
 target. `path` is an alias, not a replacement for `href`. A menu item without `path` remains valid and menu-facing UI naturally falls back to
 `href` through `menuitem.path || menuitem.href`.

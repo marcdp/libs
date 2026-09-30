@@ -54,6 +54,7 @@ globalThis.customElements = {
 globalThis.window = { customElements: globalThis.customElements };
 
 const { createComponentClassFromJsDefinition } = await import("../loaders/component-js.js");
+const { default: Areas } = await import("../areas.js");
 const { default: Navigation } = await import("../navigation.js");
 const { default: xshell } = await import("../xshell.js");
 const { contract, default: anchorDefinition } = await import("../../modules/x/components/x-anchor.js");
@@ -75,7 +76,7 @@ class RenderEngineFactory {
     init() {}
 }
 
-function createNavigation({ areas = null, mode = "path" } = {}) {
+function createNavigation({ areas = null, mode = "path", basePath = "https://example.test/" } = {}) {
     return new Navigation({
         areas: areas || {
             resolveAreaId() { return null; },
@@ -87,11 +88,31 @@ function createNavigation({ areas = null, mode = "path" } = {}) {
         },
         bus: {},
         config: {
-            app: { basePath: "https://example.test/" },
+            app: { basePath },
             xshell: { navigation: { mode, hashPrefix: "#!" } }
         },
         container: {}
     });
+}
+
+function createRouteAreas() {
+    const config = {
+        xshell: {
+            assetsPrefix: "_assets",
+            areas: {
+                default: "demo",
+                definitions: { demo: { prefix: "/demo", modules: ["x-demo"] } }
+            }
+        }
+    };
+    const module = {
+        id: "x-demo",
+        routes: { "/repository/{repositoryId}/items": "/_assets/x-demo/pages/items.js" },
+        config: { menus: {} }
+    };
+    const areas = new Areas({ config, bus: { addEventListener() {}, emit() {} } });
+    areas.init({ modules: { getModuleById(id) { return id === module.id ? module : null; } } });
+    return areas;
 }
 
 async function createAnchor(attributes = {}, navigation = createNavigation()) {
@@ -220,6 +241,40 @@ test("x-anchor retains its canonical href while exposing and navigating the frie
 
     assert.equal(navigateCalls.length, 1);
     assert.equal(navigateCalls[0].href, "/_assets/x-demo/pages/basic.js");
+    assert.equal(event.defaultPrevented, true);
+});
+
+test("x-anchor delegates route-aware native href generation to Navigation while retaining its canonical target", async () => {
+    const navigation = createNavigation({ areas: createRouteAreas(), basePath: "https://example.test/app/" });
+    const { anchor, navigateCalls } = await createAnchor({}, navigation);
+    anchor.parentNode.page.src = "/demo/_assets/x-demo/pages/origin.js";
+    anchor.href = "/_assets/x-demo/pages/items.js";
+    anchor.query = { repositoryId: "12", sort: "name" };
+
+    anchor.onCommand("stateChange", {});
+
+    assert.equal(anchor.href, "/_assets/x-demo/pages/items.js");
+    assert.equal(anchor._state.href, "/_assets/x-demo/pages/items.js");
+    assert.equal(anchor._state.hrefReal, "/app/demo/repository/12/items?sort=name");
+    assert.equal(
+        navigation._buildUrlFinal(navigation.parseUrl("/demo/repository/12/items?sort=name")),
+        "/demo/_assets/x-demo/pages/items.js?repositoryId=12&sort=name"
+    );
+
+    const event = {
+        button: 0,
+        defaultPrevented: false,
+        metaKey: false,
+        ctrlKey: false,
+        shiftKey: false,
+        altKey: false,
+        preventDefault() { this.defaultPrevented = true; }
+    };
+    anchor.onCommand("click", { event });
+
+    assert.equal(navigateCalls.length, 1);
+    assert.equal(navigateCalls[0].href, "/_assets/x-demo/pages/items.js");
+    assert.deepEqual(navigateCalls[0].params, { repositoryId: "12", sort: "name" });
     assert.equal(event.defaultPrevented, true);
 });
 

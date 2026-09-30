@@ -492,7 +492,7 @@ export default class Navigation {
         }
         const area = this._areas.getArea?.(this._areas.resolveAreaId?.(identity));
         if (area) {
-            const routePath = area.prefix ? identity.substring(area.prefix.length) || "/" : identity;
+            const routePath = this._removeAreaPrefix(identity, area);
             const match = this._matchAreaRoutes(routePath, area);
             if (match) return this._buildRouteHref(match, item, area);
         }
@@ -536,7 +536,7 @@ export default class Navigation {
         if (menuitem) return menuitem.href + suffix;
         const area = page ? this._areas.getArea?.(pageAreaId) : this._areas.getCurrentArea?.() || this._areas.getDefaultArea?.();
         if (!area) return href;
-        const canonicalHref = area.prefix && identity !== area.prefix && !identity.startsWith(area.prefix + "/") ? area.prefix + identity : identity;
+        const canonicalHref = this._applyAreaPrefix(identity, area);
         return canonicalHref + suffix;
     }
     _compileRoute(path) {
@@ -609,9 +609,7 @@ export default class Navigation {
         const target = this.parseUrl(match.route.href);
         const targetParts = this._splitHref(target.href);
         const inputParts = this._splitHref(item.href);
-        const targetIdentity = area.prefix && targetParts.identity !== area.prefix && !targetParts.identity.startsWith(area.prefix + "/")
-            ? area.prefix + targetParts.identity
-            : targetParts.identity;
+        const targetIdentity = this._applyAreaPrefix(targetParts.identity, area);
         const params = { ...target.params, ...match.params };
         for (const [key, value] of Object.entries(item.params || {})) {
             if (!Object.hasOwn(match.params, key)) params[key] = value;
@@ -644,9 +642,7 @@ export default class Navigation {
         const canonical = this.parseUrl(canonicalHref);
         const canonicalParts = this._splitHref(canonical.href);
         const canonicalArea = this._areas.getArea?.(this._areas.resolveAreaId?.(canonicalParts.identity));
-        const canonicalIdentity = canonicalArea?.prefix && canonicalParts.identity.startsWith(canonicalArea.prefix + "/")
-            ? canonicalParts.identity.substring(canonicalArea.prefix.length)
-            : canonicalParts.identity;
+        const canonicalIdentity = this._removeAreaPrefix(canonicalParts.identity, canonicalArea);
         const canonicalParams = { ...canonical.params, ...suppliedParams };
         for (const route of area.routes || []) {
             const target = this.parseUrl(route.href);
@@ -675,12 +671,21 @@ export default class Navigation {
             const remainingParams = { ...canonicalParams };
             for (const key of Object.keys(target.params)) delete remainingParams[key];
             for (const parameter of compiled.parameters) delete remainingParams[parameter];
-            const publicPath = area.prefix && routePath !== area.prefix && !routePath.startsWith(area.prefix + "/")
-                ? area.prefix + routePath
-                : routePath;
+            const publicPath = this._applyAreaPrefix(routePath, area);
             return { href: publicPath + canonicalParts.suffix, params: remainingParams };
         }
         return null;
+    }
+    _removeAreaPrefix(path, area) {
+        // derive the Area-relative identity without modifying route declarations
+        if (!area?.prefix) return path;
+        if (path === area.prefix) return "/";
+        return path.startsWith(area.prefix + "/") ? path.substring(area.prefix.length) : path;
+    }
+    _applyAreaPrefix(path, area) {
+        // apply the public navigation context exactly once
+        if (!area?.prefix || path === area.prefix || path.startsWith(area.prefix + "/")) return path;
+        return area.prefix + path;
     }
     _splitHref(href) {
         const queryIndex = href.indexOf("?");
