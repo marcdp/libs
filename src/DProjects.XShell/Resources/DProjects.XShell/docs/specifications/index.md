@@ -10,7 +10,7 @@ JSON Schema validation. The X module controller loads `schema:config.schema.json
 `xshell/schemas/config.schema.json` resource, and validates the effective configuration during `start()`; validation failure throws and is not gated
 by environment.
 
-The schema defines `app`, `modules`, and `xshell`, including module `configUrl`, `assetsUrl`, defaults, menus, and declarative
+The schema defines `app`, `modules`, and `xshell`, including module `configUrl`, `assetsUrl`, defaults, menus, optional declarative routes, and declarative
 `contract.events`/`actions`/`intents`. The schema's `$id` still contains the stale `https://xshell.dev/schemes/config.scheme.json` identifier; the
 repository path above is canonical.
 

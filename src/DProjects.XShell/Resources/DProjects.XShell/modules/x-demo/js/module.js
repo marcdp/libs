@@ -6,6 +6,13 @@ export default class {
     // ctor
     constructor({ config, areas, moduleAssetsPath }) {
         const menu = this._createMenuFromModuleFiles(files, "/pages", "Demo", [".js", ".html"], moduleAssetsPath, true);
+
+        //menu[0].children.push({
+        //    label: "Parameterized route test",
+        //    path: "/repositories/{idRepository}/projects/{idProject}/items",
+        //    href: moduleAssetsPath + "/pages/index.js"
+        //});
+
         areas.registerSource("x-demo-dynamic-navigation-menu-source", {
             resolve: () => {
                 return menu;

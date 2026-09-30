@@ -47,6 +47,11 @@
         "assetsUrl": {"type": "string", "format": "uri", "description": "URL of the directory or package containing the module assets."},
         "controller": {"type": "string", "description": "Module controller resource."},
         "menus": {"$ref": "#/$defs/menus", "description": "Menu contributions exposed by the module."},
+        "routes": {
+          "type": "object",
+          "additionalProperties": {"type": "string"},
+          "description": "Declarative application URL patterns mapped to module-relative Page targets."
+        },
         "defaults": {"$ref": "#/$defs/moduleDefaults", "description": "Defaults for that module."},
         "contract": {"$ref": "#/$defs/moduleContract", "description": "Public contract exposed by the module."}
       },

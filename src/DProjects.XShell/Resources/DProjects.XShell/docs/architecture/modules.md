@@ -81,6 +81,10 @@ The normalized `configUrl` records the definition document. `assetsUrl` identifi
 directory. References cannot override `assetsUrl`; physical resource ownership stays with the local definition. Runtime resources use
 `/_assets/<module-id>/...`; the Service Worker maps that stable namespace to `assetsUrl`.
 
+The optional module `routes` object follows the same normalization boundary: its values are module-relative Page targets authored in the module
+configuration and become `/_assets/<module-id>/...` paths during bootstrap. Its application-facing keys are not normalized. Route placeholders remain
+declarative, and Navigation does not consume routes yet.
+
 ## Menu contributions and Areas
 
 A module can declare named menu contributions. Each is either a static array or the name of a dynamic source registered with
@@ -90,7 +94,12 @@ module instances. See [Areas](../subsystems/areas.md).
 ## Module controller and runtime instance
 
 `Modules.init()` iterates the effective `config.modules` map once. It creates one record per canonical id, loads styles and an optional controller,
-and supplies the final `params` to that controller. Repeated dependency references therefore still produce one runtime instance.
+supplies the final `params` to that controller, and exposes the effective module's normalized `routes` declarations. Repeated dependency references
+therefore still produce one runtime instance. `module.routes` is the effective configuration object itself; when routes are absent it is a frozen empty
+object. The effective configuration is immutable by the time runtime modules are initialized.
+
+Retrieve a runtime module with `xshell.modules.getModuleById(id)` or enumerate instances with `xshell.modules.getModules()`. `module.routes` is
+declarative metadata only: Areas will compose routes and Navigation will interpret them in later work.
 
 See [Module Specification](../specifications/module.md), [Configuration](configuration.md), [Bootstrap](bootstrap.md), and
 [Service Worker](service-worker.md).

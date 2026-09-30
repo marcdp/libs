@@ -86,6 +86,11 @@ are separate from global `xshell.ui` settings.
 and defaults `assetsUrl` to the document directory. It then maps module-relative runtime paths into `/_assets/<module-id>/...`.
 
 The canonical schema describes the final merged object, not partial authored references. Effective validation occurs after bootstrap normalization.
+An effective module may optionally declare `routes`, an object mapping friendly application URL patterns to module-relative Page targets. During
+bootstrap, route target values are normalized into the owning module's `/_assets/<module-id>/...` namespace; route keys remain application-facing
+patterns unchanged. Routes are distinct from module `menus`: menus describe user-visible navigation declarations, while routes are application
+URL-to-Page declarations. Route placeholders are currently declarative only; Area prefixes are not applied, and this field does not add route
+resolution, Area composition, or any change to navigation.
 Bootstrap deeply freezes the result before `xshell.init(config)`.
 
 See [Modules](modules.md), [Bootstrap](bootstrap.md), and [Specifications](../specifications/).

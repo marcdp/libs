@@ -21,6 +21,10 @@ The local definition is the one entry without `configUrl`. Its object key is the
                 "component": { "renderEngine": "x", "stateEngine": "proxy" }
             },
             "menus": {},
+            "routes": {
+                "/something": "/pages/index.js",
+                "/repository/{repositoryId}/projects/{projectId}/items": "/pages/index.js"
+            },
             "contract": { "events": {}, "actions": {}, "intents": {} }
         }
     }
@@ -75,7 +79,42 @@ Bootstrap resolves references recursively and the final effective entry is a com
 references use `/_assets/<module-id>/...` rather than the physical URL.
 
 The effective schema requires `label`, `version`, `copyright`, `icon`, `configUrl`, `assetsUrl`, and `defaults`. Optional effective fields include
-`params`, `styles`, `controller`, `menus`, and `contract`. `contract` may declare events, actions, and intents; those declarations are metadata and
-do not by themselves implement runtime dispatch.
+`params`, `styles`, `controller`, `menus`, `routes`, and `contract`. `contract` may declare events, actions, and intents; those declarations are
+metadata and do not by themselves implement runtime dispatch.
+
+## Routes
+
+`routes` is an optional object whose keys are friendly application URL patterns and whose values are module-relative Page targets:
+
+```jsonc
+"routes": {
+    "/something": "/pages/index.js",
+    "/repository/{repositoryId}/projects/{projectId}/items": "/pages/index.js"
+}
+```
+
+Routes are application URL-to-Page declarations, distinct from `menus`, which are user-visible navigation declarations. Route placeholders such as
+`{repositoryId}` are declarative only at this stage. During bootstrap, route target values are normalized into the owning module's canonical
+`/_assets/<module-id>/...` resource namespace. Route keys are preserved unchanged. Area prefixes and application base paths are not applied, and
+route values are not otherwise rewritten.
+
+Runtime route resolution will be handled by Navigation in later work, and Area composition of routes is not part of this change. Declaring `routes`
+does not alter existing navigation behavior.
+
+After bootstrap, the runtime module instance exposes the normalized declarations through `xshell.modules.getModuleById(id).routes`. This is the
+effective configuration object itself; modules without routes expose a frozen empty object. Route metadata remains declarative—Areas and Navigation
+do not compose or resolve it yet.
+
+For example, this authored route:
+
+```jsonc
+"/repository/{repositoryId}/projects/{projectId}/items": "/pages/items.js"
+```
+
+becomes this effective runtime entry for module `x-demo`:
+
+```jsonc
+"/repository/{repositoryId}/projects/{projectId}/items": "/_assets/x-demo/pages/items.js"
+```
 
 See [Root Module](application.md), [Modules](../architecture/modules.md), and [Configuration](../architecture/configuration.md).

@@ -1,8 +1,8 @@
 # Areas
 
-An Area is a navigation context composed from participating modules, including the effective menus contributed by those modules. Modules define
-reusable menu contributions; Areas define application composition. A module may participate in several Areas or none, while Modules keeps one live
-runtime instance per canonical module id. Navigation remains responsible for browser URLs, history, page stacks, and page activation.
+An Area is a navigation context composed from participating modules, including the effective menus and route declarations contributed by those
+modules. Modules own declarative metadata; Areas define application composition. A module may participate in several Areas or none, while Modules
+keeps one live runtime instance per canonical module id. Navigation remains responsible for browser URLs, history, page stacks, and page activation.
 
 ## Configuration and ownership
 
@@ -83,6 +83,22 @@ performing translation itself.
 declare `dependsOn`, an array of Bus event names. For `childrenSource` targets, an event refreshes their effective children and emits
 `xshell:menus:change` when content changed. Complete-menu sources named by a string are resolved only during `Areas.init()`; the current runtime
 does not attach them as refresh targets, so they are not live-reactive after composition.
+
+## Routes
+
+`area.routes` is an ordered, read-only array of route descriptors composed from the runtime modules listed in `area.modules`:
+
+```jsonc
+[
+    { "path": "/something", "href": "/_assets/x-demo/pages/index.js", "module": "x-demo" },
+    { "path": "/settings", "href": "/_assets/x/pages/settings.js", "module": "x" }
+]
+```
+
+Composition visits modules in Area declaration order and each module's route properties in declaration order. Duplicate paths are preserved rather than
+overwritten. Modules without routes contribute nothing, and a module may contribute independently to multiple Areas. Route paths and targets are
+copied exactly from `module.routes`; Area prefixes are not applied. Areas do not match routes, extract placeholders, or rewrite targets. Navigation
+will interpret these declarations in later work, and routes remain separate from menus.
 
 ## Navigation context
 

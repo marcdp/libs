@@ -40,6 +40,7 @@ export default class Modules {
                 label: moduleConfig.label || moduleId,
                 path: "/" + assetsPrefix + "/" + moduleId,
                 params: moduleConfig.params,
+                routes: moduleConfig.routes || Object.freeze({}),
                 styles: [],
                 controller: {
                     onCommand: function() {}

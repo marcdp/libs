@@ -8,6 +8,11 @@ An Area is a navigation context within a mode. Its `xshell.areas.definitions.<id
 
 ## Menu paths and canonical targets
 
+Areas also expose an ordered `area.routes` collection composed from their participating modules. These route declarations remain separate from menus:
+Area composition preserves each route's application-facing `path`, canonical Page `href`, source `module`, and declaration order without applying the
+Area prefix or interpreting placeholders. Navigation route resolution is future work; current Navigation behavior continues to operate on Pages and
+menus as described below.
+
 A menu item may provide both `path` and `href`. `path` is an optional friendly/public navigation path; `href` is the canonical XShell navigation
 target. `path` is an alias, not a replacement for `href`. A menu item without `path` remains valid and menu-facing UI naturally falls back to
 `href` through `menuitem.path || menuitem.href`.

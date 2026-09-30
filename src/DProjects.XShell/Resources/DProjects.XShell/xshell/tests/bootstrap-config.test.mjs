@@ -269,6 +269,62 @@ test("root dependency references accept params and merge them last", async () =>
     assert.deepEqual(effective.modules.x.params, { retained: true, mode: "compact" });
 });
 
+test("module route targets use the owning module asset namespace while route keys remain unchanged", async () => {
+    const root = {
+        modules: {
+            app: definition("app", {
+                routes: {
+                    "/something": "/pages/index.js",
+                    "/repository/{repositoryId}/projects/{projectId}/items": "/pages/items.js"
+                },
+                styles: ["/css/styles.css"],
+                controller: "/js/module.js"
+            })
+        }
+    };
+
+    const graph = await discover(root);
+    const module = graph.rootNode.config.modules.app;
+
+    assert.deepEqual(plain(module.routes), {
+        "/something": "/_assets/app/pages/index.js",
+        "/repository/{repositoryId}/projects/{projectId}/items": "/_assets/app/pages/items.js"
+    });
+    assert.deepEqual(plain(module.styles), ["/_assets/app/css/styles.css"]);
+    assert.equal(module.controller, "/_assets/app/js/module.js");
+});
+
+test("module route targets are normalized independently for dependency modules", async () => {
+    const dependencyUrl = "https://example.test/modules/x/module.jsonc";
+    const root = { modules: { app: definition("app"), x: reference(dependencyUrl) } };
+    const configs = {
+        [dependencyUrl]: {
+            modules: {
+                x: definition("x", {
+                    routes: {
+                        "/something": "/pages/index.js",
+                        "/repository/{repositoryId}": "./pages/repository.js"
+                    }
+                })
+            }
+        }
+    };
+
+    const graph = await discover(root, configs);
+    const module = graph.nodesById.get("x").config.modules.x;
+
+    assert.deepEqual(plain(module.routes), {
+        "/something": "/_assets/x/pages/index.js",
+        "/repository/{repositoryId}": "/_assets/x/pages/repository.js"
+    });
+});
+
+test("modules without routes remain without a routes property", async () => {
+    const graph = await discover({ modules: { app: definition("app") } });
+
+    assert.equal(Object.hasOwn(graph.rootNode.config.modules.app, "routes"), false);
+});
+
 test("root references reject assetsUrl but accept arbitrary composition properties", async () => {
     const xUrl = "https://example.test/modules/x/module.jsonc";
     const root = { modules: { app: definition("app"), x: { configUrl: xUrl, version: "override" } } };

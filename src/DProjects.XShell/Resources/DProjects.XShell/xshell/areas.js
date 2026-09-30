@@ -31,6 +31,7 @@ export default class Areas {
                 order: areaConfig.order || 0,
                 default: areaId === defaultAreaId,
                 menus: Object.freeze({}),
+                routes: Object.freeze([]),
                 home: null
             });
         }
@@ -63,6 +64,7 @@ export default class Areas {
         };
         for (const area of this._areas) {
             const menus = {};
+            const routes = [];
             for (const moduleId of area.modules) {
                 const module = modules.getModuleById(moduleId);
                 if (!module) {
@@ -95,9 +97,13 @@ export default class Areas {
                     menus[menuName] ??= [];
                     menus[menuName].push(...menuItems.map(menuitem => this._cloneMenuitem(menuitem, module, area)));
                 }
+                for (const [path, href] of Object.entries(module.routes || {})) {
+                    routes.push(Object.freeze({ path, href, module: module.id }));
+                }
             }
             for (const items of Object.values(menus)) Object.freeze(items);
             area.menus = Object.freeze(menus);
+            area.routes = Object.freeze(routes);
             area.home = findDefaultHref(menus.navigation);
             Object.freeze(area);
         }

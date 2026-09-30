@@ -76,6 +76,40 @@ test("Areas.resolveHref searches recursively across selected Area menus and igno
     assert.equal(areas.resolveHref("/sales/_assets/customer/pages/missing.js", "sales"), null);
 });
 
+test("Areas compose route descriptors in Area module and declaration order", () => {
+    const areas = createRouteAreas();
+
+    assert.deepEqual(areas.getArea("combined").routes, [
+        { path: "/items", href: "/_assets/first/pages/items.js", module: "first" },
+        { path: "/repository/{repositoryId}", href: "/_assets/first/pages/repository.js", module: "first" },
+        { path: "/items", href: "/_assets/second/pages/items.js", module: "second" },
+        { path: "/settings", href: "/_assets/second/pages/settings.js", module: "second" }
+    ]);
+});
+
+test("Areas preserve route ownership and participation across multiple Areas", () => {
+    const areas = createRouteAreas();
+
+    assert.deepEqual(areas.getArea("first-only").routes, [
+        { path: "/items", href: "/_assets/first/pages/items.js", module: "first" },
+        { path: "/repository/{repositoryId}", href: "/_assets/first/pages/repository.js", module: "first" }
+    ]);
+    assert.deepEqual(areas.getArea("outsider-only").routes, [
+        { path: "/outsider", href: "/_assets/outsider/pages/index.js", module: "outsider" }
+    ]);
+    assert.equal(areas.getArea("combined").routes.some(route => route.module === "outsider"), false);
+});
+
+test("Area routes are immutable and do not apply the Area prefix", () => {
+    const areas = createRouteAreas();
+    const area = areas.getArea("combined");
+
+    assert.equal(Object.isFrozen(area.routes), true);
+    assert.equal(Object.isFrozen(area.routes[0]), true);
+    assert.equal(area.routes[0].path, "/items");
+    assert.equal(area.routes[0].href, "/_assets/first/pages/items.js");
+});
+
 test("Areas.resolveHref keeps ambiguous canonical Pages scoped to the selected Area", () => {
     const areas = createAreas();
 
@@ -112,6 +146,40 @@ test("Navigation exposes a friendly path while preserving canonical lookup suffi
         "/sales/detail?customer=42#summary"
     );
 });
+
+function createRouteAreas() {
+    const bus = {
+        addEventListener() {},
+        emit() {}
+    };
+    const config = {
+        xshell: {
+            assetsPrefix: "_assets",
+            areas: {
+                default: "combined",
+                definitions: {
+                    combined: { prefix: "/demo", modules: ["first", "second"] },
+                    "first-only": { prefix: "/first", modules: ["first"] },
+                    "outsider-only": { prefix: "/outsider", modules: ["outsider"] }
+                }
+            }
+        }
+    };
+    const modules = new Map([
+        ["first", { id: "first", routes: {
+            "/items": "/_assets/first/pages/items.js",
+            "/repository/{repositoryId}": "/_assets/first/pages/repository.js"
+        }, config: { menus: {} } }],
+        ["second", { id: "second", routes: {
+            "/items": "/_assets/second/pages/items.js",
+            "/settings": "/_assets/second/pages/settings.js"
+        }, config: { menus: {} } }],
+        ["outsider", { id: "outsider", routes: { "/outsider": "/_assets/outsider/pages/index.js" }, config: { menus: {} } }]
+    ]);
+    const areas = new Areas({ config, bus });
+    areas.init({ modules: { getModuleById(id) { return modules.get(id) || null; } } });
+    return areas;
+}
 
 test("Navigation falls back to Area-aware canonical hrefs and preserves items without paths", () => {
     const navigation = createNavigation();

@@ -39,6 +39,10 @@
                     { "label": "My things 1", "href": "/pages/test1.js"},
                     { "label": "My things 2", "href": "/pages/test1.js"}
                 ]
+            },
+            "routes":{
+                "/something": "/pages/index.js",
+                "/repository/{repositoryId}/projects/{projectId}/items": "/pages/index.js"
             }
         },
         // root application composition reference
