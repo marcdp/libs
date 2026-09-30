@@ -24,13 +24,14 @@ namespace DProjects.XShell {
             public string TempUrl { get; init; } = "/temp";
             public TimeSpan TempExpirationTime { get; init; } = TimeSpan.FromHours(1);
             public string CSPValue { get; init; } = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; ";
+            public string XShellBasePath { get; init; } = "/_resources/DProjects.XShell/xshell";
         }
-        
+
 
         // constants
         public const string ResourceName = "DProjects.XShell";
         public const string RequestPath = "/_resources/DProjects.XShell";
-        public const string ServiceWorkerRequestPath = "/_resources/DProjects.XShell/xshell/sw.js";
+        //public const string ServiceWorkerRequestPath = "/_resources/DProjects.XShell/xshell/sw.js";
 
 
         // methods
@@ -62,38 +63,6 @@ namespace DProjects.XShell {
             // /_temp
             app.UseMiddleware<Middlewares.TempMiddleware>(config.TempPath, config.TempUrl, config.TempExpirationTime);
 
-            // /
-            // TODO ... create a builder for the index.html and sw.js content
-            var indexHtml = $"""
-                    <!DOCTYPE html>
-                    <html lang="en">
-                    <head>
-                        <!-- general -->
-                        <meta charset="utf-8">
-                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                        <meta http-equiv="Content-Security-Policy" content="{config.CSPValue}">
-
-                        <!-- config xshell -->
-                        <meta name="xshell:app.basePath"       content="{config.AppBasePath}">
-                        <meta name="xshell:app.configPath"     content="{config.AppConfigPath}">
-                        <meta name="xshell:app.params"         content="{string.Join("&", config.AppParams.Select(kv => kv.Key + "=" + kv.Value))}">
-                        <meta name="xshell:xshell.environment" content="{(environment)}">
-                        <meta name="xshell:xshell.temp.url"    content="url:{(config.TempUrl)}">
-                        
-
-                        <!-- bootstrap xshell -->
-                        <script src="{config.ResourcesBase}/_resources/DProjects.XShell/xshell/bootstrap.js" ></script>
-
-                    </head>
-                    <body>
-                    </body>
-                    </html>
-                    """;
-            var swJs = $"""
-                    // import real service worker script from xshell cdn
-                    importScripts("{config.ResourcesBase + ServiceWorkerRequestPath}"); 
-                    """;
-
             // redirect canonical base URL
             app.Use(async (context, next) => {
                 if (context.Request.Path == config.AppBasePath) {
@@ -114,14 +83,20 @@ namespace DProjects.XShell {
             // select registered endpoints
             app.UseRouting();
 
-            // service worker
-            app.MapGet(config.AppBasePath + "/sw.js", async context => {
-                context.Response.ContentType = "text/javascript";
-                await context.Response.WriteAsync(swJs);
-            });
+            // bootstrap files /
+            var bootstrapFiles = (new Services.BoostrapFilesBuilder()).Build(config, environment);
 
             // SPA fallback
             app.Use(async (context, next) => {
+
+                // bootstrap files
+                foreach (var aa in bootstrapFiles.Keys) {
+                    if (context.Request.Path == config.AppBasePath + aa) {
+                        context.Response.ContentType = "text/html";
+                        await context.Response.WriteAsync(bootstrapFiles[aa]);
+                        return;
+                    }
+                }
 
                 // if routing already found an endpoint, let it handle the request
                 if (context.GetEndpoint() != null) {
@@ -147,7 +122,7 @@ namespace DProjects.XShell {
 
                 // SPA fallback
                 context.Response.ContentType = "text/html";
-                await context.Response.WriteAsync(indexHtml);
+                await context.Response.WriteAsync(bootstrapFiles["/index.html"]);
             });
 
 

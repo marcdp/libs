@@ -2,7 +2,6 @@ using System.Text.Json;
 
 using DProjects.Utils;
 namespace DProjects.XShell.Services {
-
     public sealed class ModuleFileCompiler {
 
 

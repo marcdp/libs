@@ -20,6 +20,8 @@ namespace DProjects.XShell.Commands {
         public string Source { get; init; } = "";
         [Flag('o', "Output directory", "")]
         public string Output { get; init; } = "";
+        [Flag('z', "Zip", false)]
+        public bool Zip { get; init; } = false;
 
 
         // methods
