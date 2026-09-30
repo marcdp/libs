@@ -43,6 +43,12 @@ function configuration(module) {
             navigation: { mode: "path" },
             resolver: {},
             ui: { layout: {}, component: {}, dialog: {} },
+            i18n: {
+                lang: "en",
+                langs: [{ id: "en", label: "English", main: true }],
+                datetime: { options: {}, formats: {} },
+                strings: {}
+            },
             configUrl: "https://example.test/xshell/xshell.jsonc",
             assetsUrl: "https://example.test/xshell/"
         }

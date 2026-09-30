@@ -77,7 +77,9 @@ namespace DProjects.XShell.Services {
                 throw new InvalidOperationException($"Module configuration '{moduleDescriptorPath}' must contain a modules object.");
             }
             return document.RootElement.Deserialize<Config>(new JsonSerializerOptions {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                ReadCommentHandling = JsonCommentHandling.Skip,
+                AllowTrailingCommas = true
             }) ?? throw new InvalidOperationException($"Module configuration '{moduleDescriptorPath}' is empty.");
         }
         internal static KeyValuePair<string, ModuleConfig> GetLocalModule(Config config, string moduleDescriptorPath) {

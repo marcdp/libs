@@ -222,7 +222,7 @@
     },
     "xshell": {
       "type": "object",
-      "required": ["build", "debug", "version", "environment", "identity", "assetsPrefix", "areas", "navigation", "resolver", "ui", "configUrl", "assetsUrl"],
+      "required": ["build", "debug", "version", "environment", "identity", "assetsPrefix", "areas", "navigation", "resolver", "ui", "i18n", "configUrl", "assetsUrl"],
       "properties": {
         "build": {"type": "string", "description": "XShell build identifier."},
         "debug": {"type": "boolean", "description": "Whether XShell debug behavior is enabled."},
@@ -232,6 +232,7 @@
         "configUrl": {"type": "string", "format": "uri", "description": "URL of the xshell configuration document"},
         "assetsUrl": {"type": "string", "format": "uri", "description": "URL of the directory or package containing the xshell assets."},
         "ui": {"$ref": "#/$defs/xshellUi", "description": "Global ui settings."},
+        "i18n": {"$ref": "#/$defs/xshellI18n", "description": "Language, translation, and date/time formatting settings."},
         "identity": {"$ref": "#/$defs/xshellIdentity", "description": "Identity subsystem configuration."},
         "areas": {"$ref": "#/$defs/xshellAreas", "description": "Application area configuration."},
         "navigation": {"$ref": "#/$defs/xshellNavigation", "description": "Navigation configuration."},
@@ -240,6 +241,54 @@
       },
       "additionalProperties": false,
       "description": "Core XShell runtime configuration."
+    },
+    "xshellI18n": {
+      "type": "object",
+      "required": ["lang", "langs", "datetime", "strings"],
+      "properties": {
+        "lang": {"type": "string", "minLength": 1, "description": "Current application language."},
+        "langs": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/xshellI18nLanguage"},
+          "description": "Languages available to the application."
+        },
+        "datetime": {"$ref": "#/$defs/xshellI18nDateTime", "description": "Default and named date/time formatting options."},
+        "strings": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": {"type": "string"}
+          },
+          "description": "Translation dictionaries keyed by language id."
+        }
+      },
+      "additionalProperties": false,
+      "description": "Internationalization service configuration."
+    },
+    "xshellI18nLanguage": {
+      "type": "object",
+      "required": ["id", "label"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1, "description": "Language identifier used by Intl and translation dictionaries."},
+        "label": {"type": "string", "description": "Human-readable language label."},
+        "main": {"type": "boolean", "description": "Whether the language is included in the main application language set."}
+      },
+      "additionalProperties": false,
+      "description": "Language available to the application."
+    },
+    "xshellI18nDateTime": {
+      "type": "object",
+      "required": ["options", "formats"],
+      "properties": {
+        "options": {"type": "object", "additionalProperties": true, "description": "Default Intl.DateTimeFormat options."},
+        "formats": {
+          "type": "object",
+          "additionalProperties": {"type": "object", "additionalProperties": true},
+          "description": "Named Intl.DateTimeFormat option sets."
+        }
+      },
+      "additionalProperties": false,
+      "description": "Date/time formatting configuration."
     },
     "xshellAreas": {
       "type": "object",

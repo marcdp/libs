@@ -75,12 +75,9 @@ export default class I18n {
         return lang ? lang.label : id;
     }
     translate(label) {
-        if (!this._strings) return label;
-        var translations = this._strings[this.config.lang];
+        var translations = this.config.strings?.[this.config.lang];
         if (!translations) return label;
-        var result = translations[label];
-        if (!result) return label;
-        return result;    
+        return translations[label] ?? label;
     }
     formatText(value, lang) {
         if (!value) return "";

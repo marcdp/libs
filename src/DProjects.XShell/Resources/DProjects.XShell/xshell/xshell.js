@@ -80,6 +80,7 @@ class XShell {
         this._loader = new Loader({ bus: this._bus, config: config, debug: this._debug, resolver: this._resolver });
         this._auth = new Auth({ config: config, loader: this._loader });
         this._i18n = new I18n();
+        await this._i18n.init(config.xshell.i18n);
         this._modules = new Modules( { bus: this._bus, config: config, loader: this._loader, resolver: this._resolver, document: document, services: this._services } );
         this._navigation = new Navigation( { areas: this._areas, bus: this._bus, config: config, container: this._container });
         this._tabs = new Tabs( { bus: this._bus } );
