@@ -18,6 +18,11 @@ For a menu item, the browser URL may be its optional friendly `path`. Navigation
 before it sets `x-page.src`. `x-page` then removes the Area prefix only for module resource resolution. It does not interpret menu paths, and the
 Loader does not translate menu paths to hrefs. Direct navigation to the canonical href continues to work when no friendly path is used.
 
+Navigation applies the same boundary to module routes: an incoming Area-aware friendly route is matched before `x-page.src` is assigned, converted to
+the route's canonical Page href, and supplied with extracted path parameters as query parameters. For browser-facing URLs, Navigation can reverse an
+applicable canonical Page href back to its friendly route, consuming placeholder query parameters while preserving unrelated query and fragments.
+Menu aliases take precedence over routes in both directions.
+
 See [Components](components.md) for the contract and implementation formats. A component contract's DOM events are distinct from public module Bus
 events.
 

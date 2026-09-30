@@ -98,7 +98,7 @@ does not attach them as refresh targets, so they are not live-reactive after com
 Composition visits modules in Area declaration order and each module's route properties in declaration order. Duplicate paths are preserved rather than
 overwritten. Modules without routes contribute nothing, and a module may contribute independently to multiple Areas. Route paths and targets are
 copied exactly from `module.routes`; Area prefixes are not applied. Areas do not match routes, extract placeholders, or rewrite targets. Navigation
-will interpret these declarations in later work, and routes remain separate from menus.
+uses these declarations for forward and reverse URL resolution, and routes remain separate from menus.
 
 ## Navigation context
 

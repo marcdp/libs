@@ -83,7 +83,7 @@ directory. References cannot override `assetsUrl`; physical resource ownership s
 
 The optional module `routes` object follows the same normalization boundary: its values are module-relative Page targets authored in the module
 configuration and become `/_assets/<module-id>/...` paths during bootstrap. Its application-facing keys are not normalized. Route placeholders remain
-declarative, and Navigation does not consume routes yet.
+declarative module metadata; Navigation interprets them only after Areas compose the participating modules' routes.
 
 ## Menu contributions and Areas
 
@@ -99,7 +99,7 @@ therefore still produce one runtime instance. `module.routes` is the effective c
 object. The effective configuration is immutable by the time runtime modules are initialized.
 
 Retrieve a runtime module with `xshell.modules.getModuleById(id)` or enumerate instances with `xshell.modules.getModules()`. `module.routes` is
-declarative metadata only: Areas will compose routes and Navigation will interpret them in later work.
+declarative metadata: Areas compose it, and Navigation uses the resulting ordered Area routes for forward and reverse resolution.
 
 See [Module Specification](../specifications/module.md), [Configuration](configuration.md), [Bootstrap](bootstrap.md), and
 [Service Worker](service-worker.md).

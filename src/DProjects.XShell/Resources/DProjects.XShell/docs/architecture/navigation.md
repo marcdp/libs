@@ -10,18 +10,37 @@ An Area is a navigation context within a mode. Its `xshell.areas.definitions.<id
 
 Areas also expose an ordered `area.routes` collection composed from their participating modules. These route declarations remain separate from menus:
 Area composition preserves each route's application-facing `path`, canonical Page `href`, source `module`, and declaration order without applying the
-Area prefix or interpreting placeholders. Navigation route resolution is future work; current Navigation behavior continues to operate on Pages and
-menus as described below.
+Area prefix or interpreting placeholders. Navigation compiles and matches these declarations when resolving incoming friendly paths.
 
 Navigation now has a private compiler for the intentionally small route syntax: literal path segments and whole-segment named parameters such as
 `/repository/{repositoryId}/projects/{projectId}/items`. It records parameter names in declaration order and creates an internal escaped matcher;
-malformed placeholders, partial-segment placeholders, duplicate names, wildcards, and query syntax are rejected. The compiler is not connected to
-path resolution yet: it does not match application URLs, extract values, apply Area prefixes, or generate query parameters.
+malformed placeholders, partial-segment placeholders, duplicate names, wildcards, and query syntax are rejected. The same compiled segment metadata
+is used for forward matching and reverse path construction.
 
 Navigation also has an internal Area-relative matcher that scans `area.routes` in composition order and returns `{ route, params }` for the first
 match, or `null` when none matches. It removes query and fragment suffixes for matching and decodes each captured segment independently, so encoded
-slashes remain within one parameter value. This helper does not resolve the route to its Page `href`, alter the browser URL, or participate in normal
-Navigation flow yet.
+slashes remain within one parameter value.
+
+For forward resolution, Navigation first preserves the existing exact menu-path lookup. If no menu alias matches, it resolves the Area, removes that
+Area's prefix for matching, and scans `area.routes` in composition order. The first match becomes the route's canonical Page `href`, with the Area
+prefix reapplied. Route parameters are encoded as query parameters; target query parameters and incoming public query parameters are preserved, with
+route parameters winning name conflicts. Incoming fragments are retained. For example,
+`/demo/repository/12/projects/7/items?sort=name#summary` can resolve internally to
+`/demo/_assets/x-demo/pages/items.js?repositoryId=12&projectId=7&sort=name#summary`.
+
+This conversion is internal before `x-page.src` is assigned. Browser-facing URLs remain friendly, canonical URLs continue to work directly, and an
+unmatched path follows the existing fallback.
+
+For reverse generation, Navigation preserves exact menu aliases first, then inspects the relevant Areas and their routes in deterministic order. A
+route applies when its target identity matches, its intrinsic target query parameters match, and every declared placeholder has a canonical query
+value. Placeholder values are encoded as individual path segments and consumed from the public query; intrinsic target parameters are also consumed,
+while unrelated parameters and the fragment remain. Missing placeholder values make that candidate inapplicable without throwing, so later routes or
+the canonical fallback can be used.
+
+For example, canonical
+`/_assets/x-demo/pages/items.js?repositoryId=12&projectId=7&sort=name` becomes public
+`/demo/repository/12/projects/7/items?sort=name`. Reverse routing remains private to Navigation; `x-anchor` continues to request a browser-facing URL
+without understanding route syntax.
 
 A menu item may provide both `path` and `href`. `path` is an optional friendly/public navigation path; `href` is the canonical XShell navigation
 target. `path` is an alias, not a replacement for `href`. A menu item without `path` remains valid and menu-facing UI naturally falls back to

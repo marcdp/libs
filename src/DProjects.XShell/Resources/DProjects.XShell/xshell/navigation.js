@@ -484,25 +484,44 @@ export default class Navigation {
     _buildUrlFinal(item) {
         const { identity, suffix } = this._splitHref(item.href);
         const menuitem = this._areas.resolvePath(identity);
+        if (menuitem) {
+            return this.buildUrl({
+                ...item,
+                href: menuitem.href + suffix
+            });
+        }
+        const area = this._areas.getArea?.(this._areas.resolveAreaId?.(identity));
+        if (area) {
+            const routePath = area.prefix ? identity.substring(area.prefix.length) || "/" : identity;
+            const match = this._matchAreaRoutes(routePath, area);
+            if (match) return this._buildRouteHref(match, item, area);
+        }
         return this.buildUrl({
             ...item,
-            href: (menuitem?.href || identity) + suffix
+            href: identity + suffix
         });
     }
     _buildUrlPublic(params) {
-        const href = this._resolvePublicHref(params.href, params.page);
-        return this.buildUrl({ ...params, href });
+        const target = this._resolvePublicTarget(params.href, params.params || {}, params.page);
+        return this.buildUrl({ ...params, href: target.href, params: target.params });
     }
     _resolvePublicHref(href, page) {
+        return this._resolvePublicTarget(href, {}, page).href;
+    }
+    _resolvePublicTarget(href, params, page) {
         // leave external targets under native browser control
-        if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(href)) return href;
+        if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(href)) return { href, params };
         const canonicalHref = this._resolveCanonicalHref(href, page);
         const { identity, suffix } = this._splitHref(canonicalHref);
         const areaId = this._areas.resolveAreaId?.(identity);
         const area = this._areas.getArea?.(areaId);
-        if (!area) return canonicalHref;
-        const menuitem = this._areas.resolveHref?.(identity, area.id);
-        return (menuitem?.path || identity) + suffix;
+        const menuitem = area ? this._areas.resolveHref?.(identity, area.id) : null;
+        if (menuitem) return { href: (menuitem.path || identity) + suffix, params };
+        for (const routeArea of this._getPublicRouteAreas(href, page)) {
+            const routeTarget = this._resolvePublicRouteTarget(canonicalHref, params, routeArea);
+            if (routeTarget) return routeTarget;
+        }
+        return { href: canonicalHref, params };
     }
     _resolveCanonicalHref(href, page) {
         // resolve relative targets and apply the originating navigation context
@@ -527,6 +546,7 @@ export default class Navigation {
         }
 
         const parameters = [];
+        const routeSegments = [];
         const segments = path.substring(1).split("/");
         const matcherSegments = segments.map(segment => {
             const parameter = segment.match(/^\{([A-Za-z_][A-Za-z0-9_]*)\}$/);
@@ -534,17 +554,20 @@ export default class Navigation {
                 const name = parameter[1];
                 if (parameters.includes(name)) throw new Error(`Invalid route path '${path}': duplicate parameter '${name}'.`);
                 parameters.push(name);
+                routeSegments.push({ parameter: name });
                 return "([^/]+)";
             }
             if (segment.includes("{") || segment.includes("}") || segment.includes("*") || segment.includes("?")) {
                 throw new Error(`Invalid route path '${path}': unsupported parameter or wildcard syntax.`);
             }
+            routeSegments.push({ literal: segment });
             return this._escapeRouteLiteral(segment);
         });
 
         return {
             path,
             parameters,
+            segments: routeSegments,
             matcher: new RegExp(`^/${matcherSegments.join("/")}$`)
         };
     }
@@ -558,11 +581,7 @@ export default class Navigation {
         if (typeof path !== "string") throw new TypeError("matchRoutes: path must be a string");
         const pathname = this._splitHref(path).identity;
         for (const route of routes || []) {
-            let compiled = this._compiledRoutes.get(route.path);
-            if (!compiled) {
-                compiled = this._compileRoute(route.path);
-                this._compiledRoutes.set(route.path, compiled);
-            }
+            const compiled = this._getCompiledRoute(route.path);
             const match = compiled.matcher.exec(pathname);
             if (!match) continue;
             const params = {};
@@ -574,6 +593,92 @@ export default class Navigation {
                 }
             }
             return { route, params };
+        }
+        return null;
+    }
+    _getCompiledRoute(path) {
+        let compiled = this._compiledRoutes.get(path);
+        if (!compiled) {
+            compiled = this._compileRoute(path);
+            this._compiledRoutes.set(path, compiled);
+        }
+        return compiled;
+    }
+    _buildRouteHref(match, item, area) {
+        // merge the route target and incoming URL while keeping path parameters authoritative
+        const target = this.parseUrl(match.route.href);
+        const targetParts = this._splitHref(target.href);
+        const inputParts = this._splitHref(item.href);
+        const targetIdentity = area.prefix && targetParts.identity !== area.prefix && !targetParts.identity.startsWith(area.prefix + "/")
+            ? area.prefix + targetParts.identity
+            : targetParts.identity;
+        const params = { ...target.params, ...match.params };
+        for (const [key, value] of Object.entries(item.params || {})) {
+            if (!Object.hasOwn(match.params, key)) params[key] = value;
+        }
+        return this.buildUrl({
+            ...item,
+            href: targetIdentity + (inputParts.suffix || targetParts.suffix),
+            params
+        });
+    }
+    _getPublicRouteAreas(href, page) {
+        const areas = [];
+        const add = area => {
+            if (area && !areas.includes(area)) areas.push(area);
+        };
+        const identity = this._splitHref(href).identity;
+        add(this._areas.getArea?.(this._areas.resolveAreaId?.(identity)));
+        if (page?.src) add(this._areas.getArea?.(this._areas.resolveAreaId?.(page.src)));
+        const moduleId = this._areas.getModuleId?.(identity);
+        if (moduleId) {
+            for (const area of this._areas.getAreas?.() || []) {
+                if (area.modules.includes(moduleId)) add(area);
+            }
+        }
+        add(this._areas.getCurrentArea?.());
+        add(this._areas.getDefaultArea?.());
+        return areas;
+    }
+    _resolvePublicRouteTarget(canonicalHref, suppliedParams, area) {
+        const canonical = this.parseUrl(canonicalHref);
+        const canonicalParts = this._splitHref(canonical.href);
+        const canonicalArea = this._areas.getArea?.(this._areas.resolveAreaId?.(canonicalParts.identity));
+        const canonicalIdentity = canonicalArea?.prefix && canonicalParts.identity.startsWith(canonicalArea.prefix + "/")
+            ? canonicalParts.identity.substring(canonicalArea.prefix.length)
+            : canonicalParts.identity;
+        const canonicalParams = { ...canonical.params, ...suppliedParams };
+        for (const route of area.routes || []) {
+            const target = this.parseUrl(route.href);
+            const targetIdentity = this._splitHref(target.href).identity;
+            if (targetIdentity !== canonicalIdentity) continue;
+            let applicable = true;
+            for (const [key, value] of Object.entries(target.params)) {
+                if (!Object.hasOwn(canonicalParams, key) || String(canonicalParams[key]) !== value) {
+                    applicable = false;
+                    break;
+                }
+            }
+            if (!applicable) continue;
+            const compiled = this._getCompiledRoute(route.path);
+            for (const parameter of compiled.parameters) {
+                const value = canonicalParams[parameter];
+                if (!Object.hasOwn(canonicalParams, parameter) || value === null || typeof value === "undefined" || String(value) === "") {
+                    applicable = false;
+                    break;
+                }
+            }
+            if (!applicable) continue;
+            const routePath = "/" + compiled.segments.map(segment => Object.hasOwn(segment, "parameter")
+                ? encodeURIComponent(String(canonicalParams[segment.parameter]))
+                : segment.literal).join("/");
+            const remainingParams = { ...canonicalParams };
+            for (const key of Object.keys(target.params)) delete remainingParams[key];
+            for (const parameter of compiled.parameters) delete remainingParams[parameter];
+            const publicPath = area.prefix && routePath !== area.prefix && !routePath.startsWith(area.prefix + "/")
+                ? area.prefix + routePath
+                : routePath;
+            return { href: publicPath + canonicalParts.suffix, params: remainingParams };
         }
         return null;
     }

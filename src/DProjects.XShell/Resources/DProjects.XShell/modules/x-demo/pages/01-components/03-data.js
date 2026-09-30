@@ -149,10 +149,17 @@ export default {
 
         <h2>JSON</h2>
 
-        <x-json value='{"name":"XShell","enabled":true,"version":1,"items":["one","two","three"]}'>
-        </x-json>
+        <x-json x-prop:value="state.value"></x-json>
+        <x-json x-prop:value="state.value" indent="2"></x-json>
 
         <x-divider></x-divider>
+
+        <h2>Propertygrid</h2>
+
+        <x-propertygrid x-prop:value="state.value"></x-propertygrid>
+
+        <x-divider></x-divider>
+
 
         <h2>Date and time</h2>
 
@@ -218,6 +225,9 @@ export default {
 
         <x-pager total="95" index="1" size="20" label="records"></x-pager>
     `,  
+    state: {
+        value:{"name":"XShell","enabled":true,"version":1,"items":["one","two","three"]}
+    },
     controller({ state }) {
         return {
             load(params) {

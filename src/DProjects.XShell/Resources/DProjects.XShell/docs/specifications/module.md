@@ -98,12 +98,14 @@ Routes are application URL-to-Page declarations, distinct from `menus`, which ar
 `/_assets/<module-id>/...` resource namespace. Route keys are preserved unchanged. Area prefixes and application base paths are not applied, and
 route values are not otherwise rewritten.
 
-Runtime route resolution will be handled by Navigation in later work, and Area composition of routes is not part of this change. Declaring `routes`
-does not alter existing navigation behavior.
+Areas compose routes from participating modules, and Navigation resolves incoming Area-relative friendly paths against that ordered collection. A
+match selects the canonical Page target and adds decoded path parameters as encoded query parameters. Exact menu-path aliases retain precedence.
+For browser-facing generation, Navigation can select the first applicable route targeting a canonical Page, substitute placeholder values from its
+query, and preserve unused query parameters. Missing placeholder values make a reverse candidate inapplicable. Exact menu aliases retain precedence.
 
 After bootstrap, the runtime module instance exposes the normalized declarations through `xshell.modules.getModuleById(id).routes`. This is the
 effective configuration object itself; modules without routes expose a frozen empty object. Route metadata remains declarative—Areas and Navigation
-do not compose or resolve it yet.
+compose and interpret it without mutating the module definition.
 
 For example, this authored route:
 

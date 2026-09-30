@@ -24,6 +24,10 @@ function createAreas() {
     };
     const module = {
         id: "customer",
+        routes: {
+            "/customer/{customerId}": "/_assets/customer/pages/detail.js",
+            "/customer-route/{customerId}": "/_assets/customer/pages/route-detail.js"
+        },
         config: {
             menus: {
                 navigation: [{
@@ -37,6 +41,14 @@ function createAreas() {
     };
     const demoModule = {
         id: "x-demo",
+        routes: {
+            "/something": "/_assets/x-demo/pages/about.js",
+            "/repository/{repositoryId}": "/_assets/x-demo/pages/repository.js?mode=list",
+            "/repository/{repositoryId}/projects/{projectId}/items": "/_assets/x-demo/pages/items.js",
+            "/repository/{repositoryId}/items": "/_assets/x-demo/pages/items.js",
+            "/navigation": "/_assets/x-demo/pages/route-navigation.js",
+            "/navigation-route": "/_assets/x-demo/pages/03-navigation/index.js"
+        },
         config: { menus: { navigation: "x-demo-dynamic-navigation-menu-source" } }
     };
     const shellModule = { id: "shell", config: { menus: {} } };
@@ -231,6 +243,197 @@ test("Navigation still resolves incoming friendly paths to canonical Page hrefs"
         navigation._buildUrlFinal(navigation.parseUrl("/sales/detail?customer=42#summary")),
         "/sales/_assets/customer/pages/detail.js?customer=42#summary"
     );
+});
+
+test("Navigation resolves Area routes to canonical Page hrefs with path parameters", () => {
+    const navigation = createNavigation();
+
+    assert.equal(
+        navigation._buildUrlFinal(navigation.parseUrl("/demo/repository/12/projects/7/items")),
+        "/demo/_assets/x-demo/pages/items.js?repositoryId=12&projectId=7"
+    );
+});
+
+test("Navigation preserves target query, incoming query, and fragment with route parameters authoritative", () => {
+    const navigation = createNavigation();
+
+    assert.equal(
+        navigation._buildUrlFinal(navigation.parseUrl("/demo/repository/12?repositoryId=999&sort=name&page=3#details")),
+        "/demo/_assets/x-demo/pages/repository.js?mode=list&repositoryId=12&sort=name&page=3#details"
+    );
+});
+
+test("Navigation safely serializes decoded route parameter values", () => {
+    const navigation = createNavigation();
+
+    assert.equal(
+        navigation._buildUrlFinal(navigation.parseUrl("/demo/repository/hello%20world")),
+        "/demo/_assets/x-demo/pages/repository.js?mode=list&repositoryId=hello%20world"
+    );
+    assert.equal(
+        navigation._buildUrlFinal(navigation.parseUrl("/demo/repository/abc%2Fdef")),
+        "/demo/_assets/x-demo/pages/repository.js?mode=list&repositoryId=abc%2Fdef"
+    );
+});
+
+test("Navigation matches only the resolved Area routes", () => {
+    const navigation = createNavigation();
+
+    assert.equal(
+        navigation._buildUrlFinal(navigation.parseUrl("/sales/customer/12")),
+        "/sales/_assets/customer/pages/detail.js?customerId=12"
+    );
+    assert.equal(navigation._buildUrlFinal(navigation.parseUrl("/demo/customer/12")), "/demo/customer/12");
+});
+
+test("Navigation gives exact menu paths precedence over matching routes", () => {
+    const navigation = createNavigation();
+
+    assert.equal(
+        navigation._buildUrlFinal(navigation.parseUrl("/demo/navigation")),
+        "/demo/_assets/x-demo/pages/03-navigation/index.js"
+    );
+});
+
+test("Navigation route resolution preserves direct canonical and unmatched fallback behavior", () => {
+    const navigation = createNavigation();
+
+    assert.equal(
+        navigation._buildUrlFinal(navigation.parseUrl("/demo/_assets/x-demo/pages/items.js?repositoryId=12")),
+        "/demo/_assets/x-demo/pages/items.js?repositoryId=12"
+    );
+    assert.equal(navigation._buildUrlFinal(navigation.parseUrl("/demo/not-a-route")), "/demo/not-a-route");
+});
+
+test("Navigation route resolution is mode-independent and keeps browser-facing route URLs", () => {
+    const pathNavigation = createNavigation({ mode: "path", basePath: "https://example.test/app/" });
+    const hashNavigation = createNavigation({ mode: "hash", basePath: "https://example.test/app/" });
+    const href = "/demo/repository/12";
+
+    assert.equal(pathNavigation.buildUrlAbsolute({ href }), "/app/demo/repository/12");
+    assert.equal(hashNavigation.buildUrlAbsolute({ href }), "/app/#!/demo/repository/12");
+    assert.equal(
+        pathNavigation._buildUrlFinal(pathNavigation.parseUrl(href)),
+        "/demo/_assets/x-demo/pages/repository.js?mode=list&repositoryId=12"
+    );
+    assert.equal(
+        hashNavigation._buildUrlFinal(hashNavigation.parseUrl(href)),
+        "/demo/_assets/x-demo/pages/repository.js?mode=list&repositoryId=12"
+    );
+});
+
+test("Navigation reverse maps literal and parameterized canonical Page hrefs", () => {
+    const navigation = createNavigation();
+
+    assert.equal(navigation.buildUrlAbsolute({ href: "/_assets/x-demo/pages/about.js" }), "/demo/something");
+    assert.equal(
+        navigation.buildUrlAbsolute({ href: "/_assets/x-demo/pages/repository.js?mode=list&repositoryId=12" }),
+        "/demo/repository/12"
+    );
+    assert.equal(
+        navigation.buildUrlAbsolute({ href: "/_assets/x-demo/pages/items.js?repositoryId=12&projectId=7" }),
+        "/demo/repository/12/projects/7/items"
+    );
+});
+
+test("Navigation reverse routing consumes route and intrinsic target params while preserving unused query and fragments", () => {
+    const navigation = createNavigation();
+
+    assert.equal(
+        navigation.buildUrlAbsolute({
+            href: "/_assets/x-demo/pages/items.js#summary",
+            params: { repositoryId: "12", projectId: "7", sort: "name", page: 3 }
+        }),
+        "/demo/repository/12/projects/7/items?sort=name&page=3#summary"
+    );
+    assert.equal(
+        navigation.buildUrlAbsolute({ href: "/_assets/x-demo/pages/repository.js?mode=list&repositoryId=12&sort=name#details" }),
+        "/demo/repository/12?sort=name#details"
+    );
+});
+
+test("Navigation reverse routing encodes placeholder values as individual path segments", () => {
+    const navigation = createNavigation();
+
+    assert.equal(
+        navigation.buildUrlAbsolute({ href: "/_assets/x-demo/pages/repository.js", params: { mode: "list", repositoryId: "hello world" } }),
+        "/demo/repository/hello%20world"
+    );
+    assert.equal(
+        navigation.buildUrlAbsolute({ href: "/_assets/x-demo/pages/repository.js", params: { mode: "list", repositoryId: "abc/def" } }),
+        "/demo/repository/abc%2Fdef"
+    );
+});
+
+test("Navigation reverse routing skips candidates with missing parameters and continues in Area order", () => {
+    const navigation = createNavigation();
+
+    assert.equal(
+        navigation.buildUrlAbsolute({ href: "/_assets/x-demo/pages/items.js?repositoryId=12" }),
+        "/demo/repository/12/items"
+    );
+    const fallback = navigation.buildUrlAbsolute({ href: "/_assets/x-demo/pages/items.js?projectId=7" });
+    assert.equal(fallback, "/sales/_assets/x-demo/pages/items.js?projectId=7");
+    assert.equal(fallback.includes("undefined"), false);
+});
+
+test("Navigation reverse routing uses the first applicable route for duplicate targets", () => {
+    const navigation = createNavigation();
+
+    assert.equal(
+        navigation.buildUrlAbsolute({ href: "/_assets/x-demo/pages/items.js?repositoryId=12&projectId=7" }),
+        "/demo/repository/12/projects/7/items"
+    );
+});
+
+test("Navigation reverse routing keeps exact menu aliases ahead of routes", () => {
+    const navigation = createNavigation();
+
+    assert.equal(
+        navigation.buildUrlAbsolute({ href: "/_assets/x-demo/pages/03-navigation/index.js" }),
+        "/demo/navigation"
+    );
+});
+
+test("Navigation reverse routing honors originating Area and target-module Area discovery", () => {
+    const navigation = createNavigation();
+    const page = { src: "/admin/_assets/customer/pages/origin.js" };
+
+    assert.equal(
+        navigation.buildUrlAbsolute({ href: "/_assets/customer/pages/route-detail.js?customerId=12", page }),
+        "/admin/customer-route/12"
+    );
+    assert.equal(
+        navigation.buildUrlAbsolute({ href: "/_assets/x-demo/pages/about.js" }),
+        "/demo/something"
+    );
+});
+
+test("Navigation reverse routing applies an existing Area prefix exactly once", () => {
+    const navigation = createNavigation();
+
+    assert.equal(
+        navigation.buildUrlAbsolute({ href: "/demo/_assets/x-demo/pages/about.js" }),
+        "/demo/something"
+    );
+});
+
+test("Navigation reverse routing requires intrinsic target query parameters", () => {
+    const navigation = createNavigation();
+
+    assert.equal(
+        navigation.buildUrlAbsolute({ href: "/_assets/x-demo/pages/repository.js?mode=grid&repositoryId=12" }),
+        "/sales/_assets/x-demo/pages/repository.js?mode=grid&repositoryId=12"
+    );
+});
+
+test("Navigation reverse routes consistently in path and hash modes with AppBasePath", () => {
+    const pathNavigation = createNavigation({ mode: "path", basePath: "https://example.test/app/" });
+    const hashNavigation = createNavigation({ mode: "hash", basePath: "https://example.test/app/" });
+    const href = "/_assets/x-demo/pages/repository.js?mode=list&repositoryId=12";
+
+    assert.equal(pathNavigation.buildUrlAbsolute({ href }), "/app/demo/repository/12");
+    assert.equal(hashNavigation.buildUrlAbsolute({ href }), "/app/#!/demo/repository/12");
 });
 
 test("Navigation leaves external URLs untouched", () => {
