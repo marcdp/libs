@@ -60,7 +60,7 @@ export default {
                 state.breadcrumb = page.breadcrumb;
                 state.context = page.context || {};
                 state.contract = page.contract;
-                state.meta = page.implementation.meta;
+                state.meta = page.implementation?.meta || {};
             }
         }
     }

@@ -25,12 +25,9 @@
 
         // ui
         "ui": {
-            "layout": {
-                "default": null,
-                "dialog": null,
-                "main": null,
-                "stack": null,
-                "embed": null
+            "component": {
+                "lazy": "",
+                "error": ""
             },
             "dialog": {
                 "confirm": null,
@@ -38,9 +35,14 @@
                 "prompt": null,
                 "picker": null
             },
-            "component": {
-                "lazy": "",
-                "error": ""
+            "layout": {
+                "default": null,
+                "dialog": null,
+                "main": null,
+                "stack": null,
+                "embed": null
+            },
+            "page": {
             }
         },
 

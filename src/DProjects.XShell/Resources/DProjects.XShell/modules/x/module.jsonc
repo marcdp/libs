@@ -33,21 +33,12 @@
 
     // resolver
     "xshell": {
-        // resolver
-        "resolver": {
-            "component": {
-                //"ace-editor": { "url": "https://unpkg.com/ace-custom-element@latest/dist/index.min.js", "loader": "module-js"}
-            }
-        },
 
         // ui
         "ui": {
-            "layout": {
-                "default": "x-layout-default",
-                "dialog": "x-layout-dialog",
-                "main": "x-layout-main",
-                "stack": "x-layout-stack",
-                "embed": "x-layout-embed"
+            "component": {
+                "lazy": "x-lazy",
+                "error": "x-error"
             },
             "dialog": {
                 "confirm": "/pages/dialog-confirm.js",
@@ -55,9 +46,14 @@
                 "prompt": "/pages/dialog-prompt.js",
                 "picker": "/pages/dialog-picker.js"
             },
-            "component": {
-                "lazy": "x-lazy",
-                "error": "x-error"
+            "layout": {
+                "default": "x-layout-default",
+                "dialog": "x-layout-dialog",
+                "main": "x-layout-main",
+                "stack": "x-layout-stack",
+                "embed": "x-layout-embed"
+            },
+            "page":{
             }
         }
         

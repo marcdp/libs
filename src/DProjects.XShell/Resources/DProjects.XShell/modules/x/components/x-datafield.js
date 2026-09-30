@@ -597,7 +597,10 @@ export default {
 
             async langAdd(args) {
                 //langAdd
-                let lang = await navigation.showDialog({ src: "/x/pages/lang-picker.html?disabled=" + state.langs.join(",")});
+                let lang = await dialog.language({
+                    current: state.langs.join(",")
+                });
+                //let lang = await navigation.showDialog({ src: "/x/pages/lang-picker.html?disabled=" + state.langs.join(",")});
                 if (lang) {
                     state.langs.push(lang);
                     state.langIndex = state.langs.length - 1;

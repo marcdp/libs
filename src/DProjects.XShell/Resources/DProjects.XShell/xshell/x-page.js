@@ -216,7 +216,10 @@ class XPage extends HTMLElement {
             page.onCommand = (command, params) => {
                 if (command == "mount") {
                     //debugger;
-                    this.showError(exception);
+                    exception.src = src;
+                    exception.areaId = area?.id;
+                    exception.moduleId = moduleId;
+                    this.showError( exception );
                 }
             }
         }        
@@ -336,7 +339,7 @@ class XPage extends HTMLElement {
         //remove DOM node
         removeHandler();
     }
-    async showError({code, message, src, module, stack, errors}) {
+    async showError({code, message, src, moduleId, areaId, stack, errors}) {
         // show error
         let name = xshell.config.xshell.ui.component.error;
         const errorCoomponentClass = await xshell.loader.load("component:" + name);
@@ -344,9 +347,10 @@ class XPage extends HTMLElement {
         errorComponent.code = code;
         errorComponent.message = message;
         errorComponent.src = src;
-        errorComponent.module = module;
-        errorComponent.errors = errors;
+        errorComponent.moduleId = moduleId;
+        errorComponent.areaId = areaId;
         errorComponent.stack = stack;
+        errorComponent.errors = errors;
         this.replaceChildren(errorComponent);
     }
 }

@@ -303,13 +303,6 @@ x-markdown pre code {
     --x-notice-color-success: #0EAF1C;
     --x-notice-color-working: #999999;
 
-    /* x-popover */
-    --x-popover-background: white;
-    --x-popover-border-radius: .75em;
-    --x-popover-border: .1em #B4B4BB solid;
-    --x-popover-shadow:0 4px 15px rgba(0, 0, 0, 0.1);
-    --x-popover-padding: .75em;
-
     /* splitter */
     --x-splitter-background: #dddddd;
 }

@@ -70,9 +70,10 @@ export default class Dialog {
             } 
         });
     }
-    async language({ title = "Select language", message = "Language", value, required=true } =  {}) {
+    async language({ title = "Select language", message = "Language", value, required=true, current=[] } =  {}) {
         let domain = [];
         for (let item of this._i18n.config.langs) {
+            if (current.indexOf(item.id) != -1) continue;
             domain.push({
                 value: item.id,
                 label: item.label + " (" + item.id + ")"

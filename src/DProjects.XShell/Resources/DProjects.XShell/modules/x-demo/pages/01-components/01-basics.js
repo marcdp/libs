@@ -132,7 +132,7 @@ export default {
         </x-chip>
 
         <x-divider></x-divider>
-        
+
         <h2>Empty</h2>
         <x-empty
             icon="x-folder"

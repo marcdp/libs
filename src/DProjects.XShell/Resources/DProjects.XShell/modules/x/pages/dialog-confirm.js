@@ -34,17 +34,17 @@ export default {
                 page.close("yes");
             },
 
-            no(params) {
+            no() {
                 //no
                 page.close("no");
             },
 
-            cancel(params) {
+            cancel() {
                 //cancel
                 page.close("cancel");
             },
 
-            ok(params) {
+            ok() {
                 //ok
                 page.close("ok");
             }
