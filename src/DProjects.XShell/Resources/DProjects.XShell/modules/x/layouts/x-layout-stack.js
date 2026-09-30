@@ -75,7 +75,9 @@ export default {
             display:flex; 
             align-items:baseline; 
         }
-        div.panel .header h2 {margin:0; flex:1; font-size: var(--x-font-size-subtitle); margin-right:1em;}
+
+        div.panel .header div {flex:1;}
+        div.panel .header div h2 {margin:0; flex:1; font-size: var(--x-font-size-subtitle); margin-right:1em;}
         div.panel .header x-button {transform:translateY(-0.2em);}
         div.panel .body {
             padding:var(--x-layout-stack-page-padding-vertical) var(--x-layout-stack-page-padding-horizontal) var(--x-layout-stack-page-padding-vertical) var(--x-layout-stack-page-padding-horizontal);
@@ -97,9 +99,12 @@ export default {
         <div class="panel"    x-class:expanded="state.expanded" x-on:transitionend="transitionEnd">
             <x-loading x-if="state.status=='loading'"></x-loading>
             <div class="header">            
-                <h2><x-page-title></x-page-title></h2>
-                <x-button class="anchor" icon="x-close" x-on:click="queryClose"></x-button>
-            </div>
+                <div>
+                    <h2><x-page-title></x-page-title></h2>
+                    <x-page-debug></x-page-debug>
+                </div>
+                <x-button class="anchor" icon="x-close" x-on:click="queryClose"></x-button>               
+            </div>            
             <div class="body">                
                 <slot></slot>
             </div>
@@ -109,7 +114,6 @@ export default {
         return {
             load() {
                 //load
-                //events.on(bus, "xshell:page:load", "refresh");
                 //this.render();
                 host.shadowRoot.addEventListener("transitionend", () => this.transitionEnd());
                 const msSinceLoad = runtime.uptimeMs;

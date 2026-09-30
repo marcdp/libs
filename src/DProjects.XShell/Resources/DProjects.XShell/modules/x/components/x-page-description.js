@@ -10,8 +10,12 @@ export const contract = {
 
 // implementation
 export default {
-    style: ``,
-    template: `{{ state.description }}`,
+    style: `
+        :host {display:block; }
+    `,
+    template: `
+        {{ state.description }}
+    `,
     state: {
         description: ""
     },

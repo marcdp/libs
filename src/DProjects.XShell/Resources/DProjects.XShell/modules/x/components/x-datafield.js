@@ -407,6 +407,9 @@ export default {
         <div x-elseif="state.type=='html'" class="input code">
             <x-code-editor x-model="state.value" mode="html"></x-code-editor>
         </div>
+        <div x-elseif="state.type=='xml'" class="input code">
+            <x-code-editor x-model="state.value" mode="xml"></x-code-editor>
+        </div>
         <div x-elseif="state.type=='markdown'" class="input code">
             <x-code-editor x-model="state.value" mode="markdown"></x-code-editor>
         </div>

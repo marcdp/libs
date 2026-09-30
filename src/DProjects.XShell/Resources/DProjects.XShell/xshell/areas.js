@@ -136,7 +136,7 @@ export default class Areas {
         if (!href) return null;
         // search the selected Area or only Areas associated with the target module
         const targetHref = this._getHrefIdentity(href);
-        const moduleId = this._getModuleId(targetHref);
+        const moduleId = this.getModuleId(targetHref);
         let areas;
         if (areaId) {
             areas = [this.getArea(areaId)].filter(Boolean);
@@ -153,6 +153,11 @@ export default class Areas {
             }
         }
         return null;
+    }
+    getModuleId(href) {
+        const parts = href.split("/");
+        const assetsIndex = parts.indexOf(this._assetsPrefix);
+        return assetsIndex === -1 ? null : parts[assetsIndex + 1] || null;
     }
     getMenu(name, areaId = null) {
         const area = areaId ? this.getArea(areaId) : this.getCurrentArea();
@@ -242,11 +247,6 @@ export default class Areas {
         const hashIndex = href.indexOf("#");
         const suffixIndexes = [queryIndex, hashIndex].filter(index => index !== -1);
         return suffixIndexes.length ? href.substring(0, Math.min(...suffixIndexes)) : href;
-    }
-    _getModuleId(href) {
-        const parts = href.split("/");
-        const assetsIndex = parts.indexOf(this._assetsPrefix);
-        return assetsIndex === -1 ? null : parts[assetsIndex + 1] || null;
     }
     _normalizePrefix(prefix) {
         if (!prefix || prefix === "/") return "";

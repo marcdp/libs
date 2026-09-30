@@ -1,0 +1,29 @@
+{
+
+    // module
+    "modules": {
+        "codemirror": {
+            "label": "Code mirror Editor module",
+            "version": "1.0.0",
+            "styles": [ ],
+            "copyright": "",
+            "icon": "",
+            "defaults": {
+                "component": { 
+                    "renderEngine": "x",
+                    "stateEngine": "proxy"
+                },
+                "page": { 
+                    "renderEngine": "x",
+                    "stateEngine": "proxy"
+                }
+            },
+            "contract": {
+                "events": {},
+                "actions": {},
+                "intents": {}
+            }
+        }
+    }
+
+}

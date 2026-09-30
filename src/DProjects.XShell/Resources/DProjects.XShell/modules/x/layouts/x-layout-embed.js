@@ -40,6 +40,7 @@ export default {
     `,
     template: `
         <x-loading x-if="state.status=='loading'"></x-loading>
+        <x-page-debug></x-page-debug>
         <slot></slot>
     `    
 };

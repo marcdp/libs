@@ -1,32 +1,50 @@
 using DProjects.Utils;
-
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.StaticFiles;
 
 namespace DProjects.XShell.Middlewares {
 
-    public sealed class TempMiddleware {
+    public sealed class TempMiddleware : IDisposable {
 
         // Holds middleware dependencies and configured physical/request paths
         // fields
         private readonly RequestDelegate mNext;
         private readonly string mPhysicalPath;
         private readonly string mRequestPath;
+        private readonly TimeSpan mExpirationTime;
         private readonly FileExtensionContentTypeProvider mContentTypes = new();
+        private readonly Timer mTimer;
 
-
-        // Constructor: initializes paths and ensures the temp directory exists
         // ctor
-        public TempMiddleware(RequestDelegate next, string physicalPath, string requestPath) {
+        public TempMiddleware(RequestDelegate next, string physicalPath, string requestPath, TimeSpan expirationTime) {
             mNext = next;
             mPhysicalPath = Path.GetFullPath(physicalPath);
             mRequestPath = NormalizeRequestPath(requestPath);
-
+            mExpirationTime = expirationTime;
             Directory.CreateDirectory(mPhysicalPath);
+            // create a cron that deletes expired files every X minutes 
+            mTimer = new System.Threading.Timer(_ => {
+                try {
+                    var now = DateTime.UtcNow;
+                    foreach (var dir in Directory.GetDirectories(mPhysicalPath)) {
+                        var id = Path.GetFileName(dir);
+                        if (!Guid.TryParse(id, out System.Guid _)) continue;
+                        var info = new DirectoryInfo(dir);
+                        var expiration = info.CreationTimeUtc.Add(mExpirationTime);
+                        if (expiration < now) {
+                            try {
+                                Directory.Delete(dir, recursive: true);
+                            } catch { }
+                        }
+                    }
+                } catch { }
+            }, null, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(5));
+        }
+        public void Dispose() {
+            mTimer.Dispose(); 
         }
 
 
-        // Main request dispatcher: routes incoming requests to handlers based on path and method
         // methods
         public async Task InvokeAsync(HttpContext context) {
             // Check if the request path starts with the middleware's configured base path
@@ -51,7 +69,6 @@ namespace DProjects.XShell.Middlewares {
         }
 
 
-        // Handles POST uploads: validates form, saves file, and returns URL
         // methods (private)
         private async Task PostAsync(HttpContext context) {
             // Reject requests that are not form submissions (multipart/form-data)
@@ -94,7 +111,7 @@ namespace DProjects.XShell.Middlewares {
             context.Response.StatusCode = StatusCodes.Status201Created;
 
             // Build the public URL for the saved file
-            var url = $"temp:/{id}/{Uri.EscapeDataString(filename)}?size={file.Length}&type={MimeTypeUtils.GetMimeType(filename)}&hash={ComputeHash(filePath)}";
+            var url = $"temp:/{id}/{Uri.EscapeDataString(filename)}?size={file.Length}&type={MimeTypeUtils.GetMimeType(filename)}&hash={ComputeHash(filePath)}&expiration={System.DateTimeOffset.UtcNow.Add(mExpirationTime).ToUnixTimeSeconds()}";
             context.Response.ContentType = "text/plain";
             await context.Response.WriteAsync(url, context.RequestAborted);
         }
@@ -113,7 +130,7 @@ namespace DProjects.XShell.Middlewares {
             var parts = (remaining.Value ?? "").Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries);
 
             // Validate expected format: {id}/{filename} where id is a GUID
-            if (parts.Length != 2 || !Guid.TryParse(parts[0], out _)) {
+            if (parts.Length != 2 || !Guid.TryParse(parts[0], out System.Guid _)) {
                 context.Response.StatusCode = StatusCodes.Status404NotFound;
                 return;
             }

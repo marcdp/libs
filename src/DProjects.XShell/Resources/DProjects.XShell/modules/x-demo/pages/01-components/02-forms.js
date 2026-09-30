@@ -167,40 +167,7 @@ export default {
 
         <x-divider></x-divider>
 
-        <h2>Rich text</h2>
 
-        <x-datafield
-            type="richtext"
-            label="Content"
-            value="<p>Edit this <b>rich text</b> content.</p>">
-        </x-datafield>
-
-        <x-divider></x-divider>
-
-        <h2>Standalone rich-text editor</h2>
-
-        <x-richtext class="standalone" value="<p>This is an editable <b>rich text</b> example.</p>">
-        </x-richtext>
-
-        <x-divider></x-divider>
-
-        <h2>Code editor</h2>
-
-        <x-code-editor
-            mode="javascript"
-            wrap
-            value="const greeting = &quot;Hello, XShell!&quot;;">
-        </x-code-editor>
-
-        <x-divider></x-divider>
-
-        <h2>Playground</h2>
-
-        <x-playground>
-            <x-badge value="New"></x-badge>
-        </x-playground>
-
-        <x-divider></x-divider>
 
         <h2>Form footer</h2>
 

@@ -51,8 +51,9 @@ export default {
             z-index:10;
         }
         .container { position:relative;}
-        .header {display:flex; align-items:baseline; padding-bottom:1em;}
-        .header h2 {margin:0; flex:1; font-size: var(--x-font-size-subtitle); margin-right:1em}
+        .header {display:flex; align-items:baseline; padding-bottom:.5em;}
+        .header div {flex:1; }
+        .header div h2 {margin:0; flex:1; font-size: var(--x-font-size-subtitle); margin-right:1em}
         .header x-button {transform:translateY(-0.2em);}
 
         /* responsive */
@@ -75,9 +76,14 @@ export default {
             <div class="container">
                 <x-loading x-if="state.status=='loading'"></x-loading>
                 <div class="header">
-                    <h2><x-page-title></x-page-title></h2>
+                    <div>
+                        <h2><x-page-title></x-page-title></h2>
+                        <x-page-description></x-page-description>
+                        <x-page-debug></x-page-debug>
+                    </div>
                     <x-button class="anchor" icon="x-close" x-on:click="queryClose"></x-button>                                        
                 </div>
+                
                 <div class="body">
                     <slot></slot>
                 </div>            

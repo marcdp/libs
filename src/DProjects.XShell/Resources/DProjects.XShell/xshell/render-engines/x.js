@@ -664,7 +664,7 @@ class XTemplateInstance {
 			if (typeof(propValue)=="function") {
 				propValue = propValue.call(vNodeNew);
 			}
-			if (propValue != vNodeOld.props[prop]) {
+			if (propValue != vNodeOld.props[prop] || typeof(propValue)== "object") {
 				element[prop] = propValue;
 			}
 			validProps.push(prop);

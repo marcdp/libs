@@ -14,7 +14,7 @@ export const contract = {
 export default {
     style: `
         :host {display:block;}
-        table {width:100%; background:#cccccc; border-spacing:1px;}
+        table {width:99%; background:#cccccc; border-spacing:1px;}
         th:first-child, td:first-child {width:10em;}
         th, td {text-align:left; padding:.3em; vertical-align:top; background:white}
         td.object, td.array {padding:0}
@@ -51,6 +51,9 @@ export default {
                     <td x-elseif="state.schema[key].type == 'date'" class="date">
                         {{ state.value[key] }}                        
                     </td>
+                    <td x-elseif="state.schema[key].type == 'boolean'" class="boolean">
+                        <input type="checkbox" x-attr:checked="state.value[key]" disabled>
+                    </td>
                     <td x-else x-attr:class="state.schema[key].type">
                         {{ state.value[key]}}                        
                     </td>
@@ -78,7 +81,7 @@ export default {
                     if (typeof state.value[key] === "number") {
                         type = "number";
                     } else if (typeof state.value[key] === "boolean") {
-                        type = "checkbox";
+                        type = "boolean";
                     } else if (state.value[key] instanceof Date) {
                         type = "date";
                     } else if (Array.isArray(state.value[key])) {

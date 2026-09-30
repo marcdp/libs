@@ -13,10 +13,10 @@ export const contract = {
     properties: {
         value:    {type:"string", default:"", attribute:true, state:true, description:""},
         mode:     {type:"string", default:"", attribute:true, state:true, description:""},
-        theme:    {type:"string", default:"chrome", attribute:true, state:true, description:""},
-        wrap:     {type:"boolean", default:false, attribute:true, state:true, description:""},
         readonly: {type:"boolean", default:false, attribute:true, state:true, description:""},
-        ready:    {type:"boolean", default:false, attribute:true, state:true, description:""}
+        //theme:    {type:"string", default:"chrome", attribute:true, state:true, description:""},
+        //wrap:     {type:"boolean", default:false, attribute:true, state:true, description:""},
+        //ready:    {type:"boolean", default:false, attribute:true, state:true, description:""}
     },
     methods: {}
 };
@@ -27,72 +27,35 @@ export default {
     style: `
         :host {display:flex; height:10em; flex-direction:column; align-items:center; justify-content:center;}
         :host x-lazy {width:100%; height:100%;}
-        :host ace-editor {border-radius:var(--x-datafield-border-radius); flex:1; height:100%;}
+        :host codemirror-editor {border-radius:var(--x-datafield-border-radius); flex:1; height:100%; overflow:hidden;;}
         :host x-spinner + x-lazy {visibility:hidden; height:0}
     `,
     state: {
+        value: "",
+        mode: "",
+        readonly: false
     },
     template: `
-        <x-spinner x-if="!state.ready"></x-spinner>
-        <x-lazy class="no-spinner">
-            <ace-editor 
-                class="editor"
-                value-update-mode="start"
-
-                x-on:blur="change"
-                x-on:input="input"
-                x-on:ready="ready"
-                x-prop:value="state.value" 
-                
-                x-prop:wrap="state.wrap" 
-                x-prop:readonly="state.readonly" 
-                x-attr:mode="'ace/mode/' + state.mode"
-                x-attr:theme="'ace/theme/' + state.theme"
-            ></ace-editor>
-        </x-lazy>
+        <!--<x-spinner x-if="!state.ready"></x-spinner>-->
+        <codemirror-editor 
+            class="editor"
+            x-prop:value="state.value"             
+            x-prop:readonly="state.readonly" 
+            x-attr:mode="state.mode"
+            x-on:change="change"
+        ></codemirror-editor>
     `,
     controller({ state, host }) {
         return {
             load(params) {
                 //load
             },
-
-            ready(params) {
-                //ready
-                state.ready = true;
-            },
-
-            input(params) {
-                //input
-                console.log("input");
-                clearTimeout(this._inputTimeoutId);
-                this._inputTimeoutId = setTimeout(()=>{
-                    this.change();
-                }, 500);
-            },
-
             change(params) {
                 //change
-                console.log("change");
-                clearTimeout(this._inputTimeoutId);
-                let target = host.shadowRoot.querySelector(".editor");
                 let oldValue = state.value;
-                let newValue = target.value ?? "";
+                let newValue = params.event.detail.value ?? "";
                 state.value = newValue;
                 host.dispatchEvent(new CustomEvent("change", {detail: {oldValue, newValue}, bubbles: true, composed: false}));
-            },
-            preRender() {
-                debugger;
-                if (this._renderCount > 0) {
-                    let spinner = host.shadowRoot.querySelector("x-spinner");
-                    let editor = host.shadowRoot.querySelector("ace-editor");
-                    if (state.ready && spinner) host.shadowRoot.removeChild(spinner);
-                    if (state.wrap) editor.wrap = true;
-                    if (state.mode) editor.mode = "ace/mode/" + state.mode;
-                    if (state.theme) editor.theme = "ace/theme/" + state.theme;
-                    editor.value = host.value;
-                    return true;
-                }
             }
         }
     }    

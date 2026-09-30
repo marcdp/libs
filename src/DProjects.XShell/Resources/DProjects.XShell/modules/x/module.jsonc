@@ -25,6 +25,9 @@
                 "actions": {},
                 "intents": {}
             }
+        },
+        "codemirror": {
+            "configUrl": "../codemirror/module.jsonc"
         }
     },
 
@@ -33,7 +36,7 @@
         // resolver
         "resolver": {
             "component": {
-                "ace-editor": { "url": "https://unpkg.com/ace-custom-element@latest/dist/index.min.js", "loader": "module-js"}
+                //"ace-editor": { "url": "https://unpkg.com/ace-custom-element@latest/dist/index.min.js", "loader": "module-js"}
             }
         },
 

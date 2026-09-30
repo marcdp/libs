@@ -37,8 +37,8 @@ export default class Page {
     set id(value) { this._id = value; }
 
     get src() { return this._src; }
-
-   
+    
+    get context() { return this._context; }
 
     get label() { return this._label; }
     set label(value) { 
