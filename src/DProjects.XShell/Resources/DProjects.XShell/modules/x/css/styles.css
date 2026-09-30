@@ -48,32 +48,7 @@
     --x-color-background-xx-gray: #D5D5D5;
     --x-color-background-xxx-gray: #C5C5C5;
 
-    /* x-chip */
-    --x-chip-padding: .25em .65em;
-    --x-chip-background: var(--x-color-background-x-gray);
-    --x-chip-color: var(--x-color-text);
-    --x-chip-border: 1px solid var(--x-color-xxx-gray);
-    --x-chip-border-radius: 1em;
-    --x-chip-font-size: var(--x-font-size-small);
-
-    /* x-empty */
-    --x-empty-padding: 2em;
-    --x-empty-color: var(--x-color-text-gray);
-    --x-empty-icon-size: 3em;
-    --x-empty-icon-color: var(--x-color-x-gray);
-    --x-empty-label-size: var(--x-font-size-subtitle);
-    --x-empty-label-color: var(--x-color-text);
-
-    /* x-font */
-    --x-font-family:"Segoe UI",-apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
-    --x-font-size-x-small:10px;
-    --x-font-size-small:12px;
-    --x-font-size:14px;
-    --x-font-size-tab:16px;
-    --x-font-size-subtitle:18px;
-    --x-font-size-subsubtitle:15px;
-    --x-font-size-title:24px;
-
+    
     /* x-layout */
     --x-layout-default-page-padding-vertical: 0em;
     --x-layout-default-page-padding-horizontal: 0em;
@@ -101,35 +76,7 @@
     --x-layout-dialog-page-padding-horizontal: 1.5em;
     --x-layout-dialog-backdrop: rgba(0,0,0,.1);
 
-    /* x-loading */
-    --x-loading-top: .5em;
-    --x-loading-width: 10em;
-    --x-loading-color: var(--x-color-primary);
-    --x-loading-height: .4em;
-    --x-loading-duration: 4s;
-    --x-loading-delay: .250ms;
-
-    /* x-progress */
-    --x-progress-height: var(--x-loading-height);
-    --x-progress-color: var(--x-loading-color);
-    --x-progress-background: #cccccc;
-
-    /* x-scrollbar */
-    --x-scrollbar-width: thin;
-    --x-scrollbar-gutter: stable;
-
-    /* x-skeleton */
-    --x-skeleton-background: var(--x-color-xxxx-gray);
-    --x-skeleton-highlight: rgba(255,255,255,.55);
-    --x-skeleton-duration: 1.5s;
-
-    /* x-tooltip */
-    --x-tooltip-background: #303030;
-    --x-tooltip-color: #ffffff;
-    --x-tooltip-border-radius: .35em;
-    --x-tooltip-shadow: none;
-    --x-tooltip-offset: .5em;
-    --x-tooltip-delay: .4s;
+    
         
 }  
 
@@ -237,6 +184,26 @@ x-markdown pre code {
     --x-card-shadow: none;
     --x-card-padding: 1.15em;
     
+    /* x-chip */
+    --x-chip-padding: .25em .65em;
+    --x-chip-background: var(--x-color-background-x-gray);
+    --x-chip-color: var(--x-color-text);
+    --x-chip-border: 1px solid var(--x-color-xxx-gray);
+    --x-chip-border-radius: 1em;
+    --x-chip-font-size: var(--x-font-size-small);
+
+    /* x-code */
+    --x-code-padding: 1em;
+    --x-code-background: var(--x-color-background-gray);
+    --x-code-color: var(--x-color-text);
+    --x-code-border: var(--x-datafield-border);
+    --x-code-border-radius: var(--x-datafield-border-radius);
+    --x-code-font-family: monospace;
+    --x-code-font-size: .9em;
+    --x-code-line-height: 1.45;
+    --x-code-copy-background: var(--x-color-background-x-gray);
+    --x-code-copy-color: var(--x-color-text-gray);
+
     /* x-datafield */
     --x-datafield-color: #101010;
     --x-datafield-color-placeholder: #656F88;
@@ -266,6 +233,24 @@ x-markdown pre code {
     --x-dropdown-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
     --x-dropdown-padding-vertical: 1em;
     --x-dropdown-padding-horizontal: 1em;
+
+    /* x-empty */
+    --x-empty-padding: 2em;
+    --x-empty-color: var(--x-color-text-gray);
+    --x-empty-icon-size: 3em;
+    --x-empty-icon-color: var(--x-color-x-gray);
+    --x-empty-label-size: var(--x-font-size-subtitle);
+    --x-empty-label-color: var(--x-color-text);
+
+    /* x-font */
+    --x-font-family:"Segoe UI",-apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
+    --x-font-size-x-small:10px;
+    --x-font-size-small:12px;
+    --x-font-size:14px;
+    --x-font-size-tab:16px;
+    --x-font-size-subtitle:18px;
+    --x-font-size-subsubtitle:15px;
+    --x-font-size-title:24px;
 
     /* x-form  */
     --x-form-border: 1px #B4B4BB solid;
@@ -303,7 +288,39 @@ x-markdown pre code {
     --x-notice-color-success: #0EAF1C;
     --x-notice-color-working: #999999;
 
-    /* splitter */
+    /* x-loading */
+    --x-loading-top: .5em;
+    --x-loading-width: 10em;
+    --x-loading-color: var(--x-color-primary);
+    --x-loading-height: .4em;
+    --x-loading-duration: 4s;
+    --x-loading-delay: .250ms;
+
+    /* x-progress */
+    --x-progress-height: var(--x-loading-height);
+    --x-progress-color: var(--x-loading-color);
+    --x-progress-background: #cccccc;
+
+    /* x-scrollbar */
+    --x-scrollbar-width: thin;
+    --x-scrollbar-gutter: stable;
+
+    /* x-skeleton */
+    --x-skeleton-background: var(--x-color-xxxx-gray);
+    --x-skeleton-highlight: rgba(255,255,255,.55);
+    --x-skeleton-duration: 1.5s;
+
+    /* x-splitter */
     --x-splitter-background: #dddddd;
+
+    /* x-tooltip */
+    --x-tooltip-background: #303030;
+    --x-tooltip-color: #ffffff;
+    --x-tooltip-border-radius: .35em;
+    --x-tooltip-shadow: none;
+    --x-tooltip-offset: .5em;
+    --x-tooltip-delay: .4s;
+
 }
+
 

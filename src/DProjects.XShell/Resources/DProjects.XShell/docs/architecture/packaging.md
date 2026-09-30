@@ -1,30 +1,44 @@
 # Packaging
 
-XShell modules are authored as expanded directories. The implemented `pack` command stages such a directory, adds a physical file inventory, and
-creates an immutable ZIP package.
+XShell modules are authored as expanded directories. The `pack` command converts one authored module directory into a runtime-ready expanded or ZIP
+package. It does not recursively package modules referenced by `configUrl`.
 
 ## Pack command
 
 ```text
-DProjects.XShell pack --source <module-directory> --output <directory>
+DProjects.XShell pack --source <module-directory> --output <directory> [--zip]
 ```
 
-The source must exist and contain exactly one of `module.json` or `module.jsonc`. The descriptor must provide non-empty string `id` and `version`
-properties. The command then:
+The source must exist and contain exactly one of `module.json` or `module.jsonc`. JSONC comments and trailing commas are supported, and the authored
+descriptor is copied without being rewritten. The descriptor's `modules` object must contain exactly one entry without `configUrl`; that entry's key
+is the package id, independently of property order, and its non-empty `version` is the package version. All other module entries are external
+references and are not fetched or packaged.
 
-1. copies the complete source directory to a temporary staging directory;
-2. generates `modules.files.json` in staging;
-3. ZIPs the staging contents without an enclosing base directory;
-4. computes the lowercase SHA-256 hash of the ZIP bytes;
-5. writes or reuses `<id>-<version>-<sha256>.zip` in the output directory; and
-6. removes the temporary staging directory.
+The command uses one staging and compilation flow for both output modes:
 
-The expanded staging directory is temporary and is not a command output. If the immutable target ZIP already exists, the temporary ZIP is removed
-and the existing path is reported.
+1. copy the complete source module to a temporary staging directory outside the source and output trees;
+2. remove any copied `module.files.json`;
+3. compile staged JavaScript, HTML XShell SFC, and standalone CSS resources through `ModuleFileCompiler`;
+4. generate `module.files.json` from the final compiled files; and
+5. emit the compiled staging tree as an expanded directory or, with `--zip`, an immutable ZIP.
+
+JavaScript is replaced at its existing path with its compiled content. An authored HTML SFC such as `pages/orders.html` or
+`components/x-example.html` becomes the corresponding JavaScript resource (`pages/orders.js` or `components/x-example.js`), and the source HTML is
+not included. Packing fails if both the HTML and JavaScript source exist because they resolve to the same runtime path. Standalone CSS is compiled
+and replaced at the same path; resources are not bundled or concatenated.
+
+Without `--zip`, the output is `<output>/<id>-<version>/`. Its root directly contains the module descriptor, `module.files.json`, and resource
+directories. A completed temporary copy replaces an older directory with the same package name so stale files are not retained.
+
+With `--zip`, the output is `<output>/<id>-<version>-<sha256>.zip`, where the lowercase SHA-256 is computed over the ZIP bytes. The ZIP root directly
+contains the module contents without an enclosing package directory. If the identical immutable target already exists, it is reused.
+
+The command rejects an output directory that equals or is inside the source directory. Temporary staging is always cleaned after success or failure,
+and resource compilation failures are not swallowed.
 
 ## Module file manifest
 
-`ModuleFilesIndexer` records every file below the module directory except a file named `modules.files.json`, case-insensitively. Each entry contains:
+`ModuleFilesIndexer` records every final package file except `module.files.json` itself. Each entry contains:
 
 ```json
 {
@@ -34,26 +48,22 @@ and the existing path is reported.
 }
 ```
 
-`path` is relative to the inventory root, uses forward slashes, and carries a leading `/`. `size` is the file byte length. `hash` is the lowercase
-SHA-256 digest of the file bytes. Entries are sorted deterministically by path using ordinal comparison. The manifest inventories the physical
-package contents; it is not module semantic configuration and is not automatically loaded by bootstrap or the Service Worker.
+`path` is relative to the package root, uses forward slashes, and carries a leading `/`. `size` is the file byte length. `hash` is the lowercase
+SHA-256 digest of the file bytes. Entries are sorted deterministically by path using ordinal comparison. Because the manifest is generated after
+compilation, an HTML SFC contributes its generated `.js` path and not its authored `.html` path.
+
+The manifest is a physical package inventory. It is not module semantic configuration and is not automatically loaded by bootstrap or the Service
+Worker.
 
 ## Development resources
 
-`ResourcesMiddleware` serves default files and static files from the expanded XShell resource tree. In development it also generates an inventory
-on demand only when the containing directory has `module.json` or `module.jsonc`, and it adds no-cache headers to development resources. A debugger
-attached to the ASP.NET host forces this development behavior even when the configured ASP.NET environment is not Development.
+`ResourcesMiddleware` uses the same `ModuleFileCompiler` on demand in development, including HTML-to-JavaScript resolution and conflict detection.
+It also generates `module.files.json` on demand for module directories and adds no-cache headers to development resources. A debugger attached to the
+ASP.NET host forces this development behavior even when the configured ASP.NET environment is not Development.
 
-There is a current filename inconsistency: development exposes the virtual name `module.files.json`, while `pack` writes `modules.files.json`, and the
-indexer excludes only `modules.files.json`. Treat both as implementations of the same module file manifest concept, not as a finalized universal
-filename.
+Packaging does not provide ZIP-backed browser loading. Current Service Worker mapping and fetch behavior supports expanded directories only.
 
 ## Future work
-
-TODO: Unify the manifest filename before consumers depend on it.
-
-TODO: Align package identity with the configuration model. `pack` currently requires top-level `id` and `version`, while checked-in module
-descriptors key identity under `modules` and place `version` inside the effective module entry.
 
 TODO: Add automatic publish-time packing only if explicit MSBuild/publish targets are implemented. The current project merely copies `Resources/**`
 to the output directory and has no automatic `dotnet publish` packaging integration.

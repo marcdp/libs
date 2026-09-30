@@ -148,6 +148,29 @@ export default {
 
         <x-divider></x-divider>
 
+        <h2>Truncate</h2>
+
+        <div style="max-width: 150px;border: 1px solid #ccc; margin-bottom:.5em;">
+            <x-truncate text="This is a long text that will be truncated." lines="1"></x-truncate>
+        </div>
+        <div style="max-width: 150px;border: 1px solid #ccc; margin-bottom:.5em;">
+            <x-truncate text="This is a long text that will be truncated over multiple lines." lines="2"></x-truncate>
+        </div>
+        <div style="max-width: 150px;border: 1px solid #ccc;">
+            <x-truncate text="This is a long text that will be truncated over multiple lines." lines="3"></x-truncate>
+        </div>
+        
+        <x-divider></x-divider>
+
+        <h2>Code</h2>
+        <x-code
+            language="javascript"
+            value="const result = await dialog.confirm({ message: 'Continue?' });">
+        </x-code>
+
+        <x-divider></x-divider>
+
+
         <h2>Error</h2>
 
         <x-error

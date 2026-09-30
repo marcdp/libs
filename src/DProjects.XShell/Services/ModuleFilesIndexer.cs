@@ -13,15 +13,19 @@ namespace DProjects.XShell.Services {
         
         
         // methods
-        public async Task<string> CreateJsonAsync(string path) {
+        public Task<string> CreateJsonAsync(string path) {
+            return CreateJsonAsync(path, CancellationToken.None);
+        }
+        public async Task<string> CreateJsonAsync(string path, CancellationToken cancellationToken) {
             // scan
             var files = new List<FileIndexItem>();
             foreach (var file in Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories)) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (Path.GetFileName(file).Equals(ModuleFilesJson, StringComparison.OrdinalIgnoreCase)) {
                     continue;
                 }
                 await using var stream = File.OpenRead(file);
-                var hash = await SHA256.HashDataAsync(stream);
+                var hash = await SHA256.HashDataAsync(stream, cancellationToken);
                 files.Add(new FileIndexItem(
                     "/" + Path.GetRelativePath(path, file).Replace('\\', '/'),
                     new FileInfo(file).Length,
