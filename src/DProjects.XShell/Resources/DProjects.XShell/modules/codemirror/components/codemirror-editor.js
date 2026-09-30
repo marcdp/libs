@@ -12,7 +12,17 @@ import {  EditorState,
 // contract
 export const contract = {
     description: "Displays a code mirror editor.",
-    events: {},
+    events: {        
+        change: {
+            detail: { 
+                value: {
+                    type: "string",
+                    description: "The new value of the editor."
+                }
+            },
+            description: "Fired when the content of the editor changes."
+        },
+    },
     properties: {
         value: {type:"string", default:"", attribute:true, state:true, description:""},
         mode: {type:"string", default:"", attribute:true, state:true, description:"", enum:["javascript", "json", "html", "css"]}

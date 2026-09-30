@@ -96,6 +96,58 @@ export default {
 
         <x-divider></x-divider>
 
+        <h2>Tooltip</h2>
+        
+        <x-tooltip text="Delete item">
+            <x-button icon="x-delete"></x-button>
+        </x-tooltip>
+
+        <x-divider></x-divider>
+
+        <h2>Skeleton</h2>
+
+        <x-card>
+            <x-skeleton width="40%" height="1.2em"></x-skeleton>
+            <br>
+            <x-skeleton width="100%"></x-skeleton>
+            <br>
+            <x-skeleton width="75%"></x-skeleton>
+        </x-card>
+
+        <x-divider></x-divider>
+
+        <h2>Chip</h2>
+
+        <x-chip label="Active"></x-chip>
+
+        <x-chip
+            icon="x-check"
+            label="Completed">
+        </x-chip>
+
+        <x-chip
+            label="JavaScript"
+            removable
+            x-on:remove="removeTag">
+        </x-chip>
+
+        <x-divider></x-divider>
+        
+        <h2>Empty</h2>
+        <x-empty
+            icon="x-folder"
+            label="No files"
+            message="This folder is empty.">
+
+            <x-button
+                slot="actions"
+                label="Upload file">
+            </x-button>
+
+        </x-empty>
+
+        <x-divider></x-divider>
+
         <h2>Error</h2>
 
         <x-error
@@ -117,6 +169,10 @@ export default {
         <x-i18n text="Open the forms examples"></x-i18n>
 
         <x-divider></x-divider>
+
+        <h2>Progress</h2>
+
+        <x-progress value="50" min="0" max="100"></x-progress>
 
         <h2>Loading</h2>
 

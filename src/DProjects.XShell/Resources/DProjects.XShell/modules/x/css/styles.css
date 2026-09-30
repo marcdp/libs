@@ -48,6 +48,21 @@
     --x-color-background-xx-gray: #D5D5D5;
     --x-color-background-xxx-gray: #C5C5C5;
 
+    /* x-chip */
+    --x-chip-padding: .25em .65em;
+    --x-chip-background: var(--x-color-background-x-gray);
+    --x-chip-color: var(--x-color-text);
+    --x-chip-border: 1px solid var(--x-color-xxx-gray);
+    --x-chip-border-radius: 1em;
+    --x-chip-font-size: var(--x-font-size-small);
+
+    /* x-empty */
+    --x-empty-padding: 2em;
+    --x-empty-color: var(--x-color-text-gray);
+    --x-empty-icon-size: 3em;
+    --x-empty-icon-color: var(--x-color-x-gray);
+    --x-empty-label-size: var(--x-font-size-subtitle);
+    --x-empty-label-color: var(--x-color-text);
 
     /* x-font */
     --x-font-family:"Segoe UI",-apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
@@ -94,9 +109,27 @@
     --x-loading-duration: 4s;
     --x-loading-delay: .250ms;
 
-    /* scrollbar */
+    /* x-progress */
+    --x-progress-height: var(--x-loading-height);
+    --x-progress-color: var(--x-loading-color);
+    --x-progress-background: #cccccc;
+
+    /* x-scrollbar */
     --x-scrollbar-width: thin;
     --x-scrollbar-gutter: stable;
+
+    /* x-skeleton */
+    --x-skeleton-background: var(--x-color-xxxx-gray);
+    --x-skeleton-highlight: rgba(255,255,255,.55);
+    --x-skeleton-duration: 1.5s;
+
+    /* x-tooltip */
+    --x-tooltip-background: #303030;
+    --x-tooltip-color: #ffffff;
+    --x-tooltip-border-radius: .35em;
+    --x-tooltip-shadow: none;
+    --x-tooltip-offset: .5em;
+    --x-tooltip-delay: .4s;
         
 }  
 

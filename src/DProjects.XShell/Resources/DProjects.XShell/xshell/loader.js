@@ -194,7 +194,7 @@ export default class Loader {
                     }
                     result[resultIndex] = value;
                 } else if (taskResult.status === 'rejected') {
-                    debugger
+                    //debugger
                     const exception = taskResult.reason instanceof Error ? taskResult.reason : new Error(String(taskResult.reason));
                     const error = new ResourceLoadError(
                         resources[resultIndex],
