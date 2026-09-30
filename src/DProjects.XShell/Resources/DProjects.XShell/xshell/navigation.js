@@ -13,6 +13,7 @@ export default class Navigation {
     _mode = ""; 
     _hashPrefix = "";
     _appBasePath = "";
+    _compiledRoutes = new Map();
 
     _stack = [];
     
@@ -518,6 +519,63 @@ export default class Navigation {
         if (!area) return href;
         const canonicalHref = area.prefix && identity !== area.prefix && !identity.startsWith(area.prefix + "/") ? area.prefix + identity : identity;
         return canonicalHref + suffix;
+    }
+    _compileRoute(path) {
+        // compile literal segments and whole-segment parameters for future route matching
+        if (typeof path !== "string" || !path.startsWith("/")) {
+            throw new Error(`Invalid route path '${path}': routes must start with '/'.`);
+        }
+
+        const parameters = [];
+        const segments = path.substring(1).split("/");
+        const matcherSegments = segments.map(segment => {
+            const parameter = segment.match(/^\{([A-Za-z_][A-Za-z0-9_]*)\}$/);
+            if (parameter) {
+                const name = parameter[1];
+                if (parameters.includes(name)) throw new Error(`Invalid route path '${path}': duplicate parameter '${name}'.`);
+                parameters.push(name);
+                return "([^/]+)";
+            }
+            if (segment.includes("{") || segment.includes("}") || segment.includes("*") || segment.includes("?")) {
+                throw new Error(`Invalid route path '${path}': unsupported parameter or wildcard syntax.`);
+            }
+            return this._escapeRouteLiteral(segment);
+        });
+
+        return {
+            path,
+            parameters,
+            matcher: new RegExp(`^/${matcherSegments.join("/")}$`)
+        };
+    }
+    _escapeRouteLiteral(value) {
+        return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    }
+    _matchAreaRoutes(path, area) {
+        return this._matchRoutes(path, area?.routes || []);
+    }
+    _matchRoutes(path, routes) {
+        if (typeof path !== "string") throw new TypeError("matchRoutes: path must be a string");
+        const pathname = this._splitHref(path).identity;
+        for (const route of routes || []) {
+            let compiled = this._compiledRoutes.get(route.path);
+            if (!compiled) {
+                compiled = this._compileRoute(route.path);
+                this._compiledRoutes.set(route.path, compiled);
+            }
+            const match = compiled.matcher.exec(pathname);
+            if (!match) continue;
+            const params = {};
+            for (let index = 0; index < compiled.parameters.length; index++) {
+                try {
+                    params[compiled.parameters[index]] = decodeURIComponent(match[index + 1]);
+                } catch (error) {
+                    throw new Error(`Invalid encoded route parameter in path '${path}'.`, { cause: error });
+                }
+            }
+            return { route, params };
+        }
+        return null;
     }
     _splitHref(href) {
         const queryIndex = href.indexOf("?");

@@ -13,6 +13,16 @@ Area composition preserves each route's application-facing `path`, canonical Pag
 Area prefix or interpreting placeholders. Navigation route resolution is future work; current Navigation behavior continues to operate on Pages and
 menus as described below.
 
+Navigation now has a private compiler for the intentionally small route syntax: literal path segments and whole-segment named parameters such as
+`/repository/{repositoryId}/projects/{projectId}/items`. It records parameter names in declaration order and creates an internal escaped matcher;
+malformed placeholders, partial-segment placeholders, duplicate names, wildcards, and query syntax are rejected. The compiler is not connected to
+path resolution yet: it does not match application URLs, extract values, apply Area prefixes, or generate query parameters.
+
+Navigation also has an internal Area-relative matcher that scans `area.routes` in composition order and returns `{ route, params }` for the first
+match, or `null` when none matches. It removes query and fragment suffixes for matching and decodes each captured segment independently, so encoded
+slashes remain within one parameter value. This helper does not resolve the route to its Page `href`, alter the browser URL, or participate in normal
+Navigation flow yet.
+
 A menu item may provide both `path` and `href`. `path` is an optional friendly/public navigation path; `href` is the canonical XShell navigation
 target. `path` is an alias, not a replacement for `href`. A menu item without `path` remains valid and menu-facing UI naturally falls back to
 `href` through `menuitem.path || menuitem.href`.
