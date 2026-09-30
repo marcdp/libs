@@ -42,12 +42,25 @@ export default  {
         value: "",
         mode: ""    
     },
-    controller({ state, host }) {
+    controller({ state, host, events }) {
         let editorState = null;
         let editor = null;
         return {
             load() {
                 // load
+                events.on(state, "change:value", (event) => {
+                    if (!editor) return;
+                    const value = event.newValue ?? "";
+                    const currentValue = editor.state.doc.toString();
+                    if (currentValue == value) return;
+                    editor.dispatch({
+                        changes: {
+                            from: 0,
+                            to: editor.state.doc.length,
+                            insert: value
+                        }
+                    });
+                });
             },
             mount() {
                 // mount

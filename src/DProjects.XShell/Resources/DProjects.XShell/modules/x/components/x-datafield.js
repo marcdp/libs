@@ -503,7 +503,7 @@ export default {
         selectedOptions: {},
         files: []
     },
-    controller({ state, events, timer, navigation, i18n, host, temp }) {
+    controller({ state, events, timer, navigation, i18n, host, temp, dialog }) {
         const updateTemplateState = () => {
             const value = state.value || "";
             const languages = state.langs || [];
