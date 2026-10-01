@@ -4,8 +4,7 @@ export const contract = {
     events: {},
     properties: {
         index:  {type:"number", default:0, attribute:true, state:true, description:""},
-        panels: {type:"array", default:[], attribute:true, state:true, description:""},
-        style:  {type:"string", default:"", attribute:true, state:true, description:""}
+        panels: {type:"array", default:[], state:true, description:""}
     },
     methods: {},
     slots: {
@@ -62,11 +61,11 @@ export default {
     controller({ state, host }) {
         let styleSheet = new CSSStyleSheet();
         return {
-            load(args) {
+            load() {
                 //load
                 this.refresh();
             },
-            mounted(args) {
+            mount() {
                 //mounted
                 host.shadowRoot.adoptedStyleSheets = [...host.shadowRoot.adoptedStyleSheets, styleSheet];
             },
@@ -78,19 +77,19 @@ export default {
                 this.refresh();
             },
 
-            prev(args) {
+            prev() {
                 //prev
                 state.index--;
                 this.refresh();
             },
 
-            next(args) {
+            next() {
                 //next
                 state.index++;
                 this.refresh();
             },
 
-            refresh(args) {
+            refresh() {
                 //refresh
                 let panels = [];
                 host.querySelectorAll(":scope > x-wizard-panel").forEach((panel, index) => {

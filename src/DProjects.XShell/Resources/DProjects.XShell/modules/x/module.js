@@ -1,10 +1,9 @@
 
 export default class {
 
-    // vars
-
     // ctor
     constructor({ }) {
+        
     }
 
     // methods

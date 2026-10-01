@@ -5,7 +5,6 @@
         "codemirror": {
             "label": "Code mirror Editor module",
             "version": "1.0.0",
-            "styles": [ ],
             "copyright": "",
             "icon": "",
             "defaults": {

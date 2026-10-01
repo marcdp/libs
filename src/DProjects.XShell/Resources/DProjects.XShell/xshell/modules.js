@@ -47,29 +47,25 @@ export default class Modules {
                 }
             };
             // styles
-            for (let style of moduleConfig.styles || []) {
-                let styleUrl = this._resolver.resolveUrl("style:" + style);
-                tasks.push((async() => {
-
-                    //let response = await fetch(styleUrl);
-                    //if (!response.ok) throw new Error(`Error ${response.status}: ${response.statusText}: ${styleUrl}`);
-                    //let styleSheet = await loadStyleSheetRecursive(styleUrl);
-                    //css = css.replace("/css/styles2","/_assets/x-demo/css/styles2.css")
-                    let styleSheet = await this._loader.load("style:" + style);
-                    //alert(css)
-                    //await styleSheet.replace(css);
-                    module.styles.push(styleSheet);
-                })());
-            }    
+            const moduleIndexCss = moduleConfig.assetsPath + "/styles/index.css";
+            for (const file of moduleConfig.files) {
+                if (file.path == moduleIndexCss) {
+                    tasks.push((async() => {
+                        let styleSheet = await this._loader.load("style:" + moduleIndexCss);
+                        module.styles.push(styleSheet);
+                    })());
+                }
+            }
             // controller
-            if (moduleConfig.controller) {
-                tasks.push((async() => {
-                    const moduleClass = await this._loader.load("module:" + moduleConfig.controller);
+            const moduleControllerJs = moduleConfig.assetsPath + "/module.js";
+            for (const file of moduleConfig.files) {
+                if (file.path == moduleControllerJs) {
+                    const moduleClass = await this._loader.load("module:" + moduleControllerJs);
                     const servicesProvider = new Proxy({}, {
                         get: (obj, prop) => {
                             if (prop == "moduleAssetsPath") {
                                 // module assets path
-                                return "/" + assetsPrefix + "/" + moduleId;
+                                 return moduleConfig.assetsPath;
                             } else if (prop == "moduleConfig") {
                                 // module config
                                 return { id: moduleId, ...moduleConfig };
@@ -80,8 +76,9 @@ export default class Modules {
                         }
                     });
                     module.controller = new moduleClass(servicesProvider);
-                })());
+                }
             }
+            // add module instance
             this._modules.push(module);
         }
         await Promise.all(tasks);

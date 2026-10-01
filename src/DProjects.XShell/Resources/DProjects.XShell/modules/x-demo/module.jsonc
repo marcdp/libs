@@ -14,10 +14,8 @@
         "x-demo": {
             "label": "test module",
             "version": "1.0.0",
-            "styles": [ "/css/styles.css" ],
             "icon": "",
             "copyright": "",
-            "controller": "/js/module.js",
             "defaults": {
                 "component": { 
                     "renderEngine": "x",

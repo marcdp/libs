@@ -14,7 +14,6 @@ The local definition is the one entry without `configUrl`. Its object key is the
             "version": "1.0.0",
             "copyright": "",
             "icon": "",
-            "styles": ["/css/styles.css"],
             "controller": "/js/module.js",
             "defaults": {
                 "page": { "renderEngine": "x", "stateEngine": "proxy" },

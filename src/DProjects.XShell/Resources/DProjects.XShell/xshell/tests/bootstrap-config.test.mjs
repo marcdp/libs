@@ -411,7 +411,6 @@ test("module route targets use the owning module asset namespace while route key
                     "/something": "/pages/index.js",
                     "/repository/{repositoryId}/projects/{projectId}/items": "/pages/items.js"
                 },
-                styles: ["/css/styles.css"],
                 controller: "/js/module.js"
             })
         }

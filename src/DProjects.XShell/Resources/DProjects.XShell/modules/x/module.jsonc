@@ -6,7 +6,6 @@
         "x": {
             "label": "X module",
             "version": "1.0.0",
-            "styles": [ "/css/styles.css" ],
             "copyright": "",
             "icon": "",
             "defaults": {
@@ -19,7 +18,6 @@
                     "stateEngine": "proxy"
                 }
             },
-            "controller": "./js/module.js",
             "contract": {
                 "events": {},
                 "actions": {},
