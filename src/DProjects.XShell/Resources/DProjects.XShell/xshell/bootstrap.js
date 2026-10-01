@@ -284,7 +284,7 @@ async function loadConfig() {
         resolver.string[`/${assetsPrefix}/${moduleId}/{path}`] = resolver.string[`/${assetsPrefix}/${moduleId}/{path}`] || { url: `/${assetsPrefix}/${moduleId}/{path}`, loader: 'string', cache: true, moduleId: moduleId, modulePath: `/${assetsPrefix}/${moduleId}`};    }
 
     // console
-    console.log("Config:", configMerged);
+    console.log("bootstrap: config:", configMerged);
 
     // return
     return configMerged;
@@ -320,6 +320,7 @@ async function installServiceWorker(config) {
             exceptions: [module.configUrl]
         });
     }
+    console.log("bootstrap: sw rules: ", rules);
 
     // wait for ready
     console.log("bootstrap: waiting for ready ...");
@@ -356,6 +357,31 @@ async function installServiceWorker(config) {
     return true;
 }
 
+async function loadFiles(config) {
+    // for each module, load module.files.json and add it to the module configuration
+    const tasks = [];
+    const fLoad = async (id, module) => {
+        const moduleFilesUrl = appBasePath + "/" + config.xshell.assetsPrefix + "/" + id + "/module.files.json";    
+        const response = await fetch(moduleFilesUrl);
+        if (!response.ok) throw new Error(`Failed to load files for module ${id}: ${response.statusText}`);
+        // prefix each array item with "/" + config.xshell.assetsPrefix
+        const files = await response.json();
+        for(let i = 0; i < files.length; i++){
+            files[i].path = "/" + config.xshell.assetsPrefix + "/" + id + files[i].path;
+        }
+        module.files = files;
+    }
+    for (var moduleId of Object.keys(config.modules)) {
+        const module = config.modules[moduleId];
+        tasks.push(fLoad(moduleId, module));
+    }
+    tasks.push(fLoad("xshell", config.xshell));
+    // wait
+    await Promise.all(tasks);
+    // return
+    return config;
+}
+
 async function bootstrap() {
 
     // show spinner
@@ -363,15 +389,18 @@ async function bootstrap() {
 
     // load config
     let config = await loadConfig();
-    
+
     // installServiceWorker
     if (!await installServiceWorker(config)){
         return;
     }    
 
+    // load files
+    config = await loadFiles(config);
+
     // import xshell ES6 module
     console.log("bootstrap: loading xshell ...");
-    const xshellUrl = config.xshell.resolver.module.xshell.url;
+    const xshellUrl = appBasePath + config.xshell.resolver.module.xshell.url;
     const xshellModule = await import(xshellUrl);
     let xshell = xshellModule.default;
     
@@ -384,4 +413,5 @@ async function bootstrap() {
 
 // exec bootstrap
 bootstrap();
+
 

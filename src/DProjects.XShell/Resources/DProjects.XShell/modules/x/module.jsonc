@@ -68,6 +68,11 @@
             "strings": {}
         },
 
+        // services
+        "services": {
+            "toast": "/services/toast-default.js"            
+        },
+
         // ui
         "ui": {
             "component": {

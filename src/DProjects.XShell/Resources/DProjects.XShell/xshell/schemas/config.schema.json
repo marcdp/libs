@@ -53,11 +53,23 @@
           "description": "Declarative application URL patterns mapped to module-relative Page targets."
         },
         "defaults": {"$ref": "#/$defs/moduleDefaults", "description": "Defaults for that module."},
-        "contract": {"$ref": "#/$defs/moduleContract", "description": "Public contract exposed by the module."}
+        "contract": {"$ref": "#/$defs/moduleContract", "description": "Public contract exposed by the module."},
+        "files": {"type": "array", "items": {"$ref": "#/$defs/file"}, "description": "List of files associated with the module."}
       },
       "required": ["label", "version", "copyright", "icon", "configUrl", "assetsUrl", "defaults"],
       "additionalProperties": false,
       "description": "Effective configuration of a resolved XShell module."
+    },
+    "file": {
+      "type": "object",
+      "properties": {
+        "path": {"type": "string", "description": "Path to the file."},
+        "size": {"type": "integer", "description": "Size of the file in bytes."},
+        "hash": {"type": "string", "description": "Hash of the file content."}
+      },
+      "required": ["path", "size", "hash"],
+      "additionalProperties": false,
+      "description": "Schema for a file associated with a file."
     },
     "moduleDefaults": {
       "type": "object",
@@ -237,7 +249,9 @@
         "areas": {"$ref": "#/$defs/xshellAreas", "description": "Application area configuration."},
         "navigation": {"$ref": "#/$defs/xshellNavigation", "description": "Navigation configuration."},
         "resolver": {"$ref": "#/$defs/resolver", "description": "Logical resource resolver configuration."},
-        "temp": {"$ref": "#/$defs/xshellTemp", "description": "Temp configuration."}
+        "services": {"$ref": "#/$defs/xshellServices", "description": "Services configuration."},
+        "temp": {"$ref": "#/$defs/xshellTemp", "description": "Temp configuration."},
+        "files": {"type": "array", "items": {"$ref": "#/$defs/file"}, "description": "List of files associated with xshell."}
       },
       "additionalProperties": false,
       "description": "Core XShell runtime configuration."
@@ -425,8 +439,12 @@
       },
       "additionalProperties": false,
       "description": "Temporary storage configuration."
+    },
+    "xshellServices": {
+      "type": "object",
+      "additionalProperties": {"type": ["string", "null"]},
+      "description": "Configuration for various services."
     }
-
   },
   "description": "Schema for the final merged and normalized XShell configuration passed to xshell.init()."
 }

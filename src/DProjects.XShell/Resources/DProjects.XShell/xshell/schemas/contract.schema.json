@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://xshell.dev/schemas/contract.schema.json",
+  "title": "XShell Contract",
+  "description": "Describes the public contract of an XShell service.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "description": { "type": "string", "description": "Human-readable description of the contract." },
+    "properties": { "type": "object", "description": "Public properties exposed.", "additionalProperties": { "$ref": "#/$defs/property" } },
+    "events": { "type": "object", "description": "Events emitted.", "additionalProperties": { "$ref": "#/$defs/event" } },
+    "methods": { "type": "object", "description": "Public methods exposed.", "additionalProperties": { "$ref": "#/$defs/method" } }
+  },
+  "$defs": {
+    "valueType": {
+      "type": "string",
+      "description": "Declares an XShell value type.",
+      "enum": [ "string", "number", "integer", "boolean", "object", "array", "function", "date", "any" ]
+    },
+    "property": {
+      "type": "object",
+      "description": "Describes a property and its runtime behavior.",
+      "additionalProperties": false,
+      "properties": {
+        "description": { "type": "string", "description": "Human-readable description of the property." },
+        "type": { "$ref": "#/$defs/valueType", "description": "Value type accepted by the property." },
+        "default": { "description": "Default value of the property." },
+        "readonly": { "type": "boolean", "description": "Whether consumers should treat the property as read-only." },
+        "enum": { "type": "array", "description": "Optional set of allowed string values for the property.", "items": { "type": "string" }, "uniqueItems": true }
+      },
+      "required": [ "type" ]
+    },
+    "event": {
+      "type": "object",
+      "description": "Describes an event emitted.",
+      "additionalProperties": false,
+      "properties": {
+        "description": { "type": "string", "description": "Human-readable description of when and why the event is emitted." },
+        "detail": { "type": "object", "description": "Structure of the event's detail payload.", "additionalProperties": { "$ref": "#/$defs/eventDetailProperty" } }
+      }
+    },
+    "eventDetailProperty": {
+      "type": "object",
+      "description": "Describes one field of the event detail payload.",
+      "additionalProperties": false,
+      "properties": {
+        "description": { "type": "string", "description": "Human-readable description of the detail field." },
+        "type": { "$ref": "#/$defs/valueType", "description": "Value type of the detail field." },
+        "required": { "type": "boolean", "description": "Whether the detail field is always present." }        
+      },
+      "required": [ "type" ]
+    },
+    "method": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "description": { "type": "string" },
+        "parameters": { "type": "array", "items": { "$ref": "#/$defs/methodParameter" } },
+        "returns": { "$ref": "#/$defs/returnValue" }
+      }
+    },
+    "methodParameter": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "description": { "type": "string" },
+        "type": { "$ref": "#/$defs/valueType" },
+        "required": { "type": "boolean" },
+        "enum": { "type": "array", "description": "Optional set of allowed string values for the parameter.", "items": { "type": "string" }, "uniqueItems": true },
+        "default": {}
+      },
+      "required": [ "name", "type" ]
+    },
+    "returnValue": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "description": { "type": "string" },
+        "type": { "$ref": "#/$defs/valueType" }
+      },
+      "required": [ "type" ]
+    }
+  }
+}

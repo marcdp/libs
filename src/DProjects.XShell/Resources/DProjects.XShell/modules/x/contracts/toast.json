@@ -1,0 +1,38 @@
+{
+  "description": "Displays transient toast notifications to the user.",
+  "properties": {},
+  "events": {
+    "shown": {
+      "description": "Emitted when a toast becomes visible.",
+      "detail": {
+        "id": {"type": "string", "required": true, "description": "Identifier of the toast."}
+      }
+    },
+    "closed": {
+      "description": "Emitted when a toast is closed or expires.",
+      "detail": {
+        "id": {"type": "string", "required": true, "description": "Identifier of the toast."}
+      }
+    }
+  },
+  "methods": {
+    "show": {
+      "description": "Displays a toast notification.",
+      "parameters": [
+        { "name": "message", "type": "string", "required": true,"description": "Text displayed by the toast."},
+        { "name": "type", "type": "string", "required": false, "default": "info", "description": "Toast type.",  "enum": [ "info", "success", "warning", "error" ]},
+        { "name": "duration", "type": "number", "required": false, "description": "Duration in milliseconds before automatic dismissal."}
+      ],
+      "returns": {"type": "string", "description": "Identifier of the created toast."}
+    },
+    "close": {
+      "description": "Closes a toast by identifier.",
+      "parameters": [
+        { "name": "id", "type": "string", "required": true, "description": "Identifier of the toast to close." }
+      ]
+    },
+    "clear": {
+      "description": "Closes all currently visible toasts."
+    }
+  }
+}

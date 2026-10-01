@@ -71,16 +71,16 @@ class XShell {
         await validateConfig("config", config);
         // init
         this._bus = new Bus();
-        this._debug = new Debug();
-        this._services = new Services();
+        this._debug = new Debug();        
         this._config = config;
         this._areas = new Areas( { bus: this._bus, config: config } );
         this._container = document.body;
         this._resolver = new Resolver( { debug: this._debug, config: config } );
         this._loader = new Loader({ bus: this._bus, config: config, debug: this._debug, resolver: this._resolver });
-        this._auth = new Auth({ config: config, loader: this._loader });
+        this._auth = new Auth({ config: config, loader: this._loader });       
         this._i18n = new I18n();
         await this._i18n.init(config.xshell.i18n);
+        this._services = new Services( {config, loader: this._loader } );        
         this._modules = new Modules( { bus: this._bus, config: config, loader: this._loader, resolver: this._resolver, document: document, services: this._services } );
         this._navigation = new Navigation( { areas: this._areas, bus: this._bus, config: config, container: this._container });
         this._tabs = new Tabs( { bus: this._bus } );
@@ -106,6 +106,7 @@ class XShell {
         this._services.register("tabs", this._tabs);
         this._services.register("temp", this._temp);
         this._services.register("urlRewriter", this._urlRewriter);
+        await this._services.init();
         // auth
         this._identity = await this.auth.login(this._config);
         this._services.register("identity", this._identity);

@@ -36,8 +36,8 @@
             "menus":{
                 "navigation": "x-demo-dynamic-navigation-menu-source",
                 "tools": [
-                    { "label": "My things 1", "href": "/pages/test1.js"},
-                    { "label": "My things 2", "href": "/pages/test1.js"}
+                    { "label": "My things 1", "href": "/pages/01-components/index.js?a=1"},
+                    { "label": "My things 2", "href": "/pages/index.js?a=2"}
                 ]
             },
             "routes":{

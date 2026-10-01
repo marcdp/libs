@@ -86,6 +86,11 @@
             }
         },
 
+        // services
+        "services": {
+
+        },
+
         // temp
         "temp": {
             "url": "url:./"   

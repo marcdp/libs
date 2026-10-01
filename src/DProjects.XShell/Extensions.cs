@@ -8,6 +8,8 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.AspNetCore.Http;
 
+using DProjects.Utils;
+
 namespace DProjects.XShell {
 
     public static class Extensions {
@@ -92,7 +94,7 @@ namespace DProjects.XShell {
                 // bootstrap files
                 foreach (var aa in bootstrapFiles.Keys) {
                     if (context.Request.Path == config.AppBasePath + aa) {
-                        context.Response.ContentType = "text/html";
+                        context.Response.ContentType = MimeTypeUtils.GetMimeType(context.Request.Path);
                         await context.Response.WriteAsync(bootstrapFiles[aa]);
                         return;
                     }

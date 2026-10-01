@@ -64,7 +64,9 @@ namespace DProjects.XShell.Middlewares {
                     // only module directories expose module.files.json
                     var moduleJson = Path.Combine(directory, "module.json");
                     var moduleJsonc = Path.Combine(directory, "module.jsonc");
-                    if (!File.Exists(moduleJson) && !File.Exists(moduleJsonc)) {
+                    var xshellJson = Path.Combine(directory, "xshell.json");
+                    var xshellJsonc = Path.Combine(directory, "xshell.jsonc");
+                    if (!File.Exists(moduleJson) && !File.Exists(moduleJsonc) && !File.Exists(xshellJson) && !File.Exists(xshellJsonc)) {
                         context.Response.StatusCode = StatusCodes.Status404NotFound;
                         return;
                     }
