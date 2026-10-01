@@ -3,7 +3,7 @@ using System.Security.Cryptography;
 
 namespace DProjects.XShell.Services {
 
-    public sealed class ModuleFilesIndexer {
+    public sealed class FilesIndexer {
 
         // consts
         public const string ModuleFilesJson = "module.files.json";
@@ -21,7 +21,7 @@ namespace DProjects.XShell.Services {
             var files = new List<FileIndexItem>();
             foreach (var file in Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories)) {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (Path.GetFileName(file).Equals(ModuleFilesJson, StringComparison.OrdinalIgnoreCase)) {
+                if (Path.GetFileName(file).Equals(ModuleFilesJson, StringComparison.OrdinalIgnoreCase)) { 
                     continue;
                 }
                 await using var stream = File.OpenRead(file);

@@ -41,13 +41,13 @@ namespace DProjects.XShell.Middlewares {
                         return;
                     }
                     var relativePath = remaining.Value ?? "";
-                    if (!relativePath.EndsWith("/" + Services.ModuleFilesIndexer.ModuleFilesJson, StringComparison.OrdinalIgnoreCase)) {
+                    if (!relativePath.EndsWith("/" + Services.FilesIndexer.ModuleFilesJson, StringComparison.OrdinalIgnoreCase)) {
                         await nextMiddleware();
                         return;
                     }
 
                     // module.files.json represents its containing directory
-                    var relativeDirectory = relativePath[..^("/" + Services.ModuleFilesIndexer.ModuleFilesJson).Length].TrimStart('/');
+                    var relativeDirectory = relativePath[..^("/" + Services.FilesIndexer.ModuleFilesJson).Length].TrimStart('/');
                     var directory = Path.GetFullPath(Path.Combine(physicalPath, relativeDirectory.Replace('/', Path.DirectorySeparatorChar)));
 
                     // prevent path traversal
@@ -72,7 +72,7 @@ namespace DProjects.XShell.Middlewares {
                     }
 
                     // create index json
-                    var json = await new Services.ModuleFilesIndexer().CreateJsonAsync(directory);
+                    var json = await new Services.FilesIndexer().CreateJsonAsync(directory);
 
                     // return response
                     context.Response.ContentType = "application/json";

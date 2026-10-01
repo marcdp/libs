@@ -357,14 +357,15 @@ async function installServiceWorker(config) {
     return true;
 }
 
-async function loadFiles(config) {
+async function loadFilesIndexes(config) {
     // for each module, load module.files.json and add it to the module configuration
+    console.log("bootstrap: loading file indexes ...");
     const tasks = [];
     const fLoad = async (id, module) => {
-        const moduleFilesUrl = appBasePath + "/" + config.xshell.assetsPrefix + "/" + id + "/module.files.json";    
+        // load files index
+        const moduleFilesUrl = combineUrls(appBasePath + "/", `./${config.xshell.assetsPrefix}/${id}/module.files.json`);
         const response = await fetch(moduleFilesUrl);
-        if (!response.ok) throw new Error(`Failed to load files for module ${id}: ${response.statusText}`);
-        // prefix each array item with "/" + config.xshell.assetsPrefix
+        if (!response.ok) throw new Error(`Failed to load module inventory '${id}' from '${moduleFilesUrl}': ` + `${response.status} ${response.statusText}`);
         const files = await response.json();
         for(let i = 0; i < files.length; i++){
             files[i].path = "/" + config.xshell.assetsPrefix + "/" + id + files[i].path;
@@ -395,8 +396,8 @@ async function bootstrap() {
         return;
     }    
 
-    // load files
-    config = await loadFiles(config);
+    // load files indexes
+    config = await loadFilesIndexes(config);
 
     // import xshell ES6 module
     console.log("bootstrap: loading xshell ...");
@@ -405,6 +406,7 @@ async function bootstrap() {
     let xshell = xshellModule.default;
     
     // init xshell
+    console.log("bootstrap: initializing xshell ...");
     await xshell.init(deepFreeze(config));
 
     // hide spinner

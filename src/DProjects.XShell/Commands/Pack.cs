@@ -49,7 +49,7 @@ namespace DProjects.XShell.Commands {
                 CopyDirectory(sourcePath, stagingPath, cancellationToken);
 
                 // remove a copied inventory before compiling the distributable tree
-                var indexPath = Path.Combine(stagingPath, ModuleFilesIndexer.ModuleFilesJson);
+                var indexPath = Path.Combine(stagingPath, FilesIndexer.ModuleFilesJson);
                 if (File.Exists(indexPath)) File.Delete(indexPath);
 
                 // compile all runtime resources against the staged descriptor and paths
@@ -57,7 +57,7 @@ namespace DProjects.XShell.Commands {
                 await CompileResourcesAsync(stagingPath, stagedDescriptorPath, cancellationToken);
 
                 // inventory only the final compiled package contents
-                var moduleFilesIndexer = new ModuleFilesIndexer();
+                var moduleFilesIndexer = new FilesIndexer();
                 var json = await moduleFilesIndexer.CreateJsonAsync(stagingPath, cancellationToken);
                 await File.WriteAllTextAsync(indexPath, json, cancellationToken);
 

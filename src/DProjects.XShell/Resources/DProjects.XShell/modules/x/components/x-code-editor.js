@@ -14,9 +14,6 @@ export const contract = {
         value:    {type:"string", default:"", attribute:true, state:true, description:""},
         mode:     {type:"string", default:"", attribute:true, state:true, description:""},
         readonly: {type:"boolean", default:false, attribute:true, state:true, description:""},
-        //theme:    {type:"string", default:"chrome", attribute:true, state:true, description:""},
-        //wrap:     {type:"boolean", default:false, attribute:true, state:true, description:""},
-        //ready:    {type:"boolean", default:false, attribute:true, state:true, description:""}
     },
     methods: {}
 };
@@ -37,13 +34,15 @@ export default {
     },
     template: `
         <!--<x-spinner x-if="!state.ready"></x-spinner>-->
-        <codemirror-editor 
-            class="editor"
-            x-prop:value="state.value"             
-            x-prop:readonly="state.readonly" 
-            x-attr:mode="state.mode"
-            x-on:change="change"
-        ></codemirror-editor>
+        <x-lazy>
+            <codemirror-editor 
+                class="editor"
+                x-prop:value="state.value"             
+                x-prop:readonly="state.readonly" 
+                x-attr:mode="state.mode"
+                x-on:change="change"
+            ></codemirror-editor>
+        </x-lazy>
     `,
     controller({ state, host }) {
         return {

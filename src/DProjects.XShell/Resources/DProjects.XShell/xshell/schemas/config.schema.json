@@ -56,7 +56,7 @@
         "contract": {"$ref": "#/$defs/moduleContract", "description": "Public contract exposed by the module."},
         "files": {"type": "array", "items": {"$ref": "#/$defs/file"}, "description": "List of files associated with the module."}
       },
-      "required": ["label", "version", "copyright", "icon", "configUrl", "assetsUrl", "defaults"],
+      "required": ["label", "version", "copyright", "icon", "configUrl", "assetsUrl", "defaults", "files"],
       "additionalProperties": false,
       "description": "Effective configuration of a resolved XShell module."
     },
@@ -234,7 +234,7 @@
     },
     "xshell": {
       "type": "object",
-      "required": ["build", "debug", "version", "environment", "identity", "assetsPrefix", "areas", "navigation", "resolver", "ui", "i18n", "configUrl", "assetsUrl"],
+      "required": ["build", "debug", "version", "environment", "identity", "assetsPrefix", "areas", "navigation", "resolver", "ui", "i18n", "configUrl", "assetsUrl", "files"],
       "properties": {
         "build": {"type": "string", "description": "XShell build identifier."},
         "debug": {"type": "boolean", "description": "Whether XShell debug behavior is enabled."},
