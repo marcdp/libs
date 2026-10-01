@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using System.Security.Cryptography;
+using System.Text.Json;
 
 using DProjects.Commands;
 using DProjects.Commands.Attributes;
@@ -8,13 +9,21 @@ using DProjects.XShell.Services;
 namespace DProjects.XShell.Commands {
 
 
-    [Description("Pack an XShell module")]
+    [Description("Pack an XShell module or the XShell framework")]
     [Example("DProjects.XShell pack --source ./modules/x --output ./dist", "Pack an XShell module")]
+    [Example("DProjects.XShell pack --source ./xshell --output ./dist", "Pack the XShell framework")]
     public class Pack(IEnvironment environment) : ICommand {
+
+        // inner classes
+        private enum PackageKind {
+            Module,
+            XShell
+        }
+        private sealed record PackageInfo(PackageKind Kind, string Id, string Version, string DescriptorPath);
 
         
         // arguments
-        [Flag('s', "Source module directory", "")]
+        [Flag('s', "Source package directory", "")]
         public string Source { get; init; } = "";
         [Flag('o', "Output directory", "")]
         public string Output { get; init; } = "";
@@ -32,15 +41,14 @@ namespace DProjects.XShell.Commands {
             var sourcePath = Path.GetFullPath(Source);
             var outputPath = Path.GetFullPath(Output);
             if (!Directory.Exists(sourcePath)) {
-                throw new DirectoryNotFoundException($"Module directory not found: {sourcePath}");
+                throw new DirectoryNotFoundException($"Package directory not found: {sourcePath}");
             }
             if (IsSameOrInside(outputPath, sourcePath)) {
-                throw new InvalidOperationException("Output directory must not be the source module directory or a directory inside it.");
+                throw new InvalidOperationException("Output directory must not be the source package directory or a directory inside it.");
             }
-            var descriptorPath = GetModuleDescriptorPath(sourcePath);
-            var (id, version) = await ReadModuleIdentityAsync(descriptorPath, cancellationToken);
-            ValidatePackageNamePart(id, "Module id");
-            ValidatePackageNamePart(version, "Module version");
+            var package = await GetPackageInfoAsync(sourcePath, cancellationToken);
+            ValidatePackageNamePart(package.Id, "Package id");
+            ValidatePackageNamePart(package.Version, "Package version");
             Directory.CreateDirectory(outputPath);
             var stagingPath = CreateStagingPath(sourcePath, outputPath);
             Directory.CreateDirectory(stagingPath);
@@ -53,8 +61,8 @@ namespace DProjects.XShell.Commands {
                 if (File.Exists(indexPath)) File.Delete(indexPath);
 
                 // compile all runtime resources against the staged descriptor and paths
-                var stagedDescriptorPath = Path.Combine(stagingPath, Path.GetFileName(descriptorPath));
-                await CompileResourcesAsync(stagingPath, stagedDescriptorPath, cancellationToken);
+                var stagedDescriptorPath = Path.Combine(stagingPath, Path.GetFileName(package.DescriptorPath));
+                if (package.Kind == PackageKind.Module) await CompileResourcesAsync(stagingPath, stagedDescriptorPath, cancellationToken);
 
                 // inventory only the final compiled package contents
                 var moduleFilesIndexer = new FilesIndexer();
@@ -62,8 +70,8 @@ namespace DProjects.XShell.Commands {
                 await File.WriteAllTextAsync(indexPath, json, cancellationToken);
 
                 // emit the requested representation from the same compiled staging tree
-                var packagePath = Zip ? await EmitZipAsync(stagingPath, outputPath, id, version, cancellationToken) :
-                    EmitExpanded(stagingPath, sourcePath, outputPath, id, version, cancellationToken);
+                var packagePath = Zip ? await EmitZipAsync(stagingPath, outputPath, package.Id, package.Version, cancellationToken) :
+                    EmitExpanded(stagingPath, sourcePath, outputPath, package.Id, package.Version, cancellationToken);
 
                 // output
                 await environment.Out.WriteLineAsync(packagePath);
@@ -81,16 +89,31 @@ namespace DProjects.XShell.Commands {
 
 
         // private methods
-        private static string GetModuleDescriptorPath(string sourcePath) {
+        private static async Task<PackageInfo> GetPackageInfoAsync(string sourcePath, CancellationToken cancellationToken) {
             var moduleJson = Path.Combine(sourcePath, "module.json");
             var moduleJsonc = Path.Combine(sourcePath, "module.jsonc");
+            var xshellJson = Path.Combine(sourcePath, "xshell.json");
+            var xshellJsonc = Path.Combine(sourcePath, "xshell.jsonc");
             if (File.Exists(moduleJson) && File.Exists(moduleJsonc)) {
-                throw new InvalidOperationException(
-                    "Module directory contains both module.json and module.jsonc.");
+                throw new InvalidOperationException("Package source contains both module.json and module.jsonc.");
             }
-            if (File.Exists(moduleJson)) return moduleJson;
-            if (File.Exists(moduleJsonc)) return moduleJsonc;
-            throw new InvalidOperationException("Module directory must contain module.json or module.jsonc.");
+            if (File.Exists(xshellJson) && File.Exists(xshellJsonc)) {
+                throw new InvalidOperationException("Package source contains both xshell.json and xshell.jsonc.");
+            }
+            var moduleDescriptorPath = File.Exists(moduleJson) ? moduleJson : File.Exists(moduleJsonc) ? moduleJsonc : null;
+            var xshellDescriptorPath = File.Exists(xshellJson) ? xshellJson : File.Exists(xshellJsonc) ? xshellJsonc : null;
+            if (moduleDescriptorPath != null && xshellDescriptorPath != null) {
+                throw new InvalidOperationException("Package source cannot contain both a module descriptor and an XShell descriptor.");
+            }
+            if (moduleDescriptorPath != null) {
+                var (id, version) = await ReadModuleIdentityAsync(moduleDescriptorPath, cancellationToken);
+                return new PackageInfo(PackageKind.Module, id, version, moduleDescriptorPath);
+            }
+            if (xshellDescriptorPath != null) {
+                var version = await ReadXShellVersionAsync(xshellDescriptorPath, cancellationToken);
+                return new PackageInfo(PackageKind.XShell, "xshell", version, xshellDescriptorPath);
+            }
+            throw new InvalidOperationException("Package source must contain exactly one supported descriptor: module.json[c] or xshell.json[c].");
         }
         private static async Task<(string Id, string Version)> ReadModuleIdentityAsync(string descriptorPath, CancellationToken cancellationToken) {
             // package identity is the descriptor's single local module definition
@@ -101,6 +124,22 @@ namespace DProjects.XShell.Commands {
             if (string.IsNullOrWhiteSpace(id)) throw new InvalidOperationException("Module id cannot be empty.");
             if (string.IsNullOrWhiteSpace(version)) throw new InvalidOperationException("Module version cannot be empty.");
             return (id, version);
+        }
+        private static async Task<string> ReadXShellVersionAsync(string descriptorPath, CancellationToken cancellationToken) {
+            // parse the XShell descriptor with the same JSONC behavior as module descriptors
+            var configJson = await File.ReadAllTextAsync(descriptorPath, cancellationToken);
+            using var document = JsonDocument.Parse(configJson, new JsonDocumentOptions {
+                CommentHandling = JsonCommentHandling.Skip,
+                AllowTrailingCommas = true
+            });
+            if (document.RootElement.ValueKind != JsonValueKind.Object || !document.RootElement.TryGetProperty("xshell", out var xshell) ||
+                xshell.ValueKind != JsonValueKind.Object || !xshell.TryGetProperty("version", out var versionElement) ||
+                versionElement.ValueKind != JsonValueKind.String) {
+                throw new InvalidOperationException($"XShell configuration '{descriptorPath}' must contain xshell.version.");
+            }
+            var version = versionElement.GetString() ?? "";
+            if (string.IsNullOrWhiteSpace(version)) throw new InvalidOperationException("XShell version cannot be empty.");
+            return version;
         }
         private static async Task CompileResourcesAsync(string stagingPath, string descriptorPath, CancellationToken cancellationToken) {
             // snapshot authored resources so generated JavaScript is not compiled a second time

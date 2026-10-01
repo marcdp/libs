@@ -22,10 +22,13 @@ const bootstrapSource = readFileSync(bootstrapPath, "utf8").replace(
             "_assets"
         ),
         mergeConfigs,
-        loadConfig
+        loadConfig,
+        loadFilesIndexes,
+        initializeXShell
     };`
 );
 const fetchedResources = new Map();
+const fetchOverrides = new Map();
 const directFetchCalls = [];
 const metaValues = {
     "xshell:app.configPath": "/modules/app/module.jsonc",
@@ -51,8 +54,21 @@ const context = vm.createContext({
     },
     async fetch(url) {
         directFetchCalls.push(url);
+        if (fetchOverrides.has(url)) return fetchOverrides.get(url)();
         const value = fetchedResources.get(url);
-        return value === undefined ? { ok: false, async text() { return ""; } } : { ok: true, async text() { return JSON.stringify(value); } };
+        return value === undefined ? {
+            ok: false,
+            status: 404,
+            statusText: "Not Found",
+            async text() { return ""; },
+            async json() { throw new Error("No JSON response body."); }
+        } : {
+            ok: true,
+            status: 200,
+            statusText: "OK",
+            async text() { return JSON.stringify(value); },
+            async json() { return JSON.parse(JSON.stringify(value)); }
+        };
     },
     window: { location: { origin: "https://example.test" } }
 });
@@ -69,7 +85,98 @@ function orderOf(graph) {
     return Array.from(graph.mergeOrder, node => node.id);
 }
 
+test("loadFilesIndexes concurrently loads module and XShell inventories through the virtual namespace", async () => {
+    const xUrl = "https://example.test/app/_assets/x/module.files.json";
+    const reportsUrl = "https://example.test/app/_assets/reports/module.files.json";
+    const xshellUrl = "https://example.test/app/_assets/xshell/module.files.json";
+    const pending = new Map();
+    const response = value => ({
+        ok: true,
+        status: 200,
+        statusText: "OK",
+        async json() { return JSON.parse(JSON.stringify(value)); }
+    });
+    for (const url of [xUrl, reportsUrl, xshellUrl]) {
+        fetchOverrides.set(url, () => new Promise(resolve => pending.set(url, resolve)));
+    }
+    const config = {
+        modules: { x: {}, reports: {} },
+        xshell: { assetsPrefix: "_assets" }
+    };
+
+    const loading = api.loadFilesIndexes(config);
+    await Promise.resolve();
+
+    assert.deepEqual([...pending.keys()], [xUrl, reportsUrl, xshellUrl]);
+    pending.get(xUrl)(response([{ path: "/components/x-button.js", size: 1234, hash: "x-hash" }]));
+    pending.get(reportsUrl)(response([{ path: "/pages/home.js", size: 25, hash: "reports-hash" }]));
+    pending.get(xshellUrl)(response([{ path: "/xshell.js", size: 5678, hash: "xshell-hash" }]));
+    await loading;
+
+    assert.deepEqual(plain(config.modules.x.files), [{ path: "/_assets/x/components/x-button.js", size: 1234, hash: "x-hash" }]);
+    assert.deepEqual(plain(config.modules.reports.files), [{ path: "/_assets/reports/pages/home.js", size: 25, hash: "reports-hash" }]);
+    assert.deepEqual(plain(config.xshell.files), [{ path: "/_assets/xshell/xshell.js", size: 5678, hash: "xshell-hash" }]);
+    for (const url of [xUrl, reportsUrl, xshellUrl]) fetchOverrides.delete(url);
+});
+
+test("loadFilesIndexes reports the inventory id, URL, and HTTP failure", async () => {
+    const inventoryUrl = "https://example.test/app/_assets/x/module.files.json";
+    const xshellInventoryUrl = "https://example.test/app/_assets/xshell/module.files.json";
+    fetchOverrides.set(inventoryUrl, async () => ({ ok: false, status: 503, statusText: "Service Unavailable" }));
+    fetchedResources.set(xshellInventoryUrl, []);
+    const config = { modules: { x: {} }, xshell: { assetsPrefix: "_assets" } };
+
+    await assert.rejects(
+        () => api.loadFilesIndexes(config),
+        error => error.message.includes("'x'") && error.message.includes(inventoryUrl) && error.message.includes("503 Service Unavailable")
+    );
+    fetchOverrides.delete(inventoryUrl);
+    fetchedResources.delete(xshellInventoryUrl);
+});
+
+test("loadFilesIndexes fails clearly when the XShell inventory is missing", async () => {
+    const inventoryUrl = "https://example.test/app/_assets/xshell/module.files.json";
+    const config = { modules: {}, xshell: { assetsPrefix: "_assets" } };
+
+    await assert.rejects(
+        () => api.loadFilesIndexes(config),
+        error => error.message.includes("'xshell'") && error.message.includes(inventoryUrl) && error.message.includes("404 Not Found")
+    );
+});
+
+test("effective inventories exist before validation and configuration is frozen before init", async () => {
+    const events = [];
+    const config = {
+        modules: { x: { files: [{ path: "/_assets/x/file.js", size: 1, hash: "x" }] } },
+        xshell: {
+            files: [{ path: "/_assets/xshell/xshell.js", size: 2, hash: "xshell" }],
+            resolver: { module: { xshell: { url: "/_assets/xshell/xshell.js" } } }
+        }
+    };
+    const runtime = {
+        async validateConfig(value) {
+            events.push("validate");
+            assert.equal(value.modules.x.files[0].path, "/_assets/x/file.js");
+            assert.equal(value.xshell.files[0].path, "/_assets/xshell/xshell.js");
+            assert.equal(Object.isFrozen(value), false);
+        },
+        async init(value) {
+            events.push("init");
+            assert.equal(Object.isFrozen(value), true);
+            assert.equal(Object.isFrozen(value.modules.x.files[0]), true);
+        }
+    };
+
+    await api.initializeXShell(config, async url => {
+        events.push(`import:${url}`);
+        return { default: runtime };
+    });
+
+    assert.deepEqual(events, ["import:https://example.test/app/_assets/xshell/xshell.js", "validate", "init"]);
+});
+
 test("loadConfig keeps xshellConfig as the base and applies root configuration last", async () => {
+    directFetchCalls.length = 0;
     const xshellUrl = "https://example.test/xshell/xshell.jsonc";
     fetchedResources.set(xshellUrl, {
         app: { source: "xshell" },

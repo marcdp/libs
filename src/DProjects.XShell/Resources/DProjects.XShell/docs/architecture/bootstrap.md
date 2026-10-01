@@ -12,7 +12,11 @@ host HTML
     -> reject dependency cycles
     -> normalize configUrl, assetsUrl, and module resource paths
     -> merge defaults, dependencies, dependents, and root
-    -> add default resolvers and Service Worker mappings
+    -> add default resolvers
+    -> install and initialize Service Worker mappings
+    -> load every module.files.json through the virtual resource namespace
+    -> normalize and attach module and XShell file inventories
+    -> load and validate the XShell runtime
     -> deep-freeze the effective config and initialize XShell
 ```
 
@@ -49,7 +53,25 @@ composition independent of network completion order. The final
 
 ## Runtime handoff
 
-Bootstrap installs the Service Worker, creates one mapping per effective module id, loads `xshell.js`, deep-freezes the effective configuration,
-and calls `xshell.init(config)`. `xshell.modules` then creates one runtime module instance per canonical id.
+Bootstrap installs and initializes the Service Worker before requesting inventories. It concurrently requests `module.files.json` for every canonical
+module through `/_assets/<module-id>/module.files.json` and for the framework through `/_assets/xshell/module.files.json`. Any missing or failed
+inventory aborts bootstrap with the package id, requested URL, HTTP status, and status text.
+
+The physical inventory remains package-relative:
+
+```json
+{ "path": "/components/x-button.js", "size": 1234, "hash": "..." }
+```
+
+Bootstrap converts only the effective-config copy into the virtual application resource namespace:
+
+```json
+{ "path": "/_assets/x/components/x-button.js", "size": 1234, "hash": "..." }
+```
+
+The same conversion produces paths such as `/_assets/xshell/xshell.js` in `config.xshell.files`. These paths follow the same absolute or
+application-root-relative URL convention as the rest of the effective configuration; `size` and `hash` are unchanged. Bootstrap then loads the
+XShell runtime, validates the complete enriched configuration, deeply freezes it, and calls `xshell.init(config)`. `xshell.modules` creates one
+runtime module instance per canonical id.
 
 See [Configuration](configuration.md), [Modules](modules.md), and [Service Worker](service-worker.md).

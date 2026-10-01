@@ -238,7 +238,8 @@ assetsUrl
 
 conceptually separate.
 
-Do not assume ZIP-backed loading, arbitrary remote/CDN sources, or automatic module-file-manifest consumption unless the current implementation supports them.
+Bootstrap automatically loads physical file inventories through the virtual namespace after Service Worker initialization. Do not assume ZIP-backed
+loading or arbitrary remote/CDN sources unless the current implementation supports them.
 
 ---
 
@@ -551,28 +552,28 @@ Do not use documentation alone as proof that a field is supported.
 
 Modules are authored as expanded directories.
 
-The project also provides explicit module packaging using:
+The project also provides explicit normal-module and XShell framework packaging using:
 
 ```text
 Commands/Pack.cs
-Services/ModuleFilesIndexer.cs
+Services/FilesIndexer.cs
 Services/ModuleFileCompiler.cs
 ```
 
-Packaging can create immutable ZIP packages and physical file inventories.
+Packaging can create expanded packages, immutable ZIP packages, and physical file inventories. Both package kinds use:
+
+```text
+module.files.json
+```
+
+The physical inventory contains package-relative paths. Bootstrap loads it after Service Worker initialization and attaches a normalized copy to
+`config.modules.<id>.files` or `config.xshell.files`, where paths use the virtual application resource namespace.
 
 Do not infer from packaging support that the browser runtime can load modules directly from ZIP files.
 
 Do not manually list every module file in `module.jsonc` merely to support packaging inventory.
 
-The documentation currently records an unresolved naming inconsistency between:
-
-```text
-module.files.json
-modules.files.json
-```
-
-Do not establish either as a permanent public contract unless the implementation is unified.
+Use `module.files.json` as the canonical inventory filename everywhere.
 
 ---
 

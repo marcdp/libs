@@ -358,29 +358,44 @@ async function installServiceWorker(config) {
 }
 
 async function loadFilesIndexes(config) {
-    // for each module, load module.files.json and add it to the module configuration
+    // load every physical inventory through the Service Worker and expose virtual runtime paths
     console.log("bootstrap: loading file indexes ...");
     const tasks = [];
-    const fLoad = async (id, module) => {
+    const loadFilesIndex = async (id, target) => {
         // load files index
         const moduleFilesUrl = combineUrls(appBasePath + "/", `./${config.xshell.assetsPrefix}/${id}/module.files.json`);
         const response = await fetch(moduleFilesUrl);
-        if (!response.ok) throw new Error(`Failed to load module inventory '${id}' from '${moduleFilesUrl}': ` + `${response.status} ${response.statusText}`);
-        const files = await response.json();
-        for(let i = 0; i < files.length; i++){
-            files[i].path = "/" + config.xshell.assetsPrefix + "/" + id + files[i].path;
+        if (!response.ok) {
+            throw new Error(`Failed to load file inventory for '${id}' from '${moduleFilesUrl}': ${response.status} ${response.statusText}`);
         }
-        module.files = files;
+        const files = await response.json();
+        const virtualRoot = "/" + config.xshell.assetsPrefix + "/" + id;
+        for (const file of files) {
+            file.path = relativizePaths("path", file.path, virtualRoot);
+        }
+        target.files = files;
+    };
+    for (const moduleId of Object.keys(config.modules)) {
+        tasks.push(loadFilesIndex(moduleId, config.modules[moduleId]));
     }
-    for (var moduleId of Object.keys(config.modules)) {
-        const module = config.modules[moduleId];
-        tasks.push(fLoad(moduleId, module));
-    }
-    tasks.push(fLoad("xshell", config.xshell));
+    tasks.push(loadFilesIndex("xshell", config.xshell));
     // wait
     await Promise.all(tasks);
     // return
     return config;
+}
+
+async function initializeXShell(config, loadXShellModule = url => import(url)) {
+    // import and validate the complete effective configuration before freezing and initialization
+    console.log("bootstrap: loading xshell ...");
+    const xshellUrl = appBasePath + config.xshell.resolver.module.xshell.url;
+    const xshellModule = await loadXShellModule(xshellUrl);
+    const xshell = xshellModule.default;
+    await xshell.validateConfig(config);
+
+    // initialize XShell with immutable effective configuration
+    console.log("bootstrap: initializing xshell ...");
+    await xshell.init(deepFreeze(config));
 }
 
 async function bootstrap() {
@@ -399,15 +414,8 @@ async function bootstrap() {
     // load files indexes
     config = await loadFilesIndexes(config);
 
-    // import xshell ES6 module
-    console.log("bootstrap: loading xshell ...");
-    const xshellUrl = appBasePath + config.xshell.resolver.module.xshell.url;
-    const xshellModule = await import(xshellUrl);
-    let xshell = xshellModule.default;
-    
-    // init xshell
-    console.log("bootstrap: initializing xshell ...");
-    await xshell.init(deepFreeze(config));
+    // import, validate, freeze, and initialize XShell
+    await initializeXShell(config);
 
     // hide spinner
     hideSpinner();

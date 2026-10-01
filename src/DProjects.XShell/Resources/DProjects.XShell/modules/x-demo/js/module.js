@@ -1,11 +1,10 @@
-import files from "../module.files.json" with { type: "json" };
 
 // module class
 export default class {
 
     // ctor
-    constructor({ config, areas, moduleAssetsPath }) {
-        const menu = this._createMenuFromModuleFiles(files, "/pages", "Demo", [".js", ".html"], moduleAssetsPath, true);
+    constructor({ config, areas, moduleConfig, moduleAssetsPath }) {
+        const menu = this._createMenuFromModuleFiles(moduleConfig.files, moduleAssetsPath + "/pages", "Demo", [".js", ".html"], true);
 
         areas.registerSource("x-demo-dynamic-navigation-menu-source", {
             resolve: () => {
@@ -22,7 +21,7 @@ export default class {
     }
 
     // private methods
-    _createMenuFromModuleFiles(files, root, rootItemLabel, extensions, assetsPrefix, createPaths) {
+    _createMenuFromModuleFiles(files, root, rootItemLabel, extensions, createPaths) {
         const getExtension = (path) =>
             extensions.find(extension => path.endsWith(extension));
 
@@ -59,14 +58,14 @@ export default class {
                     _name: toPathPart(name),
                     _order: getOrder(name),
                     label: toTitle(name),
-                    href: href ? assetsPrefix + toRuntimePath(href) : null,
+                    href: href ? toRuntimePath(href) : null,
                     ...(createPaths ? { path: createPath(pathParts) } : {}),
                     children: []
                 };
 
                 items.push(node);
             } else if (href) {
-                node.href = assetsPrefix + toRuntimePath(href);
+                node.href = toRuntimePath(href);
             }
 
             return node;
@@ -82,7 +81,7 @@ export default class {
 
         const rootItem = {
             label: rootItemLabel,
-            href: assetsPrefix + `${root}/index.js`,
+            href: `${root}/index.js`,
             ...(createPaths ? { path: "/" } : {}),
             default: true,
             children: []
@@ -135,7 +134,7 @@ export default class {
                 );
 
                 if (indexFile) {
-                    node.href = assetsPrefix + toRuntimePath(indexFile.path);
+                    node.href = toRuntimePath(indexFile.path);
                 }
 
                 items = node.children;

@@ -20,8 +20,13 @@ must use `/_assets/<module-id>/...` and remain independent of whether storage is
 expanded directories. Although the model allows a future package URL and remote/CDN locations, ZIP-backed loading is not implemented, and the
 worker fetches with `mode: "same-origin"`, so cross-origin sources are not established as working.
 
-The worker stores bootstrap's initialization payload in IndexedDB and reloads it when handling requests after its in-memory state has been lost. It
-does not load `module.files.json` during startup. A module file manifest is a physical inventory to be loaded on demand by future mechanisms that
-need package information. The worker's role is resource delivery; module creation and configuration merge belong to bootstrap and XShell runtime.
+The worker stores bootstrap's initialization payload in IndexedDB and reloads it when handling requests after its in-memory state has been lost.
+After the worker is ready and acknowledges its mappings, bootstrap concurrently loads every normal module inventory from
+`/_assets/<module-id>/module.files.json` and the framework inventory from `/_assets/xshell/module.files.json`. The worker only virtualizes those
+requests; inventory discovery, path normalization, and attachment to the effective configuration remain bootstrap responsibilities.
+
+Every physical inventory uses the filename `module.files.json` and package-relative paths such as `/pages/home.js`. Bootstrap exposes those entries
+as virtual application resource paths such as `/_assets/x/pages/home.js` in `config.modules.x.files` or `/_assets/xshell/xshell.js` in
+`config.xshell.files` before validation and XShell initialization.
 
 See [Asset URL Namespace ADR](../adr/0001-asset-url-namespace.md) and [Modules](modules.md).

@@ -61,7 +61,7 @@ namespace DProjects.XShell.Middlewares {
                         return;
                     }
 
-                    // only module directories expose module.files.json
+                    // only module and XShell package directories expose module.files.json
                     var moduleJson = Path.Combine(directory, "module.json");
                     var moduleJsonc = Path.Combine(directory, "module.jsonc");
                     var xshellJson = Path.Combine(directory, "xshell.json");
@@ -72,12 +72,12 @@ namespace DProjects.XShell.Middlewares {
                     }
 
                     // create index json
-                    var json = await new Services.FilesIndexer().CreateJsonAsync(directory);
+                    var json = await new Services.FilesIndexer().CreateJsonAsync(directory, context.RequestAborted);
 
                     // return response
                     context.Response.ContentType = "application/json";
                     if (isDevelopment) SetNoCacheHeaders(context.Response);
-                    await context.Response.WriteAsync(json);
+                    await context.Response.WriteAsync(json, context.RequestAborted);
                 });
             }
 

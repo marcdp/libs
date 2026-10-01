@@ -13,6 +13,7 @@ const moduleDefinition = routes => ({
     icon: "",
     configUrl: "https://example.test/modules/test/module.jsonc",
     assetsUrl: "https://example.test/modules/test/",
+    files: [{ path: "/_assets/test/pages/index.js", size: 123, hash: "test-hash" }],
     ...(routes === undefined ? {} : { routes }),
     defaults: {
         page: { renderEngine: "x", stateEngine: "proxy" },
@@ -50,7 +51,8 @@ function configuration(module) {
                 strings: {}
             },
             configUrl: "https://example.test/xshell/xshell.jsonc",
-            assetsUrl: "https://example.test/xshell/"
+            assetsUrl: "https://example.test/xshell/",
+            files: [{ path: "/_assets/xshell/xshell.js", size: 456, hash: "xshell-hash" }]
         }
     };
 }
@@ -82,5 +84,34 @@ test("module schema rejects object and array route values", () => {
         const result = validator.validate(configuration(moduleDefinition({ "/something": value })));
 
         assert.equal(result.valid, false);
+    }
+});
+
+test("effective schema requires module files", () => {
+    const module = moduleDefinition();
+    delete module.files;
+
+    assert.equal(validator.validate(configuration(module)).valid, false);
+});
+
+test("effective schema requires XShell files", () => {
+    const config = configuration(moduleDefinition());
+    delete config.xshell.files;
+
+    assert.equal(validator.validate(config).valid, false);
+});
+
+test("effective schema validates inventory path, size, and hash", () => {
+    for (const file of [
+        { size: 1, hash: "hash" },
+        { path: "", size: 1, hash: "hash" },
+        { path: "/_assets/test/file.js", size: -1, hash: "hash" },
+        { path: "/_assets/test/file.js", size: 1.5, hash: "hash" },
+        { path: "/_assets/test/file.js", size: 1, hash: "" }
+    ]) {
+        const module = moduleDefinition();
+        module.files = [file];
+
+        assert.equal(validator.validate(configuration(module)).valid, false);
     }
 });

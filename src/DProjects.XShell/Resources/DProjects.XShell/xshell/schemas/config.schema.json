@@ -44,7 +44,8 @@
           "items": {"type": "string"},
           "description": "Style resources loaded for the module."
         },
-        "assetsUrl": {"type": "string", "format": "uri", "description": "URL of the directory or package containing the module assets."},
+        "assetsUrl": {"type": "string", "format": "uri", "description": "URL of the directory or package containing the module assets, absolute."},
+        "assetsPath": {"type": "string", "format": "uri", "description": "URL of the directory or package containing the module assets, relative to the application root."},
         "controller": {"type": "string", "description": "Module controller resource."},
         "menus": {"$ref": "#/$defs/menus", "description": "Menu contributions exposed by the module."},
         "routes": {
@@ -54,7 +55,7 @@
         },
         "defaults": {"$ref": "#/$defs/moduleDefaults", "description": "Defaults for that module."},
         "contract": {"$ref": "#/$defs/moduleContract", "description": "Public contract exposed by the module."},
-        "files": {"type": "array", "items": {"$ref": "#/$defs/file"}, "description": "List of files associated with the module."}
+        "files": {"type": "array", "items": {"$ref": "#/$defs/file"}, "description": "Normalized virtual resource inventory for the module."}
       },
       "required": ["label", "version", "copyright", "icon", "configUrl", "assetsUrl", "defaults", "files"],
       "additionalProperties": false,
@@ -63,13 +64,13 @@
     "file": {
       "type": "object",
       "properties": {
-        "path": {"type": "string", "description": "Path to the file."},
-        "size": {"type": "integer", "description": "Size of the file in bytes."},
-        "hash": {"type": "string", "description": "Hash of the file content."}
+        "path": {"type": "string", "minLength": 1, "description": "Absolute or application-root-relative virtual resource path."},
+        "size": {"type": "integer", "minimum": 0, "description": "Size of the physical file in bytes."},
+        "hash": {"type": "string", "minLength": 1, "description": "Hash of the physical file content."}
       },
       "required": ["path", "size", "hash"],
       "additionalProperties": false,
-      "description": "Schema for a file associated with a file."
+      "description": "File entry in the effective XShell resource inventory."
     },
     "moduleDefaults": {
       "type": "object",
@@ -240,6 +241,7 @@
         "debug": {"type": "boolean", "description": "Whether XShell debug behavior is enabled."},
         "version": {"type": "string", "description": "XShell runtime version."},
         "environment": {"type": "string", "description": "Runtime environment name."},
+        "assetsPath": {"type": "string", "format": "uri", "description": "URL of the directory or package containing the xshell assets, relative to the application root."},
         "assetsPrefix": {"type": "string", "description": "Virtual URL prefix used for module assets."},
         "configUrl": {"type": "string", "format": "uri", "description": "URL of the xshell configuration document"},
         "assetsUrl": {"type": "string", "format": "uri", "description": "URL of the directory or package containing the xshell assets."},
@@ -251,7 +253,7 @@
         "resolver": {"$ref": "#/$defs/resolver", "description": "Logical resource resolver configuration."},
         "services": {"$ref": "#/$defs/xshellServices", "description": "Services configuration."},
         "temp": {"$ref": "#/$defs/xshellTemp", "description": "Temp configuration."},
-        "files": {"type": "array", "items": {"$ref": "#/$defs/file"}, "description": "List of files associated with xshell."}
+        "files": {"type": "array", "items": {"$ref": "#/$defs/file"}, "description": "Normalized virtual resource inventory for the XShell framework."}
       },
       "additionalProperties": false,
       "description": "Core XShell runtime configuration."
