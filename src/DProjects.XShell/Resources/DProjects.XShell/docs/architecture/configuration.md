@@ -40,13 +40,15 @@ After discovery and normalization, each reference is replaced through merging by
         "app": {
             "label": "Application",
             "configUrl": "https://example.test/modules/app/module.jsonc",
-            "assetsUrl": "https://example.test/modules/app/"
+            "assetsUrl": "https://example.test/modules/app/",
+            "assetsPath": "/_assets/app"
         },
         "x": {
             "label": "X",
             "version": "1.0.0",
             "configUrl": "https://example.test/modules/x/module.jsonc",
             "assetsUrl": "https://example.test/modules/x/",
+            "assetsPath": "/_assets/x",
             "params": { "mode": "compact" }
         }
     }
@@ -54,8 +56,9 @@ After discovery and normalization, each reference is replaced through merging by
 ```
 
 The module key is the identity; duplicate `name`, `id`, or `moduleId` fields are unnecessary. `configUrl` locates `module.jsonc`, while `assetsUrl`
-locates the physical resources. They are distinct from the virtual `/_assets/<id>/...` namespace. The local definition owns `assetsUrl`; references
-cannot override it.
+locates the physical resources. Bootstrap generates `assetsPath` as the application-root-relative virtual package base in the Service Worker
+namespace. The local definition owns `assetsUrl`; references cannot override it. `assetsPath` is effective runtime metadata and is not authored in
+`module.json`, `module.jsonc`, or `xshell.jsonc`.
 
 ## Merge and precedence
 
@@ -83,7 +86,8 @@ Every effective module requires `defaults.page` and `defaults.component`, each w
 are separate from global `xshell.ui` settings.
 
 `url:` values resolve against the JSONC document where they were authored. Bootstrap gives each local definition its document URL as `configUrl`
-and defaults `assetsUrl` to the document directory. It then maps module-relative runtime paths into `/_assets/<module-id>/...`.
+and defaults `assetsUrl` to the document directory. After merging, it derives each module `assetsPath` and `xshell.assetsPath` from the effective
+`xshell.assetsPrefix`, then maps module-relative runtime paths into that virtual namespace.
 
 The canonical schema describes the final merged object, not partial authored references. Effective validation occurs after bootstrap normalization.
 The required `xshell.i18n` section supplies the current language, available languages, date/time formats, and translation dictionaries. The X module

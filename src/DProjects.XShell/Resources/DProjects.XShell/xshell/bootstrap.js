@@ -252,10 +252,12 @@ async function loadConfig() {
     // merge configs
     const configsToMerge = [configs["xshell"], ...graph.mergeOrder.map(node => node.config)];
     const configMerged = mergeConfigs(configsToMerge);
+    configMerged.xshell.assetsPath = "/" + configMerged.xshell.assetsPrefix + "/xshell";
 
-    // default contract for modules
+    // add generated runtime metadata and the default contract for modules
     for(const moduleId in configMerged.modules)   {
         const module = configMerged.modules[moduleId];
+        module.assetsPath = "/" + configMerged.xshell.assetsPrefix + "/" + moduleId;
         if (!module.contract) module.contract = {};
         if (!module.contract.events) module.contract.events = {};
         if (!module.contract.intents) module.contract.intents = {};
@@ -265,23 +267,24 @@ async function loadConfig() {
     // default resolvers for modules
     for(const moduleId in configMerged.modules)   {
         const module = configMerged.modules[moduleId];
+        const moduleAssetsPath = module.assetsPath;
         const resolver = configMerged.xshell.resolver;
         resolver.icon = resolver.icon || {};
-        resolver.icon[`${moduleId}-{name}`] = resolver.icon[`${moduleId}-{name}`] || { url: `/${assetsPrefix}/${moduleId}/icons/{name}.svg`, loader: 'icon-svg', cache: true, moduleId: moduleId, modulePath: `/${assetsPrefix}/${moduleId}`}
+        resolver.icon[`${moduleId}-{name}`] = resolver.icon[`${moduleId}-{name}`] || { url: `${moduleAssetsPath}/icons/{name}.svg`, loader: 'icon-svg', cache: true, moduleId: moduleId, modulePath: moduleAssetsPath}
         resolver.layout = resolver.layout || {};
-        resolver.layout[`${moduleId}-layout-{name}`] = resolver.layout[`${moduleId}-layout-{name}`] || {url: `/${assetsPrefix}/${moduleId}/layouts/${moduleId}-layout-{name}.js`, loader: 'component-js', cache: true, moduleId: moduleId, modulePath: `/${assetsPrefix}/${moduleId}`};
+        resolver.layout[`${moduleId}-layout-{name}`] = resolver.layout[`${moduleId}-layout-{name}`] || {url: `${moduleAssetsPath}/layouts/${moduleId}-layout-{name}.js`, loader: 'component-js', cache: true, moduleId: moduleId, modulePath: moduleAssetsPath};
         resolver.component = resolver.component || {};
-        resolver.component[`${moduleId}-{name}`] = resolver.component[`${moduleId}-{name}`] || { url: `/${assetsPrefix}/${moduleId}/components/${moduleId}-{name}.js`, loader: 'component-js', cache: true, moduleId: moduleId, modulePath: `/${assetsPrefix}/${moduleId}`};
+        resolver.component[`${moduleId}-{name}`] = resolver.component[`${moduleId}-{name}`] || { url: `${moduleAssetsPath}/components/${moduleId}-{name}.js`, loader: 'component-js', cache: true, moduleId: moduleId, modulePath: moduleAssetsPath};
         resolver.page = resolver.page || {};
-        resolver.page[`/${assetsPrefix}/${moduleId}/{path}.js`] = resolver.page[`/${assetsPrefix}/${moduleId}/{path}.js`] || { url: `/${assetsPrefix}/${moduleId}/{path}.js`, loader: 'page-js', cache: true, cacheMode: 'path', moduleId: moduleId, modulePath: `/${assetsPrefix}/${moduleId}`};
-        resolver.page[`/${assetsPrefix}/${moduleId}/{path}.html`] = resolver.page[`/${assetsPrefix}/${moduleId}/{path}.html`] || { url: `/${assetsPrefix}/${moduleId}/{path}.js`, loader: 'page-js', cache: true, cacheMode: 'path', moduleId: moduleId, modulePath: `/${assetsPrefix}/${moduleId}`};
+        resolver.page[`${moduleAssetsPath}/{path}.js`] = resolver.page[`${moduleAssetsPath}/{path}.js`] || { url: `${moduleAssetsPath}/{path}.js`, loader: 'page-js', cache: true, cacheMode: 'path', moduleId: moduleId, modulePath: moduleAssetsPath};
+        resolver.page[`${moduleAssetsPath}/{path}.html`] = resolver.page[`${moduleAssetsPath}/{path}.html`] || { url: `${moduleAssetsPath}/{path}.js`, loader: 'page-js', cache: true, cacheMode: 'path', moduleId: moduleId, modulePath: moduleAssetsPath};
         resolver.module = resolver.module || {};
-        resolver.module[`${moduleId}-{name}`] = resolver.module[`${moduleId}-{name}`] || { url: `/${assetsPrefix}/${moduleId}/${moduleId}-{name}.js`, loader: 'module-js', cache: true, moduleId: moduleId, modulePath: `/${assetsPrefix}/${moduleId}`};
-        resolver.module[`/${assetsPrefix}/${moduleId}/{path}.js`] = resolver.module[`/${assetsPrefix}/${moduleId}/{path}.js`] || { url: `/${assetsPrefix}/${moduleId}/{path}.js`, loader: 'module-js', cache: true, moduleId: moduleId, modulePath: `/${assetsPrefix}/${moduleId}`};
+        resolver.module[`${moduleId}-{name}`] = resolver.module[`${moduleId}-{name}`] || { url: `${moduleAssetsPath}/${moduleId}-{name}.js`, loader: 'module-js', cache: true, moduleId: moduleId, modulePath: moduleAssetsPath};
+        resolver.module[`${moduleAssetsPath}/{path}.js`] = resolver.module[`${moduleAssetsPath}/{path}.js`] || { url: `${moduleAssetsPath}/{path}.js`, loader: 'module-js', cache: true, moduleId: moduleId, modulePath: moduleAssetsPath};
         resolver.style = resolver.style || {};
-        resolver.style[`/${assetsPrefix}/${moduleId}/{path}.css`] = resolver.style[`/${assetsPrefix}/${moduleId}/{path}.css`] || { url: `/${assetsPrefix}/${moduleId}/{path}.css`, loader: 'style-css', cache: true, moduleId: moduleId, modulePath: `/${assetsPrefix}/${moduleId}`};
+        resolver.style[`${moduleAssetsPath}/{path}.css`] = resolver.style[`${moduleAssetsPath}/{path}.css`] || { url: `${moduleAssetsPath}/{path}.css`, loader: 'style-css', cache: true, moduleId: moduleId, modulePath: moduleAssetsPath};
         resolver.string = resolver.string || {};
-        resolver.string[`/${assetsPrefix}/${moduleId}/{path}`] = resolver.string[`/${assetsPrefix}/${moduleId}/{path}`] || { url: `/${assetsPrefix}/${moduleId}/{path}`, loader: 'string', cache: true, moduleId: moduleId, modulePath: `/${assetsPrefix}/${moduleId}`};    }
+        resolver.string[`${moduleAssetsPath}/{path}`] = resolver.string[`${moduleAssetsPath}/{path}`] || { url: `${moduleAssetsPath}/{path}`, loader: 'string', cache: true, moduleId: moduleId, modulePath: moduleAssetsPath};    }
 
     // console
     console.log("bootstrap: config:", configMerged);
@@ -302,10 +305,9 @@ async function installServiceWorker(config) {
 
     // creates rules to send to service worker
     const xshellVersion = config.xshell.version;
-    const assetsPrefix = config.xshell.assetsPrefix;
     let rules = [];
     rules.push({ 
-        src: combineUrls( (appBasePath ? appBasePath + "/" : ""), "./" + assetsPrefix + "/xshell"), 
+        src: combineUrls((appBasePath ? appBasePath + "/" : ""), "." + config.xshell.assetsPath),
         dst: config.xshell.assetsUrl, 
         version: xshellVersion, 
         name:"xshell", 
@@ -313,7 +315,7 @@ async function installServiceWorker(config) {
     for(var moduleId of Object.keys(config.modules)) {
         const module = config.modules[moduleId];
         rules.push({ 
-            src: combineUrls((appBasePath ? appBasePath + "/" : ""), "./" + assetsPrefix + "/" + moduleId), 
+            src: combineUrls((appBasePath ? appBasePath + "/" : ""), "." + module.assetsPath),
             dst: module.assetsUrl, 
             version: module.version, 
             name: moduleId, 
@@ -363,13 +365,13 @@ async function loadFilesIndexes(config) {
     const tasks = [];
     const loadFilesIndex = async (id, target) => {
         // load files index
-        const moduleFilesUrl = combineUrls(appBasePath + "/", `./${config.xshell.assetsPrefix}/${id}/module.files.json`);
+        const moduleFilesUrl = combineUrls(appBasePath + "/", `.${target.assetsPath}/module.files.json`);
         const response = await fetch(moduleFilesUrl);
         if (!response.ok) {
             throw new Error(`Failed to load file inventory for '${id}' from '${moduleFilesUrl}': ${response.status} ${response.statusText}`);
         }
         const files = await response.json();
-        const virtualRoot = "/" + config.xshell.assetsPrefix + "/" + id;
+        const virtualRoot = target.assetsPath;
         for (const file of files) {
             file.path = relativizePaths("path", file.path, virtualRoot);
         }

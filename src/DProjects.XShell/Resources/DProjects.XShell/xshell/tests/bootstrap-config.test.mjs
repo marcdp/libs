@@ -100,8 +100,8 @@ test("loadFilesIndexes concurrently loads module and XShell inventories through 
         fetchOverrides.set(url, () => new Promise(resolve => pending.set(url, resolve)));
     }
     const config = {
-        modules: { x: {}, reports: {} },
-        xshell: { assetsPrefix: "_assets" }
+        modules: { x: { assetsPath: "/_assets/x" }, reports: { assetsPath: "/_assets/reports" } },
+        xshell: { assetsPrefix: "_assets", assetsPath: "/_assets/xshell" }
     };
 
     const loading = api.loadFilesIndexes(config);
@@ -124,7 +124,7 @@ test("loadFilesIndexes reports the inventory id, URL, and HTTP failure", async (
     const xshellInventoryUrl = "https://example.test/app/_assets/xshell/module.files.json";
     fetchOverrides.set(inventoryUrl, async () => ({ ok: false, status: 503, statusText: "Service Unavailable" }));
     fetchedResources.set(xshellInventoryUrl, []);
-    const config = { modules: { x: {} }, xshell: { assetsPrefix: "_assets" } };
+    const config = { modules: { x: { assetsPath: "/_assets/x" } }, xshell: { assetsPrefix: "_assets", assetsPath: "/_assets/xshell" } };
 
     await assert.rejects(
         () => api.loadFilesIndexes(config),
@@ -136,7 +136,7 @@ test("loadFilesIndexes reports the inventory id, URL, and HTTP failure", async (
 
 test("loadFilesIndexes fails clearly when the XShell inventory is missing", async () => {
     const inventoryUrl = "https://example.test/app/_assets/xshell/module.files.json";
-    const config = { modules: {}, xshell: { assetsPrefix: "_assets" } };
+    const config = { modules: {}, xshell: { assetsPrefix: "_assets", assetsPath: "/_assets/xshell" } };
 
     await assert.rejects(
         () => api.loadFilesIndexes(config),
@@ -147,8 +147,9 @@ test("loadFilesIndexes fails clearly when the XShell inventory is missing", asyn
 test("effective inventories exist before validation and configuration is frozen before init", async () => {
     const events = [];
     const config = {
-        modules: { x: { files: [{ path: "/_assets/x/file.js", size: 1, hash: "x" }] } },
+        modules: { x: { assetsPath: "/_assets/x", files: [{ path: "/_assets/x/file.js", size: 1, hash: "x" }] } },
         xshell: {
+            assetsPath: "/_assets/xshell",
             files: [{ path: "/_assets/xshell/xshell.js", size: 2, hash: "xshell" }],
             resolver: { module: { xshell: { url: "/_assets/xshell/xshell.js" } } }
         }
@@ -156,12 +157,16 @@ test("effective inventories exist before validation and configuration is frozen 
     const runtime = {
         async validateConfig(value) {
             events.push("validate");
+            assert.equal(value.modules.x.assetsPath, "/_assets/x");
+            assert.equal(value.xshell.assetsPath, "/_assets/xshell");
             assert.equal(value.modules.x.files[0].path, "/_assets/x/file.js");
             assert.equal(value.xshell.files[0].path, "/_assets/xshell/xshell.js");
             assert.equal(Object.isFrozen(value), false);
         },
         async init(value) {
             events.push("init");
+            assert.equal(value.modules.x.assetsPath, "/_assets/x");
+            assert.equal(value.xshell.assetsPath, "/_assets/xshell");
             assert.equal(Object.isFrozen(value), true);
             assert.equal(Object.isFrozen(value.modules.x.files[0]), true);
         }
@@ -193,8 +198,30 @@ test("loadConfig keeps xshellConfig as the base and applies root configuration l
     assert.equal(config.app.basePath, "https://example.test/app");
     assert.deepEqual(config.app.params, { mode: "host" });
     assert.deepEqual(config.modules.app.params, { mode: "host" });
+    assert.equal(config.modules.app.assetsPath, "/_assets/app");
     assert.equal(config.xshell.configUrl, xshellUrl);
+    assert.equal(config.xshell.assetsPath, "/_assets/xshell");
     assert.deepEqual(directFetchCalls, [xshellUrl, rootUrl]);
+});
+
+test("loadConfig derives every assetsPath from a custom assetsPrefix", async () => {
+    const xshellUrl = "https://example.test/xshell/xshell.jsonc";
+    const xUrl = "https://example.test/modules/x/module.jsonc";
+    fetchedResources.set(xshellUrl, {
+        app: {},
+        modules: {},
+        xshell: { assetsPrefix: "runtime", assetsPath: "/authored-xshell", environment: "Production", assetsUrl: "url:./", temp: { url: "url:./" }, resolver: {} }
+    });
+    fetchedResources.set(rootUrl, {
+        modules: { app: definition("app", { assetsPath: "/authored-app" }), x: reference(xUrl) }
+    });
+    fetchedResources.set(xUrl, { modules: { x: definition("x", { assetsPath: "/authored-x" }) } });
+
+    const config = plain(await api.loadConfig());
+
+    assert.equal(config.modules.app.assetsPath, "/runtime/app");
+    assert.equal(config.modules.x.assetsPath, "/runtime/x");
+    assert.equal(config.xshell.assetsPath, "/runtime/xshell");
 });
 
 test("root config accepts exactly one local module regardless of module key order", async () => {

@@ -13,6 +13,7 @@ const moduleDefinition = routes => ({
     icon: "",
     configUrl: "https://example.test/modules/test/module.jsonc",
     assetsUrl: "https://example.test/modules/test/",
+    assetsPath: "/_assets/test",
     files: [{ path: "/_assets/test/pages/index.js", size: 123, hash: "test-hash" }],
     ...(routes === undefined ? {} : { routes }),
     defaults: {
@@ -40,6 +41,7 @@ function configuration(module) {
             environment: "test",
             identity: { provider: "anonymous" },
             assetsPrefix: "_assets",
+            assetsPath: "/_assets/xshell",
             areas: { default: null, definitions: {} },
             navigation: { mode: "path" },
             resolver: {},
@@ -98,6 +100,16 @@ test("effective schema requires XShell files", () => {
     const config = configuration(moduleDefinition());
     delete config.xshell.files;
 
+    assert.equal(validator.validate(config).valid, false);
+});
+
+test("effective schema requires generated module and XShell assetsPath values", () => {
+    const module = moduleDefinition();
+    delete module.assetsPath;
+    assert.equal(validator.validate(configuration(module)).valid, false);
+
+    const config = configuration(moduleDefinition());
+    delete config.xshell.assetsPath;
     assert.equal(validator.validate(config).valid, false);
 });
 

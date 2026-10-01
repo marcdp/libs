@@ -36,6 +36,7 @@ function configuration(i18n) {
             environment: "test",
             identity: { provider: "anonymous" },
             assetsPrefix: "_assets",
+            assetsPath: "/_assets/xshell",
             areas: { default: null, definitions: {} },
             navigation: { mode: "path" },
             resolver: {},
