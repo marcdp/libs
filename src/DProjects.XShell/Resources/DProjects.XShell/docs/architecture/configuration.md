@@ -91,8 +91,9 @@ provides the baseline values, and application composition may override them thro
 An effective module may optionally declare `routes`, an object mapping friendly application URL patterns to module-relative Page targets. During
 bootstrap, route target values are normalized into the owning module's `/_assets/<module-id>/...` namespace; route keys remain application-facing
 patterns unchanged. Routes are distinct from module `menus`: menus describe user-visible navigation declarations, while routes are application
-URL-to-Page declarations. Route placeholders are currently declarative only; Area prefixes are not applied, and this field does not add route
-resolution, Area composition, or any change to navigation.
+URL-to-Page declarations. Runtime modules expose the normalized object as `module.routes`; Areas compose ordered `area.routes` from participating
+modules without adding their prefixes, and Navigation performs forward and reverse route resolution. See [Modules](modules.md),
+[Areas](../subsystems/areas.md), and [Navigation](navigation.md).
 Bootstrap deeply freezes the result before `xshell.init(config)`.
 
 See [Modules](modules.md), [Bootstrap](bootstrap.md), and [Specifications](../specifications/).

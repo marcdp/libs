@@ -98,12 +98,14 @@ does not attach them as refresh targets, so they are not live-reactive after com
 Composition visits modules in Area declaration order and each module's route properties in declaration order. Duplicate paths are preserved rather than
 overwritten. Modules without routes contribute nothing, and a module may contribute independently to multiple Areas. Route paths and targets are
 copied exactly from `module.routes`; Area prefixes are not applied. Areas do not match routes, extract placeholders, or rewrite targets. Navigation
-uses these declarations for forward and reverse URL resolution, and routes remain separate from menus.
+uses these declarations for forward and reverse URL resolution. The first matching forward route or first applicable reverse route wins in this
+composition order; Areas neither rank nor reorder candidates. Routes remain separate from menus.
 
 ## Navigation context
 
-An Area prefix marks a navigation context; `/_assets/<module-id>/...` marks resource ownership. Both `path` and `href` are Area-aware navigation
-values after composition; neither should be described as an unprefixed physical resource URL. A configured `"inventory"` or
+An Area prefix marks a navigation context; `/_assets/<module-id>/...` marks resource ownership. Effective menu `path` and `href` values are Area-aware
+after composition; neither should be described as an unprefixed physical resource URL. Route descriptors remain Area-relative until Navigation
+resolves them. A configured `"inventory"` or
 `"/inventory/"` normalizes to `"/inventory"`. Empty or root prefixes normalize to `""`. Prefix matching uses complete segments and tries the
 longest prefix first. Navigation resolves a friendly path through `Areas.resolvePath(path)` to its canonical Area-aware href. At page load,
 `x-page` removes the matched Area prefix before module resource resolution while retaining the prefixed canonical URL for navigation and

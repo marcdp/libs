@@ -6,16 +6,28 @@ An Area is a navigation context within a mode. Its `xshell.areas.definitions.<id
 `/_assets/<module-id>/...` URL identifies a page resource. Navigation mode, Area, and resource ownership are separate. The hash-mode
 `hashPrefix = "#!"` marks the browser fragment; it is not an Area prefix.
 
-## Menu paths and canonical targets
+```text
+Module.routes
+    ↓ Bootstrap normalization
+module.routes
+    ↓ Area composition
+area.routes
+    ↓
+Navigation
+  ├─ forward: public route → canonical Page href → x-page
+  └─ reverse: canonical Page href → public route → x-anchor
+```
+
+## Menus, routes, and canonical targets
 
 Areas also expose an ordered `area.routes` collection composed from their participating modules. These route declarations remain separate from menus:
 Area composition preserves each route's application-facing `path`, canonical Page `href`, source `module`, and declaration order without applying the
 Area prefix or interpreting placeholders. Navigation compiles and matches these declarations when resolving incoming friendly paths.
 
-Navigation now has a private compiler for the intentionally small route syntax: literal path segments and whole-segment named parameters such as
-`/repository/{repositoryId}/projects/{projectId}/items`. It records parameter names in declaration order and creates an internal escaped matcher;
-malformed placeholders, partial-segment placeholders, duplicate names, wildcards, and query syntax are rejected. The same compiled segment metadata
-is used for forward matching and reverse path construction.
+Navigation has a private compiler for the intentionally small route syntax: literal path segments and whole-segment named parameters such as
+`/repository/{repositoryId}/projects/{projectId}/items`. Optional parameters, wildcards, catch-alls, typed parameters, custom regular expressions,
+partial-segment placeholders, duplicate parameter names, and route priorities are unsupported. The compiler records parameter names in declaration
+order and creates an internal escaped matcher; the same compiled segment metadata is used for forward matching and reverse path construction.
 
 Navigation also has an internal Area-relative matcher that scans `area.routes` in composition order and returns `{ route, params }` for the first
 match, or `null` when none matches. It removes query and fragment suffixes for matching and decodes each captured segment independently, so encoded
@@ -24,7 +36,8 @@ slashes remain within one parameter value.
 For forward resolution, Navigation first preserves the existing exact menu-path lookup. If no menu alias matches, it resolves the Area, removes that
 Area's prefix for matching, and scans `area.routes` in composition order. The first match becomes the route's canonical Page `href`, with the Area
 prefix reapplied. Route parameters are encoded as query parameters; target query parameters and incoming public query parameters are preserved, with
-route parameters winning name conflicts. Incoming fragments are retained. For example,
+incoming values replacing same-name target values unless that name is a route parameter. Route parameters win all same-name conflicts. Incoming
+fragments are retained. For example,
 `/demo/repository/12/projects/7/items?sort=name#summary` can resolve internally to
 `/demo/_assets/x-demo/pages/items.js?repositoryId=12&projectId=7&sort=name#summary`.
 
@@ -41,6 +54,17 @@ For example, canonical
 `/_assets/x-demo/pages/items.js?repositoryId=12&projectId=7&sort=name` becomes public
 `/demo/repository/12/projects/7/items?sort=name`. Reverse routing remains private to Navigation; `x-anchor` continues to request a browser-facing URL
 without understanding route syntax.
+
+Route ambiguity is resolved only by deterministic Area composition order: module declaration order followed by route declaration order within each
+module. Forward matching uses the first matching route, and reverse generation uses the first applicable route. Navigation performs no specificity
+scoring, literal weighting, parameter-count ranking, sorting, or priority lookup. Exact duplicate paths contributed by different modules remain in
+the ordered collection and therefore follow the same first-match rule.
+
+Route failure normally preserves established Navigation fallback behavior. A forward path with no matching route continues as the existing
+Navigation target. Reverse generation with no applicable route retains the concrete menu alias when one exists, otherwise the Area-aware canonical
+href. A reverse candidate missing any required placeholder value is skipped without throwing, allowing a later candidate or canonical fallback.
+Canonical Page URLs remain directly navigable whether or not a route exists. Bad route declarations still fail during route compilation, and malformed
+percent encoding in a matched parameter remains an invalid-URL error rather than a silent no-match.
 
 Area prefixes form the boundary between public URLs and Area-relative routes. Route paths in `module.routes` and `area.routes` never acquire the
 prefix. For forward resolution, Navigation selects the Area and removes its prefix before matching; it then applies that prefix exactly once to the
@@ -104,6 +128,9 @@ perform path-to-href translation.
 Navigation listens for hash changes, decodes the page stack, and updates `x-page` elements. The configured `hashPrefix` is `#!`. Because the
 destination is in the fragment, the server needs no path fallback for deep links.
 
+After reverse route generation, hash mode wraps the public application path with AppBasePath and `hashPrefix`. With AppBasePath `/app`, Area prefix
+`/demo`, and public route `/repository/12/items`, the browser href is `/app/#!/demo/repository/12/items`.
+
 ```text
 host page#!/_assets/test/pages/test1.js → Navigation → x-page → page resource
 ```
@@ -114,6 +141,9 @@ Path mode uses `history.pushState()`, `history.replaceState()`, and `popstate` w
 configured application base path before interpreting the browser URL. Direct loads and refreshes require host collaboration so a deep application
 path returns the XShell host page. `Extensions.UseXShell()` provides that SPA fallback within `AppBasePath`, while allowing configured reserved
 prefixes and already-selected ASP.NET endpoints to continue through the pipeline.
+
+After reverse route generation, path mode prepends AppBasePath directly. With AppBasePath `/app`, Area prefix `/demo`, and public route
+`/repository/12/items`, the browser href is `/app/demo/repository/12/items`.
 
 ```jsonc
 { "xshell": { "navigation": { "mode": "path", "hashPrefix": "#!" } } }

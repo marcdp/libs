@@ -78,6 +78,25 @@ test("Area route matching preserves declaration order for duplicate matches", ()
     assert.equal(result.route, first);
 });
 
+test("Area route matching uses the first parameterized candidate without ranking", () => {
+    const first = { path: "/items/{id}", href: "/_assets/first/pages/item.js", module: "first" };
+    const second = { path: "/items/{name}", href: "/_assets/second/pages/item.js", module: "second" };
+
+    const result = createNavigation()._matchAreaRoutes("/items/123", { routes: [first, second] });
+
+    assert.equal(result.route, first);
+    assert.deepEqual(result.params, { id: "123" });
+});
+
+test("Area route matching does not prefer literal routes over earlier parameterized routes", () => {
+    const parameterized = { path: "/items/{id}", href: "/_assets/first/pages/item.js", module: "first" };
+    const literal = { path: "/items/special", href: "/_assets/second/pages/special.js", module: "second" };
+    const navigation = createNavigation();
+
+    assert.equal(navigation._matchAreaRoutes("/items/special", { routes: [parameterized, literal] }).route, parameterized);
+    assert.equal(navigation._matchAreaRoutes("/items/special", { routes: [literal, parameterized] }).route, literal);
+});
+
 test("Area route matching ignores query strings and hash fragments", () => {
     const route = { path: "/repository/{repositoryId}", href: "/_assets/repository/pages/index.js", module: "repository" };
     const result = createNavigation()._matchAreaRoutes("/repository/12?tab=history#section", { routes: [route] });

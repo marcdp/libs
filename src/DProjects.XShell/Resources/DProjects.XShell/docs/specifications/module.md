@@ -93,19 +93,28 @@ metadata and do not by themselves implement runtime dispatch.
 }
 ```
 
-Routes are application URL-to-Page declarations, distinct from `menus`, which are user-visible navigation declarations. Route placeholders such as
-`{repositoryId}` are declarative only at this stage. During bootstrap, route target values are normalized into the owning module's canonical
-`/_assets/<module-id>/...` resource namespace. Route keys are preserved unchanged. Area prefixes and application base paths are not applied, and
-route values are not otherwise rewritten.
+Routes are application URL-to-Page declarations, distinct from `menus`, which define visible navigation structures and concrete destinations. Route
+keys are Area-relative friendly paths. They support literal segments and whole-segment `{parameterName}` placeholders only; optional parameters,
+wildcards, catch-alls, typed parameters, custom regular expressions, and route priorities are unsupported.
 
-Areas compose routes from participating modules, and Navigation resolves incoming Area-relative friendly paths against that ordered collection. A
-match selects the canonical Page target and adds decoded path parameters as encoded query parameters. Exact menu-path aliases retain precedence.
-For browser-facing generation, Navigation can select the first applicable route targeting a canonical Page, substitute placeholder values from its
-query, and preserve unused query parameters. Missing placeholder values make a reverse candidate inapplicable. Exact menu aliases retain precedence.
+During bootstrap, each authored module-relative route target is normalized into the owning module's canonical
+`/_assets/<module-id>/...` resource namespace. Route keys remain unchanged, and neither Area prefixes nor application base paths are stored in the
+declaration. The runtime module exposes the normalized object as `module.routes`. Areas compose `area.routes` from `area.modules`, preserving module
+order, route declaration order, and duplicate paths.
 
-After bootstrap, the runtime module instance exposes the normalized declarations through `xshell.modules.getModuleById(id).routes`. This is the
-effective configuration object itself; modules without routes expose a frozen empty object. Route metadata remains declarative—Areas and Navigation
-compose and interpret it without mutating the module definition.
+Navigation resolves incoming Area-relative public paths against that ordered collection. A forward match selects the canonical Page target and adds
+decoded path parameters as encoded query parameters. Intrinsic target query parameters initialize the target query, incoming public query values may
+replace non-route target values, and route-path parameters win all same-name conflicts. Fragments remain attached.
+
+For browser-facing generation, Navigation selects the first applicable route targeting a canonical Page, substitutes placeholder values from its
+query, and consumes those values from the public query. Intrinsic target query parameters are also consumed after they match; unrelated query values
+and fragments remain. A missing placeholder makes only that reverse candidate inapplicable. Exact menu aliases retain precedence in both directions.
+Ambiguity is resolved strictly by Area composition order without scoring, specificity ranking, or priorities. No match falls through to existing
+Navigation behavior, and canonical Page hrefs remain directly usable without a route.
+
+The normalized declarations are available through `xshell.modules.getModuleById(id).routes`. This is the effective configuration object itself;
+modules without routes expose a frozen empty object. Route metadata remains declarative—Areas and Navigation compose and interpret it without
+mutating the module definition.
 
 For example, this authored route:
 

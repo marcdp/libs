@@ -97,6 +97,22 @@ function createSharedRouteContext({ definitions, defaultArea, mode = "path", bas
     return { areas, navigation: createNavigation({ areas, mode, basePath }), module };
 }
 
+function createNoRouteContext() {
+    const config = {
+        xshell: {
+            assetsPrefix: "_assets",
+            areas: {
+                default: "empty",
+                definitions: { empty: { prefix: "/empty", modules: ["empty"] } }
+            }
+        }
+    };
+    const module = { id: "empty", config: { menus: {} } };
+    const areas = new Areas({ config, bus: { addEventListener() {}, emit() {} } });
+    areas.init({ modules: { getModuleById(id) { return id === module.id ? module : null; } } });
+    return { areas, navigation: createNavigation({ areas }) };
+}
+
 test("Areas.resolveHref searches recursively across selected Area menus and ignores query and fragment", () => {
     const areas = createAreas();
 
@@ -137,6 +153,16 @@ test("Area routes are immutable and do not apply the Area prefix", () => {
     assert.equal(Object.isFrozen(area.routes[0]), true);
     assert.equal(area.routes[0].path, "/items");
     assert.equal(area.routes[0].href, "/_assets/first/pages/items.js");
+});
+
+test("Navigation forward ambiguity follows composed Area module and route declaration order", () => {
+    const areas = createRouteAreas();
+    const navigation = createNavigation({ areas });
+
+    assert.equal(
+        navigation._buildUrlFinal(navigation.parseUrl("/demo/items")),
+        "/demo/_assets/first/pages/items.js"
+    );
 });
 
 test("Areas.resolveHref keeps ambiguous canonical Pages scoped to the selected Area", () => {
@@ -322,6 +348,32 @@ test("Navigation route resolution preserves direct canonical and unmatched fallb
     assert.equal(navigation._buildUrlFinal(navigation.parseUrl("/demo/not-a-route")), "/demo/not-a-route");
 });
 
+test("Navigation preserves fallback and canonical access when a module and Area have no routes", () => {
+    const { areas, navigation } = createNoRouteContext();
+
+    assert.deepEqual(areas.getArea("empty").routes, []);
+    assert.doesNotThrow(() => navigation._buildUrlFinal(navigation.parseUrl("/empty/not-a-route")));
+    assert.equal(navigation._buildUrlFinal(navigation.parseUrl("/empty/not-a-route")), "/empty/not-a-route");
+    assert.equal(
+        navigation.buildUrlAbsolute({ href: "/_assets/empty/pages/index.js?tab=info#details" }),
+        "/empty/_assets/empty/pages/index.js?tab=info#details"
+    );
+    assert.equal(
+        navigation._buildUrlFinal(navigation.parseUrl("/empty/_assets/empty/pages/index.js?tab=info#details")),
+        "/empty/_assets/empty/pages/index.js?tab=info#details"
+    );
+});
+
+test("Navigation keeps malformed encoded route parameters distinct from normal no-match fallback", () => {
+    const navigation = createNavigation();
+
+    assert.throws(
+        () => navigation._buildUrlFinal(navigation.parseUrl("/demo/repository/%E0%A4%A")),
+        /Invalid encoded route parameter/
+    );
+    assert.doesNotThrow(() => navigation._buildUrlFinal(navigation.parseUrl("/demo/not-a-route")));
+});
+
 test("Navigation route resolution is mode-independent and keeps browser-facing route URLs", () => {
     const pathNavigation = createNavigation({ mode: "path", basePath: "https://example.test/app/" });
     const hashNavigation = createNavigation({ mode: "hash", basePath: "https://example.test/app/" });
@@ -401,6 +453,55 @@ test("Navigation reverse routing uses the first applicable route for duplicate t
         navigation.buildUrlAbsolute({ href: "/_assets/x-demo/pages/items.js?repositoryId=12&projectId=7" }),
         "/demo/repository/12/projects/7/items"
     );
+});
+
+test("Navigation reverse ambiguity uses Area order without ranking placeholder counts", () => {
+    const navigation = createNavigation();
+    const area = {
+        prefix: "/demo",
+        routes: [
+            { path: "/repository/{repositoryId}/items", href: "/_assets/x-demo/pages/items.js", module: "x-demo" },
+            { path: "/repository/{repositoryId}/projects/{projectId}/items", href: "/_assets/x-demo/pages/items.js", module: "x-demo" }
+        ]
+    };
+
+    assert.deepEqual(
+        navigation._resolvePublicRouteTarget(
+            "/_assets/x-demo/pages/items.js?repositoryId=12&projectId=7",
+            {},
+            area
+        ),
+        { href: "/demo/repository/12/items", params: { projectId: "7" } }
+    );
+});
+
+test("Navigation reverse ambiguity skips an inapplicable first route and uses the next candidate", () => {
+    const navigation = createNavigation();
+    const area = {
+        prefix: "/demo",
+        routes: [
+            { path: "/repository/{repositoryId}/items", href: "/_assets/x-demo/pages/items.js", module: "x-demo" },
+            { path: "/projects/{projectId}/items", href: "/_assets/x-demo/pages/items.js", module: "x-demo" }
+        ]
+    };
+
+    assert.deepEqual(
+        navigation._resolvePublicRouteTarget("/_assets/x-demo/pages/items.js?projectId=7", {}, area),
+        { href: "/demo/projects/7/items", params: {} }
+    );
+});
+
+test("Navigation treats missing, null, undefined, and empty reverse parameters as inapplicable", () => {
+    const navigation = createNavigation();
+    const area = {
+        prefix: "/demo",
+        routes: [{ path: "/repository/{repositoryId}/items", href: "/_assets/x-demo/pages/items.js", module: "x-demo" }]
+    };
+
+    for (const params of [{}, { repositoryId: null }, { repositoryId: undefined }, { repositoryId: "" }]) {
+        assert.doesNotThrow(() => navigation._resolvePublicRouteTarget("/_assets/x-demo/pages/items.js", params, area));
+        assert.equal(navigation._resolvePublicRouteTarget("/_assets/x-demo/pages/items.js", params, area), null);
+    }
 });
 
 test("Navigation reverse routing keeps exact menu aliases ahead of routes", () => {
@@ -487,6 +588,10 @@ test("Navigation preserves explicit and originating Area context when one module
         navigation.buildUrlAbsolute({ href: "/_assets/shared/pages/items.js?repositoryId=12" }),
         "/sales/repository/12/items"
     );
+    assert.equal(
+        navigation.buildUrlAbsolute({ href: "/admin/_assets/shared/pages/items.js" }),
+        "/admin/_assets/shared/pages/items.js"
+    );
 });
 
 test("Navigation wraps root and prefixed route URLs through path and hash AppBasePath modes", () => {
@@ -515,6 +620,58 @@ test("Navigation reverse routes consistently in path and hash modes with AppBase
 
     assert.equal(pathNavigation.buildUrlAbsolute({ href }), "/app/demo/repository/12");
     assert.equal(hashNavigation.buildUrlAbsolute({ href }), "/app/#!/demo/repository/12");
+});
+
+test("Navigation round-trips canonical route identity with unused query and fragment", () => {
+    const navigation = createNavigation();
+    const canonical = "/_assets/x-demo/pages/items.js?repositoryId=12&projectId=7&sort=name#summary";
+    const publicHref = navigation.buildUrlAbsolute({ href: canonical });
+
+    assert.equal(publicHref, "/demo/repository/12/projects/7/items?sort=name#summary");
+    assert.equal(
+        navigation._buildUrlFinal(navigation.parseUrl(publicHref)),
+        "/demo/_assets/x-demo/pages/items.js?repositoryId=12&projectId=7&sort=name#summary"
+    );
+});
+
+test("Navigation round-trips encoded route segments without changing segment boundaries", () => {
+    const navigation = createNavigation();
+    const canonical = "/_assets/x-demo/pages/items.js?repositoryId=hello%20world&projectId=abc%2Fdef&sort=name%20asc#details";
+    const publicHref = navigation.buildUrlAbsolute({ href: canonical });
+
+    assert.equal(publicHref, "/demo/repository/hello%20world/projects/abc%2Fdef/items?sort=name%20asc#details");
+    assert.equal(
+        navigation._buildUrlFinal(navigation.parseUrl(publicHref)),
+        "/demo/_assets/x-demo/pages/items.js?repositoryId=hello%20world&projectId=abc%2Fdef&sort=name%20asc#details"
+    );
+});
+
+test("Navigation round-trips routes through an empty-prefix Area", () => {
+    const { navigation } = createSharedRouteContext({
+        defaultArea: "root",
+        definitions: { root: { prefix: "", modules: ["shared"] } }
+    });
+    const canonical = "/_assets/shared/pages/items.js?repositoryId=12&sort=name#details";
+    const publicHref = navigation.buildUrlAbsolute({ href: canonical });
+
+    assert.equal(publicHref, "/repository/12/items?sort=name#details");
+    assert.equal(navigation._buildUrlFinal(navigation.parseUrl(publicHref)), canonical);
+});
+
+test("Navigation round-trips routes through path and hash modes with AppBasePath", () => {
+    const canonical = "/_assets/x-demo/pages/items.js?repositoryId=12&projectId=7&sort=name#summary";
+    const expected = "/demo/_assets/x-demo/pages/items.js?repositoryId=12&projectId=7&sort=name#summary";
+    const cases = [
+        { navigation: createNavigation({ mode: "path", basePath: "https://example.test/app/" }), browserPrefix: "/app" },
+        { navigation: createNavigation({ mode: "hash", basePath: "https://example.test/app/" }), browserPrefix: "/app/#!" }
+    ];
+
+    for (const { navigation, browserPrefix } of cases) {
+        const publicHref = navigation.buildUrlAbsolute({ href: canonical });
+        const applicationHref = publicHref.substring(browserPrefix.length);
+
+        assert.equal(navigation._buildUrlFinal(navigation.parseUrl(applicationHref)), expected);
+    }
 });
 
 test("Navigation leaves external URLs untouched", () => {

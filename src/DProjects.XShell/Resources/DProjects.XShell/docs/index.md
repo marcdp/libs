@@ -22,7 +22,7 @@ configuration, prepares resource mappings, initializes the runtime, starts modul
 
 Modules are the main unit of composition and distribution.
 
-A module can contribute resources such as Components, Pages, styles, menus, configuration, resolvers, and runtime behavior.
+A module can contribute resources such as Components, Pages, styles, menus, routes, configuration, resolvers, and runtime behavior.
 
 The application is also represented as a module: the **root module**.
 
@@ -72,9 +72,11 @@ See [Resolvers](architecture/resolvers.md), [Loaders](architecture/loaders.md), 
 
 ### Areas and navigation
 
-Modules provide reusable navigation contributions.
+Modules provide reusable menus and Area-relative route declarations. Menus define visible navigation structures; routes map friendly application
+paths to canonical Page targets.
 
-Areas compose participating modules into application navigation contexts, including menus and home destinations.
+Areas compose participating modules into application navigation contexts, including menus, ordered routes, and home destinations. Navigation
+performs forward and reverse route resolution while canonical Page hrefs remain directly usable.
 
 See [Areas](subsystems/areas.md) and [Navigation](architecture/navigation.md).
 
