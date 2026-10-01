@@ -14,7 +14,6 @@ The local definition is the one entry without `configUrl`. Its object key is the
             "version": "1.0.0",
             "copyright": "",
             "icon": "",
-            "controller": "/js/module.js",
             "defaults": {
                 "page": { "renderEngine": "x", "stateEngine": "proxy" },
                 "component": { "renderEngine": "x", "stateEngine": "proxy" }
@@ -78,7 +77,7 @@ Bootstrap resolves references recursively and the final effective entry is a com
 references use `/_assets/<module-id>/...` rather than the physical URL.
 
 The effective schema requires `label`, `version`, `copyright`, `icon`, `configUrl`, `assetsUrl`, and `defaults`. Optional effective fields include
-`params`, `styles`, `controller`, `menus`, `routes`, and `contract`. `contract` may declare events, actions, and intents; those declarations are
+`params`, `styles`, `menus`, `routes`, and `contract`. `contract` may declare events, actions, and intents; those declarations are
 metadata and do not by themselves implement runtime dispatch.
 
 ## Routes

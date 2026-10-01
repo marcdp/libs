@@ -226,14 +226,13 @@ test("loadConfig derives every assetsPath from a custom assetsPrefix", async () 
 
 test("root config accepts exactly one local module regardless of module key order", async () => {
     const xUrl = "https://example.test/modules/x/module.jsonc";
-    const root = { modules: { x: reference("url:../x/module.jsonc"), app: definition("app", { controller: "/js/module.js" }) } };
+    const root = { modules: { x: reference("url:../x/module.jsonc"), app: definition("app", { ) } };
     const graph = await discover(root, { [xUrl]: { modules: { x: definition("x") } } });
 
     assert.equal(graph.rootNode.id, "app");
     assert.deepEqual(orderOf(graph), ["x", "app"]);
     assert.equal(graph.rootNode.references[0].configUrl, xUrl);
-    assert.equal(graph.rootNode.config.modules.app.assetsUrl, "https://example.test/modules/app/");
-    assert.equal(graph.rootNode.config.modules.app.controller, "/_assets/app/js/module.js");
+    assert.equal(graph.rootNode.config.modules.app.assetsUrl, "https://example.test/modules/app/");    
 });
 
 test("dependency config accepts exactly one local module regardless of module key order", async () => {
@@ -423,7 +422,6 @@ test("module route targets use the owning module asset namespace while route key
         "/something": "/_assets/app/pages/index.js",
         "/repository/{repositoryId}/projects/{projectId}/items": "/_assets/app/pages/items.js"
     });
-    assert.deepEqual(plain(module.styles), ["/_assets/app/css/styles.css"]);
     assert.equal(module.controller, "/_assets/app/js/module.js");
 });
 

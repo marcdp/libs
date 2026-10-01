@@ -2,6 +2,7 @@ import Areas from "./areas.js";
 import Auth from "./auth.js";
 import Binds from "./binds.js";
 import Bus from "./bus.js";
+import Contracts from "./contracts.js";
 import Debug from "./debug.js";
 import Dialog from "./dialog.js";
 import I18n from "./i18n.js";
@@ -27,6 +28,7 @@ class XShell {
     _bus = null;
     _config = null;
     _container = null;
+    _contracts = null;
     _debug = null;
     _dialog = null;
     _i18n = null;
@@ -51,6 +53,7 @@ class XShell {
     get bus() { return this._bus; }
     get config() { return this._config; }
     get container() { return this._container; }
+    get contracts() { return this._contracts; }
     get debug() { return this._debug; }
     get dialog() { return this._dialog; }
     get i18n() { return this._i18n; }
@@ -86,6 +89,7 @@ class XShell {
         this._tabs = new Tabs( { bus: this._bus } );
         this._urlRewriter = new UrlRewriter();
         this._dialog = new Dialog( { config: config, navigation: this._navigation, i18n: this._i18n } );
+        this._contracts = new Contracts( { config: config } );
         this._temp = new Temp( { config: config } );
         this._runtime = new Runtime();
         // services
@@ -102,6 +106,7 @@ class XShell {
         this._services.register("navigation", this._navigation);
         this._services.register("resolver", this._resolver);
         this._services.register("runtime", this._runtime);
+        this._services.register("contracts", this._contracts);
         this._services.register("services", this._services);
         this._services.register("tabs", this._tabs);
         this._services.register("temp", this._temp);
@@ -111,7 +116,9 @@ class XShell {
         this._identity = await this.auth.login(this._config);
         this._services.register("identity", this._identity);
         // modules
-        await this._modules.init();               
+        await this._modules.init();  
+        // compose contracts list in memory from modules             
+        await this._contracts.init();
         // compose area menus and homes before navigation starts
         this._areas.init({ modules: this._modules });
         // navigation

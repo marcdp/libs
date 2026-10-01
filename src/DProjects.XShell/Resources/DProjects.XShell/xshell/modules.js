@@ -51,7 +51,7 @@ export default class Modules {
             for (const file of moduleConfig.files) {
                 if (file.path == moduleIndexCss) {
                     tasks.push((async() => {
-                        let styleSheet = await this._loader.load("style:" + moduleIndexCss);
+                        let styleSheet = await loadStyleSheetRecursive(moduleIndexCss);
                         module.styles.push(styleSheet);
                     })());
                 }

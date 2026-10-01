@@ -13,13 +13,13 @@ export default {
     style: `
         :host {display:block; font-size:var(--x-font-size-x-small);}
         summary:hover {text-decoration:underline; cursor:pointer;}
-        x-propertygrid {margin-top:1em; max-height:50vh; overflow-y:auto;}
+        x-propertygrid {max-height:50vh; overflow-y:auto;}
     `,
     template: `
-        <details>
-            <summary>{{ state.href }}</summary>
+        <x-details>
+            <div slot="summary">{{ state.href }}</div>
             <x-propertygrid x-prop:value="state"></x-propertygrid>
-        </details>
+        </x-details>
     `,
     state: {
         id: "",

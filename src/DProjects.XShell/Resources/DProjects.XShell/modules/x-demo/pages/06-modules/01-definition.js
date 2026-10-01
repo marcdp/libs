@@ -26,8 +26,6 @@ export default {
             "version": "1.0.0",
             "copyright": "",
             "icon": "",
-            "controller": "./js/module.js",
-            "styles": [],
             "defaults": {
                 "page": { "renderEngine": "x", "stateEngine": "proxy" },
                 "component": { "renderEngine": "x", "stateEngine": "proxy" }
