@@ -8,6 +8,7 @@ export default class Areas {
     _currentAreaId = null;
     _sources = {};
     _sourceTargets = {};
+    _globalMenus = {};
 
     // ctor
     constructor({ config, bus }) {
@@ -44,6 +45,21 @@ export default class Areas {
         this._areas = Object.freeze(areas);
         this._currentAreaId = this.getDefaultArea()?.id || null;
 
+        // create globalmenus
+        this._globalMenus = {};
+        for (const globalMenuId of config.xshell.areas?.global) {
+            const globalMenu = [];
+            for(const module of Object.values(config.modules)) {
+                const menuDefinition = module.menus?.[globalMenuId];
+                if (menuDefinition) {
+                    globalMenu.push(...menuDefinition.map(menuitem =>
+                        this._cloneMenuitemGlobal(menuitem, module)
+                    ));
+                }
+            }
+            this._globalMenus[globalMenuId] = globalMenu;
+        }
+
         // navigation determines the current area from its URL
         bus.addEventListener("xshell:navigation:end", evt => {
             const areaId = this.resolveAreaId(evt.detail.src);
@@ -62,6 +78,17 @@ export default class Areas {
             }
             return null;
         };
+        const findFirstVisibleHref = (items) => {
+            for (const item of items || []) {
+                const href = item.path || item.href;
+                if (href) return href;
+
+                const childHref = findFirstVisibleHref(item.children);
+                if (childHref) return childHref;
+            }
+            return null;
+        };
+        // process each area
         for (const area of this._areas) {
             const menus = {};
             const routes = [];
@@ -73,27 +100,22 @@ export default class Areas {
                 }
                 for (const [menuName, menuDefinition] of Object.entries(module.config.menus || {})) {
                     let menuItems;
-
                     if (Array.isArray(menuDefinition)) {
                         menuItems = menuDefinition;
                     } else if (typeof menuDefinition === "string") {
                         const source = this._sources[menuDefinition];
-
                         if (!source) {
                             console.warn(`Unknown menu source '${menuDefinition}'`);
                             continue;
                         }
-
                         menuItems = source.resolve?.() || [];
                     } else {
                         continue;
                     }
-
                     if (!Array.isArray(menuItems)) {
                         console.warn(`Menu '${menuName}' must resolve to an array`);
                         continue;
                     }
-
                     menus[menuName] ??= [];
                     menus[menuName].push(...menuItems.map(menuitem => this._cloneMenuitem(menuitem, module, area)));
                 }
@@ -104,7 +126,7 @@ export default class Areas {
             for (const items of Object.values(menus)) Object.freeze(items);
             area.menus = Object.freeze(menus);
             area.routes = Object.freeze(routes);
-            area.home = findDefaultHref(menus.navigation);
+            area.home = findDefaultHref(menus.navigation) || findFirstVisibleHref(menus.navigation);
             Object.freeze(area);
         }
     }
@@ -181,6 +203,7 @@ export default class Areas {
                     label: menuitem.label,
                     href: menuitem.href,
                     path: menuitem.path,
+                    embeded: menuitem.embeded,
                     ...(menuitem.icon ? { icon: menuitem.icon } : {}),
                     module: menuitem.module,
                     area: menuitem.area
@@ -212,16 +235,45 @@ export default class Areas {
             });
         }
     }
+    getGlobalMenu(name) {
+        return this._globalMenus[name] || null;
+    }
 
     // methods (private)
+    _cloneMenuitemGlobal(menuitem, module) {
+        const result = {
+            label: menuitem.label,
+            href: menuitem.href,
+            path: menuitem.path,
+            icon: menuitem.icon || null,
+            embeded: menuitem.embeded || false,
+            class: menuitem.class || "",
+            tooltip: menuitem.tooltip || null,
+            module: module.id,
+            default: menuitem.default || false,
+            children: []
+        };
+        if (menuitem.children) {
+            result.children.push(
+                ...menuitem.children.map(child =>
+                    this._cloneMenuitemGlobal(child, module)
+                )
+            );
+        }
+        Object.freeze(result.children);
+        return Object.freeze(result);
+    }
     _cloneMenuitem(menuitem, module, area) {
         const result = {
             label: menuitem.label,
             href: this._buildAreaHref(menuitem.href, area),
             path: this._buildAreaHref(menuitem.path, area),
             icon: menuitem.icon || null,
+            embeded: menuitem.embeded || false,
             module: module.id,
+            tooltip: menuitem.tooltip || null,
             default: menuitem.default || false,
+            class: menuitem.class || "",
             area: area.id,
             children: []
         };

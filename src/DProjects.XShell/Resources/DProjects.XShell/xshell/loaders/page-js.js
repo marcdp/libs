@@ -369,10 +369,10 @@ export async function createPageClassFromJsDefinition(src, context, implementati
             const cssPageSelector = `${host.nodeName.toLowerCase()}[src="${escapeCssString(host.getAttribute("src"))}"]`;
             if (implementation.style) {
                 const cssStyleSheet = new CSSStyleSheet();
-                cssStyleSheet.replaceSync(`@scope (${cssPageSelector}) {${implementation.style}}`);
+                cssStyleSheet.replaceSync(`@scope (${cssPageSelector}) {${implementation.style};}`);
                 this._styleSheets.push(cssStyleSheet);        
             }
-            document.adoptedStyleSheets = [...document.adoptedStyleSheets,...this._styleSheets];
+            host.getRootNode().adoptedStyleSheets = [...host.getRootNode().adoptedStyleSheets,...this._styleSheets];
             // render engine
             this._renderEngine = renderEngineFactory.create({ host, state: this._state, handler:(command, ...params) => {
                 this._controller[command](...params);
@@ -394,14 +394,15 @@ export async function createPageClassFromJsDefinition(src, context, implementati
             this._renderEngine = null;
             this._styleSheets = [];
             this._renderPending = false;
+            // remove this mount's style sheets from the host's adopted style sheets
+            if (styleSheets.length && this.host) {
+                this.host.getRootNode().adoptedStyleSheets = this.host.getRootNode().adoptedStyleSheets.filter(stylesheet => !styleSheets.includes(stylesheet));
+            }
             // controller may be async
             await super.unmount();
             // clean only resources captured from this mount
             if (renderEngine) {
                 renderEngine.unmount();
-            }
-            if (styleSheets.length) {
-                document.adoptedStyleSheets = document.adoptedStyleSheets.filter(stylesheet => !styleSheets.includes(stylesheet));
             }
         }
         async unload() {
@@ -414,10 +415,7 @@ export async function createPageClassFromJsDefinition(src, context, implementati
                     this._renderEngine = null;
                 }
                 this._renderPending = false;
-                if (this._styleSheets.length) {
-                    document.adoptedStyleSheets = document.adoptedStyleSheets.filter(stylesheet => !this._styleSheets.includes(stylesheet));
-                    this._styleSheets = [];
-                }
+                this._styleSheets = [];
                 for (const disposable of this._disposables) {
                     disposable.dispose();
                 }

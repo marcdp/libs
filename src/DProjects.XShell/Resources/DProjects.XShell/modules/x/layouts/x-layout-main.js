@@ -74,6 +74,8 @@ export default {
         .header .search x-datafield {width:30em;}
         .header .search x-icon {transform:translate(.75em,.3em); position:absolute; color: var(--x-datafield-color-placeholder); position:0;}
         .header .search-button {display:none;}
+        .header .shortcuts {display:flex; align-items:center;}
+        .header .shortcuts > * {margin-left: 0.25em;}
 
         /* breadcrumb */
         .breadcrumb {position:sticky; top:0; user-select: none; flex:1;}
@@ -128,7 +130,7 @@ export default {
             .body .menu {
                 position:sticky;
                 top:3em;
-                max-height:calc(100dvh - 6.5em);
+                height:calc(100dvh - 6.5em);
                 overflow-y:auto;
                 align-self: flex-start;
                 z-index:1;
@@ -243,11 +245,19 @@ export default {
 
             <div class="spacer"></div>
 
-            <x-dropdown class="popover left" collapse-on-click>
-                <x-button x-attr:label="state.userInitials" x-attr:title="state.userName" class="round light"></x-button>
-                <x-page slot="dropdown" src="/pages/identity.js" loading="lazy"></x-page>
-                <x-menu slot="dropdown" x-prop:menu="state.menuProfile"></x-menu>
-            </x-dropdown>
+            <div class="shortcuts" >
+                <div x-for="menuitem in state.menuShortcuts">
+                    <div x-if="menuitem.href">
+                        <x-anchor x-attr:href="menuitem.href" x-attr:title="menuitem.tooltip" class="plain">
+                            {{ menuitem.label }}
+                        </x-anchor>
+                    </div>
+                    <x-dropdown x-else class="popover left" collapse-on-click>
+                        <x-button x-attr:label="menuitem.label" x-attr:icon="menuitem.icon" x-attr:title="menuitem.tooltip" class="round light"></x-button>
+                        <x-menu slot="dropdown" x-prop:menu="menuitem.children"></x-menu>            
+                    </x-dropdown>
+                </div>
+            </div>
 
         </nav>
 
@@ -267,7 +277,9 @@ export default {
         <div class="body" x-class:toggled="state.toggled">
             <nav class="menu">
                 <div>
-                    <x-button class="anchor" icon="x-keyboard-arrow-left" x-on:click="toggle-menu"></x-button>
+                    <!--
+                        <x-button class="anchor" icon="x-keyboard-arrow-left" x-on:click="toggle-menu"></x-button>
+                    -->
                     <x-button class="anchor" icon="x-close" x-on:click="toggle-menu"></x-button>
                     <x-page-menu></x-page-menu>
                 </div>
@@ -289,7 +301,7 @@ export default {
     state: {
         menuNavigation:  null,
         menuTools:       null,
-        menuProfile:     null
+        c:     null
     },
     controller({ state, events, areas, bus, getPage, identity, host }) {
         return {
@@ -344,13 +356,13 @@ export default {
                         //show menu main and tools
                         state.menuNavigation = areas.getMenu("navigation");
                         state.menuTools = areas.getMenu("tools");
-                        state.menuProfile = areas.getMenu("profile");
+                        state.menuShortcuts = areas.getGlobalMenu("shortcuts");
                     } else {
                         // not found breadcrumb in page
                         // show menu main and tools
                         state.menuNavigation = areas.getMenu("navigation");
                         state.menuTools = areas.getMenu("tools");
-                        state.menuProfile = areas.getMenu("profile");
+                        state.menuShortcuts = areas.getGlobalMenu("shortcuts");
                         //breadcrumb
                         if (state.menuNavigation) {
                             let menuitems = findObjectsPath(state.menuNavigation, 'href', page.href);

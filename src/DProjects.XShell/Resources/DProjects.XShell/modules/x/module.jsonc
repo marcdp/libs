@@ -17,11 +17,6 @@
                     "renderEngine": "x",
                     "stateEngine": "proxy"
                 }
-            },
-            "contract": {
-                "events": {},
-                "actions": {},
-                "intents": {}
             }
         },
         "codemirror": {
@@ -92,7 +87,6 @@
             },
             "page":{
             }
-        }
-        
+        }        
     }
 }

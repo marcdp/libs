@@ -23,26 +23,11 @@
         "assetsPrefix": "_assets",
         "assetsUrl": "url:./",
 
-        // ui
-        "ui": {
-            "component": {
-                "lazy": "",
-                "error": ""
-            },
-            "dialog": {
-                "confirm": null,
-                "message": null,
-                "prompt": null,
-                "picker": null
-            },
-            "layout": {
-                "default": null,
-                "dialog": null,
-                "main": null,
-                "stack": null,
-                "embed": null
-            },
-            "page": {
+        // areas
+        "areas": {
+            "default": "main",
+            "global": ["shortcuts"],
+            "definitions": {
             }
         },
 
@@ -51,13 +36,7 @@
             "provider": "anonymous"
         },
 
-        // areas
-        "areas": {
-            "default": "main",
-            "definitions": {
-            }
-        },
-
+        
         // navigation
         "navigation": {
             "mode": "path", 
@@ -94,7 +73,30 @@
         // temp
         "temp": {
             "url": "url:./"   
-        }
+        },
+
+        // ui
+        "ui": {
+            "component": {
+                "lazy": "",
+                "error": ""
+            },
+            "dialog": {
+                "confirm": null,
+                "message": null,
+                "prompt": null,
+                "picker": null
+            },
+            "layout": {
+                "default": null,
+                "dialog": null,
+                "main": null,
+                "stack": null,
+                "embed": null
+            },
+            "page": {
+            }
+        }       
 
     }
 }

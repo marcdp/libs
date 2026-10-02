@@ -143,7 +143,7 @@ export default {
         expanded: false,
         forceRight: ""
     },
-    controller({ state, events, navigation, getPage, host }) {
+    controller({ state, events, navigation, getPage, host, timer }) {
         return {
             load(args) {
                 // load
@@ -154,7 +154,7 @@ export default {
             mount(args) {
                 // mount
                 if (state.autofocus) {
-                    requestAnimationFrame(() => {
+                    timer.setTimeout(25, () => {
                         let focusable = host.shadowRoot.querySelector("a.button");
                         if (focusable) {
                             focusable.focus();

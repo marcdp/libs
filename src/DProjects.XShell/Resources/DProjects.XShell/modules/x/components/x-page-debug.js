@@ -11,13 +11,17 @@ export const contract = {
 // implementation
 export default {
     style: `
-        :host {display:block; font-size:var(--x-font-size-x-small);}
+        :host {display:block;}
         summary:hover {text-decoration:underline; cursor:pointer;}
         x-propertygrid {max-height:50vh; overflow-y:auto;}
+        x-icon {vertical-align:bottom;}
     `,
     template: `
         <x-details>
-            <div slot="summary">{{ state.href }}</div>
+            <div slot="summary">
+                <x-icon icon="x-page"></x-icon>
+                {{ state.href }}
+            </div>
             <x-propertygrid x-prop:value="state"></x-propertygrid>
         </x-details>
     `,

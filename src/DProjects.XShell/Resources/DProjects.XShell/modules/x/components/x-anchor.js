@@ -33,7 +33,7 @@ export default {
         :host a[disabled] { pointer-events: none; color:gray;}
         
         :host(.menuitem) {}
-        :host(.menuitem) a {display:flex; padding-left:.6em; padding-right:.6em; text-decoration:none;}
+        :host(.menuitem) a {display:flex; padding-left:.6em; padding-right:.6em; text-decoration:none; height:2.1em;}
 
         :host(.block) {}
         :host(.block) a {display:block;}

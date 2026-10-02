@@ -52,7 +52,10 @@ export default {
         :host(.popover) .body {            
             margin-top:1em;
             margin-left:-.5em;
+            max-width:90vw;
             min-width: clamp(22em, 100%, 200%);
+            max-height:90vh;
+            overflow:auto;
         }
         :host(.popover) .body .helper {
             display: inline-block;
@@ -80,7 +83,7 @@ export default {
         }      
 
         /* popover left */
-        :host(.popover.left) .body {transform:translateX(calc(-100% + 4em));}
+        :host(.popover.left) .body {transform:translateX(calc(-100% + 3.75em));}
         :host(.popover.left) .body .helper {left:unset; right:1em;}
         :host(.popover.left) .body .helper2 {left:unset; right:1em;}
             

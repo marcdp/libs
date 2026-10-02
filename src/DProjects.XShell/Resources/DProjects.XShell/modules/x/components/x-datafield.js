@@ -92,6 +92,7 @@ export default {
     style: `
         :host {display:block; position:relative; }
         :host input,select,textarea {display:block; width:100%; resize: none;}
+        :host textarea {height:10em;}
         ::placeholder {color:var(--x-datafield-color-placeholder); font-style:italic;}        
 
         :host label {display:var(--x-datafield-label-display, none); padding-bottom:.5em; width:100%; font-weight:bold;}
@@ -169,7 +170,8 @@ export default {
         :host .i18n div {display:flex;flex:1; align-items:center; position:relative;}
         :host .i18n div input {flex:1; border:none; padding-right:1.5em;}
         :host .i18n div + div input {border-left:var(--x-datafield-border); border-radius:0 1em 1em 0;}
-        :host .i18n textarea {border-left:var(--x-datafield-border); border-radius:0 1em 1em 0; padding-right:1.5em;}
+        :host .i18n textarea {border-radius:1em; padding-right:1.5em; border:none;}
+        :host .i18n div + div textarea { border-left: var(--x-datafield-border); border-radius: 0px 1em 1em 0px;}
         :host .i18n textarea + span.lang {top:0.65em;}
         :host .i18n div span.lang {position:absolute; right:.5em; text-transform:uppercase; font-size:var(--x-font-size-x-small); color:var(--x-datafield-color-placeholder);}
 

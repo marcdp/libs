@@ -49,23 +49,23 @@ export default {
     },
     template: `
         <x-toolbar>
-            <x-button class="anchor big" x-on:click="action" data-action="bold"          icon="x-format_bold" title="Bold"></x-button>
-            <x-button class="anchor big" x-on:click="action" data-action="italic"        icon="x-format_italic" title="Italic"></x-button>
-            <x-button class="anchor big" x-on:click="action" data-action="underline"     icon="x-format_underlined" title="Underline"></x-button>
-            <x-button class="anchor big" x-on:click="action" data-action="strikeThrough" icon="x-format_strikethrough" title="strikeThrough"></x-button>
+            <x-button class="anchor big" x-on:click="action" data-action="bold"          icon="x-format-bold" title="Bold"></x-button>
+            <x-button class="anchor big" x-on:click="action" data-action="italic"        icon="x-format-italic" title="Italic"></x-button>
+            <x-button class="anchor big" x-on:click="action" data-action="underline"     icon="x-format-underlined" title="Underline"></x-button>
+            <x-button class="anchor big" x-on:click="action" data-action="strikeThrough" icon="x-format-strikethrough" title="strikeThrough"></x-button>
             <x-divider></x-divider>
-            <x-button class="anchor big" x-on:click="action" data-action="justifyLeft"   icon="x-format_align_left" title="Align left"></x-button>
-            <x-button class="anchor big" x-on:click="action" data-action="justifyCenter" icon="x-format_align_center" title="Align center"></x-button>
-            <x-button class="anchor big" x-on:click="action" data-action="justifyright"  icon="x-format_align_right" title="Align right"></x-button>
-            <x-button class="anchor big" x-on:click="action" data-action="justifyFull"   icon="x-format_align_justify" title="Align justifty"></x-button>
+            <x-button class="anchor big" x-on:click="action" data-action="justifyLeft"   icon="x-format-align-left" title="Align left"></x-button>
+            <x-button class="anchor big" x-on:click="action" data-action="justifyCenter" icon="x-format-align-center" title="Align center"></x-button>
+            <x-button class="anchor big" x-on:click="action" data-action="justifyright"  icon="x-format-align-right" title="Align right"></x-button>
+            <x-button class="anchor big" x-on:click="action" data-action="justifyFull"   icon="x-format-align-justify" title="Align justifty"></x-button>
             <x-divider></x-divider>
-            <x-button class="anchor big" x-on:click="action" data-action="indent"   icon="x-format_indent_increase" title="Indent"></x-button>
-            <x-button class="anchor big" x-on:click="action" data-action="outdent"  icon="x-format_indent_decrease" title="Outdent"></x-button>
+            <x-button class="anchor big" x-on:click="action" data-action="indent"   icon="x-format-indent-increase" title="Indent"></x-button>
+            <x-button class="anchor big" x-on:click="action" data-action="outdent"  icon="x-format-indent-decrease" title="Outdent"></x-button>
             <x-divider></x-divider>
-            <x-button class="anchor big" x-on:click="action" data-action="insertUnorderedList"  icon="x-format_list_bulleted" title="Insert unordered list"></x-button>
-            <x-button class="anchor big" x-on:click="action" data-action="insertOrderedList"    icon="x-format_list_numbered" title="Insert ordered list"></x-button>
+            <x-button class="anchor big" x-on:click="action" data-action="insertUnorderedList"  icon="x-format-list-bulleted" title="Insert unordered list"></x-button>
+            <x-button class="anchor big" x-on:click="action" data-action="insertOrderedList"    icon="x-format-list-numbered" title="Insert ordered list"></x-button>
             <x-divider></x-divider>
-            <x-button class="anchor big" x-on:click="action" data-action="removeFormat"             icon="x-format_clear" title="Clear format"></x-button>
+            <x-button class="anchor big" x-on:click="action" data-action="removeFormat"             icon="x-format-clear" title="Clear format"></x-button>
             <x-button class="anchor big" x-on:click="action" data-action="insertHorizontalRule"     icon="x-remove" title="Insert horizontal rule"></x-button>            
             <x-button class="anchor big" x-on:click="action" data-action="undo"                     icon="x-undo" title="Undo"></x-button>
             <x-button class="anchor big" x-on:click="action" data-action="redo"                     icon="x-redo" title="Redo"></x-button>

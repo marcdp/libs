@@ -216,7 +216,10 @@
         "href": {"type": ["string", "null"], "description": "Canonical XShell navigation target associated with the menu item."},
         "path": {"type": "string", "description": "Optional public navigation path used as a friendly alias for href."},
         "icon": {"type": ["string", "null"], "description": "Optional icon associated with the menu item."},
+        "embeded": {"type": "boolean", "description": "Whether the menu item should be embedded."},
         "default": {"type": "boolean", "description": "Whether this item is the default navigation target."},
+        "tooltip": {"type": ["string", "null"], "description": "Optional tooltip text for the menu item."},
+        "class": {"type": "string", "description": "CSS class to apply to the menu item."},
         "children": {
           "type": "array",
           "items": {"$ref": "#/$defs/menuItem"},
@@ -302,14 +305,11 @@
     },
     "xshellAreas": {
       "type": "object",
-      "required": ["default", "definitions"],
+      "required": ["default", "global", "definitions"],
       "properties": {
         "default": {"type": ["string", "null"], "description": "Identifier of the default area."},
-        "definitions": {
-          "type": "object",
-          "additionalProperties": {"$ref": "#/$defs/xshellArea"},
-          "description": "Area definitions keyed by area identifier."
-        }
+        "global": { "type": "array", "items": {"type": "string"}, "description": "Global menu names."},
+        "definitions": {"type": "object", "additionalProperties": {"$ref": "#/$defs/xshellArea"}, "description": "Area definitions keyed by area identifier."}
       },
       "additionalProperties": false,
       "description": "Application areas and the default active area."

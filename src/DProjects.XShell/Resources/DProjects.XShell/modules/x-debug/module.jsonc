@@ -1,0 +1,30 @@
+{
+
+    // module
+    "modules": {
+        "x-debug": {
+            "label": "Debugger module",
+            "version": "1.0.0",
+            "icon": "",
+            "copyright": "",
+            "defaults": {
+                "component": { 
+                    "renderEngine": "x",
+                    "stateEngine": "proxy"
+                },
+                "page": { 
+                    "renderEngine": "x",
+                    "stateEngine": "proxy"
+                }
+            },
+            "menus": {
+                "shortcuts": [
+                    {"label": "", "tooltip":"Debug", "icon": "x-debug", "children":[
+                        {"label": "Shortcut 1.1", "href": "/pages/index.js", "icon": "x-settings", "embeded": true }
+                    ] }
+                ]
+            }
+        }
+    }
+
+}

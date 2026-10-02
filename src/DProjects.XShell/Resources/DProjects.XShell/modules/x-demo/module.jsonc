@@ -1,8 +1,8 @@
 {
     // app
     "app": {
-        "name": "test-app",
-        "label": "test app",
+        "name": "x-demo-app",
+        "label": "x-demo app",
         "version": "0.1.0",
         "copyright": "",
         "icon": ""
@@ -10,7 +10,6 @@
 
     // module
     "modules": {
-        // local root module definition
         "x-demo": {
             "label": "test module",
             "version": "1.0.0",
@@ -34,8 +33,8 @@
             "menus":{
                 "navigation": "x-demo-dynamic-navigation-menu-source",
                 "tools": [
-                    { "label": "My things 1", "href": "/pages/01-components/index.js?a=1"},
-                    { "label": "My things 2", "href": "/pages/index.js?a=2"}
+                    { "label": "My things 2-2", "href": "/pages/index.js?a=2-2"},
+                    { "label": "My things 1111", "href": "/pages/01-components/index.js?a=1"}
                 ]
             },
             "routes":{
@@ -43,14 +42,9 @@
                 "/repository/{repositoryId}/projects/{projectId}/items": "/pages/index.js"
             }
         },
-        // root application composition reference
-        "x": {
-            "configUrl": "url:../x/module.jsonc",
-            "params": {
-                "aaa": 890,
-                "bbb": 987
-            }
-        }
+        // references
+        "x":       {"configUrl": "url:../x/module.jsonc"},
+        "x-debug": {"configUrl": "url:../x-debug/module.jsonc"}
     },
 
     // xshell 

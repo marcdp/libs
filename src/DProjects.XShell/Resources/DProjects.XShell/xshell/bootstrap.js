@@ -270,7 +270,7 @@ async function loadConfig() {
         const moduleAssetsPath = module.assetsPath;
         const resolver = configMerged.xshell.resolver;
         resolver.icon = resolver.icon || {};
-        resolver.icon[`${moduleId}-{name}`] = resolver.icon[`${moduleId}-{name}`] || { url: `${moduleAssetsPath}/icons/{name}.svg`, loader: 'icon-svg', cache: true, moduleId: moduleId, modulePath: moduleAssetsPath}
+        resolver.icon[`${moduleId}-{name}`] = resolver.icon[`${moduleId}-{name}`] || { url: `${moduleAssetsPath}/icons/${moduleId}-{name}.svg`, loader: 'icon-svg', cache: true, moduleId: moduleId, modulePath: moduleAssetsPath}
         resolver.layout = resolver.layout || {};
         resolver.layout[`${moduleId}-layout-{name}`] = resolver.layout[`${moduleId}-layout-{name}`] || {url: `${moduleAssetsPath}/layouts/${moduleId}-layout-{name}.js`, loader: 'component-js', cache: true, moduleId: moduleId, modulePath: moduleAssetsPath};
         resolver.component = resolver.component || {};

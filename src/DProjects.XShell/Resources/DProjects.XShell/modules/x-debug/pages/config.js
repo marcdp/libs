@@ -1,6 +1,6 @@
 // contract
 export const contract = {
-    description: "Index page",
+    description: "Config page",
     events: {},
     properties: {},
     methods: {}
@@ -9,17 +9,18 @@ export const contract = {
 // export page
 export default {
     style: `
-        P {display:block; border:1px red dotted}
     `,
     template: `
-        <p>
-            this is the index page
-        </p>
+        <x-json x-prop:value="state.config" indent="2"></x-json>
     `,    
-    controller({ state }) {
+    state:{
+        config: null
+    },
+    controller({ state, config }) {
         return {
             load(params) {
                // load
+               state.config = config;
             }
         };
     }

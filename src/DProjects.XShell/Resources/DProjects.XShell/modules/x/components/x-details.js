@@ -23,8 +23,8 @@ export const contract = {
 };
 
 
-// documentation
-export const documentation = {
+// docs
+export const docs = {
     examples: [
         {   name: "Basic",
             template: `
@@ -47,14 +47,17 @@ export const documentation = {
 
 // implementation
 export default {
+
+    // style
     style: `
         :host {
             display: block;
         }
-
+ 
         .header {
             display: flex;
             align-items: center;
+            color:var(--x-color-text)
             gap: .5em;
             min-height: 2.5em;
             padding: 0 .75em;
@@ -65,8 +68,8 @@ export default {
 
         :host([disabled]) .header { cursor: default; opacity: .6; }
 
-        .header:hover {text-decoration:underline; cursor:pointer;}
-        .header > .label { flex: 1; display:flex;}
+        .header:hover {color:var(--x-color-primary); cursor:pointer;}
+        .header > .label { flex: 1; display:flex; align-items: baseline; }
 
         .chevron {flex: none; transition: transform var(--x-transition-duration); }
 
@@ -90,9 +93,9 @@ export default {
         }
  
     `,
-
+    // template
     template: `
-        <div class="header" x-attr:open="state.open" x-on:click="toggle">
+        <div class="header" x-attr:open="state.open" x-on:mousedown="toggle">
             <div class="label">
                 <slot name="summary">
                     <span x-text="state.label"></span>
@@ -108,9 +111,7 @@ export default {
             </div>
         </div>
     `,
-
-    state: {},
-
+    // controller
     controller({ state, host }) {
         const setOpen = (value) => {
             if (state.open === value) return;
@@ -118,9 +119,11 @@ export default {
             host.dispatchEvent(new CustomEvent("toggle", {bubbles: true, composed: false, detail: { open: state.open }}));
         };
         return {
-            toggle() {
+            toggle(args) {
+                const event = args.event;
                 if (state.disabled) return;
                 setOpen(!state.open);
+                event.preventDefault();
             },
 
             expand() {
