@@ -7,12 +7,12 @@ import Contracts from "../contracts.js";
 import Services from "../services.js";
 import validateContract from "../validation/contract.js";
 
-function createContractItem(id, methods = {}) {
+function createContractItem(id, methods = {}, properties = {}) {
     return {
         id,
         url: `/_assets/contracts/${id}.json`,
         moduleId: "contracts",
-        contract: { label: id, description: `${id} contract`, methods },
+        contract: { label: id, description: `${id} contract`, methods, properties },
         size: 1,
         status: "loaded",
         time: 0
@@ -81,6 +81,39 @@ test("configured services load eagerly but instantiate lazily as singletons", as
     assert.equal(services.getServiceItemById("example").state, "created");
 });
 
+test("has reports runtime and configured services without constructing lazy implementations", async () => {
+    let constructions = 0;
+    class ExampleService {
+
+        constructor() {
+            constructions++;
+        }
+    }
+    const definitions = { example: { contract: "example", implementation: "/_assets/test/services/example.js" } };
+    const implementations = { "module:/_assets/test/services/example.js": ExampleService };
+    const contractItems = { example: createContractItem("example") };
+    const { services } = createServices(definitions, implementations, contractItems);
+    services.register("runtime", { active: true });
+
+    await services.init();
+
+    assert.equal(services.has("runtime"), true);
+    assert.equal(services.has("example"), true);
+    assert.equal(services.has("missing"), false);
+    assert.equal(constructions, 0);
+});
+
+test("service registration is rejected after initialization finalizes the registry", async () => {
+    const { services } = createServices({}, {}, {});
+    services.register("runtime", { active: true });
+
+    await services.init();
+
+    assert.equal(services.has("runtime"), true);
+    assert.throws(() => services.register("late", {}), /Service registry is immutable after initialization\./);
+    assert.equal(services.has("late"), false);
+});
+
 test("unknown contract references fail before implementation loading", async () => {
     const definitions = { toast: { contract: "toast", implementation: "/_assets/test/services/toast.js" } };
     const { loads, services } = createServices(definitions, {}, {});
@@ -99,6 +132,55 @@ test("service creation rejects an implementation missing a required method", asy
 
     assert.throws(() => services.resolve("toast"), /Service 'toast' does not implement required method 'show'\./);
     assert.equal(services.getServiceItemById("toast").state, "registered");
+});
+
+test("service creation accepts a declared own property", async () => {
+    class IdentityService {
+
+        constructor() {
+            this.currentUser = null;
+        }
+    }
+    const definitions = { identity: { contract: "identity", implementation: "/_assets/test/services/identity.js" } };
+    const implementations = { "module:/_assets/test/services/identity.js": IdentityService };
+    const contractItems = { identity: createContractItem("identity", {}, { currentUser: { type: "object", readonly: true } }) };
+    const { services } = createServices(definitions, implementations, contractItems);
+    await services.init();
+
+    assert.equal(services.resolve("identity").currentUser, null);
+});
+
+test("service creation accepts a prototype getter without executing it during validation", async () => {
+    let getterCalls = 0;
+    class IdentityService {
+
+        get currentUser() {
+            getterCalls++;
+            throw new Error("getter must not execute during validation");
+        }
+    }
+    const definitions = { identity: { contract: "identity", implementation: "/_assets/test/services/identity.js" } };
+    const implementations = { "module:/_assets/test/services/identity.js": IdentityService };
+    const contractItems = { identity: createContractItem("identity", {}, { currentUser: { type: "object", readonly: true } }) };
+    const { services } = createServices(definitions, implementations, contractItems);
+    await services.init();
+
+    const identity = services.resolve("identity");
+
+    assert.ok(identity instanceof IdentityService);
+    assert.equal(getterCalls, 0);
+});
+
+test("service creation rejects an implementation missing a required property", async () => {
+    class InvalidIdentityService {}
+    const definitions = { identity: { contract: "identity", implementation: "/_assets/test/services/identity.js" } };
+    const implementations = { "module:/_assets/test/services/identity.js": InvalidIdentityService };
+    const contractItems = { identity: createContractItem("identity", {}, { currentUser: { type: "object", readonly: true } }) };
+    const { services } = createServices(definitions, implementations, contractItems);
+    await services.init();
+
+    assert.throws(() => services.resolve("identity"), /Service 'identity' does not implement required property 'currentUser'\./);
+    assert.equal(services.getServiceItemById("identity").state, "registered");
 });
 
 test("circular constructor dependencies fail with the service path", async () => {

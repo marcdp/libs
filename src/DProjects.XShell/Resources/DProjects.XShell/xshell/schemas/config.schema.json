@@ -39,6 +39,7 @@
         "icon": {"type": "string", "description": "Module icon resource."},
         "configUrl": {"type": "string", "format": "uri", "description": "URL of the module configuration document."},
         "params": {"type": "object", "additionalProperties": true, "description": "Parameters supplied to the canonical module by root application composition."},
+        "requires": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true, "description": "Names of services that must be registered before the module is initialized."},
         "assetsUrl": {"type": "string", "format": "uri", "description": "URL of the directory or package containing the module assets, absolute."},
         "assetsPath": {"type": "string", "pattern": "^/", "description": "Application-root-relative virtual base path for the module assets."},
         "menus": {"$ref": "#/$defs/menus", "description": "Menu contributions exposed by the module."},

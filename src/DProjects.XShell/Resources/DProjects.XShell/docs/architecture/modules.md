@@ -91,12 +91,31 @@ A module can declare named menu contributions. Each is either a static array or 
 `Areas.registerSource()`. Areas compose these contributions from module ids; Area membership does not create dependencies or additional runtime
 module instances. See [Areas](../subsystems/areas.md).
 
+## Required services
+
+The optional module-level `requires` array names services that must be present for the module to function:
+
+```jsonc
+"orders": {
+    "requires": ["toast", "identity"]
+}
+```
+
+After `Services.init()` has finalized the service registry, `Modules.init()` checks all module requirements with `Services.has()` before loading or
+starting any module controller. A missing service fails startup with the module id and service name. The check does not resolve or construct a
+configured lazy service.
+
+`module.requires` is service availability metadata. It is distinct from a Component or Page implementation's `dependencies`, which names concrete
+resources loaded through Resolver and Loader, and from `controller({ serviceName })`, which resolves an existing service for runtime use. See
+[Services](services.md).
+
 ## Module controller and runtime instance
 
 `Modules.init()` iterates the effective `config.modules` map once. It creates one record per canonical id, loads styles and an optional controller,
 supplies the final `params` to that controller, and exposes the effective module's normalized `routes` declarations. Repeated dependency references
 therefore still produce one runtime instance. `module.routes` is the effective configuration object itself; when routes are absent it is a frozen empty
-object. The effective configuration is immutable by the time runtime modules are initialized.
+object. Before creating those instances, XShell validates every module's service requirements. The effective configuration is immutable by the time
+runtime modules are initialized.
 
 Retrieve a runtime module with `xshell.modules.getModuleById(id)` or enumerate instances with `xshell.modules.getModules()`. `module.routes` is
 declarative metadata: Areas compose it, and Navigation uses the resulting ordered Area routes for forward and reverse resolution.

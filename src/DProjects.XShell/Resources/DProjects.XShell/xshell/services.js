@@ -62,8 +62,13 @@ export default class Services {
         this._items = Object.freeze(this._items);
     }
     register(name, instance, { contractItem, implementationItem } =  {}) {
-        if (this._items[name]) throw new Error(`Service already exists: ${name}`);
+        if (Object.isFrozen(this._items)) throw new Error("Service registry is immutable after initialization.");
+        if (Object.hasOwn(this._items, name)) throw new Error(`Service already exists: ${name}`);
         this._items[name] = { instance, contractItem, implementationItem, state: instance == null ? "registered" : "created" };
+    }
+    has(name) {
+        // check the registry without constructing a configured service
+        return Object.hasOwn(this._items, name);
     }
     resolve(name) {
         const result = this._items[name];
@@ -113,6 +118,22 @@ export default class Services {
                 throw new Error(`Service '${serviceName}' does not implement required method '${methodName}'.`);
             }
         }
+        // validate declared properties without reading values or invoking accessors
+        for (const propertyName of Object.keys(contractItem?.contract?.properties || {})) {
+            if (!this._findPropertyDescriptor(instance, propertyName)) {
+                throw new Error(`Service '${serviceName}' does not implement required property '${propertyName}'.`);
+            }
+        }
+    }
+    _findPropertyDescriptor(instance, propertyName) {
+        // walk the instance and prototype chain so getters remain unexecuted
+        let current = instance;
+        while (current && current !== Object.prototype) {
+            const descriptor = Object.getOwnPropertyDescriptor(current, propertyName);
+            if (descriptor) return descriptor;
+            current = Object.getPrototypeOf(current);
+        }
+        return undefined;
     }
 
 };

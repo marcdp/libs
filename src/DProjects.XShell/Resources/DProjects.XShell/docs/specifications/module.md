@@ -14,6 +14,7 @@ The local definition is the one entry without `configUrl`. Its object key is the
             "version": "1.0.0",
             "copyright": "",
             "icon": "",
+            "requires": ["toast", "identity"],
             "defaults": {
                 "page": { "renderEngine": "x", "stateEngine": "proxy" },
                 "component": { "renderEngine": "x", "stateEngine": "proxy" }
@@ -77,8 +78,21 @@ Bootstrap resolves references recursively and the final effective entry is a com
 references use `/_assets/<module-id>/...` rather than the physical URL.
 
 The effective schema requires `label`, `version`, `copyright`, `icon`, `configUrl`, `assetsUrl`, and `defaults`. Optional effective fields include
-`params`, `styles`, `menus`, `routes`, and `contract`. `contract` may declare events, actions, and intents; those declarations are
+`params`, `requires`, `styles`, `menus`, `routes`, and `contract`. `contract` may declare events, actions, and intents; those declarations are
 metadata and do not by themselves implement runtime dispatch.
+
+## Required services
+
+`requires` is an optional array of unique, non-empty service names that the module expects the runtime to provide:
+
+```jsonc
+"requires": ["toast", "identity"]
+```
+
+XShell validates these names after the service registry has been finalized and before any module controller is loaded or started. The validation is
+an existence check and does not instantiate configured lazy services. `requires` is not a module reference, a Component or Page implementation's
+resource `dependencies` object, or controller service access. Controllers continue to receive existing services by name, such as
+`controller({ toast })`.
 
 ## Routes
 

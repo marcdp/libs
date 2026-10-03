@@ -6,7 +6,8 @@ XShell starts from the application's root module definition and recursively disc
 HTML/bootstrap inputs → root module → recursive module references → canonical module definitions
     → URL normalization → nested effective configuration (app, modules, xshell)
     → default resolvers → Service Worker mappings → import map → import XShell → deep freeze → init
-    → one live module instance per module id → controllers register runtime sources → Areas compose menus, routes, and homes → Navigation starts
+    → finalize service registry → validate module service requirements → one live module instance per module id
+    → controllers register runtime sources → Areas compose menus, routes, and homes → Navigation starts
 ```
 
 `config.modules` contains canonical definitions keyed by module id. `xshell.modules` is the runtime service. Repeated references to one definition
@@ -53,6 +54,7 @@ canonical-to-public resolution. A named menu contribution can be a static array 
 - [Pages](pages.md) — Pages and layouts.
 - [Resolvers](resolvers.md) — Logical resource resolution.
 - [Loaders](loaders.md) — Resource loading.
+- [Services](services.md) — Contracts, configured implementations, immutable registry topology, and lazy singleton resolution.
 - [Service Worker](service-worker.md) — Resource virtualization.
 - [Navigation](navigation.md) — Hash and path navigation plus Area context.
 

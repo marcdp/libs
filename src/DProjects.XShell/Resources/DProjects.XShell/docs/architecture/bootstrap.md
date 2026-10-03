@@ -76,7 +76,7 @@ Bootstrap converts only the effective-config copy into the virtual application r
 
 The same conversion produces paths such as `/_assets/xshell/xshell.js` in `config.xshell.files`. These paths follow the same absolute or
 application-root-relative URL convention as the rest of the effective configuration; `size` and `hash` are unchanged. Bootstrap then loads the
-XShell runtime, validates the complete enriched configuration, deeply freezes it, and calls `xshell.init(config)`. `xshell.modules` creates one
-runtime module instance per canonical id.
+XShell runtime, validates the complete enriched configuration, deeply freezes it, and calls `xshell.init(config)`. XShell registers core services,
+loads and finalizes configured services, validates module service requirements, and then creates one runtime module instance per canonical id.
 
-See [Configuration](configuration.md), [Modules](modules.md), and [Service Worker](service-worker.md).
+See [Configuration](configuration.md), [Services](services.md), [Modules](modules.md), and [Service Worker](service-worker.md).

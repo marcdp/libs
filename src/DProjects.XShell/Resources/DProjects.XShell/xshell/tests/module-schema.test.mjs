@@ -68,6 +68,22 @@ test("module schema keeps routes optional", () => {
     assertValid(moduleDefinition());
 });
 
+test("module schema accepts unique non-empty service requirements", () => {
+    const module = moduleDefinition();
+    module.requires = ["toast", "identity"];
+
+    assertValid(module);
+});
+
+test("module schema rejects duplicate or empty service requirements", () => {
+    for (const requires of [["toast", "toast"], [""]]) {
+        const module = moduleDefinition();
+        module.requires = requires;
+
+        assert.equal(validator.validate(configuration(module)).valid, false);
+    }
+});
+
 test("module schema accepts static and parameterized routes", () => {
     assertValid(moduleDefinition({
         "/something": "/pages/index.js",

@@ -29,6 +29,14 @@ export default class Modules {
         // init modules instances
         const assetsPrefix = this._config.xshell.assetsPrefix;
 
+        // validate service requirements before loading or starting any module controller
+        for (const moduleId of Object.keys(this._config.modules)) {
+            const moduleConfig = this._config.modules[moduleId];
+            for (const serviceName of moduleConfig.requires || []) {
+                if (!this._services.has(serviceName)) throw new Error(`Module '${moduleId}' requires unavailable service '${serviceName}'.`);
+            }
+        }
+
         // create modules
         let tasks = [];
         for(var moduleId of Object.keys(this._config.modules)) {
