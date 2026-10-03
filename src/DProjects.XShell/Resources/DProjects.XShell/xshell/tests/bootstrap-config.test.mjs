@@ -24,6 +24,7 @@ const bootstrapSource = readFileSync(bootstrapPath, "utf8").replace(
         mergeConfigs,
         loadConfig,
         loadFilesIndexes,
+        fillResolverRules,
         initializeXShell
     };`
 );
@@ -144,6 +145,51 @@ test("loadFilesIndexes fails clearly when the XShell inventory is missing", asyn
     );
 });
 
+test("fillResolverRules discovers only JSON files inside the contracts directory", () => {
+    const config = {
+        modules: {
+            x: {
+                assetsPath: "/_assets/x",
+                files: [
+                    { path: "/_assets/x/contracts/toast.json" },
+                    { path: "/_assets/x/contracts/readme.txt" },
+                    { path: "/_assets/x/contracts-old/legacy.json" }
+                ]
+            }
+        },
+        xshell: { resolver: {} }
+    };
+
+    api.fillResolverRules(config);
+
+    assert.deepEqual(plain(config.xshell.resolver.contract), {
+        toast: {
+            url: "/_assets/x/contracts/toast.json",
+            loader: "object-json",
+            cache: true,
+            moduleId: "x",
+            modulePath: "/_assets/x"
+        }
+    });
+});
+
+test("fillResolverRules rejects duplicate global contract IDs with both declarations", () => {
+    const config = {
+        modules: {
+            x: { assetsPath: "/_assets/x", files: [{ path: "/_assets/x/contracts/identity.json" }] },
+            auth: { assetsPath: "/_assets/auth", files: [{ path: "/_assets/auth/contracts/identity.json" }] }
+        },
+        xshell: { resolver: {} }
+    };
+
+    assert.throws(
+        () => api.fillResolverRules(config),
+        error => error.message.includes("Duplicate contract 'identity'") && error.message.includes("module 'x'") &&
+            error.message.includes("/_assets/x/contracts/identity.json") && error.message.includes("module 'auth'") &&
+            error.message.includes("/_assets/auth/contracts/identity.json")
+    );
+});
+
 test("effective inventories exist before validation and configuration is frozen before init", async () => {
     const events = [];
     const config = {
@@ -226,7 +272,7 @@ test("loadConfig derives every assetsPath from a custom assetsPrefix", async () 
 
 test("root config accepts exactly one local module regardless of module key order", async () => {
     const xUrl = "https://example.test/modules/x/module.jsonc";
-    const root = { modules: { x: reference("url:../x/module.jsonc"), app: definition("app", { ) } };
+    const root = { modules: { x: reference("url:../x/module.jsonc"), app: definition("app") } };
     const graph = await discover(root, { [xUrl]: { modules: { x: definition("x") } } });
 
     assert.equal(graph.rootNode.id, "app");
@@ -303,6 +349,7 @@ test("a shared dependency with the same URL is fetched and registered once", asy
     assert.deepEqual(Object.keys(effective.modules).sort(), ["a", "app", "b", "x"]);
 
     // verify the canonical effective map creates one runtime record
+    for (const module of Object.values(effective.modules)) module.files = [];
     const modules = new Modules({
         bus: {},
         config: { xshell: { assetsPrefix: "_assets" }, modules: effective.modules },

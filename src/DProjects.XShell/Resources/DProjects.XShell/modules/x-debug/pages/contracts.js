@@ -52,9 +52,9 @@ export default {
         label: "",
         description: "",
         moduleId: "",
-        contractItems: null
+        contractItems: []
     },
-    controller({ state, events, config, bus, loader, resolver, contracts}) {
+    controller({ state, events, contracts}) {
         return {
             load() {
                // load
@@ -63,11 +63,6 @@ export default {
                events.on(state, "change:moduleId", "refresh");
                events.on(state, "change:description", "refresh");
                events.on(state, "change:label", "refresh");
-               events.on(bus, "xshell:loader:resource:loaded", (event)=>{
-                    if (event.detail.resource.startsWith("component:")) {
-                        this.refresh();
-                    }
-                });
             },
             async refresh() {
                 // refresh
@@ -80,7 +75,7 @@ export default {
                     if (state.label && !item.contract.label.includes(state.label)) {
                         valid = false;
                     }
-                    if (state.description && !item.contract.description.includes(state.description)) {
+                    if (state.description && !(item.contract.description || "").includes(state.description)) {
                         valid = false;
                     }
                     if (state.moduleId && !item.moduleId.includes(state.moduleId)) {

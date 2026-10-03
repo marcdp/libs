@@ -1,4 +1,4 @@
-export default class Toast {
+export default class Toast extends EventTarget {
 
     // fields
     _container = null;
@@ -7,6 +7,7 @@ export default class Toast {
 
     // ctor
     constructor( ) {
+        super();
     }
 
     // methods
@@ -26,6 +27,9 @@ export default class Toast {
                 : null
         });
 
+        this.dispatchEvent(new CustomEvent("shown", {
+            detail: { id }
+        }));
 
         return id;
     }
@@ -52,6 +56,7 @@ export default class Toast {
         }
     }
 
+    // methods (private)
     _getContainer() {
         if (this._container) return this._container;
 

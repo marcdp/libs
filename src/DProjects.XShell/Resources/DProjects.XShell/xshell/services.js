@@ -8,6 +8,7 @@ export default class Services {
     _contracts = null;
     _items = {};
     _areas = null;
+    _creationPath = [];
 
     // ctor
     constructor( {config, loader, contracts, areas} ) {
@@ -19,11 +20,20 @@ export default class Services {
 
     //methods
     async init() {
+        // validate contract references before loading any implementations
+        const serviceContractItems = {};
+        for(const serviceName in this._config.xshell.services) {
+            const service = this._config.xshell.services[serviceName];
+            const serviceContractItem = this._contracts.getContractItemById(service.contract);
+            if (!serviceContractItem) throw new Error(`Service '${serviceName}' references unknown contract '${service.contract}'.`);
+            serviceContractItems[serviceName] = serviceContractItem;
+        }
+
         // initialize services based on the config
         const tasks = [];
         for(const serviceName in this._config.xshell.services) {
             const service = this._config.xshell.services[serviceName];
-            const serviceContractItem = this._contracts.getContractItemById(service.contract);
+            const serviceContractItem = serviceContractItems[serviceName];
             tasks.push((async () => {
                 const moduleId = this._areas.getModuleId(service.implementation);
                 const start = performance.now();
@@ -53,19 +63,38 @@ export default class Services {
     }
     register(name, instance, { contractItem, implementationItem } =  {}) {
         if (this._items[name]) throw new Error(`Service already exists: ${name}`);
-        this._items[name] = { instance, contractItem, implementationItem };
+        this._items[name] = { instance, contractItem, implementationItem, state: instance == null ? "registered" : "created" };
     }
     resolve(name) {
-        let result = this._items[name];
+        const result = this._items[name];
         if (result == undefined) throw new Error(`Service not found: ${name}`); 
-        if (result.instance == null && result.implementation) {
-            // create instance (resolve recursively)
-            const self = this;
-            result.instance = new result.implementationItem.class(new Proxy({}, {
-                get(target, prop) {
-                    return self.resolve(prop);
-                }
-            }));
+        if (result.state === "creating") {
+            // report the active constructor path when a service resolves itself recursively
+            const cycleStart = this._creationPath.indexOf(name);
+            const cycle = [...this._creationPath.slice(cycleStart), name].join(" -> ");
+            throw new Error(`Circular service dependency detected: ${cycle}`);
+        }
+        if (result.instance == null && result.implementationItem) {
+            // create and validate the instance lazily while resolving constructor dependencies
+            result.state = "creating";
+            this._creationPath.push(name);
+            try {
+                const self = this;
+                const instance = new result.implementationItem.class(new Proxy({}, {
+                    get(target, prop) {
+                        return self.resolve(prop);
+                    }
+                }));
+                this._validateImplementation(name, instance, result.contractItem);
+                result.instance = instance;
+                result.state = "created";
+            } catch (error) {
+                result.instance = null;
+                result.state = "registered";
+                throw error;
+            } finally {
+                this._creationPath.pop();
+            }
         }
         return result.instance;
     }
@@ -74,6 +103,16 @@ export default class Services {
     }
     getServiceItemById(id) {
         return this._items[id];
+    }
+
+    // methods (private)
+    _validateImplementation(serviceName, instance, contractItem) {
+        // validate the reliable callable surface declared by the contract
+        for (const methodName of Object.keys(contractItem?.contract?.methods || {})) {
+            if (typeof instance?.[methodName] !== "function") {
+                throw new Error(`Service '${serviceName}' does not implement required method '${methodName}'.`);
+            }
+        }
     }
 
 };

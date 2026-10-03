@@ -23,9 +23,10 @@ export default class Contracts {
             const module = this._config.modules[moduleId];
             const moduleContractsPath = module.assetsPath + "/contracts";
             for (const file of Object.values(module.files)) {
-                if (file.path.startsWith(moduleContractsPath)) {
+                if (file.path.startsWith(moduleContractsPath + "/") && file.path.endsWith(".json")) {
+                    const contractId = file.path.substring(moduleContractsPath.length + 1, file.path.length - ".json".length);
                     const fileUrl = this._config.app.basePath + file.path;
-                    tasks.push(this._processContractFile(fileUrl, file, moduleId, file.size));
+                    tasks.push(this._processContractFile(contractId, fileUrl, file, moduleId, file.size));
                 }
             }
         }
@@ -33,6 +34,10 @@ export default class Contracts {
         // convert the list of contracts into a cache object keyed by contract id
         const items = {};
         for (const contractFile of contractFiles) {
+            if (items[contractFile.id]) {
+                const first = items[contractFile.id];
+                throw new Error(`Duplicate contract '${contractFile.id}' declared by module '${first.moduleId}' in '${first.path}' and module '${contractFile.moduleId}' in '${contractFile.path}'.`);
+            }
             items[contractFile.id] = Object.freeze(contractFile);
         }
         this._items = Object.freeze(items);
@@ -54,14 +59,14 @@ export default class Contracts {
 
 
     // process a single contract file
-    async _processContractFile(url, file, moduleId, size) {
-        const filename = file.path.split("/").pop().split(".")[0];
+    async _processContractFile(id, url, file, moduleId, size) {
         const start = performance.now();
-        const contract = await this._loader.load("contract:" + filename);
+        const contract = await this._loader.load("contract:" + id);
         await validateContract(url, contract);
         return {
-            id: filename,
+            id: id,
             url: url,
+            path: file.path,
             moduleId: moduleId,
             contract: contract,
             size: size,

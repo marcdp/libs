@@ -374,6 +374,7 @@ function fillResolverRules(config) {
     
     // default resolvers for modules
     const resolver = config.xshell.resolver;
+    const contractDeclarations = new Map();
     for(const moduleId in config.modules)   {
         const module = config.modules[moduleId];
         const moduleAssetsPath = module.assetsPath;  
@@ -404,8 +405,16 @@ function fillResolverRules(config) {
         // contract resolvers
         resolver.contract = resolver.contract || {};
         for(const file of module.files) {
-            if (file.path.startsWith(moduleAssetsPathContracts)) {
+            if (file.path.startsWith(moduleAssetsPathContracts + "/") && file.path.endsWith(".json")) {
                 const filenameWithoutExtension = file.path.substring(moduleAssetsPathContracts.length + 1).replace(/\.json$/, '');
+                const first = contractDeclarations.get(filenameWithoutExtension);
+                if (first) {
+                    throw new Error(`Duplicate contract '${filenameWithoutExtension}' declared by module '${first.moduleId}' in '${first.path}' and module '${moduleId}' in '${file.path}'.`);
+                }
+                if (Object.hasOwn(resolver.contract, filenameWithoutExtension)) {
+                    throw new Error(`Duplicate contract '${filenameWithoutExtension}' conflicts with an existing resolver entry while processing module '${moduleId}' file '${file.path}'.`);
+                }
+                contractDeclarations.set(filenameWithoutExtension, { moduleId, path: file.path });
                 resolver.contract[`${filenameWithoutExtension}`] = { url: `${moduleAssetsPathContracts}/${filenameWithoutExtension}.json`, loader: 'object-json', cache: true, moduleId: moduleId, modulePath: moduleAssetsPath};
             }
         }

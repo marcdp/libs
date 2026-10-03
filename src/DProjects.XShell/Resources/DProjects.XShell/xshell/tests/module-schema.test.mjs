@@ -25,7 +25,7 @@ const moduleDefinition = routes => ({
 function configuration(module) {
     return {
         app: {
-            name: "test",
+            id: "test",
             label: "Test",
             version: "1.0.0",
             copyright: "",
@@ -42,7 +42,7 @@ function configuration(module) {
             identity: { provider: "anonymous" },
             assetsPrefix: "_assets",
             assetsPath: "/_assets/xshell",
-            areas: { default: null, definitions: {} },
+            areas: { default: null, global: [], definitions: {} },
             navigation: { mode: "path" },
             resolver: {},
             ui: { layout: {}, component: {}, dialog: {} },
@@ -126,4 +126,18 @@ test("effective schema validates inventory path, size, and hash", () => {
 
         assert.equal(validator.validate(configuration(module)).valid, false);
     }
+});
+
+test("effective schema accepts named service contract and implementation objects", () => {
+    const config = configuration(moduleDefinition());
+    config.xshell.services = {
+        toast: {
+            contract: "toast",
+            implementation: "/_assets/x/services/toast-default.js"
+        }
+    };
+
+    const result = validator.validate(config);
+
+    assert.equal(result.valid, true, JSON.stringify(result.errors));
 });
