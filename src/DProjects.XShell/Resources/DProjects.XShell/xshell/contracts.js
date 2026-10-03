@@ -37,11 +37,19 @@ export default class Contracts {
         }
         this._items = Object.freeze(items);
     }
-    getContracts() {
+    getContractItems() {
         return this._items;
     }
-    getContractById(id) {
+    getContractItemById(id) {
         return this._items ? this._items[id] : undefined;
+    }
+    
+    getContracts() {
+        return Object.values(this._items).map(item => item.contract);        
+    }
+    getContractById(id){
+        const item = this.getContractItemById(id);
+        return item ? item.contract : undefined;
     }
 
 

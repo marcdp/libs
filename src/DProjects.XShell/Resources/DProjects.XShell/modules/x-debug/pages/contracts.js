@@ -29,13 +29,13 @@ export default {
             <div slot="column" style="width:4em">
                 Time
             </div>
-            <div slot="column" style="width:8em">
+            <div slot="column" style="width:4em">
                 Status
             </div>
             <x-listview-item x-for="contractItem in state.contractItems"
                 x-attr:href="contractItem.url" 
                 x-attr:label="contractItem.id"
-                x-attr:icon="contractItem.icon"
+                x-attr:icon="contractItem.contract.icon || 'x-contract'"
                 target="_blank"
             >
                 <div>{{ contractItem.contract.label }}</div>
@@ -72,7 +72,7 @@ export default {
             async refresh() {
                 // refresh
                 const contractItems = [];
-                for (const item of Object.values(contracts.getContracts())) {
+                for (const item of Object.values(contracts.getContractItems())) {
                     let valid = true;
                     if (state.id && !item.id.includes(state.id)) {
                         valid = false;

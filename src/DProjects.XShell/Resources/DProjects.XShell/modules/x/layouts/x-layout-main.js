@@ -10,8 +10,6 @@ export const contract = {
         appIcon: { type: "string", default: "", state: true, description: "" },
         appLabel: { type: "string", default: "", state: true, description: "" },
         appBasePath: { type: "string", default: "", state: true, description: "" },
-        userName: { type: "string", default: "", state: true, description: "" },
-        userInitials: { type: "string", default: "", state: true, description: "" },
         toggled: { type: "boolean", default: false, state: true, description: "" },
         keyword: { type: "string", default: "", state: true, description: "" },
         shellDebug: { type: "boolean", default: false, state: true, description: "" },
@@ -302,13 +300,11 @@ export default {
         menuTools:       null,
         c:     null
     },
-    controller({ state, events, areas, bus, getPage, identity, host }) {
+    controller({ state, events, areas, bus, getPage, host }) {
         return {
             async load(params) {
                 //load
                 state.toggled = false; //xshell.settings.getItem("x-layout-main.toggled", false);
-                state.userName = identity.name;
-                state.userInitials =  (() => { let w = identity.name.trim().split(/\s+/); return (w.length > 1 ? w[0][0] + w.at(-1)[0] : w[0].slice(0,2)); })().toUpperCase();
                 // auto close menu on navigation start (mobile)
                 events.on(bus, "xshell:navigation:start", (e) => {
                     if (probablyPhone()) {

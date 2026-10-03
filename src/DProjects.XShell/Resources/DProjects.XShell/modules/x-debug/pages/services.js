@@ -17,17 +17,41 @@ export default {
             <div slot="column" style="width:12em">
                 <x-datafield type="search" x-model="state.moduleId" placeholder="Module"></x-datafield>
             </div>
+            <div slot="column" style="width:12em">
+                <x-datafield type="search" x-model="state.contractItemId" placeholder="Contract"></x-datafield>
+            </div>
             <div slot="column">
                 <x-datafield type="search" x-model="state.description" placeholder="Description"></x-datafield>
             </div>
-            <x-listview-item x-for="service in state.services"
-                x-attr:href="service.url" 
-                x-attr:label="service.id"
-                x-attr:icon="service.icon"
-                target="_blank"
-            >
-                <div>{{ service.moduleId }}</div>
-                <div>{{ service.description }}</div>                
+            <div slot="column" style="width:4em; text-align:right">
+                Size
+            </div>
+            <div slot="column" style="width:4em; text-align:right">
+                Time
+            </div>
+            <div slot="column" style="width:4em;">
+                Status
+            </div>
+                <x-listview-item x-for="item in state.items"
+                    x-attr:href="item.implementationItem ? item.implementationItem.url : item.url" 
+                    x-attr:label="item.id"
+                    x-attr:icon="item.icon"
+                    target="_blank"
+                >
+                <div>
+                    <span x-if="item.implementationItem">
+                        {{ item.implementationItem.moduleId }}
+                     </span>
+                 </div>
+                <div>
+                    <x-anchor x-if="item.contractItem" x-attr:href="item.contractItem ? item.contractItem.url : ''" target="_blank" class="plain">
+                        {{ item.contractItem.id }}
+                    </x-anchor>
+                 </div>
+                <div>{{ item.description }}</div>
+                <x-file-size x-prop:value="item.implementationItem ? item.implementationItem.size : 0" style="text-align:right"></x-file-size>
+                <div style="text-align:right"><x-time-ms x-prop:value="item.implementationItem ? item.implementationItem.time : 0"></x-time-ms></div>
+                <div>{{ item.status }}</div>
             </x-listview-item>
         </x-listview> 
     `,    
@@ -36,9 +60,9 @@ export default {
         label: "",
         moduleId: "",
         description: "",
-        services: null
+        items: null
     },
-    controller({ state, events, config, bus, loader, resolver}) {
+    controller({ state, events, config, bus, services}) {
         return {
             load() {
                // load
@@ -56,31 +80,35 @@ export default {
             async refresh() {
                 // refresh
                 let list = [];
-                for(let moduleId of Object.keys(config.modules)) {
-                    const moduleConfig = config.modules[moduleId];
-                    let moduleComponentsPath = moduleConfig.assetsPath + "/services";
-                    for(const file of Object.values(moduleConfig.files)) {
-                        if (file.path.startsWith(moduleComponentsPath)) {
-                            const id = (file.path.split("/").pop() || "").split(".")[0];
-                            const resolved = resolver.resolve("service:" + id);
-                            const service = await loader.load("service:" + id);
-                            let valid = true;
-                            if (state.id && id.indexOf(state.id) === -1) valid = false;
-                            if (state.moduleId && moduleId.indexOf(state.moduleId) === -1) valid = false;
-                            if (state.description && service.description.indexOf(state.description) === -1) valid = false;
-                            if (state.label && id.indexOf(state.label) === -1) valid = false;
-                            if (valid) {
-                                list.push({
-                                    id: id,
-                                    url: resolved.url,
-                                    moduleId: moduleId,
-                                    description: service.description
-                                });
-                            }
-                        }                        
+                let items = services.getServiceItems();
+                for (const serviceId in items) {
+                    let item = items[serviceId];
+                    let valid = true;
+                    if (state.id && !item.id.includes(state.id)) {
+                        valid = false;
                     }
-                };
-                state.services = list;
+                    if (state.label && !item.contract.label.includes(state.label)) {
+                        valid = false;
+                    }
+                    if (state.description && !item.contract.description.includes(state.description)) {
+                        valid = false;
+                    }
+                    if (state.moduleId && !item.moduleId.includes(state.moduleId)) {
+                        valid = false;
+                    }
+                    if (valid) {
+                        list.push({
+                            id: serviceId,
+                            icon: item.contractItem ? item.contractItem.contract.icon || "x-service" : "x-service",
+                            contractItem: item.contractItem,
+                            implementationItem: item.implementationItem,
+                            status: "loaded",
+                            size: item.implementationItem ? item.implementationItem.size : 0,
+                            time: item.implementationItem ? item.implementationItem.time : 0,
+                        });
+                    }
+                }
+                state.items = list;
             }
         };
     }

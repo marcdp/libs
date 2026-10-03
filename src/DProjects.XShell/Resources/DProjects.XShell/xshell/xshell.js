@@ -1,5 +1,4 @@
 import Areas from "./areas.js";
-import Auth from "./auth.js";
 import Binds from "./binds.js";
 import Bus from "./bus.js";
 import Contracts from "./contracts.js";
@@ -23,7 +22,6 @@ class XShell {
 
     //fields
     _areas = null;
-    _auth = null;
     _bus = null;
     _config = null;
     _container = null;
@@ -47,7 +45,6 @@ class XShell {
 
     //props
     get areas() { return this._areas; }
-    get auth() { return this._auth; }
     get bus() { return this._bus; }
     get config() { return this._config; }
     get container() { return this._container; }
@@ -76,11 +73,10 @@ class XShell {
         this._container = document.body;
         this._resolver = new Resolver( { config: config } );
         this._loader = new Loader({ bus: this._bus, config: config, resolver: this._resolver });
-        this._auth = new Auth({ config: config, loader: this._loader });       
         this._i18n = new I18n();
         this._contracts = new Contracts( { config: config, loader: this._loader } );
         await this._i18n.init(config.xshell.i18n);
-        this._services = new Services( {config, loader: this._loader, contracts: this._contracts } );        
+        this._services = new Services( {config, loader: this._loader, contracts: this._contracts, areas: this._areas } );        
         this._modules = new Modules( { bus: this._bus, config: config, loader: this._loader, resolver: this._resolver, document: document, services: this._services } );
         this._navigation = new Navigation( { areas: this._areas, bus: this._bus, config: config, container: this._container });
         this._urlRewriter = new UrlRewriter();
@@ -92,7 +88,6 @@ class XShell {
         await this._contracts.init();
         // services
         this._services.register("areas", this._areas);
-        this._services.register("auth", this._auth);
         this._services.register("bus", this._bus);
         this._services.register("config", this._config);
         this._services.register("container", this._container);
@@ -108,9 +103,6 @@ class XShell {
         this._services.register("temp", this._temp);
         this._services.register("urlRewriter", this._urlRewriter);
         await this._services.init();
-        // auth
-        this._identity = await this.auth.login(this._config);
-        this._services.register("identity", this._identity);
         // modules
         await this._modules.init();  
         // compose area menus and homes before navigation starts
