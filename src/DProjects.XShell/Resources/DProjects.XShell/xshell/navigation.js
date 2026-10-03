@@ -212,7 +212,7 @@ export default class Navigation {
 
     async navigate({
             href,
-            params = {},    // ws variables to be added as query string parameters
+            params = {},    // variables to be added as query string parameters
             nav = {         // navigation data to be added as query string parameters (nav.title, nav.icon, nav.breadcrumb)
                 title: null,      // nav.title
                 description: null,// nav.description

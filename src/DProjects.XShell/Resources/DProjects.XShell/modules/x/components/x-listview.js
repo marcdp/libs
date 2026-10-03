@@ -39,7 +39,8 @@ export default {
         .details > div ::slotted(*:not([name]):nth-child(even)) {background: var(--x-color-background-alt)} 
         .details > div .columns {display:table-row; position:sticky; top:0; background: var(--x-color-background-page);}
         .details > div .columns ::slotted(*) {display:table-cell; background: none!important; color:gray; padding-right:.25em;}
-        .details > div .columns ::slotted(*:first-child) {padding-left:1.4em; }
+        .details > div .columns ::slotted(*:first-child) {/*padding-left:1.4em; */}
+        
 
     `,
     template: `
@@ -73,7 +74,9 @@ export default {
                 });
 
                 if (lastElement && state.autoScroll && host.checkVisibility()) {
-                    lastElement.scrollIntoView({ block: "end", behavior: "smooth" });
+                    setTimeout(() => {
+                        lastElement.scrollIntoView({ block: "end", behavior: "smooth" });
+                    }, 25);
                 }
             }
         };

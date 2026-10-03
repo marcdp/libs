@@ -34,8 +34,8 @@ export default {
                     let html = parser(event.newValue);
                     //load components
                     let docWithoutTemplate = (new DOMParser()).parseFromString(html.replace("<template>","<div>").replace("</template>","</div>"), "text/html");
-                    let componentNames = [...new Set(Array.from(docWithoutTemplate.querySelectorAll('*')).filter(el => {return (el.tagName.includes('-'))}).map(el => "component:" + el.tagName.toLowerCase()))];
-                    await loader.load(componentNames);
+                    let componentIds = [...new Set(Array.from(docWithoutTemplate.querySelectorAll('*')).filter(el => {return (el.tagName.includes('-'))}).map(el => "component:" + el.tagName.toLowerCase()))];
+                    await loader.load(componentIds);
                     //set html
                     host.innerHTML = html;
                 });

@@ -1,6 +1,6 @@
 // contract
 export const contract = {
-    description: "Components page",
+    description: "Pages",
     events: {},
     properties: {},
     methods: {}
@@ -9,12 +9,12 @@ export const contract = {
 // export page
 export default {
     meta: {
-        title: "Components"
+        title: "Pages"
     },
     template: `
         <x-listview view="details">
-            <div slot="column" style="width:12em">
-                <x-datafield type="search" x-model="state.id" placeholder="Component"></x-datafield>
+            <div slot="column">
+                <x-datafield type="search" x-model="state.id" placeholder="Page"></x-datafield>
             </div>
             <div slot="column" style="width:12em">
                 <x-datafield type="search" x-model="state.moduleId" placeholder="Module"></x-datafield>
@@ -25,23 +25,23 @@ export default {
             <div slot="column" style="width:4em; text-align:right">
                 Size
             </div>
-            <div slot="column" style="width:4em; text-align:right">
+            <div slot="column" style="width:4em;text-align:right;">
                 Time
             </div>
             <div slot="column" style="width:4em;">
                 Status
             </div>
-            <x-listview-item x-for="component in state.components"
-                x-attr:href="component.url" 
-                x-attr:label="component.id"
-                x-attr:icon="component.icon"
+            <x-listview-item x-for="page in state.pages"
+                x-attr:href="page.url" 
+                x-attr:label="page.id"
+                x-attr:icon="page.icon"
                 target="_blank"
             >
-                <div>{{ component.moduleId }}</div>
-                <div>{{ component.description }}</div>
-                <x-file-size x-prop:value="component.size" style="text-align:right"></x-file-size>
-                <div style="text-align:right"><x-time-ms x-prop:value="component.time"></x-time-ms></div>
-                <div>{{ component.status }}</div>
+                <div>{{ page.moduleId }}</div>
+                <div>{{ page.description }}</div>
+                <x-file-size x-prop:value="page.size" style="text-align:right"></x-file-size>
+                <div style="text-align:right"><x-time-ms x-prop:value="page.time"></x-time-ms></div>
+                <div>{{ page.status }}</div>
             </x-listview-item>
         </x-listview> 
     `,    
@@ -50,7 +50,7 @@ export default {
         label: "",
         moduleId: "",
         description: "",
-        components: null
+        pages: null
     },
     controller({ state, events, config, bus, loader}) {
         return {
@@ -62,7 +62,7 @@ export default {
                events.on(state, "change:description", "refresh");
                events.on(state, "change:label", "refresh");
                events.on(bus, "xshell:loader:resource:loaded", (event)=>{
-                    if (event.detail.resource.startsWith("component:")) {
+                    if (event.detail.resource.startsWith("page:")) {
                         this.refresh();
                     }
                 });
@@ -76,14 +76,13 @@ export default {
                 }
                 for(let moduleId of Object.keys(config.modules)) {
                     const moduleConfig = config.modules[moduleId];
-                    let moduleComponentsPath = moduleConfig.assetsPath + "/components";
+                    let modulePagesPath = moduleConfig.assetsPath + "/pages";
                     for(const file of Object.values(moduleConfig.files)) {
-                        if (file.path.startsWith(moduleComponentsPath)) {
-                            const id = (file.path.split("/").pop() || "").split(".")[0];
-                            const loaderRegistryItem = loaderRegistryCache["component:" + id];
-                            const contract = loaderRegistryItem?.value?.contract || null;
-                            const loaded = (customElements.get(id) != null);
+                        if (file.path.startsWith(modulePagesPath)) {
+                            const id = file.path;
+                            const loaderRegistryItem = loaderRegistryCache["page:" + file.path];
                             const url = config.app.basePath + file.path;
+                            const contract = loaderRegistryItem?.value?.contract || null;
                             let valid = true;
                             if (state.id && id.indexOf(state.id) == -1 ) valid = false;
                             if (state.moduleId && moduleId.indexOf(state.moduleId) == -1 ) valid = false;
@@ -93,17 +92,17 @@ export default {
                                     id: id,
                                     moduleId: moduleId,
                                     description: contract?.description || "",
-                                    icon: moduleConfig.icon || "x-component",
+                                    icon: moduleConfig.icon || "x-page",
                                     url: url,
-                                    status: (loaded ? "loaded" : ""),
-                                    time: loaderRegistryItem?.time || 0,
+                                    status: loaderRegistryItem?.status || "",
+                                    time: loaderRegistryItem?.time || "",
                                     size: file.size
                                 });
                             }
                         }                        
                     }
                 };
-                state.components = list;
+                state.pages = list;
             }
         };
     }

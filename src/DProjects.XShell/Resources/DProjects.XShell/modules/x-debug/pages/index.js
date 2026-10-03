@@ -8,12 +8,15 @@ export const contract = {
 
 // export page
 export default {
+    meta: {
+        title: "Debug"
+    },
     style: `
         x-tabs {width: 70em; max-width:90vw; }
-        x-tab {max-height:50vh; overflow-y:auto;}
+        x-tab {max-height:60vh; overflow-y:auto;}
     `,
     template: `
-        <x-tabs selected-index="7">
+        <x-tabs selected-index="8">
             <x-tab label="Config">
                 <x-page src="config.js" loading="lazy"></x-page>
             </x-tab>
@@ -24,21 +27,23 @@ export default {
                 <x-page src="components.js" loading="lazy"></x-page>
             </x-tab>
             <x-tab label="Pages">
-                Content of Tab 4
+                <x-page src="pages.js" loading="lazy"></x-page>
             </x-tab>
-            <x-tab label="Areas/Menus">
-                Content of Tab 5
+            <x-tab label="Navigation">
+                <x-page src="navigation.js" loading="lazy"></x-page>
             </x-tab>
             <x-tab label="Contracts">
-                Content of Tab 6
+                <x-page src="contracts.js" loading="lazy"></x-page>
             </x-tab>
             <x-tab label="Services">
-                Content of Tab 7
+                <x-page src="services.js" loading="lazy"></x-page>
             </x-tab>
             <x-tab label="Loader">
                 <x-page src="loader.js" loading="lazy"></x-page>
             </x-tab>
-            
+            <x-tab label="Bus">
+                <x-page src="bus.js" loading="lazy"></x-page>
+            </x-tab>            
         </x-tabs>
     `,    
     controller({ state }) {

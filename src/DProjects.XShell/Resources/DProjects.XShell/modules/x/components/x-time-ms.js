@@ -4,6 +4,7 @@ function formatMilliseconds(ms) {
     if (ms === 0) return '0 ms';
     if (ms === null) return '';
     if (ms === undefined) return '';
+    if (!ms.toFixed) return '';
     return `${ms.toFixed(0)} ms`;
 }
 

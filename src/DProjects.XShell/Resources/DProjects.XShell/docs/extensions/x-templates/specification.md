@@ -2350,7 +2350,7 @@ Duplicates are removed.
 
 The dependency name is normalized to lowercase.
 
-A Component template's own component element is not reported as a template dependency. Its identity comes from an explicit static `meta.name`, when
+A Component template's own component element is not reported as a template dependency. Its identity comes from an explicit static `meta.id`, when
 present, otherwise from its JavaScript filename without the extension. Self-reference is runtime composition or recursion, not an external resource
 dependency; this exclusion is based on Component identity and applies independently of structural directives. Page templates continue to collect every
 referenced Component as a dependency.

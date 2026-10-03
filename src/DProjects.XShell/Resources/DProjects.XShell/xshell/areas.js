@@ -187,6 +187,10 @@ export default class Areas {
         const assetsIndex = parts.indexOf(this._assetsPrefix);
         return assetsIndex === -1 ? null : parts[assetsIndex + 1] || null;
     }
+    getMenus(areaId = null) {
+        const area = areaId ? this.getArea(areaId) : this.getCurrentArea();
+        return area ? Object.values(area.menus) : [];
+    }
     getMenu(name, areaId = null) {
         const area = areaId ? this.getArea(areaId) : this.getCurrentArea();
         return area?.menus[name] || [];

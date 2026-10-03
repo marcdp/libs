@@ -19,7 +19,7 @@ export const contract = {
 // implementation
 export default {
     style: `
-        :host {display:block; margin-bottom:1.5em;}
+        :host {display:block; }
         
         nav {
             margin-bottom:1.5em; 

@@ -52,7 +52,8 @@ export default {
         pre .null {color: magenta;}
         pre .key {color: red;}
         
-        :host(.plain) pre {border: none; padding: 0;}
+        :host(.truncate) {}
+        :host(.truncate) pre {white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     `,
     template: `
         <pre x-class:indent="!state.indent"><code x-html="state.jsonColorized"></code></pre>

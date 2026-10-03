@@ -63,9 +63,9 @@ namespace DProjects.XShell.Services {
             // use the module resource convention to keep page templates independent from component identity
             if (!context.RelativePath.StartsWith("/components/", StringComparison.OrdinalIgnoreCase)) return null;
 
-            var componentName = document.FindDefaultExportObject()?.FindProperty("meta")?.Value.AsObject()?.FindProperty("name");
-            if (componentName != null) {
-                return componentName.Value.GetStaticString() ?? throw new InvalidOperationException("'meta.name' must be a static string.");
+            var componentId = document.FindDefaultExportObject()?.FindProperty("meta")?.Value.AsObject()?.FindProperty("id");
+            if (componentId != null) {
+                return componentId.Value.GetStaticString() ?? throw new InvalidOperationException("'meta.id' must be a static string.");
             }
             return Path.GetFileNameWithoutExtension(context.FilePath);
         }

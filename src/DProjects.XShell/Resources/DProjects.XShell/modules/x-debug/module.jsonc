@@ -24,10 +24,11 @@
                         {"label": "Modules", "href": "/pages/modules.js"},
                         {"label": "Components", "href": "/pages/components.js"},
                         {"label": "Pages", "href": "/pages/pages.js"},
-                        {"label": "Areas/Menus", "href": "/pages/areas-menus.js"},
+                        {"label": "Navigation", "href": "/pages/navigation.js"},
                         {"label": "Contracts", "href": "/pages/contracts.js"},
                         {"label": "Services", "href": "/pages/services.js"},
-                        {"label": "Loader", "href": "/pages/loader.js"}
+                        {"label": "Loader", "href": "/pages/loader.js"},
+                        {"label": "Bus", "href": "/pages/bus.js"}
                     ] }
                 ],
                 "shortcuts": [

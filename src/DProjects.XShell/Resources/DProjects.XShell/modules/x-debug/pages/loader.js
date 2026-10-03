@@ -8,15 +8,18 @@ export const contract = {
 
 // export page
 export default {
+    meta: {
+        title: "Loader"
+    },
     template: `
         <x-listview view="details" auto-scroll>
             <div slot="column">
                 <x-datafield type="search" x-model="state.query_resource" placeholder="Resource"></x-datafield>
             </div>
             <div slot="column" style="width:6em;">
-                Module
+            <x-datafield type="search" x-model="state.query_module" placeholder="Module"></x-datafield>
             </div>
-            <div slot="column" style="width:6em; text-align:right;">
+            <div slot="column" style="width:4em; text-align:right;">
                 Time
             </div>
             <div slot="column" style="width:4em;">
@@ -27,9 +30,7 @@ export default {
             </div>
             <x-listview-item x-for="item in state.registry" x-attr:label="item.resource" icon="x-file" x-show="item.show" x-attr:href="item.url" target="_blank">
                 <div>{{ item.moduleId }}</div>
-                <div style="text-align:right">
-                    <x-time-ms x-prop:value="item.time"></x-time-ms>
-                </div>
+                <div style="text-align:right"><x-time-ms x-prop:value="item.time"></x-time-ms></div>
                 <div>{{ item.status }}</div>
             </x-listview-item>
         </x-listview>        
@@ -37,6 +38,7 @@ export default {
     state:{
         registry: [],
         query_resource: "",
+        query_module: "",
         query_url: "",
         query_status: ""
     },
@@ -45,6 +47,7 @@ export default {
             load() {
                 // load
                 events.on(state, "change:query_resource", "refresh");
+                events.on(state, "change:query_module", "refresh");
                 events.on(state, "change:query_url", "refresh");
                 events.on(state, "change:query_status", "refresh");
 
@@ -96,6 +99,7 @@ export default {
                 for(let item of state.registry) {
                     let show = true;
                     if (state.query_resource && item.resource.indexOf(state.query_resource) == -1 ) show = false;
+                    if (state.query_module && (!item.moduleId || item.moduleId.indexOf(state.query_module) == -1 )) show = false;
                     if (state.query_url && item.url.indexOf(state.query_url) == -1 ) show = false;
                     if (state.query_status && item.status.indexOf(state.query_status) == -1 ) show = false;
                     item.show = show;

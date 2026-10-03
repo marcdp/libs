@@ -354,14 +354,14 @@ export async function createPageClassFromJsDefinition(src, context, implementati
             for (const methodName of Object.keys(contract.methods ?? {})) {
                 const method = this._controller[methodName];
                 if (typeof(method) !== "function") {
-                    throw new Error(`Page '${implementation.meta.name}' declares public method '${methodName}' in contract.methods but controller.${methodName} is not a function.`);
+                    throw new Error(`Page '${implementation.meta.id}' declares public method '${methodName}' in contract.methods but controller.${methodName} is not a function.`);
                 }
             }
             
         }
         // props
-        get implementation() {return implementation;}
-        get contract() {return contract;}
+        static get implementation() {return implementation;}
+        static get contract() {return contract;}
         // mount/unmount
         async mount({ host }) {
             if (this._unloaded) return;
@@ -459,7 +459,7 @@ export async function createPageClassFromJsDefinition(src, context, implementati
     // add methods
     for (const methodName of Object.keys(contract.methods)) {
         if (methodName in PageClass.prototype) {
-            throw new Error(`Page '${implementation.meta.name}' cannot expose public method '${methodName}' because it would overwrite a framework or Page method.`);
+            throw new Error(`Page '${implementation.meta.id}' cannot expose public method '${methodName}' because it would overwrite a framework or Page method.`);
         }
         Object.defineProperty(PageClass.prototype, methodName, {
             value: function(...args) {
@@ -489,10 +489,10 @@ export default class LoaderPageJs {
         }
         // else, asume its a implementation object
         if (!implementation.meta) implementation.meta = {};
-        if (!implementation.meta.name) {
+        if (!implementation.meta.id) {
             let aux = src.split("?")[0];
             aux = aux.substring(aux.lastIndexOf("/")+1).split(".")[0];
-            implementation.meta.name = aux;
+            implementation.meta.id = aux;
         }
         // create class implementation
         return await createPageClassFromJsDefinition(src, context, implementation, contract);        

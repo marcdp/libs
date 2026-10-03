@@ -47,12 +47,11 @@ export default {
         .header {
             display:flex;
             align-items:center;
-            padding:.45em;
             padding-left:1.2em;
             padding-right:1.5em;
             border-bottom:var(--x-layout-main-border);
             background:white;
-            min-height:2.15em;
+            min-height:3.15em;
             position:relative;
         }
         .header .logo {display:block; }

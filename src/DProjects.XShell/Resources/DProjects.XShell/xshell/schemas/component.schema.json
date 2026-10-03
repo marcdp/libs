@@ -16,11 +16,12 @@
       "type": "object",
       "description": "Component meta information.",
       "properties": {
-        "name": { "type": "string", "minLength": 1, "description": "The name of the component." },
+        "id": { "type": "string", "minLength": 1, "description": "The id of the component." },
+        "title": { "type": "string", "minLength": 1, "description": "The title of the component." },
         "renderEngine": { "type": "string", "minLength": 1, "description": "The rendering engine used by the component." },
         "stateEngine": { "type": "string", "minLength": 1, "description": "The state management engine used by the component." }
       },
-      "required": [ "name" ],
+      "required": [ "id" ],
       "additionalProperties": false
     },
     "style": {

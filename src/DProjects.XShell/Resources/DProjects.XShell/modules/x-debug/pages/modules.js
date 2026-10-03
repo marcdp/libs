@@ -8,11 +8,12 @@ export const contract = {
 
 // export page
 export default {
-    style: `
-    `,
+    meta: {
+        title: "Modules"
+    },
     template: `
         <x-listview view="details">
-            <div slot="column" style="width:8em">
+            <div slot="column" style="width:12em">
                 <x-datafield type="search" x-model="state.id" placeholder="Module"></x-datafield>
             </div>
             <div slot="column">
@@ -24,9 +25,6 @@ export default {
             <div slot="column" style="width:8em">
                 Assets path
             </div>
-            <div slot="column" style="width:6em">
-                Config url
-            </div>
             <div slot="column" style="width:6em; text-align:right">
                 Size
             </div>
@@ -34,21 +32,41 @@ export default {
                 Files
             </div>
             <div slot="column" style="width:5em; text-align:right">
+                Pages
+            </div>
+            <div slot="column" style="width:5em; text-align:right">
+                Components
+            </div>
+            <div slot="column" style="width:5em; text-align:right">
+                Services
+            </div>
+            <div slot="column" style="width:5em; text-align:right">
+                Contracts
+            </div>
+            <div slot="column" style="width:5em; text-align:right">
+                Others
+            </div>
+            <div slot="column" style="width:5em; text-align:right">
                 Status
             </div>
             <x-listview-item 
                 x-for="module in state.modules"
+                x-attr:href="module.configUrl"
                 x-attr:label="module.id"
                 x-attr:description="module.description"
                 x-attr:icon="module.icon"
-                target="#root"
+                target="_blank"
             >
                 <div>{{ module.label }}</div>
                 <div>{{ module.version }}</div>
                 <div>{{ module.assetsPath }}</div>
-                <div><a x-attr:href="module.configUrl" target="_blank">{{ module.configUrlName }}</a></div>
                 <x-file-size x-prop:value="module.size" style="text-align:right"></x-file-size>
-                <div style="text-align:right">{{ module.files }}</div>
+                <div style="text-align:right">{{ module.files.all }}</div>
+                <div style="text-align:right">{{ module.files.pages }}</div>
+                <div style="text-align:right">{{ module.files.components }}</div>
+                <div style="text-align:right">{{ module.files.services }}</div>
+                <div style="text-align:right">{{ module.files.contracts }}</div>
+                <div style="text-align:right">{{ module.files.others }}</div>
                 <div style="text-align:right">{{ module.status }}</div>
             </x-listview-item>
         </x-listview> 
@@ -86,10 +104,28 @@ export default {
                     if (state.assetsPath && (target.assetsPath || "").indexOf(state.assetsPath) == -1 ) valid = false;
                     if (state.configUrl && (target.config.configUrl || "").indexOf(state.configUrl) == -1 ) valid = false;
                     let size = 0;
-                    let files = 0;
-                    for(const file in target.config.files) {
-                        size += target.config.files[file].size || 0;
-                        files++;
+                    let files = {
+                        all: 0,
+                        pages: 0,
+                        components: 0,
+                        services: 0,
+                        contracts: 0,
+                        others: 0
+                    }
+                    for(const file of target.config.files) {
+                        size += file.size || 0;
+                        files.all++;
+                        if (file.path.startsWith(target.config.assetsPath + "/pages")) {
+                            files.pages++;
+                        } else if (file.path.startsWith(target.config.assetsPath + "/components")) {
+                            files.components++;
+                        } else if (file.path.startsWith(target.config.assetsPath + "/services")) {
+                            files.services++;
+                        } else if (file.path.startsWith(target.config.assetsPath + "/contracts")) {
+                            files.contracts++;
+                        } else {
+                            files.others++;
+                        }
                     }
                     if (valid) {
                         list.push({

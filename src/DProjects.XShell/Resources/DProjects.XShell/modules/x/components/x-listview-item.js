@@ -38,7 +38,6 @@ export default {
         :host(.selected) x-anchor.list {font-weight:600;}
         :host(.selected) x-anchor.list x-anchor::part(a) {color:var(--x-color-primary);}
         .category {font-weight:600; padding-left: 1.5em; padding-top:.25em; width:100%;}
-        
 
         /* icons */
         x-anchor.icons {display:flex; width:6em; height:6em; border-radius:.5em; }

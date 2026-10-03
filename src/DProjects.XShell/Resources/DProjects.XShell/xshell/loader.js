@@ -80,7 +80,7 @@ export default class Loader {
     get registry() { 
         let result = [];
         for(let item of this._registry){
-            result.push({ resource: item.resource, url: item.url, status: item.status, time: item.time, moduleId: item.moduleId });
+            result.push({ resource: item.resource, url: item.url, status: item.status, time: item.time, moduleId: item.moduleId, value: item.value });
         }
         return Object.freeze(result);
     }
@@ -161,6 +161,7 @@ export default class Loader {
                         const end = performance.now();
                         const time = end - start;
                         registryItem.time = time;
+                        registryItem.value = value;
                         await this._bus.emit("xshell:loader:resource:loaded", {resource, url, time});
                     } catch (exception) {
                         const end = performance.now();

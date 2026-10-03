@@ -8,8 +8,9 @@ export const contract = {
 
 // export page
 export default {
-    style: `
-    `,
+    meta: {
+        title: "Config Page"
+    },
     template: `
         <x-json x-prop:value="state.config" indent="2"></x-json>
     `,    
@@ -18,7 +19,7 @@ export default {
     },
     controller({ state, config }) {
         return {
-            load(params) {
+            load() {
                // load
                state.config = config;
             }

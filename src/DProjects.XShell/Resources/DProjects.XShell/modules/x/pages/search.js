@@ -8,6 +8,9 @@ export const contract = {
 
 // implementation
 export default {
+    meta: {
+        title: "Page search"
+    },
     template: `
         <x-datafields>
 

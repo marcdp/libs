@@ -9,6 +9,9 @@ export const contract = {
 
 // implementation
 export default {
+    meta: {
+        title: "Areas selector"
+    },
     template: `
         <p>
             Please select the area to navigate:

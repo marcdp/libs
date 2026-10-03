@@ -111,12 +111,12 @@ function findClosestXPage(element) {
     }
     return null;
 }
-function validateSlots(slots, contract, componentName) {
+function validateSlots(slots, contract, componentId) {
     const contractSlots = contract.slots || {};
     for (const slotName of slots) {
         if (!Object.prototype.hasOwnProperty.call(contractSlots, slotName)) {
             const displayName = slotName || "(default)";
-            throw new Error(`Component '${componentName}' template declares slot '${displayName}', but it is not declared in contract.slots.`);
+            throw new Error(`Component '${componentId}' template declares slot '${displayName}', but it is not declared in contract.slots.`);
         }
     }
 }
@@ -187,7 +187,7 @@ export async function createComponentClassFromJsDefinition(src, context, impleme
     const renderEngineFactoryCreator = await xshell.loader.load("render-engine:" + implementation.meta.renderEngine);
     const renderEngineFactory = new renderEngineFactoryCreator(implementation.template, context, implementation.templateRenderer);
     // validate compiled template slots through the render-engine factory contract
-    validateSlots(renderEngineFactory.slots, contract, implementation.meta.name || "unknown");
+    validateSlots(renderEngineFactory.slots, contract, implementation.meta.id || "unknown");
     // load render engine dependencies
     if (renderEngineFactory.dependencies.length) {
         await xshell.loader.load(renderEngineFactory.dependencies);
@@ -216,6 +216,9 @@ export async function createComponentClassFromJsDefinition(src, context, impleme
         // static
         static get observedAttributes() { 
             return propertyAttributeNames;
+        }
+        static get contract() { 
+            return contract;
         }
         // ctor
         constructor() {
@@ -313,7 +316,7 @@ export async function createComponentClassFromJsDefinition(src, context, impleme
             for (const methodName of Object.keys(contract.methods ?? {})) {
                 const method = this._controller[methodName];
                 if (typeof(method) !== "function") {
-                    throw new Error(`Component '${implementation.meta.name}' declares public method '${methodName}' in contract.methods but controller.${methodName} is not a function.`);
+                    throw new Error(`Component '${implementation.meta.c}' declares public method '${methodName}' in contract.methods but controller.${methodName} is not a function.`);
                 }
             }
             // attribute mutation observer (listen for changes in attributes that start with state map attribute names)
@@ -472,7 +475,7 @@ export async function createComponentClassFromJsDefinition(src, context, impleme
     // add methods
     for (const methodName of Object.keys(contract.methods)) {
         if (methodName in WebComponent.prototype) {
-            throw new Error(`Component '${implementation.meta.name}' cannot expose public method '${methodName}' because it would overwrite a framework or Web Component method.`);
+            throw new Error(`Component '${implementation.meta.id}' cannot expose public method '${methodName}' because it would overwrite a framework or Web Component method.`);
         }
         Object.defineProperty(WebComponent.prototype, methodName, {
             value: function(...args) {
@@ -483,8 +486,8 @@ export async function createComponentClassFromJsDefinition(src, context, impleme
         });
     }
     // register
-    if (!window.customElements.get(implementation.meta.name)) {
-        window.customElements.define(implementation.meta.name, WebComponent);
+    if (!window.customElements.get(implementation.meta.id)) {
+        window.customElements.define(implementation.meta.id, WebComponent);
     }
     // return class
     return WebComponent
@@ -507,10 +510,10 @@ export default class LoaderComponentJs {
         }
         // else, asume its a implementation object
         if (!implementation.meta) implementation.meta = {};
-        if (!implementation.meta.name) {
+        if (!implementation.meta.id) {
             let aux = src.split("?")[0];
             aux = aux.substring(aux.lastIndexOf("/")+1).split(".")[0];
-            implementation.meta.name = aux;
+            implementation.meta.id = aux;
         }
         // create class implementation
         return await createComponentClassFromJsDefinition(src, context, implementation, contract);        
