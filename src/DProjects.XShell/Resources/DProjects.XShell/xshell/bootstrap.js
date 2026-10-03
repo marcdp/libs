@@ -264,32 +264,7 @@ async function loadConfig() {
         if (!module.contract.actions) module.contract.actions = {};
     }
     
-    // default resolvers for modules
-    for(const moduleId in configMerged.modules)   {
-        const module = configMerged.modules[moduleId];
-        const moduleAssetsPath = module.assetsPath;
-        const resolver = configMerged.xshell.resolver;
-        resolver.icon = resolver.icon || {};
-        resolver.icon[`${moduleId}-{name}`] = resolver.icon[`${moduleId}-{name}`] || { url: `${moduleAssetsPath}/icons/${moduleId}-{name}.svg`, loader: 'icon-svg', cache: true, moduleId: moduleId, modulePath: moduleAssetsPath}
-        resolver.layout = resolver.layout || {};
-        resolver.layout[`${moduleId}-layout-{name}`] = resolver.layout[`${moduleId}-layout-{name}`] || {url: `${moduleAssetsPath}/layouts/${moduleId}-layout-{name}.js`, loader: 'component-js', cache: true, moduleId: moduleId, modulePath: moduleAssetsPath};
-        resolver.component = resolver.component || {};
-        resolver.component[`${moduleId}-{name}`] = resolver.component[`${moduleId}-{name}`] || { url: `${moduleAssetsPath}/components/${moduleId}-{name}.js`, loader: 'component-js', cache: true, moduleId: moduleId, modulePath: moduleAssetsPath};
-        resolver.page = resolver.page || {};
-        resolver.page[`${moduleAssetsPath}/{path}.js`] = resolver.page[`${moduleAssetsPath}/{path}.js`] || { url: `${moduleAssetsPath}/{path}.js`, loader: 'page-js', cache: true, cacheMode: 'path', moduleId: moduleId, modulePath: moduleAssetsPath};
-        resolver.page[`${moduleAssetsPath}/{path}.html`] = resolver.page[`${moduleAssetsPath}/{path}.html`] || { url: `${moduleAssetsPath}/{path}.js`, loader: 'page-js', cache: true, cacheMode: 'path', moduleId: moduleId, modulePath: moduleAssetsPath};
-        resolver.module = resolver.module || {};
-        resolver.module[`${moduleId}-{name}`] = resolver.module[`${moduleId}-{name}`] || { url: `${moduleAssetsPath}/${moduleId}-{name}.js`, loader: 'module-js', cache: true, moduleId: moduleId, modulePath: moduleAssetsPath};
-        resolver.module[`${moduleAssetsPath}/{path}.js`] = resolver.module[`${moduleAssetsPath}/{path}.js`] || { url: `${moduleAssetsPath}/{path}.js`, loader: 'module-js', cache: true, moduleId: moduleId, modulePath: moduleAssetsPath};
-        resolver.style = resolver.style || {};
-        resolver.style[`${moduleAssetsPath}/{path}.css`] = resolver.style[`${moduleAssetsPath}/{path}.css`] || { url: `${moduleAssetsPath}/{path}.css`, loader: 'style-css', cache: true, moduleId: moduleId, modulePath: moduleAssetsPath};
-        resolver.string = resolver.string || {};
-        resolver.string[`${moduleAssetsPath}/{path}`] = resolver.string[`${moduleAssetsPath}/{path}`] || { url: `${moduleAssetsPath}/{path}`, loader: 'string', cache: true, moduleId: moduleId, modulePath: moduleAssetsPath};
-        resolver.contract = resolver.contract || {};
-        resolver.contract[`${moduleId}-{name}`] = resolver.contract[`${moduleId}-{name}`] || { url: `${moduleAssetsPath}/contracts/${moduleId}-{name}.json`, loader: 'object-json', cache: true, moduleId: moduleId, modulePath: moduleAssetsPath};
-    }
-    
-    // console
+    // log
     console.log("bootstrap: config:", configMerged);
 
     // return
@@ -395,6 +370,50 @@ async function loadFilesIndexes(config) {
     return config;
 }
 
+function fillResolverRules(config) {
+    
+    // default resolvers for modules
+    const resolver = config.xshell.resolver;
+    for(const moduleId in config.modules)   {
+        const module = config.modules[moduleId];
+        const moduleAssetsPath = module.assetsPath;  
+        const moduleAssetsPathContracts = moduleAssetsPath + "/contracts";
+        // icon resolvers
+        resolver.icon = resolver.icon || {};
+        resolver.icon[`${moduleId}-{name}`] = resolver.icon[`${moduleId}-{name}`] || { url: `${moduleAssetsPath}/icons/${moduleId}-{name}.svg`, loader: 'icon-svg', cache: true, moduleId: moduleId, modulePath: moduleAssetsPath}
+        // layout resolvers
+        resolver.layout = resolver.layout || {};
+        resolver.layout[`${moduleId}-layout-{name}`] = resolver.layout[`${moduleId}-layout-{name}`] || {url: `${moduleAssetsPath}/layouts/${moduleId}-layout-{name}.js`, loader: 'component-js', cache: true, moduleId: moduleId, modulePath: moduleAssetsPath};
+        // component resolvers
+        resolver.component = resolver.component || {};
+        resolver.component[`${moduleId}-{name}`] = resolver.component[`${moduleId}-{name}`] || { url: `${moduleAssetsPath}/components/${moduleId}-{name}.js`, loader: 'component-js', cache: true, moduleId: moduleId, modulePath: moduleAssetsPath};
+        // page resolvers
+        resolver.page = resolver.page || {};
+        resolver.page[`${moduleAssetsPath}/{path}.js`] = resolver.page[`${moduleAssetsPath}/{path}.js`] || { url: `${moduleAssetsPath}/{path}.js`, loader: 'page-js', cache: true, cacheMode: 'path', moduleId: moduleId, modulePath: moduleAssetsPath};
+        resolver.page[`${moduleAssetsPath}/{path}.html`] = resolver.page[`${moduleAssetsPath}/{path}.html`] || { url: `${moduleAssetsPath}/{path}.js`, loader: 'page-js', cache: true, cacheMode: 'path', moduleId: moduleId, modulePath: moduleAssetsPath};
+        // module resolvers
+        resolver.module = resolver.module || {};
+        resolver.module[`${moduleId}-{name}`] = resolver.module[`${moduleId}-{name}`] || { url: `${moduleAssetsPath}/${moduleId}-{name}.js`, loader: 'module-js', cache: true, moduleId: moduleId, modulePath: moduleAssetsPath};
+        resolver.module[`${moduleAssetsPath}/{path}.js`] = resolver.module[`${moduleAssetsPath}/{path}.js`] || { url: `${moduleAssetsPath}/{path}.js`, loader: 'module-js', cache: true, moduleId: moduleId, modulePath: moduleAssetsPath};
+        // style resolvers
+        resolver.style = resolver.style || {};
+        resolver.style[`${moduleAssetsPath}/{path}.css`] = resolver.style[`${moduleAssetsPath}/{path}.css`] || { url: `${moduleAssetsPath}/{path}.css`, loader: 'style-css', cache: true, moduleId: moduleId, modulePath: moduleAssetsPath};
+        // string resolvers
+        resolver.string = resolver.string || {};
+        resolver.string[`${moduleAssetsPath}/{path}`] = resolver.string[`${moduleAssetsPath}/{path}`] || { url: `${moduleAssetsPath}/{path}`, loader: 'string', cache: true, moduleId: moduleId, modulePath: moduleAssetsPath};
+        // contract resolvers
+        resolver.contract = resolver.contract || {};
+        for(const file of module.files) {
+            if (file.path.startsWith(moduleAssetsPathContracts)) {
+                const filenameWithoutExtension = file.path.substring(moduleAssetsPathContracts.length + 1).replace(/\.json$/, '');
+                resolver.contract[`${filenameWithoutExtension}`] = { url: `${moduleAssetsPathContracts}/${filenameWithoutExtension}.json`, loader: 'object-json', cache: true, moduleId: moduleId, modulePath: moduleAssetsPath};
+            }
+        }
+    }
+    
+    // return    
+    return config;
+}
 async function initializeXShell(config, loadXShellModule = url => import(url)) {
     // import and validate the complete effective configuration before freezing and initialization
     console.log("bootstrap: loading xshell ...");
@@ -423,6 +442,9 @@ async function bootstrap() {
 
     // load files indexes
     config = await loadFilesIndexes(config);
+
+    // fill resolver rules
+    config = fillResolverRules(config);
 
     // import, validate, freeze, and initialize XShell
     await initializeXShell(config);

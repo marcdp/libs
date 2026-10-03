@@ -5,7 +5,9 @@
   "description": "Describes the public contract of an XShell service.",
   "type": "object",
   "additionalProperties": false,
+  "required": [ "label" ],
   "properties": {
+    "label": { "type": "string", "description": "Human-readable label of the contract." },
     "description": { "type": "string", "description": "Human-readable description of the contract." },
     "properties": { "type": "object", "description": "Public properties exposed.", "additionalProperties": { "$ref": "#/$defs/property" } },
     "events": { "type": "object", "description": "Events emitted.", "additionalProperties": { "$ref": "#/$defs/event" } },

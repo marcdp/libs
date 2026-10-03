@@ -54,6 +54,11 @@ export default {
             <code>dependencies</code> is resolved by the Loader before the Page class is created. The injected <code>loader</code> service is for
             resources selected dynamically at runtime. They are different mechanisms.
         </p>
+
+        <hr />
+
+        <h2>Toast Service</h2>
+        <x-button command="showToast" label="Show Toast"></x-button>
     `,
 
     state: {
@@ -65,7 +70,7 @@ export default {
         services: []
     },
 
-    controller({ state, page, navigation, dialog, bus, loader, resolver, areas, modules }) {
+    controller({ state, page, navigation, dialog, bus, loader, resolver, areas, modules, toast }) {
         return {
             load() {
                 // read only values through public services
@@ -83,6 +88,9 @@ export default {
                     { name: "areas", kind: areas.constructor.name },
                     { name: "modules", kind: modules.constructor.name }
                 ];
+            },
+            showToast() {
+                toast.show("Hello world");
             }
         };
     }

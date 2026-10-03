@@ -1,4 +1,5 @@
 {
+  "label": "Toast",
   "description": "Displays transient toast notifications to the user.",
   "properties": {},
   "events": {

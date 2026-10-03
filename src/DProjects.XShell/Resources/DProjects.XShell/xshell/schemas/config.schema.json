@@ -438,8 +438,20 @@
     },
     "xshellServices": {
       "type": "object",
-      "additionalProperties": {"type": ["string", "null"]},
+      "additionalProperties": {
+        "$ref": "#/$defs/xshellService"
+      },
       "description": "Configuration for various services."
+    },
+    "xshellService": {
+      "type": "object",
+      "required": ["contract", "implementation"],
+      "properties": {
+        "contract": {"type": "string", "description": "Service contract identifier."},
+        "implementation": {"type": "string", "description": "Service implementation URL or path."}
+      },
+      "additionalProperties": false,
+      "description": "Configuration for a single service."
     }
   },
   "description": "Schema for the final merged and normalized XShell configuration passed to xshell.init()."

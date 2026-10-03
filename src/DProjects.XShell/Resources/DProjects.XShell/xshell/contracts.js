@@ -1,52 +1,64 @@
+import validateContract from "./validation/contract.js";
 
 // class
 export default class Contracts {
 
     //vars
     _config = null;
+    _loader = null;
     _items = null;
     
     // ctor
-    constructor( { config } ) {
+    constructor( { config, loader } ) {
         this._config = config;
+        this._loader = loader;
     }   
 
-    // props
-    get items() {
-        return this._items;
-    }
 
     // methods
     async init() {
-        // for each module
+        // process each module's contracts
         let tasks = [];
-        for (const module of Object.values(this._config.modules)) {
-            // process each module's contracts
+        for (const moduleId of Object.keys(this._config.modules)) {
+            const module = this._config.modules[moduleId];
             const moduleContractsPath = module.assetsPath + "/contracts";
             for (const file of Object.values(module.files)) {
                 if (file.path.startsWith(moduleContractsPath)) {
-                    tasks.push(this._processContractFile(file));
+                    const fileUrl = this._config.app.basePath + file.path;
+                    tasks.push(this._processContractFile(fileUrl, file, moduleId, file.size));
                 }
             }
         }
-        const contracts = await Promise.all(tasks); // contracts is a list [{id:...,contract:...},{id:,contract:...},...]
+        const contractFiles = await Promise.all(tasks); // contracts is a list [{id:...,contract:...},{id:,contract:...},...]
         // convert the list of contracts into a cache object keyed by contract id
         const items = {};
-        for (const contract of contracts) {
-            items[contract.id] = Object.freeze(contract.content);
+        for (const contractFile of contractFiles) {
+            items[contractFile.id] = Object.freeze(contractFile);
         }
         this._items = Object.freeze(items);
+    }
+    getContracts() {
+        return this._items;
+    }
+    getContractById(id) {
+        return this._items ? this._items[id] : undefined;
     }
 
 
     // process a single contract file
-    async _processContractFile(file) {
-        const filename = file.path.split("/").pop();
-        const response = await fetch(file.path);
-        const result = await response.json();
+    async _processContractFile(url, file, moduleId, size) {
+        const filename = file.path.split("/").pop().split(".")[0];
+        const start = performance.now();
+        const contract = await this._loader.load("contract:" + filename);
+        await validateContract(url, contract);
         return {
             id: filename,
-            content: result
+            url: url,
+            moduleId: moduleId,
+            contract: contract,
+            size: size,
+            status: "loaded",
+            time: performance.now() - start
         };
     }
     

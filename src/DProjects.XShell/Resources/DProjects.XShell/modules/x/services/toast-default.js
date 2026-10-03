@@ -5,6 +5,10 @@ export default class Toast {
     _items = new Map();
     _nextId = 1;
 
+    // ctor
+    constructor( ) {
+    }
+
     // methods
     show(message, type = "info", duration = 4000) {
         const id = String(this._nextId++);
@@ -22,9 +26,6 @@ export default class Toast {
                 : null
         });
 
-        this.dispatchEvent(new CustomEvent("shown", {
-            detail: { id }
-        }));
 
         return id;
     }

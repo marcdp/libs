@@ -63,7 +63,10 @@
 
         // services
         "services": {
-            "toast": "/services/toast-default.js"            
+            "toast": {
+                "contract": "toast",
+                "implementation": "/services/toast-default.js"
+            }            
         },
 
         // ui

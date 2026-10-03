@@ -32,14 +32,14 @@ export default {
             <x-tab label="Pages">
                 <x-page src="pages.js" loading="lazy"></x-page>
             </x-tab>
-            <x-tab label="Navigation">
-                <x-page src="navigation.js" loading="lazy"></x-page>
-            </x-tab>
             <x-tab label="Contracts">
                 <x-page src="contracts.js" loading="lazy"></x-page>
             </x-tab>
             <x-tab label="Services">
                 <x-page src="services.js" loading="lazy"></x-page>
+            </x-tab>
+            <x-tab label="Navigation">
+                <x-page src="navigation.js" loading="lazy"></x-page>
             </x-tab>
             <x-tab label="Loader">
                 <x-page src="loader.js" loading="lazy"></x-page>

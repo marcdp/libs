@@ -78,16 +78,18 @@ class XShell {
         this._loader = new Loader({ bus: this._bus, config: config, resolver: this._resolver });
         this._auth = new Auth({ config: config, loader: this._loader });       
         this._i18n = new I18n();
+        this._contracts = new Contracts( { config: config, loader: this._loader } );
         await this._i18n.init(config.xshell.i18n);
-        this._services = new Services( {config, loader: this._loader } );        
+        this._services = new Services( {config, loader: this._loader, contracts: this._contracts } );        
         this._modules = new Modules( { bus: this._bus, config: config, loader: this._loader, resolver: this._resolver, document: document, services: this._services } );
         this._navigation = new Navigation( { areas: this._areas, bus: this._bus, config: config, container: this._container });
         this._urlRewriter = new UrlRewriter();
-        this._dialog = new Dialog( { config: config, navigation: this._navigation, i18n: this._i18n } );
-        this._contracts = new Contracts( { config: config } );
+        this._dialog = new Dialog( { config: config, navigation: this._navigation, i18n: this._i18n } );        
         this._temp = new Temp( { config: config } );
         this._runtime = new Runtime();
         this._diagnostics = new Diagnostics({ bus: this._bus });
+        // compose contracts list in memory from modules             
+        await this._contracts.init();
         // services
         this._services.register("areas", this._areas);
         this._services.register("auth", this._auth);
@@ -111,8 +113,6 @@ class XShell {
         this._services.register("identity", this._identity);
         // modules
         await this._modules.init();  
-        // compose contracts list in memory from modules             
-        await this._contracts.init();
         // compose area menus and homes before navigation starts
         this._areas.init({ modules: this._modules });
         // navigation

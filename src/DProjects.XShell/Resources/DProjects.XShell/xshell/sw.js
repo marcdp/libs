@@ -50,7 +50,6 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("message", (event) => {
     event.waitUntil((async () => {
         console.log("sw: received message:", event.data);
-
         if (event.data.type === "init") {
             state = event.data.payload;
             await saveDBState("state", state);
@@ -72,7 +71,7 @@ self.addEventListener("fetch", (event) => {
 async function handleRequest(request) {
 
     // debug
-    const debug = true;
+    const debug = false;
     
     // if request is outside scope, just fetch
     if (!request.url.startsWith(self.registration.scope)) {

@@ -15,30 +15,46 @@ export default {
         <x-listview view="details">
             <x-datafield type="search" x-model="state.id" placeholder="Contract" slot="column" style="width:12em"></x-datafield>
             <div slot="column" style="width:12em">
-                <x-datafield type="search" x-model="state.moduleId" placeholder="Module"></x-datafield>
+                <x-datafield type="search" x-model="state.label" placeholder="Label"></x-datafield>
             </div>
             <div slot="column">
                 <x-datafield type="search" x-model="state.description" placeholder="Description"></x-datafield>
             </div>
-            <x-listview-item x-for="contract in state.contracts"
-                x-attr:href="contract.url" 
-                x-attr:label="contract.id"
-                x-attr:icon="contract.icon"
+            <div slot="column" style="width:12em">
+                <x-datafield type="search" x-model="state.moduleId" placeholder="Module"></x-datafield>
+            </div>
+            <div slot="column" style="width:4em">
+                Size
+            </div>
+            <div slot="column" style="width:4em">
+                Time
+            </div>
+            <div slot="column" style="width:8em">
+                Status
+            </div>
+            <x-listview-item x-for="contractItem in state.contractItems"
+                x-attr:href="contractItem.url" 
+                x-attr:label="contractItem.id"
+                x-attr:icon="contractItem.icon"
                 target="_blank"
             >
-                <div>{{ contract.moduleId }}</div>
-                <div>{{ contract.description }}</div>                
+                <div>{{ contractItem.contract.label }}</div>
+                <div>{{ contractItem.contract.description }}</div>
+                <div>{{ contractItem.moduleId }}</div>
+                <x-file-size x-prop:value="contractItem.size" style="text-align:right"></x-file-size>
+                <x-time-ms x-prop:value="contractItem.time"></x-time-ms>
+                <div>{{ contractItem.status }}</div>
             </x-listview-item>
         </x-listview> 
     `,    
     state:{
         id: "",
         label: "",
-        moduleId: "",
         description: "",
-        contracts: null
+        moduleId: "",
+        contractItems: null
     },
-    controller({ state, events, config, bus, loader, resolver}) {
+    controller({ state, events, config, bus, loader, resolver, contracts}) {
         return {
             load() {
                // load
@@ -55,32 +71,26 @@ export default {
             },
             async refresh() {
                 // refresh
-                let list = [];
-                for(let moduleId of Object.keys(config.modules)) {
-                    const moduleConfig = config.modules[moduleId];
-                    let moduleComponentsPath = moduleConfig.assetsPath + "/contracts";
-                    for(const file of Object.values(moduleConfig.files)) {
-                        if (file.path.startsWith(moduleComponentsPath)) {
-                            const id = (file.path.split("/").pop() || "").split(".")[0];
-                            const resolved = resolver.resolve("contract:" + id);
-                            const contract = await loader.load("contract:" + id);
-                            let valid = true;
-                            if (state.id && id.indexOf(state.id) === -1) valid = false;
-                            if (state.moduleId && moduleId.indexOf(state.moduleId) === -1) valid = false;
-                            if (state.description && contract.description.indexOf(state.description) === -1) valid = false;
-                            if (state.label && id.indexOf(state.label) === -1) valid = false;
-                            if (valid) {
-                                list.push({
-                                    id: id,
-                                    url: resolved.url,
-                                    moduleId: moduleId,
-                                    description: contract.description
-                                });
-                            }
-                        }                        
+                const contractItems = [];
+                for (const item of Object.values(contracts.getContracts())) {
+                    let valid = true;
+                    if (state.id && !item.id.includes(state.id)) {
+                        valid = false;
                     }
-                };
-                state.contracts = list;
+                    if (state.label && !item.contract.label.includes(state.label)) {
+                        valid = false;
+                    }
+                    if (state.description && !item.contract.description.includes(state.description)) {
+                        valid = false;
+                    }
+                    if (state.moduleId && !item.moduleId.includes(state.moduleId)) {
+                        valid = false;
+                    }
+                    if (valid) {
+                        contractItems.push(item);
+                    }
+                }
+                state.contractItems = contractItems;
             }
         };
     }
