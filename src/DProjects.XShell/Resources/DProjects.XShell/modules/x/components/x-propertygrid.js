@@ -13,15 +13,27 @@ export const contract = {
 // implementation
 export default {
     style: `
-        :host {display:block;}
-        table {width:99%; background:#cccccc; border-spacing:1px;}
-        th:first-child, td:first-child {width:10em;}
-        th, td {text-align:left; padding:.3em; vertical-align:top; background:white}
+        :host {display:block;
+            border: var(--x-datafield-border); 
+            background:var(--x-datafield-background);
+            border-radius: var(--x-datafield-border-radius);
+            overflow: hidden;
+        }
+        table {width:100%; border-collapse: collapse; border-radius: var(--x-datafield-border-radius);}
+        th:first-child, td:first-child {width:10em; }
+        th, td {text-align:left; padding:.15em; vertical-align:top; background:white; padding-left:.5em;}
         td.object, td.array {padding:0}
         td.object x-propertygrid, td.array x-propertygrid {margin:-1px;}
+        
+        tr:nth-child(odd) th, tr:nth-child(odd) td {background:var(--x-color-background-alt);}
+        
         .date {color:Red;}
         .number {color:green;}
         .text {color:blue;}
+
+        :host(.no-border) {
+            border: none;
+        }
 
     `,
     template: `
@@ -41,11 +53,11 @@ export default {
                         null
                     </td>
                     <td x-elseif="state.schema[key].type == 'object'" class="object">
-                        <x-propertygrid headers="true" x-prop:value="state.value[key]"></x-propertygrid>
+                        <x-propertygrid headers="true" x-prop:value="state.value[key]" class="no-border"></x-propertygrid>
                     </td>
                     <td x-elseif="state.schema[key].type == 'array'" class="array">
                         <div x-for="(item, index) in state.value[key]">
-                            <x-propertygrid headers="true" x-prop:value="item"></x-propertygrid>
+                            <x-propertygrid headers="true" x-prop:value="item" class="no-border"></x-propertygrid>
                         </div>
                     </td>
                     <td x-elseif="state.schema[key].type == 'date'" class="date">

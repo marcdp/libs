@@ -73,7 +73,7 @@ export default class Resolver {
                 return { definition, url, path };
             }
         }
-        this._debug.error(`resolver.resolveDefinition('${resource}'): unable to resolve`);
+        console.error(`resolver.resolveDefinition('${resource}'): unable to resolve`);
         return null;
     }
     resolveUrl(resource) {

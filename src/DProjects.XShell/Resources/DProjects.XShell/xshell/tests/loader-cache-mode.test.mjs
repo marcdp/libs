@@ -31,8 +31,8 @@ async function createLoader(testName, { cacheMode, type = "resource" } = {}) {
             resolver: { [type]: { "/{path}": definition } }
         }
     };
-    const resolver = new Resolver({ debug, config });
-    return { fixture, loader: new Loader({ bus, config, debug, resolver }) };
+    const resolver = new Resolver({ config });
+    return { fixture, loader: new Loader({ bus, config, resolver }) };
 }
 
 test("cacheMode defaults to full cache identity", async () => {

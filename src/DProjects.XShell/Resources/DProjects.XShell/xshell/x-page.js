@@ -176,7 +176,7 @@ class XPage extends HTMLElement {
 
     //methods    
     async load() {
-        xshell.debug.log(`x-page: load '${this.src} ...`);
+        console.log(`x-page: load '${this.src} ...`);
         let src = this.src;
         if (src.indexOf("error") != -1) {
             return;

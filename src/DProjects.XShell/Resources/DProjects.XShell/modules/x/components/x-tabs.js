@@ -90,8 +90,9 @@ export default {
                     state.selectedHash = hash;
                 }
             },
-            mount(){
+            mount() {
                 host.shadowRoot.adoptedStyleSheets = [...host.shadowRoot.adoptedStyleSheets, styleSheet];
+                this.refresh();
             },
 
             click(params) {

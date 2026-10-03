@@ -13,15 +13,15 @@ export default {
         x-tab {max-height:50vh; overflow-y:auto;}
     `,
     template: `
-        <x-tabs>
+        <x-tabs selected-index="7">
             <x-tab label="Config">
                 <x-page src="config.js" loading="lazy"></x-page>
             </x-tab>
             <x-tab label="Modules">
-                Content of Tab 2
+                <x-page src="modules.js" loading="lazy"></x-page>
             </x-tab>
             <x-tab label="Components">
-                Content of Tab 3
+                <x-page src="components.js" loading="lazy"></x-page>
             </x-tab>
             <x-tab label="Pages">
                 Content of Tab 4
@@ -35,6 +35,10 @@ export default {
             <x-tab label="Services">
                 Content of Tab 7
             </x-tab>
+            <x-tab label="Loader">
+                <x-page src="loader.js" loading="lazy"></x-page>
+            </x-tab>
+            
         </x-tabs>
     `,    
     controller({ state }) {

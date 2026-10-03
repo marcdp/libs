@@ -2,7 +2,9 @@
 function formatMilliseconds(ms) {
     if (ms === -1) return '';
     if (ms === 0) return '0 ms';
-    return `${ms} ms`;
+    if (ms === null) return '';
+    if (ms === undefined) return '';
+    return `${ms.toFixed(0)} ms`;
 }
 
 // contract

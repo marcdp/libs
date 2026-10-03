@@ -3,8 +3,8 @@ import Auth from "./auth.js";
 import Binds from "./binds.js";
 import Bus from "./bus.js";
 import Contracts from "./contracts.js";
-import Debug from "./debug.js";
 import Dialog from "./dialog.js";
+import Diagnostics from "./diagnostics.js";
 import I18n from "./i18n.js";
 import Loader from "./loader.js";
 import Navigation from "./navigation.js";
@@ -28,8 +28,8 @@ class XShell {
     _config = null;
     _container = null;
     _contracts = null;
-    _debug = null;
     _dialog = null;
+    _diagnostics = null;
     _i18n = null;
     _temp = null;
     _identity = null;
@@ -52,9 +52,9 @@ class XShell {
     get config() { return this._config; }
     get container() { return this._container; }
     get contracts() { return this._contracts; }
-    get debug() { return this._debug; }
     get dialog() { return this._dialog; }
     get i18n() { return this._i18n; }
+    get diagnostics() { return this._diagnostics; }
     get identity() { return this._identity; }
     get loader() { return this._loader; }
     get modules() { return this._modules; }
@@ -71,12 +71,11 @@ class XShell {
         await validateConfig("config", config);
         // init
         this._bus = new Bus();
-        this._debug = new Debug();        
         this._config = config;
         this._areas = new Areas( { bus: this._bus, config: config } );
         this._container = document.body;
-        this._resolver = new Resolver( { debug: this._debug, config: config } );
-        this._loader = new Loader({ bus: this._bus, config: config, debug: this._debug, resolver: this._resolver });
+        this._resolver = new Resolver( { config: config } );
+        this._loader = new Loader({ bus: this._bus, config: config, resolver: this._resolver });
         this._auth = new Auth({ config: config, loader: this._loader });       
         this._i18n = new I18n();
         await this._i18n.init(config.xshell.i18n);
@@ -88,13 +87,13 @@ class XShell {
         this._contracts = new Contracts( { config: config } );
         this._temp = new Temp( { config: config } );
         this._runtime = new Runtime();
+        this._diagnostics = new Diagnostics({ bus: this._bus });
         // services
         this._services.register("areas", this._areas);
         this._services.register("auth", this._auth);
         this._services.register("bus", this._bus);
         this._services.register("config", this._config);
         this._services.register("container", this._container);
-        this._services.register("debug", this._debug);
         this._services.register("dialog", this._dialog);
         this._services.register("i18n", this._i18n);
         this._services.register("loader", this._loader);

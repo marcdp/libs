@@ -55,7 +55,6 @@ export default class Loader {
 
     //vars
     _bus = null;
-    _debug = null;
     _resolver = null;
     _appBasePath = null;
     _assetsPrefix = null;
@@ -67,9 +66,8 @@ export default class Loader {
     _registry = [];
 
     //ctor
-    constructor( {bus, config, debug, resolver} ) {
+    constructor( {bus, config, resolver} ) {
         this._bus = bus;
-        this._debug = debug;
         this._resolver = resolver;
         this._appBasePath = config.app.basePath;
         this._assetsPrefix = config.xshell.assetsPrefix;
@@ -82,7 +80,7 @@ export default class Loader {
     get registry() { 
         let result = [];
         for(let item of this._registry){
-            result.push({ resource: item.resource, src: item.url, status: item.status });
+            result.push({ resource: item.resource, url: item.url, status: item.status, time: item.time, moduleId: item.moduleId });
         }
         return Object.freeze(result);
     }
@@ -103,6 +101,7 @@ export default class Loader {
         let urls = [];
         let paths = [];
         let tasks = [];
+        const start = performance.now();
         for(let resource of resources) {            
             // resolve definition
             let name = resource.split(":")[1];
@@ -142,12 +141,12 @@ export default class Loader {
                 result.push(window.customElements.get(name));
             } else {
                 // load
-                this._debug.log(`loader: load '${resource}' from ${url} ...`);
+                console.log(`loader: load '${resource}' from ${url} ...`);
                 let promise = (async () => {
                     let value = null;
-                    let registryItem = {resource, definition, url, status: "pending"};
-                    this._registry.push(registryItem);                    
-                    await this._bus.emit("xshell:loader:resource:fetch", {resource, url});
+                    let registryItem = {resource, definition, url, status: "pending", time: null, moduleId: definition.moduleId};
+                    this._registry.push(registryItem);
+                    await this._bus.emit("xshell:loader:resource:fetch", {resource, url, moduleId: definition.moduleId});
                     try {
                         value = await loader.load(url, {
                             resourceName: name, 
@@ -159,12 +158,20 @@ export default class Loader {
                             componentLazy: this._componentLazy
                         });
                         registryItem.status = "loaded";
-                        await this._bus.emit("xshell:loader:resource:loaded", {resource, url});
+                        const end = performance.now();
+                        const time = end - start;
+                        registryItem.time = time;
+                        await this._bus.emit("xshell:loader:resource:loaded", {resource, url, time});
                     } catch (exception) {
+                        const end = performance.now();
+                        const time = end - start;
+                        registryItem.time = time;
                         registryItem.status = "error";
-                        await this._bus.emit("xshell:loader:resource:error", {resource, url});
+                        await this._bus.emit("xshell:loader:resource:error", {resource, url, time});  
                         throw exception;
-                    }                    
+                    } finally {
+                        
+                    }
                     return value;
                 })();
                 if (definition.cache) {
