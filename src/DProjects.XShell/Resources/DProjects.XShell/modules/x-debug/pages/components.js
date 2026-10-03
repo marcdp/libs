@@ -13,9 +13,7 @@ export default {
     },
     template: `
         <x-listview view="details">
-            <div slot="column" style="width:12em">
-                <x-datafield type="search" x-model="state.id" placeholder="Component"></x-datafield>
-            </div>
+            <x-datafield type="search" x-model="state.id" placeholder="Component" slot="column" style="width:12em"></x-datafield>
             <div slot="column" style="width:12em">
                 <x-datafield type="search" x-model="state.moduleId" placeholder="Module"></x-datafield>
             </div>

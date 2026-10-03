@@ -1,7 +1,7 @@
 {
     // app
     "app": {
-        "name": "",
+        "id": "",
         "label": "",
         "copyright": "",
         "icon": "",
@@ -47,6 +47,8 @@
         "resolver": {
             "component": {
                 "x-page": {"url": "/x-page.js", "loader": "module-js", "cache": true}
+            },
+            "contract": {
             },
             "module": {
                 "xshell": {"url": "/xshell.js", "loader": "module-js", "cache": true}

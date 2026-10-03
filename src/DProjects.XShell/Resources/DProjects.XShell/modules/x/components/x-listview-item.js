@@ -55,6 +55,7 @@ export default {
         x-anchor.details {display:table-cell; padding-right:.5em;} 
         x-anchor.details x-icon {vertical-align:bottom; }
         ::slotted(*) {display:table-cell; padding:.1em; padding-right:.5em;}
+        ::slotted(.fill) {width:100%; max-width:0; overflow:hidden;}
         
     `,
     template: `

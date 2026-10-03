@@ -90,7 +90,7 @@ export const contract = {
 // implementation
 export default {
     style: `
-        :host {display:block; position:relative; }
+        :host {display:block; position:relative; -webkit-appearance: none!important;}
         :host input,select,textarea {display:block; width:100%; resize: none;}
         :host textarea {height:10em;}
         ::placeholder {color:var(--x-datafield-color-placeholder); font-style:italic;}        

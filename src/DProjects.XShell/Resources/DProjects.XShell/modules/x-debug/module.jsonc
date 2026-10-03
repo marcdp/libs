@@ -21,6 +21,7 @@
                 "navigation": [
                     {"label": "Debug", "children":[
                         {"label": "Config", "href": "/pages/config.js"},
+                        {"label": "Application", "href": "/pages/app.js"},
                         {"label": "Modules", "href": "/pages/modules.js"},
                         {"label": "Components", "href": "/pages/components.js"},
                         {"label": "Pages", "href": "/pages/pages.js"},

@@ -47,7 +47,18 @@ export default {
             </x-listview-item>
         </x-listview> 
 
-        <h2>Active page hierarchy</h2>       
+        
+        <h2>Menus</h2>
+        <x-listview view="details">
+            <div slot="column" style="width:12em">Menu</div>
+            <div slot="column">Menuitems</div>
+            <x-listview-item x-for="menu in state.menus" x-attr:label="menu.id" x-attr:href="menu.path" target="_blank">
+                <x-object x-prop:value="menu.children"></x-object>
+            </x-listview-item>
+        </x-listview>
+
+
+        <h2>Page hierarchy</h2>       
         <x-treeview>
             <x-treeview-head>
                 <x-treeview-column label="Page" width="30%"></x-treeview-column>
@@ -72,17 +83,7 @@ export default {
             </x-treeview-body>
         </x-treeview>   
 
-        <h2>Menus</h2>
-        <x-listview view="details">
-            <div slot="column">Menu</div>
-            <div slot="column">Menuitems</div>
-            <x-listview-item x-for="menu in state.menus" x-attr:label="menu.id" x-attr:href="menu.path" target="_blank">
-                <x-preview x-prop:value="menu.children"></x-preview>
-            </x-listview-item>
-        </x-listview>
         
-        <br/>
-        <x-preview x-prop:value="state.menus"></x-preview>
     `,    
     state:{
         areas: null,

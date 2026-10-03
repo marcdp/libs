@@ -18,7 +18,7 @@
     "app": {
       "type": "object",
       "properties": {
-        "name": {"type": "string", "description": "Application identifier."},
+        "id": {"type": "string", "description": "Application identifier."},
         "label": {"type": "string", "description": "Human-readable application label."},
         "version": {"type": "string", "description": "Application version."},
         "copyright": {"type": "string", "description": "Application copyright notice."},
@@ -26,7 +26,7 @@
         "basePath": {"type": "string", "description": "Base URL path under which the application is hosted."},
         "params": {"type": "object", "additionalProperties": true, "description": "Application-specific parameters."}
       },
-      "required": ["name", "label", "version", "copyright", "icon", "basePath", "params"],
+      "required": ["id", "label", "version", "copyright", "icon", "basePath", "params"],
       "additionalProperties": false,
       "description": "Application metadata, base path, and application parameters."
     },

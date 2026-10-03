@@ -284,8 +284,11 @@ async function loadConfig() {
         resolver.style = resolver.style || {};
         resolver.style[`${moduleAssetsPath}/{path}.css`] = resolver.style[`${moduleAssetsPath}/{path}.css`] || { url: `${moduleAssetsPath}/{path}.css`, loader: 'style-css', cache: true, moduleId: moduleId, modulePath: moduleAssetsPath};
         resolver.string = resolver.string || {};
-        resolver.string[`${moduleAssetsPath}/{path}`] = resolver.string[`${moduleAssetsPath}/{path}`] || { url: `${moduleAssetsPath}/{path}`, loader: 'string', cache: true, moduleId: moduleId, modulePath: moduleAssetsPath};    }
-
+        resolver.string[`${moduleAssetsPath}/{path}`] = resolver.string[`${moduleAssetsPath}/{path}`] || { url: `${moduleAssetsPath}/{path}`, loader: 'string', cache: true, moduleId: moduleId, modulePath: moduleAssetsPath};
+        resolver.contract = resolver.contract || {};
+        resolver.contract[`${moduleId}-{name}`] = resolver.contract[`${moduleId}-{name}`] || { url: `${moduleAssetsPath}/contracts/${moduleId}-{name}.json`, loader: 'object-json', cache: true, moduleId: moduleId, modulePath: moduleAssetsPath};
+    }
+    
     // console
     console.log("bootstrap: config:", configMerged);
 
@@ -378,9 +381,14 @@ async function loadFilesIndexes(config) {
         target.files = files;
     };
     for (const moduleId of Object.keys(config.modules)) {
-        tasks.push(loadFilesIndex(moduleId, config.modules[moduleId]));
+        const module = config.modules[moduleId];
+        if (!module.files){
+            tasks.push(loadFilesIndex(moduleId, module));
+        }
     }
-    tasks.push(loadFilesIndex("xshell", config.xshell));
+    if (!config.xshell.files) {
+        tasks.push(loadFilesIndex("xshell", config.xshell));
+    }
     // wait
     await Promise.all(tasks);
     // return

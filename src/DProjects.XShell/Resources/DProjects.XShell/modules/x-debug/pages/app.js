@@ -1,6 +1,6 @@
 // contract
 export const contract = {
-    description: "Config page",
+    description: "Application",
     events: {},
     properties: {},
     methods: {}
@@ -9,10 +9,10 @@ export const contract = {
 // export page
 export default {
     meta: {
-        title: "Config Page"
+        title: "Application Page"
     },
     template: `
-        <x-object x-prop:value="state.config" expanded="true"></x-object>
+        <x-propertygrid x-prop:value="state.config.app"></x-propertygrid>
     `,    
     state:{
         config: null

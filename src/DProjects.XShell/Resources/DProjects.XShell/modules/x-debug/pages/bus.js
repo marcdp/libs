@@ -27,7 +27,7 @@ export default {
             </div>
             <x-listview-item x-for="item in state.registry" x-attr:label="item.type" icon="x-thunder" x-show="item.show">
                 <x-datetime x-prop:value="item.ts" format="iso" style="width:13em"></x-datetime>
-                <x-json x-prop:value="item.detail" class="truncate" style="max-width:30em;"></x-json>
+                <x-object x-prop:value="item.detail"></x-object>
                 <div></div>
             </x-listview-item>
         </x-listview>        

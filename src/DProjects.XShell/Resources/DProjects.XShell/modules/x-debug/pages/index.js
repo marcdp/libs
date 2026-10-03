@@ -12,13 +12,16 @@ export default {
         title: "Debug"
     },
     style: `
-        x-tabs {width: 70em; max-width:90vw; }
-        x-tab {max-height:60vh; overflow-y:auto;}
+        x-tabs {width: 80em; max-width:90vw; }
+        x-tab {max-height:60vh; aoverflow-y:auto;}
     `,
     template: `
-        <x-tabs selected-index="8">
+        <x-tabs selected-index="0">
             <x-tab label="Config">
                 <x-page src="config.js" loading="lazy"></x-page>
+            </x-tab>
+            <x-tab label="Application">
+                <x-page src="app.js" loading="lazy"></x-page>
             </x-tab>
             <x-tab label="Modules">
                 <x-page src="modules.js" loading="lazy"></x-page>
