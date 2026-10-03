@@ -1,30 +1,25 @@
 # Authentication
 
-This document introduces XShell's identity-provider orchestration.
+This document records the current authentication-subsystem status in XShell.
 
 ## Status
 
-Draft.
+Not implemented.
 
-## Login flow
+## Current runtime behavior
 
-The authentication service reads `xshell.identity` configuration, loads an `idp:<provider>` resource, creates the provider, and calls its `resolve` method with configured parameters. An `authenticated` result supplies the runtime identity.
+XShell currently has no authentication service, login flow, logout flow, or identity-provider orchestration. It does not load `idp:<provider>`
+resources as part of startup and does not register an authentication or identity runtime service.
 
-## Current providers
+The `xshell.identity` configuration shape and the `idp` resolver rule remain in the default configuration, but they do not implement authentication.
 
-The repository contains `anonymous` and `config` providers. Both return an authenticated identity without an external protocol; they should not be interpreted as evidence of a complete security boundary.
+## Future work
 
-## Logout
-
-The authentication service clears its identity and calls the provider's `logout` method. Current built-in providers reload the document.
-
-## TODO
-
-TODO: Define provider lifecycle, unauthenticated and error states, redirects, credential handling, and security requirements.
+Define provider lifecycle, unauthenticated and error states, redirects, credential handling, and security requirements before adding an
+authentication subsystem.
 
 ## Related documentation
 
 - [Subsystems](index.md)
 - [Identity](identity.md)
 - [Application Specification](../specifications/application.md)
-

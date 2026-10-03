@@ -11,7 +11,7 @@ configuration, prepares resource mappings, initializes the runtime, starts modul
 
 - [Architecture](architecture/) — Bootstrap, configuration, modules, Components, Pages, resource resolution, loaders, Service Worker behavior, packaging, and navigation.
 - [Components](components/) — Public component contracts, properties, state, events, slots, lifecycle, and rendering.
-- [Subsystems](subsystems/) — Areas, authentication, identity, internationalization, and other runtime subsystems.
+- [Subsystems](subsystems/) — Areas, internationalization, temporary files, and other runtime subsystems.
 - [Extensions](extensions/) — Optional XShell extensions, including X Templates.
 - [Specifications](specifications/) — Formal application and module configuration contracts.
 - [Architecture Decision Records](adr/) — Architectural decisions and their rationale.

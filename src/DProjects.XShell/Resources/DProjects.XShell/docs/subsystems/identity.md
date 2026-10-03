@@ -1,29 +1,23 @@
 # Identity
 
-This document describes the minimal identity shape currently exposed by XShell.
+This document records the current identity-subsystem status in XShell.
 
 ## Status
 
-Draft.
+Not implemented.
 
-## Current shape
+## Current runtime behavior
 
-Built-in identity providers return a frozen object containing `id`, `name`, `roles`, and `claims`. XShell registers the resolved identity as a runtime service named `identity`.
+XShell does not currently resolve an identity provider, create an identity object, expose `xshell.identity`, or register an `identity` runtime service.
+The `xshell.identity` configuration shape and the `idp` resolver rule remain in the default configuration, but they do not activate identity runtime
+behavior.
 
-## Roles and claims
+## Future work
 
-The checked-in providers carry role and claim values but do not by themselves establish authorization policy or enforcement semantics.
-
-## Default identity
-
-Framework configuration selects the anonymous provider by default. That provider returns the identifier `anonymous`, the display name `Anonymous`, and empty role and claim collections.
-
-## TODO
-
-TODO: Define identity immutability depth, role and claim formats, refresh behavior, and authorization responsibilities.
+Define the identity shape, provider lifecycle, configuration semantics, and authorization responsibilities before introducing identity runtime
+behavior.
 
 ## Related documentation
 
 - [Subsystems](index.md)
 - [Authentication](authentication.md)
-

@@ -97,7 +97,7 @@ The optional module-level `requires` array names services that must be present f
 
 ```jsonc
 "orders": {
-    "requires": ["toast", "identity"]
+    "requires": ["toast"]
 }
 ```
 

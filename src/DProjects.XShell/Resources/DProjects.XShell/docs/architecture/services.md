@@ -29,8 +29,15 @@ This fixed topology provides deterministic service resolution and prevents provi
 
 `Services.has(name)` reports whether a runtime or configured service name is registered. It only checks registry membership and never constructs a
 configured service. `Services.resolve(name)` returns an existing runtime instance or lazily constructs the configured implementation as a singleton.
-The implementation is validated against the contract's declared methods and properties when that singleton is first created. Property validation
-uses descriptors on the instance and its prototype chain, so it does not read values or invoke getters.
+The implementation is validated against the contract's declared methods and properties when that singleton is first created.
+
+`getServiceItems()` exposes live runtime/diagnostic metadata. Callers must treat its returned records as read-only observational data; mutating them
+is unsupported. The registry topology remains immutable after `Services.init()`, while an individual record's internal `state` and `instance` can
+change as a configured service is resolved.
+
+For a declared contract property, V0 validation succeeds when a descriptor with that name exists on the instance or its prototype chain. Validation
+checks presence only: it does not read values, invoke getters, or validate runtime property types. `readonly: true` is contract metadata, and V0
+does not require non-readonly properties to have a setter or writable descriptor; mutability semantics are not enforced.
 
 ```text
 startup
@@ -51,7 +58,7 @@ A module may declare `requires` as service names that must already exist in the 
 
 ```jsonc
 "orders": {
-    "requires": ["toast", "identity"]
+    "requires": ["toast"]
 }
 ```
 

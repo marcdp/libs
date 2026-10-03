@@ -30,7 +30,6 @@ class XShell {
     _diagnostics = null;
     _i18n = null;
     _temp = null;
-    _identity = null;
     _loader = null;
     _modules = null;
     _navigation = null;
@@ -52,7 +51,6 @@ class XShell {
     get dialog() { return this._dialog; }
     get i18n() { return this._i18n; }
     get diagnostics() { return this._diagnostics; }
-    get identity() { return this._identity; }
     get loader() { return this._loader; }
     get modules() { return this._modules; }
     get navigation() { return this._navigation; }

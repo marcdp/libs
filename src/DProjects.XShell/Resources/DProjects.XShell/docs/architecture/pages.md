@@ -117,9 +117,8 @@ export default {
 Here `dependencies` is the resolved declarative-resource object, `navigation` falls through to the XShell service container, and `state`, `query`,
 and `events` are Page-specific values. Destructuring requests the values; it does not make them public Page properties.
 
-Names other than the eight Page-specific values fall through to `xshell.services.resolve(name)`. The services registered by the current XShell
-initialization are `areas`, `auth`, `bus`, `config`, `container`, `debug`, `dialog`, `i18n`, `loader`, `modules`, `navigation`, `resolver`, `runtime`,
-`services`, `tabs`, `temp`, `urlRewriter`, and, after login, `identity`. Code can therefore request a registered service naturally, for example
+Names other than the eight Page-specific values fall through to `xshell.services.resolve(name)`. Core/runtime services are registered during XShell
+initialization, and configured services are registered from `xshell.services`; code can request any registered service naturally, for example
 `controller({ navigation, bus, loader })`. A missing name fails service resolution; Page injection does not manufacture unknown services.
 `navigation` is the shared service for navigation operations; it is not the current Page's `query` object.
 

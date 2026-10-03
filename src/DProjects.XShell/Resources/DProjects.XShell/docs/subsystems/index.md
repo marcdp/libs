@@ -8,9 +8,9 @@ Draft.
 
 ## Documents
 
-- [Authentication](authentication.md) — Identity-provider selection and login/logout orchestration.
+- [Authentication](authentication.md) — Current authentication-subsystem status and future work.
 - [Areas](areas.md) — Navigation contexts, effective menus, and homes composed from module contributions.
-- [Identity](identity.md) — The identity object exposed to runtime services.
+- [Identity](identity.md) — Current identity-subsystem status and future work.
 - [Internationalization](i18n.md) — Language metadata, localized text selection, and date/time formatting.
 - [Temporary Files](temp.md) — Browser uploads, temporary resource URLs, and the boundary with application persistence.
 

@@ -14,7 +14,7 @@ The local definition is the one entry without `configUrl`. Its object key is the
             "version": "1.0.0",
             "copyright": "",
             "icon": "",
-            "requires": ["toast", "identity"],
+            "requires": ["toast"],
             "defaults": {
                 "page": { "renderEngine": "x", "stateEngine": "proxy" },
                 "component": { "renderEngine": "x", "stateEngine": "proxy" }
@@ -86,7 +86,7 @@ metadata and do not by themselves implement runtime dispatch.
 `requires` is an optional array of unique, non-empty service names that the module expects the runtime to provide:
 
 ```jsonc
-"requires": ["toast", "identity"]
+"requires": ["toast"]
 ```
 
 XShell validates these names after the service registry has been finalized and before any module controller is loaded or started. The validation is
