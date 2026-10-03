@@ -76,11 +76,8 @@ export default {
         <x-listview view="details">
             <div slot="column">Menu</div>
             <div slot="column">Menuitems</div>
-            <x-listview-item x-for="menu in state.menus"
-                x-attr:label="menu.id"
-                x-attr:href="menu.path"
-                target="_blank">
-                <x-preview x-prop:value="menu.children" sstyle="width:20em;"></x-preview>
+            <x-listview-item x-for="menu in state.menus" x-attr:label="menu.id" x-attr:href="menu.path" target="_blank">
+                <x-preview x-prop:value="menu.children"></x-preview>
             </x-listview-item>
         </x-listview>
         

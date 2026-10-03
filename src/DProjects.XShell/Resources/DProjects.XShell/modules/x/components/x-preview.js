@@ -30,15 +30,21 @@ export const contract = {
 // implementation
 export default {
     style: `
-        :host{display:inline-flex!important; align-items:center; gap:.25em; width:100%;}
-        .text {}
+        :host {
+            display:flex!important;
+            align-items:center;
+            gap:.25em;
+            min-width:0;
+            max-width:100%;
+        }
+        .text { flex:1 1 auto; min-width:0; overflow:hidden;}
         .image, .video {display:block;max-width:6em;max-height:3em;object-fit:contain;}
         x-button {flex:none;}
     `,
     template: `
         <img        x-if="state.type == 'image'"     class="image" x-attr:src="state.src">
         <video      x-elseif="state.type == 'video'" class="video" x-attr:src="state.src"></video>
-        <x-truncate x-else class="preview text" lines="1" x-attr:title="state.text" x-attr:text="state.text"></x-truncate>
+        <x-truncate x-else class="text" lines="1" x-attr:title="state.text" x-attr:text="state.text"></x-truncate>
         <x-button x-if="state.value != null" class="plain round" icon="x-open-in-new" x-on:click="open"> </x-button>
     `,
     state: {
