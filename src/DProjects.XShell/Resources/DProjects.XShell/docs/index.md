@@ -1,89 +1,26 @@
-# XShell
+# XShell V0
 
-XShell is a browser-native modular application framework built around Web Components, modules, resource resolution, pluggable loaders, render engines, state engines, and Service Worker resource virtualization.
-
-X Templates are an optional rendering extension built on top of the core Component and Page model.
-
-The application itself is the **root module**. From its `modules.<id>.configUrl` references, XShell discovers dependencies, builds the effective
-configuration, prepares resource mappings, initializes the runtime, starts module instances, composes Areas, and starts navigation.
-
-## Documentation
-
-- [Architecture](architecture/) — Bootstrap, configuration, modules, Components, Pages, resource resolution, loaders, Service Worker behavior, packaging, and navigation.
-- [Components](components/) — Public component contracts, properties, state, events, slots, lifecycle, and rendering.
-- [Subsystems](subsystems/) — Areas, internationalization, temporary files, and other runtime subsystems.
-- [Extensions](extensions/) — Optional XShell extensions, including X Templates.
-- [Specifications](specifications/) — Formal application and module configuration contracts.
-- [Architecture Decision Records](adr/) — Architectural decisions and their rationale.
+XShell is a browser runtime for applications composed from modules. ASP.NET serves bootstrap and resources; the browser composes configuration,
+virtualizes assets, initializes services/modules, and activates Pages through Areas and Navigation.
 
 ## Core concepts
 
-### Modules
+- [Modules](architecture/modules.md) and [Configuration](architecture/configuration.md) — Composition, defaults, and one instance per id.
+- [Bootstrap](architecture/bootstrap.md) — Startup order and validation.
+- [Components](components/index.md) and [Pages](architecture/pages.md) — Contracts, controllers, state, lifecycle, and presentation.
+- [Resolvers](architecture/resolvers.md) and [Loaders](architecture/loaders.md) — Resource meaning versus obtaining concrete resources.
+- [Services and service Contracts](architecture/services.md) — Fixed registry, eager class loading, lazy singletons.
+- [Areas](subsystems/areas.md) and [Navigation](architecture/navigation.md) — Menus, routes, homes, browser URLs, and Page stacks.
+- [State](components/state.md) and [Rendering Engines](components/rendering.md) — Separate engines coordinated by loaders.
+- [Service Worker](architecture/service-worker.md) — `/_assets` and expanded resource mapping.
+- [X Templates](extensions/x-templates/index.md) — Optional compiled rendering.
+- [Hosting](architecture/hosting.md) and [Packaging](architecture/packaging.md) — ASP.NET, compilation, and inventories.
+- [Subsystems](subsystems/index.md) — Bus, dialogs, i18n, Temp.
 
-Modules are the main unit of composition and distribution.
+## Reference
 
-A module can contribute resources such as Components, Pages, styles, menus, routes, configuration, resolvers, and runtime behavior.
+[Architecture](architecture/index.md), [Specifications](specifications/index.md), [Extensions](extensions/index.md), and [ADRs](adr/index.md)
+provide detailed reference and decision context.
 
-The application is also represented as a module: the **root module**.
-
-See [Modules](architecture/modules.md) and [Module Specification](specifications/module.md).
-
-### Components
-
-XShell builds on standard Web Components.
-
-A Component can be implemented directly as a Web Component class or as an XShell definition composed of a public contract and an implementation.
-
-Definition-based Components can use pluggable state and render engines.
-
-See [Components](components/) and [Component Architecture](architecture/components.md).
-
-### Pages
-
-A Page uses the same Component model while adding navigation-oriented behavior.
-
-```text
-Page = Component + Navigation
-```
-
-See [Pages](architecture/pages.md).
-
-### Resources
-
-Logical resource references are handled through separate Resolver and Loader layers.
-
-```text
-logical resource
-    ↓
-Resolver
-    ↓
-URL + Loader
-    ↓
-resource
-```
-
-The Service Worker exposes module resources through a stable virtual namespace such as:
-
-```text
-/_assets/<module-id>/...
-```
-
-See [Resolvers](architecture/resolvers.md), [Loaders](architecture/loaders.md), and [Service Worker](architecture/service-worker.md).
-
-### Areas and navigation
-
-Modules provide reusable menus and Area-relative route declarations. Menus define visible navigation structures; routes map friendly application
-paths to canonical Page targets.
-
-Areas compose participating modules into application navigation contexts, including menus, ordered routes, and home destinations. Navigation
-performs forward and reverse route resolution while canonical Page hrefs remain directly usable.
-
-See [Areas](subsystems/areas.md) and [Navigation](architecture/navigation.md).
-
-## Documentation conventions
-
-These documents describe both implemented behavior and architectural direction.
-
-When a feature is incomplete or still being designed, the documentation marks it explicitly with terms such as **Draft**, **TODO**, or **future work**.
-
-Documentation under this directory is part of the XShell runtime resources and is intended to be browsable directly by XShell itself.
+Authentication/Identity, navigation intents, and runtime ZIP loading are outside V0.
+Packaging ZIPs does not make them browser-loadable; descriptive contracts do not enforce every type or emit events.

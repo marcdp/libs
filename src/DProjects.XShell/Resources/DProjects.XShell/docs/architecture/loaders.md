@@ -70,9 +70,9 @@ runtime result
 Loading an icon:
 
 ```text
-icon:x-bell
+icon:x-file
     ↓
-/_assets/x/icons/bell.svg
+/_assets/x/icons/x-file.svg
 loader=icon-svg
     ↓
 SVG element
@@ -185,10 +185,10 @@ is handled; the callback does not transfer controller or lifecycle ownership to 
 
 ```mermaid
 flowchart LR
-    A["Logical resource<br/>icon:x-bell"]
+    A["Logical resource<br/>icon:x-file"]
         --> B[Resolver]
 
-    B --> C["Resolved URL<br/>/_assets/x/icons/bell.svg<br/>loader=icon-svg"]
+    B --> C["Resolved URL<br/>/_assets/x/icons/x-file.svg<br/>loader=icon-svg"]
 
     C --> D[Loader]
 

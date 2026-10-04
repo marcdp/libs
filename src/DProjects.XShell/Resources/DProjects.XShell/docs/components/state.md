@@ -1,51 +1,67 @@
 # Component State
 
-This document establishes state as internal reactive data for a component or Page. A configured state engine owns that reactive state; the loader owns
-the component or Page lifecycle around it.
+State is instance-owned implementation data. Public properties are a separate API even when explicitly backed by state.
 
-## Status
+## Defaults and initialization
 
-Draft.
+The loader builds one skeleton from private `definition.state` entries and defaults of `contract.properties` with `state: true`.
+Public defaults always come from `contract.properties[*].default`. A state-backed public name may also appear in `definition.state` only with a
+structurally equal value, including nested arrays/objects. The loader checks equality and retains the contract default.
+A non-state-backed public property cannot appear in implementation state.
 
-## Conceptual contract
+State entries are ordinary values, not descriptors with `type`, `attr`, `prop`, or `reflect` flags. Public-property behavior belongs to the contract.
 
-State supports component behavior and rendering and should generally not be considered public API. Properties and state are separate concepts; any
-synchronization between them should be explicitly declared by the component model.
+```js
+export const contract = {
+    properties: { count: { type: "integer", default: 0, state: true } }
+};
+export default {
+    template: '<span x-text="state.count"></span>',
+    state: { busy: false },
+    controller({ state }) {
+        return { increment() { state.count += 1; } };
+    }
+};
+```
 
-`definition.state` is the source of defaults for private/internal state entries only. Public property defaults always come from
-`contract.properties[*].default`. A state-backed public property may be repeated in `definition.state` for readability only when its value is
-structurally equal to the contract default; the contract value remains the runtime default. A non-state-backed public property must not be declared
-in `definition.state`.
+For Pages, query-enabled values are initialized before controller construction; context-enabled values are copied afterwards and may override
+query values. See [Pages](../architecture/pages.md).
 
-## Current runtime
+## Engine selection
 
-The component loader builds a state skeleton from private `definition.state` entries and state-backed public-property defaults from the contract,
-then delegates reactivity to a configured state engine. The loader connects state invalidation to rendering through `requestAnimationFrame`.
+Resource `meta.stateEngine` overrides the owning module's `defaults.component.stateEngine` or `defaults.page.stateEngine`.
+There is no engine fallback under `xshell.ui`.
 
-Current state entries may specify values and runtime flags such as `type`, `attr`, `prop`, and `reflect`. The exact stable schema remains to be
-defined.
+| Engine | Implemented behavior |
+| --- | --- |
+| `none` | Returns `null`; use only definitions without state access, state-backed properties, or Page query/context writes. |
+| `plain` | Returns a JSON-cloned skeleton; mutations do not notify or invalidate rendering. |
+| `proxy` | Returns a JSON-cloned skeleton behind a Proxy; observes top-level assignment and notifies the loader. |
+
+JSON cloning does not preserve functions, prototypes, Date instances, or undefined members and rejects cycles.
+Non-state-backed Component properties are stored separately; their object defaults are not cloned by the state engine.
+
+## Proxy changes
+
+`proxy` observes `state.name = value`, not `state.item.label = value` or `state.items.push(value)`.
+Assign a fresh object or array to make a change observable:
+
+```js
+state.items = [...state.items, newItem];
+state.item = { ...state.item, label: "Updated" };
+```
+
+The comparison uses loose inequality for scalars, so assigning `"0"` over `0` is ignored, retaining the old value without notification. Object
+reassignment can notify even with the same
+reference; assigning the same array reference with its current length does not detect earlier in-place changes. This is not deep change detection.
+
+The engine exposes `addEventListener("change:<property>", listener)` and corresponding removal.
+Listeners receive `{ prop, newValue, oldValue }`. A detected assignment invokes the loader's change handler and invalidation callback.
+The loader batches `stateChange` and rendering through `requestAnimationFrame`; reflected state properties depend on these notifications.
 
 ## State-engine boundary
 
-A state engine is responsible only for reactive state:
+The engine owns state creation, change detection, notification, and invalidation. It does not own contracts, public API, controllers, lifecycle,
+rendering, or navigation. The loader coordinates engines, lifecycle, and queued commands.
 
-- create and manage reactive state;
-- detect state changes;
-- notify state changes;
-- request invalidation.
-
-A state engine does not own `load`, `mount`, `unmount`, or `unload`; controller methods; public component or Page methods; contracts; DOM or
-rendering; navigation; or general component or Page lifecycle. The loader owns those concerns and decides how a state-engine invalidation reaches the
-render engine.
-
-## TODO
-
-TODO: Specify state-engine guarantees, nested mutation semantics, initialization order, and an explicit property-to-state mapping contract.
-
-## Related documentation
-
-- [Components](index.md)
-- [Properties](properties.md)
-- [Lifecycle](lifecycle.md)
-- [Rendering Engines](rendering.md)
-- [Properties and State ADR](../adr/0004-properties-and-state.md)
+See [Properties](properties.md), [Lifecycle](lifecycle.md), [Rendering Engines](rendering.md), and [ADR-0004](../adr/0004-properties-and-state.md).

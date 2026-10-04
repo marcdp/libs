@@ -1,87 +1,70 @@
-# Component Contract and Manifest Direction
+# Component Contract
 
-This document distinguishes the checked-in component contract export from the proposed manifest concept.
-
-## Status
-
-Draft.
-
-## Current export
+A definition-based Component or Page may export `contract` alongside its default implementation:
 
 ```js
 export const contract = {
-    description: "A sample component.",
-    properties: {
-        label: {
-            type: "string",
-            default: "",
-            attribute: true,
-            state: true
-        }
-    },
-    slots: {
-        "": {
-            description: "Default slot."
-        },
-        "header": {
-            description: "Content displayed in the component header."
-        }
+    description: "Provides a counter API.",
+    properties: { count: { type: "integer", default: 0, state: true } },
+    methods: { reset: { description: "Resets the count.", returns: { type: "void" } } },
+    events: { change: { detail: { count: { type: "integer", required: true } }, bubbles: true } },
+    slots: {},
+    examples: [{ name: "basic", template: "<example-counter></example-counter>" }]
+};
+export default {
+    meta: { renderEngine: "html", stateEngine: "proxy" },
+    template: "<span>Counter</span>",
+    controller({ state }) {
+        return { reset() { state.count = 0; } };
     }
 };
 ```
 
-Representative checked-in components such as `x-datafields` and `x-error` export this metadata as `contract`. Observed top-level fields are
-`description`, `events`, `properties`, `methods`, and `slots`.
-Observed property metadata includes `type`, `default`, `state`, `attribute`, `reflect`, `query`, `required`, `readonly`, `enum`, and `description`.
-Event metadata can include `description` and a typed `detail` shape.
+The contract schema validates metadata shape before the generated class is returned. The loader also validates the implementation schema and
+property/state consistency. Class default exports bypass definition processing and provide their own registration and API.
 
-`query` is shared contract metadata, but its runtime meaning is Page-specific: `query: true` allows the Page loader to initialize a state-backed
-property from the Page `src` query string. When it is combined with `reflect: true`, later state changes patch that Page's query representation.
-`reflect` applies to every external representation explicitly enabled by the property, so it does not imply `attribute` or `query`. The Component
-loader validates and ignores `query`; it does not read or rewrite URL query values.
+## Schema surface
 
-## Slots
+`component.contract.schema.json` accepts only these top-level fields; none is required:
 
-The optional `slots` section declares the slots that a Web Component exposes as part of its public composition API. Each key is a Web Component
-slot name. The empty string `""` represents the default unnamed slot; named keys, such as `"header"`, represent named Web Component slots.
+| Field | Shape and role |
+| --- | --- |
+| `description` | String for documentation. |
+| `properties` | Map of public property descriptions. Each entry requires `type`. |
+| `events` | Map of events with `description`, `detail`, `bubbles`, `composed`, and `cancelable`. |
+| `methods` | Map of methods with `description`, `parameters`, and `returns`. |
+| `slots` | Map of slot names with `description` and `required`; `""` is the default slot. |
+| `examples` | Array with required `name` and nonempty `template`, optional `description` and `state`. |
 
-Currently supported slot metadata is:
+Value types are `string`, `number`, `integer`, `boolean`, `object`, `array`, `function`, `any`, `date`, and `void`. These are small type labels,
+not nested structural types. Event `detail` maps field names to entries with required `type`, optional `description` and `required`.
+Method parameters require `name` and `type`, with optional `description`, `required`, and `default`. A `returns` entry requires `type` and may
+contain `description`. Example names start with a letter and then use letters, digits, `_`, or `-`.
 
-- `description`: Human-readable description of the slot.
-- `required`: Optional boolean indicating whether consumers are expected to provide content for the slot.
+## Property metadata and runtime behavior
 
-`slots` is contract and documentation metadata. It does not itself create or render `<slot>` elements; the component implementation remains
-responsible for defining the corresponding slots. The loader validates that every slot used by the template is declared in `contract.slots`.
-The reverse is not required: a declared slot may be absent from the current template.
+| Field | V0 behavior |
+| --- | --- |
+| `type` | Required type label; used for attribute/Page query conversion, without general assignment validation. |
+| `default` | Canonical public-property default. State-backed defaults enter the state skeleton. |
+| `state` | `true` connects a Component accessor to state and includes the property in Page state. |
+| `attribute` | Schema accepts boolean/nonempty string; Component observation uses only `true` and derives a kebab-case name. |
+| `reflect` | Components reflect to kebab-case attributes; Pages reflect query-enabled state properties to the Page query. |
+| `query` | Page-only input binding; requires `state: true` and string/number/integer/boolean type. |
+| `context` | Page-only initialization from creation context, applied after query initialization. |
+| `required`, `readonly`, `enum` | Descriptive metadata; no assignment, presence, or mutability enforcement. |
+| `description` | Documentation metadata. |
 
-Duplicate uses of one slot name are allowed because the contract describes the public slot interface, not individual template insertion points.
-An undeclared template slot causes component loading to fail before the component is registered. This validation belongs to the component
-contract/loader layer, not to the render engine.
+String attribute aliases are schema-supported but are not consumed by the Component loader. Component `reflect: true` emits an attribute even
+without `attribute: true`; that flag controls incoming observation. State-backed reflection requires an engine change notification.
+Pages do not install Component-style public property accessors or HTML attribute bindings. See [Properties](properties.md) and
+[Pages](../architecture/pages.md) for conversions and query/context behavior.
 
-## Runtime relationship
+Public methods require callable controller methods with the same names and cannot collide with framework/native members. Parameter and return
+metadata does not add runtime checking. Component proxies forward all arguments; the current Page command bridge forwards only its first parameter.
 
-The component loader reads `module.contract` and uses it to create the public property and method surface. It also validates template slot usage
-against `contract.slots` before registering the component. Its property defaults are canonical:
-state-backed public properties populate runtime state from `contract.properties[*].default`, while `definition.state` supplies private state. The
-default runtime definition separately provides fields including `meta`, `style`, `template`, `state`, and `controller`.
-The component-level `controller(...)` function returns named lifecycle, command, and event handlers such as `load`, `stateChange`, or `click`.
-The loader retains that controller privately and invokes each handler with the controller object as `this`. The generated Web Component is available
-through the injected `host` dependency. X Template handlers resolve against the controller, while methods declared by `contract.methods` are the
-only controller methods exposed as public Web Component proxies. Contract method metadata is never used as the executable implementation.
+Event metadata does not dispatch CustomEvents, validate payloads, or configure emitted flags. Slots are checked against `factory.slots`:
+`x` reports compiler-produced slot names, while `html` and `markdown` currently report none. Slot `required` does not enforce supplied content.
+Examples are documentation/tooling data.
 
-## Future manifest concept
-
-A manifest is an architectural direction for separating public metadata from runtime implementation details. It could describe what a consumer may
-set, observe, or call without exposing all internal state. `manifest` is not the current export name and has no finalized runtime contract.
-
-## TODO
-
-TODO: Decide whether and how the future manifest concept supersedes or wraps the current `contract` export, and define validation and registration
-semantics.
-
-## Related documentation
-
-- [Components](index.md)
-- [Properties](properties.md)
-- [Slots](slots.md)
-- [State](state.md)
+See [State](state.md), [Events](events.md), [Slots](slots.md), and [Services](../architecture/services.md) for the separate service contract.

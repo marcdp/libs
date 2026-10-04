@@ -34,8 +34,9 @@ This document is the **normative source of truth** for the XTemplate language. I
 particular compiler implementation. It also documents the current XShell virtual-DOM ABI where that information is necessary to implement a
 compatible compiler.
 
-The other documents in this section are explanatory or implementation-oriented guides derived from this specification. If they differ from this
-document, this document takes precedence. See [X Templates](index.md) for the documentation map.
+The other documents in this section are explanatory or implementation-oriented guides derived from this specification. For current V0 behavior,
+source/schema enforcement takes precedence over descriptive or normative claims;
+known runtime limitations below are not promises of unimplemented support. See [X Templates](index.md) for the documentation map.
 
 ---
 
@@ -50,9 +51,14 @@ src/DProjects.XShell/**
 In particular:
 
 ```text
-Resources/DProjects.XShell/modules/x/controllers/x-template.js
+Services/XTemplate/XTemplateCompiler.cs
+Services/XTemplate/XTemplateParser.cs
+Services/XTemplate/XTemplateJavaScriptCompiler.cs
+Services/XTemplate/XTemplateRenderer.cs
+Services/ModuleFileCompilerJs.cs
 Resources/DProjects.XShell/xshell/render-engines/x.js
-Resources/DProjects.XShell/modules/x/controllers/x-element.js
+Resources/DProjects.XShell/xshell/loaders/component-js.js
+Resources/DProjects.XShell/xshell/loaders/page-js.js
 Resources/DProjects.XShell/docs/extensions/x-templates/*
 Resources/DProjects.XShell/modules/x/components/*
 Resources/DProjects.XShell/modules/x/pages/*
@@ -137,11 +143,13 @@ Consequences include normal HTML parsing behavior:
 - HTML attribute names are effectively case-insensitive;
 - comments become comment nodes;
 - whitespace text nodes are preserved according to HTML parsing;
-- normal HTML content-model rules apply;
+- a compatible parser should preserve relevant HTML content-model behavior;
 - custom elements follow HTML parsing rules, not XML rules.
 
 Implementers should not parse XTL with an XML parser unless they deliberately reproduce HTML-fragment behavior. In XShell this parsing happens in the
-C# compiler. The browser `x` render engine never assigns raw XTemplate source to `template.innerHTML`.
+C# compiler. Its current fragment parser requires well-nested explicit closing tags (except void/self-closing elements), lowercases static
+element/attribute names, and rejects duplicates/malformed tags. It does not implement browser HTML tree-repair/content-model rules.
+The browser `x` engine never assigns raw XTemplate source to `template.innerHTML`.
 
 ### 5.1 Leading and trailing whitespace
 
@@ -169,20 +177,8 @@ Hello {{ state.name }}
 
 The expression between `{{` and `}}` is evaluated at render time and converted to text.
 
-Equivalent conceptual form:
-
-```html
-Hello <x:text>state.name</x:text>
-```
-
-The reference compiler currently implements interpolation by replacing:
-
-```text
-{{  →  <x:text>
-}}  →  </x:text>
-```
-
-before HTML parsing.
+The current C# fragment parser recognizes interpolation in text and builds interpolation nodes with parsed expressions.
+It does not globally rewrite braces into synthetic elements; `<x:text>` is not supported authoring syntax.
 
 ### 6.1 Interpolation is a text construct
 
@@ -1637,12 +1633,15 @@ Expected key mappings:
 | `left` | `ArrowLeft` |
 | `right` | `ArrowRight` |
 
+The current runtime applies mouse-button filters to key events too; ordinary `.left`/`.right` key bindings fail. See section 102.
+
 ### 25.5 Unknown modifiers
 
 The current runtime parses all dot-separated modifiers into an options object.
 
 Only modifiers with defined XTL semantics should be relied on.
 
+Native listener options `once`, `capture`, and `passive` are passed through. No `self`, `meta`, or `exact` filtering is implemented.
 An implementation MAY reject unknown modifiers.
 
 ---
@@ -1715,9 +1714,8 @@ placeholder when inactive. This keeps each position stable during reconciliation
 
 ### 29.1 Reference-compiler detail
 
-The current compiler stores condition state by template nesting depth.
-
-It does not robustly validate adjacency and can therefore associate a later `x-else` with the most recent `x-if` at the same level.
+The current compiler validates conditional-chain adjacency before code generation.
+Non-contiguous `x-elseif`/`x-else` and orphan branches fail compilation; nesting-depth code-generation bookkeeping does not bypass that check.
 
 This is an implementation shortcut and SHOULD NOT be treated as permission to write non-contiguous chains.
 
@@ -2249,7 +2247,7 @@ The reference compiler chooses the render-side property approximately as follows
 | `input` | `checkbox` | `checked` |
 | `input` | `radio` | `checked` |
 | `select` | normal | `value` |
-| `select` | `multiple` | current implementation attempts special handling |
+| `select` | `multiple` | unsupported; compiler rejects `x-model` |
 
 For server rendering, a normal single-selection `<select x-model="...">` evaluates the model expression using ordinary XTemplate expression
 semantics. Each descendant `<option>` is normalized so that only options whose effective value equals the model's scalar string have `selected`.
@@ -2268,11 +2266,8 @@ radio.checked = modelValue != null && scalar(modelValue) == scalar(resolvedRadio
 
 ### 44.2 Multiple-select ambiguity
 
-The current compilation path for `select[multiple]` references `event` while building a render-side property expression, which is not well-defined during ordinary render evaluation.
-
-This is not sufficiently reliable to establish normative language semantics.
-
-A compatible implementation should treat multi-select `x-model` as an area requiring explicit conformance decisions/tests rather than blindly copying the current generated expression.
+Both browser-target compilation and C# server rendering reject `x-model` on `select[multiple]`.
+No V0 multi-select representation is defined; legacy helper code is not evidence of supported compiled templates.
 
 ---
 
@@ -2326,7 +2321,7 @@ Example:
 
 The interpolation markers inside the literal content remain literal text/HTML rather than executing as XTL expressions.
 
-The current compiler restores synthetic `x:text` markers back into `{{` and `}}` when serializing the literal inner HTML.
+The current compiler preserves the raw child-source slice; it does not create or restore synthetic interpolation markers.
 
 An implementation SHOULD treat the entire x-pre raw subtree as opaque to XTL directives/interpolation.
 
@@ -2639,11 +2634,7 @@ A new compiler SHOULD use the following conceptual phases:
 10. Execute or emit the target artifact.
 ```
 
-A compiler does not need to literally create `<x:text>` nodes.
-
-That is a reference implementation technique.
-
-A better parser may tokenize interpolation directly as long as the resulting semantics are equivalent.
+The current C# compiler tokenizes interpolation structurally. Synthetic `<x:text>` nodes are not its representation or supported syntax.
 
 ---
 
@@ -2699,7 +2690,7 @@ OnceBlock
 PreBlock
 ```
 
-Normalizing structural directives into explicit AST blocks is preferable to reproducing source-order code-generation tricks from the current JavaScript compiler.
+Current C# compilation validates structural directives before emitting JavaScript; source attribute order does not determine structural nesting.
 
 ---
 
@@ -2719,7 +2710,7 @@ Recommended rules:
 - unknown `x-*` directives are errors;
 - unknown `x:*` pseudo-elements are errors.
 
-The current compiler often logs errors rather than throwing. A new compiler SHOULD produce proper diagnostics.
+The current compiler throws on invalid structural/directive input before returning an artifact; errors are not merely logged.
 
 ---
 
@@ -3364,6 +3355,7 @@ is recursively rendered.
 ```html
 <a
     class="menuitem"
+    x-for="item in state.items"
     x-class:selected="state.selectedId == item.id">
     {{ item.label }}
 </a>
@@ -3661,7 +3653,7 @@ loop-local assignable path
 change event invalidation
 ```
 
-Radio and multiple-select expectations should be decided explicitly rather than copied from known questionable reference code.
+Radio behavior follows section 44.1; multiple-select tests must expect rejection, not a generated model binding.
 
 ---
 
@@ -3696,39 +3688,30 @@ A clean new implementation should generally follow the normative semantics above
 
 ## 98. Global textual interpolation preprocessing
 
-The reference compiler performs a global string replacement of `{{` and `}}` before HTML parsing.
-
-This is simple but not a robust interpolation tokenizer.
-
-A new parser should recognize interpolation structurally while preserving equivalent normal-template behavior.
+This is historical behavior, resolved by the current C# parser's structural text/interpolation nodes.
+There is no global brace replacement in the V0 compilation path.
 
 ---
 
 ## 99. Conditional state indexed by nesting depth
 
-The current compiler uses a condition register keyed by nesting depth.
-
-This can make malformed non-contiguous `x-elseif` / `x-else` sequences behave as if associated with an earlier condition.
-
-A validator should reject such templates.
+Current code generation retains depth bookkeeping, but the preceding structural validator rejects malformed/non-contiguous chains.
+The historical association defect is not current supported behavior.
 
 ---
 
 ## 101. Multi-select `x-model`
 
-Current compile-time code for the render-side multi-select property references `event`, which is not naturally defined in render scope.
-
-The read/write representation is also inconsistent with ordinary arrays because `getInputValue` joins values with commas.
-
-This area requires a deliberate future contract.
-
-Server rendering currently rejects `select[multiple]` with `x-model`; this remains unresolved until that contract is defined.
+Current browser compilation and server rendering reject `select[multiple]` with `x-model`.
+The legacy input helper's comma-joined selected values do not establish a supported multi-select contract.
+This capability is outside V0.
 
 ---
 
 ## 102. Mouse event modifier expressions
 
-Earlier reference-runtime versions used precedence-sensitive mouse-button expressions. The runtime now compares `event.button` directly; this correction does not change XTL modifier syntax or semantics.
+Earlier reference-runtime versions used precedence-sensitive mouse-button expressions. The runtime now compares `event.button` directly.
+Those mouse checks also run for keyboard events, so `.left`/`.right` reject ordinary key events before the keyboard-key filter. This remains a defect.
 
 ---
 
@@ -3838,11 +3821,11 @@ Additionally:
 This specification intentionally does not define:
 
 - component module structure;
-- component contracts/manifests;
+- component contracts;
 - state-engine internals;
 - dependency injection;
 - service worker behavior;
-- module manifests;
+- module configuration and resource inventories;
 - resource packaging;
 - ZIP format;
 - routing;
@@ -3860,13 +3843,7 @@ Those systems may consume or produce XTL but are separate contracts.
 
 The current repository does not expose a formal XTL language-version field.
 
-Before introducing breaking changes, XShell should consider defining an explicit template-language version, for example:
-
-```text
-xtemplate: 1
-```
-
-or equivalent engine metadata.
+No `xtemplate` version key is accepted by the current Component implementation schema. Version negotiation is outside V0.
 
 This specification introduces the restricted expression language as a breaking change from the historical arbitrary-JavaScript implementation.
 Implementations that support historical templates SHOULD identify that compatibility mode separately; they MUST NOT describe it as conforming to the

@@ -6,6 +6,8 @@ keeps one live runtime instance per canonical module id. Navigation remains resp
 
 ## Configuration and ownership
 
+This composition fragment omits module metadata/defaults and other effective configuration sections:
+
 ```jsonc
 {
     "modules": {
@@ -19,6 +21,7 @@ keeps one live runtime instance per canonical module id. Navigation remains resp
     "xshell": {
         "areas": {
             "default": "customers",
+            "global": [],
             "definitions": {
                 "customers": { "prefix": "/customers", "label": "Customers", "modules": ["reports"] },
                 "inventory": { "prefix": "/inventory", "label": "Inventory", "modules": ["reports"] }
@@ -28,8 +31,9 @@ keeps one live runtime instance per canonical module id. Navigation remains resp
 }
 ```
 
-Each `xshell.areas.definitions.<id>` entry may set `prefix`, `label`, `icon`, `modules`, and `order`. The `modules` array sets participation
-and menu contribution order. A configured Area `home` is no longer used. Root ownership is an architectural convention: bootstrap can merge
+Each `xshell.areas.definitions.<id>` entry may set `prefix`, `label`, `icon`, `modules`, `order`, and descriptive `description`. The `modules` array
+sets participation
+and menu contribution order. The effective schema rejects a configured Area `home`; runtime derives it from menus. Root ownership is an architectural convention: bootstrap can merge
 `xshell` fragments from imported configurations. Arrays, including `area.modules`, concatenate during that merge.
 
 Areas are presented with the configured default first, then by `order`, then `label`. An unknown configured default or duplicate normalized
@@ -69,8 +73,11 @@ sections become that item's children.
 Bootstrap first maps module-relative menu hrefs into `/_assets/<module-id>/...`. Areas then applies the Area prefix to both local `path` and local
 `href`, leaving external scheme URLs unchanged. For example, `/components` and `/_assets/x-demo/pages/01-components/index.js` become
 `/main/components` and `/main/_assets/x-demo/pages/01-components/index.js` in the `main` Area. The Area home is `path || href` of the first
-`navigation` item marked `"default": true` in depth-first traversal. Children are searched. If none is marked, `home` is null. On a fresh load at
-the selected mode's empty/root URL, Navigation requires the default Area to have a home.
+`navigation` default item in depth-first traversal. If that result has no target, it falls back to the first depth-first item with `path || href`,
+testing each item before its children. Despite the helper's "visible" name, no visibility flag is tested. `home` is null only when neither search
+returns a target. A targetless default ends that search at its current sibling level; fallback still runs.
+Home is computed during `Areas.init()` and is not recomputed by later children refreshes.
+On a fresh load at the selected mode's empty/root URL, Navigation requires the default Area to have a home.
 
 `xshell.areas.getMenu("navigation")` selects the current Area; `getMenu("navigation", "inventory")` selects one explicitly.
 `resolveHref(href, areaId = null)` searches all effective menus recursively in only the selected Area when `areaId` is supplied. Without an explicit
@@ -122,3 +129,11 @@ though Area composition belongs to the root application. Dynamic `childrenSource
 
 See [Navigation](../architecture/navigation.md), [Configuration](../architecture/configuration.md),
 [Module Specification](../specifications/module.md), and [ADR-0005](../adr/0005-area-menu-composition.md).
+
+## Global menus
+
+`xshell.areas.global` is the required array of menu names to compose globally from configured modules.
+Current global composition expects array contributions; registered string sources are handled by Area composition, not this global path.
+Global items do not receive an Area prefix.
+
+See [Bus](bus.md) for source refresh events.

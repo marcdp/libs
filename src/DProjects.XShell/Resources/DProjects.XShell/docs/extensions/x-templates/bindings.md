@@ -14,8 +14,8 @@ Use `x-attr:*` to bind DOM attributes. Attributes are serialized values suitable
 ```
 
 `x-attr` accepts an attribute object when several attributes are derived together. Its object member names must be strings; dictionary-backed values
-must use string keys and non-string keys are not converted with `key.ToString()`. `:name` and `:` are supported shorthand forms, but the long
-forms are preferred in canonical templates.
+must use string keys and non-string keys are not converted with `key.ToString()`. The shorthand forms `:name` and `:` are not supported; use the long
+forms.
 
 For the browser XTemplate target, the name `style` is reserved and is invalid in named, dynamic-name, and object-spread `x-attr` bindings. The C#
 server HTML renderer rejects style attributes by default and may serialize them only when `XTemplateRendererOptions.AllowStyleAttributes` is enabled.
@@ -40,7 +40,7 @@ Use the whole-object form when several properties are derived together:
 
 The expression must evaluate to an object; each enumerable string-keyed member is expanded into the property map. Values remain values, including
 objects and arrays. In short: `x-attr="..."` expands attributes, while `x-prop="..."` expands properties. `x-prop:[nameExpression]` binds one
-dynamically named property, and `.name` is the supported shorthand for `x-prop:name`.
+dynamically named property, and the `.name` shorthand is not supported.
 
 ## Literal styles
 
@@ -103,15 +103,16 @@ when the option is enabled. A valid object containing only null members does not
 <a x-on:click.prevent="open">Open</a>
 ```
 
-Common modifiers include `.stop`, `.prevent`, keyboard filters such as `.enter` and `.escape`, and mouse or modifier-key filters. `@event` is the
-supported shorthand. Use the specification for the complete modifier contract.
+Common modifiers include `.stop`, `.prevent`, keyboard filters such as `.enter` and `.escape`, and mouse or modifier-key filters. `@event` is not
+supported.
+See [Component Events](../../components/events.md) for the exact runtime set and keyboard left/right limitation.
 
 ## Classes
 
 `x-class:name` conditionally adds a CSS class while retaining authored static classes.
 
 ```html
-<li class="menuitem" x-class:selected="item.id == state.selectedId"></li>
+<li class="menuitem" x-for="item in state.items" x-class:selected="item.id == state.selectedId"></li>
 ```
 
 ## Visibility

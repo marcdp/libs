@@ -40,7 +40,7 @@ immutable target already exists, it is reused.
 The command rejects an output directory that equals or is inside the source directory. Temporary staging is always cleaned after success or failure,
 and resource compilation failures are not swallowed.
 
-## Module file manifest
+## Module file inventory
 
 `FilesIndexer` records every final package file except `module.files.json` itself. Both normal modules and XShell use this one inventory filename.
 Each entry contains:
@@ -54,10 +54,10 @@ Each entry contains:
 ```
 
 `path` is relative to the package root, uses forward slashes, and carries a leading `/`. `size` is the file byte length. `hash` is the lowercase
-SHA-256 digest of the file bytes. Entries are sorted deterministically by path using ordinal comparison. Because the manifest is generated after
+SHA-256 digest of the file bytes. Entries are sorted deterministically by path using ordinal comparison. Because the inventory is generated after
 compilation, an HTML SFC contributes its generated `.js` path and not its authored `.html` path.
 
-The manifest is a generated physical package inventory rather than authored semantic configuration. After Service Worker initialization, bootstrap
+The inventory is a generated physical package inventory rather than authored semantic configuration. After Service Worker initialization, bootstrap
 loads it through the virtual resource namespace and converts its package-relative paths into effective-config paths. For example,
 `/components/x-button.js` in module `x` becomes `/_assets/x/components/x-button.js`; `/xshell.js` becomes `/_assets/xshell/xshell.js`. The Service
 Worker virtualizes delivery but does not discover or interpret inventories.
@@ -65,16 +65,17 @@ Worker virtualizes delivery but does not discover or interpret inventories.
 ## Development resources
 
 `ResourcesMiddleware` uses the same `ModuleFileCompiler` on demand in development, including HTML-to-JavaScript resolution and conflict detection.
-It also generates `module.files.json` on demand for normal module and XShell directories and adds no-cache headers to development resources. A
-debugger attached to the ASP.NET host forces this development behavior even when the configured ASP.NET environment is not Development.
+It also generates `module.files.json` on demand and adds no-cache headers when ASP.NET is Development. Debugger presence does not enable it.
+Development inventories enumerate physical sources, so HTML SFC entries retain authored `.html` paths rather than packed `.js` paths.
+Server descriptor parsing accepts trailing commas, but browser bootstrap does not; copied runtime descriptors must remain browser-parseable.
 
 Packaging does not provide ZIP-backed browser loading. Current Service Worker mapping and fetch behavior supports expanded directories only.
 
-## Future work
+## Outside V0
 
-TODO: Add automatic publish-time packing only if explicit MSBuild/publish targets are implemented. The current project merely copies `Resources/**`
-to the output directory and has no automatic `dotnet publish` packaging integration.
-
-TODO: Add ZIP-backed Service Worker resource loading before documenting packaged ZIPs as a directly consumable runtime asset source.
+The project copies `Resources/**` to output without automatic MSBuild/publish-time packing.
+ZIPs are distribution artifacts; extract them before using an expanded-directory worker mapping. Runtime ZIP loading is not implemented.
 
 See [Modules](modules.md), [Service Worker](service-worker.md), and [Configuration](configuration.md).
+
+See [Hosting](hosting.md) for the development environment and resource middleware.

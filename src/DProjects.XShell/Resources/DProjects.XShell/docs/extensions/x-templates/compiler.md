@@ -61,9 +61,9 @@ general loader can load them before rendering.
 These are template dependencies: resources discovered from XTemplate structure and carried in `templateRenderer.dependencies`. They are distinct from
 definition dependencies, which are explicitly declared on the Component or Page definition and exposed to its controller.
 
-## Ahead-of-time compilation direction
+## Ahead-of-time compilation
 
-The development/build server can compile XTemplate before browser execution:
+The development resource middleware and pack command compile XTemplate before browser execution:
 
 ```text
 development/build server
@@ -83,8 +83,8 @@ and optional `style` properties into that definition, and continues through the 
 module script. An explicitly authored module script must still contain a default-exported object literal; an empty or otherwise invalid script is a
 compilation error.
 
-This direction removes the need for runtime template compilation and improves Content Security Policy compatibility. `new Function(...)` is a
-historical/current mechanism of the browser-side compiler, not an XTemplate language feature or a requirement of precompiled templates.
+Current ahead-of-time compilation removes browser template compilation and supports strict CSP. The historical browser compiler's
+`new Function(...)` mechanism is absent from the V0 execution path.
 
 The conforming path parses every expression on the server and emits JavaScript only from the validated XTemplate expression AST. Generated renderers
 call the private `utils.expr` semantic helpers for member access, arithmetic, truthiness, transformation, and collection handling. The browser does not

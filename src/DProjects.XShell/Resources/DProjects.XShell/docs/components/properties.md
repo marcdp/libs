@@ -2,10 +2,6 @@
 
 This document establishes properties as the public programmatic API of an XShell component.
 
-## Status
-
-Draft.
-
 ## Conceptual contract
 
 Properties are values that component consumers may read or write. They are distinct from internal state, even when a component explicitly
@@ -16,17 +12,27 @@ default through `definition.state`.
 
 ## Attributes
 
-Contract metadata can expose a property through `attribute`, while `reflect` controls whether changes are propagated back to explicitly enabled
-external representations such as attributes and, for Pages, query parameters. Runtime state definitions separately use `attr` to observe an
-HTML attribute; that mechanism is distinct from the contract-level `reflect` flag.
+Component observation requires literal `attribute: true`. Names are converted from camelCase to kebab-case.
+Although the schema also accepts string aliases, the loader ignores them.
 
-Contract property metadata includes `type`, `default`, `state`, `attribute`, `reflect`, `query`, `required`, `readonly`, `enum`, and
+Attribute conversion handles strings directly, numbers with `Number`, booleans as presence except values `"false"`/`"0"`,
+and object/array text with `JSON.parse` (falling back to raw text on failure). Integer/date/function/any labels have no special conversion.
+These conversions do not enforce all contract types on programmatic assignment.
+
+Empty-object state entries also enable prefixed attribute maps: for example `settings-color="red"` fills `state.settings.color`.
+For public entries this needs `state: true`, `attribute: true`, and an empty-object default.
+Private empty-object state gets this behavior without descriptor flags. Present map attribute values are strings; removal writes null.
+
+Contract property metadata includes `type`, `default`, `state`, `attribute`, `reflect`, `query`, `context`, `required`, `readonly`, `enum`, and
 `description` where applicable. The shared contract schema validates the metadata shape; Page-specific rules for `query` are enforced by the Page
 loader.
 
-`reflect: true` applies to every external representation explicitly enabled on the property. Therefore `attribute: true` plus `reflect: true`
-reflects state changes to the HTML attribute, while `query: true` plus `reflect: true` reflects a Page property's state to that Page's query. `reflect`
-does not imply either `attribute` or `query`.
+For Components, `reflect: true` writes the derived kebab-case attribute even when incoming observation was not enabled.
+False/null/undefined remove it, true writes an empty attribute, and other values use `setAttribute` coercion, not JSON serialization.
+State-backed reflection needs engine notifications; non-state-backed Component setters reflect directly.
+For Pages, reflection requires `query: true` as well. No HTML property/attribute bindings are installed on the generated Page class.
+
+`required`, `readonly`, and `enum` are metadata, not runtime value/presence/mutability checks.
 
 ## Property-to-state synchronization
 
@@ -38,7 +44,8 @@ equal to the contract default, including nested arrays and plain objects. The lo
 from `contract.properties[*].default`; it ignores the duplicate definition value after validation. A property without `state: true` must not appear
 in `definition.state`.
 
-The runtime loader creates public accessors from the contract. State-backed properties use the corresponding runtime state entry; other public
+The Component loader creates public accessors from the contract; the Page loader does not create those accessors. State-backed properties use the
+corresponding runtime state entry; other public
 properties retain their contract default independently of internal state.
 
 ## Query-string initialization

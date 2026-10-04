@@ -1,16 +1,16 @@
 # Resolvers
 
-A Resolver maps a logical resource such as `icon:x-bell` to a concrete URL and loader metadata. The Loader then obtains the resource. They are
+A Resolver maps a logical resource such as `icon:x-file` to a concrete URL and loader metadata. The Loader then obtains the resource. They are
 separate responsibilities.
 
-The intended nested rule shape is:
+A custom rule may use this nested shape:
 
 ```jsonc
 {
     "xshell": {
         "resolver": {
             "icon": {
-                "x-{name}": { "url": "/_assets/x/icons/{name}.svg", "loader": "icon-svg" }
+                "x-{name}": { "url": "/_assets/x/icons/x-{name}.svg", "loader": "icon-svg" }
             }
         }
     }
@@ -38,3 +38,7 @@ reference and maps it to its URL and loader metadata. The Loader then obtains th
 and Loader infrastructure; it is not a separate resolver rule set or dependency-injection system.
 
 See [Configuration](configuration.md) and [Loaders](loaders.md).
+
+Bootstrap also generates exact `contract:<id>` rules from module inventory entries under `/contracts/`.
+These use `object-json` and preserve module ownership metadata; see [Services](services.md).
+Resolver generation happens after inventory loading, before effective schema validation.

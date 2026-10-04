@@ -78,8 +78,7 @@ errors. Whole-object values always have an empty priority, so runtime `!importan
 through CSSOM, while server
 serialization follows `XTemplateRendererOptions.AllowStyleAttributes`. Dynamic-name `x-style:[...]` remains unsupported.
 
-The supported shorthand forms are `:name` for `x-attr:name`, `:` for `x-attr`, `.name` for `x-prop:name`, and `@event` for `x-on:event`.
-Canonical documentation and new templates should prefer the long `x-*` forms.
+Shorthand `:name`, `:`, `.name`, and `@event` bindings are unsupported. Use the explicit `x-*` forms.
 
 ## Events, classes, and visibility
 

@@ -4,7 +4,7 @@ This record describes the architectural role of a stable URL namespace for asset
 
 ## Status
 
-Draft; the concept and current prefix are implemented, but the namespace is not yet documented as a permanent public contract.
+Implemented; the checked-in namespace is a compatibility boundary.
 
 ## Context
 
@@ -14,15 +14,18 @@ Framework and module resources can originate from different directories or URLs.
 
 The namespace is controlled by `xshell.assetsPrefix`. The checked-in XShell configuration uses `_assets`, producing application-relative prefixes such as `/_assets/xshell` and `/_assets/<module>`. Bootstrap sends corresponding source-to-destination rules to the service worker.
 
-The suggested name `/_cdn` is not used by the inspected configuration and should not replace `_assets` without a separate compatibility decision.
+The `/_assets` prefix must remain stable unless a separate compatibility decision changes it.
 
 ## Consequences
 
-The prefix affects resolver definitions, import maps, module paths, service-worker scope behavior, and bookmarked or cached resource URLs. Renaming it may be breaking.
+The prefix affects resolver definitions, module paths, service-worker scope behavior, and bookmarked or cached resource URLs. Renaming it may be
+breaking.
 
-## TODO
+## Implementation boundaries
 
-TODO: Define prefix validation, collision handling, deployment beneath non-root base paths, cache-version behavior, and compatibility guarantees.
+App base paths and generated worker mappings are implemented. Bootstrap does not create an import map.
+Prefix validation/collision policy and resource cache versioning are not established V0 guarantees.
+The worker serves expanded directories; immutable ZIP packaging does not provide runtime ZIP loading.
 
 ## Related documentation
 

@@ -33,3 +33,10 @@ exposure of internal state.
 - [Properties](../components/properties.md)
 - [State](../components/state.md)
 - [Component Contract](../components/manifest.md)
+
+## V0 enforcement limits
+
+Component accessors and Page state/query binding use these defaults. Pages do not install Component-style public-property accessors.
+Only top-level assignments are reactive in `proxy`; `plain` has no notifications and `none` returns null.
+Required/readonly/enum remain descriptive. Component reflection writes attributes independently of incoming attribute observation.
+See [Component Contract](../components/manifest.md) for schema-supported aliases and current loader limits.

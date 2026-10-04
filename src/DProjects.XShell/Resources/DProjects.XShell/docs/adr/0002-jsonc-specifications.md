@@ -2,7 +2,8 @@
 
 ## Status
 
-Accepted for JSONC authoring, nested composition, and effective-configuration schema validation; runtime contract dispatch remains incomplete.
+Accepted for JSONC authoring, nested composition, and effective-configuration schema validation; module action/intent metadata does not implement
+dispatch.
 
 ## Context
 
@@ -23,11 +24,12 @@ boundary. Deeply freeze it before handing it to XShell. No browser-native schema
 ## Consequences and current status
 
 Bootstrap parses JSONC, validates local and referenced module identities, deduplicates referenced definitions by URL, rejects conflicting identities
-and cycles, and merges nested data in deterministic dependency-first order with the root last. Bootstrap deeply freezes the merged configuration
-before XShell receives it, but performs no JSON Schema validation. The X module
-controller validates during `start()` and throws on errors, without an environment gate. The canonical schema is
+and cycles, and merges nested data in deterministic dependency-first order with the root last. After worker mapping, inventory loading, and resolver
+generation, bootstrap awaits XShell's effective schema validation, deeply freezes the object, and calls init. Init validates again before runtime
+services are constructed. The X module controller is empty; validation is not environment-gated. The canonical schema is
 `xshell/schemas/config.schema.json`; it requires module defaults for definition-based Page and Component engines and defines XShell UI defaults
 for layouts, lazy/error components, and standard dialog pages, plus `contract.events`/`actions`/`intents`. Its `$id` still uses the stale
-`https://xshell.dev/schemes/config.scheme.json` identifier. The server default points to the checked-in `modules/test/module.jsonc` root module.
+`https://xshell.dev/schemes/config.scheme.json` identifier. The server default points to `modules/x-demo/module.jsonc`. Browser JSONC supports
+comments but not trailing commas.
 
 See [Configuration](../architecture/configuration.md) and [Specifications](../specifications/).

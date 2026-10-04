@@ -1,24 +1,14 @@
 # Subsystems
 
-This section introduces core XShell runtime capabilities without attempting to document every class or internal API.
+Implemented V0 runtime capabilities:
 
-## Status
+- [Areas](areas.md) — Module menus, routes, and navigation homes.
+- [Bus](bus.md) — Asynchronous application messages.
+- [Dialogs](dialogs.md) — Helpers and results from dialog Pages.
+- [i18n](i18n.md) — Language configuration, translations, and date/time formatting.
+- [Temp](temp.md) — Upload/download identifiers and server cleanup.
 
-Draft.
+[Authentication](authentication.md) and [Identity](identity.md) cover inactive configuration surface outside V0.
+XShell does not log in or register auth/identity services during startup.
 
-## Documents
-
-- [Authentication](authentication.md) — Current authentication-subsystem status and future work.
-- [Areas](areas.md) — Navigation contexts, effective menus, and homes composed from module contributions.
-- [Identity](identity.md) — Current identity-subsystem status and future work.
-- [Internationalization](i18n.md) — Language metadata, localized text selection, and date/time formatting.
-- [Temporary Files](temp.md) — Browser uploads, temporary resource URLs, and the boundary with application persistence.
-
-## Scope
-
-These pages describe the current architectural roles. Security guarantees, provider protocols, persistence, and complete configuration schemas remain out of scope until verified.
-
-## Related documentation
-
-- [XShell documentation](../)
-- [Application Specification](../specifications/application.md)
+See [Services](../architecture/services.md) for runtime registrations and configured service contracts.

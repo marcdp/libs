@@ -15,7 +15,9 @@ The root application owns `xshell.areas.default` and `xshell.areas.definitions.<
 participating canonical module ids. A module owns reusable contributions to arbitrary named menu slots under
 `modules.<module-id>.menus.<menu-name>`. A menu item may have an optional friendly `path` and a canonical XShell navigation target `href`. Areas
 assembles effective menus for each Area in the listed module order and applies the Area prefix to both local values. The first navigation item
-marked `default: true` in depth-first traversal determines its home through `path || href`. A module may participate in multiple Areas while
+marked `default: true` in depth-first traversal supplies the initial home candidate through `path || href`.
+If that search returns no target, the first depth-first target is used; no visibility flag is checked. Home is computed at initialization. A module
+may participate in multiple Areas while
 retaining one runtime module instance. An Area prefix denotes navigation context; `/_assets/<module-id>/...` denotes the resource namespace.
 
 Root ownership is a composition convention rather than an enforced fragment boundary: the configuration merger accepts `xshell` settings from

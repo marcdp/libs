@@ -1,33 +1,40 @@
 # Component Events
 
-This document introduces events emitted by core XShell components.
+Components emit standard DOM CustomEvents. `contract.events` describes public events and payloads but does not emit them or validate detail.
+Flags such as `bubbles`, `composed`, and `cancelable` must be set by the implementation:
 
-## Status
+```js
+controller({ host }) {
+    return {
+        changed(value) {
+            host.dispatchEvent(new CustomEvent("change", {
+                detail: { value }, bubbles: true, composed: true
+            }));
+        }
+    };
+}
+```
 
-Draft.
-
-## Public events
-
-Current component contract metadata can list named events, descriptions, and an optional typed `detail` shape. Components emit standard
-`CustomEvent` instances directly.
-
-For example, `x-datafields` declares `move`, `edit`, and `remove`; its implementation dispatches those events and includes a `direction` detail for
-`move`.
+DOM events propagate according to those flags. [Bus events](../subsystems/bus.md) are asynchronous application messages delivered to listeners.
+Component/module event declarations do not automatically dispatch either kind.
 
 ## Optional X Templates integration
 
-The optional X Templates extension recognizes `x-on:<event>` and the `@<event>` shorthand. Its compiled handler forwards the controller method name
-and browser event to the component runtime's internal controller dispatcher. The matching controller method executes with the controller as
-`this`; it is not looked up through a public Web Component method. Components do not depend on that extension to emit or handle standard DOM
-events.
+`x-on:<event>` forwards a command name and browser event to a private controller handler.
+`x-on:click.prevent="save"` invokes `save(event)`; declaring it in `contract.methods` is unnecessary.
+The `@event` shorthand is not supported.
 
-## Modifiers
+The current renderer recognizes:
 
-Runtime event attachment parses dot-separated modifier names. TODO: Verify and test the complete supported modifier set before documenting it as a
-stable language contract.
+- `stop`, `prevent` for propagation/default handling after dispatch;
+- `left`, `middle`, `right` for mouse buttons;
+- `alt`, `shift`, `ctrl` for modifier-key requirements;
+- `escape`, `enter`, `tab`, `backspace`, `delete`, `space`, `up`, `down`, `left`, `right` for keyboard filtering;
+- native listener options `once`, `capture`, `passive`, passed through the listener options object.
 
-## Related documentation
+Unknown flags have no defined X Template behavior. There are no `self`, `meta`, or `exact` filters.
+Current mouse filtering also applies to keyboard events: `.left`/`.right` fail for ordinary key events because `event.button` is absent.
+`.up`/`.down` have no such conflict. `passive.prevent` cannot override browser passive-listener rules.
 
-- [Components](index.md)
-- [X Template Bindings](../extensions/x-templates/bindings.md)
-- [Component Contract](manifest.md)
+See [X Template Bindings](../extensions/x-templates/bindings.md) and the
+[modifier specification](../extensions/x-templates/specification.md#25-event-modifiers) for syntax and dispatch details.

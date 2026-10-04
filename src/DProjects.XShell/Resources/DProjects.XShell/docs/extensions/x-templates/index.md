@@ -7,7 +7,7 @@ XShell Components, but are not part of the core component model.
 
 [XTemplate Language Specification](specification.md) is the normative source of truth for XTemplate syntax and semantics. The other documents in
 this section are explanatory, tutorial-oriented, or implementation-oriented guides derived from that specification. If another document differs
-from the specification, the specification takes precedence.
+from the specification, use the specification for language semantics and the implementation guide for actual V0 support and limitations.
 
 ## Documents
 

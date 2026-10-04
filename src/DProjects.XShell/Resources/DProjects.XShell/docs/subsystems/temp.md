@@ -1,119 +1,62 @@
 # Temporary Files
 
-`TempMiddleware` and the `xshell.temp` service provide a small transport bridge between browser file selection and application APIs. They create a
-temporary resource; they do not know about application entities or permanent storage.
+The `temp` service uploads files to ASP.NET Temp middleware and returns logical temporary identifiers.
 
-## Status
+## Browser API
 
-Implemented transport behavior. Temporary-file cleanup and application persistence are outside the current middleware contract.
+```js
+const results = await temp.upload(file, progress => {
+    console.log(progress.loaded, progress.total, progress.percent);
+});
+const resource = results[0];
+if (!resource.startsWith("error: ")) {
+    const downloadUrl = temp.getAbsoluteUrl(resource);
+}
+```
 
-## Flow
+`upload(files, onProgress)` accepts a File or an iterable file collection such as an array/FileList. It always resolves to an array in input order,
+including single
+uploads. Each file uses its own XMLHttpRequest POST with a FormData field `file`; requests run concurrently through `Promise.all`.
+Success entries contain unchanged response text. Each rejected upload becomes `"error: " + message` rather than rejecting the whole batch.
+
+Progress receives `{ loaded, total, percent }` only for length-computable events. It has no file identity and reports each concurrent request
+independently. There is no cancellation argument.
+
+`getAbsoluteUrl(resource)` replaces leading `temp:/` with `xshell.temp.url`, preserving path/query. It performs string conversion rather than
+validation or Resolver/Loader processing; call it only on a successful identifier. The host supplies this URL from `TempUrl`.
+
+## HTTP contract
+
+POST is accepted only at the configured prefix, with form content and exactly one file. No particular field name is required by the server.
+Success creates a GUID directory and returns **201**, `text/plain`, without a JSON wrapper or Location header:
 
 ```text
-browser File
-    -> xshell.temp.upload(...)
-    -> POST <configured temp URL>
-    -> TempMiddleware
-    -> server-local temporary file
-    -> <configured temp URL>/<guid>/<filename>
-    -> GET or application JSON reference
-    -> application layer decides final persistence
+temp:/<guid-N>/<escaped-file-name>?size=<bytes>&type=<extension-mime-type>&hash=<lowercase-sha256>&expiration=<unix-seconds>
 ```
 
-The returned temp URL is a normal browser resource reference. For example, an application can later send it in its own request:
+`size` is stored length, `type` is inferred from the filename extension, `hash` covers stored bytes, and `expiration` is a UTC Unix timestamp.
 
-```js
-const uploaded = await xshell.temp.upload(file);
+GET uses `TempUrl/<guid>/<escaped-file-name>`; metadata query parameters are not checked.
+The middleware validates the GUID, normalizes filenames to their basename, rejects empty/`.`/`..` names, and checks containment inside the root.
+It streams the stored file with content length and extension-based content type, falling back to `application/octet-stream`.
 
-await fetch("/api/documents", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-        name: "Document",
-        attachment: uploaded.url
-    })
-});
-```
+Non-form uploads return **415**; invalid file count/name returns **400**; invalid/missing GET paths/files return **404**.
+Unsupported methods, including HEAD/DELETE, and POST to child paths return **405**. There is no delete API.
 
-`/api/documents` is application-specific. The application layer validates the request, recognizes a temporary resource if appropriate, and may
-copy, move, or otherwise promote it to permanent storage before persisting a final reference. `TempMiddleware` does not implement a generic
-promotion API and has no knowledge of documents, customers, invoices, avatars, database entities, or final storage locations.
+## Storage and expiration
 
-## Browser service
+| Host setting | Default |
+| --- | --- |
+| `TempPath` | System temporary directory / `DProjects.XShell` / `temp` |
+| `TempUrl` | `/temp` |
+| `TempExpirationTime` | One hour |
 
-XShell creates the service as `xshell.temp` and also registers it as the `temp` runtime service. It uses native `File`, `FormData`, and `fetch`;
-there is no client-side upload framework.
+The storage root is created on middleware construction. Cleanup first runs after five minutes and then every five minutes.
+It deletes GUID directories whose creation time plus retention has passed; errors are swallowed.
+Expiration is eventual cleanup, not a hard GET deadline: GET does not check expiration. Response expiration and directory creation-based
+cleanup timestamps can differ slightly.
 
-The host supplies `Configuration.TempUrl` through bootstrap and the effective XShell configuration as `xshell.temp.url`. `xshell.temp` reads that
-configured URL for uploads. The `/temp` URLs in the examples below are illustrative; the actual temp URL is configurable.
+The middleware provides no authentication, ownership authorization, scanning, or application-specific quotas.
+ASP.NET limits and access policy belong to the surrounding host pipeline. MIME and hash metadata are not content trust checks.
 
-```js
-const result = await xshell.temp.upload(file);
-console.log(result.url);
-```
-
-`upload()` accepts either one `File` or an iterable of `File` objects, such as an array or `FileList`. A single `File` returns one upload result;
-an iterable returns an array of results. Iterable uploads occur sequentially, with one POST for each file.
-
-```js
-const results = await xshell.temp.upload(files);
-
-for (const result of results) {
-    console.log(result.url);
-}
-```
-
-For each request, the service appends the file to `FormData` with the field name `file`, posts it to the configured temp URL, throws an `Error` for a
-non-successful HTTP response, and returns the parsed JSON response. Supplying neither a `File` nor an iterable causes JavaScript iteration to fail;
-supplying a non-`File` item throws `TypeError` before it is sent.
-
-## Host middleware
-
-`Extensions.UseXShell()` registers `TempMiddleware` with `Configuration.TempPath` and `Configuration.TempUrl`. `TempMiddleware` is registered on
-the same configured request path that is exposed to `xshell.temp` as `xshell.temp.url`. The middleware constructor receives these as distinct values:
-
-- **Physical path** is the server-local directory where temporary files are stored.
-- **Request path** is the public URL prefix, normalized to begin with one slash and not allowed to be the root path.
-
-For example, a physical path such as `C:\app\data\temp` can hold `C:\app\data\temp\c0013353b5254a60a964487c9ee775dc\hello.txt`, while its
-public temp URL is `/temp/c0013353b5254a60a964487c9ee775dc/hello.txt`. The physical path is not exposed in the URL.
-
-### Upload
-
-`POST /temp` accepts a form-content request containing exactly one uploaded file; the server does not require a particular form field name. It
-normalizes the supplied filename to its last path segment, creates a server-generated 32-character GUID in `N` format, and stores the file below
-that GUID directory.
-
-On success, the response is `201 Created`, includes a `Location` header with the temp URL, and contains:
-
-```json
-{
-    "url": "/temp/<guid>/<filename>"
-}
-```
-
-The filename is URL-escaped in this response. A request without form content returns `415 Unsupported Media Type`; a request with any number of
-files other than one, or an empty, `.` or `..` filename after normalization, returns `400 Bad Request`.
-
-### Download
-
-`GET /temp/<guid>/<filename>` reads the temporary file directly from its configured physical directory. The URL must contain exactly a GUID and a
-filename segment; invalid paths, invalid filenames, traversal attempts, and missing files return `404 Not Found`. The middleware detects content
-type from the filename extension and falls back to `application/octet-stream` when it has no mapping.
-
-This is temporary upload/download transport, not a general-purpose file server. Methods other than `POST /temp` and `GET` under the configured
-request path return `405 Method Not Allowed`. The middleware does not implement DELETE.
-
-## Limits and boundaries
-
-The current middleware creates its base directory when constructed. It has no built-in ownership checks, upload tokens, antivirus scanning,
-MIME validation, file-size limit, expiration, or garbage collection. Authentication and authorization are not implemented by this middleware;
-any access controls must be supplied by the surrounding ASP.NET Core pipeline.
-
-Temporary cleanup is therefore pending or owned by hosting/application infrastructure. Applications must not assume a temporary file persists for
-a particular lifetime.
-
-## Related documentation
-
-- [Subsystems](index.md)
-- [Configuration](../architecture/configuration.md)
+See [Hosting](../architecture/hosting.md) and [Components](../components/index.md).

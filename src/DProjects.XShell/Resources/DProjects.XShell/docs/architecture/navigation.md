@@ -153,7 +153,8 @@ The nested names match `xshell.jsonc`; its checked-in default is currently `path
 `config.xshell.navigation.mode` and `hashPrefix`.
 
 On a fresh load at the mode's empty/root URL, Navigation uses the default Area's `home`, derived from the first depth-first navigation item marked
-`default: true`. Startup fails clearly if that home is absent. With an existing URL, Navigation restores the encoded page stack. When the root page
+`default: true`, with a fallback to the first depth-first item having `path || href`. No visibility flag is tested.
+Startup fails clearly if that home is absent. With an existing URL, Navigation restores the encoded page stack. When the root page
 finishes loading, it emits `xshell:navigation:end`; Areas resolves the current Area from the longest matching prefix. `x-page` selects its
 breadcrumb Area from the URL itself so lookup does not depend on the later navigation-end event.
 
@@ -186,13 +187,21 @@ Pages opened as dialogs or embeds are outside the browser navigation stack; thei
 URL. Contract-property reflection is decided by `page-js`: only `query: true` plus `reflect: true` participates, and query values use the property's
 declared scalar contract type.
 
-TODO: The `x-page` `replace` and `navigate` event handlers in `Navigation._stackToDom()` remain debugger-marked and manipulate hash state directly.
-Normal Navigation API and browser-history paths work, but those legacy event paths still need mode-neutral completion.
+The legacy `x-page` `replace`/`navigate` listener code is commented out, so it is not an active navigation API.
+Use Navigation methods and browser-history paths.
 
 ## Intents
 
-A public navigation intent identifies a capability, for example `customer.detail` with `customerId`. The owning module maps it to a private
-page/route. Other modules should request the intent through XShell rather than depend on a menu item or raw page URL. Intent registration and dispatch
-are not yet implemented; current navigation accepts page `href` values.
+Module `contract.intents` is descriptive configuration. Navigation has no intent registry or dispatch API in V0; use supported Page hrefs/routes.
 
 See [Pages](pages.md) and [ADR-0003](../adr/0003-navigation.md).
+
+See [Hosting](hosting.md) for path fallback, [Dialogs](../subsystems/dialogs.md) for helper Pages, and [Bus](../subsystems/bus.md) for notifications.
+
+## Opening modes
+
+`navigate` supports `top` (replace the logical root), `stack` (append), `dialog` (separate dialog Page), and `embed` (named outlet in the originating
+Page). `replace: true` controls browser-history replacement for stack operations.
+The default `auto` requires the originating `page`: it updates that Page's stack position, or its local host if it is a dialog/embed.
+Supply `open: "top"` when navigating without an originating Page.
+Current embed handling accepts an outlet name string and looks for `x-page[outlet="name"]` under `page.host`; passing an element is not implemented.

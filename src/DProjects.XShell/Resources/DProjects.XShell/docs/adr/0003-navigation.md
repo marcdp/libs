@@ -2,7 +2,7 @@
 
 ## Status
 
-Hash and path modes are implemented; declarative intent dispatch remains planned.
+Hash/path modes and route translation are implemented; declarative intent dispatch is outside V0.
 
 ## Context
 
@@ -19,7 +19,8 @@ configuration. Intent registration and dispatch are not implemented yet.
 
 ## Open work
 
-The `x-page` `replace` and `navigate` event handlers remain debugger-marked and hash-specific; complete them without changing the core mode-neutral
-Navigation API. Define intent mapping and missing-target failures. Keep layout presentation choices separate from route resolution.
+The legacy `x-page` `replace`/`navigate` event listeners are commented out, not active hash-specific paths.
+V0 uses the mode-neutral Navigation API, routes, Page stacks, query replacement, and dialog/embed presentation.
+Intent mapping and dispatch remain outside V0. Layout presentation is separate from route resolution.
 
 See [Navigation](../architecture/navigation.md) and [Pages](../architecture/pages.md).

@@ -5,8 +5,9 @@ XShell starts from the application's root module definition and recursively disc
 ```text
 HTML/bootstrap inputs → root module → recursive module references → canonical module definitions
     → URL normalization → nested effective configuration (app, modules, xshell)
-    → default resolvers → Service Worker mappings → import map → import XShell → deep freeze → init
-    → finalize service registry → validate module service requirements → one live module instance per module id
+    → Service Worker mappings → file inventories → resolver rules (including service contracts)
+    → import XShell → validate effective config → deep freeze → init (validate again)
+    → initialize i18n and Contracts → register core services → finalize service registry → validate module service requirements → one live module instance per module id
     → controllers register runtime sources → Areas compose menus, routes, and homes → Navigation starts
 ```
 
@@ -39,8 +40,10 @@ create controller with controller({ dependencies })
 ```
 
 An Area is a navigation context composed from participating modules, including their effective menus and ordered routes. Modules define reusable menu
-and route contributions; Areas define application composition. The first navigation item marked `default: true` in depth-first traversal provides
-the Area home. This composition does not duplicate module instances. Navigation consumes Area routes for public-to-canonical and
+and route contributions; Areas define application composition. Home uses the depth-first default-item result, falling back to the first depth-first
+`path || href` target.
+There is no separate visibility predicate in that fallback. This composition does not duplicate module instances. Navigation consumes Area routes for
+public-to-canonical and
 canonical-to-public resolution. A named menu contribution can be a static array or a registered dynamic menu source; see
 [Areas](../subsystems/areas.md) for composition behavior and [Navigation](navigation.md) for route resolution.
 
@@ -49,7 +52,8 @@ canonical-to-public resolution. A named menu contribution can be a static array 
 - [Bootstrap](bootstrap.md) — Startup and preparation versus runtime initialization.
 - [Configuration](configuration.md) — Nested effective configuration and merge rules.
 - [Modules](modules.md) — Definitions, references, root composition, params, and live instances.
-- [Packaging](packaging.md) — Development manifests and immutable module ZIP creation.
+- [Hosting](hosting.md) — ASP.NET middleware, generated bootstrap, and SPA fallback.
+- [Packaging](packaging.md) — Development inventories and immutable module ZIP creation.
 - [Components](components.md) — The Web Component model.
 - [Pages](pages.md) — Pages and layouts.
 - [Resolvers](resolvers.md) — Logical resource resolution.

@@ -1,29 +1,21 @@
 # Components
 
-Documentation for the core XShell Web Component model. Components use standard custom elements and component modules; they do not require X Templates.
+XShell V0 loads native Web Component classes or definition objects. For definitions, `component-js` validates the named `contract` export and
+the default implementation, selects engines, loads dependencies, and constructs and registers an `HTMLElement` subclass.
 
-## Status
-
-Draft.
+The contract supplies public-property defaults and accessors, state-backed properties, observed attributes, reflection, public method exposure,
+and validation of engine-reported slots. Descriptive metadata does not enforce values or emit events.
+Pages reuse the contract and state model with Page-specific query/context initialization and lifecycle; their public API has some
+[implementation differences](../architecture/pages.md).
 
 ## Documents
 
-- [Component Contract](manifest.md) — Current contract metadata and the future manifest concept.
-- [Properties](properties.md) — Public component API values.
-- [Slots](slots.md) — Public Web Component composition points.
-- [State](state.md) — Internal reactive data and rendering invalidation.
-- [Rendering Engines](rendering.md) — Rendered-output responsibilities and command bridging.
-- [Events](events.md) — DOM events emitted by components.
-- [Lifecycle](lifecycle.md) — Loading, mounting, rendering, unmounting, and cleanup.
+- [Component Contract](manifest.md) — Supported schema and enforcement boundaries.
+- [Properties](properties.md) — Public values, attributes, reflection, and Page query binding.
+- [State](state.md) — Private defaults and the `none`, `plain`, and `proxy` engines.
+- [Events](events.md) — DOM CustomEvents, Bus events, and X Template event modifiers.
+- [Slots](slots.md) — Public composition metadata and engine-reported slot validation.
+- [Lifecycle](lifecycle.md) — Instance and connection lifetimes.
+- [Rendering Engines](rendering.md) — Output ownership and engine selection.
 
-## Current implementation boundary
-
-Component modules currently export a default runtime definition. Representative checked-in components also export a named `contract` describing
-their intended public surface. The runtime loader reads that export but does not substantially apply it while building the custom element; a complete
-integration contract is still a TODO.
-
-## Related documentation
-
-- [XShell documentation](../)
-- [X Templates extension](../extensions/x-templates/) — An optional integration layer for component rendering and event handlers.
-- [Properties and State ADR](../adr/0004-properties-and-state.md)
+See [Component Architecture](../architecture/components.md), [Pages](../architecture/pages.md), and [X Templates](../extensions/x-templates/index.md).

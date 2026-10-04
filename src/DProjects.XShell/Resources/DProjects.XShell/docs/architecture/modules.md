@@ -112,7 +112,8 @@ resources loaded through Resolver and Loader, and from `controller({ serviceName
 ## Module controller and runtime instance
 
 `Modules.init()` iterates the effective `config.modules` map once. It creates one record per canonical id, loads styles and an optional controller,
-supplies the final `params` to that controller, and exposes the effective module's normalized `routes` declarations. Repeated dependency references
+makes final params available as `moduleConfig.params` to that controller, and exposes the effective module's normalized `routes` declarations.
+Repeated dependency references
 therefore still produce one runtime instance. `module.routes` is the effective configuration object itself; when routes are absent it is a frozen empty
 object. Before creating those instances, XShell validates every module's service requirements. The effective configuration is immutable by the time
 runtime modules are initialized.
@@ -122,3 +123,11 @@ declarative metadata: Areas compose it, and Navigation uses the resulting ordere
 
 See [Module Specification](../specifications/module.md), [Configuration](configuration.md), [Bootstrap](bootstrap.md), and
 [Service Worker](service-worker.md).
+
+## Controller access and startup order
+
+Module constructors receive `moduleAssetsPath`, `moduleConfig` (including `id` and params), or named registered services via the provider proxy.
+There is no direct injected `params` value.
+`Modules.start()` awaits controllers sequentially in reverse runtime-record order; on failure it stops already-started records in reverse start order.
+Normal `stop()` visits records in forward order. Controller constructors are created while iterating the effective module map, not on service lookup.
+`styles/index.css` is loaded when present in inventory and its stylesheet is adopted after successful startup.

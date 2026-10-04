@@ -13,10 +13,10 @@ host HTML
     -> normalize configUrl, assetsUrl, and module resource paths
     -> merge defaults, dependencies, dependents, and root
     -> generate assetsPath for every effective module and XShell
-    -> add default resolvers
     -> install and initialize Service Worker mappings
     -> load every module.files.json through the virtual resource namespace
     -> normalize and attach module and XShell file inventories
+    -> generate resolver rules, including exact contract:<id> inventory entries
     -> load and validate the XShell runtime
     -> deep-freeze the effective config and initialize XShell
 ```
@@ -76,7 +76,16 @@ Bootstrap converts only the effective-config copy into the virtual application r
 
 The same conversion produces paths such as `/_assets/xshell/xshell.js` in `config.xshell.files`. These paths follow the same absolute or
 application-root-relative URL convention as the rest of the effective configuration; `size` and `hash` are unchanged. Bootstrap then loads the
-XShell runtime, validates the complete enriched configuration, deeply freezes it, and calls `xshell.init(config)`. XShell registers core services,
-loads and finalizes configured services, validates module service requirements, and then creates one runtime module instance per canonical id.
+XShell runtime, validates the complete enriched configuration, deeply freezes it, and calls `xshell.init(config)`. `xshell.init` validates again,
+constructs runtime services, awaits i18n and Contracts initialization, registers core instances, and finalizes
+configured Services. Modules checks requirements before loading any controller and then initializes one instance per canonical id.
+Areas composes menus, ordered routes, and homes after module startup; Navigation starts last.
 
 See [Configuration](configuration.md), [Services](services.md), [Modules](modules.md), and [Service Worker](service-worker.md).
+
+## JSONC boundary
+
+The browser removes comments and then uses `JSON.parse`; trailing commas are not accepted there.
+Server descriptor parsing accepts trailing commas, but pack copies descriptors unchanged. Keep browser-consumed descriptors free of trailing commas.
+
+See [Hosting](hosting.md) for meta inputs and generated worker files.

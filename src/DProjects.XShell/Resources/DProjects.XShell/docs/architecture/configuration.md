@@ -32,7 +32,8 @@ to the canonical effective module.
 
 ## Effective configuration
 
-After discovery and normalization, each reference is replaced through merging by its complete canonical definition:
+After discovery and normalization, each reference is replaced through merging by its complete canonical definition.
+This excerpt shows location/params fields only, omitting required metadata and defaults:
 
 ```jsonc
 {
@@ -82,14 +83,19 @@ merge after the referenced local definition; the root merges last and therefore 
 
 ## Defaults, URLs, and validation
 
-Every effective module requires `defaults.page` and `defaults.component`, each with non-empty `renderEngine` and `stateEngine`. These module defaults
+Every effective module requires generated `files`/`assetsPath`, source locations, descriptive metadata, and `defaults.page` and `defaults.component`,
+each with non-empty `renderEngine` and `stateEngine`. These module defaults
 are separate from global `xshell.ui` settings.
 
 `url:` values resolve against the JSONC document where they were authored. Bootstrap gives each local definition its document URL as `configUrl`
 and defaults `assetsUrl` to the document directory. After merging, it derives each module `assetsPath` and `xshell.assetsPath` from the effective
 `xshell.assetsPrefix`, then maps module-relative runtime paths into that virtual namespace.
 
-The canonical schema describes the final merged object, not partial authored references. Effective validation occurs after bootstrap normalization.
+The canonical schema describes the final merged object, not partial authored references. Bootstrap generates resolver rules after Service Worker
+initialization and inventory loading, including exact contract rules from inventory.
+It imports XShell, awaits `xshell.validateConfig(config)` for the complete enriched object, and then deeply freezes it.
+`xshell.init(config)` validates again before constructing runtime services. Validation errors abort startup; there is no environment gate.
+The X module controller's `start()` is empty and does not validate configuration.
 The required `xshell.i18n` section supplies the current language, available languages, date/time formats, and translation dictionaries. The X module
 provides the baseline values, and application composition may override them through the normal merge precedence.
 An effective module may optionally declare `routes`, an object mapping friendly application URL patterns to module-relative Page targets. During

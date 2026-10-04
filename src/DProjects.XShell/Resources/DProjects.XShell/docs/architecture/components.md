@@ -19,14 +19,16 @@ If the default export is a JavaScript class, XShell considers it to be the compo
 For example:
 
 ```js
-export default class MyComponent extends HTMLElement {
+class MyComponent extends HTMLElement {
     connectedCallback() {
         this.innerHTML = "Hello";
     }
 }
+customElements.define("my-component", MyComponent);
+export default MyComponent;
 ```
 
-In this case the component provides its own Web Component implementation.
+In this case the component provides its own implementation and registration; the class-return branch does not apply definition contracts.
 
 ## Component as a definition
 
@@ -118,7 +120,7 @@ export default {
 
     controller({ host }) {
         return {
-            edit({ event }) {
+            edit(event) {
                 host.dispatchEvent(
                     new CustomEvent("edit", {
                         bubbles: true,
@@ -143,6 +145,7 @@ events
 properties
 methods
 slots
+examples
 ```
 
 For example:
@@ -184,19 +187,21 @@ The contract describes how other code can interact with the component.
 
 Its optional `slots` section documents the public Web Component composition API. The empty string `""` identifies the default unnamed slot, and
 named keys identify named slots. Slot metadata supports `description` and an optional `required` boolean. This metadata does not create or render
-`<slot>` elements; the implementation defines those elements. Every native `<slot>` used by the template must nevertheless be declared in
-`contract.slots`. `<slot></slot>` uses the empty-string key, while `<slot name="actions"></slot>` uses the `actions` key. Duplicate occurrences
+`<slot>` elements; the implementation defines those elements. Every engine-reported slot must be declared in
+`contract.slots`; `x` reports compiler-discovered slots while `html`/`markdown` report none. `<slot></slot>` uses the empty-string key, while `<slot
+name="actions"></slot>` uses the `actions` key. Duplicate occurrences
 of a slot are allowed, and a declared slot does not have to appear in the template.
 
 It is separate from the runtime implementation.
 
 `query` is valid property metadata in the shared contract. The Page loader may use `query: true` to initialize state-backed public properties from
-the Page `src` query string; generic Component loading accepts the metadata but does not read or rewrite query strings. `reflect: true` applies to
-each explicitly enabled external representation: `attribute: true` enables attribute reflection and `query: true` enables Page-query reflection.
-`reflect` alone enables neither representation.
+the Page `src` query string; generic Component loading accepts the metadata but does not read or rewrite query strings. Component `reflect: true`
+writes a kebab-case attribute even without `attribute: true`, which controls incoming observation.
+Page reflection requires `query: true` and does not reflect HTML attributes. See [Properties](../components/properties.md).
 
-When the component definition is loaded, the component loader validates template slot usage against the contract before registering the component.
-If the template uses a slot that is not declared in `contract.slots`, loading fails. This is component contract/loader validation, not render-engine
+When the component definition is loaded, the component loader validates render-factory slot metadata against the contract before registering the
+component.
+If the factory reports a slot not declared in `contract.slots`, loading fails. This is component contract/loader validation, not render-engine
 validation.
 
 ## Implementation
@@ -297,16 +302,14 @@ class?
 
 For definition-based components, `component-js`:
 
-1. imports the component JavaScript file;
-2. reads its default export;
-3. validates template slot usage against `contract.slots`;
-4. selects the configured state engine and creates the component state through it;
-5. selects the configured render engine;
-6. resolves declared `dependencies` through the Resolver and Loader;
-7. builds an `HTMLElement` subclass;
-8. connects contract-defined attributes and properties to state;
-9. creates the controller with `controller({ dependencies })` and connects lifecycle and rendering behavior;
-10. registers the resulting class with `customElements`.
+1. imports the module and reads its contract/default implementation;
+2. normalizes defaults and validates both schemas and property/state consistency;
+3. selects state/render engines and creates the render factory;
+4. checks factory-reported slots against `contract.slots`;
+5. loads render-factory dependencies and then implementation `dependencies`, and initializes the render factory;
+6. builds and registers an `HTMLElement` subclass with public properties/method proxies;
+7. on instance construction, creates state, helpers, and the private controller and validates declared controller methods;
+8. coordinates connection lifecycle and scheduled rendering.
 
 The result is a standard browser Web Component.
 
@@ -403,6 +406,7 @@ export const contract = {
 };
 
 export default {
+    template: '<div class="content"></div>',
     controller({ state, host }) {
         return {
             mount() {
@@ -545,3 +549,7 @@ The default export provides the runtime implementation.
 * [Resolvers](resolvers.md)
 * [Loaders](loaders.md)
 * [X Templates](../extensions/x-templates/)
+
+Implementation fields also include `meta` and compiler-generated `templateRenderer`.
+Loader-derived `meta.id` is required by the implementation schema, alongside optional `title` and engine overrides.
+Contract enforcement and metadata limits are detailed in [Component Contract](../components/manifest.md).

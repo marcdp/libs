@@ -2,10 +2,6 @@
 
 This document outlines the lifecycle implemented by the JavaScript component loader.
 
-## Status
-
-Draft.
-
 ## Ownership boundaries
 
 For definition-based Components and Pages, the loader owns the runtime composition and lifecycle:
@@ -19,12 +15,13 @@ loader
 ```
 
 State engines own reactive state only. Render engines own rendered output only. The loader creates and coordinates both engines; it owns `load`,
-`mount`, `unmount`, and `unload`, controller methods, public methods, contracts, property and attribute semantics, services, and navigation.
+`mount`, `unmount`, and `unload`, controller methods, public methods, contracts, property and attribute semantics, and service access. Page hosts and
+Navigation own navigation-specific orchestration.
 
 ## Definition loading
 
-The loader imports the component module, prepares style, state, and render engines, initializes the render engine factory, and defines a custom
-element for the requested resource name.
+The loader imports and validates the contract/implementation, prepares style and the state/render factories, validates factory-reported slots,
+loads dependencies, initializes the render factory, and defines the custom element. State/controller instances are created on element construction.
 
 ## Construction and loading
 
@@ -87,3 +84,12 @@ render engine is ignored once that engine has been unmounted or replaced.
 - [Components](index.md)
 - [State](state.md)
 - [Loaders](../architecture/loaders.md)
+
+## Awaiting handlers
+
+Component construction invokes `load` without awaiting its result; connection/disconnection similarly invoke `mount`/`unmount` synchronously.
+Explicit Component `unload()` awaits its handler and disposes helpers in a final cleanup path.
+Page `load`, `mount`, `unmount`, and `unload` use asynchronous lifecycle methods that await their handlers.
+Use the host's Page load sequence when completion matters.
+
+Navigation's current dialog-close removal bypasses `removePage()`; see [Dialogs](../subsystems/dialogs.md) for the final-unload limitation.

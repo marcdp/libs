@@ -70,3 +70,41 @@ constructing the service. These concepts remain distinct:
 - `controller({ serviceName })` resolves and injects an existing runtime service when the controller accesses it.
 
 See [Modules](modules.md), [Module Specification](../specifications/module.md), and [Loaders](loaders.md).
+
+## Contract discovery and identity
+
+`/contracts/*.json` resources (including nested paths) enter the module inventory. Bootstrap converts their relative path without `.json` into a
+global id and generates an exact `contract:<id>` rule. Resolver selects `object-json`; Loader reads JSON; Contracts validates it against
+`contract.schema.json` and records physical module ownership. Duplicate global ids or conflicting exact resolver entries fail bootstrap.
+A module prefix is not required unless it is part of the chosen id. Registration names are independent: multiple services can use one contract.
+
+For example, `x/contracts/toast.json` defines id `toast` and registration `xshell.services.toast.contract = "toast"`.
+The implementation URL is imported through `module:` and must default-export a class.
+
+## Service contract schema
+
+A contract requires string `label`; optional top-level fields are `icon`, `description`, `properties`, `events`, and `methods`.
+Additional fields are rejected. Type labels are `string`, `number`, `integer`, `boolean`, `object`, `array`, `function`, `date`, and `any`
+(there is no `void` label in this schema).
+
+- Properties require `type`; optional fields are `description`, `default`, `readonly`, and unique string `enum`.
+- Events accept `description` and a `detail` field map; each detail entry requires `type` with optional `description`/`required`.
+- Methods accept `description`, `parameters`, and `returns`. Parameters require `name`/`type` and may set `description`, `required`, `enum`, `default`.
+  Returns require `type` and may set `description`.
+
+There are no generics, inheritance, unions, nested object/array schemas, parameter checks, version negotiation, scopes, or selectable lifetimes.
+
+## Resolution validation and core services
+
+Declared methods must resolve to functions. Property validation finds descriptors on the instance/prototype chain, excluding Object.prototype;
+it does not evaluate property getters. Defaults, enums, readonly, and property types are descriptive, as are method parameters/returns and events.
+An implementation must emit any promised events itself.
+
+Construction receives a proxy resolving other services by name. Resolving a service already being constructed detects a circular constructor
+dependency and reports the resolution chain. A failed construction/validation resets that record so a later resolve can retry.
+Duplicate registrations, including collisions with core names, fail.
+
+The registered core names are `areas`, `bus`, `config`, `container`, `dialog`, `i18n`, `loader`, `modules`, `navigation`, `resolver`, `runtime`,
+`contracts`, `services`, `temp`, and `urlRewriter`. There is no auth/identity registration. A Diagnostics getter is not a registered service contract.
+
+See [Bus](../subsystems/bus.md), [Dialogs](../subsystems/dialogs.md), and [Temp](../subsystems/temp.md).

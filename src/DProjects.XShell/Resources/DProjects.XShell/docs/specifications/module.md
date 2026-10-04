@@ -40,7 +40,13 @@ Every non-local entry must declare `configUrl`:
 ```jsonc
 {
     "modules": {
-        "orders": { "label": "Orders", "version": "1.0.0" },
+        "orders": {
+            "label": "Orders", "version": "1.0.0", "copyright": "", "icon": "",
+            "defaults": {
+                "page": { "renderEngine": "x", "stateEngine": "proxy" },
+                "component": { "renderEngine": "x", "stateEngine": "proxy" }
+            }
+        },
         "x": { "configUrl": "url:../x/module.jsonc" },
         "customers": { "configUrl": "url:../customers/module.jsonc" }
     }
@@ -66,6 +72,8 @@ Bootstrap resolves references recursively and the final effective entry is a com
     "icon": "",
     "configUrl": "https://example.test/modules/x/module.jsonc",
     "assetsUrl": "https://example.test/modules/x/",
+    "assetsPath": "/_assets/x",
+    "files": [],
     "params": { "mode": "compact" },
     "defaults": {
         "page": { "renderEngine": "x", "stateEngine": "proxy" },
@@ -77,9 +85,9 @@ Bootstrap resolves references recursively and the final effective entry is a com
 `configUrl` is the source document. `assetsUrl` is the physical resource container and defaults to that document's directory. Runtime resource
 references use `/_assets/<module-id>/...` rather than the physical URL.
 
-The effective schema requires `label`, `version`, `copyright`, `icon`, `configUrl`, `assetsUrl`, and `defaults`. Optional effective fields include
-`params`, `requires`, `styles`, `menus`, `routes`, and `contract`. `contract` may declare events, actions, and intents; those declarations are
-metadata and do not by themselves implement runtime dispatch.
+The effective schema requires `label`, `version`, `copyright`, `icon`, `configUrl`, `assetsUrl`, `defaults`, `assetsPath`, and `files`.
+Optional effective fields are `params`, `requires`, `menus`, `routes`, and `contract`. `contract` may declare events, actions, and intents; those
+declarations remain descriptive metadata and do not by themselves implement runtime dispatch.
 
 ## Required services
 
@@ -141,3 +149,13 @@ becomes this effective runtime entry for module `x-demo`:
 ```
 
 See [Root Module](application.md), [Modules](../architecture/modules.md), and [Configuration](../architecture/configuration.md).
+
+## Inventories and module styles
+
+Bootstrap supplies `assetsPath` and loads `module.files.json` into `files`, whose entries have `path`, `size`, and `hash`.
+Inventories describe resources; do not hand-author them as menu or contract declarations.
+`Modules` loads `styles/index.css` when that path occurs in the inventory. There is no accepted effective module `styles` field.
+`params` is a free-form object. `menus` maps arbitrary menu names to arrays or registered-source names; see [Areas](../subsystems/areas.md).
+
+The effective schema requires complete module defaults, source locations, and generated `files`/`assetsPath` metadata.
+Bootstrap enriches the object before schema validation. See [Packaging](../architecture/packaging.md).

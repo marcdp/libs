@@ -74,8 +74,10 @@ available under the single `dependencies` value described in [Declarative depend
 
 The Page-specific values are:
 
-* `definition` — the frozen and sealed Page definition object used to create the Page class. This is shared definition metadata/context rather than
+* `implementation` — the frozen and sealed Page definition object used to create the Page class. This is shared definition metadata/context rather than
   Page-instance state and normally is not needed by Page code. Modifying it is not supported.
+* `contract` — the validated public contract metadata shared by the generated Page class.
+* `commands` — exposes `enqueue(command, ...params)` for dispatch after the next render.
 * `state` — the Page-instance state object created by the configured state engine and consumed by the render engine/template. State is private
   implementation data unless a value is explicitly exposed through the Page contract; public properties and private state are not interchangeable.
 * `context` — the context supplied when that Page instance is created. It is Page-instance framework context; XShell does not establish arbitrary
@@ -117,7 +119,7 @@ export default {
 Here `dependencies` is the resolved declarative-resource object, `navigation` falls through to the XShell service container, and `state`, `query`,
 and `events` are Page-specific values. Destructuring requests the values; it does not make them public Page properties.
 
-Names other than the eight Page-specific values fall through to `xshell.services.resolve(name)`. Core/runtime services are registered during XShell
+Names other than the Page-specific values fall through to `xshell.services.resolve(name)`. Core/runtime services are registered during XShell
 initialization, and configured services are registered from `xshell.services`; code can request any registered service naturally, for example
 `controller({ navigation, bus, loader })`. A missing name fails service resolution; Page injection does not manufacture unknown services.
 `navigation` is the shared service for navigation operations; it is not the current Page's `query` object.
@@ -228,11 +230,29 @@ Layouts are presentation containers for Pages. They do not resolve routes. Check
 root page and `stack` to additional pages. Dialog and embed are also navigation opening modes.
 
 `x-page` selects a layout through `xshell.ui.layout.<context>`. In `page-js`, a definition-based Page resolves each engine from Page `meta`
-first, then `modules.<id>.defaults.page`; there is no XShell render-engine or state-engine fallback. Stack rendering exists in both navigation
-modes, but its full behavioral contract remains to be specified.
+first, then `modules.<id>.defaults.page`; there is no XShell render-engine or state-engine fallback. Stack rendering uses the same encoded stack and
+layouts in both navigation modes; see [Navigation](navigation.md).
 
 `xshell.ui.layout.dialog` is the layout used for a Page opened in dialog context. It is separate from the standard dialog pages:
 `xshell.ui.dialog.confirm`, `message`, `prompt`, and `picker` identify the Page resources used by dialog operations. Those Page-resource
 defaults do not select the `dialog` layout.
 
 See [Navigation](navigation.md), [Configuration](configuration.md), and [Loaders](loaders.md).
+
+## V0 API boundaries
+
+Unlike generated Web Components, generated Pages do not install public-property accessors or HTML attribute bindings.
+Contract state-backed properties participate in the state skeleton, query binding, and context initialization.
+`context: true` copies matching context values into state after query parsing without type checks; the loader does not require `state: true` for
+that flag, so author both when context should initialize a declared public state value. Non-state-backed property defaults are not Page state.
+
+Only declared `contract.methods` are exposed, with callable-controller/collision checks. The current Page method bridge forwards one parameter;
+additional arguments are lost. Parameter/return metadata is descriptive.
+Page injection supplies `implementation`, not `definition`; it does not supply Component-only `host`, `module`, or `moduleConfig` aliases.
+Use `page.host` for the mounted host and a registered service for other capabilities.
+
+Implementation meta accepts `id`, `title`, `renderEngine`, and `stateEngine`; loaders derive id from the resource filename when omitted.
+Although Page runtime reads description/icon metadata, the shared implementation schema rejects those meta fields.
+
+Pages reject render-factory-reported slots. HTML/Markdown report none, so that check is not a raw template scan.
+See [Dialogs](../subsystems/dialogs.md) for standard Page helpers and result/cleanup limitations.

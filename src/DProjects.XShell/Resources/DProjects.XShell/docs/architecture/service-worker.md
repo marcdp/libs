@@ -4,8 +4,10 @@ Bootstrap always installs the XShell Service Worker. It provides resource virtua
 of where their source files reside.
 
 The checked-in `xshell.assetsPrefix` is `_assets`, producing URLs such as `/_assets/x/components/x-button.js`. Bootstrap sends a mapping for each
-canonical module definition and the XShell framework files. Each rule maps the virtual prefix to `assetsUrl` and excludes `configUrl`, keeping the
-configuration document distinct from the asset namespace. The worker rewrites matching requests and fetches the physical resource. Repeated
+canonical module definition and the XShell framework files. Each rule maps the virtual prefix to `assetsUrl` and carries `configUrl` in an
+`exceptions` field. The current worker does not apply that field;
+configuration discovery still fetches the original document URL before worker setup. The worker rewrites matching requests and fetches the physical
+resource. Repeated
 references to a definition share one mapping; they do not create additional live module instances.
 
 ```text
@@ -17,8 +19,9 @@ client: /_assets/<module-id>/<resource>
 
 `configUrl` identifies a module configuration document. `assetsUrl` identifies the physical directory or package holding its assets. Normal clients
 must use `/_assets/<module-id>/...` and remain independent of whether storage is expanded or packaged. Current mapping and fetch behavior supports
-expanded directories. Although the model allows a future package URL and remote/CDN locations, ZIP-backed loading is not implemented, and the
-worker fetches with `mode: "same-origin"`, so cross-origin sources are not established as working.
+expanded directories. Runtime ZIP loading is not implemented. The mapped fetch has no explicit `mode` option; the source's `same-origin` option
+is commented out. Cross-origin destinations remain subject to fetch/CORS and the host CSP, whose default connect policy is same-origin.
+Arbitrary CDN backing is not a supported deployment guarantee.
 
 The worker stores bootstrap's initialization payload in IndexedDB and reloads it when handling requests after its in-memory state has been lost.
 After the worker is ready and acknowledges its mappings, bootstrap concurrently loads every normal module inventory from
@@ -30,3 +33,13 @@ as virtual application resource paths such as `/_assets/x/pages/home.js` in `con
 `config.xshell.files` before validation and XShell initialization.
 
 See [Asset URL Namespace ADR](../adr/0001-asset-url-namespace.md) and [Modules](modules.md).
+
+## Mapping and persistence limits
+
+The first rule whose origin/path prefix matches a complete namespace boundary wins. The worker preserves the incoming query, method, and headers,
+fetches the rewritten destination, and removes Location/Content-Location from the returned response.
+Initialization waits for IndexedDB persistence and a ready acknowledgement before bootstrap requests inventories.
+IndexedDB stores mappings, not a resource cache. Rule version/name/exceptions and inventory hashes are not used for cache versioning, exclusion,
+or fetched-byte verification. This does not provide offline packaging.
+
+See [Hosting](hosting.md) and [Packaging](packaging.md).

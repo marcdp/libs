@@ -6,7 +6,7 @@ Bootstrap applies the same exactly-one-local-definition rule used for every modu
 ```jsonc
 {
     "app": {
-        "name": "example",
+        "id": "example",
         "label": "Example",
         "copyright": "",
         "icon": "",
@@ -32,6 +32,7 @@ Bootstrap applies the same exactly-one-local-definition rule used for every modu
     "xshell": {
         "areas": {
             "default": "customers",
+            "global": [],
             "definitions": {
                 "customers": { "prefix": "/customers", "modules": ["customers", "reports"] }
             }
@@ -51,3 +52,9 @@ Dependencies merge first and the root merges last. Root composition therefore ha
 canonical definitions, and `xshell.modules` creates one runtime instance per id.
 
 See [Module Specification](module.md), [Bootstrap](../architecture/bootstrap.md), and [Areas](../subsystems/areas.md).
+
+## Application fields
+
+The effective `app` schema requires `id`, `label`, `copyright`, `icon`, `version`, `basePath`, and `params`. The example above is authored
+composition: host/bootstrap supply `basePath` and `params`. `app.configPath` is a bootstrap input, not an accepted effective `app` field.
+An application id is metadata independent of the local module key. Extra fields are rejected by the effective schema.
