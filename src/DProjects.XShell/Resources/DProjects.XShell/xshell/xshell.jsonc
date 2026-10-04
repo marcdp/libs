@@ -81,7 +81,8 @@
         "ui": {
             "component": {
                 "lazy": "",
-                "error": ""
+                "error": "",
+                "markdown": ""
             },
             "dialog": {
                 "confirm": null,

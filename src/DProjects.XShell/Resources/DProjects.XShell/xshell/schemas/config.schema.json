@@ -372,7 +372,8 @@
       "required": [],
       "properties": {
         "lazy": {"type": ["string", "null"], "description": "Component used for lazy-loading placeholders."},
-        "error": {"type": ["string", "null"], "description": "Component used to render component loading errors."}
+        "error": {"type": ["string", "null"], "description": "Component used to render component loading errors."},
+        "markdown": {"type": ["string", "null"], "description": "Component used to render Markdown content."}
       },
       "additionalProperties": false,
       "description": "Default settings applied to components."

@@ -5,13 +5,13 @@ export const contract = {
     description: "Renders Markdown text or Markdown loaded from a source URL.",
     events: {},
     properties: {
-        value: {type:"string", default:"", attribute:true, state:true, description:""},
-        src:   {type:"string", default:"", attribute:true, state:true, description:""}
+        value: {type:"string", default:"", attribute:true, state:true, description:"Markdown content."},
+        src:   {type:"string", default:"", attribute:true, state:true, description:"URL to load Markdown content from."}
     },
     methods: {},
     slots: {
         "":{
-            description: "Slot for providing Markdown content directly."
+            description: "Default slot."
         }
     }
 };

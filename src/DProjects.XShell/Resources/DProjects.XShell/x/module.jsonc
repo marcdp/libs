@@ -73,7 +73,8 @@
         "ui": {
             "component": {
                 "lazy": "x-lazy",
-                "error": "x-error"
+                "error": "x-error",
+                "markdown": "x-markdown"
             },
             "dialog": {
                 "confirm": "/pages/dialog-confirm.js",
