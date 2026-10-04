@@ -20,7 +20,9 @@ Changing the layout does not change the helper Page.
 ## Results
 
 A Page calls `page.close(result)`, which delegates to its hosting `x-page`.
-Navigation listens for the `x-page` close event, removes the host, and resolves its promise with the result.
+Navigation listens for the `x-page` close event, preserves the result, and awaits `removePage()` before resolving its promise. Dialog close is a final
+Page destruction path: the Page unmounts and unloads, then the host is removed. A cleanup failure rejects the dialog promise.
+Navigation stack updates close open dialogs through this same path.
 The checked-in x-demo result dialogs use this pattern:
 
 ```js
@@ -46,8 +48,5 @@ Current `x-page` result handling uses `page.result || null`: `false`, `0`, and `
 The bundled confirm Page returns `"yes"`, `"no"`, `"cancel"`, or `"ok"` according to the chosen button/variant.
 Message confirmation returns `"ok"`. Prompt/picker submit their current value, and cancellation returns `null`.
 Closing without a result yields `null`. Use an object for custom dialogs that must preserve a falsy payload.
-
-Dialog removal disconnects the host and unmounts its Page but does not call the explicit `removePage()` final-unload path.
-Account for this cleanup limitation when registering instance-lifetime resources.
 
 See [Pages](../architecture/70-pages.md), [Navigation](../architecture/120-navigation.md), and [Lifecycle](../components/60-lifecycle.md).

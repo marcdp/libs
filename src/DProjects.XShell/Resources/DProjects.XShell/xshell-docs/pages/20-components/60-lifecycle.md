@@ -75,6 +75,7 @@ reliable universal signal that distinguishes a temporary disconnection from perm
 For Pages, `x-page` unmounts its current Page when disconnected and remounts the same Page on reconnection. Replacing a Page, or using the
 explicit `removePage()` destruction path, unmounts the old Page and then unloads it before discarding the instance. `unload()` is idempotent as a
 safety measure, but lifecycle owners should not use it as normal replacement control flow.
+Closing a dialog uses `removePage()`: its Page unmounts and unloads before the dialog host is removed and the result promise completes.
 
 Invalidation is also mount-scoped. Requests made before mount or after unmount do not render, and an animation-frame callback queued for a prior
 render engine is ignored once that engine has been unmounted or replaced.
@@ -92,4 +93,4 @@ Explicit Component `unload()` awaits its handler and disposes helpers in a final
 Page `load`, `mount`, `unmount`, and `unload` use asynchronous lifecycle methods that await their handlers.
 Use the host's Page load sequence when completion matters.
 
-Navigation's current dialog-close removal bypasses `removePage()`; see [Dialogs](../subsystems/30-dialogs.md) for the final-unload limitation.
+See [Dialogs](../subsystems/30-dialogs.md) for dialog final destruction and result handling.

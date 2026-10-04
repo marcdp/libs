@@ -7,15 +7,16 @@ namespace DProjects.XShell.Services {
             ArgumentNullException.ThrowIfNull(context);
             ArgumentNullException.ThrowIfNull(js);
 
-            // resolve the page render engine from static metadata or the module default
+            // resolve the resource render engine from static metadata or its module default
             var moduleConfig = context.Config.Modules[context.ModuleId];
-            var moduleRenderEngine = moduleConfig.Defaults.Page.RenderEngine;
+            var isComponent = context.RelativePath.StartsWith("/components/", StringComparison.OrdinalIgnoreCase);
+            var defaultRenderEngine = isComponent ? moduleConfig.Defaults.Component.RenderEngine : moduleConfig.Defaults.Page.RenderEngine;
             var document = XTemplate.JavaScriptSource.Parse(js);
             var renderEngineProperty = document.FindDefaultExportObject()?.FindProperty("meta")?.Value.AsObject()?.FindProperty("renderEngine");
-            var pageRenderEngine = moduleRenderEngine;
+            var renderEngine = defaultRenderEngine;
             if (renderEngineProperty != null) {
-                pageRenderEngine = renderEngineProperty.Value.GetStaticString();
-                if (pageRenderEngine == null) throw new InvalidOperationException("'meta.renderEngine' must be a static string.");
+                renderEngine = renderEngineProperty.Value.GetStaticString();
+                if (renderEngine == null) throw new InvalidOperationException("'meta.renderEngine' must be a static string.");
             }
 
             // compile style urls
@@ -49,7 +50,7 @@ namespace DProjects.XShell.Services {
             }
 
             // compile static X Templates without evaluating the module
-            if (pageRenderEngine == "x") {
+            if (renderEngine == "x") {
                 var currentComponentName = ResolveCurrentComponentName(context, document);
                 js = new XTemplate.XTemplateJavaScriptCompiler(new XTemplate.XTemplateCompiler()).Transform(js, currentComponentName);
             }

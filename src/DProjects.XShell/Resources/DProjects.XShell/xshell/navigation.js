@@ -370,12 +370,12 @@ export default class Navigation {
         //navigate
         let domStack = this.getXPages().map(xpage => { return this.parseUrl(xpage.src); });
         let inc = 0;
-        //close the last dialog
+        // close open dialogs through their final Page destruction path
         let allXPages = Array.from(this._container.querySelectorAll(":scope > x-page"));
         for (let i = allXPages.length - 1; i >= 0; i--) {
             let xpage = allXPages[i];
             if (xpage.getAttribute("layout") != "dialog") break;
-            this._container.removeChild(xpage);            
+            xpage.close();
         }
         //process stack
         for (let i = 0; i < Math.max(this._stack.length, domStack.length); i++) {
@@ -464,21 +464,26 @@ export default class Navigation {
     }
     async _showDialog({ href, context }) {
         //show page dialog
-        let resolveFunc = null;
         let xpage = document.createElement("x-page");
         const hrefFinal = this._buildUrlFinal(this.parseUrl(href));
         xpage.setAttribute("src", hrefFinal);
         xpage.setAttribute("layout", "dialog");
-        xpage.addEventListener("close", (event) => {
-            resolveFunc(event.target.result);
-            if (event.target.parentNode) {
-                event.target.parentNode.removeChild(event.target);
-            }
-        });
         xpage.context = context || {};
-        this._container.appendChild(xpage);
-        return new Promise((resolve) => {
-            resolveFunc = resolve;
+        return new Promise((resolve, reject) => {
+            let closing = false;
+            xpage.addEventListener("close", async () => {
+                if (closing) return;
+                closing = true;
+                try {
+                    // preserve the result before final Page destruction clears the Page reference
+                    const result = xpage.result;
+                    await xpage.removePage();
+                    resolve(result);
+                } catch (error) {
+                    reject(error);
+                }
+            });
+            this._container.appendChild(xpage);
         });
     }
     _buildUrlFinal(item) {

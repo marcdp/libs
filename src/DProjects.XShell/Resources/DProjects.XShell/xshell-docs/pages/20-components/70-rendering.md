@@ -64,7 +64,8 @@ lifecycle. The loader receives the command and decides whether and how to dispat
 
 ## Selection and implementation limits
 
-Resource `meta.renderEngine` overrides the module's `defaults.component.renderEngine` or `defaults.page.renderEngine`.
+For a Component, `meta.renderEngine` overrides `defaults.component.renderEngine`; for a Page, it overrides `defaults.page.renderEngine`. The module
+compiler uses the same effective selection when deciding whether to compile an X Template.
 The checked-in factories are `html`, `markdown`, and `x`; there is no engine fallback under `xshell.ui`.
 HTML and Markdown mount a static parsed template; their `render()` methods do not evaluate state expressions.
 
@@ -72,5 +73,3 @@ The checked-in Markdown factory imports bare `"marked"`. Bootstrap supplies no i
 host unless that import is made resolvable externally. The module's vendored Markdown utility does not repair the factory's bare import.
 
 Slot validation uses factory metadata. HTML/Markdown expose empty slot lists, so their templates do not receive the X engine's slot-contract checks.
-The module compiler currently selects `defaults.page.renderEngine` for ordinary JS files even when the file is a Component.
-Set explicit resource `meta.renderEngine` when Page/Component defaults differ; this compiler/runtime default mismatch remains an implementation gap.

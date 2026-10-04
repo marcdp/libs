@@ -14,6 +14,14 @@ class FakeNode {
 
     appendChild(node) {
         this.childNodes.push(node);
+        node.parentNode = this;
+        return node;
+    }
+
+    removeChild(node) {
+        this.childNodes.splice(this.childNodes.indexOf(node), 1);
+        node.parentNode = null;
+        node.disconnectedCallback?.();
         return node;
     }
 
@@ -29,6 +37,7 @@ class FakeNode {
 class FakeElement {
     constructor() {
         this._attributes = new Map();
+        this._listeners = new Map();
     }
 
     attachShadow() {
@@ -36,9 +45,15 @@ class FakeElement {
         return this.shadowRoot;
     }
 
-    addEventListener() {}
+    addEventListener(name, listener) {
+        const listeners = this._listeners.get(name) ?? [];
+        listeners.push(listener);
+        this._listeners.set(name, listeners);
+    }
 
-    dispatchEvent() {}
+    dispatchEvent(event) {
+        for (const listener of this._listeners.get(event.type) ?? []) listener(event);
+    }
 
     contains() {
         return false;
@@ -62,6 +77,7 @@ class FakeElement {
 
     remove() {
         this.removed = true;
+        this.parentNode?.removeChild(this);
     }
 }
 
@@ -84,6 +100,7 @@ globalThis.document = {
     baseURI: "https://example.test/",
     body: { querySelectorAll() { return []; } },
     createElement(name) {
+        if (name === "x-page") return new (customElements.get(name))();
         const element = new FakeNode();
         element.localName = name;
         element.setAttribute = () => {};
@@ -99,6 +116,7 @@ globalThis.requestAnimationFrame = callback => {
 const { createComponentClassFromJsDefinition } = await import("../loaders/component-js.js");
 const { createPageClassFromJsDefinition } = await import("../loaders/page-js.js");
 const { default: XPage } = await import("../x-page.js");
+const { default: Navigation } = await import("../navigation.js");
 const { default: xshell } = await import("../xshell.js");
 
 const renderEngines = [];
@@ -322,4 +340,89 @@ test("x-page unmounts then unloads a replaced page and only unmounts on disconne
     commands.length = 0;
     await xpage.load();
     assert.deepEqual(commands, ["old unmount", "old unload", "new load", "new mount"]);
+});
+
+test("dialog close completes after one final Page unload and host removal", async () => {
+    const commands = [];
+    let finishUnload;
+    const unloadGate = new Promise(resolve => { finishUnload = resolve; });
+    const container = new FakeNode();
+    const navigation = new Navigation({
+        areas: {},
+        bus: {},
+        config: { app: { basePath: "https://example.test/" }, xshell: { navigation: { mode: "path", hashPrefix: "#!" } } },
+        container
+    });
+    navigation._buildUrlFinal = item => item.href;
+    const resultPromise = navigation._showDialog({ href: "/pages/dialog.js", context: {} });
+    const xpage = container.firstChild;
+    xpage._page = {
+        async unmount() { commands.push("unmount"); },
+        async unload() {
+            commands.push("unload started");
+            await unloadGate;
+            commands.push("unload finished");
+        }
+    };
+    let completed = false;
+    resultPromise.then(() => { completed = true; });
+
+    await xpage.close({ accepted: true });
+    await Promise.resolve();
+    assert.deepEqual(commands, ["unmount", "unload started"]);
+    assert.equal(completed, false);
+    assert.equal(container.firstChild, xpage);
+
+    await xpage.close({ accepted: false });
+    finishUnload();
+    assert.deepEqual(await resultPromise, { accepted: true });
+    assert.deepEqual(commands, ["unmount", "unload started", "unload finished"]);
+    assert.equal(container.firstChild, null);
+    assert.equal(xpage.page, null);
+});
+
+test("dialog close rejects its promise when final Page cleanup fails", async () => {
+    const container = new FakeNode();
+    const navigation = new Navigation({
+        areas: {},
+        bus: {},
+        config: { app: { basePath: "https://example.test/" }, xshell: { navigation: { mode: "path", hashPrefix: "#!" } } },
+        container
+    });
+    navigation._buildUrlFinal = item => item.href;
+    const resultPromise = navigation._showDialog({ href: "/pages/dialog.js", context: {} });
+    const xpage = container.firstChild;
+    const failure = new Error("unload failed");
+    xpage._page = {
+        async unmount() {},
+        async unload() { throw failure; }
+    };
+
+    await xpage.close("done");
+    await assert.rejects(resultPromise, error => error === failure);
+});
+
+test("navigation stack changes close dialogs through final Page cleanup", async () => {
+    const commands = [];
+    const container = new FakeNode();
+    container.querySelectorAll = () => container.childNodes;
+    const navigation = new Navigation({
+        areas: {},
+        bus: {},
+        config: { app: { basePath: "https://example.test/" }, xshell: { navigation: { mode: "path", hashPrefix: "#!" } } },
+        container
+    });
+    navigation._buildUrlFinal = item => item.href;
+    navigation.getXPages = () => [];
+    const resultPromise = navigation._showDialog({ href: "/pages/dialog.js", context: {} });
+    const xpage = container.firstChild;
+    xpage._page = {
+        async unmount() { commands.push("unmount"); },
+        async unload() { commands.push("unload"); }
+    };
+
+    navigation._stackToDom();
+    assert.equal(await resultPromise, null);
+    assert.deepEqual(commands, ["unmount", "unload"]);
+    assert.equal(container.firstChild, null);
 });
