@@ -5,21 +5,21 @@ virtualizes assets, initializes services/modules, and activates Pages through Ar
 
 ## Core concepts
 
-- [Modules](architecture/modules.md) and [Configuration](architecture/configuration.md) — Composition, defaults, and one instance per id.
-- [Bootstrap](architecture/bootstrap.md) — Startup order and validation.
-- [Components](components/index.md) and [Pages](architecture/pages.md) — Contracts, controllers, state, lifecycle, and presentation.
-- [Resolvers](architecture/resolvers.md) and [Loaders](architecture/loaders.md) — Resource meaning versus obtaining concrete resources.
-- [Services and service Contracts](architecture/services.md) — Fixed registry, eager class loading, lazy singletons.
-- [Areas](subsystems/areas.md) and [Navigation](architecture/navigation.md) — Menus, routes, homes, browser URLs, and Page stacks.
-- [State](components/state.md) and [Rendering Engines](components/rendering.md) — Separate engines coordinated by loaders.
-- [Service Worker](architecture/service-worker.md) — `/_assets` and expanded resource mapping.
-- [X Templates](extensions/x-templates/index.md) — Optional compiled rendering.
-- [Hosting](architecture/hosting.md) and [Packaging](architecture/packaging.md) — ASP.NET, compilation, and inventories.
-- [Subsystems](subsystems/index.md) — Bus, dialogs, i18n, Temp.
+- [Modules](10-architecture/30-modules.md) and [Configuration](10-architecture/20-configuration.md) — Composition, defaults, and one instance per id.
+- [Bootstrap](10-architecture/10-bootstrap.md) — Startup order and validation.
+- [Components](20-components/index.md) and [Pages](10-architecture/70-pages.md) — Contracts, controllers, state, lifecycle, and presentation.
+- [Resolvers](10-architecture/80-resolvers.md) and [Loaders](10-architecture/90-loaders.md) — Resource meaning versus obtaining concrete resources.
+- [Services and service Contracts](10-architecture/100-services.md) — Fixed registry, eager class loading, lazy singletons.
+- [Areas](30-subsystems/10-areas.md) and [Navigation](10-architecture/120-navigation.md) — Menus, routes, homes, browser URLs, and Page stacks.
+- [State](20-components/30-state.md) and [Rendering Engines](20-components/70-rendering.md) — Separate engines coordinated by loaders.
+- [Service Worker](10-architecture/110-service-worker.md) — `/_assets` and expanded resource mapping.
+- [X Templates](40-extensions/x-templates/index.md) — Optional compiled rendering.
+- [Hosting](10-architecture/40-hosting.md) and [Packaging](10-architecture/50-packaging.md) — ASP.NET, compilation, and inventories.
+- [Subsystems](30-subsystems/index.md) — Bus, dialogs, i18n, Temp.
 
 ## Reference
 
-[Architecture](architecture/index.md), [Specifications](specifications/index.md), [Extensions](extensions/index.md), and [ADRs](adr/index.md)
+[Architecture](10-architecture/index.md), [Specifications](50-specifications/index.md), [Extensions](40-extensions/index.md), and [ADRs](60-adr/index.md)
 provide detailed reference and decision context.
 
 Authentication/Identity, navigation intents, and runtime ZIP loading are outside V0.
