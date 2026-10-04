@@ -4,6 +4,7 @@ import test from "node:test";
 import vm from "node:vm";
 
 import Modules from "../modules.js";
+import Resolver from "../resolver.js";
 
 const rootUrl = "https://example.test/modules/app/module.jsonc";
 const bootstrapPath = new URL("../bootstrap.js", import.meta.url);
@@ -75,6 +76,25 @@ const context = vm.createContext({
 });
 new vm.Script(bootstrapSource, { filename: bootstrapPath.pathname }).runInContext(context);
 const api = context.__bootstrapTests;
+
+test("generated Markdown Page rules preserve document URLs and cache classes by path", () => {
+    const config = {
+        app: { basePath: "/app" },
+        modules: { "xshell-docs": { assetsPath: "/_assets/xshell-docs", files: [] }, sample: { assetsPath: "/_assets/sample", files: [] } },
+        xshell: { resolver: {} }
+    };
+    api.fillResolverRules(config);
+    const resolver = new Resolver({ config });
+    for (const moduleId of ["xshell-docs", "sample"]) {
+        const path = `/_assets/${moduleId}/pages/10-architecture/100-services.md`;
+        const result = resolver.resolve(`page:${path}?mode=one#section`);
+        assert.equal(result.url, "/app" + path);
+        assert.equal(result.definition.loader, "page-md");
+        assert.equal(result.definition.cache, true);
+        assert.equal(result.definition.cacheMode, "path");
+        assert.equal(result.definition.cacheMode, config.xshell.resolver.page[`/_assets/${moduleId}/{path}.js`].cacheMode);
+    }
+});
 
 const definition = (value, extra = {}) => ({ label: value, value, ...extra });
 const reference = configUrl => ({ configUrl });

@@ -114,6 +114,11 @@ Page component
 Generated Page resolver rules use `cacheMode: "path"`: the Page implementation is identified by its path, while each Page instance retains the full
 navigation `src` and query.
 
+Markdown Page rules preserve the `.md` URL and select `page-md` with the same Page-class cache semantics. `page-md` loads
+`component:x-markdown` through Resolver → Loader and returns a normal Page class. Mount creates `x-markdown` with the resolved normal URL in `src`;
+the component fetches the document and owns Markdown conversion. The adapter never fetches or parses Markdown itself. An unavailable
+`component:x-markdown` fails through the normal Loader error path. See [Markdown Pages](70-pages.md#markdown-pages).
+
 ## Loader vs resource-specific loader
 
 It is useful to distinguish the two responsibilities:

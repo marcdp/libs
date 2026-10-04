@@ -69,6 +69,10 @@ compiler uses the same effective selection when deciding whether to compile an X
 The checked-in factories are `html`, `markdown`, and `x`; there is no engine fallback under `xshell.ui`.
 HTML and Markdown mount a static parsed template; their `render()` methods do not evaluate state expressions.
 
+A `.md` document used as a [Markdown Page](../10-architecture/70-pages.md#markdown-pages) is a separate path: `page-md` adapts it to a Page mounting
+`x-markdown`, which fetches its normal `src` URL and converts Markdown with the vendored utility. This does not select or replace the `markdown`
+definition render engine described here.
+
 The checked-in Markdown factory imports bare `"marked"`. Bootstrap supplies no import map, so this factory does not load in the default browser
 host unless that import is made resolvable externally. The module's vendored Markdown utility does not repair the factory's bare import.
 

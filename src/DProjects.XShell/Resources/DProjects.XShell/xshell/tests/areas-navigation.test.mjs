@@ -4,6 +4,16 @@ import test from "node:test";
 import Areas from "../areas.js";
 import Navigation from "../navigation.js";
 
+test("documentation inventory menus keep Markdown page and index destinations", () => {
+    const areas = new Areas({ config: { xshell: { areas: { definitions: {}, global: [] } } }, bus: { addEventListener() {} } });
+    const root = "/_assets/xshell-docs/pages";
+    const files = ["index.md", "10-architecture/index.md", "10-architecture/100-services.md"].map(path => ({ path: `${root}/${path}` }));
+    const menu = areas._createMenuFromModuleFiles(files, root, "Docs", [".js", ".html", ".md"], true);
+    assert.equal(menu[0].href, `${root}/index.md`);
+    assert.equal(menu[0].children[0].href, `${root}/10-architecture/index.md`);
+    assert.equal(menu[0].children[0].children[0].href, `${root}/10-architecture/100-services.md`);
+});
+
 function createAreas() {
     const bus = {
         addEventListener() {},

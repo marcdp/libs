@@ -538,6 +538,28 @@ The optional `contract` export describes the public interface.
 
 The default export provides the runtime implementation.
 
+## Markdown component inputs
+
+`x-markdown.value` accepts raw Markdown text. `x-markdown.src` accepts a normal browser URL and uses `fetch`, without routing the document through
+the Loader or requiring a `string:` prefix. Both inputs use the same renderer, backed by `x/utils/markdown.js` and its vendored parser.
+
+```html
+<x-markdown src="/_assets/xshell-docs/pages/10-architecture/100-services.md"></x-markdown>
+<x-markdown value="This is **Markdown**."></x-markdown>
+```
+
+The Service Worker maps browser-facing `/_assets/...` URLs to physical resources. The component keeps that virtual source URL as the base for
+relative `a[href]`, `img[src]`, `source[src]`, `video[src]`, and `audio[src]` attributes, including those inside templates. It preserves fragment-only,
+root-relative, fully qualified, and protocol URLs. Relative query strings and fragments survive resolution; same-origin results use pathname,
+query, and fragment. Without `src`, direct `value` content retains its authored URLs.
+
+After conversion, the component discovers custom elements, including nested template content, and loads their `component:<name>` dependencies
+before committing the DOM. Raw HTML policy is unchanged. HTTP failures render the response status and source URL as text through the same Markdown
+path. A newer input supersedes an older fetch or pending render. Changing `src` to a document with identical text still updates its relative URLs.
+
+Ordinary anchors remain anchors. Inside a Page, `x-page` performs navigation interception; `x-markdown` does not call Navigation. Markdown links
+retain their `.md` URLs and resolve through the generic [Markdown Page adapter](70-pages.md#markdown-pages).
+
 ## Related documentation
 
 * [Components](../components/)

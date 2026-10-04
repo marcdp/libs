@@ -118,6 +118,44 @@ const { createPageClassFromJsDefinition } = await import("../loaders/page-js.js"
 const { default: XPage } = await import("../x-page.js");
 const { default: Navigation } = await import("../navigation.js");
 const { default: xshell } = await import("../xshell.js");
+const { default: Page } = await import("../page.js");
+const { default: LoaderPageMd } = await import("../loaders/page-md.js");
+
+test("Markdown adapter loads its component without fetching, and follows the Page lifecycle across mounts", async (t) => {
+    const resources = [];
+    t.mock.method(globalThis, "fetch", () => { throw new Error("page-md must not fetch Markdown"); });
+    xshell._loader = { async load(resource) { resources.push(resource); } };
+    xshell._bus = { emit() {} };
+    const source = "/_assets/xshell-docs/pages/10-architecture/100-services.md";
+    const MarkdownPage = await new LoaderPageMd().load(source, {});
+    assert.deepEqual(resources, ["component:x-markdown"]);
+    const page = new MarkdownPage({ src: source + "?view=one#section", context: {} });
+    assert.ok(page instanceof Page);
+    assert.equal(page.src, source + "?view=one#section");
+    assert.equal(page.label, null); // menu/navigation metadata can supply the label
+    await page.load();
+    assert.equal(page._loaded, true);
+    const host = new FakeNode();
+    await page.mount({ host });
+    const first = host.firstChild;
+    assert.equal(first.localName, "x-markdown");
+    assert.equal(first.src, source);
+    await page.unmount();
+    assert.equal(host.childNodes.length, 0);
+    assert.equal(page.host, null);
+    await page.mount({ host });
+    assert.equal(host.firstChild.src, source);
+    assert.notEqual(host.firstChild, first);
+    await page.unmount();
+    await page.unload();
+    await page.mount({ host });
+    assert.equal(host.childNodes.length, 0);
+});
+
+test("Markdown adapter propagates component resolution/loading failure", async () => {
+    xshell._loader = { async load() { throw new Error("component unavailable"); } };
+    await assert.rejects(new LoaderPageMd().load("/guide.md", {}), /component unavailable/);
+});
 
 const renderEngines = [];
 

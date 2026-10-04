@@ -26,6 +26,31 @@ Menu aliases take precedence over routes in both directions.
 See [Components](60-components.md) for the contract and implementation formats. A component contract's DOM events are distinct from public module Bus
 events.
 
+## Markdown Pages
+
+Markdown documents are also Page resources. Their browser-facing URLs keep the `.md` extension, including documentation menu destinations:
+
+```text
+page:/_assets/xshell-docs/pages/10-architecture/100-services.md
+    → Resolver (page-md, cached Page class by path)
+    → page-md → normal Page → mount
+    → <x-markdown src="/_assets/xshell-docs/pages/10-architecture/100-services.md">
+    → fetch(src) → Markdown text → x/utils/markdown.js → rendered DOM
+```
+
+`page-md` is a Page adapter, not a Markdown renderer. It loads `component:x-markdown` through the normal Loader and mounts that component with the
+resolved document URL. Unmount detaches the component, and a later mount creates it again. Page load/unload and navigation metadata follow the
+normal lifecycle. Labels come from menu/breadcrumb/navigation metadata, not from parsing a Markdown heading.
+
+`x-markdown` owns loading, Markdown conversion, relative URL normalization, embedded-component loading, and its rendered content. Its `src` is a
+normal browser URL, without a logical resource prefix. `/_assets/...` works because the Service Worker virtualizes that browser URL. Each Page
+instance retains its navigation query while the cached Page class uses the resolved Markdown resource URL.
+
+Relative links and media resolve against `src`. For the example above, `30-modules.md` resolves to
+`/_assets/xshell-docs/pages/10-architecture/30-modules.md`. Query strings and fragments are retained. Links to other Markdown documents stay normal
+`.md` links: the containing `x-page` intercepts anchors and sends them through Navigation and the Page resolver. The component does not navigate
+directly. See [Markdown component inputs](60-components.md#markdown-component-inputs) for direct Markdown content and resource URL behavior.
+
 ## Declarative dependencies
 
 Definition-based Pages use the same `dependencies` mechanism as Components. A Page implementation declares an object whose keys are exposed on
