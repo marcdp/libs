@@ -1,392 +1,34 @@
 # XShell
 
-**XShell is a browser-native application runtime for building modular web applications with as little framework magic as possible.**
+**XShell is a browser-native runtime for building modular enterprise web applications that are meant to stay healthy, understandable, and maintainable for years.**
 
-It is an experiment in a deliberately conservative direction: use the Web Platform as the foundation, keep the runtime small and explicit, make modules independently understandable, and avoid turning application architecture into a build-tool artifact.
+The idea is simple: use the Web Platform first, keep the runtime small, make behavior explicit, and make each module easy to understand on its own.
 
-XShell is currently pre-1.0 and evolving. The codebase is intended to remain understandable at the source level while the architecture stabilizes.
+> **Understanding one module should not require understanding the whole application.**
 
-## Why XShell
+XShell is not tied to a particular rendering library, build pipeline, or deployment model. Its stable concepts are Modules, resources, Contracts, Pages, Services, Areas, and browser-native URLs.
 
-Modern web development is extremely capable, but it can also accumulate layers of indirection: bundlers, framework-specific component models, generated dependency graphs, proprietary routing conventions, hidden lifecycle rules, and large dependency trees.
+XShell is currently **pre-1.0** and evolving.
 
-XShell starts from a different question:
+## What XShell is designed for
 
-> How much application architecture can be built directly on browser standards while keeping the important boundaries explicit?
+- **Long-lived enterprise UI**: applications should age well and require as little maintenance as possible.
+- **Web Platform first**: ES modules, Web Components, Service Workers, URLs, CSS, `fetch`, and browser APIs are the foundation.
+- **Low cognitive load**: years later, an engineer should still be able to open a module and quickly understand what it does.
+- **Minimum magic**: important behavior should be visible in code or configuration.
+- **Modularity**: applications are composed from independent Modules with stable identities and predictable structure.
+- **Portable deployment**: application code uses the same URLs regardless of where resources are physically stored.
+- **Developer friendly**: behavior should be easy to trace from source to browser, with minimal build-time machinery.
+- **Understandable by humans and AI**: predictable files, naming, schemas, contracts, and boundaries make the system easy to inspect and reason about.
+- **Contracts**: Explicit contracts: public capabilities should be described wherever practical — properties, methods, events, slots, service APIs, and module-level capabilities.
+- **Framework agnostic**: XShell is not built around React, Vue, Lit, or any other rendering framework. Its architecture is based on Web standards, and rendering technologies can evolve independently from the application structure.
 
-The project favors **clarity over cleverness**. Most concepts have a concrete representation in configuration, source files, browser APIs, or runtime objects. The goal is not to eliminate abstraction; it is to make abstraction visible and proportionate to the problem it solves.
+## How an application fits together
 
-## Design objectives
+An XShell application is the runtime plus one or more Modules.
 
-### Simple by default
+A Module can contain Pages, Components, styles, Services, Contracts, icons, and optional module behavior.
 
-A small application should not require a large application framework.
-
-XShell tries to keep the core compact, move optional capabilities into modules, and avoid infrastructure that exists only to support other infrastructure.
-
-### Built on the Web Platform
-
-The browser is the runtime.
-
-XShell builds around native platform capabilities such as:
-
-- ES modules
-- Web Components
-- Service Workers
-- the History API
-- standard URLs
-- DOM events
-- CSS
-- `fetch`
-- browser storage and messaging primitives
-
-Framework abstractions should complement these APIs, not hide them unnecessarily.
-
-### Minimum magic
-
-Important behavior should be discoverable from the code and configuration.
-
-XShell intentionally keeps boundaries such as these explicit:
-
-```text
-Resolver        -> decides what a resource means and where it is
-Loader          -> obtains or constructs that resource
-
-Contract        -> describes public API
-Implementation  -> provides behavior
-
-Property        -> public component/page API
-State           -> private reactive implementation data
-
-State engine    -> owns state behavior
-Render engine   -> owns rendering
-
-Module          -> reusable package
-Area            -> application/navigation composition context
-
-Page            -> presentation + lifecycle
-Navigation      -> browser URL and page-stack behavior
-```
-
-These distinctions are architectural constraints, not naming conventions.
-
-### Modular applications
-
-An XShell application is composed from modules.
-
-Each module has a stable identity, its own resources and configuration, and can contribute capabilities such as components, pages, services, menus, routes, styles, contracts, and controllers.
-
-The application itself is the root module.
-
-Module discovery is explicit through `module.jsonc` references, and the runtime maintains one canonical module definition and one live module instance per module id.
-
-### Stable virtual resources
-
-Module files are exposed to the browser through a uniform virtual namespace:
-
-```text
-/_assets/<module-id>/...
-```
-
-A Service Worker maps that stable namespace to the physical location of each package.
-
-This separates the URL used by application code from the place where a package is actually stored or served.
-
-For example:
-
-```text
-/_assets/x/components/x-button.js
-/_assets/xshell-docs/pages/10-architecture/index.md
-```
-
-Application code can therefore reason about module resources without knowing their deployment location.
-
-### Packaging without changing the programming model
-
-Modules are authored as normal directories.
-
-XShell tooling can compile and package them as expanded packages or immutable ZIP artifacts, while `module.files.json` provides the canonical resource inventory for a package.
-
-The long-term deployment model is intentionally compatible with **immutable packages + Service Worker virtualization**, so deployment format does not need to leak into application code.
-
-> Current status: XShell can produce ZIP packages, but the browser runtime does not yet load module resources directly from ZIP files. Runtime ZIP-backed loading is a future capability, not an implemented feature.
-
-### Future-proof by reducing framework ownership
-
-XShell tries to own as little syntax and runtime behavior as practical.
-
-The closer an application remains to browser standards, plain JavaScript, URLs, HTML, CSS, and explicit data structures, the less application code depends on the lifetime of a particular frontend ecosystem.
-
-“Future-proof” does not mean APIs never change. It means architectural value should survive implementation changes.
-
-### CSP-friendly
-
-The runtime is designed to work with a restrictive Content Security Policy and avoids depending on `unsafe-inline` or `eval`-style execution as an architectural requirement.
-
-### Understandable by humans and LLMs
-
-LLM-assisted engineering is becoming part of normal software development. XShell treats **machine understandability as an architectural quality**, not as a documentation afterthought.
-
-The project therefore favors:
-
-- explicit files over generated hidden state
-- stable naming conventions
-- small, local abstractions
-- declarative configuration
-- clear ownership boundaries
-- conventional module layouts
-- source documentation close to the implementation
-- schemas for public configuration and contracts
-- predictable resource URLs
-- deterministic package inventories
-
-The objective is that a developer — or an engineering agent — can inspect a focused part of the repository and understand its role without first reconstructing an entire framework-specific mental model.
-
-## Architecture at a glance
-
-A simplified startup flow is:
-
-```text
-host HTML
-    ↓
-bootstrap
-    ↓
-root module.jsonc
-    ↓
-recursive module discovery
-    ↓
-effective configuration
-    ↓
-Service Worker resource mappings
-    ↓
-module.files.json inventories
-    ↓
-Resolver + Loader configuration
-    ↓
-XShell runtime initialization
-    ↓
-services + modules
-    ↓
-Areas
-    ↓
-Navigation
-    ↓
-Pages
-```
-
-The normal resource flow is:
-
-```text
-logical resource
-    ↓
-Resolver
-    ↓
-URL + loader
-    ↓
-Loader
-    ↓
-resource
-```
-
-This separation is central to XShell. Resolution decides **what/where**; loading decides **how**.
-
-## Components and Pages
-
-XShell uses Web Components as its component foundation.
-
-A component may be a native custom-element class or a definition object with a public `contract` and a separate implementation.
-
-Definition-based components can use pluggable state and render engines while keeping the public API independent from those engines.
-
-Pages reuse the same general model but add navigation context and Page lifecycle:
-
-```text
-Page = Component model + Navigation context
-```
-
-Pages and Components remain separate runtime concepts even where they share conventions.
-
-## Areas and Navigation
-
-Modules contribute reusable navigation information. **Areas** compose participating modules into an application navigation context.
-
-Navigation owns browser-facing concerns such as:
-
-- path and hash navigation
-- History API integration
-- friendly routes
-- page stacks
-- dialogs and embedded pages
-- browser URL generation
-
-Path navigation is the preferred mode when the host provides SPA fallback. Hash navigation remains available when server cooperation is not possible.
-
-## Browser runtime, server support
-
-The browser owns the application runtime.
-
-ASP.NET Core currently provides the host-side integration used by this repository:
-
-- generated bootstrap files
-- development resource serving
-- on-demand development compilation
-- SPA fallback for path navigation
-- temporary-file middleware
-- package/build tooling
-
-The architectural intention is to keep browser framework behavior in the browser and server/build concerns on the server.
-
-## Project structure
-
-```text
-src/DProjects.XShell/
-├── Commands/                    # Development and packaging commands
-├── Middlewares/                 # ASP.NET Core hosting/resource middleware
-├── Services/                    # Build-time/server-side services
-└── Resources/DProjects.XShell/
-    ├── xshell/                  # Browser runtime
-    ├── x/                       # Standard UI module
-    ├── x-demo/                  # Demo/reference application module
-    ├── xshell-docs/             # XShell documentation module
-    ├── xshell-diagnostics/      # Runtime diagnostics module
-    └── codemirror/              # CodeMirror integration module
-```
-
-The modules under `Resources/DProjects.XShell/` are real runtime resources, not merely samples or static content.
-
-## Getting started
-
-XShell currently targets **.NET 10** for its host and tooling.
-
-Run the bundled development server from the repository root:
-
-```bash
-dotnet run --project src/DProjects.XShell -- server
-```
-
-The server command uses `x-demo` by default. A different root module can be selected with `--app-config`.
-
-For example:
-
-```bash
-dotnet run --project src/DProjects.XShell -- server \
-  --app-config /_resources/DProjects.XShell/x-demo/module.jsonc
-```
-
-XShell can also be hosted from an ASP.NET Core application:
-
-```csharp
-using DProjects.XShell;
-
-var builder = WebApplication.CreateBuilder(args);
-
-builder.Services.AddXShell();
-
-var app = builder.Build();
-
-app.UseXShell(new Extensions.Configuration {
-    AppConfigPath = "/_resources/DProjects.XShell/x-demo/module.jsonc"
-});
-
-app.Run();
-```
-
-## Packaging
-
-The `pack` command creates a distributable package from a module or from the XShell framework:
-
-```bash
-dotnet run --project src/DProjects.XShell -- pack \
-  --source ./path/to/module \
-  --output ./dist
-```
-
-Add `--zip` to produce an immutable ZIP artifact:
-
-```bash
-dotnet run --project src/DProjects.XShell -- pack \
-  --source ./path/to/module \
-  --output ./dist \
-  --zip
-```
-
-Packaging compiles supported authored resources where required and generates the final `module.files.json` inventory from the distributable package contents.
-
-## Documentation
-
-The canonical project documentation is itself an XShell module:
-
-```text
-Resources/DProjects.XShell/xshell-docs/
-```
-
-Its pages cover:
-
-- architecture
-- components
-- subsystems
-- extensions
-- configuration specifications
-- architecture decision records
-
-Start with:
-
-```text
-Resources/DProjects.XShell/xshell-docs/pages/index.md
-```
-
-The documentation is intentionally kept close to the runtime it describes and can also be consumed through XShell itself.
-
-## Engineering principles
-
-When evolving XShell, the preferred order is:
-
-1. use an existing Web Platform capability;
-2. make the behavior explicit;
-3. preserve architectural boundaries;
-4. keep the core small;
-5. add convention where it removes repetition;
-6. add configuration where a real choice exists;
-7. add abstraction only when multiple concrete uses justify it.
-
-Two useful rules are:
-
-> **Convention describes structure. Configuration expresses intent.**
-
-and:
-
-> **Inventory tells XShell what exists. Configuration tells XShell what to do when there is a choice.**
-
-## What XShell is not
-
-XShell is not intended to be:
-
-- a replacement language for the Web Platform
-- a framework-specific virtual browser
-- a mandatory bundler pipeline
-- a dependency-injection framework disguised as a UI library
-- a system where every concern is configurable
-- an abstraction layer over standards simply for the sake of abstraction
-
-The project is deliberately opinionated about architecture while trying to remain conservative about technology.
-
-## Status
-
-XShell is currently **pre-1.0** and under active architectural development.
-
-Some capabilities are intentionally ahead of others. In particular, package creation already supports immutable ZIP artifacts, while direct browser loading from ZIP-backed module packages is still future work.
-
-The project should be evaluated as an evolving architecture and runtime rather than as a finished general-purpose frontend framework.
-
----
-
-XShell's central idea is simple:
-
-> **Build on the browser, make the architecture explicit, and keep enough of the system visible that it remains understandable years later — by both engineers and the tools that help them.**
-
-## Arquitecture
-
-### 1. Application composition
 ```mermaid
 flowchart LR
 
@@ -398,51 +40,236 @@ flowchart LR
     APP --> MN["Module N"]
 
     subgraph MODULE["A Module"]
-        CFG["Configuration<br/>module.jsonc"]
+        CFG["Configuration<br/>module.json"]
+        CTRL["Optional Controller<br/>module.js"]
         PAGES["Pages"]
         COMPONENTS["Components"]
         STYLES["Stylesheets"]
-        CONTROLLER["Module Controller"]
         CONTRACTS["Contracts"]
         SERVICES["Services"]
         ICONS["Icons"]
-
-        CFG --> PAGES
-        CFG --> COMPONENTS
-        CFG --> STYLES
-        CFG --> CONTROLLER
-        CFG --> CONTRACTS
-        CFG --> SERVICES
-        CFG --> ICONS
     end
 
-    M1 -. follows this structure .-> MODULE
+    M1 -. same model .-> MODULE
 ```
 
-An XShell application is composed from the XShell runtime plus one or more modules.
-Each module is a self-contained package that can contribute pages, components, styles, services, contracts, icons, and optional module behavior.
+A good Module should be easy to inspect and answer:
 
-## Module packaging and resource delivery
+- What does it provide?
+- What does it depend on?
+- How is it configured?
+- Which resources does it expose?
+- Where should I look when something goes wrong?
+
+Sample module file structure:
+```
+my-module/
+├── module.json
+├── module.js
+│
+├── pages/
+│   ├── index.js
+│   ├── customers/
+│   │   ├── index.js
+│   │   └── detail.js
+│   └── settings/
+│       └── index.js
+│
+├── components/
+│   ├── customer-card.js
+│   ├── customer-form.js
+│   └── status-badge.js
+│
+├── contracts/
+│   ├── customer-repository.js
+│   └── notification-service.js
+│
+├── services/
+│   ├── customer-repository.js
+│   └── notification-service.js
+│
+├── styles/
+│   ├── index.css
+│   └── customers.css
+│
+└── icons/
+    ├── customer.svg
+    ├── settings.svg
+    └── warning.svg
+```
+
+
+### Production module packaging
+
+In production,  each Module is deployed as a small module.json file plus one immutable ZIP containing its resources.
+
 
 ```mermaid
 flowchart LR
 
-    SRC["Module source"]
+    subgraph DEPLOY["Production"]
+        CFG["module.json<br/>configuration"]
+        ZIP["my-module-1.4.2-a84f3c.zip"]
+    end
 
-    SRC --> CFG["Configuration<br/>module.jsonc"]
-    SRC --> RES["Module resources"]
+    CFG --> BOOT["XShell Bootstrap"]
+    BOOT --> SW["Service Worker (unzip+serves)"]
 
-    RES --> ZIP["Packaged resources<br/>module ZIP"]
-    RES --> INV["Resource inventory<br/>module.files.json"]
+    ZIP -->|download once| SW
 
-    CFG --> SW["Service Worker"]
-    ZIP --> SW
-    INV --> SW
+    SW --> CACHE["Browser Cache<br/>aggressively cached"]
+    CACHE --> SW
 
-    SW --> VIRTUAL["Stable virtual URLs<br/>/_assets/&lt;module-id&gt;/..."]
+    SW --> ASSETS["/_assets/my-module/..."]
 
-    VIRTUAL --> BROWSER["Browser sees normal resources<br/>JS, CSS, pages, icons, etc."]
+    ASSETS --> JS["JavaScript"]
+    ASSETS --> CSS["CSS"]
+    ASSETS --> PAGES["Pages"]
+    ASSETS --> ICONS["Icons"]
+
+    BROWSER["Application"] --> ASSETS
 ```
 
-A module can be packaged independently from where its resources are ultimately served.
-The Service Worker exposes the package through stable /_assets/<module-id>/... URLs, so application code sees normal web resources regardless of the physical deployment format.
+The browser always sees normal Module URLs such as `/_assets/my-module/...`; it does not need to know that the resources came from a ZIP.
+
+Production packages are identified by **module version + content hash**, making them immutable and safe to cache aggressively. A new deployment creates a new package instead of modifying an existing one.
+
+This keeps deployment simple and predictable while reducing the number of physical files that need to be transferred and maintained.
+
+> **One Module → one configuration + one immutable ZIP → normal browser resources.**
+
+
+
+## A few important boundaries
+
+XShell keeps responsibilities intentionally separate:
+
+```text
+Resolver        -> decides what a resource means and where it is
+Loader          -> obtains or constructs that resource
+
+Contract        -> describes public API
+Implementation  -> provides behavior
+
+Property        -> public API
+State           -> private reactive data
+
+State engine    -> owns state behavior
+Render engine   -> owns rendering
+
+Module          -> reusable package
+Area            -> navigation/composition context
+
+Page            -> presentation + lifecycle
+Navigation      -> browser URLs and page stacks
+```
+
+These boundaries make the runtime easier to understand, change, and debug.
+
+## Components and Pages
+
+XShell uses **Web Components** as its component foundation.
+
+Components may be native custom-element classes or definition objects with a public `contract` and a separate implementation.
+
+Pages share many concepts with Components, but add navigation context and Page lifecycle.
+
+```text
+Page = Component model + Navigation context
+```
+
+## Modules, Areas, and Navigation
+
+A **Module** owns reusable resources and configuration.
+
+An **Area** composes one or more Modules into a navigation context.
+
+Navigation handles:
+
+- friendly paths and routes
+- browser history
+- path or hash navigation
+- page stacks
+- dialogs and embedded Pages
+- browser URL generation
+
+Path navigation is preferred when the server provides SPA fallback. Hash navigation remains available when it does not.
+
+
+
+
+## Designed to be debugged
+
+Long-lived software must be easy to diagnose.
+
+XShell favors:
+
+- predictable resource URLs
+- stable Module identities
+- explicit configuration
+- deterministic resource inventories
+- clear Resolver / Loader separation
+- explicit lifecycle boundaries
+- dedicated diagnostics
+
+When something fails, an engineer should be able to follow the path from configuration to resource resolution to loading to runtime behavior.
+
+## Browser first, server where useful
+
+The browser owns the application runtime.
+
+ASP.NET Core currently provides:
+
+- bootstrap generation
+- development resource serving
+- on-demand compilation
+- SPA fallback
+- temporary-file handling
+- packaging/build tooling
+
+Browser behavior stays in the browser; server and build concerns stay on the server.
+
+
+## Getting started
+
+XShell currently targets **.NET 10**.
+
+Run the demo:
+
+```bash
+dotnet run --project src/DProjects.XShell -- server
+```
+
+## Documentation
+
+The documentation is itself an XShell Module:
+
+```text
+Resources/DProjects.XShell/xshell-docs/
+```
+
+Start here:
+
+```text
+Resources/DProjects.XShell/xshell-docs/pages/index.md
+```
+
+It covers architecture, Components, Pages, subsystems, extensions, specifications, and ADRs.
+
+## Engineering direction
+
+When evolving XShell, prefer:
+
+1. Web Platform capabilities first;
+2. explicit behavior;
+3. clear ownership;
+4. a small core;
+5. convention for predictable structure;
+6. configuration for real choices;
+7. abstraction only when concrete use cases justify it.
+
+A good XShell Module should still be readable years after it was written.
+
+---
+
+> **Build on the browser. Keep the architecture explicit. Make the system easy to understand, debug, and maintain for years.**
