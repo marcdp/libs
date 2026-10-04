@@ -4,6 +4,7 @@ import xshell from "../xshell.js";
 export default class LoaderPageMd {
 
     async load(src, context) {
+        
         // resolve the renderer through the normal component loader
         const componentMarkdown = xshell.config.xshell.ui.component.markdown;
         await xshell.loader.load("component:" + componentMarkdown);
@@ -21,7 +22,7 @@ export default class LoaderPageMd {
             async mount({host}) {
                 if (this._unloaded) return;
                 // mount the resolved document URL, independently of Page instance query state
-                const markdown = document.createElement("x-markdown");
+                const markdown = document.createElement(componentMarkdown);
                 markdown.setAttribute("src", src);
                 host.replaceChildren(markdown);
                 await super.mount({host});

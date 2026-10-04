@@ -59,7 +59,7 @@ Services/ModuleFileCompilerJs.cs
 Resources/DProjects.XShell/xshell/render-engines/x.js
 Resources/DProjects.XShell/xshell/loaders/component-js.js
 Resources/DProjects.XShell/xshell/loaders/page-js.js
-Resources/DProjects.XShell/docs/extensions/x-templates/*
+Resources/DProjects.XShell/xshell-docs/pages/extensions/x-templates/*
 Resources/DProjects.XShell/x/components/*
 Resources/DProjects.XShell/x/pages/*
 Resources/DProjects.XShell/x/layouts/*

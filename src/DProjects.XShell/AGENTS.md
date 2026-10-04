@@ -65,10 +65,10 @@ src/DProjects.XShell/
 ├── Services/                       # Server/build-time services
 │   └── XTemplate/                  # X Template compiler
 └── Resources/DProjects.XShell/
-    ├── docs/                       # Canonical documentation
     ├── x/                          # Core UI module
     ├── x-debug/                    # Debug module
     ├── x-demo/                     # Demo/sample module
+    ├── xshell-docs/                # Canonical documentation
     └── xshell/                     # Browser runtime
         ├── loaders/
         ├── render-engines/
@@ -191,7 +191,7 @@ When changing Area or menu behavior, inspect:
 ```text
 xshell/areas.js
 xshell/navigation.js
-docs/subsystems/areas.md
+xshell-docs/pages/30-subsystems/10-areas.md
 ```
 
 plus relevant module definitions and ADRs.
@@ -582,7 +582,7 @@ Use `module.files.json` as the canonical inventory filename everywhere.
 Canonical documentation lives under:
 
 ```text
-Resources/DProjects.XShell/docs/
+Resources/DProjects.XShell/xshell-docs/
 ```
 
 It is runtime content.
@@ -604,7 +604,7 @@ When public behavior or architecture changes, update the relevant documentation.
 Architecture Decision Records live under:
 
 ```text
-docs/adr/
+xshell-docs/pages/60-adr/
 ```
 
 ADR filenames follow:

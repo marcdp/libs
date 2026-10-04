@@ -159,9 +159,9 @@ x-markdown pre code {
     border:var(--x-datafield-border);
     padding:1em;
 }
-x-page > x-markdown:first-child > h1:first-child {display:none;}
 x-markdown table {width:100%; border-collapse:collapse; margin:1em 0; }
 x-markdown table th, x-markdown table td {border:1px solid var(--x-color-gray); padding:.5em; text-align:left;}
+x-page[layout='main'] > x-markdown:first-child > h1:first-child {display:none;}
 
 
 :root {
