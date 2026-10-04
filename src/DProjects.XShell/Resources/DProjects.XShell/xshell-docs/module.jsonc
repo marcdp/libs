@@ -3,9 +3,9 @@
     // module
     "modules": {
         "xshell-docs": {
-            "label": "XShell docs module",
+            "label": "XShell docs",
             "version": "1.0.0",
-            "icon": "",
+            "icon": "xshell-docs",
             "copyright": "",
             "defaults": {
                 "component": { 
@@ -18,7 +18,7 @@
                 }
             },
             "menus": {
-                "navigation": "xshell-docs-dynamic-navigation-menu-source"
+                "navigation": "/pages"
             }
         }
     },
@@ -27,10 +27,10 @@
     "xshell": {
         "areas": {
             "definitions": {
-                "docs": {
+                "xshell-docs": {
                     "prefix": "xshell-docs",
-                    "label": "XShell-Docs",
-                    "icon": "",
+                    "label": "XShell docs",
+                    "icon": "xshell-docs",
                     "modules": [ "xshell-docs" ]
                 }
             }

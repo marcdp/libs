@@ -381,6 +381,7 @@ function fillResolverRules(config) {
         const moduleAssetsPathContracts = moduleAssetsPath + "/contracts";
         // icon resolvers
         resolver.icon = resolver.icon || {};
+        resolver.icon[`${moduleId}`] = resolver.icon[`${moduleId}`] || { url: `${moduleAssetsPath}/icons/${moduleId}.svg`, loader: 'icon-svg', cache: true, moduleId: moduleId, modulePath: moduleAssetsPath}
         resolver.icon[`${moduleId}-{name}`] = resolver.icon[`${moduleId}-{name}`] || { url: `${moduleAssetsPath}/icons/${moduleId}-{name}.svg`, loader: 'icon-svg', cache: true, moduleId: moduleId, modulePath: moduleAssetsPath}
         // layout resolvers
         resolver.layout = resolver.layout || {};
@@ -392,6 +393,7 @@ function fillResolverRules(config) {
         resolver.page = resolver.page || {};
         resolver.page[`${moduleAssetsPath}/{path}.js`] = resolver.page[`${moduleAssetsPath}/{path}.js`] || { url: `${moduleAssetsPath}/{path}.js`, loader: 'page-js', cache: true, cacheMode: 'path', moduleId: moduleId, modulePath: moduleAssetsPath};
         resolver.page[`${moduleAssetsPath}/{path}.html`] = resolver.page[`${moduleAssetsPath}/{path}.html`] || { url: `${moduleAssetsPath}/{path}.js`, loader: 'page-js', cache: true, cacheMode: 'path', moduleId: moduleId, modulePath: moduleAssetsPath};
+        resolver.page[`${moduleAssetsPath}/{path}.md`] = resolver.page[`${moduleAssetsPath}/{path}.md`] || { url: `${moduleAssetsPath}/{path}.md`, loader: 'page-md', cache: true, cacheMode: 'path', moduleId: moduleId, modulePath: moduleAssetsPath};
         // module resolvers
         resolver.module = resolver.module || {};
         resolver.module[`${moduleId}-{name}`] = resolver.module[`${moduleId}-{name}`] || { url: `${moduleAssetsPath}/${moduleId}-{name}.js`, loader: 'module-js', cache: true, moduleId: moduleId, modulePath: moduleAssetsPath};

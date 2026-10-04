@@ -1,0 +1,38 @@
+// contract
+export const contract = {
+    description: "Index page",
+    events: {},
+    properties: {},
+    methods: {}
+};
+
+// export page
+export default {
+    meta: {
+        title: "Debug"
+    },
+    style: `
+        x-tabs {width: 80em; max-width:90vw; }
+        x-tab {max-height:60vh; aoverflow-y:auto;}
+    `,
+    template: `
+        <x-tabs selected-index="0">
+            <x-tab x-for="menuitem in state.menuitems" x-attr:label="menuitem.label" >
+                <x-page x-attr:src="menuitem.href" loading="lazy"></x-page>
+            </x-tab>
+        </x-tabs>        
+    `,    
+    state: {
+        menuitems: []
+    },
+    controller({ state, config, areas }) {
+        return {
+            load(params) {
+               // load
+               const area = areas.getArea("xshell-diagnostics");
+               const menuitems = area.menus.navigation[0].children;
+               state.menuitems = menuitems;
+            }
+        };
+    }
+}

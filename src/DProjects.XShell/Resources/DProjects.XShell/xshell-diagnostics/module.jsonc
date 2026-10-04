@@ -1,0 +1,45 @@
+{
+
+    // module
+    "modules": {
+        "xshell-diagnostics": {
+            "label": "XShell Diagnostics",
+            "version": "1.0.0",
+            "icon": "xshell-diagnostics",
+            "copyright": "",
+            "defaults": {
+                "component": { 
+                    "renderEngine": "x",
+                    "stateEngine": "proxy"
+                },
+                "page": { 
+                    "renderEngine": "x",
+                    "stateEngine": "proxy"
+                }
+            },
+            "menus": {
+                "navigation": "/pages",
+                "shortcuts": [
+                    {"label": "", "tooltip":"Diagnostics", "icon": "xshell-diagnostics", "children":[
+                        {"label": "Shortcut 1.1", "href": "/pages/index.js", "icon": "x-settings", "embeded": true }
+                    ] }
+                ]
+            }
+        }
+    },
+
+    // xshell 
+    "xshell": {
+        "areas": {
+            "definitions": {
+                "xshell-diagnostics": {
+                    "prefix": "xshell-diagnostics",
+                    "label": "XShell diagnostics",
+                    "icon": "xshell-diagnostics",
+                    "modules": [ "xshell-diagnostics" ]
+                }
+            }
+        }
+    }
+
+}

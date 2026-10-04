@@ -11,7 +11,7 @@
     // module
     "modules": {
         "x-demo": {
-            "label": "test module",
+            "label": "Demo",
             "version": "1.0.0",
             "icon": "",
             "copyright": "",
@@ -31,7 +31,7 @@
                 "intents": {}
             },
             "menus":{
-                "navigation": "x-demo-dynamic-navigation-menu-source",
+                "navigation": "/pages",
                 "tools": [
                     { "label": "My things 2-2", "href": "/pages/index.js?a=2-2"},
                     { "label": "My things 1111", "href": "/pages/01-components/index.js?a=1"}
@@ -43,9 +43,9 @@
             }
         },
         // references
-        "x":            {"configUrl": "url:../x/module.jsonc"},
-        "x-debug":      {"configUrl": "url:../x-debug/module.jsonc"},
-        "xshell-docs":  {"configUrl": "url:../xshell-docs/module.jsonc"}
+        "x":                    {"configUrl": "url:../x/module.jsonc"},
+        "xshell-diagnostics":   {"configUrl": "url:../xshell-diagnostics/module.jsonc"},
+        "xshell-docs":          {"configUrl": "url:../xshell-docs/module.jsonc"}
     },
 
     // xshell 
