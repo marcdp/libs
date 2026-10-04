@@ -390,9 +390,10 @@ export default class Areas {
             extensions.some(extension => file.path === `${root}/index${extension}`
             )
         );
+        const rootItemExtension = rootIndex ? getExtension(rootIndex.path) : null;
         const rootItem = {
             label: rootItemLabel,
-            href: `${root}/index.js`,
+            href: `${root}/index${rootItemExtension || ".js"}`,
             ...(createPaths ? { path: "/" } : {}),
             default: true,
             children: []

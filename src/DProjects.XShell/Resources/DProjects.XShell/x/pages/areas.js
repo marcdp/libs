@@ -16,7 +16,7 @@ export default {
         <p>
             Please select the area to navigate:
         </p>        
-        <x-listview view="details">
+        <x-listview view="icons">
             <x-listview-item 
                 x-for="area in state.areas"
                 x-class:selected="(state.selected == area.id)"
