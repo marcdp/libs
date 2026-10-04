@@ -20,7 +20,7 @@ XShell is currently **pre-1.0** and evolving.
 - **Portable deployment**: application code uses the same URLs regardless of where resources are physically stored.
 - **Developer friendly**: behavior should be easy to trace from source to browser, with minimal build-time machinery.
 - **Understandable by humans and AI**: predictable files, naming, schemas, contracts, and boundaries make the system easy to inspect and reason about.
-- **Contracts**: Explicit contracts: public capabilities should be described wherever practical — properties, methods, events, slots, service APIs, and module-level capabilities.
+- **Explicit contracts**: public capabilities should be described wherever practical — properties, methods, events, slots, service APIs, and module-level capabilities.
 - **Framework agnostic**: XShell is not built around React, Vue, Lit, or any other rendering framework. Its architecture is based on Web standards, and rendering technologies can evolve independently from the application structure.
 
 ## How an application fits together
@@ -108,7 +108,7 @@ In production,  each Module is deployed as a small module.json file plus one imm
 flowchart LR
 
     subgraph DEPLOY["Production"]
-        CFG["module.json<br/>configuration"]
+        CFG["module.json"]
         ZIP["my-module-1.4.2-a84f3c.zip"]
     end
 
@@ -137,6 +137,8 @@ Production packages are identified by **module version + content hash**, making 
 This keeps deployment simple and predictable while reducing the number of physical files that need to be transferred and maintained.
 
 > **One Module → one configuration + one immutable ZIP → normal browser resources.**
+
+> Current status: ZIP packaging is implemented; transparent ZIP-backed resource loading through the Service Worker is the target production model.
 
 
 
