@@ -29,7 +29,7 @@ generation, bootstrap awaits XShell's effective schema validation, deeply freeze
 services are constructed. The X module controller is empty; validation is not environment-gated. The canonical schema is
 `xshell/schemas/config.schema.json`; it requires module defaults for definition-based Page and Component engines and defines XShell UI defaults
 for layouts, lazy/error components, and standard dialog pages, plus `contract.events`/`actions`/`intents`. Its `$id` still uses the stale
-`https://xshell.dev/schemes/config.scheme.json` identifier. The server default points to `modules/x-demo/module.jsonc`. Browser JSONC supports
+`https://xshell.dev/schemes/config.scheme.json` identifier. The server default points to `x-demo/module.jsonc`. Browser JSONC supports
 comments but not trailing commas.
 
 See [Configuration](../architecture/configuration.md) and [Specifications](../specifications/).

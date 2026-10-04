@@ -40,15 +40,15 @@ This excerpt shows location/params fields only, omitting required metadata and d
     "modules": {
         "app": {
             "label": "Application",
-            "configUrl": "https://example.test/modules/app/module.jsonc",
-            "assetsUrl": "https://example.test/modules/app/",
+            "configUrl": "https://example.test/app/module.jsonc",
+            "assetsUrl": "https://example.test/app/",
             "assetsPath": "/_assets/app"
         },
         "x": {
             "label": "X",
             "version": "1.0.0",
-            "configUrl": "https://example.test/modules/x/module.jsonc",
-            "assetsUrl": "https://example.test/modules/x/",
+            "configUrl": "https://example.test//x/module.jsonc",
+            "assetsUrl": "https://example.test/x/",
             "assetsPath": "/_assets/x",
             "params": { "mode": "compact" }
         }

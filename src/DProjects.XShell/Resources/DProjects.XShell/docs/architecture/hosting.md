@@ -11,7 +11,7 @@ builder.Services.AddXShell();
 var app = builder.Build();
 app.MapGet("/api/health", () => "ok");
 app.UseXShell(new Extensions.Configuration {
-    AppConfigPath = "/_resources/DProjects.XShell/modules/x-demo/module.jsonc"
+    AppConfigPath = "/_resources/DProjects.XShell/x-demo/module.jsonc"
 });
 app.Run();
 ```

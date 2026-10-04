@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import ToastContract from "../../modules/x/contracts/toast.json" with { type: "json" };
-import Toast from "../../modules/x/services/toast-default.js";
+import ToastContract from "../../x/contracts/toast.json" with { type: "json" };
+import Toast from "../../x/services/toast-default.js";
 import Contracts from "../contracts.js";
 import Services from "../services.js";
 import validateContract from "../validation/contract.js";

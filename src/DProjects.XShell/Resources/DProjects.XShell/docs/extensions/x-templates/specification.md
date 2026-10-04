@@ -60,9 +60,9 @@ Resources/DProjects.XShell/xshell/render-engines/x.js
 Resources/DProjects.XShell/xshell/loaders/component-js.js
 Resources/DProjects.XShell/xshell/loaders/page-js.js
 Resources/DProjects.XShell/docs/extensions/x-templates/*
-Resources/DProjects.XShell/modules/x/components/*
-Resources/DProjects.XShell/modules/x/pages/*
-Resources/DProjects.XShell/modules/x/layouts/*
+Resources/DProjects.XShell/x/components/*
+Resources/DProjects.XShell/x/pages/*
+Resources/DProjects.XShell/x/layouts/*
 ```
 
 The existing implementation is the behavioral reference, but this document deliberately distinguishes:

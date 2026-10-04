@@ -57,7 +57,7 @@ const { createComponentClassFromJsDefinition } = await import("../loaders/compon
 const { default: Areas } = await import("../areas.js");
 const { default: Navigation } = await import("../navigation.js");
 const { default: xshell } = await import("../xshell.js");
-const { contract, default: anchorDefinition } = await import("../../modules/x/components/x-anchor.js");
+const { contract, default: anchorDefinition } = await import("../../x/components/x-anchor.js");
 
 class StateEngineFactory {
     constructor(state) {

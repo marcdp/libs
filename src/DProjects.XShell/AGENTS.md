@@ -66,9 +66,9 @@ src/DProjects.XShell/
 │   └── XTemplate/                  # X Template compiler
 └── Resources/DProjects.XShell/
     ├── docs/                       # Canonical documentation
-    ├── modules/
-    │   ├── x/                      # Core UI module
-    │   └── x-demo/                 # Demo/sample module
+    ├── x/                          # Core UI module
+    ├── x-debug/                    # Debug module
+    ├── x-demo/                     # Demo/sample module
     └── xshell/                     # Browser runtime
         ├── loaders/
         ├── render-engines/
@@ -286,7 +286,7 @@ This is declarative resource loading, not a separate dependency-injection framew
 Core components live under:
 
 ```text
-Resources/DProjects.XShell/modules/x/components/
+Resources/DProjects.XShell/x/components/
 ```
 
 A component module may default-export either:

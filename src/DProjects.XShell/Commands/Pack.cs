@@ -10,7 +10,7 @@ namespace DProjects.XShell.Commands {
 
 
     [Description("Pack an XShell module or the XShell framework")]
-    [Example("DProjects.XShell pack --source ./modules/x --output ./dist", "Pack an XShell module")]
+    [Example("DProjects.XShell pack --source ./x --output ./dist", "Pack an XShell module")]
     [Example("DProjects.XShell pack --source ./xshell --output ./dist", "Pack the XShell framework")]
     public class Pack(IEnvironment environment) : ICommand {
 

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import DemoModule from "../../modules/x-demo/js/module.js";
+import DemoModule from "../../x-demo/js/module.js";
 
 test("x-demo consumes normalized effective inventory paths without prefixing them twice", () => {
     let source;
