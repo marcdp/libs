@@ -1,0 +1,40 @@
+{
+
+    // module
+    "modules": {
+        "xshell-docs": {
+            "label": "XShell docs module",
+            "version": "1.0.0",
+            "icon": "",
+            "copyright": "",
+            "defaults": {
+                "component": { 
+                    "renderEngine": "x",
+                    "stateEngine": "proxy"
+                },
+                "page": { 
+                    "renderEngine": "x",
+                    "stateEngine": "proxy"
+                }
+            },
+            "menus": {
+                "navigation": "xshell-docs-dynamic-navigation-menu-source"
+            }
+        }
+    },
+
+    // xshell 
+    "xshell": {
+        "areas": {
+            "definitions": {
+                "docs": {
+                    "prefix": "xshell-docs",
+                    "label": "XShell-Docs",
+                    "icon": "",
+                    "modules": [ "xshell-docs" ]
+                }
+            }
+        }
+    }
+
+}

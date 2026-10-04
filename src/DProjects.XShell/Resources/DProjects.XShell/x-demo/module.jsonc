@@ -43,8 +43,9 @@
             }
         },
         // references
-        "x":       {"configUrl": "url:../x/module.jsonc"},
-        "x-debug": {"configUrl": "url:../x-debug/module.jsonc"}
+        "x":            {"configUrl": "url:../x/module.jsonc"},
+        "x-debug":      {"configUrl": "url:../x-debug/module.jsonc"},
+        "xshell-docs":  {"configUrl": "url:../xshell-docs/module.jsonc"}
     },
 
     // xshell 
