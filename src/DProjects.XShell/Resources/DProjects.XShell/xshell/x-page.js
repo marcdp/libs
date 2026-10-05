@@ -53,14 +53,17 @@ class XPage extends HTMLElement {
                 event.defaultPrevented ||
                 event.button !== 0 ||        
                 event.metaKey || event.ctrlKey || event.shiftKey || event.altKey ||
-                a.target === "_blank" ||
+                (a.target && a.target.toLowerCase() !== "_self") ||
                 a.hasAttribute("download") ) {
                 // normal browser navigation
                 return; 
             }
+            const href = a.getAttribute("href");
+            // leave native URLs alone while preserving XShell's hash-navigation prefix
+            if (!href || (href.startsWith("#") && !href.startsWith("#!")) ||
+                /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(href) || href.startsWith("//")) return;
             // handle navigation
             const xpage = a.closest("x-page");
-            const href = a.getAttribute("href");
             const item = {
                 ...xshell.navigation.parseUrl(href),
                 open: "auto",

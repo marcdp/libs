@@ -21,7 +21,7 @@ namespace DProjects.XShell.Services {
                         <meta name="xshell:app.configPath"     content="{config.AppConfigPath}">
                         <meta name="xshell:app.params"         content="{string.Join("&", config.AppParams.Select(kv => kv.Key + "=" + kv.Value))}">
                         <meta name="xshell:xshell.environment" content="{(environment)}">
-                        <meta name="xshell:xshell.temp.url"    content="url:{(config.TempUrl)}">
+                        <meta name="xshell:xshell.temp.url"    content="{(config.TempUrl)}">
 
                         <!-- bootstrap xshell -->
                         <script src="{config.XShellBasePath}/bootstrap.js" ></script>

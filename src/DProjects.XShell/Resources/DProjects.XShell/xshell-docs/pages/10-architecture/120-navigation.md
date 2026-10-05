@@ -123,6 +123,15 @@ canonical, so normal clicks and native browser link actions share the same desti
 module resource. The loader/resolver therefore sees `/_assets/x-demo/pages/01-components/index.js`; it does not know about menu `path` values or
 perform path-to-href translation.
 
+## Ordinary Page anchors
+
+Inside `x-page`, ordinary internal anchors (including relative Page links and `.md` documents) call Navigation with the originating Page context.
+Fragment-only links such as `#section`, explicit URI schemes (`https:`, `mailto:`, `tel:`, etc.), and protocol-relative URLs (`//example.com/path`)
+remain native browser links. The `#!` application-navigation prefix is preserved.
+
+Modified clicks, non-primary buttons, already-prevented events, downloads, and explicit non-self browsing targets also retain native behavior.
+An absent/empty target or `_self` permits interception of an internal link. `x-anchor` remains an explicit XShell navigation component.
+
 ## Hash mode
 
 Navigation listens for hash changes, decodes the page stack, and updates `x-page` elements. The configured `hashPrefix` is `#!`. Because the

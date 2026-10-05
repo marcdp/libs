@@ -31,12 +31,6 @@
             }
         },
 
-        // identity
-        "identity": {
-            "provider": "anonymous"
-        },
-
-        
         // navigation
         "navigation": {
             "mode": "path", 

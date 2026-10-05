@@ -1,10 +1,14 @@
 using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 using DProjects.Commands;
 using DProjects.Commands.Attributes;
+using DProjects.Utils;
 using DProjects.XShell.Services;
+
+using Microsoft.AspNetCore.Diagnostics;
 
 namespace DProjects.XShell.Commands {
 
@@ -54,7 +58,14 @@ namespace DProjects.XShell.Commands {
             Directory.CreateDirectory(stagingPath);
 
             try {
+                // copy
                 CopyDirectory(sourcePath, stagingPath, cancellationToken);
+                var moduleJson = Path.Combine(stagingPath, "module.json");
+                var moduleJsonc = Path.Combine(stagingPath, "module.jsonc");
+                if (File.Exists(moduleJsonc)) {
+                    File.Move(moduleJsonc, moduleJson, overwrite: true);
+                    package = new PackageInfo(package.Kind, package.Id, package.Version, moduleJson);
+                }
 
                 // remove a copied inventory before compiling the distributable tree
                 var indexPath = Path.Combine(stagingPath, FilesIndexer.ModuleFilesJson);
@@ -66,12 +77,13 @@ namespace DProjects.XShell.Commands {
 
                 // inventory only the final compiled package contents
                 var moduleFilesIndexer = new FilesIndexer();
-                var json = await moduleFilesIndexer.CreateJsonAsync(stagingPath, cancellationToken);
-                await File.WriteAllTextAsync(indexPath, json, cancellationToken);
+                var moduleFilesJson = await moduleFilesIndexer.CreateJsonAsync(stagingPath, cancellationToken);
+                await File.WriteAllTextAsync(indexPath, moduleFilesJson, cancellationToken);
 
                 // emit the requested representation from the same compiled staging tree
-                var packagePath = Zip ? await EmitZipAsync(stagingPath, outputPath, package.Id, package.Version, cancellationToken) :
-                    EmitExpanded(stagingPath, sourcePath, outputPath, package.Id, package.Version, cancellationToken);
+                var packagePath = Zip ? 
+                    await EmitZipAsync(stagingPath, outputPath, package.Id, package.Version, moduleFilesJson, cancellationToken) :
+                    await EmitExpandedAsync(stagingPath, sourcePath, outputPath, package.Id, package.Version, cancellationToken);
 
                 // output
                 await environment.Out.WriteLineAsync(packagePath);
@@ -179,28 +191,89 @@ namespace DProjects.XShell.Commands {
                 }
             }
         }
-        private static async Task<string> EmitZipAsync(
-            string stagingPath, string outputPath, string id, string version, CancellationToken cancellationToken) {
-            // create the ZIP under a temporary name before exposing its immutable hash name
-            var tempZipPath = Path.Combine(outputPath, $".{id}-{version}-{Guid.NewGuid():N}.zip");
+        private static async Task<string> EmitZipAsync( string stagingPath, string outputPath, string id, string version, string moduleFilesJson, CancellationToken cancellationToken) {
+            var hash = await ComputeHashAsync(stagingPath, cancellationToken);
+            var stagingZipPath = stagingPath + "-zip";
+            Directory.CreateDirectory(stagingZipPath);
             try {
-                ZipFile.CreateFromDirectory(stagingPath, tempZipPath, CompressionLevel.Optimal, includeBaseDirectory: false);
-                var packageHash = await ComputeHashAsync(tempZipPath, cancellationToken);
-                var packagePath = Path.Combine(outputPath, $"{id}-{version}-{packageHash}.zip");
-                if (File.Exists(packagePath)) {
-                    File.Delete(tempZipPath);
-                } else {
-                    File.Move(tempZipPath, packagePath);
+                // Create the immutable resource package.
+                var zipPath = Path.Combine(stagingZipPath, "module.zip");
+                ZipFile.CreateFromDirectory(stagingPath,zipPath,CompressionLevel.Optimal,includeBaseDirectory: false);
+                // Read module.json[c].
+                var moduleJsonPath = Path.Combine(stagingPath, "module.json");
+                var moduleJsoncPath = Path.Combine(stagingPath, "module.jsonc");
+                var descriptorPath = File.Exists(moduleJsonPath) ? moduleJsonPath : File.Exists(moduleJsoncPath) ? moduleJsoncPath : throw new InvalidOperationException("Module package must contain module.json or module.jsonc.");
+                var json = await File.ReadAllTextAsync( descriptorPath, cancellationToken);
+                var root = JsonNode.Parse( json, documentOptions: new JsonDocumentOptions {
+                        CommentHandling = JsonCommentHandling.Skip,
+                        AllowTrailingCommas = true
+                    })?.AsObject()
+                    ?? throw new InvalidOperationException($"Invalid module configuration '{descriptorPath}'.");
+
+                var modules = root["modules"] as JsonObject ?? throw new InvalidOperationException($"Module configuration '{descriptorPath}' must contain a modules object.");
+
+                // Find the single local module definition.
+                // Referenced modules have configUrl; the local module does not.
+                var localModules = modules
+                    .Where(item =>
+                        item.Value is JsonObject module &&
+                        !module.ContainsKey("configUrl"))
+                    .ToArray();
+                if (localModules.Length != 1) {
+                    throw new InvalidOperationException($"Module configuration '{descriptorPath}' must contain exactly one local module definition.");
                 }
-                return packagePath;
+                var localModule = (JsonObject)localModules[0].Value!;
+
+                // In the ZIP representation, resources are served from module.zip.
+                localModule["assetsUrl"] = "url:./module.zip";
+                localModule["files"] = JsonNode.Parse(moduleFilesJson);
+
+                // Production descriptor is normalized to JSON.
+                var outputDescriptorPath = Path.Combine(stagingZipPath, "module.json");
+
+                await File.WriteAllTextAsync(outputDescriptorPath,root.ToJsonString(new JsonSerializerOptions { WriteIndented = true}), cancellationToken);
+
+                // Publish:
+                //
+                // <id>/
+                //   <version>.<hash>/
+                //     module.json
+                //     module.zip
+                //
+                var packagePath = Path.Combine(outputPath, id, $"{version}.{hash}");
+
+                if (File.Exists(packagePath)) throw new InvalidOperationException($"Package path is an existing file: {packagePath}");
+                var tempPackagePath = Path.Combine(outputPath, $".{id}-{version}-{Guid.NewGuid():N}.tmp");
+                var backupPackagePath = Path.Combine( outputPath, $".{id}-{version}-{Guid.NewGuid():N}.backup");
+                try {
+                    CopyDirectory(stagingZipPath, tempPackagePath, cancellationToken);
+                    Directory.CreateDirectory(Path.GetDirectoryName(packagePath)!);
+                    if (Directory.Exists(packagePath)) Directory.Move(packagePath, backupPackagePath);
+                    try {
+                        Directory.Move(tempPackagePath, packagePath);
+                    } catch {
+                        if (Directory.Exists(backupPackagePath) &&
+                            !Directory.Exists(packagePath)) {
+                            Directory.Move(backupPackagePath, packagePath);
+                        }
+
+                        throw;
+                    }
+                    if (Directory.Exists(backupPackagePath)) Directory.Delete(backupPackagePath, recursive: true);
+                    return packagePath;
+                } finally {
+                    if (Directory.Exists(tempPackagePath)) Directory.Delete(tempPackagePath, recursive: true);
+                    if (Directory.Exists(backupPackagePath) && !Directory.Exists(packagePath)) { Directory.Move(backupPackagePath, packagePath);}
+                }
             } finally {
-                if (File.Exists(tempZipPath)) File.Delete(tempZipPath);
+                if (Directory.Exists(stagingZipPath)) Directory.Delete(stagingZipPath, recursive: true);
             }
         }
-        private static string EmitExpanded(
-            string stagingPath, string sourcePath, string outputPath, string id, string version, CancellationToken cancellationToken) {
+        private static async Task<string> EmitExpandedAsync(string stagingPath, string sourcePath, string outputPath, string id, string version, CancellationToken cancellationToken) {
             // build a complete sibling directory before replacing an older expanded package
-            var packagePath = Path.Combine(outputPath, $"{id}-{version}");
+            var hash = await ComputeHashAsync(stagingPath, cancellationToken);
+            var packagePath = Path.Combine(outputPath, $"{id}", $"{version}.{hash}");
+            System.IO.Directory.CreateDirectory(packagePath);
             if (IsSameOrInside(sourcePath, packagePath)) {
                 throw new InvalidOperationException("Expanded package path must not contain or replace the source module directory.");
             }
@@ -223,10 +296,18 @@ namespace DProjects.XShell.Commands {
                 if (Directory.Exists(backupPackagePath) && !Directory.Exists(packagePath)) Directory.Move(backupPackagePath, packagePath);
             }
         }
-        private static async Task<string> ComputeHashAsync(string filePath, CancellationToken cancellationToken) {
-            await using var stream = File.OpenRead(filePath);
-            var hash = await SHA256.HashDataAsync(stream, cancellationToken);
-            return Convert.ToHexString(hash).ToLowerInvariant();
+        private static async Task<string> ComputeHashAsync(string path, CancellationToken cancellationToken) {
+            // compute a hash of the directory contents to use in the expanded package path
+            using var sha256 = SHA256.Create();
+            foreach (var file in Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories).OrderBy(f => f)) {
+                var relativePath = Path.GetRelativePath(path, file);
+                var pathBytes = System.Text.Encoding.UTF8.GetBytes(relativePath);
+                sha256.TransformBlock(pathBytes, 0, pathBytes.Length, null, 0);
+                var fileBytes = File.ReadAllBytes(file);
+                sha256.TransformBlock(fileBytes, 0, fileBytes.Length, null, 0);
+            }
+            sha256.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
+            return Convert.ToHexString(sha256.Hash!).ToLowerInvariant().Substring(0,16);
         }
         private static string CreateStagingPath(string sourcePath, string outputPath) {
             // keep staging outside both the authored module and requested output tree
@@ -237,20 +318,17 @@ namespace DProjects.XShell.Commands {
             return stagingPath;
         }
         private static bool IsCompiledResourceExtension(string extension) {
-            return extension.Equals(".js", StringComparison.OrdinalIgnoreCase) || extension.Equals(".html", StringComparison.OrdinalIgnoreCase) ||
-                extension.Equals(".css", StringComparison.OrdinalIgnoreCase);
+            return extension.Equals(".js", StringComparison.OrdinalIgnoreCase) || extension.Equals(".html", StringComparison.OrdinalIgnoreCase) || extension.Equals(".css", StringComparison.OrdinalIgnoreCase);
         }
         private static bool IsSameOrInside(string path, string root) {
             var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
             var normalizedPath = Path.TrimEndingDirectorySeparator(Path.GetFullPath(path));
             var normalizedRoot = Path.TrimEndingDirectorySeparator(Path.GetFullPath(root));
-            return normalizedPath.Equals(normalizedRoot, comparison) ||
-                normalizedPath.StartsWith(normalizedRoot + Path.DirectorySeparatorChar, comparison);
+            return normalizedPath.Equals(normalizedRoot, comparison) || normalizedPath.StartsWith(normalizedRoot + Path.DirectorySeparatorChar, comparison);
         }
         private static void ValidatePackageNamePart(string value, string label) {
             // keep descriptor identity from escaping or corrupting the output filename
-            if (value is "." or ".." || value.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 || value.Contains(Path.DirectorySeparatorChar) ||
-                value.Contains(Path.AltDirectorySeparatorChar)) {
+            if (value is "." or ".." || value.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 || value.Contains(Path.DirectorySeparatorChar) || value.Contains(Path.AltDirectorySeparatorChar)) {
                 throw new InvalidOperationException($"{label} '{value}' cannot be used in a package path.");
             }
         }

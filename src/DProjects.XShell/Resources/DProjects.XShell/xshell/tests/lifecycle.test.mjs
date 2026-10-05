@@ -34,8 +34,9 @@ class FakeNode {
     }
 }
 
-class FakeElement {
+class FakeElement extends FakeNode {
     constructor() {
+        super();
         this._attributes = new Map();
         this._listeners = new Map();
     }
@@ -61,6 +62,10 @@ class FakeElement {
 
     getAttribute(name) {
         return this._attributes.get(name) ?? null;
+    }
+
+    hasAttribute(name) {
+        return this._attributes.has(name);
     }
 
     setAttribute(name, value) {
@@ -101,10 +106,8 @@ globalThis.document = {
     body: { querySelectorAll() { return []; } },
     createElement(name) {
         if (name === "x-page") return new (customElements.get(name))();
-        const element = new FakeNode();
+        const element = new FakeElement();
         element.localName = name;
-        element.setAttribute = () => {};
-        element.removeAttribute = () => {};
         return element;
     }
 };
@@ -124,6 +127,7 @@ const { default: LoaderPageMd } = await import("../loaders/page-md.js");
 test("Markdown adapter loads its component without fetching, and follows the Page lifecycle across mounts", async (t) => {
     const resources = [];
     t.mock.method(globalThis, "fetch", () => { throw new Error("page-md must not fetch Markdown"); });
+    xshell._config = { xshell: { ui: { component: { markdown: "x-markdown" } } } };
     xshell._loader = { async load(resource) { resources.push(resource); } };
     xshell._bus = { emit() {} };
     const source = "/_assets/xshell-docs/pages/10-architecture/100-services.md";
@@ -139,22 +143,101 @@ test("Markdown adapter loads its component without fetching, and follows the Pag
     await page.mount({ host });
     const first = host.firstChild;
     assert.equal(first.localName, "x-markdown");
-    assert.equal(first.src, source);
+    assert.equal(first.getAttribute("src"), source);
+    assert.equal(first.getAttribute("src").startsWith("string:"), false);
     await page.unmount();
     assert.equal(host.childNodes.length, 0);
     assert.equal(page.host, null);
     await page.mount({ host });
-    assert.equal(host.firstChild.src, source);
+    assert.equal(host.firstChild.getAttribute("src"), source);
     assert.notEqual(host.firstChild, first);
     await page.unmount();
     await page.unload();
     await page.mount({ host });
     assert.equal(host.childNodes.length, 0);
+    assert.equal(globalThis.fetch.mock.callCount(), 0);
 });
 
 test("Markdown adapter propagates component resolution/loading failure", async () => {
+    xshell._config = { xshell: { ui: { component: { markdown: "x-markdown" } } } };
     xshell._loader = { async load() { throw new Error("component unavailable"); } };
     await assert.rejects(new LoaderPageMd().load("/guide.md", {}), /component unavailable/);
+});
+
+test("x-page intercepts only application anchors and preserves native clicks", async (t) => {
+    const cases = [
+        { href: "/customers", intercept: true },
+        { href: "/_assets/xshell-docs/pages/10-architecture/100-services.md", intercept: true },
+        { href: "relative-page.js", intercept: true },
+        { href: "another-document.md?view=one#section", intercept: true },
+        { href: "#!/customers?view=one", intercept: true },
+        { href: "/customers", target: "_self", intercept: true },
+        { href: "/customers", target: "_SELF", intercept: true },
+        { href: "#section" },
+        { href: "#" },
+        { href: "https://example.com/page" },
+        { href: "http://example.com/page" },
+        { href: "mailto:user@example.com" },
+        { href: "tel:+1234" },
+        { href: "data:text/plain,hello" },
+        { href: "blob:https://example.com/id" },
+        { href: "Custom+v1.2-test:resource" },
+        { href: "//example.com/page" },
+        { href: "/customers", event: { ctrlKey: true } },
+        { href: "/customers", event: { metaKey: true } },
+        { href: "/customers", event: { shiftKey: true } },
+        { href: "/customers", event: { altKey: true } },
+        { href: "/customers", event: { button: 1 } },
+        { href: "/customers", event: { button: 2 } },
+        { href: "/customers", event: { defaultPrevented: true } },
+        { href: "/customers", download: true },
+        { href: "/customers", target: "_blank" },
+        { href: "/customers", target: "_parent" },
+        { href: "/customers", target: "_top" },
+        { href: "/customers", target: "preview" },
+        { href: "" },
+        { href: null }
+    ];
+    for (const mode of ["path", "hash"]) {
+        for (const scenario of cases) {
+            await t.test(`${mode}: ${JSON.stringify(scenario)}`, () => {
+                // exercise the registered click listener with real Navigation URL parsing
+                const navigation = new Navigation({
+                    areas: {}, bus: {}, container: {},
+                    config: { app: { basePath: "https://example.test/" }, xshell: { navigation: { mode, hashPrefix: "#!" } } }
+                });
+                const calls = [];
+                navigation.navigate = item => calls.push(item);
+                xshell._navigation = navigation;
+                const xpage = new XPage();
+                xpage._page = new Page({ src: "/pages/current.js", context: {} });
+                const anchor = document.createElement("a");
+                if (scenario.href !== null) anchor.setAttribute("href", scenario.href);
+                if (scenario.download) anchor.setAttribute("download", "");
+                anchor.target = scenario.target || "";
+                anchor.closest = selector => selector === "a" ? anchor : xpage;
+                xpage.contains = element => element === anchor;
+                let prevented = 0;
+                let stopped = 0;
+                const event = {
+                    type: "click", target: anchor, button: 0, defaultPrevented: false,
+                    metaKey: false, ctrlKey: false, shiftKey: false, altKey: false,
+                    ...scenario.event,
+                    preventDefault() { prevented++; this.defaultPrevented = true; },
+                    stopPropagation() { stopped++; }
+                };
+                xpage.dispatchEvent(event);
+                const expected = scenario.intercept ? 1 : 0;
+                assert.equal(calls.length, expected);
+                assert.equal(prevented, expected);
+                assert.equal(stopped, expected);
+                if (scenario.intercept) {
+                    assert.deepEqual(calls[0], { ...navigation.parseUrl(scenario.href), open: "auto", page: xpage.page });
+                    assert.equal(calls[0].page, xpage.page);
+                }
+            });
+        }
+    }
 });
 
 const renderEngines = [];

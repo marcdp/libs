@@ -48,8 +48,10 @@ instance retains its navigation query while the cached Page class uses the resol
 
 Relative links and media resolve against `src`. For the example above, `30-modules.md` resolves to
 `/_assets/xshell-docs/pages/10-architecture/30-modules.md`. Query strings and fragments are retained. Links to other Markdown documents stay normal
-`.md` links: the containing `x-page` intercepts anchors and sends them through Navigation and the Page resolver. The component does not navigate
-directly. See [Markdown component inputs](60-components.md#markdown-component-inputs) for direct Markdown content and resource URL behavior.
+`.md` links: the containing `x-page` sends ordinary internal anchors through Navigation and the Page resolver. Fragment-only links such as `#section`,
+explicit protocol URLs such as `https:` or `mailto:`, and protocol-relative URLs (`//example.com/path`) retain native browser behavior. XShell's `#!`
+navigation prefix remains an application link. The component does not navigate directly. See
+[Markdown component inputs](60-components.md#markdown-component-inputs) for direct Markdown content and resource URL behavior.
 
 ## Declarative dependencies
 

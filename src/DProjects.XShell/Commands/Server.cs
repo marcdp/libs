@@ -17,6 +17,8 @@ namespace DProjects.XShell.Commands {
         public string AppConfigPath { get; init; } = "";
         [Flag('r', "Resource base url", "")]
         public string ResourceBase { get; init; } = "";
+        [Flag('e', "Environment", "")]
+        public string Environment { get; init; } = "";
         [Flag('p', "Parameter", "")]
         public string[] Param { get; init; } = [];
 
@@ -38,6 +40,7 @@ namespace DProjects.XShell.Commands {
                 AppBasePath = AppBasePath,
                 AppConfigPath = (string.IsNullOrEmpty(AppConfigPath) ? ResourceBase + "/_resources/DProjects.XShell/x-demo/module.jsonc" : AppConfigPath),
                 AppParams = Param.ToDictionary(p => p.Split('=')[0], p => p.Split('=')[1]),
+                Environment = Environment,
                 ResourcesBase = ResourceBase
             });
 

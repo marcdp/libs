@@ -1,11 +1,12 @@
 {
-  "profiles": {
-    "DProjects.XShell": {
-      "commandName": "Project",
-      "commandLineArgs": "server  --app-config-path /_resources/DProjects.XShell/x-demo/module.jsonc",
-      "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
-      }
+    "profiles": {
+        "DProjects.XShell server": {
+            "commandName": "Project",
+            "commandLineArgs": "server  --app-config-path /_resources/DProjects.XShell/x-demo/module.jsonc --environment Development"
+        },
+        "DProjects.XShell pack": {
+            "commandName": "Project",
+            "commandLineArgs": "pack --source ./Resources/DProjects.XShell/codemirror/ --output a --zip"
+        }
     }
-  }
 }

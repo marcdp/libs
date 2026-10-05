@@ -17,6 +17,7 @@ namespace DProjects.XShell {
 
         // inner class
         public class Configuration {
+            public string? Environment { get; init; } = null;
             public string AppBasePath { get; init; } = "";
             public string AppConfigPath { get; init; }  = ""; 
             public Dictionary<string,string> AppParams { get; init; } = new();
@@ -33,7 +34,6 @@ namespace DProjects.XShell {
         // constants
         public const string ResourceName = "DProjects.XShell";
         public const string RequestPath = "/_resources/DProjects.XShell";
-        //public const string ServiceWorkerRequestPath = "/_resources/DProjects.XShell/xshell/sw.js";
 
 
         // methods
@@ -44,8 +44,8 @@ namespace DProjects.XShell {
 
             // config webapplication
             var assembly = typeof(Extensions).Assembly;
-            var environment = app.Environment.EnvironmentName;
-            var isDevelopment = app.Environment.IsDevelopment();
+            var environment = (string.IsNullOrEmpty(config.Environment) ? app.Environment.EnvironmentName : config.Environment);
+            var isDevelopment = app.Environment.IsDevelopment() || environment.Equals("Development");
             string resourcePath;
             if (isDevelopment) {
                 var projectDirectory = assembly.GetCustomAttributes<AssemblyMetadataAttribute>().FirstOrDefault(x => x.Key == "ProjectDirectory")?.Value;

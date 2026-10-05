@@ -233,7 +233,7 @@
     },
     "xshell": {
       "type": "object",
-      "required": ["build", "debug", "version", "environment", "identity", "assetsPrefix", "assetsPath", "areas", "navigation", "resolver", "ui", "i18n", "configUrl", "assetsUrl", "files"],
+      "required": ["build", "debug", "version", "environment", "assetsPrefix", "assetsPath", "areas", "navigation", "resolver", "ui", "i18n", "configUrl", "assetsUrl", "files"],
       "properties": {
         "build": {"type": "string", "description": "XShell build identifier."},
         "debug": {"type": "boolean", "description": "Whether XShell debug behavior is enabled."},
@@ -245,7 +245,6 @@
         "assetsUrl": {"type": "string", "format": "uri", "description": "URL of the directory or package containing the xshell assets."},
         "ui": {"$ref": "#/$defs/xshellUi", "description": "Global ui settings."},
         "i18n": {"$ref": "#/$defs/xshellI18n", "description": "Language, translation, and date/time formatting settings."},
-        "identity": {"$ref": "#/$defs/xshellIdentity", "description": "Identity subsystem configuration."},
         "areas": {"$ref": "#/$defs/xshellAreas", "description": "Application area configuration."},
         "navigation": {"$ref": "#/$defs/xshellNavigation", "description": "Navigation configuration."},
         "resolver": {"$ref": "#/$defs/resolver", "description": "Logical resource resolver configuration."},
@@ -395,16 +394,6 @@
       },
       "additionalProperties": false,
       "description": "Default page resources used for standard pages."
-    },
-    "xshellIdentity": {
-      "type": "object",
-      "required": ["provider"],
-      "properties": {
-        "provider": {"type": "string", "description": "Identity provider identifier."},
-        "params": {"type": "object", "additionalProperties": true, "description": "Provider-specific identity parameters."}
-      },
-      "additionalProperties": false,
-      "description": "Identity provider configuration."
     },
     "resolver": {
       "type": "object",
