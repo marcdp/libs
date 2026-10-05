@@ -1,5 +1,4 @@
 import Areas from "./areas.js";
-import Binds from "./binds.js";
 import Bus from "./bus.js";
 import Contracts from "./contracts.js";
 import Dialog from "./dialog.js";
@@ -120,5 +119,4 @@ let xshell = new XShell();
 // export default instance
 export default xshell;
 
-// export other objects and classes
-export { Binds, Page };
+

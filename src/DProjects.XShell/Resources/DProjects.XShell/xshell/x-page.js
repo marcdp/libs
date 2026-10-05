@@ -25,6 +25,9 @@ class XPage extends HTMLElement {
     _status = "";
     _context = {};
 
+    _loadRevision  = 0;
+    _loadCommit = Promise.resolve();
+
     _loading = "";
     _loadingObserver = null;
     _module = null;
@@ -181,13 +184,17 @@ class XPage extends HTMLElement {
     async load() {
         console.log(`x-page: load '${this.src} ...`);
         let src = this.src;
+        let loadRevision = ++this._loadRevision;
+
         // reset
         this._status = "loading";
+
         // set layout as loading (if exists)
         let layoutElement = this.shadowRoot.firstChild;
         if (layoutElement) {
             layoutElement.setAttribute("status", "loading");
         }
+
         // layout
         let layoutName = this._layout;
         if (!layoutName) layoutName = "embed";
@@ -201,11 +208,13 @@ class XPage extends HTMLElement {
             layoutElement.setAttribute("status", "loading");
         }        
         this._layout = layoutName;
+
         // remove navigation context before resolving the module resource
         const area = xshell.areas.getArea(xshell.areas.resolveAreaId(src));
         const resourceSrc = area?.prefix ? src.substring(area.prefix.length) : src;
         let moduleId = xshell.modules.resolveModuleId(resourceSrc);
         this.setAttribute("module", moduleId ?? "");
+
         // fetch page
         let page = null;
         try {
@@ -222,18 +231,15 @@ class XPage extends HTMLElement {
                 }
             }
         }        
+
         //delay
         if (false && (src.indexOf("dialog")!=-1 || document.body.querySelectorAll(":scope > x-page").length > 1)) {
             await new Promise(r => setTimeout(r, 1000111));                
-        }        
-        // unmount previous page
-        await this.unmount();
-        // unload previous page
-        await this.unload();
-        // set new page
-        this._page = page;
+        }     
+
         // search params
         let searchParams = new URLSearchParams(src.indexOf("?") != -1 ? src.substring(src.indexOf("?") + 1).split("#")[0] : "");
+
         // nav
         let nav = null;
         if (searchParams.get("nav")) {
@@ -242,12 +248,14 @@ class XPage extends HTMLElement {
             nav.breadcrumb.push({ label: page.label, href: src });
             searchParams.delete("nav");
         }
+
         // breadcrumb
         let breadcrumb = xshell.areas.getMenuitemBreadcrumb(src.split("?")[0], area?.id);
         if (nav && nav.breadcrumb) {
             breadcrumb = nav.breadcrumb;
         }
         page.breadcrumb = breadcrumb;
+
         // title
         let label = page.label;
         if (nav && nav.title) {
@@ -261,6 +269,7 @@ class XPage extends HTMLElement {
             label = this._context.title;
         }
         page.label = label;
+
         // icon
         let icon = page.icon;
         if (!icon && breadcrumb && breadcrumb.length > 0) icon = breadcrumb[breadcrumb.length - 1].icon;
@@ -272,20 +281,45 @@ class XPage extends HTMLElement {
             if (breadcrumb && breadcrumb.length > 0) icon = breadcrumb[breadcrumb.length - 1].icon;
         }
         page.icon = icon;        
-        // set as loaded
-        if (this._status == "loading") {
-            this._status = "loaded"; 
-        }
-        // remove loading
-        if (layoutElement) layoutElement.removeAttribute("status");
+
         // call load on page
-        await this._page.load();
-        // call mount on page
-        await this.mount();
-        // raise load event
-        this.dispatchEvent(new CustomEvent("load", {
-            detail: { page }
-        }));
+        await page.load();
+
+        // abort if the load revision has changed
+        if (loadRevision !== this._loadRevision) {
+            await page.unload();
+            return;
+        }
+
+        // unmount and unload previous page, then set and mount the new page (we wrap it in a promise to maintain order )
+        const loadCommit = this._loadCommit.then(async () => {
+            // may have become stale while waiting in the queue.
+            if (loadRevision !== this._loadRevision) {
+                await page.unload();
+                return;
+            }
+            // atomic Page transition.
+            await this.unmount();
+            await this.unload();
+            // set the new page before mounting it
+            this._page = page;
+            // mount the new page
+            await this.mount();
+            // another navigation may have started while mount() was awaiting. The transition must finish, but stale host state must not be committed.
+            if (loadRevision === this._loadRevision) {
+                this._status = "loaded";
+                if (layoutElement) layoutElement.removeAttribute("status");
+                this.dispatchEvent(new CustomEvent("load", {
+                    detail: { page }
+                }));
+            }
+        });
+
+        // Keep the queue usable even if this particular commit fails.
+        this._loadCommit = loadCommit.catch(() => {});
+
+        // Still propagate the error to this load().
+        await loadCommit;
     }
     async unmount() {
         // unmount
