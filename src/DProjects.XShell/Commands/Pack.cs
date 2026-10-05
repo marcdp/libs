@@ -53,6 +53,7 @@ namespace DProjects.XShell.Commands {
             var package = await GetPackageInfoAsync(sourcePath, cancellationToken);
             ValidatePackageNamePart(package.Id, "Package id");
             ValidatePackageNamePart(package.Version, "Package version");
+            if (package.Kind == PackageKind.XShell && Zip) throw new NotSupportedException("XShell framework ZIP packaging is not currently supported.");
             Directory.CreateDirectory(outputPath);
             var stagingPath = CreateStagingPath(sourcePath, outputPath);
             Directory.CreateDirectory(stagingPath);
@@ -193,6 +194,8 @@ namespace DProjects.XShell.Commands {
         }
         private static async Task<string> EmitZipAsync( string stagingPath, string outputPath, string id, string version, string moduleFilesJson, CancellationToken cancellationToken) {
             var hash = await ComputeHashAsync(stagingPath, cancellationToken);
+            var packagePath = Path.Combine(outputPath, id, $"{version}.{hash}");
+            if (ReusePublishedPackage(packagePath, zip: true)) return packagePath;
             var stagingZipPath = stagingPath + "-zip";
             Directory.CreateDirectory(stagingZipPath);
             try {
@@ -240,61 +243,61 @@ namespace DProjects.XShell.Commands {
                 //     module.json
                 //     module.zip
                 //
-                var packagePath = Path.Combine(outputPath, id, $"{version}.{hash}");
-
-                if (File.Exists(packagePath)) throw new InvalidOperationException($"Package path is an existing file: {packagePath}");
                 var tempPackagePath = Path.Combine(outputPath, $".{id}-{version}-{Guid.NewGuid():N}.tmp");
-                var backupPackagePath = Path.Combine( outputPath, $".{id}-{version}-{Guid.NewGuid():N}.backup");
                 try {
                     CopyDirectory(stagingZipPath, tempPackagePath, cancellationToken);
                     Directory.CreateDirectory(Path.GetDirectoryName(packagePath)!);
-                    if (Directory.Exists(packagePath)) Directory.Move(packagePath, backupPackagePath);
                     try {
                         Directory.Move(tempPackagePath, packagePath);
-                    } catch {
-                        if (Directory.Exists(backupPackagePath) &&
-                            !Directory.Exists(packagePath)) {
-                            Directory.Move(backupPackagePath, packagePath);
-                        }
-
+                    } catch (IOException) when (Directory.Exists(packagePath)) {
+                        // another pack may have published the same identity first
+                        if (ReusePublishedPackage(packagePath, zip: true)) return packagePath;
                         throw;
                     }
-                    if (Directory.Exists(backupPackagePath)) Directory.Delete(backupPackagePath, recursive: true);
                     return packagePath;
                 } finally {
                     if (Directory.Exists(tempPackagePath)) Directory.Delete(tempPackagePath, recursive: true);
-                    if (Directory.Exists(backupPackagePath) && !Directory.Exists(packagePath)) { Directory.Move(backupPackagePath, packagePath);}
                 }
             } finally {
                 if (Directory.Exists(stagingZipPath)) Directory.Delete(stagingZipPath, recursive: true);
             }
         }
         private static async Task<string> EmitExpandedAsync(string stagingPath, string sourcePath, string outputPath, string id, string version, CancellationToken cancellationToken) {
-            // build a complete sibling directory before replacing an older expanded package
+            // build a complete sibling directory before first publication
             var hash = await ComputeHashAsync(stagingPath, cancellationToken);
             var packagePath = Path.Combine(outputPath, $"{id}", $"{version}.{hash}");
-            System.IO.Directory.CreateDirectory(packagePath);
             if (IsSameOrInside(sourcePath, packagePath)) {
                 throw new InvalidOperationException("Expanded package path must not contain or replace the source module directory.");
             }
-            if (File.Exists(packagePath)) throw new InvalidOperationException($"Expanded package path is an existing file: {packagePath}");
+            if (ReusePublishedPackage(packagePath, zip: false)) return packagePath;
             var tempPackagePath = Path.Combine(outputPath, $".{id}-{version}-{Guid.NewGuid():N}.tmp");
-            var backupPackagePath = Path.Combine(outputPath, $".{id}-{version}-{Guid.NewGuid():N}.backup");
             try {
                 CopyDirectory(stagingPath, tempPackagePath, cancellationToken);
-                if (Directory.Exists(packagePath)) Directory.Move(packagePath, backupPackagePath);
+                Directory.CreateDirectory(Path.GetDirectoryName(packagePath)!);
                 try {
                     Directory.Move(tempPackagePath, packagePath);
-                } catch {
-                    if (Directory.Exists(backupPackagePath) && !Directory.Exists(packagePath)) Directory.Move(backupPackagePath, packagePath);
+                } catch (IOException) when (Directory.Exists(packagePath)) {
+                    // another pack may have published the same identity first
+                    if (ReusePublishedPackage(packagePath, zip: false)) return packagePath;
                     throw;
                 }
-                if (Directory.Exists(backupPackagePath)) Directory.Delete(backupPackagePath, recursive: true);
                 return packagePath;
             } finally {
                 if (Directory.Exists(tempPackagePath)) Directory.Delete(tempPackagePath, recursive: true);
-                if (Directory.Exists(backupPackagePath) && !Directory.Exists(packagePath)) Directory.Move(backupPackagePath, packagePath);
             }
+        }
+        private static bool ReusePublishedPackage(string packagePath, bool zip) {
+            if (File.Exists(packagePath)) throw new InvalidOperationException($"Package path is an existing file: {packagePath}");
+            if (!Directory.Exists(packagePath)) return false;
+
+            // distinguish the two published representations without relying on ZIP archive bytes
+            var hasZip = File.Exists(Path.Combine(packagePath, "module.zip"));
+            var hasModuleDescriptor = File.Exists(Path.Combine(packagePath, "module.json")) || File.Exists(Path.Combine(packagePath, "module.jsonc"));
+            var hasXShellDescriptor = File.Exists(Path.Combine(packagePath, "xshell.json")) || File.Exists(Path.Combine(packagePath, "xshell.jsonc"));
+            var hasInventory = File.Exists(Path.Combine(packagePath, FilesIndexer.ModuleFilesJson));
+            if (zip ? hasZip && hasModuleDescriptor && !hasInventory : !hasZip && hasInventory && (hasModuleDescriptor || hasXShellDescriptor)) return true;
+            if (zip != hasZip) throw new InvalidOperationException($"Immutable package identity already exists using another representation: {packagePath}");
+            throw new InvalidOperationException($"Existing immutable package has an incomplete or unrecognized representation: {packagePath}");
         }
         private static async Task<string> ComputeHashAsync(string path, CancellationToken cancellationToken) {
             // compute a hash of the directory contents to use in the expanded package path

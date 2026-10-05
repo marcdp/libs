@@ -104,9 +104,10 @@ my-module/
 The V0 browser runtime maps expanded module directories through its Service Worker to normal URLs such as `/_assets/my-module/...`.
 JavaScript, CSS, Pages, and icons are served from those expanded resources.
 
-The `pack` command can produce an expanded package or an immutable ZIP package under `<output>/<id>/<version>.<hash>/`. The ZIP package contains
-`module.json` and `module.zip`, but the V0 Service Worker does not read or serve ZIP entries. Direct ZIP-backed resource delivery is a future
-runtime capability. Deploy expanded resources for the current runtime.
+The `pack` command publishes immutable expanded packages under `<output>/<id>/<version>.<hash>/` for normal modules and the XShell framework.
+Normal modules can also be published as ZIP distribution packages at that path; XShell framework ZIP packaging is currently unsupported.
+An existing package path is reused for the same representation and cannot be replaced by the other representation. The ZIP package contains
+`module.json` and `module.zip`, but the V0 Service Worker does not read or serve ZIP entries. Deploy expanded resources for the current runtime.
 
 
 

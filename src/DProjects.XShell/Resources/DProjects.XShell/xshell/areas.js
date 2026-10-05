@@ -384,16 +384,14 @@ export default class Areas {
             }
             return node;
         };
-        // Root menu item may physically be index.js or index.html,
-        // but its runtime URL is always index.js.
+        // normalize the root index through the same runtime path rule as nested pages
         const rootIndex = files.find(file =>
             extensions.some(extension => file.path === `${root}/index${extension}`
             )
         );
-        const rootItemExtension = rootIndex ? getExtension(rootIndex.path) : null;
         const rootItem = {
             label: rootItemLabel,
-            href: `${root}/index${rootItemExtension || ".js"}`,
+            href: rootIndex ? toRuntimePath(rootIndex.path) : `${root}/index.js`,
             ...(createPaths ? { path: "/" } : {}),
             default: true,
             children: []

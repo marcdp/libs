@@ -69,6 +69,7 @@ The checked-in factories are `html` and `x`; there is no engine fallback under `
 HTML mounts a static parsed template; its `render()` method does not evaluate state expressions.
 
 A `.md` document used as a [Markdown Page](../10-architecture/70-pages.md#markdown-pages) is a separate path: `page-md` adapts it to a Page mounting
-`x-markdown`, which fetches its normal `src` URL and converts Markdown with the vendored utility. This is separate from definition render engines.
+the Component selected by `xshell.ui.component.markdown`. The current `x` module selects `x-markdown`, which fetches its normal `src` URL and converts
+Markdown with the vendored utility. This is separate from definition render engines.
 
 Slot validation uses factory metadata. HTML exposes an empty slot list, so its templates do not receive the X engine's slot-contract checks.

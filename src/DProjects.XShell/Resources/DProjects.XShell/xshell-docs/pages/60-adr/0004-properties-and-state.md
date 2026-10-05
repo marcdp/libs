@@ -39,4 +39,4 @@ exposure of internal state.
 Component accessors and Page state/query binding use these defaults. Pages do not install Component-style public-property accessors.
 Only top-level assignments are reactive in `proxy`; `plain` has no notifications and `none` returns null.
 Required/readonly/enum remain descriptive. Component reflection writes attributes independently of incoming attribute observation.
-See [Component Contract](../components/10-manifest.md) for schema-supported aliases and current loader limits.
+`attribute: true` observes the derived kebab-case HTML attribute; `attribute: false` or omission does not observe incoming attributes.

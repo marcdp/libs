@@ -8,7 +8,7 @@ The root also composes [Areas](../subsystems/10-areas.md) from module ids. Modul
 The validation boundary is the complete effective configuration after discovery, normalization, merge, worker mapping, inventory loading, and
 resolver generation. Bootstrap imports XShell and awaits `xshell.validateConfig(config)` against `xshell/schemas/config.schema.json` before deep
 freeze and `xshell.init(config)`. Init validates again before runtime service construction. Failure aborts startup in every environment.
-The X module controller does not validate configuration.
+The X module has no module controller; XShell validates configuration during bootstrap and initialization.
 
 The schema defines `app`, `modules`, and `xshell`, including module `configUrl`, `assetsUrl`, defaults, menus, optional service `requires`, optional
 declarative routes, declarative `contract.events`/`actions`/`intents`, named `xshell.services`, and the required `xshell.i18n` language, formatting,
@@ -18,7 +18,7 @@ path above is canonical.
 Every resolved module requires **module defaults** at `modules.<id>.defaults`: both `page` and `component` require non-empty render-engine and
 state-engine names. These select how the owning module's definition-based resources execute after a resource `meta` override. The separate
 **XShell defaults** object, `xshell.ui`, requires `layout`, `component`, and `dialog` groups for global UI infrastructure: layout contexts,
-lazy/error components, and standard dialog pages. It does not provide render or state engines for modules.
+lazy/error/Markdown components, and standard dialog pages. It does not provide render or state engines for modules.
 
 See [Configuration](../architecture/20-configuration.md) and [ADR-0002](../adr/0002-jsonc-specifications.md).
 

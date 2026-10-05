@@ -19,7 +19,7 @@ during module initialization. See [Bootstrap](10-bootstrap.md).
 Module resources use `/_assets/<module>/...` with the checked-in `_assets` prefix. The Service Worker maps that namespace to source files. Resource
 resolution selects a URL and loader; the loader obtains the resource. A Page uses the normal Component model plus Navigation.
 Module defaults define the render and state engines for their own definition-based Pages and Components. XShell defaults are separate global UI
-infrastructure for layout contexts, lazy/error components, and standard dialog pages.
+infrastructure for layout contexts, lazy/error/Markdown components, and standard dialog pages.
 
 For a definition-based Component or Page, its loader is the orchestrator: it owns the contract, properties, public API, controller, lifecycle,
 services, and coordination. The state engine owns reactive state only; the render engine owns rendered output only. See [Loaders](90-loaders.md) and

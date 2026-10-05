@@ -12,8 +12,8 @@ default through `definition.state`.
 
 ## Attributes
 
-Component observation requires literal `attribute: true`. Names are converted from camelCase to kebab-case.
-Although the schema also accepts string aliases, the loader ignores them.
+`attribute: true` observes the derived kebab-case HTML attribute (converted from the camelCase property name).
+`attribute: false` or an omitted `attribute` does not observe incoming HTML attributes. `reflect` separately controls outgoing attribute reflection.
 
 Attribute conversion handles strings directly, numbers with `Number`, booleans as presence except values `"false"`/`"0"`,
 and object/array text with `JSON.parse` (falling back to raw text on failure). Integer/date/function/any labels have no special conversion.

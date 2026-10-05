@@ -1,7 +1,8 @@
 # Packaging
 
-XShell modules and the XShell framework are authored as expanded directories. The `pack` command converts one source directory into a runtime-ready
-expanded or ZIP package. It does not recursively package modules referenced by `configUrl`.
+Normal modules and the XShell framework are authored as expanded directories. The `pack` command publishes expanded packages for either kind and
+ZIP distribution packages for normal modules only. XShell framework ZIP packaging is currently unsupported. It does not recursively package modules
+referenced by `configUrl`.
 
 ## Pack command
 
@@ -22,23 +23,26 @@ The command uses one staging and compilation flow for both output modes:
 3. for a normal module, compile staged JavaScript, HTML XShell SFC, and standalone CSS resources through `ModuleFileCompiler`; XShell framework files
    remain unchanged because the module compiler depends on module-definition semantics;
 4. generate `module.files.json` from the final compiled files; and
-5. emit the compiled staging tree as an expanded directory or, with `--zip`, an immutable ZIP.
+5. publish the compiled staging tree as an expanded directory or, for a normal module with `--zip`, a ZIP distribution package.
 
 JavaScript is replaced at its existing path with its compiled content. An authored HTML SFC such as `pages/orders.html` or
 `components/x-example.html` becomes the corresponding JavaScript resource (`pages/orders.js` or `components/x-example.js`), and the source HTML is
 not included. Packing fails if both the HTML and JavaScript source exist because they resolve to the same runtime path. Standalone CSS is compiled
 and replaced at the same path; resources are not bundled or concatenated.
 
-Both modes use `<output>/<id>/<version>.<hash>/`. The 16-character lowercase hash comes from SHA-256 over ordered relative file paths and bytes in
+Both representations use `<output>/<id>/<version>.<hash>/`. The 16-character lowercase hash comes from SHA-256 over ordered relative file paths and bytes in
 the compiled staging tree, including the generated inventory. It is not a hash of ZIP bytes.
 
 Without `--zip`, the package directory contains the compiled resources, generated `module.files.json`, and descriptor. An authored `module.jsonc`
-appears there as `module.json` with its original JSONC content. An authored `xshell.jsonc` remains `xshell.jsonc`. A completed temporary copy
-replaces an older directory at the same package path so stale files are not retained.
+appears there as `module.json` with its original JSONC content. An authored `xshell.jsonc` remains `xshell.jsonc`.
 
-With `--zip`, the package directory contains `module.json` and `module.zip`. The ZIP contains the compiled staging tree at its root, including
+For a normal module, `--zip` publishes a directory containing `module.json` and `module.zip`. The ZIP contains the compiled staging tree at its root, including
 the generated inventory. The emitted `module.json` is normalized JSON with the local definition's `assetsUrl` set to `"url:./module.zip"` and its
-`files` set to the generated inventory. The current `Pack.cs` ZIP path requires a module descriptor; XShell framework ZIP packaging is not supported.
+`files` set to the generated inventory. `--zip` for an XShell framework source fails explicitly before staging.
+
+The package path is immutable after first publication. Repeating a pack with the same content identity and representation reuses that path without
+rewriting it. Requesting expanded output where a ZIP package exists, or ZIP output where an expanded package exists, fails with a representation
+collision. New packages are prepared in temporary directories and published by a directory move.
 
 The command rejects an output directory that equals or is inside the source directory. Temporary staging is always cleaned after success or failure,
 and resource compilation failures are not swallowed.

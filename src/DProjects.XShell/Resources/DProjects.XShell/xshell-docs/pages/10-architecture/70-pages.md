@@ -34,15 +34,16 @@ Markdown documents are also Page resources. Their browser-facing URLs keep the `
 page:/_assets/xshell-docs/pages/10-architecture/100-services.md
     → Resolver (page-md, cached Page class by path)
     → page-md → normal Page → mount
-    → <x-markdown src="/_assets/xshell-docs/pages/10-architecture/100-services.md">
-    → fetch(src) → Markdown text → x/utils/markdown.js → rendered DOM
+    → configured xshell.ui.component.markdown Component with src="/_assets/xshell-docs/pages/10-architecture/100-services.md"
+    → fetch(src) → Markdown text → rendered DOM
 ```
 
-`page-md` is a Page adapter, not a Markdown renderer. It loads `component:x-markdown` through the normal Loader and mounts that component with the
-resolved document URL. Unmount detaches the component, and a later mount creates it again. Page load/unload and navigation metadata follow the
+`page-md` is a Page adapter, not a Markdown renderer. It reads `xshell.ui.component.markdown`, loads that Component through the normal Loader, and
+mounts it with the resolved document URL. Unmount detaches the component, and a later mount creates it again. Page load/unload and navigation metadata follow the
 normal lifecycle. Labels come from menu/breadcrumb/navigation metadata, not from parsing a Markdown heading.
 
-`x-markdown` owns loading, Markdown conversion, relative URL normalization, embedded-component loading, and its rendered content. Its `src` is a
+The current `x` module selects `x-markdown` by default. That Component owns loading, Markdown conversion, relative URL normalization,
+embedded-component loading, and its rendered content. Its `src` is a
 normal browser URL, without a logical resource prefix. `/_assets/...` works because the Service Worker virtualizes that browser URL. Each Page
 instance retains its navigation query while the cached Page class uses the resolved Markdown resource URL.
 
@@ -281,5 +282,6 @@ Use `page.host` for the mounted host and a registered service for other capabili
 Implementation meta accepts `id`, `title`, `renderEngine`, and `stateEngine`; loaders derive id from the resource filename when omitted.
 Although Page runtime reads description/icon metadata, the shared implementation schema rejects those meta fields.
 
-Pages reject render-factory-reported slots. HTML/Markdown report none, so that check is not a raw template scan.
+Pages reject render-factory-reported slots. The built-in definition render engines are `html` and `x`; `html` reports no slots, so that check is not a
+raw template scan.
 See [Dialogs](../subsystems/30-dialogs.md) for standard Page helpers and result/cleanup limitations.
