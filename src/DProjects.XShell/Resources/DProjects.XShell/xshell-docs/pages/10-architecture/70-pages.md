@@ -242,6 +242,10 @@ destruction paths: they unmount the current Page and then unload it before the i
 to each mount; Page state, controller, timers, events, and disposables belong to the Page instance until its final unload. See the component
 [Lifecycle](../components/60-lifecycle.md) contract for the complete sequence.
 
+`x-page` may prepare Page loads concurrently, but it replaces Pages one at a time. When `src` changes during a load, only the most recent candidate
+may begin replacement; obsolete candidates are unloaded without affecting the active Page. Once replacement begins, unmounting and unloading the
+current Page, then installing and mounting the new Page, complete in order before another replacement begins, even if a newer navigation starts meanwhile.
+
 Mounting does not recreate the controller. The Page instance owns its state, controller, Timers, Events helpers, and other disposables across
 mount/unmount cycles, and final unload disposes the helpers and releases the controller.
 

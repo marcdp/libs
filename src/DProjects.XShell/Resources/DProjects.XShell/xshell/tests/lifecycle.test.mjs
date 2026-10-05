@@ -466,7 +466,51 @@ test("x-page unmounts then unloads a replaced page and only unmounts on disconne
 
     commands.length = 0;
     await xpage.load();
-    assert.deepEqual(commands, ["old unmount", "old unload", "new load", "new mount"]);
+    assert.deepEqual(commands, ["new load", "old unmount", "old unload", "new mount"]);
+});
+
+test("x-page discards an older load without disturbing the newer active Page", async () => {
+    const commands = [];
+    let finishALoad;
+    let markALoadStarted;
+    const aLoadStarted = new Promise(resolve => { markALoadStarted = resolve; });
+    const aLoadGate = new Promise(resolve => { finishALoad = resolve; });
+    class PageA {
+        label = "";
+        icon = "";
+        async load() { commands.push("A load"); markALoadStarted(); await aLoadGate; }
+        async mount() { commands.push("A mount"); }
+        async unmount() { commands.push("A unmount"); }
+        async unload() { commands.push("A unload"); }
+    }
+    class PageB {
+        label = "";
+        icon = "";
+        async load() { commands.push("B load"); }
+        async mount() { commands.push("B mount"); }
+        async unmount() { commands.push("B unmount"); }
+        async unload() { commands.push("B unload"); }
+    }
+    xshell._debug = { log() {} };
+    xshell._config = { xshell: { ui: { layout: { embed: "x-layout-test" } } } };
+    xshell._areas = { resolveAreaId() { return ""; }, getArea() { return null; }, getMenuitemBreadcrumb() { return []; } };
+    xshell._modules = { resolveModuleId() { return "test"; } };
+    xshell._loader = { async load(resource) { return resource === "page:/pages/a.js" ? PageA : PageB; } };
+    const xpage = new XPage();
+    xpage._src = "/pages/a.js";
+    const loadA = xpage.load();
+    await aLoadStarted;
+
+    xpage._src = "/pages/b.js";
+    await xpage.load();
+    const activePage = xpage.page;
+    assert.ok(activePage instanceof PageB);
+    assert.deepEqual(commands, ["A load", "B load", "B mount"]);
+
+    finishALoad();
+    await loadA;
+    assert.equal(xpage.page, activePage);
+    assert.deepEqual(commands, ["A load", "B load", "B mount", "A unload"]);
 });
 
 test("dialog close completes after one final Page unload and host removal", async () => {

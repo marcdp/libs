@@ -291,7 +291,7 @@ class XPage extends HTMLElement {
             return;
         }
 
-        // unmount and unload previous page, then set and mount the new page (we wrap it in a promise to maintain order )
+        // Page preparation may overlap, but only the latest load may begin a serialized replacement.
         const loadCommit = this._loadCommit.then(async () => {
             // may have become stale while waiting in the queue.
             if (loadRevision !== this._loadRevision) {
