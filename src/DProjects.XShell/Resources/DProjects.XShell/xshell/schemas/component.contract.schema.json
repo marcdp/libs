@@ -34,7 +34,7 @@
         "required": { "type": "boolean", "description": "Whether the property is required." },
         "readonly": { "type": "boolean", "description": "Whether consumers should treat the property as read-only." },
         "enum": { "type": "array", "description": "Optional set of allowed string values for the property.", "items": { "type": "string" }, "uniqueItems": true },
-        "attribute": { "description": "Whether the property is exposed as an HTML attribute, or the explicit attribute name to use.", "oneOf": [ { "type": "boolean" }, { "type": "string", "minLength": 1 } ] }
+        "attribute": { "type": "boolean", "description": "Whether the derived kebab-case HTML attribute is observed for incoming changes." }
       },
       "required": [ "type" ]
     },

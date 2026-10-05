@@ -41,9 +41,10 @@ prefix throws. With no configured default, the first sorted Area is used. The in
 
 ## Menus and home
 
-Areas composes each named menu slot by visiting participating modules in `area.modules` order. A module contribution is either a static array,
-which Areas clones in declaration order, or a string naming a source already registered through `Areas.registerSource(name, source)`. For a named
-source, Areas calls `source.resolve()` during composition and clones the returned array as the complete contribution. Each effective item has its
+Areas composes each named menu slot by visiting participating modules in `area.modules` order. A module contribution can be a static array, a
+module-relative inventory path beginning with `/` (for example `"/pages"`), or a source name registered through
+`Areas.registerSource(name, source)`. For a named source, Areas calls `source.resolve()` during composition and clones the returned array as the
+complete contribution. Each effective item has its
 module id, Area id, label, icon, children, path, and href. `path` is optional and is the friendly/public navigation alias; `href` is the canonical
 XShell navigation target. Effective menu structures are separate for each Area; participation creates no additional module instances. Unknown
 module ids and unknown sources produce warnings and are skipped.
@@ -63,12 +64,11 @@ the named menu contribution:
 Here `customer-pages` supplies only `Customers` children, while `report-tools` supplies the entire `tools` menu. Source names are runtime lookup
 identifiers, not URLs or resolver entries. They provide runtime data without mutating the readonly effective configuration.
 
-The bundled `x-demo` module illustrates a complete-menu source. Its `navigation` contribution names
-`x-demo-dynamic-navigation-menu-source`; its controller reads the normalized `moduleConfig.files` inventory that bootstrap attached to the effective
-configuration, derives a page hierarchy from `/_assets/x-demo/pages`, and registers the resulting menu. Numeric filename and directory prefixes
-order entries and are removed from labels. This is an `x-demo` convention, not an XShell requirement: physical `module.files.json` remains generated
-resource inventory rather than menu metadata. Its virtual `/_assets/x-demo/pages/index.js` entry becomes the top-level `Demo` item, and other page
-sections become that item's children.
+The bundled `x-demo` and `xshell-docs` modules use `"navigation": "/pages"`. Areas derives a hierarchy from each module's normalized
+`moduleConfig.files` inventory. It recognizes `.js`, `.html`, and `.md` Pages; HTML destinations become `.js`, while Markdown retains `.md`.
+An `index` Page is the directory destination. Numeric filename and directory prefixes such as `03-navigation` set order and are removed from
+labels and friendly path segments. The module label names the root menu item. This is a menu-generation convention over the generated physical
+inventory, not authored inventory metadata. Registered runtime sources and `childrenSource` remain separate mechanisms.
 
 Bootstrap first maps module-relative menu hrefs into `/_assets/<module-id>/...`. Areas then applies the Area prefix to both local `path` and local
 `href`, leaving external scheme URLs unchanged. For example, `/components` and `/_assets/x-demo/pages/01-components/index.js` become

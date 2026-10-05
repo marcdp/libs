@@ -45,7 +45,7 @@ namespace DProjects.XShell {
             // config webapplication
             var assembly = typeof(Extensions).Assembly;
             var environment = (string.IsNullOrEmpty(config.Environment) ? app.Environment.EnvironmentName : config.Environment);
-            var isDevelopment = app.Environment.IsDevelopment() || environment.Equals("Development");
+            var isDevelopment = environment.Equals("Development", StringComparison.OrdinalIgnoreCase);
             string resourcePath;
             if (isDevelopment) {
                 var projectDirectory = assembly.GetCustomAttributes<AssemblyMetadataAttribute>().FirstOrDefault(x => x.Key == "ProjectDirectory")?.Value;

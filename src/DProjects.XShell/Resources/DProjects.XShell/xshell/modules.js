@@ -142,7 +142,7 @@ export default class Modules {
     // methods
     resolveModuleId(src) {
         //get module name by src
-        if (!src) debugger;
+        if (!src) return null;
         for (let module of this._modules) {
             if (src.startsWith(module.path + "/")) {
                 return module.id;

@@ -139,8 +139,8 @@ Bootstrap recursively discovers `modules.<id>.configUrl` references and builds c
 Repeated references to the same canonical module do not imply multiple live runtime instances.
 
 Each `module.jsonc` contains exactly one local module definition: the `modules.<id>` entry without `configUrl`. Every other entry is an external
-reference whose key must match the referenced document's local module id. Only the root application document selected by `app.configPath` may
-supply dependency `params`.
+reference whose key must match the referenced document's local module id. References may contribute `params` and other mergeable configuration;
+`configUrl` identifies the referenced definition, whose local definition owns `assetsUrl`. Merge order is dependency-first, owner-later, root-last.
 
 Keep these concepts separate:
 

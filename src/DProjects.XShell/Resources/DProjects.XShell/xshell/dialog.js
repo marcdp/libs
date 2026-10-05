@@ -80,7 +80,7 @@ export default class Dialog {
                 //disabled: (disabled.indexOf(item.id) != -1),
             });
         }
-        return await this.picker({ title, message, inputType: "radios", domain, required});
+        return await this.picker({ title, message, value, inputType: "radios", domain, required});
     }
     async open({ href, params, title, breadcrumb, icon, context }) {
         return await this._navigation.navigate({ 

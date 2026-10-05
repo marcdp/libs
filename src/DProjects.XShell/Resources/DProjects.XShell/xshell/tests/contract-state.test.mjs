@@ -34,6 +34,7 @@ class StateEngineFactory {
 
 class RenderEngineFactory {
     dependencies = [];
+    slots = [];
 
     init() {}
 }
@@ -55,7 +56,7 @@ xshell._loader = {
 };
 
 function createDefinition(state) {
-    return { meta: { name: "x-contract-state-test" }, state };
+    return { meta: { id: "x-contract-state-test" }, state };
 }
 
 function createContract(property) {

@@ -6,7 +6,7 @@ export const contract = {
         title: {type:"string", default:"", state:true, description:"The title of the picker dialog.", context:true},
         message: {type:"string", default:"", state:true, description:"The message to display in the picker dialog.", context:true},
         domain: {type:"array", default:[], state:true, description:"The list of keypairs (value and label) for the picker.", context:true},
-        inputType: {type:"string", default:"select", state:true, enum:["select"], description:"The type of input for the picker.", context:true}, 
+        inputType: {type:"string", default:"select", state:true, enum:["select", "radios"], description:"The type of input for the picker.", context:true},
         placeholder: {type:"string", default:"", state:true, description:"The placeholder text for the picker.", context:true},
         multiple: {type:"boolean", default:false, state:true, description:"Whether multiple selection is allowed.", context:true},
         required: {type:"boolean", default:false, state:true, description:"Whether the picker is required.", context:true},

@@ -155,7 +155,8 @@ See [Root Module](application.md), [Modules](../architecture/30-modules.md), and
 Bootstrap supplies `assetsPath` and loads `module.files.json` into `files`, whose entries have `path`, `size`, and `hash`.
 Inventories describe resources; do not hand-author them as menu or contract declarations.
 `Modules` loads `styles/index.css` when that path occurs in the inventory. There is no accepted effective module `styles` field.
-`params` is a free-form object. `menus` maps arbitrary menu names to arrays or registered-source names; see [Areas](../subsystems/10-areas.md).
+`params` is a free-form object. `menus` maps arbitrary menu names to static arrays, module-relative inventory paths beginning with `/` such as
+`"/pages"`, or registered runtime source names. Inventory paths derive Page menus from generated `files`; see [Areas](../subsystems/10-areas.md).
 
 The effective schema requires complete module defaults, source locations, and generated `files`/`assetsPath` metadata.
 Bootstrap enriches the object before schema validation. See [Packaging](../architecture/50-packaging.md).

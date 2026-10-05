@@ -86,6 +86,6 @@ corresponding `<slot>` elements itself, and each factory-reported slot must be r
 
 ## V0 limits
 
-The `x` engine reports slots from compiler metadata. `html` and `markdown` currently report `[]`, so the loader does not discover their raw slots.
+The `x` engine reports slots from compiler metadata. `html` currently reports `[]`, so the loader does not discover its raw slots.
 `required` is consumer guidance, without runtime content-presence enforcement.
 The Page loader rejects factory-reported slots rather than supporting a public Page slot contract.

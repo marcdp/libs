@@ -1,12 +1,60 @@
 // utils
-function stripJsonComments(s) { let o = "", i = 0, n = s.length; for (; i < n;) { let c = s[i]; if (c == '"' || c == "'") { let q = c; o += c; i++; while (i < n) { if (s[i] == "\\") { o += s[i++] + s[i++]; } else if (s[i] == q) { o += s[i++]; break; } else { o += s[i++]; } } continue; } if (c == '/' && s[i + 1] == '/') { i += 2; while (i < n && s[i] != "\n" && s[i] != "\r") i++; continue; } if (c == '/' && s[i + 1] == '*') { i += 2; while (i < n && !(s[i] == '*' && s[i + 1] == '/')) i++; i += 2; continue; } o += c; i++; }; return o; }
+function parseJsonc(source) {
+    // replace comments with whitespace while preserving quoted text and token boundaries
+    let stripped = "";
+    let inString = false;
+    for (let i = 0; i < source.length; i++) {
+        const char = source[i];
+        if (inString) {
+            stripped += char;
+            if (char === "\\") stripped += source[++i] ?? "";
+            else if (char === '"') inString = false;
+        } else if (char === '"') {
+            inString = true;
+            stripped += char;
+        } else if (char === "/" && source[i + 1] === "/") {
+            stripped += "  ";
+            i++;
+            while (i + 1 < source.length && source[i + 1] !== "\n" && source[i + 1] !== "\r") { stripped += " "; i++; }
+        } else if (char === "/" && source[i + 1] === "*") {
+            stripped += "  ";
+            i++;
+            while (i + 1 < source.length && !(source[i + 1] === "*" && source[i + 2] === "/")) {
+                stripped += source[i + 1] === "\n" || source[i + 1] === "\r" ? source[i + 1] : " ";
+                i++;
+            }
+            if (i + 2 >= source.length) throw new SyntaxError("Unterminated JSONC block comment.");
+            stripped += "  ";
+            i += 2;
+        } else stripped += char;
+    }
+    // remove only commas outside strings whose next token closes an object or array
+    let normalized = "";
+    inString = false;
+    for (let i = 0; i < stripped.length; i++) {
+        const char = stripped[i];
+        if (inString) {
+            normalized += char;
+            if (char === "\\") normalized += stripped[++i] ?? "";
+            else if (char === '"') inString = false;
+        } else if (char === '"') {
+            inString = true;
+            normalized += char;
+        } else if (char === ",") {
+            let next = i + 1;
+            while (next < stripped.length && /\s/.test(stripped[next])) next++;
+            normalized += stripped[next] === "}" || stripped[next] === "]" ? " " : char;
+        } else normalized += char;
+    }
+    return JSON.parse(normalized);
+}
 function combineUrls(t, n) { if (-1 != t.indexOf("?") && (t = t.substring(0, t.indexOf("?"))), -1 != n.indexOf(":")) return n; if (n.startsWith("/")) { if (-1 != t.indexOf("://")) { let i = t.indexOf("/", t.indexOf("://") + 3); return -1 != i && (t = t.substring(0, i)), t + n } return n } if (n.startsWith("./") || "." == n) return t.endsWith("/") ? t = t.substring(0, t.length - 1) : t.length > 0 && (t = t.substring(0, t.lastIndexOf("/"))), t + n.substring(1); if (n.startsWith("../")) { t.endsWith("/") ? t = t.substring(0, t.length - 1) : t.length > 0 && (t = t.substring(0, t.lastIndexOf("/"))); let i = t + "/" + n; if (i.startsWith("/")) { i = new URL(i, window.location.origin).pathname } else i = new URL(i).toString(); return i } return t.endsWith("/") || -1 != t.indexOf("/") && (t = t.substring(0, t.lastIndexOf("/") + 1)), t + n }
 function meta(name) { return document.head.querySelector(`meta[name="${name}"]`)?.content; }
 function deepFreeze(obj) {if (obj === null || typeof obj !== "object") {return obj;} Object.freeze(obj); for (const value of Object.values(obj)) {deepFreeze(value);} return obj;}
 function absolutizePrefixedUrl(key, obj, url) {return typeof obj === "string" ? (obj.startsWith("url:") ? ((obj = obj.substring(4).trim()), (obj.startsWith("/") || obj.startsWith("./") || obj.startsWith("../") || obj === ".") ? combineUrls(url, obj) : obj) : obj) : Array.isArray(obj) ? (obj.forEach((v, i) => obj[i] = absolutizePrefixedUrl(i, v, url)), obj) : obj instanceof Object ? (Object.keys(obj).forEach(k => obj[k] = absolutizePrefixedUrl(k, obj[k], url)), obj) : obj;}
 function relativizePaths(key, obj, path) { return typeof obj === "string" ? (obj.startsWith("/") ? ((obj = path + obj), obj.startsWith(document.location.origin) ? obj.substring(document.location.origin.length) : obj) : (obj.startsWith("./") || obj.startsWith("../") || obj === ".") ? ((obj = combineUrls(path + "/", obj)), obj.startsWith(document.location.origin) ? obj.substring(document.location.origin.length) : obj) : obj) : Array.isArray(obj) ? (obj.forEach((v, i) => obj[i] = relativizePaths(i, v, path)), obj) : obj instanceof Object ? (Object.keys(obj).forEach(k => obj[k] = relativizePaths(k, obj[k], path)), obj) : obj; }
 function relativizeModulePaths(config, path) {const definitions = config.xshell?.areas?.definitions || {};const prefixes = Object.fromEntries(Object.entries(definitions).filter(([, area]) => Object.hasOwn(area, "prefix")).map(([id, area]) => [id, area.prefix]));relativizePaths("", config, path);for (const [id, prefix] of Object.entries(prefixes)) definitions[id].prefix = prefix;}
-async function loadJsonWithComments(url) {const request = await fetch(url);if (!request.ok) throw new Error(`Failed to json file: ${url}`);let json = await request.text();return JSON.parse(stripJsonComments(json));}
+async function loadJsonWithComments(url) {const request = await fetch(url);if (!request.ok) throw new Error(`Failed to json file: ${url}`);let json = await request.text();return parseJsonc(json);}
  
 
 // consts
@@ -53,11 +101,8 @@ function hideSpinner(){
     if (spinner) spinner.remove();
 }
 async function loadModuleConfig(url) {
-    // load module config from the given URL
-    const request = await fetch(url);
-    if (!request.ok) throw new Error(`Failed to json file: ${url}`);
-    let json = await request.text();
-    return JSON.parse(stripJsonComments(json));
+    // load module config with the same JSONC dialect as root and framework configuration
+    return loadJsonWithComments(url);
 }
 function getLocalModule(config, configUrl) {
     // identify the single definition owned by this configuration document

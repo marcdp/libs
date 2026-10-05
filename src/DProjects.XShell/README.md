@@ -40,7 +40,7 @@ flowchart LR
     APP --> MN["Module N"]
 
     subgraph MODULE["A Module"]
-        CFG["Configuration<br/>module.json"]
+        CFG["Configuration<br/>module.jsonc"]
         CTRL["Optional Controller<br/>module.js"]
         PAGES["Pages"]
         COMPONENTS["Components"]
@@ -64,7 +64,7 @@ A good Module should be easy to inspect and answer:
 Sample module file structure:
 ```
 my-module/
-├── module.json
+├── module.jsonc
 ├── module.js
 │
 ├── pages/
@@ -81,8 +81,8 @@ my-module/
 │   └── status-badge.js
 │
 ├── contracts/
-│   ├── customer-repository.js
-│   └── notification-service.js
+│   ├── customer-repository.json
+│   └── notification-service.json
 │
 ├── services/
 │   ├── customer-repository.js
@@ -99,46 +99,14 @@ my-module/
 ```
 
 
-### Production module packaging
+### Packaging and current deployment
 
-In production,  each Module is deployed as a small module.json file plus one immutable ZIP containing its resources.
+The V0 browser runtime maps expanded module directories through its Service Worker to normal URLs such as `/_assets/my-module/...`.
+JavaScript, CSS, Pages, and icons are served from those expanded resources.
 
-
-```mermaid
-flowchart LR
-
-    subgraph DEPLOY["Production"]
-        CFG["module.json"]
-        ZIP["my-module-1.4.2-a84f3c.zip"]
-    end
-
-    CFG --> BOOT["XShell Bootstrap"]
-    BOOT --> SW["Service Worker (unzip+serves)"]
-
-    ZIP -->|download once| SW
-
-    SW --> CACHE["Browser Cache<br/>aggressively cached"]
-    CACHE --> SW
-
-    SW --> ASSETS["/_assets/my-module/..."]
-
-    ASSETS --> JS["JavaScript"]
-    ASSETS --> CSS["CSS"]
-    ASSETS --> PAGES["Pages"]
-    ASSETS --> ICONS["Icons"]
-
-    BROWSER["Application"] --> ASSETS
-```
-
-The browser always sees normal Module URLs such as `/_assets/my-module/...`; it does not need to know that the resources came from a ZIP.
-
-Production packages are identified by **module version + content hash**, making them immutable and safe to cache aggressively. A new deployment creates a new package instead of modifying an existing one.
-
-This keeps deployment simple and predictable while reducing the number of physical files that need to be transferred and maintained.
-
-> **One Module → one configuration + one immutable ZIP → normal browser resources.**
-
-> Current status: ZIP packaging is implemented; transparent ZIP-backed resource loading through the Service Worker is the target production model.
+The `pack` command can produce an expanded package or an immutable ZIP package under `<output>/<id>/<version>.<hash>/`. The ZIP package contains
+`module.json` and `module.zip`, but the V0 Service Worker does not read or serve ZIP entries. Direct ZIP-backed resource delivery is a future
+runtime capability. Deploy expanded resources for the current runtime.
 
 
 

@@ -23,6 +23,7 @@ function createAreas() {
         xshell: {
             areas: {
                 default: "sales",
+                global: [],
                 definitions: {
                     sales: { prefix: "/sales", modules: ["customer"] },
                     admin: { prefix: "/admin", modules: ["customer"] },
@@ -59,11 +60,11 @@ function createAreas() {
             "/navigation": "/_assets/x-demo/pages/route-navigation.js",
             "/navigation-route": "/_assets/x-demo/pages/03-navigation/index.js"
         },
-        config: { menus: { navigation: "x-demo-dynamic-navigation-menu-source" } }
+        config: { menus: { navigation: "demo-runtime-menu-source" } }
     };
     const shellModule = { id: "shell", config: { menus: {} } };
     const areas = new Areas({ config, bus });
-    areas.registerSource("x-demo-dynamic-navigation-menu-source", {
+    areas.registerSource("demo-runtime-menu-source", {
         resolve() {
             return [{
                 label: "Demo",
@@ -94,7 +95,7 @@ function createSharedRouteContext({ definitions, defaultArea, mode = "path", bas
     const config = {
         xshell: {
             assetsPrefix: "_assets",
-            areas: { default: defaultArea, definitions }
+            areas: { default: defaultArea, global: [], definitions }
         }
     };
     const module = {
@@ -113,6 +114,7 @@ function createNoRouteContext() {
             assetsPrefix: "_assets",
             areas: {
                 default: "empty",
+                global: [],
                 definitions: { empty: { prefix: "/empty", modules: ["empty"] } }
             }
         }
@@ -222,6 +224,7 @@ function createRouteAreas() {
             assetsPrefix: "_assets",
             areas: {
                 default: "combined",
+                global: [],
                 definitions: {
                     combined: { prefix: "/demo", modules: ["first", "second"] },
                     "first-only": { prefix: "/first", modules: ["first"] },

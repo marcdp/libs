@@ -316,7 +316,7 @@ export async function createComponentClassFromJsDefinition(src, context, impleme
             for (const methodName of Object.keys(contract.methods ?? {})) {
                 const method = this._controller[methodName];
                 if (typeof(method) !== "function") {
-                    throw new Error(`Component '${implementation.meta.c}' declares public method '${methodName}' in contract.methods but controller.${methodName} is not a function.`);
+                    throw new Error(`Component '${implementation.meta.id}' declares public method '${methodName}' in contract.methods but controller.${methodName} is not a function.`);
                 }
             }
             // attribute mutation observer (listen for changes in attributes that start with state map attribute names)

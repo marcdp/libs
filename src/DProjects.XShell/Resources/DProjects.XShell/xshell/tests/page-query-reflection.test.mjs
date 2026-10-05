@@ -138,7 +138,7 @@ function createNavigation(mode, xpages) {
 }
 
 function createDefinition(controller = () => ({})) {
-    return { meta: { name: "page-query-reflection-test" }, controller };
+    return { meta: { id: "page-query-reflection-test" }, controller };
 }
 
 function createContext() {
@@ -277,7 +277,7 @@ test("attribute reflection remains independent from Page-query metadata", async 
     const Component = await createComponentClassFromJsDefinition(
         "component.js",
         createContext(),
-        { meta: { name: "query-reflection-component" }, controller: () => ({}) },
+        { meta: { id: "query-reflection-component" }, controller: () => ({}) },
         { properties: { value: { type: "string", default: "default", state: true, attribute: true, query: true, reflect: true } } }
     );
     const component = new Component();

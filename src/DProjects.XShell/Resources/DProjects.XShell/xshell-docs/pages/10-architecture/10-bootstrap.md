@@ -85,7 +85,7 @@ See [Configuration](20-configuration.md), [Services](100-services.md), [Modules]
 
 ## JSONC boundary
 
-The browser removes comments and then uses `JSON.parse`; trailing commas are not accepted there.
-Server descriptor parsing accepts trailing commas, but pack copies descriptors unchanged. Keep browser-consumed descriptors free of trailing commas.
+Browser bootstrap accepts JSONC comments and trailing commas in framework, root, and dependency configuration documents. Its scanner preserves
+quoted content while removing comments and commas before closing object or array delimiters. Server/build descriptor parsing accepts the same dialect.
 
 See [Hosting](40-hosting.md) for meta inputs and generated worker files.

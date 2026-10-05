@@ -8,10 +8,8 @@ Not implemented.
 
 ## Current runtime behavior
 
-XShell currently has no authentication service, login flow, logout flow, or identity-provider orchestration. It does not load `idp:<provider>`
-resources as part of startup and does not register an authentication or identity runtime service.
-
-The `xshell.identity` configuration shape and the `idp` resolver rule remain in the default configuration, but they do not implement authentication.
+XShell currently has no authentication service, login flow, logout flow, or identity-provider orchestration. It does not register an
+authentication or identity runtime service. V0 has no `xshell.identity` configuration or `idp` resolver entry.
 
 ## Future work
 

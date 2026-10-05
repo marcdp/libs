@@ -76,19 +76,19 @@ function createContext() {
 
 test("Component definitions accept CSS strings and reject style arrays", async () => {
     configureDefinitionLoaders();
-    const styledDefinition = { meta: { name: "style-string" }, style: ".content { color: red; }" };
+    const styledDefinition = { meta: { id: "style-string" }, style: ".content { color: red; }" };
     const Component = await createComponentClassFromJsDefinition("style-string.js", createContext(), styledDefinition, {});
     const component = new Component();
 
     assert.equal(component.shadowRoot.adoptedStyleSheets.length, 1);
     assert.equal(component.shadowRoot.adoptedStyleSheets[0].text, ".content { color: red; }");
-    await assert.doesNotReject(() => createComponentClassFromJsDefinition("empty-style.js", createContext(), { meta: { name: "empty-style" }, style: "" }, {}));
+    await assert.doesNotReject(() => createComponentClassFromJsDefinition("empty-style.js", createContext(), { meta: { id: "empty-style" }, style: "" }, {}));
 
-    const omittedStyleDefinition = { meta: { name: "omitted-style" } };
+    const omittedStyleDefinition = { meta: { id: "omitted-style" } };
     await assert.doesNotReject(() => createComponentClassFromJsDefinition("omitted-style.js", createContext(), omittedStyleDefinition, {}));
     assert.equal(omittedStyleDefinition.style, "");
     await assert.rejects(
-        () => createComponentClassFromJsDefinition("array-style.js", createContext(), { meta: { name: "array-style" }, style: [".a {}", ".b {}"] }, {}),
+        () => createComponentClassFromJsDefinition("array-style.js", createContext(), { meta: { id: "array-style" }, style: [".a {}", ".b {}"] }, {}),
         /Invalid component/
     );
 });
@@ -97,12 +97,12 @@ test("Page CSS strings create scoped stylesheets", async () => {
     configureDefinitionLoaders();
     document.adoptedStyleSheets = [];
     const PageClass = await createPageClassFromJsDefinition("page-style.js", createContext(), {
-        meta: { name: "page-style" },
+        meta: { id: "page-style" },
         style: ".content { color: blue; }"
     }, {});
     const page = new PageClass({ src: "/pages/style.js", context: {} });
-    await page.mount({ host: { nodeName: "X-PAGE", getAttribute() { return "/pages/style.js"; } } });
+    await page.mount({ host: { nodeName: "X-PAGE", getAttribute() { return "/pages/style.js"; }, getRootNode() { return document; } } });
 
     assert.equal(document.adoptedStyleSheets.length, 1);
-    assert.equal(document.adoptedStyleSheets[0].text, '@scope (x-page[src="/pages/style.js"]) {.content { color: blue; }}');
+    assert.equal(document.adoptedStyleSheets[0].text, '@scope (x-page[src="/pages/style.js"]) {.content { color: blue; };}');
 });

@@ -203,9 +203,9 @@
       "additionalProperties": {
         "oneOf": [
           { "type": "array", "items": {"$ref": "#/$defs/menuItem"}},
-          { "type": "string", "minLength": 1, "description": "Name of a registered dynamic menu source."}
+          { "type": "string", "minLength": 1, "description": "A module-relative inventory path beginning with /, or a registered runtime menu source name."}
         ],
-        "description": "Static menu items or the name of a registered dynamic menu source."
+        "description": "Static items, a module-relative inventory path, or a registered runtime source name."
       },
       "description": "Named menu contributions provided by a module."
     },

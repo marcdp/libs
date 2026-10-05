@@ -23,6 +23,7 @@ app.Run();
 | `AppBasePath` | `""`; application prefix with a trailing-slash entry URL. |
 | `AppConfigPath` | `""`; set the root module configuration URL. |
 | `AppParams` | Empty string dictionary; host params become root-module/application params. |
+| `Environment` | `null`; use ASP.NET's environment name. An explicit value overrides XShell's own environment and development resource behavior. |
 | `ResourcesBase` | `""`; prefixes resource middleware route `/_resources/DProjects.XShell`. |
 | `XShellBasePath` | `/_resources/DProjects.XShell/xshell`; bootstrap and worker source base. |
 | `UnhandledPrefixes` | `["/_", "/api", "/temp"]`; unmatched relative paths with these prefixes bypass SPA fallback. |
@@ -55,12 +56,14 @@ Unhandled matching is case-insensitive textual prefix matching: `/apiary` also m
 SPA fallback has no method filter. Path navigation needs this fallback for friendly-URL reloads.
 
 `BoostrapFilesBuilder` emits HTML, CSP meta, `xshell:` startup meta, and the bootstrap script.
-Generated `sw.js` imports the configured worker source. Bootstrap registers it with root scope `/`; a host serving it below the origin root must
-permit that scope.
+Generated `sw.js` imports the configured worker source. Bootstrap registers it with the application base-path scope
+`AppBasePath + "/"` (root scope only when `AppBasePath` is empty).
 
 ## Resources and development
 
-Development behavior requires ASP.NET `IsDevelopment()`.
+XShell uses the effective `Configuration.Environment` when supplied, otherwise ASP.NET's environment name. A case-insensitive `Development`
+value enables XShell development resources; an explicit `Production` disables them even if the ASP.NET host is Development. This does not modify
+ASP.NET's own environment object.
 Development uses assembly ProjectDirectory metadata to locate `Resources/DProjects.XShell`; other environments use the assembly output directory.
 The resource directory must exist.
 
@@ -72,7 +75,7 @@ Debugger presence does not select this behavior.
 ## Server command
 
 The bundled `server` command hosts resources and the demo. Options include `-a` (application base), `-c` (root config), `-r` (resource base),
-and repeatable `-p` (params). Its default application is x-demo; it supplies no application authentication pipeline.
-Use ASP.NET Development for on-demand compilation.
+`-e` / `--environment` (XShell environment), and repeatable `-p` (params). Its default application is x-demo; it supplies no application
+authentication pipeline. Select `Development` for on-demand compilation.
 
 See [Bootstrap](10-bootstrap.md), [Navigation](120-navigation.md), [Packaging](50-packaging.md), [Service Worker](110-service-worker.md), and [Temp](../subsystems/50-temp.md).

@@ -65,7 +65,7 @@ function createContext() {
 }
 
 function createDefinition(controller = () => ({})) {
-    return { meta: { name: "page-query-test" }, controller };
+    return { meta: { id: "page-query-test" }, controller };
 }
 
 function createContract(properties) {

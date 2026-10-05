@@ -13,7 +13,7 @@ The source must resolve to exactly one package kind. A normal module contains ex
 must contain exactly one entry without `configUrl`, whose key and non-empty `version` supply the package identity. The XShell framework contains
 exactly one of `xshell.json` or `xshell.jsonc`; its id is `xshell` and its version comes from the required non-empty `xshell.version`. A source with
 both JSON and JSONC variants, both module and XShell descriptors, or no supported descriptor is rejected. JSONC comments and trailing commas are
-supported, and descriptors are copied without rewriting.
+supported. An authored `module.jsonc` is renamed to `module.json` in staging; its JSONC content is preserved in expanded output.
 
 The command uses one staging and compilation flow for both output modes:
 
@@ -29,13 +29,16 @@ JavaScript is replaced at its existing path with its compiled content. An author
 not included. Packing fails if both the HTML and JavaScript source exist because they resolve to the same runtime path. Standalone CSS is compiled
 and replaced at the same path; resources are not bundled or concatenated.
 
-Without `--zip`, the output is `<output>/<id>-<version>/`, including `xshell-<version>/` for the framework. Its root directly contains the package
-descriptor, `module.files.json`, and resource directories. A completed temporary copy replaces an older directory with the same package name so stale
-files are not retained.
+Both modes use `<output>/<id>/<version>.<hash>/`. The 16-character lowercase hash comes from SHA-256 over ordered relative file paths and bytes in
+the compiled staging tree, including the generated inventory. It is not a hash of ZIP bytes.
 
-With `--zip`, the output is `<output>/<id>-<version>-<sha256>.zip`, including `xshell-<version>-<sha256>.zip` for the framework, where the lowercase
-SHA-256 is computed over the ZIP bytes. The ZIP root directly contains the package contents without an enclosing directory. If the identical
-immutable target already exists, it is reused.
+Without `--zip`, the package directory contains the compiled resources, generated `module.files.json`, and descriptor. An authored `module.jsonc`
+appears there as `module.json` with its original JSONC content. An authored `xshell.jsonc` remains `xshell.jsonc`. A completed temporary copy
+replaces an older directory at the same package path so stale files are not retained.
+
+With `--zip`, the package directory contains `module.json` and `module.zip`. The ZIP contains the compiled staging tree at its root, including
+the generated inventory. The emitted `module.json` is normalized JSON with the local definition's `assetsUrl` set to `"url:./module.zip"` and its
+`files` set to the generated inventory. The current `Pack.cs` ZIP path requires a module descriptor; XShell framework ZIP packaging is not supported.
 
 The command rejects an output directory that equals or is inside the source directory. Temporary staging is always cleaned after success or failure,
 and resource compilation failures are not swallowed.
@@ -67,14 +70,14 @@ Worker virtualizes delivery but does not discover or interpret inventories.
 `ResourcesMiddleware` uses the same `ModuleFileCompiler` on demand in development, including HTML-to-JavaScript resolution and conflict detection.
 It also generates `module.files.json` on demand and adds no-cache headers when ASP.NET is Development. Debugger presence does not enable it.
 Development inventories enumerate physical sources, so HTML SFC entries retain authored `.html` paths rather than packed `.js` paths.
-Server descriptor parsing accepts trailing commas, but browser bootstrap does not; copied runtime descriptors must remain browser-parseable.
+Server descriptor parsing and browser bootstrap both accept JSONC comments and trailing commas.
 
 Packaging does not provide ZIP-backed browser loading. Current Service Worker mapping and fetch behavior supports expanded directories only.
 
 ## Outside V0
 
 The project copies `Resources/**` to output without automatic MSBuild/publish-time packing.
-ZIPs are distribution artifacts; extract them before using an expanded-directory worker mapping. Runtime ZIP loading is not implemented.
+ZIPs are distribution artifacts. Runtime ZIP loading is not implemented; deploy an expanded directory for the current worker mapping.
 
 See [Modules](30-modules.md), [Service Worker](110-service-worker.md), and [Configuration](20-configuration.md).
 

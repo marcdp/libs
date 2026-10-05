@@ -97,7 +97,7 @@ class XPage extends HTMLElement {
     get breadcrumb() {return this._page.breadcrumb; }
     set breadcrumb(value) { this._page.breadcrumb = value; }
 
-    get result() {return this._page?.result || null;}
+    get result() {return this._page?.result ?? null;}
     set result(value) {this._page.result = value;}
 
     get layout() { return this._layout;}
@@ -181,9 +181,6 @@ class XPage extends HTMLElement {
     async load() {
         console.log(`x-page: load '${this.src} ...`);
         let src = this.src;
-        if (src.indexOf("error") != -1) {
-            return;
-        }
         // reset
         this._status = "loading";
         // set layout as loading (if exists)
@@ -218,7 +215,6 @@ class XPage extends HTMLElement {
             page = new Page({ src });
             page.onCommand = (command, params) => {
                 if (command == "mount") {
-                    //debugger;
                     exception.src = src;
                     exception.areaId = area?.id;
                     exception.moduleId = moduleId;

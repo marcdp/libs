@@ -48,14 +48,14 @@ contain `description`. Example names start with a letter and then use letters, d
 | `type` | Required type label; used for attribute/Page query conversion, without general assignment validation. |
 | `default` | Canonical public-property default. State-backed defaults enter the state skeleton. |
 | `state` | `true` connects a Component accessor to state and includes the property in Page state. |
-| `attribute` | Schema accepts boolean/nonempty string; Component observation uses only `true` and derives a kebab-case name. |
+| `attribute` | Boolean only; `true` observes the derived kebab-case HTML attribute for incoming changes. |
 | `reflect` | Components reflect to kebab-case attributes; Pages reflect query-enabled state properties to the Page query. |
 | `query` | Page-only input binding; requires `state: true` and string/number/integer/boolean type. |
 | `context` | Page-only initialization from creation context, applied after query initialization. |
 | `required`, `readonly`, `enum` | Descriptive metadata; no assignment, presence, or mutability enforcement. |
 | `description` | Documentation metadata. |
 
-String attribute aliases are schema-supported but are not consumed by the Component loader. Component `reflect: true` emits an attribute even
+Component `reflect: true` emits an attribute even
 without `attribute: true`; that flag controls incoming observation. State-backed reflection requires an engine change notification.
 Pages do not install Component-style public property accessors or HTML attribute bindings. See [Properties](20-properties.md) and
 [Pages](../architecture/70-pages.md) for conversions and query/context behavior.
@@ -64,7 +64,7 @@ Public methods require callable controller methods with the same names and canno
 metadata does not add runtime checking. Component proxies forward all arguments; the current Page command bridge forwards only its first parameter.
 
 Event metadata does not dispatch CustomEvents, validate payloads, or configure emitted flags. Slots are checked against `factory.slots`:
-`x` reports compiler-produced slot names, while `html` and `markdown` currently report none. Slot `required` does not enforce supplied content.
+`x` reports compiler-produced slot names, while `html` currently reports none. Slot `required` does not enforce supplied content.
 Examples are documentation/tooling data.
 
 See [State](30-state.md), [Events](40-events.md), [Slots](50-slots.md), and [Services](../architecture/100-services.md) for the separate service contract.

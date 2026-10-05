@@ -11,6 +11,7 @@ const bootstrapPath = new URL("../bootstrap.js", import.meta.url);
 const bootstrapSource = readFileSync(bootstrapPath, "utf8").replace(
     /\/\/ exec bootstrap\s*bootstrap\(\);\s*$/,
     `globalThis.__bootstrapTests = {
+        parseJsonc,
         getLocalModule: (config, configUrl) => getLocalModule(JSON.parse(JSON.stringify(config)), configUrl),
         discover: (rootConfig, rootConfigUrl, configs, calls) => discoverModuleConfigs(
             JSON.parse(JSON.stringify(rootConfig)),
@@ -76,6 +77,23 @@ const context = vm.createContext({
 });
 new vm.Script(bootstrapSource, { filename: bootstrapPath.pathname }).runInContext(context);
 const api = context.__bootstrapTests;
+
+test("browser JSONC accepts comments and trailing commas without changing string content", () => {
+    const value = api.parseJsonc(`{
+        // comment
+        "a": 1,
+        "array": [1, 2,],
+        "url": "http://example.com/a,b",
+        "block": "/* not a comment */",
+        "line": "// not a comment",
+        "ending": "value,}",
+        "escaped": "quote \\" and slash \\\\ ",
+    }`);
+    assert.deepEqual(JSON.parse(JSON.stringify(value)), {
+        a: 1, array: [1, 2], url: "http://example.com/a,b", block: "/* not a comment */",
+        line: "// not a comment", ending: "value,}", escaped: 'quote " and slash \\ '
+    });
+});
 
 test("generated Markdown Page rules preserve document URLs and cache classes by path", () => {
     const config = {

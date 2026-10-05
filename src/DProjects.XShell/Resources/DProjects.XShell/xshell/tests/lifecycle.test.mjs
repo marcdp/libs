@@ -1,5 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import ComponentContractSchema from "../schemas/component.contract.schema.json" with { type: "json" };
+import { Validator } from "../vendor/json-schema/4.1.1/json-schema.js";
+import Dialog from "../dialog.js";
+import { contract as pickerContract } from "../../x/pages/dialog-picker.js";
 
 const animationFrames = [];
 
@@ -254,6 +258,7 @@ class StateEngineFactory {
 
 class RenderEngineFactory {
     dependencies = [];
+    slots = [];
 
     init() {}
 
@@ -313,7 +318,7 @@ test("component preserves its instance lifetime across reconnects and unloads on
     animationFrames.length = 0;
     const commands = [];
     const Component = await createComponentClassFromJsDefinition("component-lifecycle.js", createContext(), {
-        meta: { name: "x-component-lifecycle-test" },
+        meta: { id: "x-component-lifecycle-test" },
         state: { value: 1 },
         controller() {
             return {
@@ -365,9 +370,9 @@ test("page preserves state and disposables until its final unload", async () => 
     animationFrames.length = 0;
     const commands = [];
     const PageClass = await createPageClassFromJsDefinition("page-lifecycle.js", createContext(), {
-        meta: { name: "page-lifecycle-test" },
+        meta: { id: "page-lifecycle-test" },
         state: { value: 1 },
-        script() {
+        controller() {
             return {
                 load() { commands.push("load"); },
                 mount() { commands.push("mount"); },
@@ -377,10 +382,11 @@ test("page preserves state and disposables until its final unload", async () => 
         }
     }, {});
     const page = new PageClass({ src: "/pages/lifecycle.js", context: {} });
-    const script = page._script;
+    const controller = page._controller;
     const disposable = { disposeCount: 0, dispose() { this.disposeCount += 1; } };
     page._disposables.push(disposable);
-    const host = { nodeName: "X-PAGE", getAttribute() { return "/pages/lifecycle.js"; } };
+    const root = { adoptedStyleSheets: [] };
+    const host = { nodeName: "X-PAGE", getAttribute() { return "/pages/lifecycle.js"; }, getRootNode() { return root; } };
 
     await page.load();
     await page.load();
@@ -390,7 +396,7 @@ test("page preserves state and disposables until its final unload", async () => 
     await page.unmount();
 
     assert.deepEqual(commands, ["load", "mount", "unmount"]);
-    assert.equal(page._script, script);
+    assert.equal(page._controller, controller);
     assert.equal(page._state.value, 2);
     assert.equal(page._renderEngine, null);
     assert.equal(disposable.disposeCount, 0);
@@ -546,4 +552,112 @@ test("navigation stack changes close dialogs through final Page cleanup", async 
     assert.equal(await resultPromise, null);
     assert.deepEqual(commands, ["unmount", "unload"]);
     assert.equal(container.firstChild, null);
+});
+
+test("navigation shrinks three stack Pages to one after asynchronous final unloads", async () => {
+    const container = new FakeNode();
+    container.querySelectorAll = () => container.childNodes;
+    const navigation = new Navigation({
+        areas: {}, bus: { emit() {} },
+        config: { app: { basePath: "https://example.test/" }, xshell: { navigation: { mode: "path", hashPrefix: "#!" } } },
+        container
+    });
+    const counts = [0, 0, 0];
+    const gates = [];
+    for (let i = 0; i < 3; i++) {
+        const host = new XPage();
+        host._src = `/pages/p${i}.js`;
+        host._page = {
+            async unmount() {},
+            async unload() {
+                counts[i]++;
+                if (i > 0) await new Promise(resolve => gates.push(resolve));
+            }
+        };
+        container.appendChild(host);
+    }
+    const [root, middle, top] = container.childNodes;
+    navigation._stack = [navigation.parseUrl(root.src)];
+    const reconciliation = navigation._stackToDom();
+    await new Promise(resolve => setImmediate(resolve));
+    assert.deepEqual(counts, [0, 1, 0]);
+    gates.shift()();
+    await new Promise(resolve => setImmediate(resolve));
+    assert.deepEqual(counts, [0, 1, 1]);
+    gates.shift()();
+    await reconciliation;
+    assert.deepEqual(counts, [0, 1, 1]);
+    assert.deepEqual(container.childNodes, [root]);
+    assert.equal(middle.removed, true);
+    assert.equal(top.removed, true);
+    assert.equal(root.removed, undefined);
+});
+
+test("x-page loads URLs containing error through the normal Page loader", async () => {
+    const loaded = [];
+    xshell._config = { xshell: { ui: { layout: { embed: "x-layout-test" } } } };
+    xshell._areas = { resolveAreaId() { return ""; }, getArea() { return null; }, getMenuitemBreadcrumb() { return []; } };
+    xshell._modules = { resolveModuleId() { return "test"; } };
+    xshell._loader = { async load(resource) {
+        if (resource.startsWith("page:")) {
+            loaded.push(resource);
+            return class { async load() {} async mount() {} };
+        }
+        return class {};
+    } };
+    for (const src of ["/pages/error-report.js", "/pages/errors/index.js", "/pages/orders.js?status=error"]) {
+        const host = new XPage();
+        host._src = src;
+        await host.load();
+    }
+    assert.deepEqual(loaded, ["page:/pages/error-report.js", "page:/pages/errors/index.js", "page:/pages/orders.js?status=error"]);
+});
+
+test("x-page and dialog preserve falsy results", async () => {
+    const container = new FakeNode();
+    const navigation = new Navigation({
+        areas: {}, bus: {},
+        config: { app: { basePath: "https://example.test/" }, xshell: { navigation: { mode: "path", hashPrefix: "#!" } } },
+        container
+    });
+    navigation._buildUrlFinal = item => item.href;
+    for (const value of [false, 0, "", null]) {
+        const resultPromise = navigation._showDialog({ href: "/pages/dialog.js", context: {} });
+        const host = container.firstChild;
+        assert.equal(host.result, null);
+        host._page = { async unmount() {}, async unload() {} };
+        await host.close(value);
+        assert.equal(await resultPromise, value);
+    }
+});
+
+test("Component contract accepts boolean attribute observation and rejects string aliases", () => {
+    const validator = new Validator(ComponentContractSchema, "2020-12");
+    for (const attribute of [true, false]) {
+        assert.equal(validator.validate({ properties: { item: { type: "string", attribute } } }).valid, true);
+    }
+    assert.equal(validator.validate({ properties: { item: { type: "string", attribute: "item-name" } } }).valid, false);
+});
+
+test("Component public-method diagnostic uses its canonical name", async () => {
+    configureDefinitionLoaders();
+    const Component = await createComponentClassFromJsDefinition("missing-method.js", createContext(), {
+        meta: { id: "x-missing-method" }, controller() { return {}; }
+    }, { methods: { submit: { description: "Submit" } } });
+    assert.throws(() => new Component(), /Component 'x-missing-method'.*public method 'submit'/);
+});
+
+test("dialog.language forwards value to a radios picker", async () => {
+    const dialog = new Dialog({ config: {}, navigation: {}, i18n: { config: { langs: [
+        { id: "en", label: "English" }, { id: "es", label: "Spanish" }
+    ] } } });
+    let options;
+    dialog.picker = async value => { options = value; return "es"; };
+    assert.equal(await dialog.language({ value: "es", current: ["en"] }), "es");
+    assert.deepEqual(options, { title: "Select language", message: "Language", value: "es", inputType: "radios",
+        domain: [{ value: "es", label: "Spanish (es)" }], required: true });
+});
+
+test("picker Page contract includes radios", () => {
+    assert.deepEqual(pickerContract.properties.inputType.enum, ["select", "radios"]);
 });

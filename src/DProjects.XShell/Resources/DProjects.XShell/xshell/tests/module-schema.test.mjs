@@ -39,7 +39,6 @@ function configuration(module) {
             debug: false,
             version: "1.0.0",
             environment: "test",
-            identity: { provider: "anonymous" },
             assetsPrefix: "_assets",
             assetsPath: "/_assets/xshell",
             areas: { default: null, global: [], definitions: {} },
@@ -66,6 +65,12 @@ function assertValid(module) {
 
 test("module schema keeps routes optional", () => {
     assertValid(moduleDefinition());
+});
+
+test("effective schema rejects the removed xshell.identity configuration", () => {
+    const config = configuration(moduleDefinition());
+    config.xshell.identity = { provider: "anonymous" };
+    assert.equal(validator.validate(config).valid, false);
 });
 
 test("module schema accepts unique non-empty service requirements", () => {

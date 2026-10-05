@@ -76,7 +76,7 @@ export default {
     return {
         navigateProgrammatically() {
             navigation.navigate({
-                href: "...",
+                href: "../02-pages/04-query-parameters.js",
                 page,
                 open: "auto"
             });
@@ -111,12 +111,11 @@ export default {
 
             navigateProgrammatically() {
                 // navigate with the controller API
-                //navigation.navigate({
-                //    href: "../02-pages/04-query-parameters.js",
-                //    page,
-                //    open: "auto"
-                //});
-                alert("TODO");
+                navigation.navigate({
+                    href: "../02-pages/04-query-parameters.js",
+                    page,
+                    open: "auto"
+                });
             }
         };
     }

@@ -101,6 +101,7 @@ function createRouteAreas() {
             assetsPrefix: "_assets",
             areas: {
                 default: "demo",
+                global: [],
                 definitions: { demo: { prefix: "/demo", modules: ["x-demo"] } }
             }
         }
@@ -140,7 +141,7 @@ async function createAnchor(attributes = {}, navigation = createNavigation()) {
     };
     const definition = {
         ...anchorDefinition,
-        meta: { ...anchorDefinition.meta, name: "x-anchor-test" }
+        meta: { ...anchorDefinition.meta, id: "x-anchor-test" }
     };
     const Anchor = await createComponentClassFromJsDefinition(
         "x-anchor.js",

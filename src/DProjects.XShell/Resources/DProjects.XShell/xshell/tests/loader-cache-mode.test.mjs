@@ -60,7 +60,11 @@ test("cacheMode path shares query variants and keeps diagnostics unnormalized", 
 
     assert.strictEqual(first, second);
     assert.deepEqual(fixture.getRequests(), ["/foo"]);
-    assert.deepEqual(loader.registry, [{ resource: "resource:/foo?a=1", src: "/foo", status: "loaded" }]);
+    assert.equal(loader.registry.length, 1);
+    assert.equal(loader.registry[0].resource, "resource:/foo?a=1");
+    assert.equal(loader.registry[0].url, "/foo");
+    assert.equal(loader.registry[0].status, "loaded");
+    assert.strictEqual(loader.registry[0].value, first);
 });
 
 test("cacheMode path keeps different paths separate", async () => {

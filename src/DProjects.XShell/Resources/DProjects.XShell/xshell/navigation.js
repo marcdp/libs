@@ -16,6 +16,7 @@ export default class Navigation {
     _compiledRoutes = new Map();
 
     _stack = [];
+    _stackToDomTask = Promise.resolve();
     
     // ctor
     constructor( { areas, bus, config, container} ) {
@@ -50,16 +51,16 @@ export default class Navigation {
             // hash mode
             window.addEventListener("hashchange", async () => {
                 this._stack = this._browserUrlToStack(document.location.hash);
-                this._stackToDom();
+                await this._stackToDom();
             });
             // init
             if (document.location.hash) {
                 this._stack = this._browserUrlToStack(document.location.hash);
-                this._stackToDom();
+                await this._stackToDom();
             } else {
                 let defaultArea = this._areas.getDefaultArea();
                 if (!defaultArea?.home) throw new Error("Default area has no navigation item marked default");
-                this._stackToBrowser([this.parseUrl(defaultArea.home)], { replace: false });
+                await this._stackToBrowser([this.parseUrl(defaultArea.home)], { replace: false });
             }
         } else if (this._mode == "path") {
             // path mode
@@ -67,19 +68,19 @@ export default class Navigation {
                 let url = document.location.pathname + document.location.search;
                 if (url.startsWith(this._appBasePath)) url = url.substring(this._appBasePath.length);
                 this._stack = this._browserUrlToStack(url);
-                this._stackToDom();
+                await this._stackToDom();
             });
             // init
             let url = document.location.pathname + document.location.search;
             if (url.startsWith(this._appBasePath)) url = url.substring(this._appBasePath.length);
             if (url != "" && url != "/") {
                 this._stack = this._browserUrlToStack(url);
-                this._stackToDom();
+                await this._stackToDom();
             } else {
                 let defaultArea = this._areas.getDefaultArea();
                 if (!defaultArea?.home) throw new Error("Default area has no navigation item marked default");
                 url = this.parseUrl(defaultArea.home);
-                this._stackToBrowser([url], { replace: false });                
+                await this._stackToBrowser([url], { replace: false });
             }
         }
     }
@@ -234,15 +235,15 @@ export default class Navigation {
             const indexPage = xpages.indexOf(xpage);
             if  (xpage == null) {
                 // top
-                this._stackToBrowser([ this.parseUrl(hrefAbsolute) ], { replace });
+                await this._stackToBrowser([ this.parseUrl(hrefAbsolute) ], { replace });
             } else if (indexPage == 0) {
                 // top
-                this._stackToBrowser([ this.parseUrl(hrefAbsolute) ], { replace });
+                await this._stackToBrowser([ this.parseUrl(hrefAbsolute) ], { replace });
             } else if (indexPage != -1) {
                 // stackpage
                 let stack = [...this._stack];
                 stack[indexPage] = this.parseUrl(hrefAbsolute);
-                this._stackToBrowser(stack, { replace } );                
+                await this._stackToBrowser(stack, { replace });
             } else {
                 // dialog or embed 
                 const hrefFinal = this._buildUrlFinal(this.parseUrl(hrefAbsolute));
@@ -250,11 +251,11 @@ export default class Navigation {
             }
         } else if (open == "top") {
             // top                        
-            this._stackToBrowser([ this.parseUrl(hrefAbsolute) ], { replace });
+            await this._stackToBrowser([ this.parseUrl(hrefAbsolute) ], { replace });
 
         } else if (open == "stack") {
             // stack
-            this._stackToBrowser([...this._stack, this.parseUrl(hrefAbsolute)], { replace });
+            await this._stackToBrowser([...this._stack, this.parseUrl(hrefAbsolute)], { replace });
             
         } else if (open == "dialog") {
             // dialog
@@ -316,7 +317,7 @@ export default class Navigation {
             }
         }
         // keep the live Page elements and the logical stack aligned without reloading href-identical Pages
-        this._stackToDom();
+        return this._stackToDom();
     }
     _browserUrlToStack(url) {
         if (!url || typeof url !== "string") {
@@ -367,9 +368,15 @@ export default class Navigation {
         return stack;
     }
     _stackToDom() {
+        // serialize reconciliations so a pending Page unload cannot be selected again
+        const task = this._stackToDomTask.then(() => this._reconcileStackToDom());
+        this._stackToDomTask = task.then(() => {}, () => {});
+        return task;
+    }
+    async _reconcileStackToDom() {
         //navigate
-        let domStack = this.getXPages().map(xpage => { return this.parseUrl(xpage.src); });
-        let inc = 0;
+        const xpages = this.getXPages();
+        let domStack = xpages.map(xpage => { return this.parseUrl(xpage.src); });
         // close open dialogs through their final Page destruction path
         let allXPages = Array.from(this._container.querySelectorAll(":scope > x-page"));
         for (let i = allXPages.length - 1; i >= 0; i--) {
@@ -392,13 +399,12 @@ export default class Navigation {
                     this._bus.emit("xshell:navigation:start", { src: xpage.src });
                 } else {
                     xpage.setAttribute("layout", "stack");
-                    xpage.addEventListener("close", (event) => {
+                    xpage.addEventListener("close", async (event) => {
                         //page close
                         let xpages = this.getXPages();
                         let index = xpages.indexOf(event.target);
                         this._stack.splice(index, 1);
-                        this._stackToBrowser(this._stack, { replace: false });
-                        this._stackToDom();
+                        await this._stackToBrowser(this._stack, { replace: false });
                     });
                 }
                 xpage.addEventListener("change", (event) => {
@@ -442,10 +448,8 @@ export default class Navigation {
                 this._container.appendChild(xpage);
             } else if (itemBefore && !itemAfter) {
                 //remove page
-                let xpages = this.getXPages();
-                let xpage = xpages[i + inc];
-                xpage.removePage();
-                inc -= 1;
+                // use the original host for this position and await its final cleanup
+                await xpages[i].removePage();
             } else if (itemBefore.href != itemAfter.href) {
                 //change page
                 const hrefFinal = itemAfter ? this._buildUrlFinal(itemAfter) : null;

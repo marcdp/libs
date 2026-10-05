@@ -8,17 +8,8 @@ export const contract = {
 
 // implementation
 export default {
-    template: `
-        this is the error page
-    `,    
+    template: `<p>An error occurred.</p>`,
     state: {
     },
-    controller({ state, events, bus, areas }) {
-        return {
-            load() {
-                // load
-                debugger;
-            }
-        };
-    }
+    controller() { return {}; }
 }

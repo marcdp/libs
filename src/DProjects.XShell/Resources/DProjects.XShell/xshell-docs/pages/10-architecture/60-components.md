@@ -188,7 +188,7 @@ The contract describes how other code can interact with the component.
 Its optional `slots` section documents the public Web Component composition API. The empty string `""` identifies the default unnamed slot, and
 named keys identify named slots. Slot metadata supports `description` and an optional `required` boolean. This metadata does not create or render
 `<slot>` elements; the implementation defines those elements. Every engine-reported slot must be declared in
-`contract.slots`; `x` reports compiler-discovered slots while `html`/`markdown` report none. `<slot></slot>` uses the empty-string key, while `<slot
+`contract.slots`; `x` reports compiler-discovered slots while `html` reports none. `<slot></slot>` uses the empty-string key, while `<slot
 name="actions"></slot>` uses the `actions` key. Duplicate occurrences
 of a slot are allowed, and a declared slot does not have to appear in the template.
 

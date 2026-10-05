@@ -606,7 +606,6 @@ class XTemplateInstance {
 					let child = parent.childNodes[vNodeNew.options.index + inew];
 					this._diffDomElement(vNodeOld, vNodeNew, child, level + 1);
 				} catch (error) {
-					debugger;
 					throw error;
 				}
 			}

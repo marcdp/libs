@@ -47,9 +47,6 @@
             "module": {
                 "xshell": {"url": "/xshell.js", "loader": "module-js", "cache": true}
             },
-            "idp": {
-                "{name}": {"url": "/idp/{name}.js", "loader": "module-js", "cache": true}
-            },
             "render-engine": {
                 "{name}": {"url": "/render-engines/{name}.js","loader": "module-js", "cache": true}
             },

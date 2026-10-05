@@ -20,7 +20,7 @@ function i18nConfiguration(overrides = {}) {
 function configuration(i18n) {
     return {
         app: {
-            name: "test",
+            id: "test",
             label: "Test",
             version: "1.0.0",
             copyright: "",
@@ -34,10 +34,9 @@ function configuration(i18n) {
             debug: false,
             version: "1.0.0",
             environment: "test",
-            identity: { provider: "anonymous" },
             assetsPrefix: "_assets",
             assetsPath: "/_assets/xshell",
-            areas: { default: null, definitions: {} },
+            areas: { default: null, global: [], definitions: {} },
             navigation: { mode: "path" },
             resolver: {},
             ui: { layout: {}, component: {}, dialog: {} },

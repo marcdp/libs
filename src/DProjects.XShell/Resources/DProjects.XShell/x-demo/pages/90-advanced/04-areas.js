@@ -28,6 +28,11 @@ export default {
 
         <h3>Configured Areas</h3>
 
+        <p>
+            This demo contributes <code>"navigation": "/pages"</code>. Areas derives its Page menu from the module's generated file inventory,
+            including nested sections and their numeric ordering prefixes.
+        </p>
+
         <ul>
             <li x-for="area in state.areas" x-key="id">
                 <strong>{{ area.label }}</strong> — <code>{{ area.prefix }}</code>, home <code>{{ area.home }}</code>, modules

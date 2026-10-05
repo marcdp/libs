@@ -36,7 +36,6 @@ present for cross-engine consistency, but the browser `x` engine does not parse 
 | Engine | Template format |
 | --- | --- |
 | `html` | Standard HTML templates |
-| `markdown` | Markdown templates |
 | `x` | XShell X-template syntax |
 
 The `html` engine does not provide a template-expression language. It parses and mounts standard HTML templates. This does not mean that content is
@@ -66,14 +65,10 @@ lifecycle. The loader receives the command and decides whether and how to dispat
 
 For a Component, `meta.renderEngine` overrides `defaults.component.renderEngine`; for a Page, it overrides `defaults.page.renderEngine`. The module
 compiler uses the same effective selection when deciding whether to compile an X Template.
-The checked-in factories are `html`, `markdown`, and `x`; there is no engine fallback under `xshell.ui`.
-HTML and Markdown mount a static parsed template; their `render()` methods do not evaluate state expressions.
+The checked-in factories are `html` and `x`; there is no engine fallback under `xshell.ui`.
+HTML mounts a static parsed template; its `render()` method does not evaluate state expressions.
 
 A `.md` document used as a [Markdown Page](../10-architecture/70-pages.md#markdown-pages) is a separate path: `page-md` adapts it to a Page mounting
-`x-markdown`, which fetches its normal `src` URL and converts Markdown with the vendored utility. This does not select or replace the `markdown`
-definition render engine described here.
+`x-markdown`, which fetches its normal `src` URL and converts Markdown with the vendored utility. This is separate from definition render engines.
 
-The checked-in Markdown factory imports bare `"marked"`. Bootstrap supplies no import map, so this factory does not load in the default browser
-host unless that import is made resolvable externally. The module's vendored Markdown utility does not repair the factory's bare import.
-
-Slot validation uses factory metadata. HTML/Markdown expose empty slot lists, so their templates do not receive the X engine's slot-contract checks.
+Slot validation uses factory metadata. HTML exposes an empty slot list, so its templates do not receive the X engine's slot-contract checks.

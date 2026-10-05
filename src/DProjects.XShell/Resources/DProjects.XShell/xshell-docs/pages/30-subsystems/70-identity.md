@@ -8,9 +8,8 @@ Not implemented.
 
 ## Current runtime behavior
 
-XShell does not currently resolve an identity provider, create an identity object, expose `xshell.identity`, or register an `identity` runtime service.
-The `xshell.identity` configuration shape and the `idp` resolver rule remain in the default configuration, but they do not activate identity runtime
-behavior.
+XShell does not currently resolve an identity provider, create an identity object, or register an `identity` runtime service. V0 has no
+`xshell.identity` configuration surface or `idp` resolver entry.
 
 ## Future work
 
