@@ -37,7 +37,9 @@ export function rewriteTemplateAttribute(tag, attrs, attr, value, context) {
     const element = document.createElement(tag);
     for (const [name, staticValue] of Object.entries(attrs)) element.setAttribute(name, staticValue);
     for (const rule of rules) {
-        if (rule.attr == attr && element.matches(rule.selector)) return rewrite(element, attr, rule.type, value, context);
+        if (rule.attr == attr && element.matches(rule.selector)) {
+            return attr == "srcset" && rule.type == "resource" ? rewriteSrcset(element, value, context) : rewrite(element, attr, rule.type, value, context);
+        }
     }
     return value;
 }
@@ -97,6 +99,33 @@ export function rewrite( el, attr, type, url, context ) {
     }
 }
 
+// rewrite each srcset candidate without treating commas inside URLs as separators
+function rewriteSrcset(el, value, context) {
+    let result = "";
+    let position = 0;
+    let copiedUntil = 0;
+    while (position < value.length) {
+        while (position < value.length && /[\t\n\f\r ,]/.test(value[position])) position++;
+        if (position == value.length) break;
+        const urlStart = position;
+        while (position < value.length && !/[\t\n\f\r ]/.test(value[position])) position++;
+        let urlEnd = position;
+        while (urlEnd > urlStart && value[urlEnd - 1] == ",") urlEnd--;
+        result += value.slice(copiedUntil, urlStart) + rewrite(el, "srcset", "resource", value.slice(urlStart, urlEnd), context);
+        copiedUntil = urlEnd;
+        if (urlEnd == position) {
+            let inParens = false;
+            while (position < value.length) {
+                if (value[position] == "(") inParens = true;
+                else if (value[position] == ")") inParens = false;
+                else if (value[position] == "," && !inParens) break;
+                position++;
+            }
+        }
+    }
+    return result + value.slice(copiedUntil);
+}
+
 // rewrite document resource URLs
 export function rewriteDocumentUrls(doc, context) {
     // simple attribute rewrites
@@ -104,7 +133,7 @@ export function rewriteDocumentUrls(doc, context) {
         doc.querySelectorAll(selector).forEach(el => {
             const oldUrl = el.getAttribute(attr);
             if (!oldUrl) return;
-            const newUrl = rewrite(el, attr, type, oldUrl, context);
+            const newUrl = attr == "srcset" && type == "resource" ? rewriteSrcset(el, oldUrl, context) : rewrite(el, attr, type, oldUrl, context);
             if (newUrl !== oldUrl) el.setAttribute(attr, newUrl);
         });
     }
@@ -115,7 +144,7 @@ export function rewriteDocumentUrls(doc, context) {
         const newStyle = oldStyle.replace(/url\(([^)]+)\)/g, (match, url) => {
             // strip quotes
             const clean = url.trim().replace(/^['"]|['"]$/g, "");
-            return `url("${rewrite(el, "style", "", clean, context)}")`;
+            return `url("${rewrite(el, "style", "resource", clean, context)}")`;
         });
         el.setAttribute("style", newStyle);
     });
@@ -124,7 +153,7 @@ export function rewriteDocumentUrls(doc, context) {
         let css = style.textContent;
         css = css.replace(/url\(([^)]+)\)/g, (match, url) => {
             const clean = url.trim().replace(/^['"]|['"]$/g, "");
-            return `url("${rewrite(style, "textContent", "", clean, context)}")`;
+            return `url("${rewrite(style, "textContent", "resource", clean, context)}")`;
         });
         style.textContent = css;
     });
@@ -137,8 +166,9 @@ export function rewriteDocumentUrls(doc, context) {
             const rewritten = original.replace(
                 /import\s+([^'"]*)['"]([^'"]+)['"]/g,
                 (match, bindings, importPath) => {
-                    // resolve url
-                    return `import ${bindings}"${rewrite("script", "textContent", "",  importPath, context)}"`;
+                    // normalize module paths before applying the application base path
+                    const normalized = normalizeModuleResourceUrl(importPath, context.resourceDefinition.modulePath, context.resourcePath);
+                    return `import ${bindings}"${normalized.startsWith("/") ? context.appBasePath + normalized : normalized}"`;
                 }
             );
             // create a new script because textContent would reset execution
