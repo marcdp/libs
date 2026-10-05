@@ -1,8 +1,7 @@
 # Packaging
 
-Normal modules and the XShell framework are authored as expanded directories. The `pack` command publishes expanded packages for either kind and
-ZIP distribution packages for normal modules only. XShell framework ZIP packaging is currently unsupported. It does not recursively package modules
-referenced by `configUrl`.
+Normal modules and the XShell framework are authored as expanded directories. The `pack` command publishes expanded or ZIP distribution packages
+for either kind. It does not recursively package modules referenced by `configUrl`.
 
 ## Pack command
 
@@ -23,7 +22,7 @@ The command uses one staging and compilation flow for both output modes:
 3. for a normal module, compile staged JavaScript, HTML XShell SFC, and standalone CSS resources through `ModuleFileCompiler`; XShell framework files
    remain unchanged because the module compiler depends on module-definition semantics;
 4. generate `module.files.json` from the final compiled files; and
-5. publish the compiled staging tree as an expanded directory or, for a normal module with `--zip`, a ZIP distribution package.
+5. publish the staged tree as an expanded directory or, with `--zip`, a ZIP distribution package.
 
 JavaScript is replaced at its existing path with its compiled content. An authored HTML SFC such as `pages/orders.html` or
 `components/x-example.html` becomes the corresponding JavaScript resource (`pages/orders.js` or `components/x-example.js`), and the source HTML is
@@ -36,9 +35,12 @@ the compiled staging tree, including the generated inventory. It is not a hash o
 Without `--zip`, the package directory contains the compiled resources, generated `module.files.json`, and descriptor. An authored `module.jsonc`
 appears there as `module.json` with its original JSONC content. An authored `xshell.jsonc` remains `xshell.jsonc`.
 
-For a normal module, `--zip` publishes a directory containing `module.json` and `module.zip`. The ZIP contains the compiled staging tree at its root, including
-the generated inventory. The emitted `module.json` is normalized JSON with the local definition's `assetsUrl` set to `"url:./module.zip"` and its
-`files` set to the generated inventory. `--zip` for an XShell framework source fails explicitly before staging.
+For a normal module, `--zip` publishes `module.json` and `module.zip`. The emitted `module.json` is normalized JSON with
+`modules.<local-id>.assetsUrl = "url:./module.zip"` and `modules.<local-id>.files = [...]` from the generated inventory.
+
+For the XShell framework, `--zip` publishes `xshell.jsonc` and `xshell.zip`. The emitted `xshell.jsonc` is normalized JSON, including
+`xshell.assetsUrl = "url:./xshell.zip"` and `xshell.files = [...]` from the same generated inventory. The authored source may be `xshell.json` or
+`xshell.jsonc`. Each archive contains the staged tree at its root, including `module.files.json`.
 
 The package path is immutable after first publication. Repeating a pack with the same content identity and representation reuses that path without
 rewriting it. Requesting expanded output where a ZIP package exists, or ZIP output where an expanded package exists, fails with a representation
@@ -76,7 +78,8 @@ It also generates `module.files.json` on demand and adds no-cache headers when A
 Development inventories enumerate physical sources, so HTML SFC entries retain authored `.html` paths rather than packed `.js` paths.
 Server descriptor parsing and browser bootstrap both accept JSONC comments and trailing commas.
 
-Packaging does not provide ZIP-backed browser loading. Current Service Worker mapping and fetch behavior supports expanded directories only.
+ZIP packaging is implemented. Runtime ZIP-backed browser loading is not implemented; current Service Worker mapping and fetch behavior supports
+expanded directories only.
 
 ## Outside V0
 

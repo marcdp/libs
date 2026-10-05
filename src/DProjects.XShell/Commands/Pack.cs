@@ -53,7 +53,6 @@ namespace DProjects.XShell.Commands {
             var package = await GetPackageInfoAsync(sourcePath, cancellationToken);
             ValidatePackageNamePart(package.Id, "Package id");
             ValidatePackageNamePart(package.Version, "Package version");
-            if (package.Kind == PackageKind.XShell && Zip) throw new NotSupportedException("XShell framework ZIP packaging is not currently supported.");
             Directory.CreateDirectory(outputPath);
             var stagingPath = CreateStagingPath(sourcePath, outputPath);
             Directory.CreateDirectory(stagingPath);
@@ -83,8 +82,8 @@ namespace DProjects.XShell.Commands {
 
                 // emit the requested representation from the same compiled staging tree
                 var packagePath = Zip ? 
-                    await EmitZipAsync(stagingPath, outputPath, package.Id, package.Version, moduleFilesJson, cancellationToken) :
-                    await EmitExpandedAsync(stagingPath, sourcePath, outputPath, package.Id, package.Version, cancellationToken);
+                    await EmitZipAsync(stagingPath, outputPath, package, moduleFilesJson, cancellationToken) :
+                    await EmitExpandedAsync(stagingPath, sourcePath, outputPath, package, cancellationToken);
 
                 // output
                 await environment.Out.WriteLineAsync(packagePath);
@@ -192,58 +191,50 @@ namespace DProjects.XShell.Commands {
                 }
             }
         }
-        private static async Task<string> EmitZipAsync( string stagingPath, string outputPath, string id, string version, string moduleFilesJson, CancellationToken cancellationToken) {
+        private static async Task<string> EmitZipAsync(string stagingPath, string outputPath, PackageInfo package, string moduleFilesJson, CancellationToken cancellationToken) {
             var hash = await ComputeHashAsync(stagingPath, cancellationToken);
-            var packagePath = Path.Combine(outputPath, id, $"{version}.{hash}");
-            if (ReusePublishedPackage(packagePath, zip: true)) return packagePath;
+            var packagePath = Path.Combine(outputPath, package.Id, $"{package.Version}.{hash}");
+            if (ReusePublishedPackage(packagePath, package.Kind, zip: true)) return packagePath;
             var stagingZipPath = stagingPath + "-zip";
             Directory.CreateDirectory(stagingZipPath);
             try {
-                // Create the immutable resource package.
-                var zipPath = Path.Combine(stagingZipPath, "module.zip");
-                ZipFile.CreateFromDirectory(stagingPath,zipPath,CompressionLevel.Optimal,includeBaseDirectory: false);
-                // Read module.json[c].
-                var moduleJsonPath = Path.Combine(stagingPath, "module.json");
-                var moduleJsoncPath = Path.Combine(stagingPath, "module.jsonc");
-                var descriptorPath = File.Exists(moduleJsonPath) ? moduleJsonPath : File.Exists(moduleJsoncPath) ? moduleJsoncPath : throw new InvalidOperationException("Module package must contain module.json or module.jsonc.");
-                var json = await File.ReadAllTextAsync( descriptorPath, cancellationToken);
-                var root = JsonNode.Parse( json, documentOptions: new JsonDocumentOptions {
+                // create the immutable resource archive from the staged package tree
+                var zipName = package.Kind == PackageKind.Module ? "module.zip" : "xshell.zip";
+                var zipPath = Path.Combine(stagingZipPath, zipName);
+                ZipFile.CreateFromDirectory(stagingPath, zipPath, CompressionLevel.Optimal, includeBaseDirectory: false);
+
+                // parse the staged descriptor with JSONC semantics
+                var descriptorPath = Path.Combine(stagingPath, Path.GetFileName(package.DescriptorPath));
+                var json = await File.ReadAllTextAsync(descriptorPath, cancellationToken);
+                var root = JsonNode.Parse(json, documentOptions: new JsonDocumentOptions {
                         CommentHandling = JsonCommentHandling.Skip,
                         AllowTrailingCommas = true
                     })?.AsObject()
-                    ?? throw new InvalidOperationException($"Invalid module configuration '{descriptorPath}'.");
+                    ?? throw new InvalidOperationException($"Invalid {package.Kind} configuration '{descriptorPath}'.");
 
-                var modules = root["modules"] as JsonObject ?? throw new InvalidOperationException($"Module configuration '{descriptorPath}' must contain a modules object.");
-
-                // Find the single local module definition.
-                // Referenced modules have configUrl; the local module does not.
-                var localModules = modules
-                    .Where(item =>
-                        item.Value is JsonObject module &&
-                        !module.ContainsKey("configUrl"))
-                    .ToArray();
-                if (localModules.Length != 1) {
-                    throw new InvalidOperationException($"Module configuration '{descriptorPath}' must contain exactly one local module definition.");
+                // place archive metadata on the package's own configuration object
+                if (package.Kind == PackageKind.Module) {
+                    var modules = root["modules"] as JsonObject ?? throw new InvalidOperationException($"Module configuration '{descriptorPath}' must contain a modules object.");
+                    var localModules = modules.Where(item => item.Value is JsonObject module && !module.ContainsKey("configUrl")).ToArray();
+                    if (localModules.Length != 1) {
+                        throw new InvalidOperationException($"Module configuration '{descriptorPath}' must contain exactly one local module definition.");
+                    }
+                    var localModule = (JsonObject)localModules[0].Value!;
+                    localModule["assetsUrl"] = "url:./module.zip";
+                    localModule["files"] = JsonNode.Parse(moduleFilesJson);
+                } else {
+                    var xshell = root["xshell"] as JsonObject ?? throw new InvalidOperationException($"XShell configuration '{descriptorPath}' must contain an xshell object.");
+                    xshell["assetsUrl"] = "url:./xshell.zip";
+                    xshell["files"] = JsonNode.Parse(moduleFilesJson);
                 }
-                var localModule = (JsonObject)localModules[0].Value!;
 
-                // In the ZIP representation, resources are served from module.zip.
-                localModule["assetsUrl"] = "url:./module.zip";
-                localModule["files"] = JsonNode.Parse(moduleFilesJson);
+                // write the normalized external descriptor beside the archive
+                var descriptorName = package.Kind == PackageKind.Module ? "module.json" : "xshell.jsonc";
+                var outputDescriptorPath = Path.Combine(stagingZipPath, descriptorName);
+                await File.WriteAllTextAsync(outputDescriptorPath, root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), cancellationToken);
 
-                // Production descriptor is normalized to JSON.
-                var outputDescriptorPath = Path.Combine(stagingZipPath, "module.json");
-
-                await File.WriteAllTextAsync(outputDescriptorPath,root.ToJsonString(new JsonSerializerOptions { WriteIndented = true}), cancellationToken);
-
-                // Publish:
-                //
-                // <id>/
-                //   <version>.<hash>/
-                //     module.json
-                //     module.zip
-                //
-                var tempPackagePath = Path.Combine(outputPath, $".{id}-{version}-{Guid.NewGuid():N}.tmp");
+                // publish the descriptor and archive under the immutable package identity
+                var tempPackagePath = Path.Combine(outputPath, $".{package.Id}-{package.Version}-{Guid.NewGuid():N}.tmp");
                 try {
                     CopyDirectory(stagingZipPath, tempPackagePath, cancellationToken);
                     Directory.CreateDirectory(Path.GetDirectoryName(packagePath)!);
@@ -251,7 +242,7 @@ namespace DProjects.XShell.Commands {
                         Directory.Move(tempPackagePath, packagePath);
                     } catch (IOException) when (Directory.Exists(packagePath)) {
                         // another pack may have published the same identity first
-                        if (ReusePublishedPackage(packagePath, zip: true)) return packagePath;
+                        if (ReusePublishedPackage(packagePath, package.Kind, zip: true)) return packagePath;
                         throw;
                     }
                     return packagePath;
@@ -262,15 +253,15 @@ namespace DProjects.XShell.Commands {
                 if (Directory.Exists(stagingZipPath)) Directory.Delete(stagingZipPath, recursive: true);
             }
         }
-        private static async Task<string> EmitExpandedAsync(string stagingPath, string sourcePath, string outputPath, string id, string version, CancellationToken cancellationToken) {
+        private static async Task<string> EmitExpandedAsync(string stagingPath, string sourcePath, string outputPath, PackageInfo package, CancellationToken cancellationToken) {
             // build a complete sibling directory before first publication
             var hash = await ComputeHashAsync(stagingPath, cancellationToken);
-            var packagePath = Path.Combine(outputPath, $"{id}", $"{version}.{hash}");
+            var packagePath = Path.Combine(outputPath, package.Id, $"{package.Version}.{hash}");
             if (IsSameOrInside(sourcePath, packagePath)) {
                 throw new InvalidOperationException("Expanded package path must not contain or replace the source module directory.");
             }
-            if (ReusePublishedPackage(packagePath, zip: false)) return packagePath;
-            var tempPackagePath = Path.Combine(outputPath, $".{id}-{version}-{Guid.NewGuid():N}.tmp");
+            if (ReusePublishedPackage(packagePath, package.Kind, zip: false)) return packagePath;
+            var tempPackagePath = Path.Combine(outputPath, $".{package.Id}-{package.Version}-{Guid.NewGuid():N}.tmp");
             try {
                 CopyDirectory(stagingPath, tempPackagePath, cancellationToken);
                 Directory.CreateDirectory(Path.GetDirectoryName(packagePath)!);
@@ -278,7 +269,7 @@ namespace DProjects.XShell.Commands {
                     Directory.Move(tempPackagePath, packagePath);
                 } catch (IOException) when (Directory.Exists(packagePath)) {
                     // another pack may have published the same identity first
-                    if (ReusePublishedPackage(packagePath, zip: false)) return packagePath;
+                    if (ReusePublishedPackage(packagePath, package.Kind, zip: false)) return packagePath;
                     throw;
                 }
                 return packagePath;
@@ -286,17 +277,27 @@ namespace DProjects.XShell.Commands {
                 if (Directory.Exists(tempPackagePath)) Directory.Delete(tempPackagePath, recursive: true);
             }
         }
-        private static bool ReusePublishedPackage(string packagePath, bool zip) {
+        private static bool ReusePublishedPackage(string packagePath, PackageKind kind, bool zip) {
             if (File.Exists(packagePath)) throw new InvalidOperationException($"Package path is an existing file: {packagePath}");
             if (!Directory.Exists(packagePath)) return false;
 
             // distinguish the two published representations without relying on ZIP archive bytes
-            var hasZip = File.Exists(Path.Combine(packagePath, "module.zip"));
+            var hasModuleZip = File.Exists(Path.Combine(packagePath, "module.zip"));
+            var hasXShellZip = File.Exists(Path.Combine(packagePath, "xshell.zip"));
             var hasModuleDescriptor = File.Exists(Path.Combine(packagePath, "module.json")) || File.Exists(Path.Combine(packagePath, "module.jsonc"));
             var hasXShellDescriptor = File.Exists(Path.Combine(packagePath, "xshell.json")) || File.Exists(Path.Combine(packagePath, "xshell.jsonc"));
             var hasInventory = File.Exists(Path.Combine(packagePath, FilesIndexer.ModuleFilesJson));
-            if (zip ? hasZip && hasModuleDescriptor && !hasInventory : !hasZip && hasInventory && (hasModuleDescriptor || hasXShellDescriptor)) return true;
-            if (zip != hasZip) throw new InvalidOperationException($"Immutable package identity already exists using another representation: {packagePath}");
+            var hasExpectedZip = kind == PackageKind.Module ? hasModuleZip : hasXShellZip;
+            var hasOtherZip = kind == PackageKind.Module ? hasXShellZip : hasModuleZip;
+            var hasExpectedDescriptor = kind == PackageKind.Module ? hasModuleDescriptor : hasXShellDescriptor;
+            var hasOtherDescriptor = kind == PackageKind.Module ? hasXShellDescriptor : hasModuleDescriptor;
+            var hasZipDescriptor = kind == PackageKind.Module ? File.Exists(Path.Combine(packagePath, "module.json")) : File.Exists(Path.Combine(packagePath, "xshell.jsonc"));
+            var hasAlternateZipDescriptor = kind == PackageKind.Module ? File.Exists(Path.Combine(packagePath, "module.jsonc")) : File.Exists(Path.Combine(packagePath, "xshell.json"));
+            if (zip ? hasExpectedZip && hasZipDescriptor && !hasAlternateZipDescriptor && !hasOtherZip && !hasOtherDescriptor && !hasInventory :
+                !hasModuleZip && !hasXShellZip && hasExpectedDescriptor && !hasOtherDescriptor && hasInventory) return true;
+            if (hasExpectedDescriptor && !hasOtherDescriptor && zip != (hasModuleZip || hasXShellZip)) {
+                throw new InvalidOperationException($"Immutable package identity already exists using another representation: {packagePath}");
+            }
             throw new InvalidOperationException($"Existing immutable package has an incomplete or unrecognized representation: {packagePath}");
         }
         private static async Task<string> ComputeHashAsync(string path, CancellationToken cancellationToken) {

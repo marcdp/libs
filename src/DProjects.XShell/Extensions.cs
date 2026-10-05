@@ -18,6 +18,7 @@ namespace DProjects.XShell {
         // inner class
         public class Configuration {
             public string? Environment { get; init; } = null;
+            public string AppDescription { get; init; } = "";
             public string AppBasePath { get; init; } = "";
             public string AppConfigPath { get; init; }  = ""; 
             public Dictionary<string,string> AppParams { get; init; } = new();

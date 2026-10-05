@@ -15,6 +15,7 @@ namespace DProjects.XShell.Services {
                         <meta charset="utf-8">
                         <meta name="viewport" content="width=device-width, initial-scale=1.0">
                         <meta http-equiv="Content-Security-Policy" content="{config.CSPValue}">
+                        <meta name="description" content="{config.AppDescription.Replace("\"", "&quot;")}">
 
                         <!-- config xshell -->
                         <meta name="xshell:app.basePath"       content="{config.AppBasePath}">
