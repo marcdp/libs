@@ -477,9 +477,11 @@ export async function createComponentClassFromJsDefinition(src, context, impleme
         });
     }
     // register
-    if (!window.customElements.get(implementation.meta.id)) {
-        window.customElements.define(implementation.meta.id, WebComponent);
+    const id = implementation.meta.id;
+    if (window.customElements.get(id)) {
+        throw new Error(`Component '${id}' from '${src}' cannot be registered because that id is already registered.`);
     }
+    window.customElements.define(id, WebComponent);
     // return class
     return WebComponent
 }

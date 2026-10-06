@@ -324,6 +324,19 @@ function flushAnimationFrames() {
     }
 }
 
+test("Component definitions reject an ID already registered by another source", async () => {
+    configureDefinitionLoaders();
+    const id = "x-component-collision-test";
+    const Component = await createComponentClassFromJsDefinition("first-component.js", createContext(), { meta: { id } }, {});
+    assert.equal(customElements.get(id), Component);
+
+    await assert.rejects(
+        createComponentClassFromJsDefinition("second-component.js", createContext(), { meta: { id } }, {}),
+        error => error.message.includes(id) && error.message.includes("second-component.js")
+    );
+    assert.equal(customElements.get(id), Component);
+});
+
 test("component preserves its instance lifetime across reconnects and unloads once", async () => {
     configureDefinitionLoaders();
     renderEngines.length = 0;
