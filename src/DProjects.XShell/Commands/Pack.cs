@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text.Json;
@@ -64,6 +65,15 @@ namespace DProjects.XShell.Commands {
                 var moduleJsonc = Path.Combine(stagingPath, "module.jsonc");
                 if (File.Exists(moduleJsonc)) {
                     File.Move(moduleJsonc, moduleJson, overwrite: true);
+                    if (package.Kind == PackageKind.Module) {
+                        // publish a JSON descriptor after accepting comments and trailing commas in the authored source
+                        var authoredJson = await File.ReadAllTextAsync(moduleJson, cancellationToken);
+                        var normalizedJson = JsonNode.Parse(authoredJson, documentOptions: new JsonDocumentOptions {
+                            CommentHandling = JsonCommentHandling.Skip,
+                            AllowTrailingCommas = true
+                        }) ?? throw new InvalidOperationException($"Invalid module configuration '{moduleJson}'.");
+                        await File.WriteAllTextAsync(moduleJson, normalizedJson.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), cancellationToken);
+                    }
                     package = new PackageInfo(package.Kind, package.Id, package.Version, moduleJson);
                 }
 
@@ -307,13 +317,17 @@ namespace DProjects.XShell.Commands {
                 .OrderBy(file => file.RelativePath, StringComparer.Ordinal);
             using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
             var buffer = new byte[81920];
+            var pathLength = new byte[sizeof(int)];
+            var fileLength = new byte[sizeof(long)];
             foreach (var file in files) {
                 cancellationToken.ThrowIfCancellationRequested();
                 var pathBytes = System.Text.Encoding.UTF8.GetBytes(file.RelativePath);
-                hash.AppendData(BitConverter.GetBytes(pathBytes.Length));
+                BinaryPrimitives.WriteInt32LittleEndian(pathLength, pathBytes.Length);
+                hash.AppendData(pathLength);
                 hash.AppendData(pathBytes);
                 await using var stream = File.OpenRead(file.FullPath);
-                hash.AppendData(BitConverter.GetBytes(stream.Length));
+                BinaryPrimitives.WriteInt64LittleEndian(fileLength, stream.Length);
+                hash.AppendData(fileLength);
                 int read;
                 while ((read = await stream.ReadAsync(buffer, cancellationToken)) > 0) {
                     hash.AppendData(buffer.AsSpan(0, read));
