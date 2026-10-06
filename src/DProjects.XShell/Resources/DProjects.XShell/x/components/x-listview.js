@@ -69,17 +69,10 @@ export default {
     state: {
     },
     controller({ state, events, host }) {
-        const styleSheet = new CSSStyleSheet();
         return {
             async load() {
                 //load
                 events.on(state, "change:view", "refresh");
-            },
-            mount() {
-                host.shadowRoot.adoptedStyleSheets = [...host.shadowRoot.adoptedStyleSheets, styleSheet];
-            },
-            unmount() {
-                host.shadowRoot.adoptedStyleSheets = host.shadowRoot.adoptedStyleSheets.filter(sheet => sheet !== styleSheet);
             },
             async refresh() {
                 const slot = host.shadowRoot.querySelector("slot:not([name])");
@@ -92,21 +85,14 @@ export default {
                 // let indexes = {};
                 // let css = "";
                 slot.assignedElements().forEach((item, index) => {
-                    //let category = item.getAttribute("category");
-                    //if (prevCategory != category) {
-                        // indexes[category] = index;
-                        // css += "::slotted(x-listview-item:nth-child(" + (index + 1) + ")) {}"
-                        // css += "::slotted(x-listview-item:nth-child(" + (index + 1) + "))::before {content:'" + category + "'; display:block; width:100%;  font-weight:bold; margin-top:.5em; }"
-                    //}
-                    //prevCategory = category;
+                    let category = item.getAttribute("category");
+                    item.category = (prevCategory != category ? category : "");
+                    prevCategory = category;
                     // view
                     item.view = view;
                     // last element
                     lastElement = item;
                 });
-
-                // define the css
-                // styleSheet.replaceSync(css);
 
                 // autoscroll to last element
                 if (lastElement && state.autoScroll && host.checkVisibility()) {

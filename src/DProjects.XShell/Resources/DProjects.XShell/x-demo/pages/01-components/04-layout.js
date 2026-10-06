@@ -10,10 +10,24 @@ export const contract = {
 export default {
     template: `
 
-        <p style="border: 1px red solid;">
+        <p >
             Components for grouping content, switching views, collapsing sections,
             arranging actions, and progressively loading UI.
         </p>
+
+        
+        <h2>Splitter</h2>
+        
+        <div style="border:var(--x-datafield-border); border-radius:8px; height:250px; display:flex;">
+            <div style="padding:1em">
+                Lorem ipsum    Lorem ipsum    Lorem ipsum    Lorem ipsum    
+            </div>
+            <x-splitter></x-splitter>
+            <div style="padding:1em">
+                Lorem ipsum
+                Lorem ipsum    Lorem ipsum    Lorem ipsum    Lorem ipsum    
+            </div>
+        </div>
 
         <h2>Card</h2>
 

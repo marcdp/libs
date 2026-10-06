@@ -38,7 +38,7 @@ export default {
                 x-attr:label="item.id"
                 x-attr:icon="item.id"
                 x-attr:description="item.moduleId"
-                x-attr:category="item.moduleId"
+                x-attr:category="item.category"
                 target="_blank"
             >
                 <div>{{ item.moduleId }}</div>
@@ -50,7 +50,7 @@ export default {
     `,    
     state:{
         id: "",
-        view: "details",
+        view: "tiles",
         moduleId: "",
         items: null
     },
@@ -94,6 +94,7 @@ export default {
                                     id: id,
                                     url: url,
                                     moduleId: moduleId,
+                                    category: moduleConfig.label,
                                     status: "loaded",
                                     time: loaderRegistryItem?.time || 0,
                                     size: file.size

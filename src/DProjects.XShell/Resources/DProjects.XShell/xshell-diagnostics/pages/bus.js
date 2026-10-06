@@ -13,18 +13,10 @@ export default {
     },
     template: `
         <x-listview ref="listview" view="details" auto-scroll="true">
-            <div slot="column">
-                <x-datafield type="search" x-model="state.query_type" placeholder="Type"></x-datafield>
-            </div>
-            <div slot="column">
-                <x-datafield type="search" x-model="state.query_ts" placeholder="Time" style="width:13em"></x-datafield>
-            </div>
-            <div slot="column">
-                <x-datafield type="search" x-model="state.query_detail" placeholder="Detail"></x-datafield>
-            </div>
-            <div slot="column">
-                <x-button class="plain" command="clear" icon="x-clear" title="Clear list contents"></x-button>
-            </div>
+           <x-datafield slot="column" type="search" x-model="state.query_type" placeholder="Type"></x-datafield>
+           <x-datafield slot="column" type="search" x-model="state.query_ts" placeholder="Time" style="width:13em"></x-datafield>
+            <x-datafield slot="column" type="search" x-model="state.query_detail" placeholder="Detail"></x-datafield>
+            <x-button slot="column" class="plain" command="clear" icon="x-clear" title="Clear list contents"></x-button>
             <x-listview-item x-for="item in state.registry" x-attr:label="item.type" icon="x-thunder" x-show="item.show">
                 <x-datetime x-prop:value="item.ts" format="iso" style="width:13em"></x-datetime>
                 <x-object x-prop:value="item.detail"></x-object>
