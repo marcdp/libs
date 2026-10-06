@@ -76,11 +76,4 @@ export default class Resolver {
         console.error(`resolver.resolveDefinition('${resource}'): unable to resolve`);
         return null;
     }
-    resolveUrl(resource) {
-        if (resource.startsWith("http://") || resource.startsWith("https://") || resource.startsWith("//")) return resource;
-        if (resource.startsWith("/")) return (document.location.pathname + resource).replaceAll("//", "/");
-        let result = this.resolve(resource);
-        if (result) return result.url;
-        return null;
-    }
 };

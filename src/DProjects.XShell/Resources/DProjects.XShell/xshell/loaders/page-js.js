@@ -7,17 +7,9 @@ import validateComponent from "../validation/component.js";
 
 
 // utils
-function kebabToCamel(str) {
-    // convert kebab-case to camelCase
-    return str.split('-').map((word, index) => index === 0 ? word : word.charAt(0).toUpperCase() + word.slice(1)).join('');
-};
 function camelToKebab(str) {
     // convert camelCase to kebab-case
     return str.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();                      
-}
-function isEmptyPlainObject(value) {
-    // check if the value is an empty plain object
-    return value && typeof(value) === "object" && !Array.isArray(value) && Object.getPrototypeOf(value) === Object.prototype && Object.keys(value).length === 0;
 }
 function areDeclarativeValuesEqual(left, right) {
     // compare declarative values by structure and value
@@ -212,26 +204,14 @@ export async function createPageClassFromJsDefinition(src, context, implementati
     }
     // state skeleton
     const stateSkeleton = createStateSkeleton(src, implementation, contract);
-    const stateMapAttributes = [];
     const queryProperties = [];
     let contextProperties = []; 
     for (const [propName, property] of Object.entries(contract.properties)) {
-        if (property.state === true && property.attribute === true && isEmptyPlainObject(property.default)) {
-            stateMapAttributes.push({ attributePrefix: camelToKebab(propName) + "-", stateName: propName });
-        }
         if (property.query === true) {
             queryProperties.push({ name: propName, property });
         }
         if (property.context === true) {
             contextProperties.push({ name: propName, property });
-        }
-    }
-    for (const [stateName, value] of Object.entries(implementation.state)) {
-        if (Object.prototype.hasOwnProperty.call(contract.properties, stateName)) {
-            continue;
-        }
-        if (isEmptyPlainObject(value)) {
-            stateMapAttributes.push({ attributePrefix: camelToKebab(stateName) + "-", stateName });
         }
     }
     // modules

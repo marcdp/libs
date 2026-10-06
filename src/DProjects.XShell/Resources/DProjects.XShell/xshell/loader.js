@@ -69,7 +69,6 @@ export default class Loader {
         const isString = typeof(resources) == "string";
         if (resources == undefined) return null;
         if (resources == "" ) return null;
-        if (resources == [""] ) return null;;
         if (typeof(resources) == "string") resources = [resources];
         const isArray = Array.isArray(resources);
         const isObject = typeof(resources) == "object" && !isArray;

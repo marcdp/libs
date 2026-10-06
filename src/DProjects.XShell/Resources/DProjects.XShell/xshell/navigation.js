@@ -415,15 +415,6 @@ export default class Navigation {
                         if (label) document.title = label + " / " + this._config.app.label;
                     }
                 });
-                //xpage.addEventListener("replace", (event) => {
-                //    //page replace
-                //    debugger; // TODO ...
-                //    let xpages = this.getXPages();
-                //    let hashParts = document.location.hash.substring(this._hashPrefix.length).split(this._hashPrefix);
-                //    let index = xpages.indexOf(event.target);
-                //    hashParts[index] = event.target.src;
-                //    history.replaceState(null, "", this._hashPrefix + hashParts.join(this._hashPrefix));
-                //});
                 xpage.addEventListener("load", (event) => {
                     //page load
                     let xpages = this.getXPages();
@@ -433,17 +424,6 @@ export default class Navigation {
                         this._bus.emit("xshell:navigation:end", { src: event.target.src, id: event.target.page.id});
                     }
                 });
-                //xpage.addEventListener("navigate", (event) => {
-                //    //page navigation
-                //    debugger;
-                //    let xpages = this.getXPages();
-                //    let index = xpages.indexOf(event.target);
-                //    if (index != -1) {
-                //        let hashParts = document.location.hash.substring(this._hashPrefix.length).split(this._hashPrefix);
-                //        hashParts[index] = event.detail;
-                //        document.location.hash = this._hashPrefix + hashParts.join(this._hashPrefix);
-                //    }
-                //});
                 //add page to container
                 this._container.appendChild(xpage);
             } else if (itemBefore && !itemAfter) {
