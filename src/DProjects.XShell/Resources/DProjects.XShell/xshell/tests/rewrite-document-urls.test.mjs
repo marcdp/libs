@@ -52,10 +52,22 @@ test("inline CSS rewrites resource URLs and preserves other declarations", () =>
     assert.equal(element.getAttribute("style"), `color:red; background:url("${resourceBase}images/a.png"); padding:1px`);
 });
 
+test("inline CSS preserves fragment and external URLs", () => {
+    const element = new TestElement("div", { style: "filter:url(#filter); background:url(//cdn.test/a.png); mask:url(data:image/svg+xml,icon)" });
+    rewriteDocumentUrls(createDocument(element), context);
+    assert.equal(element.getAttribute("style"), 'filter:url("#filter"); background:url("//cdn.test/a.png"); mask:url("data:image/svg+xml,icon")');
+});
+
 test("style elements rewrite resource URLs without changing other CSS", () => {
     const style = new TestElement("style", {}, ".a { background:url(images/a.png); color: red; }");
     rewriteDocumentUrls(createDocument(style), context);
     assert.equal(style.textContent, `.a { background:url("${resourceBase}images/a.png"); color: red; }`);
+});
+
+test("style elements preserve fragment references and rewrite root URLs", () => {
+    const style = new TestElement("style", {}, ".a { filter:url(#filter); background:url(/images/a.png?v=1#part); }");
+    rewriteDocumentUrls(createDocument(style), context);
+    assert.equal(style.textContent, '.a { filter:url("#filter"); background:url("https://example.test/app/_assets/demo/images/a.png?v=1#part"); }');
 });
 
 test("inline module imports use module paths while preserving special specifiers", () => {
@@ -63,7 +75,8 @@ test("inline module imports use module paths while preserving special specifiers
         'import helper from "./helper.js";',
         'import root from "/shared.js";',
         'import shell from "xshell/runtime.js";',
-        'import remote from "https://cdn.test/remote.js";'
+        'import remote from "https://cdn.test/remote.js";',
+        'import protocolRelative from "//cdn.test/remote.js";'
     ].join("\n"));
     const doc = createDocument(script);
     rewriteDocumentUrls(doc, context);
@@ -72,8 +85,16 @@ test("inline module imports use module paths while preserving special specifiers
         `import helper from "${resourceBase}helper.js";`,
         'import root from "https://example.test/app/_assets/demo/shared.js";',
         'import shell from "xshell/runtime.js";',
-        'import remote from "https://cdn.test/remote.js";'
+        'import remote from "https://cdn.test/remote.js";',
+        'import protocolRelative from "//cdn.test/remote.js";'
     ].join("\n"));
+});
+
+test("inline module imports resolve parent paths and retain query strings and fragments", () => {
+    const script = new TestElement("script", { type: "module" }, 'import parent from "../shared.js?v=1#part";');
+    const doc = createDocument(script);
+    rewriteDocumentUrls(doc, context);
+    assert.equal(doc.elements[0].textContent, 'import parent from "https://example.test/app/_assets/demo/shared.js?v=1#part";');
 });
 
 test("img srcset rewrites density candidates independently", () => {
@@ -110,4 +131,36 @@ test("resource, navigation, virtual navigation, and qualified URLs retain their 
     assert.equal(external.getAttribute("src"), "https://cdn.test/a.png");
     assert.equal(anchor.getAttribute("href"), "#!/_assets/demo/pages/details.html");
     assert.equal(virtualAnchor.getAttribute("href"), "/_assets/demo/dashboard");
+});
+
+test("resource attributes resolve local URLs and preserve external and fragment URLs", () => {
+    const cases = [
+        ["img", "src", "./photo.png?v=1#part", `${resourceBase}photo.png?v=1#part`],
+        ["img", "src", "../shared.png?v=1#part", "https://example.test/app/_assets/demo/shared.png?v=1#part"],
+        ["source", "srcset", "/large.png 2x, small.png 1x", `https://example.test/app/_assets/demo/large.png 2x, ${resourceBase}small.png 1x`],
+        ["link", "href", "/theme.css", "https://example.test/app/_assets/demo/theme.css"],
+        ["iframe", "src", "//cdn.test/embed", "//cdn.test/embed"],
+        ["object", "data", "blob:https://example.test/id", "blob:https://example.test/id"],
+        ["img", "src", "data:image/png;base64,AAAA", "data:image/png;base64,AAAA"],
+        ["img", "src", "#sprite", "#sprite"]
+    ];
+    for (const [tag, attr, value, expected] of cases) {
+        const element = new TestElement(tag, { [attr]: value });
+        rewriteDocumentUrls(createDocument(element), context);
+        assert.equal(element.getAttribute(attr), expected, `${tag}[${attr}] = ${value}`);
+    }
+});
+
+test("navigation links retain Page routes and fragment navigation", () => {
+    const links = [
+        ["./details.html?v=1#part", "#!/_assets/demo/pages/details.html?v=1#part"],
+        ["../index.html?v=1#part", "#!/_assets/demo/index.html?v=1#part"],
+        ["#section", "#!/_assets/demo/pages/page.html#section"],
+        ["//cdn.test/page", "//cdn.test/page"]
+    ];
+    for (const [href, expected] of links) {
+        const anchor = new TestElement("a", { href });
+        rewriteDocumentUrls(createDocument(anchor), context);
+        assert.equal(anchor.getAttribute("href"), expected);
+    }
 });

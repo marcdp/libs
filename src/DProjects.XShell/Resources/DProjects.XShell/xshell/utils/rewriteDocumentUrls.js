@@ -46,27 +46,30 @@ export function rewriteTemplateAttribute(tag, attrs, attr, value, context) {
 
 // export
 export function normalizeModuleResourceUrl(url, modulePath, resourcePath) {
-    if (url.indexOf(":") != -1) {
+    if (url.indexOf(":") != -1 || url.startsWith("//")) {
         return url;
     } else if (url.startsWith("xshell/")) {
         return url;
     } else if (url.startsWith("/")) {
         return modulePath + url;
     } else {
-        return combineUrls(resourcePath, url);
+        const suffixStart = url.startsWith("../") ? url.search(/[?#]/) : -1;
+        return combineUrls(resourcePath, url) + (suffixStart < 0 ? "" : url.slice(suffixStart));
     }    
 }
 
 // export
 export function rewrite( el, attr, type, url, context ) {
     //if (url.indexOf("colibri")!=-1) debugger;
-    if (url.indexOf(":") != -1) {
+    if (url.indexOf(":") != -1 || url.startsWith("//")) {
         return url;
     } else if (type == "resource") {
+        if (url.startsWith("#")) return url;
         if (url.startsWith("/")) {
             return context.appBasePath + context.resourceDefinition.modulePath + url;
         } else{
-            return context.appBasePath + combineUrls(context.resourcePath, url);
+            const suffixStart = url.startsWith("../") ? url.search(/[?#]/) : -1;
+            return context.appBasePath + combineUrls(context.resourcePath, url) + (suffixStart < 0 ? "" : url.slice(suffixStart));
         }
     } else if (type == "navigation") {
         let virtualUrl = null;
@@ -75,7 +78,8 @@ export function rewrite( el, attr, type, url, context ) {
         } else if (url.startsWith("#")) {
             virtualUrl = context.resourcePath + url;
         } else {
-            virtualUrl = combineUrls(context.resourcePath, url);
+            const suffixStart = url.startsWith("../") ? url.search(/[?#]/) : -1;
+            virtualUrl = combineUrls(context.resourcePath, url) + (suffixStart < 0 ? "" : url.slice(suffixStart));
         }
         let realUrl = null;
         if (context.navigationMode == "hash") {
@@ -91,7 +95,8 @@ export function rewrite( el, attr, type, url, context ) {
         } else if (url.startsWith("#")) {
             virtualUrl = context.resourcePath + url;
         } else {
-            virtualUrl = combineUrls(context.resourcePath, url);
+            const suffixStart = url.startsWith("../") ? url.search(/[?#]/) : -1;
+            virtualUrl = combineUrls(context.resourcePath, url) + (suffixStart < 0 ? "" : url.slice(suffixStart));
         }
         return virtualUrl;
     } else {
@@ -168,7 +173,7 @@ export function rewriteDocumentUrls(doc, context) {
                 (match, bindings, importPath) => {
                     // normalize module paths before applying the application base path
                     const normalized = normalizeModuleResourceUrl(importPath, context.resourceDefinition.modulePath, context.resourcePath);
-                    return `import ${bindings}"${normalized.startsWith("/") ? context.appBasePath + normalized : normalized}"`;
+                    return `import ${bindings}"${normalized.startsWith("/") && !normalized.startsWith("//") ? context.appBasePath + normalized : normalized}"`;
                 }
             );
             // create a new script because textContent would reset execution
