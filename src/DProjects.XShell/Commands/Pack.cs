@@ -301,17 +301,25 @@ namespace DProjects.XShell.Commands {
             throw new InvalidOperationException($"Existing immutable package has an incomplete or unrecognized representation: {packagePath}");
         }
         private static async Task<string> ComputeHashAsync(string path, CancellationToken cancellationToken) {
-            // compute a hash of the directory contents to use in the expanded package path
-            using var sha256 = SHA256.Create();
-            foreach (var file in Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories).OrderBy(f => f)) {
-                var relativePath = Path.GetRelativePath(path, file);
-                var pathBytes = System.Text.Encoding.UTF8.GetBytes(relativePath);
-                sha256.TransformBlock(pathBytes, 0, pathBytes.Length, null, 0);
-                var fileBytes = File.ReadAllBytes(file);
-                sha256.TransformBlock(fileBytes, 0, fileBytes.Length, null, 0);
+            // compute a stable hash of the package contents for immutable identity
+            var files = Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories)
+                .Select(file => (FullPath: file, RelativePath: Path.GetRelativePath(path, file).Replace('\\', '/')))
+                .OrderBy(file => file.RelativePath, StringComparer.Ordinal);
+            using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+            var buffer = new byte[81920];
+            foreach (var file in files) {
+                cancellationToken.ThrowIfCancellationRequested();
+                var pathBytes = System.Text.Encoding.UTF8.GetBytes(file.RelativePath);
+                hash.AppendData(BitConverter.GetBytes(pathBytes.Length));
+                hash.AppendData(pathBytes);
+                await using var stream = File.OpenRead(file.FullPath);
+                hash.AppendData(BitConverter.GetBytes(stream.Length));
+                int read;
+                while ((read = await stream.ReadAsync(buffer, cancellationToken)) > 0) {
+                    hash.AppendData(buffer.AsSpan(0, read));
+                }
             }
-            sha256.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
-            return Convert.ToHexString(sha256.Hash!).ToLowerInvariant().Substring(0,16);
+            return Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant()[..16];
         }
         private static string CreateStagingPath(string sourcePath, string outputPath) {
             // keep staging outside both the authored module and requested output tree
