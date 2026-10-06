@@ -94,6 +94,18 @@ globalThis.HTMLElement = FakeElement;
 globalThis.CSSStyleSheet = class {
     replaceSync() {}
 };
+globalThis.MutationObserver = class {
+    observations = [];
+    disconnectCount = 0;
+
+    observe(target, options) {
+        this.observations.push({ target, options });
+    }
+
+    disconnect() {
+        this.disconnectCount += 1;
+    }
+};
 globalThis.customElements = {
     definitions: new Map(),
     define(name, definition) {
@@ -319,7 +331,7 @@ test("component preserves its instance lifetime across reconnects and unloads on
     const commands = [];
     const Component = await createComponentClassFromJsDefinition("component-lifecycle.js", createContext(), {
         meta: { id: "x-component-lifecycle-test" },
-        state: { value: 1 },
+        state: { value: 1, settings: {} },
         controller() {
             return {
                 load() { commands.push("load"); },
@@ -330,9 +342,12 @@ test("component preserves its instance lifetime across reconnects and unloads on
         }
     }, {});
     const component = new Component();
+    const mutationObserver = component._mutationObserver;
     const controller = component._controller;
     const disposable = { disposeCount: 0, dispose() { this.disposeCount += 1; } };
     component._disposables.push(disposable);
+    assert.ok(mutationObserver instanceof MutationObserver);
+    assert.deepEqual(mutationObserver.observations, [{ target: component, options: { attributes: true } }]);
 
     component.connectedCallback();
     const firstRenderEngine = component._renderEngine;
@@ -346,11 +361,14 @@ test("component preserves its instance lifetime across reconnects and unloads on
     assert.equal(firstRenderEngine.unmountCount, 1);
     assert.equal(disposable.disposeCount, 0);
     assert.equal(component._disposables.length, 1);
+    assert.equal(mutationObserver.disconnectCount, 0);
 
     component.connectedCallback();
     const secondRenderEngine = component._renderEngine;
     assert.notEqual(secondRenderEngine, firstRenderEngine);
     assert.deepEqual(commands, ["load", "mount", "unmount", "mount"]);
+    assert.equal(component._mutationObserver, mutationObserver);
+    assert.equal(mutationObserver.observations.length, 1);
 
     component.invalidate();
     component.disconnectedCallback();
@@ -358,8 +376,11 @@ test("component preserves its instance lifetime across reconnects and unloads on
     assert.equal(secondRenderEngine.renderCount, 0);
 
     await component.unload();
+    assert.equal(mutationObserver.disconnectCount, 1);
+    assert.equal(component._mutationObserver, null);
     await component.unload();
     assert.deepEqual(commands, ["load", "mount", "unmount", "mount", "unmount", "unload"]);
+    assert.equal(mutationObserver.disconnectCount, 1);
     assert.equal(disposable.disposeCount, 1);
     assert.deepEqual(component._disposables, []);
 });

@@ -209,6 +209,7 @@ export async function createComponentClassFromJsDefinition(src, context, impleme
         _reflectingAttributes = new Set();
         _controller = null;
         _renderEngine = null;
+        _mutationObserver = null;
         _renderPending = false;
         _renderCount = 0;
         _commandsPending = [];
@@ -321,7 +322,7 @@ export async function createComponentClassFromJsDefinition(src, context, impleme
             }
             // attribute mutation observer (listen for changes in attributes that start with state map attribute names)
             if (stateMapAttributes.length) {
-                const mutationObserver = new MutationObserver((mutationsList) => {
+                this._mutationObserver = new MutationObserver((mutationsList) => {
                     for (let mutation of mutationsList) {
                         if (mutation.type === "attributes") {
                             const attrName = mutation.attributeName;
@@ -336,7 +337,7 @@ export async function createComponentClassFromJsDefinition(src, context, impleme
                         }
                     }
                 });
-                mutationObserver.observe(this, { attributes: true });
+                this._mutationObserver.observe(this, { attributes: true });
                 // init state from attributes
                 for (const stateMapAttribute of stateMapAttributes) {
                     for(let attr of this.attributes) {
@@ -393,6 +394,8 @@ export async function createComponentClassFromJsDefinition(src, context, impleme
                     this._renderEngine.unmount();
                     this._renderEngine = null;
                 }
+                this._mutationObserver?.disconnect();
+                this._mutationObserver = null;
                 this._renderPending = false;
                 for (const disposable of this._disposables) {
                     disposable.dispose();
