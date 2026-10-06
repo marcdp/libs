@@ -98,6 +98,19 @@ test("Page query binding is explicit and uses kebab-case names", async () => {
     assert.equal(camelCasePage._state.id, "123");
 });
 
+test("Page query values exclude the URL fragment in controller and contract state", async () => {
+    let controllerValue;
+    const page = await createPage({
+        a: { type: "string", default: "", state: true, query: true }
+    }, "/page.js?a=1#section", ({ query }) => {
+        controllerValue = query.get("a");
+        return {};
+    });
+
+    assert.equal(controllerValue, "1");
+    assert.equal(page._state.a, "1");
+});
+
 test("Page query values use contract scalar types and retain defaults when absent", async () => {
     const page = await createPage({
         text: { type: "string", default: "default", state: true, query: true },

@@ -336,7 +336,7 @@ export async function createPageClassFromJsDefinition(src, context, implementati
                         return dependencies;
                     } else if (prop == "query") {
                         // get query
-                        return new URLSearchParams(self.src.split("?")[1] ?? "");
+                        return getPageQueryParams(self.src);
                     } else if (prop == "commands") {
                         // get commands
                         return {
