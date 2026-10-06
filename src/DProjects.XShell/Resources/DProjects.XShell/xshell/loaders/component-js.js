@@ -285,18 +285,6 @@ export async function createComponentClassFromJsDefinition(src, context, impleme
                             const xpage = findClosestXPage(self);
                             return (xpage ? xpage.page : null);
                         }
-                    } else if (prop == "whenPage") {
-                        // get current page function
-                        return function() {
-                            const xpage = findClosestXPage(self);
-                            if (!xpage) return Promise.resolve(null);
-                            if (xpage.page && xpage.status == "loaded") return Promise.resolve(xpage.page);
-                            return new Promise(resolve => {
-                                xpage.addEventListener("load", event => {
-                                    resolve(event.detail.page);
-                                }, { once: true });
-                            });
-                        }
                     } else if (prop == "dependencies") {
                         // get dependencies
                         return dependencies;

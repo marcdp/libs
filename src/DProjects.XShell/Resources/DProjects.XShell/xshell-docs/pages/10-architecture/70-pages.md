@@ -252,7 +252,7 @@ mount/unmount cycles, and final unload disposes the helpers and releases the con
 A definition-based Page may provide `style` as one CSS source string. `page-js` scopes that source to the mounted Page host; arrays of CSS strings
 are not supported.
 
-Components can obtain their containing Page from the `<x-page>` host with the `getPage()` and `whenPage()` Component services. Their lookup and
+Components can obtain their containing Page from the `<x-page>` host with the `getPage()` service. Their lookup and
 `<x-page>` `load` event semantics are documented in [Containing Page lookup](60-components.md#containing-page-lookup).
 
 ## Layouts
