@@ -12,7 +12,14 @@ export default {
         title: "Icons"
     },
     template: `
-        <x-listview view="icons">
+        <x-toolbar>
+            <x-button class="" label="list" command="changeView" data-view="list"></x-button>
+            <x-button class="" label="details" command="changeView" data-view="details"></x-button>
+            <x-button class="" label="icons" command="changeView" data-view="icons"></x-button>
+            <x-button class="" label="tiles" command="changeView" data-view="tiles"></x-button>
+        </x-toolbar>
+
+        <x-listview x-attr:view="state.view">
             <x-datafield type="search" x-model="state.id" placeholder="Icon" slot="column" style="width:12em"></x-datafield>
             <div slot="column" >
                 <x-datafield type="search" x-model="state.moduleId" placeholder="Module"></x-datafield>
@@ -30,20 +37,20 @@ export default {
                 x-attr:href="item.url" 
                 x-attr:label="item.id"
                 x-attr:icon="item.id"
+                x-attr:description="item.moduleId"
+                x-attr:category__="item.moduleId"
                 target="_blank"
             >
-                <!--
-                    <div>{{ item.moduleId }}</div>
-                    <div>{{ item.description }}</div>
-                    <x-file-size x-prop:value="item.size" style="text-align:right"></x-file-size>
-                    <div style="text-align:right"><x-time-ms x-prop:value="item.time"></x-time-ms></div>
-                    <div>{{ item.status }}</div>
-                -->
+                <div>{{ item.moduleId }}</div>
+                <x-file-size x-prop:value="item.size" style="text-align:right"></x-file-size>
+                <div style="text-align:right"><x-time-ms x-prop:value="item.time"></x-time-ms></div>
+                <div>{{ item.status }}</div>
             </x-listview-item>
         </x-listview> 
     `,    
     state:{
         id: "",
+        view: "tiles",
         moduleId: "",
         items: null
     },
@@ -59,6 +66,9 @@ export default {
                         this.refresh();
                     }
                 });
+            },
+            changeView({view}) {
+                state.view = view;
             },
             async refresh() {
                 // refresh

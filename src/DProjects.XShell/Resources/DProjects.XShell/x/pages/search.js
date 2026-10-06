@@ -63,22 +63,30 @@ export default {
                 let keyword = state.keyword.toLowerCase();
                 let results = [];
                 if (keyword.length > 2) {
-                    const searchRecursive = function(menuitem) {
+                    const searchRecursive = function(menuitem, category) {
                         if (menuitem.label.toLowerCase().indexOf(keyword) >= 0 && menuitem.href) {
-                            results.push(menuitem);
+                            results.push({ ...menuitem, category: category });
                         }
                         if (menuitem.children) {
                             for (let child of menuitem.children) {
-                                searchRecursive(child);
+                                searchRecursive(child, category);
                             }
                         }
                     }
                     // search current area
                     const currentArea = areas.getCurrentArea();
                     const menu = areas.getMenu("navigation", currentArea.id);
-                    for(let menuitem of menu) searchRecursive(menuitem);
+                    for(let menuitem of menu) {
+                        searchRecursive(menuitem, currentArea.id);
+                    }
                     // search other areas
-                    // todo ...
+                    for(const area of areas.getAreas()) {
+                        if (area.id === currentArea.id) continue;
+                        const menu = areas.getMenu("navigation", area.id);
+                        for(let menuitem of menu) {
+                            searchRecursive(menuitem, area.id);
+                        }
+                    }
                 }
                 state.results = results;
             }

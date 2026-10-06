@@ -26,12 +26,14 @@ export const contract = {
 export default {
     style: `
         :host {}
+        ::slotted(*) {display:var(--x-listview-item-display, table-cell); padding:.1em; padding-right:.5em;}
+        ::slotted(.fill) {width:100%; max-width:0; overflow:hidden;}
 
         /* list */
         x-anchor.list {display:flex;} 
         x-anchor.list x-icon {margin-right:.25em;transform:translateY(-.1em);}
         x-anchor.list::part(a) { display:flex; align-items:center; }
-        x-anchor.list .description {color:var(--x-color-text-gray);}
+        x-anchor.list .description {color:var(--x-color-text-gray); max-width: 10em; text-overflow:ellipsis; white-space:nowrap; overflow:hidden;}
         x-anchor.list .description:empty {display:none;}
         x-anchor.list .description::before {content:"("; padding-left:.25em;}
         x-anchor.list .description::after {content:")";}
@@ -54,20 +56,31 @@ export default {
         /* details */
         x-anchor.details {display:table-cell; padding-right:.5em;} 
         x-anchor.details x-icon {vertical-align:bottom; }
-        ::slotted(*) {display:table-cell; padding:.1em; padding-right:.5em;}
-        ::slotted(.fill) {width:100%; max-width:0; overflow:hidden;}
-        
+        x-anchor.details .description {color:var(--x-color-text-gray); max-width: 10em; text-overflow:ellipsis; white-space:nowrap; overflow:hidden;}
+        x-anchor.details .description:empty {display:none;}
+        x-anchor.details .description::before {content:"("; padding-left:.25em;}
+        x-anchor.details .description::after {content:")";}
+
+        /* tiles */
+        x-anchor.tiles {display:flex; width:17em; align-items:center; margin-bottom:.25em;}
+        x-anchor.tiles x-icon {position:absolute;font-size:32px; padding:.1em; margin-top:-.2em;}
+        x-anchor.tiles span {display:block; margin-left:50px; }
+        x-anchor.tiles .label {padding-top:.4em;}
+        x-anchor.tiles .description {color:var(--x-color-text-gray); max-width: 100%; text-overflow:ellipsis; white-space:nowrap; overflow:hidden; padding-bottom:.4em;}
+        x-anchor.tiles .description:empty {display:none;}
+        x-anchor.tiles:hover {background:var(--x-color-xxxxx-gray); }
+
     `,
     template: `
-        <div x-if="state.category" class="category">
+        <!--<div x-if="state.category" class="category">
             {{state.category}}
-        </div>
-        <x-anchor x-attr:href="state.href" x-attr:target="state.target" x-attr:class="'plain ' + state.view" x-attr:title="state.description" x-prop:breadcrumb="state.breadcrumb" x-attr:open="state.open">
+        </div>-->
+        <x-anchor x-attr:href="state.href" x-attr:target="state.target" x-attr:class="'plain block ' + state.view" x-attr:title="state.description" x-prop:breadcrumb="state.breadcrumb" x-attr:open="state.open">
             <x-icon x-attr:icon="state.icon || 'x-file'"></x-icon>
             <span class="label" x-text="state.label"></span>
-            <span class="description" x-text="state.description"></span>
+            <span class="description" x-text="state.description + ' '"></span>
         </x-anchor>
-        <slot></slot>
+        <slot x-if="state.view == 'details'"></slot>
     `,
     state: {
     },

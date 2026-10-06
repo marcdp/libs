@@ -46,8 +46,15 @@ export default {
         .details > div .columns ::slotted(*) {display:table-cell; background: none!important; color:gray; padding-right:.25em;}
         .details > div .columns ::slotted(*:first-child) {padding-left:1.5em; border-box:border;}
         .details > div .columns ::slotted(x-datafield:first-child) {padding-left:0;}
-        
 
+        /* list */
+        .list > div .columns {display:none;}
+        .list > div {column-width: 15em; column-gap: 1rem;}
+
+        /* tiles */
+        .tiles > div .columns {display:none;}
+        .tiles > div { display:flex; flex-wrap:wrap; }
+        .tiles > div ::slotted(*) {}
     `,
     template: `
         <div x-attr:class="state.view">
