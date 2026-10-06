@@ -38,7 +38,7 @@ export default {
                 x-attr:label="item.id"
                 x-attr:icon="item.id"
                 x-attr:description="item.moduleId"
-                x-attr:category__="item.moduleId"
+                x-attr:category="item.moduleId"
                 target="_blank"
             >
                 <div>{{ item.moduleId }}</div>
@@ -50,7 +50,7 @@ export default {
     `,    
     state:{
         id: "",
-        view: "tiles",
+        view: "details",
         moduleId: "",
         items: null
     },

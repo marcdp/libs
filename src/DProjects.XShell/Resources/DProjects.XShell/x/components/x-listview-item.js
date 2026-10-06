@@ -28,18 +28,16 @@ export default {
         :host {}
         ::slotted(*) {display:var(--x-listview-item-display, table-cell); padding:.1em; padding-right:.5em;}
         ::slotted(.fill) {width:100%; max-width:0; overflow:hidden;}
-
+        
         /* list */
         x-anchor.list {display:flex;} 
         x-anchor.list x-icon {margin-right:.25em;transform:translateY(-.1em);}
         x-anchor.list::part(a) { display:flex; align-items:center; }
-        x-anchor.list .description {color:var(--x-color-text-gray); max-width: 10em; text-overflow:ellipsis; white-space:nowrap; overflow:hidden;}
-        x-anchor.list .description:empty {display:none;}
-        x-anchor.list .description::before {content:"("; padding-left:.25em;}
-        x-anchor.list .description::after {content:")";}
+        x-anchor.list {max-width:100%; text-overflow:ellipsis; white-space:nowrap; overflow:hidden;}
+        x-anchor.list .description {display:none;}
         :host(.selected) x-anchor.list {font-weight:600;}
         :host(.selected) x-anchor.list x-anchor::part(a) {color:var(--x-color-primary);}
-        .category {font-weight:600; padding-left: 1.5em; padding-top:.25em; width:100%;}
+        
 
         /* icons */
         x-anchor.icons {display:flex; width:6em; height:6em; border-radius:.5em; }
@@ -72,13 +70,11 @@ export default {
 
     `,
     template: `
-        <!--<div x-if="state.category" class="category">
-            {{state.category}}
-        </div>-->
+
         <x-anchor x-attr:href="state.href" x-attr:target="state.target" x-attr:class="'plain block ' + state.view" x-attr:title="state.description" x-prop:breadcrumb="state.breadcrumb" x-attr:open="state.open">
             <x-icon x-attr:icon="state.icon || 'x-file'"></x-icon>
             <span class="label" x-text="state.label"></span>
-            <span class="description" x-text="state.description + ' '"></span>
+            <span class="description" x-text="state.description"></span>
         </x-anchor>
         <slot x-if="state.view == 'details'"></slot>
     `,
