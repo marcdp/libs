@@ -23,32 +23,11 @@ class LoaderException extends AggregateError {
     }
 }
 
+
 // loaders
 const loaders = {
 };
 
-// utils
-function removeQuery(resource) {
-    // remove only the URL query while preserving the logical resource scheme and fragment
-    const queryIndex = resource.indexOf("?");
-    const fragmentIndex = resource.indexOf("#");
-    if (queryIndex === -1 || (fragmentIndex !== -1 && queryIndex > fragmentIndex)) {
-        return resource;
-    }
-    return resource.substring(0, queryIndex) + (fragmentIndex === -1 ? "" : resource.substring(fragmentIndex));
-}
-function getCacheKey(resource, definition) {
-    // select cache identity without changing the resource passed through resolution and loading
-    const cacheMode = definition.cacheMode ?? "full";
-    switch (cacheMode) {
-        case "full":
-            return resource;
-        case "path":
-            return removeQuery(resource);
-        default:
-            throw new Error(`Unsupported cache mode '${cacheMode}'.`);
-    }
-}
 
 // class
 export default class Loader {
@@ -61,7 +40,6 @@ export default class Loader {
     _navigationMode = null;
     _navigationHashPrefix = null;
     
-
     _cache = {};
     _registry = [];
 
@@ -110,7 +88,7 @@ export default class Loader {
                 throw new LoaderException([new Error(`Resource not found: ${resource}`)]);
             }
             let {definition, url, path} = definitionObject;
-            const cacheKey = getCacheKey(resource, definition);
+            const cacheKey = this.getCacheKey(resource, definition);
             urls.push(url);
             paths.push(path);
             // get or load handler
@@ -131,12 +109,8 @@ export default class Loader {
             // check cache
             let cacheItem = this._cache[cacheKey];
             if (cacheItem) {
-                if (cacheItem.promise) {
-                    tasks.push({index: result.length, promise: cacheItem.promise});
-                    result.push(null);
-                } else {
-                    result.push(cacheItem.value);
-                }
+                tasks.push({index: result.length, promise: cacheItem.promise ?? Promise.resolve(cacheItem.value)});
+                result.push(null);
             } else if (loader == loaders.component && window.customElements.get(name)) {
                 result.push(window.customElements.get(name));
             } else {
@@ -170,16 +144,29 @@ export default class Loader {
                         registryItem.status = "error";
                         await this._bus.emit("xshell:loader:resource:error", {resource, url, time});  
                         throw exception;
-                    } finally {
-                        
                     }
                     return value;
                 })();
                 if (definition.cache) {
-                    this._cache[cacheKey] = {
+                    // initialize cache item for this resource
+                    cacheItem = {
                         value: null,
-                        promise
+                        promise: null
                     };
+                    cacheItem.promise = promise.then(value => {
+                        if (this._cache[cacheKey] === cacheItem) {
+                            cacheItem.value = value;
+                            cacheItem.promise = null;
+                        }
+                        return value;
+                    }, exception => {
+                        if (this._cache[cacheKey] === cacheItem) {
+                            delete this._cache[cacheKey];
+                        }
+                        throw exception;
+                    });
+                    this._cache[cacheKey] = cacheItem;
+                    promise = cacheItem.promise;
                 }
                 tasks.push({index: result.length, promise});
                 result.push(null);
@@ -236,9 +223,27 @@ export default class Loader {
         return result;
     }    
 
-    // private methods
-    _dispatchEvent(name, detail) {
-
+    // private
+    removeQuery(resource) {
+        // remove only the URL query while preserving the logical resource scheme and fragment
+        const queryIndex = resource.indexOf("?");
+        const fragmentIndex = resource.indexOf("#");
+        if (queryIndex === -1 || (fragmentIndex !== -1 && queryIndex > fragmentIndex)) {
+            return resource;
+        }
+        return resource.substring(0, queryIndex) + (fragmentIndex === -1 ? "" : resource.substring(fragmentIndex));
+    }
+    getCacheKey(resource, definition) {
+        // select cache identity without changing the resource passed through resolution and loading
+        const cacheMode = definition.cacheMode ?? "full";
+        switch (cacheMode) {
+            case "full":
+                return resource;
+            case "path":
+                return this.removeQuery(resource);
+            default:
+                throw new Error(`Unsupported cache mode '${cacheMode}'.`);
+        }
     }
 };
 

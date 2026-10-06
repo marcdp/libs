@@ -67,6 +67,32 @@ test("cacheMode path shares query variants and keeps diagnostics unnormalized", 
     assert.strictEqual(loader.registry[0].value, first);
 });
 
+test("successful cached load stores its value for later requests", async () => {
+    const { fixture, loader } = await createLoader("resolved-value");
+    const first = await loader.load("resource:/foo");
+
+    assert.deepEqual(loader._cache["resource:/foo"], { value: first, promise: null });
+    const second = await loader.load("resource:/foo");
+
+    assert.strictEqual(second, first);
+    assert.deepEqual(fixture.getRequests(), ["/foo"]);
+});
+
+test("failed cached load is evicted and a later request succeeds", async () => {
+    const { fixture, loader } = await createLoader("retry-after-failure");
+    fixture.failOnce();
+
+    await assert.rejects(() => loader.load("resource:/foo"), /Simulated load failure/);
+    assert.equal(loader._cache["resource:/foo"], undefined);
+    assert.equal(loader.registry[0].status, "error");
+
+    const value = await loader.load("resource:/foo");
+
+    assert.deepEqual(fixture.getRequests(), ["/foo", "/foo"]);
+    assert.equal(loader.registry[1].status, "loaded");
+    assert.strictEqual(loader._cache["resource:/foo"].value, value);
+});
+
 test("cacheMode path keeps different paths separate", async () => {
     const { fixture, loader } = await createLoader("different-paths", { cacheMode: "path" });
     const first = await loader.load("resource:/foo?a=1");
@@ -88,6 +114,31 @@ test("cacheMode path deduplicates concurrent query variants", async () => {
     fixture.releaseLoads();
     const [first, second] = await Promise.all([firstPromise, secondPromise]);
     assert.strictEqual(first, second);
+});
+
+test("concurrent failures share one load and a later request retries", async () => {
+    const { fixture, loader } = await createLoader("shared-failure", { cacheMode: "path" });
+    fixture.failOnce();
+    fixture.deferLoads();
+
+    const firstPromise = loader.load("resource:/foo?a=1");
+    const secondPromise = loader.load("resource:/foo?a=2");
+    await fixture.waitForLoadCount(1);
+
+    assert.deepEqual(fixture.getRequests(), ["/foo"]);
+    fixture.releaseLoads();
+    const [first, second] = await Promise.allSettled([firstPromise, secondPromise]);
+
+    assert.equal(first.status, "rejected");
+    assert.equal(second.status, "rejected");
+    assert.strictEqual(first.reason.errors[0].cause, second.reason.errors[0].cause);
+    assert.equal(loader._cache["resource:/foo"], undefined);
+
+    const value = await loader.load("resource:/foo?a=3");
+
+    assert.equal(value.requestNumber, 2);
+    assert.deepEqual(fixture.getRequests(), ["/foo", "/foo"]);
+    assert.equal(loader.registry.length, 2);
 });
 
 test("cacheMode path removes only query and preserves fragment identity", async () => {
