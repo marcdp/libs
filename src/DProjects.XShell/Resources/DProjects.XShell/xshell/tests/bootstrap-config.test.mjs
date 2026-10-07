@@ -286,7 +286,7 @@ test("loadConfig keeps xshellConfig as the base and applies root configuration l
     fetchedResources.set(xshellUrl, {
         app: { source: "xshell" },
         modules: {},
-        xshell: { assetsPrefix: "_assets", environment: "Production", assetsUrl: "url:./", temp: { url: "url:./" }, resolver: {} }
+        xshell: { assetsPrefix: "_assets", environment: "Production", assetsUrl: "source:./", temp: { url: "source:./" }, resolver: {} }
     });
     fetchedResources.set(rootUrl, {
         app: { source: "root" },
@@ -310,7 +310,7 @@ test("loadConfig derives every assetsPath from a custom assetsPrefix", async () 
     fetchedResources.set(xshellUrl, {
         app: {},
         modules: {},
-        xshell: { assetsPrefix: "runtime", assetsPath: "/authored-xshell", environment: "Production", assetsUrl: "url:./", temp: { url: "url:./" }, resolver: {} }
+        xshell: { assetsPrefix: "runtime", assetsPath: "/authored-xshell", environment: "Production", assetsUrl: "source:./", temp: { url: "source:./" }, resolver: {} }
     });
     fetchedResources.set(rootUrl, {
         modules: { app: definition("app", { assetsPath: "/authored-app" }), x: reference(xUrl) }
@@ -326,7 +326,7 @@ test("loadConfig derives every assetsPath from a custom assetsPrefix", async () 
 
 test("root config accepts exactly one local module regardless of module key order", async () => {
     const xUrl = "https://example.test/modules/x/module.jsonc";
-    const root = { modules: { x: reference("url:../x/module.jsonc"), app: definition("app") } };
+    const root = { modules: { x: reference("source:../x/module.jsonc"), app: definition("app") } };
     const graph = await discover(root, { [xUrl]: { modules: { x: definition("x") } } });
 
     assert.equal(graph.rootNode.id, "app");
@@ -486,7 +486,7 @@ test("references reject assetsUrl but require configUrl", async () => {
     const aUrl = "https://example.test/modules/a/module.jsonc";
     const xUrl = "https://example.test/modules/x/module.jsonc";
     const root = { modules: { app: definition("app"), a: reference(aUrl) } };
-    const configs = { [aUrl]: { modules: { a: definition("a"), x: { configUrl: xUrl, assetsUrl: "url:./assets" } } } };
+    const configs = { [aUrl]: { modules: { a: definition("a"), x: { configUrl: xUrl, assetsUrl: "source:./assets" } } } };
 
     await assert.rejects(() => discover(root, configs), /cannot override assetsUrl/);
     await assert.rejects(() => discover({ modules: { app: definition("app"), x: { configUrl: "" } } }), /must declare a non-empty configUrl/);
@@ -564,7 +564,7 @@ test("root references reject assetsUrl but accept arbitrary composition properti
     const effective = plain(api.mergeConfigs(Array.from(graph.mergeOrder, node => node.config)));
 
     assert.equal(effective.modules.x.version, "override");
-    await assert.rejects(() => discover({ modules: { app: definition("app"), x: { configUrl: xUrl, assetsUrl: "url:./assets" } } }), /cannot override assetsUrl/);
+    await assert.rejects(() => discover({ modules: { app: definition("app"), x: { configUrl: xUrl, assetsUrl: "source:./assets" } } }), /cannot override assetsUrl/);
 });
 
 test("sibling contributions to a shared dependency follow declaration order", async () => {

@@ -36,10 +36,10 @@ Without `--zip`, the package directory contains the compiled resources, generate
 appears there as `module.json` with its original JSONC content. An authored `xshell.jsonc` remains `xshell.jsonc`.
 
 For a normal module, `--zip` publishes `module.json` and `module.zip`. The emitted `module.json` is normalized JSON with
-`modules.<local-id>.assetsUrl = "url:./module.zip"` and `modules.<local-id>.files = [...]` from the generated inventory.
+`modules.<local-id>.assetsUrl = "source:./module.zip"` and `modules.<local-id>.files = [...]` from the generated inventory.
 
 For the XShell framework, `--zip` publishes `xshell.jsonc` and `xshell.zip`. The emitted `xshell.jsonc` is normalized JSON, including
-`xshell.assetsUrl = "url:./xshell.zip"` and `xshell.files = [...]` from the same generated inventory. The authored source may be `xshell.json` or
+`xshell.assetsUrl = "source:./xshell.zip"` and `xshell.files = [...]` from the same generated inventory. The authored source may be `xshell.json` or
 `xshell.jsonc`. Each archive contains the staged tree at its root, including `module.files.json`.
 
 The package path is immutable after first publication. Repeating a pack with the same content identity and representation reuses that path without

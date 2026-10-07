@@ -27,7 +27,7 @@ definitions. The `modules` object is both the module identity registry and the d
             }
         },
         "x": {
-            "configUrl": "url:../x/module.jsonc"
+            "configUrl": "source:../x/module.jsonc"
         }
     }
 }
@@ -58,7 +58,7 @@ Any reference may contribute configuration in addition to its canonical id and `
             }
         },
         "x": {
-            "configUrl": "url:../x/module.jsonc",
+            "configUrl": "source:../x/module.jsonc",
             "params": { "mode": "compact" }
         }
     }

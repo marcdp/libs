@@ -230,11 +230,11 @@ namespace DProjects.XShell.Commands {
                         throw new InvalidOperationException($"Module configuration '{descriptorPath}' must contain exactly one local module definition.");
                     }
                     var localModule = (JsonObject)localModules[0].Value!;
-                    localModule["assetsUrl"] = "url:./module.zip";
+                    localModule["assetsUrl"] = "source:./module.zip";
                     localModule["files"] = JsonNode.Parse(moduleFilesJson);
                 } else {
                     var xshell = root["xshell"] as JsonObject ?? throw new InvalidOperationException($"XShell configuration '{descriptorPath}' must contain an xshell object.");
-                    xshell["assetsUrl"] = "url:./xshell.zip";
+                    xshell["assetsUrl"] = "source:./xshell.zip";
                     xshell["files"] = JsonNode.Parse(moduleFilesJson);
                 }
 

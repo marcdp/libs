@@ -22,7 +22,7 @@ export default {
         "version": "1.0.0"
     },
     "x": {
-        "configUrl": "url:../x/module.jsonc",
+        "configUrl": "source:../x/module.jsonc",
         "params": {
             "aaa": 890,
             "bbb": 987

@@ -60,7 +60,7 @@ namespace DProjects.XShell.Test {
             using var descriptor = JsonDocument.Parse(File.ReadAllText(Path.Combine(package, "module.json")));
             var module = descriptor.RootElement.GetProperty("modules").GetProperty(ModuleId);
             Assert.Equal("Tiny module", module.GetProperty("label").GetString());
-            Assert.Equal("url:./module.zip", module.GetProperty("assetsUrl").GetString());
+            Assert.Equal("source:./module.zip", module.GetProperty("assetsUrl").GetString());
             var embedded = ReadInventory(module.GetProperty("files"));
             var archived = ReadInventory(System.Text.Encoding.UTF8.GetString(files["module.files.json"]));
             Assert.Equal(archived, embedded);
@@ -95,7 +95,7 @@ namespace DProjects.XShell.Test {
             Assert.Contains("module.files.json", files.Keys);
             using var descriptor = JsonDocument.Parse(File.ReadAllText(Path.Combine(package, "xshell.jsonc")));
             var xshell = descriptor.RootElement.GetProperty("xshell");
-            Assert.Equal("url:./xshell.zip", xshell.GetProperty("assetsUrl").GetString());
+            Assert.Equal("source:./xshell.zip", xshell.GetProperty("assetsUrl").GetString());
             var embedded = ReadInventory(xshell.GetProperty("files"));
             var archived = ReadInventory(System.Text.Encoding.UTF8.GetString(files["module.files.json"]));
             Assert.Equal(archived, embedded);

@@ -20,7 +20,7 @@ Every module configuration has exactly one local definition and zero or more ext
             }
         },
         "x": {
-            "configUrl": "url:../x/module.jsonc",
+            "configUrl": "source:../x/module.jsonc",
             "params": { "mode": "compact" }
         }
     }

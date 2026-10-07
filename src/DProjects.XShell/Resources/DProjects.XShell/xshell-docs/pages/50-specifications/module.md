@@ -47,8 +47,8 @@ Every non-local entry must declare `configUrl`:
                 "component": { "renderEngine": "x", "stateEngine": "proxy" }
             }
         },
-        "x": { "configUrl": "url:../x/module.jsonc" },
-        "customers": { "configUrl": "url:../customers/module.jsonc" }
+        "x": { "configUrl": "source:../x/module.jsonc" },
+        "customers": { "configUrl": "source:../customers/module.jsonc" }
     }
 }
 ```
