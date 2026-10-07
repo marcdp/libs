@@ -1,14 +1,89 @@
 // utils
 function parseJsonc(source) { let stripped = "", inString = false; for (let i = 0; i < source.length; i++) { const char = source[i]; if (inString) { stripped += char; if (char === "\\") stripped += source[++i] ?? ""; else if (char === '"') inString = false; } else if (char === '"') { inString = true; stripped += char; } else if (char === "/" && source[i + 1] === "/") { stripped += "  "; i++; while (i + 1 < source.length && source[i + 1] !== "\n" && source[i + 1] !== "\r") { stripped += " "; i++; } } else if (char === "/" && source[i + 1] === "*") { stripped += "  "; i++; while (i + 1 < source.length && !(source[i + 1] === "*" && source[i + 2] === "/")) { stripped += source[i + 1] === "\n" || source[i + 1] === "\r" ? source[i + 1] : " "; i++; } if (i + 2 >= source.length) throw new SyntaxError("Unterminated JSONC block comment."); stripped += "  "; i += 2; } else stripped += char; } let normalized = ""; inString = false; for (let i = 0; i < stripped.length; i++) { const char = stripped[i]; if (inString) { normalized += char; if (char === "\\") normalized += stripped[++i] ?? ""; else if (char === '"') inString = false; } else if (char === '"') { inString = true; normalized += char; } else if (char === ",") { let next = i + 1; while (next < stripped.length && /\s/.test(stripped[next])) next++; normalized += stripped[next] === "}" || stripped[next] === "]" ? " " : char; } else normalized += char; } return JSON.parse(normalized); }
 async function loadJsonWithComments(url) {const request = await fetch(url);if (!request.ok) throw new Error(`Failed to json file: ${url}`);let json = await request.text();return parseJsonc(json);}
-function combineUrls(t, n) { if (-1 != t.indexOf("?") && (t = t.substring(0, t.indexOf("?"))), -1 != n.indexOf(":")) return n; if (n.startsWith("/")) { if (-1 != t.indexOf("://")) { let i = t.indexOf("/", t.indexOf("://") + 3); return -1 != i && (t = t.substring(0, i)), t + n } return n } if (n.startsWith("./") || "." == n) return t.endsWith("/") ? t = t.substring(0, t.length - 1) : t.length > 0 && (t = t.substring(0, t.lastIndexOf("/"))), t + n.substring(1); if (n.startsWith("../")) { t.endsWith("/") ? t = t.substring(0, t.length - 1) : t.length > 0 && (t = t.substring(0, t.lastIndexOf("/"))); let i = t + "/" + n; if (i.startsWith("/")) { i = new URL(i, window.location.origin).pathname } else i = new URL(i).toString(); return i } return t.endsWith("/") || -1 != t.indexOf("/") && (t = t.substring(0, t.lastIndexOf("/") + 1)), t + n }
 function meta(name) { return document.head.querySelector(`meta[name="${name}"]`)?.content; }
 function deepFreeze(obj) {if (obj === null || typeof obj !== "object") {return obj;} Object.freeze(obj); for (const value of Object.values(obj)) {deepFreeze(value);} return obj;}
 function resolveAppUrl(value) { return new URL(value.substring(4).trim().replace(/^\/+/, ""), appBaseUrl).href; }
-function normalizeAssetsBase(value, configUrl) {if (typeof value !== "string" || !value.trim()) throw new Error("xshell.assetsBase must be a non-empty URL or path.");const resolved = absolutizePrefixedUrl("assetsBase", value, configUrl);const url = new URL(resolved, appBaseUrl);const appPath = new URL(appBaseUrl).pathname.replace(/\/+$/, "");if (url.origin !== document.location.origin || (appPath && url.pathname !== appPath && !url.pathname.startsWith(appPath + "/")) || url.search || url.hash) {throw new Error(`xshell.assetsBase must resolve within the application base URL: '${value}'.`);}const assetsBase = url.pathname.substring(appPath.length).replace(/\/+$/, "");if (!assetsBase) throw new Error("xshell.assetsBase must identify a namespace below the application base URL.");return assetsBase;}
-function absolutizePrefixedUrl(key, obj, url) { return typeof obj === "string" ? (obj.startsWith("app:") ? resolveAppUrl(obj) : obj.startsWith("url:") ? ((obj = obj.substring(obj.indexOf(":")+1).trim()), (obj.startsWith("/") || obj.startsWith("./") || obj.startsWith("../") || obj === ".") ? combineUrls(url, obj) : obj) : obj) : Array.isArray(obj) ? (obj.forEach((v, i) => obj[i] = absolutizePrefixedUrl(i, v, url)), obj) : obj instanceof Object ? (Object.keys(obj).forEach(k => obj[k] = absolutizePrefixedUrl(k, obj[k], url)), obj) : obj;}
-function relativizePaths(key, obj, path) { return typeof obj === "string" ? (obj.startsWith("/") ? ((obj = path + obj), obj.startsWith(document.location.origin) ? obj.substring(document.location.origin.length) : obj) : (obj.startsWith("./") || obj.startsWith("../") || obj === ".") ? ((obj = combineUrls(path + "/", obj)), obj.startsWith(document.location.origin) ? obj.substring(document.location.origin.length) : obj) : obj) : Array.isArray(obj) ? (obj.forEach((v, i) => obj[i] = relativizePaths(i, v, path)), obj) : obj instanceof Object ? (Object.keys(obj).forEach(k => obj[k] = relativizePaths(k, obj[k], path)), obj) : obj; }
-function relativizeModulePaths(config, path) {const definitions = config.xshell?.areas?.definitions || {};const prefixes = Object.fromEntries(Object.entries(definitions).filter(([, area]) => Object.hasOwn(area, "prefix")).map(([id, area]) => [id, area.prefix]));const assetsBase = config.xshell?.assetsBase;relativizePaths("", config, path);for (const [id, prefix] of Object.entries(prefixes)) definitions[id].prefix = prefix;if (assetsBase !== undefined) config.xshell.assetsBase = assetsBase;}
+function normalizeAssetsBase(value, configUrl) {
+    if (typeof value !== "string" || !value.trim()) throw new Error("xshell.assetsBase must be a non-empty URL or path.");
+    if (!value.startsWith("app:") && !/^https?:\/\//i.test(value)) {
+        throw new Error(`xshell.assetsBase must use app: or an absolute HTTP(S) URL: '${value}'.`);
+    }
+    const resolved = absolutizePrefixedUrl("assetsBase", value, configUrl);
+    const url = new URL(resolved, appBaseUrl);
+    const appPath = new URL(appBaseUrl).pathname.replace(/\/+$/, "");
+    if (url.origin !== document.location.origin || (appPath && url.pathname !== appPath && !url.pathname.startsWith(appPath + "/")) || url.search || url.hash) {
+        throw new Error(`xshell.assetsBase must resolve within the application base URL: '${value}'.`);
+    }
+    const assetsBase = url.pathname.substring(appPath.length).replace(/\/+$/, "");
+    if (!assetsBase) throw new Error("xshell.assetsBase must identify a namespace below the application base URL.");
+    return assetsBase;
+}
+function absolutizePrefixedUrl(key, value, physicalUrl) {
+    if (typeof value !== "string") return value;
+    if (value.startsWith("app:")) return resolveAppUrl(value);
+    if (value.startsWith("url:")) return new URL(value.substring(4).trim(), physicalUrl).href;
+    return value;
+}
+function restoreTemplateBraces(normalized, authored) {
+    return authored.includes("{") || authored.includes("}") ? normalized.replace(/%7B/gi, "{").replace(/%7D/gi, "}") : normalized;
+}
+function relativizePaths(key, value, assetsPath, declaringPath = "/module.jsonc", physicalUrl = "") {
+    if (Array.isArray(value)) return value.map(item => relativizePaths(key, item, assetsPath, declaringPath, physicalUrl));
+    if (value && typeof value === "object") {
+        for (const [name, item] of Object.entries(value)) value[name] = relativizePaths(name, item, assetsPath, declaringPath, physicalUrl);
+        return value;
+    }
+    if (typeof value !== "string") return value;
+    if (!["url", "href", "path", "navigation", "icon", "controller", "implementation", "route", "configUrl"].includes(key)) return value;
+    const escaped = absolutizePrefixedUrl(key, value, physicalUrl);
+    if (escaped !== value) return restoreTemplateBraces(escaped, value);
+    if (/^[a-z][a-z0-9+.-]*:/i.test(value)) return value;
+    if (!value.includes("/") && value !== "." && value !== "..") return value;
+
+    // normalize under a logical sentinel so traversal is rejected before asset materialization
+    const root = "/__xshell_module_root__";
+    const logicalUrl = value.startsWith("/") ?
+        new URL(root + value, "https://module.invalid") :
+        new URL(value, "https://module.invalid" + root + declaringPath);
+    if (!logicalUrl.pathname.startsWith(root + "/")) {
+        throw new Error(`Module URL '${value}' in '${physicalUrl || declaringPath}' escapes the module root.`);
+    }
+    // preserve resolver template placeholders after URL.pathname encodes their braces
+    return restoreTemplateBraces(assetsPath + logicalUrl.pathname.substring(root.length) + logicalUrl.search + logicalUrl.hash, value);
+}
+function relativizeModulePaths(config, assetsPath, declaringPath = "/module.jsonc", physicalUrl = "") {
+    // normalize only configuration fields that represent authored resource URLs
+    if (config.app?.icon) config.app.icon = relativizePaths("icon", config.app.icon, assetsPath, declaringPath, physicalUrl);
+    for (const module of Object.values(config.modules || {})) {
+        for (const key of ["icon", "controller"]) {
+            if (module[key]) module[key] = relativizePaths(key, module[key], assetsPath, declaringPath, physicalUrl);
+        }
+        for (const key of Object.keys(module.routes || {})) {
+            module.routes[key] = relativizePaths("route", module.routes[key], assetsPath, declaringPath, physicalUrl);
+        }
+        if (module.menus) relativizePaths("menus", module.menus, assetsPath, declaringPath, physicalUrl);
+    }
+    const xshell = config.xshell;
+    if (!xshell) return;
+    for (const group of Object.values(xshell.resolver || {})) {
+        for (const rule of Object.values(group)) {
+            if (typeof rule?.url === "string") rule.url = relativizePaths("url", rule.url, assetsPath, declaringPath, physicalUrl);
+        }
+    }
+    for (const service of Object.values(xshell.services || {})) {
+        if (typeof service?.implementation === "string") service.implementation = relativizePaths("implementation", service.implementation, assetsPath, declaringPath, physicalUrl);
+    }
+    for (const group of Object.values(xshell.ui || {})) {
+        for (const [key, value] of Object.entries(group || {})) {
+            if (typeof value === "string") group[key] = relativizePaths("url", value, assetsPath, declaringPath, physicalUrl);
+        }
+    }
+    for (const area of Object.values(xshell.areas?.definitions || {})) {
+        if (typeof area.icon === "string") area.icon = relativizePaths("icon", area.icon, assetsPath, declaringPath, physicalUrl);
+    }
+    if (typeof xshell.temp?.url === "string") xshell.temp.url = relativizePaths("url", xshell.temp.url, assetsPath, declaringPath, physicalUrl);
+}
  
 // consts
 const appConfigPath = meta("xshell:app.configPath");
@@ -68,16 +143,19 @@ function getLocalModule(config, configUrl) {
     }
     return { id: entries[0][0], definition: entries[0][1] };
 }
-function resolveModuleConfigUrl(configUrl, ownerConfigUrl, moduleId) {
-    // resolve reference URLs against the document that declares them
+function resolveModuleConfigUrl(configUrl, ownerConfigUrl, ownerAssetsUrl, ownerAssetsPath, ownerDeclaringPath, moduleId) {
+    // keep the authored effective URL separate from the source URL used before the Service Worker starts
     if (typeof configUrl !== "string" || !configUrl.trim()) {
         throw new Error(`Module reference '${moduleId}' in '${ownerConfigUrl}' must declare a non-empty configUrl.`);
     }
-    if (configUrl.startsWith("app:")) return resolveAppUrl(configUrl);
-    const value = configUrl.startsWith("url:") ? configUrl.substring(configUrl.indexOf(":")+1).trim() : configUrl;
-    return new URL(value, ownerConfigUrl).href;
+    const effectiveUrl = relativizePaths("configUrl", configUrl, ownerAssetsPath, ownerDeclaringPath, ownerConfigUrl);
+    if (effectiveUrl === configUrl && !/^[a-z][a-z0-9+.-]*:/i.test(configUrl)) {
+        throw new Error(`Module reference '${moduleId}' in '${ownerConfigUrl}' has an unsupported configUrl '${configUrl}'. Use /, ./, ../, app:, url:, or an absolute URL.`);
+    }
+    const loadUrl = effectiveUrl.startsWith(ownerAssetsPath + "/") ? new URL(effectiveUrl.substring(ownerAssetsPath.length + 1), ownerAssetsUrl).href : effectiveUrl;
+    return { configUrl: effectiveUrl, loadUrl };
 }
-function validateModuleReference(moduleId, reference, ownerConfigUrl) {
+function validateModuleReference(moduleId, reference, ownerConfigUrl, ownerAssetsUrl, ownerAssetsPath, ownerDeclaringPath) {
     // preserve reference contributions while protecting local asset ownership
     if (!reference || typeof reference !== "object" || Array.isArray(reference)) {
         throw new Error(`Module reference '${moduleId}' in '${ownerConfigUrl}' must be an object that declares configUrl.`);
@@ -85,21 +163,27 @@ function validateModuleReference(moduleId, reference, ownerConfigUrl) {
     if (Object.hasOwn(reference, "assetsUrl")) {
         throw new Error(`Module reference '${moduleId}' in '${ownerConfigUrl}' cannot override assetsUrl; it is owned by the local definition.`);
     }
-    return resolveModuleConfigUrl(reference.configUrl, ownerConfigUrl, moduleId);
+    return resolveModuleConfigUrl(reference.configUrl, ownerConfigUrl, ownerAssetsUrl, ownerAssetsPath, ownerDeclaringPath, moduleId);
 }
 function prepareModuleConfig(config, configUrl, assetsBase) {
     // validate identity and references before adding normalized runtime fields
     const localModule = getLocalModule(config, configUrl);
+    const assetsPath = assetsBase + "/" + localModule.id;
+    localModule.definition.assetsUrl = relativizePaths("url", localModule.definition.assetsUrl || "url:./", assetsPath, "/module.jsonc", configUrl);
+    const source = new URL(configUrl);
+    const assets = new URL(localModule.definition.assetsUrl, appBaseUrl);
+    const assetsDirectory = assets.pathname.endsWith("/") ? assets.pathname : assets.pathname + "/";
+    const declaringPath = source.origin === assets.origin && source.pathname.startsWith(assetsDirectory) ?
+        "/" + source.pathname.substring(assetsDirectory.length) : "/" + source.pathname.substring(source.pathname.lastIndexOf("/") + 1);
     const references = [];
     for (const [moduleId, reference] of Object.entries(config.modules)) {
         if (moduleId === localModule.id) continue;
-        reference.configUrl = validateModuleReference(moduleId, reference, configUrl);
-        references.push({ id: moduleId, configUrl: reference.configUrl });
+        const resolved = validateModuleReference(moduleId, reference, configUrl, localModule.definition.assetsUrl, assetsPath, declaringPath);
+        reference.configUrl = resolved.configUrl;
+        references.push({ id: moduleId, ...resolved });
     }
     localModule.definition.configUrl = configUrl;
-    localModule.definition.assetsUrl = localModule.definition.assetsUrl || "url:./";
-    absolutizePrefixedUrl("", config, configUrl);
-    relativizeModulePaths(config, assetsBase + "/" + localModule.id);
+    relativizeModulePaths(config, assetsPath, declaringPath, configUrl);
     return { id: localModule.id, config, configUrl, references };
 }
 function getDependencyFirstOrder(rootNode, nodesById) {
@@ -165,17 +249,17 @@ async function discoverModuleConfigs(rootConfig, rootConfigUrl, loadConfig, asse
         const pendingByUrl = new Map();
         for (const node of currentNodes) {
             for (const reference of node.references) {
-                registerModuleUrl(reference.id, reference.configUrl);
-                const loadedNode = nodesByUrl.get(reference.configUrl);
+                registerModuleUrl(reference.id, reference.loadUrl);
+                const loadedNode = nodesByUrl.get(reference.loadUrl);
                 if (loadedNode) {
                     if (loadedNode.id !== reference.id) {
-                        throw new Error(`Module reference '${reference.id}' points to '${reference.configUrl}', but that configuration defines local module '${loadedNode.id}'.`);
+                        throw new Error(`Module reference '${reference.id}' points to '${reference.loadUrl}', but that configuration defines local module '${loadedNode.id}'.`);
                     }
                     continue;
                 }
-                const pending = pendingByUrl.get(reference.configUrl) || { expectedIds: new Set() };
+                const pending = pendingByUrl.get(reference.loadUrl) || { expectedIds: new Set() };
                 pending.expectedIds.add(reference.id);
-                pendingByUrl.set(reference.configUrl, pending);
+                pendingByUrl.set(reference.loadUrl, pending);
             }
         }
         if (!pendingByUrl.size) break;
@@ -236,9 +320,9 @@ async function loadConfig() {
     xshellConfig.xshell.configUrl = xshellConfigUrl || xshellConfig.xshell.configUrl;
     xshellConfig.xshell.temp.url = new URL(xshellTempUrl, document.baseURI).href;
     xshellConfig.xshell.assetsUrl = xshellConfig.xshell.assetsUrl || "url:./";
-    absolutizePrefixedUrl("", xshellConfig, xshellConfigUrl);    
+    xshellConfig.xshell.assetsUrl = relativizePaths("url", xshellConfig.xshell.assetsUrl, assetsBase + "/xshell", "/xshell.jsonc", xshellConfigUrl);
     xshellConfig.xshell.assetsBase = assetsBase;
-    relativizeModulePaths(xshellConfig, assetsBase + "/xshell");
+    relativizeModulePaths(xshellConfig, assetsBase + "/xshell", "/xshell.jsonc", xshellConfigUrl);
     
     // get root module config
     const rootModule = getLocalModule(rootModuleConfig, rootModuleUrl);
@@ -430,7 +514,8 @@ function fillResolverRules(config) {
 async function initializeXShell(config, loadXShellModule = url => import(url)) {
     // import and validate the complete effective configuration before freezing and initialization
     console.log("bootstrap: loading xshell ...");
-    const xshellUrl = appBasePath + config.xshell.resolver.module.xshell.url;
+    const authoredUrl = config.xshell.resolver.module.xshell.url;
+    const xshellUrl = new URL(authoredUrl.startsWith("/") ? authoredUrl.substring(1) : authoredUrl, appBaseUrl).href;
     const xshellModule = await loadXShellModule(xshellUrl);
     const xshell = xshellModule.default;
     await xshell.validateConfig(config);

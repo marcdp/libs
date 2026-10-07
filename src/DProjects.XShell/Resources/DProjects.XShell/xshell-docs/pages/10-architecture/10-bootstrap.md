@@ -31,8 +31,9 @@ documents may contribute params or other configuration to a dependency.
 
 ## Recursive discovery
 
-For each external reference, bootstrap resolves `source:` in `configUrl` relative to its owner document and `app:` relative to the fixed application
-base URL supplied at bootstrap. A reference key is the expected identity, so `modules.x`
+For each external reference, bootstrap resolves `url:` in `configUrl` relative to its physical owner document and `app:` relative to the fixed
+application base URL supplied at bootstrap. Plain module paths use the owner's logical module coordinates. A reference key is the expected
+identity, so `modules.x`
 must load a document whose local definition is `modules.x`. The graph rejects:
 
 - identity mismatches;
@@ -46,7 +47,8 @@ dependencies therefore load once.
 ## Normalization and merge
 
 Each local definition receives its configuration document URL as `configUrl`. Its `assetsUrl` defaults to the same document's directory unless the
-definition owns an explicit value. External reference URLs are resolved in the referencing document; they are not asset namespace URLs.
+definition owns an explicit value. Plain module-relative reference URLs use the owner's virtual asset namespace; `url:` explicitly selects the
+physical source document. Bootstrap uses the physical source URL to load a referenced configuration before the Service Worker is available.
 
 Bootstrap normalizes the configured `xshell.assetsBase` once. The checked-in `app:/_assets` resolves relative to the application base URL and is
 stored as the application-relative virtual path `/_assets`. Bootstrap derives `assetsPath` from it: `/_assets/x` for module `x` and

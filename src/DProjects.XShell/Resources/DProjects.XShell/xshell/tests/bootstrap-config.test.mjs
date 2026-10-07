@@ -29,7 +29,8 @@ const bootstrapSource = readFileSync(bootstrapPath, "utf8").replace(
         fillResolverRules,
         initializeXShell,
         installServiceWorker,
-        normalizeAssetsBase
+        normalizeAssetsBase,
+        relativizePaths
     };`
 );
 const fetchedResources = new Map();
@@ -168,6 +169,92 @@ test("assetsBase rejects missing, application-root, and out-of-scope locations",
     assert.throws(() => api.normalizeAssetsBase(undefined, configUrl), /non-empty/);
     assert.throws(() => api.normalizeAssetsBase("app:/", configUrl), /namespace below/);
     assert.throws(() => api.normalizeAssetsBase("https://example.test/elsewhere/assets", configUrl), /within the application base/);
+    assert.throws(() => api.normalizeAssetsBase("/_assets", configUrl), /must use app: or an absolute HTTP\(S\) URL/);
+    assert.throws(() => api.normalizeAssetsBase("url:./assets", configUrl), /must use app: or an absolute HTTP\(S\) URL/);
+});
+
+test("module URLs normalize against the declaring logical file and keep explicit escapes distinct", () => {
+    const logicalFile = "/pages/orders/details.jsonc";
+    const physicalFile = "https://cdn.example.test/orders/pages/details.jsonc";
+    const normalize = value => api.relativizePaths("url", value, "/_assets/x", logicalFile, physicalFile);
+
+    assert.equal(normalize("/icons/edit.svg"), "/_assets/x/icons/edit.svg");
+    assert.equal(normalize("./edit.js"), "/_assets/x/pages/orders/edit.js");
+    assert.equal(normalize("../shared.js"), "/_assets/x/pages/shared.js");
+    assert.equal(normalize("url:./edit.js"), "https://cdn.example.test/orders/pages/edit.js");
+    assert.equal(normalize("url:../shared.js"), "https://cdn.example.test/orders/shared.js");
+    assert.notEqual(normalize("./edit.js"), normalize("url:./edit.js"));
+    assert.equal(normalize("app:foo"), "https://example.test/app/foo");
+    assert.equal(normalize("app:/foo"), "https://example.test/app/foo");
+    assert.equal(normalize("app:/state-engines/{name}.js"), "https://example.test/app/state-engines/{name}.js");
+    assert.equal(normalize("url:./{name}.js"), "https://cdn.example.test/orders/pages/{name}.js");
+    assert.equal(normalize("/%7Bname%7D.js"), "/_assets/x/%7Bname%7D.js");
+    for (const absolute of ["https://cdn.example.test/file.js", "data:text/javascript,export%20default%201", "blob:https://example.test/1234"]) {
+        assert.equal(normalize(absolute), absolute);
+    }
+});
+
+test("bootstrap preserves resolver placeholders in normalized XShell URL templates", async () => {
+    const xshellUrl = "https://example.test/xshell/xshell.jsonc";
+    fetchedResources.set(xshellUrl, api.parseJsonc(readFileSync(new URL("../xshell.jsonc", import.meta.url), "utf8")));
+    fetchedResources.set(rootUrl, { modules: { app: definition("app") } });
+
+    const config = plain(await api.loadConfig());
+    const resolver = new Resolver({ config });
+    assert.equal(config.xshell.resolver["state-engine"]["{name}"].url, "/_assets/xshell/state-engines/{name}.js");
+    assert.equal(resolver.resolve("state-engine:proxy").url, "https://example.test/app/_assets/xshell/state-engines/proxy.js");
+    assert.equal(resolver.resolve("render-engine:x").url, "https://example.test/app/_assets/xshell/render-engines/x.js");
+    assert.equal(resolver.resolve("schema:config.json").url, "https://example.test/app/_assets/xshell/schemas/config.json");
+});
+
+test("module URL traversal fails after logical normalization and reports the declaring document", () => {
+    const physicalFile = "https://cdn.example.test/orders/module.jsonc";
+    for (const value of ["../foo.js", "../../foo.js", "./../foo.js", "a/../../foo.js", "/a/../../foo.js", "%2e%2e/foo.js"]) {
+        assert.throws(() => api.relativizePaths("url", value, "/_assets/x", "/module.jsonc", physicalFile), error =>
+            error.message.includes(value) && error.message.includes(physicalFile) && error.message.includes("escapes the module root"));
+    }
+});
+
+test("module discovery keeps logical configUrl separate from its pre-Service-Worker physical fetch URL", async () => {
+    const physicalUrl = "https://example.test/modules/app/x/module.jsonc";
+    const root = { modules: { app: definition("app"), x: reference("./x/module.jsonc") } };
+    const calls = [];
+    const graph = await discover(root, { [physicalUrl]: { modules: { x: definition("x") } } }, calls);
+
+    assert.deepEqual(calls, [physicalUrl]);
+    assert.equal(graph.rootNode.references[0].configUrl, "/_assets/app/x/module.jsonc");
+    assert.equal(graph.rootNode.config.modules.x.configUrl, "/_assets/app/x/module.jsonc");
+    assert.equal(graph.nodesById.get("x").config.modules.x.configUrl, physicalUrl);
+
+    const siblingUrl = "https://example.test/modules/x/module.jsonc";
+    const physical = await discover({ modules: { app: definition("app"), x: reference("url:../x/module.jsonc") } },
+        { [siblingUrl]: { modules: { x: definition("x") } } });
+    assert.equal(physical.rootNode.references[0].configUrl, siblingUrl);
+    await assert.rejects(() => discover({ modules: { app: definition("app"), x: reference("../x/module.jsonc") } }), error =>
+        error.message.includes("../x/module.jsonc") && error.message.includes(rootUrl) && error.message.includes("escapes the module root"));
+    await assert.rejects(() => discover({ modules: { app: definition("app"), x: reference("module.jsonc") } }), /unsupported configUrl/);
+});
+
+test("module configuration URLs use the file's logical path when assetsUrl names its source root", async () => {
+    const sourceUrl = "https://cdn.example.test/orders/pages/orders/details.jsonc";
+    const config = { modules: { orders: definition("orders", { assetsUrl: "url:../../", controller: "./edit.js", routes: { "/shared": "../shared.js" } }) } };
+    const graph = await api.discover(config, sourceUrl, {}, []);
+
+    assert.equal(graph.rootNode.config.modules.orders.assetsUrl, "https://cdn.example.test/orders/");
+    assert.equal(graph.rootNode.config.modules.orders.controller, "/_assets/orders/pages/orders/edit.js");
+    assert.equal(graph.rootNode.config.modules.orders.routes["/shared"], "/_assets/orders/pages/shared.js");
+});
+
+test("non-URL configuration text and area prefixes keep their authored values", async () => {
+    const root = {
+        modules: { app: definition("app", { params: { note: "/literal", hint: "../literal" }, routes: { "/home": "/pages/index.js" } }) },
+        xshell: { areas: { definitions: { main: { prefix: "/public", label: "/literal" } } } }
+    };
+    const graph = await discover(root);
+    assert.deepEqual(plain(graph.rootNode.config.modules.app.params), { note: "/literal", hint: "../literal" });
+    assert.equal(graph.rootNode.config.xshell.areas.definitions.main.prefix, "/public");
+    assert.equal(graph.rootNode.config.xshell.areas.definitions.main.label, "/literal");
+    assert.equal(graph.rootNode.config.modules.app.routes["/home"], "/_assets/app/pages/index.js");
 });
 
 test("Service Worker rules consume normalized framework and module paths", async () => {
@@ -337,6 +424,16 @@ test("effective inventories exist before validation and configuration is frozen 
     });
 
     assert.deepEqual(events, ["import:https://example.test/app/_assets/xshell/xshell.js", "validate", "init"]);
+});
+
+test("initializeXShell imports an absolute XShell module URL unchanged", async () => {
+    const config = { xshell: { resolver: { module: { xshell: { url: "https://cdn.example.test/xshell.js" } } } } };
+    let importedUrl;
+    await api.initializeXShell(config, async url => {
+        importedUrl = url;
+        return { default: { async validateConfig() {}, async init() {} } };
+    });
+    assert.equal(importedUrl, "https://cdn.example.test/xshell.js");
 });
 
 test("loadConfig keeps xshellConfig as the base and applies root configuration last", async () => {

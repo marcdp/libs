@@ -87,10 +87,11 @@ Every effective module requires generated `files`/`assetsPath`, source locations
 each with non-empty `renderEngine` and `stateEngine`. These module defaults
 are separate from global `xshell.ui` settings.
 
-In configuration URL and path values, `source:` resolves relative to the declaring configuration document, while `app:` resolves relative to the
-XShell application base URL built once from `document.location.origin` and the host's `xshell:app.basePath` meta value. For example, with a base of
+In authored URL fields, `/foo` starts at the module root, while `./foo` and `../foo` use the declaring file's directory in logical module coordinates.
+Paths that traverse above the module root are invalid. `url:` uses the physical declaring file URL; `app:` uses the XShell application base URL
+built once from `document.location.origin` and the host's `xshell:app.basePath` meta value. For example, with a base of
 `https://example.com/myapp/`, both `app:images/logo.svg` and `app:/images/logo.svg` resolve to
-`https://example.com/myapp/images/logo.svg`. Absolute URLs retain their existing meaning.
+`https://example.com/myapp/images/logo.svg`. Absolute schemes, including `https:`, `data:`, and `blob:`, remain unchanged.
 
 `xshell.assetsBase` defines the application-relative base of XShell's virtual asset namespace. The checked-in value is
 `"assetsBase": "app:/_assets"`. For an application base of `https://example.com/myapp/`, this resolves under

@@ -20,7 +20,7 @@
             }
         },
         "codemirror": {
-            "configUrl": "../codemirror/module.jsonc"
+            "configUrl": "url:../codemirror/module.jsonc"
         }
     },
 
