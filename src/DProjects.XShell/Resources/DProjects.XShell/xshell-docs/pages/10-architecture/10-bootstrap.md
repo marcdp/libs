@@ -31,7 +31,8 @@ documents may contribute params or other configuration to a dependency.
 
 ## Recursive discovery
 
-For each external reference, bootstrap resolves `configUrl` relative to its owner document. A reference key is the expected identity, so `modules.x`
+For each external reference, bootstrap resolves `source:` in `configUrl` relative to its owner document and `app:` relative to the fixed application
+base URL supplied at bootstrap. A reference key is the expected identity, so `modules.x`
 must load a document whose local definition is `modules.x`. The graph rejects:
 
 - identity mismatches;

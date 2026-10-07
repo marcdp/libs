@@ -324,6 +324,19 @@ test("loadConfig derives every assetsPath from a custom assetsPrefix", async () 
     assert.equal(config.xshell.assetsPath, "/runtime/xshell");
 });
 
+test("loadConfig resolves XShell assetsUrl from the application base", async () => {
+    fetchedResources.set("https://example.test/xshell/xshell.jsonc", {
+        app: {}, modules: {},
+        xshell: { assetsPrefix: "_assets", assetsUrl: "app:/framework/", temp: { url: "source:./" }, resolver: {} }
+    });
+    fetchedResources.set(rootUrl, { modules: { app: definition("app") } });
+
+    const config = plain(await api.loadConfig());
+
+    assert.equal(config.xshell.assetsUrl, "https://example.test/app/framework/");
+    assert.equal(config.xshell.assetsPath, "/_assets/xshell");
+});
+
 test("root config accepts exactly one local module regardless of module key order", async () => {
     const xUrl = "https://example.test/modules/x/module.jsonc";
     const root = { modules: { x: reference("source:../x/module.jsonc"), app: definition("app") } };
@@ -333,6 +346,47 @@ test("root config accepts exactly one local module regardless of module key orde
     assert.deepEqual(orderOf(graph), ["x", "app"]);
     assert.equal(graph.rootNode.references[0].configUrl, xUrl);
     assert.equal(graph.rootNode.config.modules.app.assetsUrl, "https://example.test/modules/app/");    
+});
+
+test("app URLs use the fixed host application base across configuration documents and navigation", async () => {
+    const nestedDocument = {
+        ...context.document,
+        baseURI: "https://example.test/myapp/first/route#one",
+        head: { querySelector: selector => selector === 'meta[name="xshell:app.basePath"]' ? { content: "/myapp" } : context.document.head.querySelector(selector) },
+        location: { origin: "https://example.test", pathname: "/myapp/first/route", hash: "#one" }
+    };
+    const nestedContext = vm.createContext({ ...context, document: nestedDocument });
+    new vm.Script(bootstrapSource, { filename: bootstrapPath.pathname }).runInContext(nestedContext);
+    const nestedApi = nestedContext.__bootstrapTests;
+    const ownerUrl = "https://example.test/config/root/module.jsonc";
+    const xUrl = "https://example.test/myapp/modules/x/module.jsonc";
+    const yUrl = "https://example.test/myapp/modules/y/module.jsonc";
+    const sourceUrl = "https://example.test/config/source/module.jsonc";
+    const root = { modules: {
+        app: definition("app", { assetsUrl: "app:foo" }),
+        x: reference("app:modules/x/module.jsonc"),
+        source: reference("source:../source/module.jsonc")
+    } };
+    const configs = {
+        [xUrl]: { modules: { x: definition("x", { assetsUrl: "app:/foo" }), y: reference("app:/modules/y/module.jsonc") } },
+        [yUrl]: { modules: { y: definition("y", { assetsUrl: "https://cdn.example.test/y/" }) } },
+        [sourceUrl]: { modules: { source: definition("source", { assetsUrl: "source:./assets/" }) } }
+    };
+    const check = async () => {
+        const graph = await nestedApi.discover(root, ownerUrl, configs, []);
+        assert.equal(graph.rootNode.config.modules.app.assetsUrl, "https://example.test/myapp/foo");
+        assert.equal(graph.nodesById.get("x").config.modules.x.assetsUrl, "https://example.test/myapp/foo");
+        assert.equal(graph.nodesById.get("y").config.modules.y.assetsUrl, "https://cdn.example.test/y/");
+        assert.equal(graph.nodesById.get("source").config.modules.source.assetsUrl, "https://example.test/config/source/assets/");
+        assert.deepEqual(Array.from(graph.rootNode.references, reference => reference.configUrl), [xUrl, sourceUrl]);
+        assert.equal(graph.nodesById.get("x").references[0].configUrl, yUrl);
+    };
+
+    await check();
+    nestedDocument.baseURI = "https://example.test/myapp/other/route#two";
+    nestedDocument.location.pathname = "/myapp/other/route";
+    nestedDocument.location.hash = "#two";
+    await check();
 });
 
 test("dependency config accepts exactly one local module regardless of module key order", async () => {

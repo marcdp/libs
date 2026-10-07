@@ -84,6 +84,8 @@ Bootstrap resolves references recursively and the final effective entry is a com
 
 `configUrl` is the source document. `assetsUrl` is the physical resource container and defaults to that document's directory. Runtime resource
 references use `/_assets/<module-id>/...` rather than the physical URL.
+In authored URL and path values, `source:` is relative to the declaring configuration document and `app:` is relative to the XShell application
+base URL. Both `app:foo` and `app:/foo` start at that application base, including when the application is hosted under a nested path.
 
 The effective schema requires `label`, `version`, `copyright`, `icon`, `configUrl`, `assetsUrl`, `defaults`, `assetsPath`, and `files`.
 Optional effective fields are `params`, `requires`, `menus`, `routes`, and `contract`. `contract` may declare events, actions, and intents; those

@@ -87,9 +87,14 @@ Every effective module requires generated `files`/`assetsPath`, source locations
 each with non-empty `renderEngine` and `stateEngine`. These module defaults
 are separate from global `xshell.ui` settings.
 
-`url:` values resolve against the JSONC document where they were authored. Bootstrap gives each local definition its document URL as `configUrl`
-and defaults `assetsUrl` to the document directory. After merging, it derives each module `assetsPath` and `xshell.assetsPath` from the effective
-`xshell.assetsPrefix`, then maps module-relative runtime paths into that virtual namespace.
+In configuration URL and path values, `source:` resolves relative to the declaring configuration document, while `app:` resolves relative to the
+XShell application base URL built once from `document.location.origin` and the host's `xshell:app.basePath` meta value. For example, with a base of
+`https://example.com/myapp/`, both `app:images/logo.svg` and `app:/images/logo.svg` resolve to
+`https://example.com/myapp/images/logo.svg`. Absolute URLs retain their existing meaning.
+
+Bootstrap gives each local definition its document URL as `configUrl` and defaults `assetsUrl` to the document directory. After merging, it derives
+each module `assetsPath` and `xshell.assetsPath` from the effective `xshell.assetsPrefix`, then maps module-relative runtime paths into that virtual
+namespace.
 
 The canonical schema describes the final merged object, not partial authored references. Bootstrap generates resolver rules after Service Worker
 initialization and inventory loading, including exact contract rules from inventory.
