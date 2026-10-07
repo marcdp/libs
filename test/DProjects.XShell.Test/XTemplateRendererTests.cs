@@ -174,12 +174,7 @@ namespace DProjects.XShell.Test {
             Assert.Equal("<div></div>", html);
         }
 
-        [Fact]
-        public void RendersFalsyShowWithHiddenAttribute() {
-            var html = Render("<div x-show=\"false\"></div>");
 
-            Assert.Equal("<div hidden></div>", html);
-        }
 
         [Fact]
         public void RejectsLiteralInlineStylesInsteadOfSerializingThem() {
@@ -294,11 +289,6 @@ namespace DProjects.XShell.Test {
             Assert.Equal("<div><style>span { color:red; }</style></div>", RenderAllowingStyles(template));
         }
 
-        [Fact]
-        public void ReconcilesExistingHiddenAttributeWithShowWithoutDuplicates() {
-            Assert.Equal("<div></div>", Render("<div hidden x-show=\"true\"></div>"));
-            Assert.Equal("<div hidden></div>", Render("<div x-show=\"false\" hidden></div>"));
-        }
 
         [Fact]
         public void RendersOnlyTheSelectedConditionalBranch() {
@@ -415,7 +405,7 @@ namespace DProjects.XShell.Test {
             Assert.Equal("<span>Languages</span>", Render("<span x-if=\"state.type | endsWith('_i18n')\">Languages</span>", new { type = "field_i18n" }));
             Assert.Equal(string.Empty, Render("<span x-if=\"state.type | endsWith('_i18n')\">Languages</span>", new { type = "field" }));
             Assert.Equal("<div></div>", Render("<div x-show=\"state.name | startsWith('A')\"></div>", new { name = "Ada" }));
-            Assert.Equal("<div hidden></div>", Render("<div x-show=\"state.name | startsWith('A')\"></div>", new { name = "Bea" }));
+            Assert.Equal("<div style=\"display:none\"></div>", RenderAllowingStyles("<div x-show=\"state.name | startsWith('A')\"></div>", new { name = "Bea" }));
             Assert.Equal("<div class=\"match\"></div>", Render("<div x-class:match=\"state.code | contains('-')\"></div>", new { code = "en-US" }));
             Assert.Equal("<p>true</p><p>false</p>", Render("<p>{{ state.match | endsWith('_i18n') }}</p><p>{{ state.noMatch | endsWith('_i18n') }}</p>", new { match = "field_i18n", noMatch = "field" }));
         }

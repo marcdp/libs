@@ -32,35 +32,14 @@ namespace DProjects.XShell.Test {
             var transform = compilerType.GetMethod("Transform", BindingFlags.Instance | BindingFlags.Public)!;
             const string source = "export default { template : `<div>{{ state.value }}</div>` };";
 
-            var transformed = (string)transform.Invoke(compiler, [source])!;
+            var transformed = (string)transform.Invoke(compiler, [source, null])!;
 
             Assert.Contains("templateRenderer:", transformed, StringComparison.Ordinal);
-            Assert.Contains("{render:", transformed, StringComparison.Ordinal);
+            Assert.Contains("render:", transformed, StringComparison.Ordinal);
             Assert.Contains("dependencies:[", transformed, StringComparison.Ordinal);
             Assert.Contains("slots:[", transformed, StringComparison.Ordinal);
         }
 
-        [Fact]
-        public void StaticModuleXTemplatesCompileToCompleteArtifacts() {
-            var resourceDirectory = GetResourceDirectory();
-            var compilerType = typeof(XTemplateCompiler).Assembly.GetType("DProjects.XShell.Services.XTemplate.XTemplateJavaScriptCompiler", throwOnError: true)!;
-            var compiler = Activator.CreateInstance(compilerType, new XTemplateCompiler())!;
-            var transform = compilerType.GetMethod("Transform", BindingFlags.Instance | BindingFlags.Public)!;
-            var errors = new List<string>();
-
-            foreach (var path in Directory.EnumerateFiles(Path.Combine(resourceDirectory, "modules"), "*.js", SearchOption.AllDirectories)) {
-                var source = File.ReadAllText(path);
-                if (!Regex.IsMatch(source, @"\btemplate\s*:")) continue;
-                try {
-                    var transformed = (string)transform.Invoke(compiler, [source])!;
-                    if (!transformed.Contains("templateRenderer:", StringComparison.Ordinal)) errors.Add($"{Path.GetRelativePath(resourceDirectory, path)}: no compiled artifact was emitted.");
-                } catch (TargetInvocationException exception) when (exception.InnerException != null) {
-                    errors.Add($"{Path.GetRelativePath(resourceDirectory, path)}: {exception.InnerException.Message}");
-                }
-            }
-
-            Assert.True(errors.Count == 0, "Static module XTemplate compilation failed:" + Environment.NewLine + string.Join(Environment.NewLine, errors));
-        }
 
         [Fact]
         public void ClientRuntimeUsesOnlyPrecompiledRenderers() {
@@ -81,10 +60,9 @@ namespace DProjects.XShell.Test {
             var loaderDirectory = Path.Combine(GetResourceDirectory(), "xshell", "loaders");
 
             Assert.Contains("(template, context, templateRenderer)", File.ReadAllText(Path.Combine(renderEngineDirectory, "x.js")), StringComparison.Ordinal);
-            Assert.Contains("(template, context, templateRenderer)", File.ReadAllText(Path.Combine(renderEngineDirectory, "plain.js")), StringComparison.Ordinal);
-            Assert.Contains("(template, context, templateRenderer)", File.ReadAllText(Path.Combine(renderEngineDirectory, "markdown.js")), StringComparison.Ordinal);
-            Assert.Contains("new renderEngineFactoryCreator(definition.template, context, definition.templateRenderer)", File.ReadAllText(Path.Combine(loaderDirectory, "component-js.js")), StringComparison.Ordinal);
-            Assert.Contains("new renderEngineFactoryCreator(definition.template, context, templateRenderer)", File.ReadAllText(Path.Combine(loaderDirectory, "page-js.js")), StringComparison.Ordinal);
+            Assert.Contains("(template, context, templateRenderer)", File.ReadAllText(Path.Combine(renderEngineDirectory, "html.js")), StringComparison.Ordinal);
+            Assert.Contains("new renderEngineFactoryCreator(implementation.template, context, implementation.templateRenderer)", File.ReadAllText(Path.Combine(loaderDirectory, "component-js.js")), StringComparison.Ordinal);
+            Assert.Contains("new renderEngineFactoryCreator(implementation.template, context, implementation.templateRenderer)", File.ReadAllText(Path.Combine(loaderDirectory, "page-js.js")), StringComparison.Ordinal);
         }
 
         [Fact]

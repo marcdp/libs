@@ -85,7 +85,6 @@ namespace DProjects.XShell.Test {
 
             Assert.Contains("utils.expr.assign(state, [{kind:\"member\", name:\"choice\"}], value)", javascript, StringComparison.Ordinal);
             Assert.Contains("const modelValue = utils.expr.member(state, \"choice\"); return modelValue !== null && utils.expr.scalar(modelValue) === utils.expr.scalar(utils.expr.member(this.attrs, \"value\"))", javascript, StringComparison.Ordinal);
-            Assert.Contains("hidden:utils.expr.truthy", javascript, StringComparison.Ordinal);
             Assert.DoesNotContain("state.choice = value", javascript, StringComparison.Ordinal);
         }
 
