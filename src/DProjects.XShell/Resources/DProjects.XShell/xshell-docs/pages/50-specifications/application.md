@@ -23,9 +23,9 @@ Bootstrap applies the same exactly-one-local-definition rule used for every modu
                 "component": { "renderEngine": "x", "stateEngine": "proxy" }
             }
         },
-        "customers": { "configUrl": "source:../customers/module.jsonc" },
+        "customers": { "configUrl": "url:../customers/module.jsonc" },
         "reports": {
-            "configUrl": "source:../reports/module.jsonc",
+            "configUrl": "url:../reports/module.jsonc",
             "params": { "mode": "compact" }
         }
     },

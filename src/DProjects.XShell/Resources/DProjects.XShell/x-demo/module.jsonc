@@ -43,9 +43,9 @@
             }
         },
         // references
-        "x": { "configUrl": "source:../x/module.jsonc" },
-        "xshell-diagnostics": { "configUrl": "source:../xshell-diagnostics/module.jsonc" },
-        "xshell-docs": { "configUrl": "source:../xshell-docs/module.jsonc" }
+        "x":                    { "configUrl": "url:../x/module.jsonc" },
+        "xshell-diagnostics":   { "configUrl": "url:../xshell-diagnostics/module.jsonc" },
+        "xshell-docs":          { "configUrl": "url:../xshell-docs/module.jsonc" }
     },
 
     // xshell 

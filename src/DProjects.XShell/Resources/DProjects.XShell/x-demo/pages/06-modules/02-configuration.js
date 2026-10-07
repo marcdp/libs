@@ -56,7 +56,7 @@ xshell.init(config)</code></pre>
             }
         },
         "x": {
-            "configUrl": "source:../x/module.jsonc",
+            "configUrl": "url:../x/module.jsonc",
             "params": { "mode": "compact" }
         }
     }

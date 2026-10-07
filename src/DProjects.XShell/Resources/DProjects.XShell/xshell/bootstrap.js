@@ -4,20 +4,8 @@ function combineUrls(t, n) { if (-1 != t.indexOf("?") && (t = t.substring(0, t.i
 function meta(name) { return document.head.querySelector(`meta[name="${name}"]`)?.content; }
 function deepFreeze(obj) {if (obj === null || typeof obj !== "object") {return obj;} Object.freeze(obj); for (const value of Object.values(obj)) {deepFreeze(value);} return obj;}
 function resolveAppUrl(value) { return new URL(value.substring(4).trim().replace(/^\/+/, ""), appBaseUrl).href; }
-function normalizeAssetsBase(value, configUrl) {
-    // resolve the configured URL once into XShell's application-relative virtual path
-    if (typeof value !== "string" || !value.trim()) throw new Error("xshell.assetsBase must be a non-empty URL or path.");
-    const resolved = absolutizePrefixedUrl("assetsBase", value, configUrl);
-    const url = new URL(resolved, appBaseUrl);
-    const appPath = new URL(appBaseUrl).pathname.replace(/\/+$/, "");
-    if (url.origin !== document.location.origin || (appPath && url.pathname !== appPath && !url.pathname.startsWith(appPath + "/")) || url.search || url.hash) {
-        throw new Error(`xshell.assetsBase must resolve within the application base URL: '${value}'.`);
-    }
-    const assetsBase = url.pathname.substring(appPath.length).replace(/\/+$/, "");
-    if (!assetsBase) throw new Error("xshell.assetsBase must identify a namespace below the application base URL.");
-    return assetsBase;
-}
-function absolutizePrefixedUrl(key, obj, url) { return typeof obj === "string" ? (obj.startsWith("app:") ? resolveAppUrl(obj) : obj.startsWith("source:") ? ((obj = obj.substring(obj.indexOf(":")+1).trim()), (obj.startsWith("/") || obj.startsWith("./") || obj.startsWith("../") || obj === ".") ? combineUrls(url, obj) : obj) : obj) : Array.isArray(obj) ? (obj.forEach((v, i) => obj[i] = absolutizePrefixedUrl(i, v, url)), obj) : obj instanceof Object ? (Object.keys(obj).forEach(k => obj[k] = absolutizePrefixedUrl(k, obj[k], url)), obj) : obj;}
+function normalizeAssetsBase(value, configUrl) {if (typeof value !== "string" || !value.trim()) throw new Error("xshell.assetsBase must be a non-empty URL or path.");const resolved = absolutizePrefixedUrl("assetsBase", value, configUrl);const url = new URL(resolved, appBaseUrl);const appPath = new URL(appBaseUrl).pathname.replace(/\/+$/, "");if (url.origin !== document.location.origin || (appPath && url.pathname !== appPath && !url.pathname.startsWith(appPath + "/")) || url.search || url.hash) {throw new Error(`xshell.assetsBase must resolve within the application base URL: '${value}'.`);}const assetsBase = url.pathname.substring(appPath.length).replace(/\/+$/, "");if (!assetsBase) throw new Error("xshell.assetsBase must identify a namespace below the application base URL.");return assetsBase;}
+function absolutizePrefixedUrl(key, obj, url) { return typeof obj === "string" ? (obj.startsWith("app:") ? resolveAppUrl(obj) : obj.startsWith("url:") ? ((obj = obj.substring(obj.indexOf(":")+1).trim()), (obj.startsWith("/") || obj.startsWith("./") || obj.startsWith("../") || obj === ".") ? combineUrls(url, obj) : obj) : obj) : Array.isArray(obj) ? (obj.forEach((v, i) => obj[i] = absolutizePrefixedUrl(i, v, url)), obj) : obj instanceof Object ? (Object.keys(obj).forEach(k => obj[k] = absolutizePrefixedUrl(k, obj[k], url)), obj) : obj;}
 function relativizePaths(key, obj, path) { return typeof obj === "string" ? (obj.startsWith("/") ? ((obj = path + obj), obj.startsWith(document.location.origin) ? obj.substring(document.location.origin.length) : obj) : (obj.startsWith("./") || obj.startsWith("../") || obj === ".") ? ((obj = combineUrls(path + "/", obj)), obj.startsWith(document.location.origin) ? obj.substring(document.location.origin.length) : obj) : obj) : Array.isArray(obj) ? (obj.forEach((v, i) => obj[i] = relativizePaths(i, v, path)), obj) : obj instanceof Object ? (Object.keys(obj).forEach(k => obj[k] = relativizePaths(k, obj[k], path)), obj) : obj; }
 function relativizeModulePaths(config, path) {const definitions = config.xshell?.areas?.definitions || {};const prefixes = Object.fromEntries(Object.entries(definitions).filter(([, area]) => Object.hasOwn(area, "prefix")).map(([id, area]) => [id, area.prefix]));const assetsBase = config.xshell?.assetsBase;relativizePaths("", config, path);for (const [id, prefix] of Object.entries(prefixes)) definitions[id].prefix = prefix;if (assetsBase !== undefined) config.xshell.assetsBase = assetsBase;}
 async function loadJsonWithComments(url) {const request = await fetch(url);if (!request.ok) throw new Error(`Failed to json file: ${url}`);let json = await request.text();return parseJsonc(json);}
@@ -91,7 +79,7 @@ function resolveModuleConfigUrl(configUrl, ownerConfigUrl, moduleId) {
         throw new Error(`Module reference '${moduleId}' in '${ownerConfigUrl}' must declare a non-empty configUrl.`);
     }
     if (configUrl.startsWith("app:")) return resolveAppUrl(configUrl);
-    const value = configUrl.startsWith("source:") ? configUrl.substring(configUrl.indexOf(":")+1).trim() : configUrl;
+    const value = configUrl.startsWith("url:") ? configUrl.substring(configUrl.indexOf(":")+1).trim() : configUrl;
     return new URL(value, ownerConfigUrl).href;
 }
 function validateModuleReference(moduleId, reference, ownerConfigUrl) {
@@ -114,7 +102,7 @@ function prepareModuleConfig(config, configUrl, assetsBase) {
         references.push({ id: moduleId, configUrl: reference.configUrl });
     }
     localModule.definition.configUrl = configUrl;
-    localModule.definition.assetsUrl = localModule.definition.assetsUrl || "source:./";
+    localModule.definition.assetsUrl = localModule.definition.assetsUrl || "url:./";
     absolutizePrefixedUrl("", config, configUrl);
     relativizeModulePaths(config, assetsBase + "/" + localModule.id);
     return { id: localModule.id, config, configUrl, references };
@@ -251,9 +239,8 @@ async function loadConfig() {
     xshellConfig.app.basePath = appBasePath;
     xshellConfig.xshell.environment = xshellEnvironment || xshellConfig.xshell.environment;
     xshellConfig.xshell.configUrl = xshellConfigUrl || xshellConfig.xshell.configUrl;
-    //xshellConfig.xshell.temp.url = xshellTempUrl || xshellConfig.xshell.temp.url;
     xshellConfig.xshell.temp.url = new URL(xshellTempUrl, document.baseURI).href;
-    xshellConfig.xshell.assetsUrl = xshellConfig.xshell.assetsUrl || "source:./";
+    xshellConfig.xshell.assetsUrl = xshellConfig.xshell.assetsUrl || "url:./";
     absolutizePrefixedUrl("", xshellConfig, xshellConfigUrl);    
     xshellConfig.xshell.assetsBase = assetsBase;
     relativizeModulePaths(xshellConfig, assetsBase + "/xshell");

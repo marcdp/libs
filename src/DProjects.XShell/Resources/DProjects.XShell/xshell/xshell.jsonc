@@ -21,7 +21,7 @@
         "version": "0.9.0",
         "environment": "Development",
         "assetsBase": "app:/_assets",
-        "assetsUrl": "source:./",
+        "assetsUrl": "url:./",
 
         // areas
         "areas": {
@@ -65,7 +65,7 @@
 
         // temp
         "temp": {
-            "url": "source:./"   
+            "url": "url:./"   
         },
 
         // ui
