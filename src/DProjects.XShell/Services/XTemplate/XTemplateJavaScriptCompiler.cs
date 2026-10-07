@@ -14,9 +14,9 @@ namespace DProjects.XShell.Services.XTemplate {
         }
 
         // methods
-        public string Transform(string source) {
-            return Transform(source, null);
-        }
+        //public string Transform(string source) {
+        //    return Transform(source, null);
+        //}
         public string Transform(string source, string? currentComponentName) {
             if (source == null) throw new ArgumentNullException(nameof(source));
 

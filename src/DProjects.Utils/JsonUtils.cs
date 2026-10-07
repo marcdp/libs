@@ -115,7 +115,7 @@ namespace DProjects.Utils {
             }
         }
         public static string RemoveComments(string json) {
-            if (json == null) return null;
+            if (json == null) return null!;
             var sb = new System.Text.StringBuilder(json.Length);
             bool quoted = false, escape = false;
             for (int i = 0, N = json.Length; i < N; i++) {
