@@ -1,5 +1,4 @@
 import {combineUrls } from "./urls.js";
-import { processStyle, rewriteStyleUrls } from "./style.js";
 
 // rules
 const rules = [
@@ -19,10 +18,10 @@ const rules = [
     { selector: "script", attr: "src", type:"resource" },
     { selector: "iframe", attr: "src", type:"resource" },
     { selector: "video", attr: "poster", type:"resource" },
+    { selector: "video", attr: "src", type:"resource" },
     { selector: "audio", attr: "src", type:"resource" },
     { selector: "embed", attr: "src", type:"resource" },
     { selector: "object", attr: "data", type:"resource" },
-    { selector: "object", attr: "archive", type:"resource" },
     { selector: "input[type=image]", attr: "src", type:"resource" },
     { selector: "track", attr: "src", type:"resource" },
 ];
@@ -48,7 +47,8 @@ export function rewriteTemplateAttribute(tag, attrs, attr, value, context) {
 // export
 export function normalizeModuleResourceUrl(url, modulePath, resourcePath) {
     if (/^url:/i.test(url)) throw new Error("The 'url:' scheme is not supported in template resource references.");
-    if (url.indexOf(":") != -1 || url.startsWith("//")) {
+    if (/^app:/i.test(url)) throw new Error("The 'app:' scheme is not supported in template resource references.");
+    if (hasScheme(url) || url.startsWith("//")) {
         return url;
     } else if (url.startsWith("xshell/")) {
         return url;
@@ -64,12 +64,12 @@ export function normalizeModuleResourceUrl(url, modulePath, resourcePath) {
 export function rewrite( el, attr, type, url, context ) {
     //if (url.indexOf("colibri")!=-1) debugger;
     if (/^url:/i.test(url)) throw new Error(`The 'url:' scheme is not supported in template resource references (${attr}).`);
-    if (url.indexOf(":") != -1 || url.startsWith("//")) {
+    if (hasScheme(url) || url.startsWith("//")) {
         return url;
     } else if (type == "resource") {
         if (url.startsWith("#")) return url;
         if (url.startsWith("/")) {
-            return context.appBasePath + context.resourceDefinition.modulePath + url;
+            return context.appBasePath +  combineUrls(context.resourceDefinition.modulePath, url);
         } else{
             const suffixStart = url.startsWith("../") ? url.search(/[?#]/) : -1;
             return context.appBasePath + combineUrls(context.resourcePath, url) + (suffixStart < 0 ? "" : url.slice(suffixStart));
@@ -152,10 +152,6 @@ export async function rewriteDocumentUrls(doc, context) {
         const newStyle = rewriteStyleUrls({ src: getTemplateCssSource(context), context, css: oldStyle });
         el.setAttribute("style", newStyle);
     });
-    // process stylesheet elements through the full shared CSS pipeline, including imports
-    for (const style of doc.querySelectorAll("style")) {
-        style.textContent = await processStyle({ src: getTemplateCssSource(context), context, css: style.textContent || "" });
-    }
     // scripts imports
     const scripts = doc.querySelectorAll('script[type="module"]');
     for (const script of scripts) {
@@ -189,4 +185,7 @@ export function getTemplateCssSource(context) {
     return `${root}${context.resourcePath}`;
 }
 
-
+// has scheme rule
+function hasScheme(url) {
+    return /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(url);
+}
