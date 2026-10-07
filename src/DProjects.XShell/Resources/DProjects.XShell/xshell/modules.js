@@ -22,11 +22,14 @@ export default class Modules {
         this._modules = [];
     }
 
+    // props
+    get registry() {
+        return Object.freeze([...this._modules]);
+    }
+
     // method
     async init() {
         // init modules instances
-        const assetsPrefix = this._config.xshell.assetsPrefix;
-
         // validate service requirements before loading or starting any module controller
         for (const moduleId of Object.keys(this._config.modules)) {
             const moduleConfig = this._config.modules[moduleId];
@@ -44,7 +47,7 @@ export default class Modules {
                 id: moduleId,
                 config: moduleConfig,
                 label: moduleConfig.label || moduleId,
-                path: "/" + assetsPrefix + "/" + moduleId,
+                path: moduleConfig.assetsPath,
                 params: moduleConfig.params,
                 routes: moduleConfig.routes || Object.freeze({}),
                 styles: [],
@@ -159,10 +162,5 @@ export default class Modules {
             }
         }
     }
-    getModules() {
-        //get all modules
-        return this._modules;
-    }
-
 }
 

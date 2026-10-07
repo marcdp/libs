@@ -94,7 +94,7 @@ export default {
             refresh() {
                 // refresh
                 let list = [];
-                for(let target of modules.getModules()) {
+                for(let target of modules.registry) {
                     let valid = true;
                     if (state.id && target.id.indexOf(state.id) == -1 ) valid = false;
                     if (state.version && (target.config.version || "").indexOf(state.version) == -1 ) valid = false;

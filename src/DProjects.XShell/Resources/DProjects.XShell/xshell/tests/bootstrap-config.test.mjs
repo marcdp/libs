@@ -413,7 +413,7 @@ test("a shared dependency with the same URL is fetched and registered once", asy
         services: {}
     });
     await modules.init();
-    assert.equal(modules.getModules().filter(module => module.id === "x").length, 1);
+    assert.equal(modules.registry.filter(module => module.id === "x").length, 1);
 });
 
 test("conflicting URLs for the same id discovered in one pass are rejected", async () => {

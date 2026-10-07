@@ -75,7 +75,7 @@ assetsUrl</code></pre>
         return {
             load() {
                 // inspect the canonical runtime module records
-                state.modules = modules.getModules().map(module => ({
+                state.modules = modules.registry.map(module => ({
                     id: module.id,
                     label: module.label,
                     path: module.path

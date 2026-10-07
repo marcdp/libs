@@ -58,6 +58,40 @@ test("module without service requirements initializes and starts normally", asyn
     assert.equal(starts, 1);
 });
 
+test("module registry is a frozen snapshot of the runtime modules", async () => {
+    const config = freeze({
+        xshell: { assetsPrefix: "_assets" },
+        modules: { orders: moduleDefinition("orders") }
+    });
+    const modules = createModules(config);
+
+    await modules.init();
+
+    const registry = modules.registry;
+    const runtimeModule = modules.getModuleById("orders");
+    assert.equal(Object.isFrozen(registry), true);
+    assert.strictEqual(registry[0], runtimeModule);
+    assert.throws(() => registry.push({ id: "other" }), TypeError);
+    assert.throws(() => registry.splice(0, 1), TypeError);
+    assert.notStrictEqual(modules.registry, registry);
+    assert.deepEqual(modules.registry, [runtimeModule]);
+});
+
+test("runtime module path uses its effective assetsPath", async () => {
+    const config = freeze({
+        xshell: { assetsPrefix: "_assets" },
+        modules: { orders: moduleDefinition("orders", { assetsPath: "/runtime/orders" }) }
+    });
+    const modules = createModules(config);
+
+    await modules.init();
+
+    const module = modules.getModuleById("orders");
+    assert.equal(module.path, module.config.assetsPath);
+    assert.equal(module.path, "/runtime/orders");
+    assert.equal(modules.resolveModuleId("/runtime/orders/pages/index.js"), "orders");
+});
+
 test("module requirements accept configured lazy services without constructing them", async () => {
     let constructions = 0;
     class IdentityService {

@@ -76,7 +76,7 @@ export default {
                 // read only values through public services
                 state.navigationMode = navigation.mode;
                 state.pageSrc = page.src;
-                state.moduleCount = modules.getModules().length;
+                state.moduleCount = modules.registry.length;
                 state.areaId = areas.getCurrentArea()?.id || "";
                 state.componentLoader = resolver.resolve("component:x-button")?.definition?.loader || "(not resolved)";
                 state.services = [
