@@ -201,7 +201,7 @@ export async function createComponentClassFromJsDefinition(src, context, impleme
         dependencies = await xshell.loader.load(implementation.dependencies);
     }
     // init 
-    renderEngineFactory.init();
+    await renderEngineFactory.init();
     // returns a class that extends base class component
     const WebComponent = class extends HTMLElement {
         // vars

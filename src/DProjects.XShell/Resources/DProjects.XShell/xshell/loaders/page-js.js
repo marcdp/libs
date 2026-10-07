@@ -236,7 +236,7 @@ export async function createPageClassFromJsDefinition(src, context, implementati
         dependencies = await xshell.loader.load(implementation.dependencies);
     }
     // init 
-    renderEngineFactory.init();
+    await renderEngineFactory.init();
     // returns a class that extends base class Page
     const PageClass = class extends Page {
         // vars

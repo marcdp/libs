@@ -1,5 +1,6 @@
 import xshell from '../xshell.js';
-import {rewriteTemplateAttribute} from "../utils/rewriteDocumentUrls.js";
+import {getTemplateCssSource, rewriteTemplateAttribute} from "../utils/html.js";
+import { rewriteStyleDeclarationValue } from "../utils/style.js";
 
 class XTemplate {
 
@@ -38,6 +39,7 @@ class XTemplate {
 		// bind source URL rewriting to this template's resource context
 		this._utils = Object.create(utils);
 		this._utils.rewriteAttribute = (tag, attrs, attr, value) => rewriteTemplateAttribute(tag, attrs, attr, value, context);
+		this._utils.rewriteStyleValue = value => rewriteStyleDeclarationValue({ src: getTemplateCssSource(context), context, value });
 		// use only the server-compiled render code, avoiding runtime source parsing and code generation under strict CSP
 		this._render = render;
 	}

@@ -430,7 +430,7 @@ namespace DProjects.XShell.Services.XTemplate {
         }
         private static string CompileStyles(TemplateAttribute attribute) {
             var declarations = XTemplateStyleDeclarations.Parse(attribute.Value, attribute.Offset);
-            return "{" + string.Join(',', declarations.Select(declaration => $"[{ToJavaScriptString(declaration.Name)}]:{{value:{ToJavaScriptString(declaration.Value)},priority:{ToJavaScriptString(declaration.Priority)}}}")) + "}";
+            return "{" + string.Join(',', declarations.Select(declaration => $"[{ToJavaScriptString(declaration.Name)}]:{{value:utils.rewriteStyleValue({ToJavaScriptString(declaration.Value)}),priority:{ToJavaScriptString(declaration.Priority)}}}")) + "}";
         }
         private string CompileExpression(string source, string directive, int offset, XTemplateExpressionJavaScriptScope scope) => _expressionCompiler.Compile(ParseExpression(source, directive, offset), scope);
         private static XTemplateExpression ParseExpression(string source, string directive, int offset) {

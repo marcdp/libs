@@ -199,6 +199,20 @@ function resolveImportSource(value, source, bases) {
     return { requestUrl, scope: source.scope };
 }
 
+// rewrite CSS resource URLs without loading @import declarations
+export function rewriteStyleUrls({ src, context, css }) {
+    const bases = createBases(context);
+    return resolveUrls(css, createInitialSource(src, bases), bases);
+}
+
+// rewrite one already-parsed declaration value without introducing a second CSS parser
+export function rewriteStyleDeclarationValue({ src, context, value }) {
+    const prefix = "x{v:";
+    const suffix = "}";
+    const css = rewriteStyleUrls({ src, context, css: `${prefix}${value}${suffix}` });
+    return css.slice(prefix.length, css.length - suffix.length);
+}
+
 // create application and optional virtual-module bases
 function createBases(context) {
     const modulePath = context?.resourceDefinition?.modulePath;
@@ -207,10 +221,16 @@ function createBases(context) {
     }
 
     const appBasePath = context?.appBasePath || "";
-    const appBaseUrl = new URL(joinRootPath(appBasePath), window.location.origin).href;
-    const moduleVirtualBaseUrl = modulePath == null ? null : new URL(joinRootPath(appBasePath, modulePath), window.location.origin).href;
+    const appBaseUrl = createAppBaseUrl(appBasePath);
+    const moduleVirtualBaseUrl = modulePath == null ? null : new URL(`${modulePath.replace(/^\/+/, "")}/`, appBaseUrl).href;
 
     return { appBaseUrl, moduleVirtualBaseUrl };
+}
+
+// create an application base from either the configured root path or an absolute test/custom base
+function createAppBaseUrl(appBasePath) {
+    if (/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(appBasePath)) return new URL(appBasePath.replace(/\/?$/, "/")).href;
+    return new URL(joinRootPath(appBasePath), window.location.origin).href;
 }
 
 // describe the declaring resource in its logical namespace

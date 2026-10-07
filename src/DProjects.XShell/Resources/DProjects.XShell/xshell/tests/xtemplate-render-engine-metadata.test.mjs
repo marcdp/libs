@@ -24,7 +24,7 @@ globalThis.document = {
 };
 
 const { default: createRenderEngineFactoryX } = await import("../render-engines/x.js");
-const { rewriteTemplateAttribute } = await import("../utils/rewriteDocumentUrls.js");
+const { rewriteTemplateAttribute } = await import("../utils/html.js");
 
 test("render engine uses frozen compiled metadata and leaves raw XTemplate unparsed", () => {
     const renderer = {

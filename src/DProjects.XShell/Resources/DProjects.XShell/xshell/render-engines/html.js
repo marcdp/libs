@@ -1,4 +1,4 @@
-import {rewriteDocumentUrls} from "../utils/rewriteDocumentUrls.js";
+import {rewriteDocumentUrls} from "../utils/html.js";
 
 // export
 export class RenderEngineHtml {
@@ -39,8 +39,8 @@ export default function createRenderEngineFactoryHtml(template, context, templat
 	return {
 		dependencies: Object.freeze(Object.seal([...dependencies])),
 		slots: Object.freeze([]),
-		init: () => {
-			rewriteDocumentUrls(templateElement.content, context);
+        init: async () => {
+            await rewriteDocumentUrls(templateElement.content, context);
 		},
 		create: ({host, state}) => {
 			return new RenderEngineHtml({ host, template: templateElement, state });

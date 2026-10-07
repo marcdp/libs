@@ -1,4 +1,5 @@
 import {combineUrls, resolveAppUrl} from "./urls.js";
+import { processStyle, rewriteStyleUrls } from "./style.js";
 
 // rules
 const rules = [
@@ -138,7 +139,7 @@ function rewriteSrcset(el, value, context) {
 }
 
 // rewrite document resource URLs
-export function rewriteDocumentUrls(doc, context) {
+export async function rewriteDocumentUrls(doc, context) {
     // simple attribute rewrites
     for (const { selector, attr, type } of rules) {
         doc.querySelectorAll(selector).forEach(el => {
@@ -148,26 +149,17 @@ export function rewriteDocumentUrls(doc, context) {
             if (newUrl !== oldUrl) el.setAttribute(attr, newUrl);
         });
     }
-    // inline css styles
+    // delegate inline declaration URL processing to the canonical CSS scanner
     doc.querySelectorAll("[style]").forEach(el => {
         const oldStyle = el.getAttribute("style");
         if (!oldStyle) return;
-        const newStyle = oldStyle.replace(/url\(([^)]+)\)/g, (match, url) => {
-            // strip quotes
-            const clean = url.trim().replace(/^['"]|['"]$/g, "");
-            return `url("${rewrite(el, "style", "resource", clean, context)}")`;
-        });
+        const newStyle = rewriteStyleUrls({ src: getTemplateCssSource(context), context, css: oldStyle });
         el.setAttribute("style", newStyle);
     });
-    // CSS inside style tags
-    doc.querySelectorAll("style").forEach(style => {
-        let css = style.textContent;
-        css = css.replace(/url\(([^)]+)\)/g, (match, url) => {
-            const clean = url.trim().replace(/^['"]|['"]$/g, "");
-            return `url("${rewrite(style, "textContent", "resource", clean, context)}")`;
-        });
-        style.textContent = css;
-    });
+    // process stylesheet elements through the full shared CSS pipeline, including imports
+    for (const style of doc.querySelectorAll("style")) {
+        style.textContent = await processStyle({ src: getTemplateCssSource(context), context, css: style.textContent || "" });
+    }
     // scripts imports
     const scripts = doc.querySelectorAll('script[type="module"]');
     for (const script of scripts) {
@@ -192,6 +184,13 @@ export function rewriteDocumentUrls(doc, context) {
     }
     // return
     return doc;
+}
+
+// use the declaring template resource as the CSS source base
+export function getTemplateCssSource(context) {
+    const appBasePath = context.appBasePath || "";
+    const root = /^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(appBasePath) ? new URL(appBasePath).pathname.replace(/\/$/, "") : appBasePath;
+    return `${root}${context.resourcePath}`;
 }
 
 

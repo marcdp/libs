@@ -42,7 +42,7 @@ globalThis.DocumentFragment = FakeFragment;
 globalThis.HTMLElement = class {};
 globalThis.CSSStyleSheet = class { replaceSync() {} };
 globalThis.customElements = { get() {}, define() {} };
-globalThis.window = { customElements: globalThis.customElements };
+globalThis.window = { customElements: globalThis.customElements, location: { origin: "https://example.test" } };
 globalThis.document = {
     createElement(tag) {
         const element = new FakeElement(tag);
@@ -83,4 +83,21 @@ test("render engine reconciles structured styles without disturbing external sty
     assert.deepEqual(element.style.setCalls, ["display", "width"]);
     assert.deepEqual(element.style.removeCalls, ["margin-top"]);
     assert.equal(Object.hasOwn(element.attributes, "style"), false);
+});
+
+test("compiler-literal structured style URLs are resolved before CSSOM application", () => {
+    const renderer = (state, handler, invalidate, utils) => [utils.createVDOM("div", null, null, {
+        "background-image": { value: utils.rewriteStyleValue("url(/pages/image.png)"), priority: "" }
+    }, null, { index: 0 })];
+    const context = {
+        appBasePath: "/app",
+        resourceDefinition: { modulePath: "/_assets/demo" },
+        resourcePath: "/_assets/demo/pages/page.html"
+    };
+    const factory = createRenderEngineFactoryX("<div></div>", context, { render: renderer, dependencies: [], slots: [] });
+    factory.init();
+    const host = new FakeElement("host");
+    factory.create({ host, state: {}, handler() {}, invalidate() {} }).render();
+    assert.equal(host.childNodes[0].style.values["background-image"].value,
+        "url(https://example.test/app/_assets/demo/pages/image.png)");
 });

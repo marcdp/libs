@@ -1,4 +1,4 @@
-import { addRewriteRule } from "./utils/rewriteDocumentUrls.js";
+import { addRewriteRule } from "./utils/html.js";
 
 // class
 export default class UrlRewriter {
