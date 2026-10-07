@@ -64,6 +64,7 @@ export function normalizeModuleResourceUrl(url, modulePath, resourcePath) {
 export function rewrite( el, attr, type, url, context ) {
     //if (url.indexOf("colibri")!=-1) debugger;
     if (/^url:/i.test(url)) throw new Error(`The 'url:' scheme is not supported in template resource references (${attr}).`);
+    if (/^app:/i.test(url)) throw new Error(`The 'app:' scheme is not supported in template resource references (${attr}).`);
     if (hasScheme(url) || url.startsWith("//")) {
         return url;
     } else if (type == "resource") {
@@ -145,13 +146,6 @@ export async function rewriteDocumentUrls(doc, context) {
             if (newUrl !== oldUrl) el.setAttribute(attr, newUrl);
         });
     }
-    // delegate inline declaration URL processing to the canonical CSS scanner
-    doc.querySelectorAll("[style]").forEach(el => {
-        const oldStyle = el.getAttribute("style");
-        if (!oldStyle) return;
-        const newStyle = rewriteStyleUrls({ src: getTemplateCssSource(context), context, css: oldStyle });
-        el.setAttribute("style", newStyle);
-    });
     // scripts imports
     const scripts = doc.querySelectorAll('script[type="module"]');
     for (const script of scripts) {

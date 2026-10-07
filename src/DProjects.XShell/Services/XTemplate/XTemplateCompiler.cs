@@ -10,7 +10,7 @@ namespace DProjects.XShell.Services.XTemplate {
         private static readonly HashSet<string> VoidElements = new(StringComparer.OrdinalIgnoreCase) {
             "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"
         };
-        private static readonly HashSet<string> RawTextElements = new(StringComparer.OrdinalIgnoreCase) { "script", "style" };
+        private static readonly HashSet<string> RawTextElements = new(StringComparer.OrdinalIgnoreCase) {  };
         private static readonly string[] PrimaryStructuralDirectiveNames = ["x-if", "x-elseif", "x-else", "x-for", "x-recursive", "x-once"];
 
         private enum StructuralDirectiveKind {

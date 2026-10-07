@@ -30,14 +30,9 @@ namespace DProjects.XShell.Services {
                 } else {
                     var name = html.AsSpan(nameStart, nameEnd - nameStart);
                     if (name.Equals("script", StringComparison.OrdinalIgnoreCase)) {
-                        var elementEnd = FindRawTextElementEnd(html, tagEnd + 1, name);
-                        result.Append(html, tagStart, elementEnd - tagStart);
-                        position = elementEnd;
+                        throw new InvalidOperationException("A <script> element is not allowed inside a template. Use the definition 'script' property instead.");
                     } else if (name.Equals("style", StringComparison.OrdinalIgnoreCase)) {
-                        var elementEnd = FindRawTextElementEnd(html, tagEnd + 1, name);
-                        AppendProcessedTag(context, html, result, tagStart, nameEnd, tagEnd);
-                        result.Append(html, tagEnd + 1, elementEnd - tagEnd - 1);
-                        position = elementEnd;
+                        throw new InvalidOperationException("A <style> element is not allowed inside a template. Use the definition 'style' property instead.");                        
                     } else {
                         AppendProcessedTag(context, html, result, tagStart, nameEnd, tagEnd);
                         position = tagEnd + 1;

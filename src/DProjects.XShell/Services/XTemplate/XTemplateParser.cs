@@ -6,7 +6,7 @@ namespace DProjects.XShell.Services.XTemplate {
 
         // consts
         private static readonly HashSet<string> VoidElements = new(StringComparer.OrdinalIgnoreCase) { "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr" };
-        private static readonly HashSet<string> RawTextElements = new(StringComparer.OrdinalIgnoreCase) { "script", "style" };
+        private static readonly HashSet<string> RawTextElements = new(StringComparer.OrdinalIgnoreCase) {  };
 
         // vars
         private readonly string _source;
