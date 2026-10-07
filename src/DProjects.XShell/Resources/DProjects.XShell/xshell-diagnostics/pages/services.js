@@ -59,7 +59,7 @@ export default {
         description: "",
         items: []
     },
-    controller({ state, events, services}) {
+    controller({ state, events, services, bus}) {
         return {
             load() {
                // load
@@ -68,6 +68,7 @@ export default {
                events.on(state, "change:moduleId", "refresh");
                events.on(state, "change:contractId", "refresh");
                events.on(state, "change:description", "refresh");
+               events.on(bus, "xshell:service:created", "refresh");
             },
             async refresh() {
                 // refresh

@@ -99,7 +99,7 @@ export default {
                     if (state.id && target.id.indexOf(state.id) == -1 ) valid = false;
                     if (state.version && (target.config.version || "").indexOf(state.version) == -1 ) valid = false;
                     if (state.label && (target.label || "").indexOf(state.label) == -1 ) valid = false;
-                    if (state.assetsPath && (target.assetsPath || "").indexOf(state.assetsPath) == -1 ) valid = false;
+                    if (state.assetsPath && (target.config.assetsPath || "").indexOf(state.assetsPath) == -1 ) valid = false;
                     if (state.configUrl && (target.config.configUrl || "").indexOf(state.configUrl) == -1 ) valid = false;
                     let size = 0;
                     let files = {

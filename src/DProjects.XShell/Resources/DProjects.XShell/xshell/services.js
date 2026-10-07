@@ -8,6 +8,7 @@ export default class Services {
     _contracts = null;
     _items = {};
     _areas = null;
+    _bus = null;
     _creationPath = [];
 
     // props
@@ -17,11 +18,12 @@ export default class Services {
     }
 
     // ctor
-    constructor( {config, loader, contracts, areas} ) {
+    constructor( {config, loader, contracts, areas, bus} ) {
         this._config = config;
         this._loader = loader;
         this._contracts = contracts;
         this._areas = areas;    
+        this._bus = bus;
     }
 
     //methods
@@ -106,6 +108,7 @@ export default class Services {
             } finally {
                 this._creationPath.pop();
             }
+            this._bus?.emit("xshell:service:created", { id: name });
         }
         return result.instance;
     }

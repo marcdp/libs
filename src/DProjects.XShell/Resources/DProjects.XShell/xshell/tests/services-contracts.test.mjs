@@ -21,6 +21,7 @@ function createContractItem(id, methods = {}, properties = {}) {
 
 function createServices(definitions, implementations, contractItems) {
     const loads = [];
+    const emitted = [];
     const config = {
         app: { basePath: "/app" },
         modules: {
@@ -47,9 +48,10 @@ function createServices(definitions, implementations, contractItems) {
             getModuleId() {
                 return "test";
             }
-        }
+        },
+        bus: { emit(type, detail) { emitted.push({ type, detail, state: services.getServiceInfo(detail.id).state }); } }
     });
-    return { loads, services };
+    return { loads, services, emitted };
 }
 
 test("configured services load eagerly but instantiate lazily as singletons", async () => {
@@ -79,6 +81,40 @@ test("configured services load eagerly but instantiate lazily as singletons", as
     assert.equal(constructions, 1);
     assert.equal(first, second);
     assert.equal(services.getServiceInfo("example").state, "created");
+});
+
+test("successful lazy creation emits once after validation with only the service ID", async () => {
+    class ExampleService { execute() {} }
+    const definitions = { example: { contract: "example", implementation: "/_assets/test/services/example.js" } };
+    const implementations = { "module:/_assets/test/services/example.js": ExampleService };
+    const contractItems = { example: createContractItem("example", { execute: {} }) };
+    const { services, emitted } = createServices(definitions, implementations, contractItems);
+
+    await services.init();
+    assert.deepEqual(emitted, []);
+    services.resolve("example");
+    services.resolve("example");
+    assert.deepEqual(emitted, [{ type: "xshell:service:created", detail: { id: "example" }, state: "created" }]);
+});
+
+test("failed lazy construction emits no created event and can be retried", async () => {
+    let attempts = 0;
+    class ExampleService {
+        constructor() {
+            if (++attempts === 1) throw new Error("construction failed");
+        }
+    }
+    const definitions = { example: { contract: "example", implementation: "/_assets/test/services/example.js" } };
+    const implementations = { "module:/_assets/test/services/example.js": ExampleService };
+    const contractItems = { example: createContractItem("example") };
+    const { services, emitted } = createServices(definitions, implementations, contractItems);
+
+    await services.init();
+    assert.throws(() => services.resolve("example"), /construction failed/);
+    assert.equal(services.getServiceInfo("example").state, "registered");
+    assert.deepEqual(emitted, []);
+    services.resolve("example");
+    assert.deepEqual(emitted, [{ type: "xshell:service:created", detail: { id: "example" }, state: "created" }]);
 });
 
 test("service inspection returns independent read-only metadata snapshots", async () => {
@@ -184,11 +220,12 @@ test("service creation rejects an implementation missing a required method", asy
     const definitions = { toast: { contract: "toast", implementation: "/_assets/test/services/toast.js" } };
     const implementations = { "module:/_assets/test/services/toast.js": InvalidService };
     const contractItems = { toast: createContractItem("toast", { show: {} }) };
-    const { services } = createServices(definitions, implementations, contractItems);
+    const { services, emitted } = createServices(definitions, implementations, contractItems);
     await services.init();
 
     assert.throws(() => services.resolve("toast"), /Service 'toast' does not implement required method 'show'\./);
     assert.equal(services.getServiceInfo("toast").state, "registered");
+    assert.deepEqual(emitted, []);
 });
 
 test("service creation accepts a declared own property", async () => {

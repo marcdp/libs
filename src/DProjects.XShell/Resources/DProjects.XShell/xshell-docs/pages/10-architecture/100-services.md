@@ -108,6 +108,9 @@ Construction receives a proxy resolving other services by name. Resolving a serv
 dependency and reports the resolution chain. A failed construction/validation resets that record so a later resolve can retry.
 Duplicate registrations, including collisions with core names, fail.
 
+After a configured service is first constructed and validated, XShell emits `xshell:service:created` on the Bus with `{ id }`. Failed attempts emit no
+created event. Consumers can re-read `services.registry` to inspect the current state.
+
 The registered core names are `areas`, `bus`, `config`, `container`, `dialog`, `i18n`, `loader`, `modules`, `navigation`, `resolver`, `runtime`,
 `contracts`, `services`, `temp`, and `urlRewriter`. There is no auth/identity registration. A Diagnostics getter is not a registered service contract.
 

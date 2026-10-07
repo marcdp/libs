@@ -73,7 +73,7 @@ class XShell {
         this._i18n = new I18n();
         this._contracts = new Contracts( { config: config, loader: this._loader } );
         await this._i18n.init(config.xshell.i18n);
-        this._services = new Services( {config, loader: this._loader, contracts: this._contracts, areas: this._areas } );        
+        this._services = new Services( {config, loader: this._loader, contracts: this._contracts, areas: this._areas, bus: this._bus } );
         this._modules = new Modules( { bus: this._bus, config: config, loader: this._loader, resolver: this._resolver, document: document, services: this._services } );
         this._navigation = new Navigation( { areas: this._areas, bus: this._bus, config: config, container: this._container });
         this._urlRewriter = new UrlRewriter();

@@ -6,6 +6,8 @@ export const contract = {
     methods: {}
 };
 
+const MAX_EVENTS = 1000;
+
 // export page
 export default {
     meta: {
@@ -43,6 +45,7 @@ export default {
                         ts: event.ts,
                         detail: event.detail
                     });
+                    if (state.registry.length > MAX_EVENTS) state.registry.splice(0, state.registry.length - MAX_EVENTS);
                     this.refresh();
                 });
             },
@@ -58,9 +61,6 @@ export default {
                     item.show = show;
                 }
                 page.invalidate();
-            },
-            view() {
-                alert(123)
             }
         };
     }
