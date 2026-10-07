@@ -65,7 +65,7 @@
 
         // temp
         "temp": {
-            "url": "url:./"   
+            "url": "app:/temp"   
         },
 
         // ui
