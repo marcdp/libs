@@ -331,6 +331,8 @@ export default {
                     if (!menu) return;
                     const top = menu.getBoundingClientRect().top;
                     menu.style.maxHeight = `${window.innerHeight - top}px`;
+                    console.log("Updating menu height", menu.style.maxHeight);
+
                 }
                 window.addEventListener("scroll", updateMenuHeight, { passive: true });
                 window.addEventListener("resize", updateMenuHeight);

@@ -3,6 +3,7 @@ import Events from "../events.js"
 import xshell from "../xshell.js";
 import validateComponentContract from "../validation/component.contract.js";
 import validateComponent from "../validation/component.js";
+import { processStyle } from "../utils/style.js";
 
 // utils
 function kebabToCamel(str) {
@@ -149,11 +150,13 @@ export async function createComponentClassFromJsDefinition(src, context, impleme
     // freeze and seal the implementation and contract to prevent further modifications
     implementation = Object.seal(Object.freeze(implementation));
     contract = Object.seal(Object.freeze(contract));
+    // process definition CSS once before creating Component instances
+    const style = implementation.style ? await processStyle({ src, context, css: implementation.style }) : "";
     // stylesheets
     const stylesheets = []
-    if (implementation.style) {
+    if (style) {
         const stylesheet = new CSSStyleSheet();
-        stylesheet.replaceSync(implementation.style);
+        stylesheet.replaceSync(style);
         stylesheets.push(stylesheet);
     }
     // state skeleton

@@ -4,6 +4,7 @@ import Events from "../events.js"
 import xshell from "../xshell.js";
 import validateComponentContract from "../validation/component.contract.js";
 import validateComponent from "../validation/component.js";
+import { processStyle } from "../utils/style.js";
 
 
 // utils
@@ -202,6 +203,8 @@ export async function createPageClassFromJsDefinition(src, context, implementati
     if (implementation) {
         await validateComponent(src, implementation);
     }
+    // process definition CSS before Page scoping and instance construction
+    const style = implementation.style ? await processStyle({ src, context, css: implementation.style }) : "";
     // state skeleton
     const stateSkeleton = createStateSkeleton(src, implementation, contract);
     const queryProperties = [];
@@ -346,9 +349,9 @@ export async function createPageClassFromJsDefinition(src, context, implementati
             if (this._unloaded) return;
             // style
             const cssPageSelector = `${host.nodeName.toLowerCase()}[src="${escapeCssString(host.getAttribute("src"))}"]`;
-            if (implementation.style) {
+            if (style) {
                 const cssStyleSheet = new CSSStyleSheet();
-                cssStyleSheet.replaceSync(`@scope (${cssPageSelector}) {${implementation.style};}`);
+                cssStyleSheet.replaceSync(`@scope (${cssPageSelector}) {${style};}`);
                 this._styleSheets.push(cssStyleSheet);        
             }
             host.getRootNode().adoptedStyleSheets = [...host.getRootNode().adoptedStyleSheets,...this._styleSheets];

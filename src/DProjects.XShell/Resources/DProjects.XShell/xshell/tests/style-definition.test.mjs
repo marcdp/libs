@@ -22,7 +22,7 @@ globalThis.customElements = {
     define() {},
     get() { return undefined; }
 };
-globalThis.window = { customElements: globalThis.customElements };
+globalThis.window = { customElements: globalThis.customElements, location: { origin: "https://example.test" } };
 globalThis.document = { adoptedStyleSheets: [], baseURI: "https://example.test/" };
 globalThis.requestAnimationFrame = () => 0;
 
@@ -71,7 +71,15 @@ function configureDefinitionLoaders() {
 }
 
 function createContext() {
-    return { resourceDefinition: { moduleId: "test" } };
+    return { resourceDefinition: { moduleId: "test", modulePath: "/_assets/test" } };
+}
+
+function setStylesheets(files, requests) {
+    globalThis.fetch = async url => {
+        requests.push(url);
+        assert.ok(files.has(url), `unexpected stylesheet: ${url}`);
+        return { ok: true, async text() { return files.get(url); } };
+    };
 }
 
 test("Component definitions accept CSS strings and reject style arrays", async () => {
@@ -105,4 +113,85 @@ test("Page CSS strings create scoped stylesheets", async () => {
 
     assert.equal(document.adoptedStyleSheets.length, 1);
     assert.equal(document.adoptedStyleSheets[0].text, '@scope (x-page[src="/pages/style.js"]) {.content { color: blue; };}');
+});
+
+test("Component definition styles resolve nested imports and URLs once per class", async () => {
+    configureDefinitionLoaders();
+    const root = "https://example.test/_assets/test/";
+    const requests = [];
+    setStylesheets(new Map([
+        [`${root}components/styles/theme.css`, '@import "./dark.css";\n.theme{background:url(../images/theme.png)}'],
+        [`${root}components/styles/dark.css`, ".dark{color:black}"]
+    ]), requests);
+    const implementation = {
+        meta: { id: "card" },
+        style: '@import "./styles/theme.css";\n.card{background:url("./images/card.png")}'
+    };
+
+    const Component = await createComponentClassFromJsDefinition("/_assets/test/components/card.js", createContext(), implementation, {});
+    assert.deepEqual(requests, [`${root}components/styles/theme.css`, `${root}components/styles/dark.css`]);
+    const first = new Component();
+    const second = new Component();
+    assert.equal(first.shadowRoot.adoptedStyleSheets[0], second.shadowRoot.adoptedStyleSheets[0]);
+    assert.equal(first.shadowRoot.adoptedStyleSheets[0].text, [
+        ".dark{color:black}",
+        `.theme{background:url(${root}components/images/theme.png)}`,
+        `.card{background:url("${root}components/images/card.png")}`
+    ].join("\n"));
+    assert.equal(implementation.style, '@import "./styles/theme.css";\n.card{background:url("./images/card.png")}');
+    assert.equal(Object.isFrozen(implementation), true);
+    assert.equal(requests.length, 2);
+});
+
+test("Page definition styles resolve imports before scoping and keep mount cleanup", async () => {
+    configureDefinitionLoaders();
+    document.adoptedStyleSheets = [];
+    const root = "https://example.test/_assets/test/";
+    const requests = [];
+    setStylesheets(new Map([
+        [`${root}pages/styles/theme.css`, '@import "./dark.css";\n.theme{background:url(../images/theme.png)}'],
+        [`${root}pages/styles/dark.css`, ".dark{color:black}"]
+    ]), requests);
+    const implementation = {
+        meta: { id: "customer" },
+        style: '@import "./styles/theme.css";\n.page{background:url("./images/page.png")}'
+    };
+
+    const PageClass = await createPageClassFromJsDefinition("/_assets/test/pages/customer.js", createContext(), implementation, {});
+    assert.deepEqual(requests, [`${root}pages/styles/theme.css`, `${root}pages/styles/dark.css`]);
+    const page = new PageClass({ src: "/pages/customer.js?id=123", context: {} });
+    const host = { nodeName: "X-PAGE", getAttribute() { return "/pages/customer.js?id=123"; }, getRootNode() { return document; } };
+    await page.mount({ host });
+    const firstSheet = document.adoptedStyleSheets[0];
+    assert.equal(firstSheet.text, `@scope (x-page[src="/pages/customer.js?id=123"]) {${[
+        ".dark{color:black}",
+        `.theme{background:url(${root}pages/images/theme.png)}`,
+        `.page{background:url("${root}pages/images/page.png")}`
+    ].join("\n")};}`);
+    await page.unmount();
+    assert.deepEqual(document.adoptedStyleSheets, []);
+    await page.mount({ host });
+    assert.equal(document.adoptedStyleSheets.length, 1);
+    assert.notEqual(document.adoptedStyleSheets[0], firstSheet);
+    assert.equal(requests.length, 2);
+    await page.unmount();
+    assert.equal(implementation.style, '@import "./styles/theme.css";\n.page{background:url("./images/page.png")}');
+});
+
+test("empty or omitted definition styles create no stylesheets and make no CSS requests", async () => {
+    configureDefinitionLoaders();
+    document.adoptedStyleSheets = [];
+    const requests = [];
+    setStylesheets(new Map(), requests);
+    const EmptyComponent = await createComponentClassFromJsDefinition("/_assets/test/components/empty.js", createContext(), { meta: { id: "empty" }, style: "" }, {});
+    const OmittedComponent = await createComponentClassFromJsDefinition("/_assets/test/components/omitted.js", createContext(), { meta: { id: "omitted" } }, {});
+    const EmptyPage = await createPageClassFromJsDefinition("/_assets/test/pages/empty.js", createContext(), { meta: { id: "empty" }, style: "" }, {});
+    const OmittedPage = await createPageClassFromJsDefinition("/_assets/test/pages/omitted.js", createContext(), { meta: { id: "omitted" } }, {});
+    assert.equal(new EmptyComponent().shadowRoot.adoptedStyleSheets.length, 0);
+    assert.equal(new OmittedComponent().shadowRoot.adoptedStyleSheets.length, 0);
+    const host = { nodeName: "X-PAGE", getAttribute() { return "/pages/empty.js"; }, getRootNode() { return document; } };
+    await new EmptyPage({ src: "/pages/empty.js", context: {} }).mount({ host });
+    await new OmittedPage({ src: "/pages/omitted.js", context: {} }).mount({ host });
+    assert.equal(document.adoptedStyleSheets.length, 0);
+    assert.deepEqual(requests, []);
 });

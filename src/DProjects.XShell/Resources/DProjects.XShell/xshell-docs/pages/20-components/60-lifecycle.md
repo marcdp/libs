@@ -23,6 +23,10 @@ Navigation own navigation-specific orchestration.
 The loader imports and validates the contract/implementation, prepares style and the state/render factories, validates factory-reported slots,
 loads dependencies, initializes the render factory, and defines the custom element. State/controller instances are created on element construction.
 
+Definition styles are processed once while the Component or Page class is created. Relative CSS URLs use the definition resource as their base;
+recursive `@import` URLs use each imported stylesheet as their base. Page CSS is scoped after imports are expanded. Each Page mount creates its own
+scoped stylesheet and removes it on unmount.
+
 ## Construction and loading
 
 Construction creates a shadow root, creates state through the state engine, exposes selected services to the controller, retains its returned

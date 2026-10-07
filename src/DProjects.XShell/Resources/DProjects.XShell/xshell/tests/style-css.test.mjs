@@ -38,7 +38,7 @@ test("CSS url() values resolve against their containing stylesheet and preserve 
     assert.deepEqual(requests, [`${moduleRoot}styles/index.css`]);
     assert.equal(sheet.css, [
         `a{background:url(${moduleRoot}icons/x-file.svg)}`,
-        "b{background:url(/root.png)}",
+        `b{background:url(${moduleRoot}root.png)}`,
         `c{background:url(${moduleRoot}styles/image.png?v=1#part)}`,
         "d{filter:url(#filter)}",
         "e{background:url(https://cdn.test/image.png)}",
@@ -54,7 +54,7 @@ test("CSS @import and nested stylesheet URLs each use the containing stylesheet 
         [`${moduleRoot}styles/index.css`, '@import "./theme.css";\n@import url(/reset.css);\nmain{color:black}'],
         [`${moduleRoot}styles/theme.css`, '@import "./themes/dark.css";\ntheme{background:url(../icons/theme.svg)}'],
         [`${moduleRoot}styles/themes/dark.css`, "dark{background:url(../images/dark.png)}"],
-        ["https://example.test/reset.css", "reset{background:url(/reset.png)}"]
+        [`${moduleRoot}reset.css`, "reset{background:url(/reset.png)}"]
     ]), requests);
 
     const sheet = await new LoaderStyleCss().load("styles/index.css", context);
@@ -63,12 +63,12 @@ test("CSS @import and nested stylesheet URLs each use the containing stylesheet 
         `${moduleRoot}styles/index.css`,
         `${moduleRoot}styles/theme.css`,
         `${moduleRoot}styles/themes/dark.css`,
-        "https://example.test/reset.css"
+        `${moduleRoot}reset.css`
     ]);
     assert.equal(sheet.css, [
         `dark{background:url(${moduleRoot}styles/images/dark.png)}`,
         `theme{background:url(${moduleRoot}icons/theme.svg)}`,
-        "reset{background:url(/reset.png)}",
+        `reset{background:url(${moduleRoot}reset.png)}`,
         "main{color:black}"
     ].join("\n"));
 });
