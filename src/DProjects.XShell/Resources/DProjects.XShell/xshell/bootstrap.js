@@ -9,7 +9,7 @@ function normalizeAssetsBase(value, configUrl) {
     if (!value.startsWith("app:") && !/^https?:\/\//i.test(value)) {
         throw new Error(`xshell.assetsBase must use app: or an absolute HTTP(S) URL: '${value}'.`);
     }
-    const resolved = absolutizePrefixedUrl("assetsBase", value, configUrl);
+    const resolved = absolutizePrefixedUrl(value, configUrl);
     const url = new URL(resolved, appBaseUrl);
     const appPath = new URL(appBaseUrl).pathname.replace(/\/+$/, "");
     if (url.origin !== document.location.origin || (appPath && url.pathname !== appPath && !url.pathname.startsWith(appPath + "/")) || url.search || url.hash) {
@@ -19,70 +19,92 @@ function normalizeAssetsBase(value, configUrl) {
     if (!assetsBase) throw new Error("xshell.assetsBase must identify a namespace below the application base URL.");
     return assetsBase;
 }
-function absolutizePrefixedUrl(key, value, physicalUrl) {
+function absolutizePrefixedUrl(value, physicalUrl) {
     if (typeof value !== "string") return value;
     if (value.startsWith("app:")) return resolveAppUrl(value);
     if (value.startsWith("url:")) return new URL(value.substring(4).trim(), physicalUrl).href;
     return value;
 }
+function normalizeAssetsUrl(value, physicalUrl) {
+    // require an explicit physical or application source for Service Worker asset mappings
+    if (typeof value !== "string" || !/^(?:app:|url:|[a-z][a-z0-9+.-]*:)/i.test(value)) {
+        throw new Error(`assetsUrl must use app:, url:, or an absolute URL: '${value}'.`);
+    }
+    return absolutizePrefixedUrl(value, physicalUrl);
+}
 function restoreTemplateBraces(normalized, authored) {
     return authored.includes("{") || authored.includes("}") ? normalized.replace(/%7B/gi, "{").replace(/%7D/gi, "}") : normalized;
 }
-function relativizePaths(key, value, assetsPath, declaringPath = "/module.jsonc", physicalUrl = "") {
-    if (Array.isArray(value)) return value.map(item => relativizePaths(key, item, assetsPath, declaringPath, physicalUrl));
-    if (value && typeof value === "object") {
-        for (const [name, item] of Object.entries(value)) value[name] = relativizePaths(name, item, assetsPath, declaringPath, physicalUrl);
-        return value;
-    }
+function relativizePaths(value, assetsPath, declaringPath = "/module.jsonc", physicalUrl = "") {
     if (typeof value !== "string") return value;
-    if (!["url", "href", "path", "navigation", "icon", "controller", "implementation", "route", "configUrl"].includes(key)) return value;
-    const escaped = absolutizePrefixedUrl(key, value, physicalUrl);
+    const escaped = absolutizePrefixedUrl(value, physicalUrl);
     if (escaped !== value) return restoreTemplateBraces(escaped, value);
     if (/^[a-z][a-z0-9+.-]*:/i.test(value)) return value;
-    if (!value.includes("/") && value !== "." && value !== "..") return value;
 
     // normalize under a logical sentinel so traversal is rejected before asset materialization
     const root = "/__xshell_module_root__";
+    const isModuleRelative = value.startsWith("/") || value.startsWith("./") || value.startsWith("../");
+    if (!isModuleRelative && !value.includes("/")) return value;
     const logicalUrl = value.startsWith("/") ?
         new URL(root + value, "https://module.invalid") :
         new URL(value, "https://module.invalid" + root + declaringPath);
     if (!logicalUrl.pathname.startsWith(root + "/")) {
         throw new Error(`Module URL '${value}' in '${physicalUrl || declaringPath}' escapes the module root.`);
     }
+    if (!isModuleRelative) return value;
     // preserve resolver template placeholders after URL.pathname encodes their braces
     return restoreTemplateBraces(assetsPath + logicalUrl.pathname.substring(root.length) + logicalUrl.search + logicalUrl.hash, value);
 }
 function relativizeModulePaths(config, assetsPath, declaringPath = "/module.jsonc", physicalUrl = "") {
     // normalize only configuration fields that represent authored resource URLs
-    if (config.app?.icon) config.app.icon = relativizePaths("icon", config.app.icon, assetsPath, declaringPath, physicalUrl);
+    const normalize = value => relativizePaths(value, assetsPath, declaringPath, physicalUrl);
+    if (config.app?.icon) config.app.icon = normalize(config.app.icon);
     for (const module of Object.values(config.modules || {})) {
-        for (const key of ["icon", "controller"]) {
-            if (module[key]) module[key] = relativizePaths(key, module[key], assetsPath, declaringPath, physicalUrl);
+        if (typeof module.icon === "string") module.icon = normalize(module.icon);
+        if (typeof module.controller === "string") module.controller = normalize(module.controller);
+        for (const route of Object.keys(module.routes || {})) module.routes[route] = normalize(module.routes[route]);
+        for (const [name, contribution] of Object.entries(module.menus || {})) {
+            if (typeof contribution === "string") module.menus[name] = normalize(contribution);
+            else if (Array.isArray(contribution)) {
+                const normalizeItems = items => {
+                    for (const item of items) {
+                        if (typeof item.href === "string") item.href = normalize(item.href);
+                        if (typeof item.icon === "string") item.icon = normalize(item.icon);
+                        if (Array.isArray(item.children)) normalizeItems(item.children);
+                    }
+                };
+                normalizeItems(contribution);
+            }
         }
-        for (const key of Object.keys(module.routes || {})) {
-            module.routes[key] = relativizePaths("route", module.routes[key], assetsPath, declaringPath, physicalUrl);
-        }
-        if (module.menus) relativizePaths("menus", module.menus, assetsPath, declaringPath, physicalUrl);
     }
     const xshell = config.xshell;
     if (!xshell) return;
     for (const group of Object.values(xshell.resolver || {})) {
         for (const rule of Object.values(group)) {
-            if (typeof rule?.url === "string") rule.url = relativizePaths("url", rule.url, assetsPath, declaringPath, physicalUrl);
+            if (typeof rule?.url === "string") rule.url = normalize(rule.url);
         }
     }
     for (const service of Object.values(xshell.services || {})) {
-        if (typeof service?.implementation === "string") service.implementation = relativizePaths("implementation", service.implementation, assetsPath, declaringPath, physicalUrl);
+        if (typeof service?.implementation === "string") service.implementation = normalize(service.implementation);
     }
-    for (const group of Object.values(xshell.ui || {})) {
-        for (const [key, value] of Object.entries(group || {})) {
-            if (typeof value === "string") group[key] = relativizePaths("url", value, assetsPath, declaringPath, physicalUrl);
+    const ui = xshell.ui;
+    if (ui) {
+        // layout names are arbitrary, while component and dialog slots are fixed by the UI contract
+        for (const [name, resource] of Object.entries(ui.layout || {})) {
+            if (typeof resource === "string") ui.layout[name] = normalize(resource);
         }
+        if (typeof ui.component?.lazy === "string") ui.component.lazy = normalize(ui.component.lazy);
+        if (typeof ui.component?.error === "string") ui.component.error = normalize(ui.component.error);
+        if (typeof ui.component?.markdown === "string") ui.component.markdown = normalize(ui.component.markdown);
+        if (typeof ui.dialog?.confirm === "string") ui.dialog.confirm = normalize(ui.dialog.confirm);
+        if (typeof ui.dialog?.message === "string") ui.dialog.message = normalize(ui.dialog.message);
+        if (typeof ui.dialog?.prompt === "string") ui.dialog.prompt = normalize(ui.dialog.prompt);
+        if (typeof ui.dialog?.picker === "string") ui.dialog.picker = normalize(ui.dialog.picker);
     }
     for (const area of Object.values(xshell.areas?.definitions || {})) {
-        if (typeof area.icon === "string") area.icon = relativizePaths("icon", area.icon, assetsPath, declaringPath, physicalUrl);
+        if (typeof area.icon === "string") area.icon = normalize(area.icon);
     }
-    if (typeof xshell.temp?.url === "string") xshell.temp.url = relativizePaths("url", xshell.temp.url, assetsPath, declaringPath, physicalUrl);
+    if (typeof xshell.temp?.url === "string") xshell.temp.url = normalize(xshell.temp.url);
 }
  
 // consts
@@ -148,7 +170,7 @@ function resolveModuleConfigUrl(configUrl, ownerConfigUrl, ownerAssetsUrl, owner
     if (typeof configUrl !== "string" || !configUrl.trim()) {
         throw new Error(`Module reference '${moduleId}' in '${ownerConfigUrl}' must declare a non-empty configUrl.`);
     }
-    const effectiveUrl = relativizePaths("configUrl", configUrl, ownerAssetsPath, ownerDeclaringPath, ownerConfigUrl);
+    const effectiveUrl = relativizePaths(configUrl, ownerAssetsPath, ownerDeclaringPath, ownerConfigUrl);
     if (effectiveUrl === configUrl && !/^[a-z][a-z0-9+.-]*:/i.test(configUrl)) {
         throw new Error(`Module reference '${moduleId}' in '${ownerConfigUrl}' has an unsupported configUrl '${configUrl}'. Use /, ./, ../, app:, url:, or an absolute URL.`);
     }
@@ -169,7 +191,7 @@ function prepareModuleConfig(config, configUrl, assetsBase) {
     // validate identity and references before adding normalized runtime fields
     const localModule = getLocalModule(config, configUrl);
     const assetsPath = assetsBase + "/" + localModule.id;
-    localModule.definition.assetsUrl = relativizePaths("url", localModule.definition.assetsUrl || "url:./", assetsPath, "/module.jsonc", configUrl);
+    localModule.definition.assetsUrl = normalizeAssetsUrl(localModule.definition.assetsUrl || "url:./", configUrl);
     const source = new URL(configUrl);
     const assets = new URL(localModule.definition.assetsUrl, appBaseUrl);
     const assetsDirectory = assets.pathname.endsWith("/") ? assets.pathname : assets.pathname + "/";
@@ -320,7 +342,7 @@ async function loadConfig() {
     xshellConfig.xshell.configUrl = xshellConfigUrl || xshellConfig.xshell.configUrl;
     xshellConfig.xshell.temp.url = new URL(xshellTempUrl, document.baseURI).href;
     xshellConfig.xshell.assetsUrl = xshellConfig.xshell.assetsUrl || "url:./";
-    xshellConfig.xshell.assetsUrl = relativizePaths("url", xshellConfig.xshell.assetsUrl, assetsBase + "/xshell", "/xshell.jsonc", xshellConfigUrl);
+    xshellConfig.xshell.assetsUrl = normalizeAssetsUrl(xshellConfig.xshell.assetsUrl, xshellConfigUrl);
     xshellConfig.xshell.assetsBase = assetsBase;
     relativizeModulePaths(xshellConfig, assetsBase + "/xshell", "/xshell.jsonc", xshellConfigUrl);
     
@@ -437,7 +459,7 @@ async function loadFilesIndexes(config) {
         const files = await response.json();
         const virtualRoot = target.assetsPath;
         for (const file of files) {
-            file.path = relativizePaths("path", file.path, virtualRoot);
+            file.path = relativizePaths(file.path, virtualRoot);
         }
         target.files = files;
     };

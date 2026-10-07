@@ -176,7 +176,7 @@ test("assetsBase rejects missing, application-root, and out-of-scope locations",
 test("module URLs normalize against the declaring logical file and keep explicit escapes distinct", () => {
     const logicalFile = "/pages/orders/details.jsonc";
     const physicalFile = "https://cdn.example.test/orders/pages/details.jsonc";
-    const normalize = value => api.relativizePaths("url", value, "/_assets/x", logicalFile, physicalFile);
+    const normalize = value => api.relativizePaths(value, "/_assets/x", logicalFile, physicalFile);
 
     assert.equal(normalize("/icons/edit.svg"), "/_assets/x/icons/edit.svg");
     assert.equal(normalize("./edit.js"), "/_assets/x/pages/orders/edit.js");
@@ -192,6 +192,7 @@ test("module URLs normalize against the declaring logical file and keep explicit
     for (const absolute of ["https://cdn.example.test/file.js", "data:text/javascript,export%20default%201", "blob:https://example.test/1234"]) {
         assert.equal(normalize(absolute), absolute);
     }
+    assert.equal(normalize("foo/bar.js"), "foo/bar.js");
 });
 
 test("bootstrap preserves resolver placeholders in normalized XShell URL templates", async () => {
@@ -210,7 +211,7 @@ test("bootstrap preserves resolver placeholders in normalized XShell URL templat
 test("module URL traversal fails after logical normalization and reports the declaring document", () => {
     const physicalFile = "https://cdn.example.test/orders/module.jsonc";
     for (const value of ["../foo.js", "../../foo.js", "./../foo.js", "a/../../foo.js", "/a/../../foo.js", "%2e%2e/foo.js"]) {
-        assert.throws(() => api.relativizePaths("url", value, "/_assets/x", "/module.jsonc", physicalFile), error =>
+        assert.throws(() => api.relativizePaths(value, "/_assets/x", "/module.jsonc", physicalFile), error =>
             error.message.includes(value) && error.message.includes(physicalFile) && error.message.includes("escapes the module root"));
     }
 });
@@ -255,6 +256,66 @@ test("non-URL configuration text and area prefixes keep their authored values", 
     assert.equal(graph.rootNode.config.xshell.areas.definitions.main.prefix, "/public");
     assert.equal(graph.rootNode.config.xshell.areas.definitions.main.label, "/literal");
     assert.equal(graph.rootNode.config.modules.app.routes["/home"], "/_assets/app/pages/index.js");
+});
+
+test("menu contributions normalize by structure regardless of menu name", async () => {
+    const root = { modules: { x: definition("x", { menus: {
+        navigation: "/pages/navigation",
+        tools: "/pages/tools",
+        arbitraryMenu123: "/pages/custom",
+        registered: "customer-pages",
+        reports: [{
+            label: "Reports", path: "/reports", href: "/pages/report.js", tooltip: "/literal-tooltip",
+            children: [{ label: "Detail", path: "/reports/detail", href: "./pages/detail.js", class: "/literal-class" }]
+        }]
+    }, params: { metadata: { path: "/must-remain-literal" }, sample: { href: "/literal", url: "../literal" } } }) } };
+    const graph = await discover(root);
+    const module = plain(graph.rootNode.config.modules.x);
+
+    assert.equal(module.menus.navigation, "/_assets/x/pages/navigation");
+    assert.equal(module.menus.tools, "/_assets/x/pages/tools");
+    assert.equal(module.menus.arbitraryMenu123, "/_assets/x/pages/custom");
+    assert.equal(module.menus.registered, "customer-pages");
+    assert.equal(module.menus.reports[0].path, "/reports");
+    assert.equal(module.menus.reports[0].href, "/_assets/x/pages/report.js");
+    assert.equal(module.menus.reports[0].tooltip, "/literal-tooltip");
+    assert.equal(module.menus.reports[0].children[0].path, "/reports/detail");
+    assert.equal(module.menus.reports[0].children[0].href, "/_assets/x/pages/detail.js");
+    assert.equal(module.menus.reports[0].children[0].class, "/literal-class");
+    assert.deepEqual(module.params, { metadata: { path: "/must-remain-literal" }, sample: { href: "/literal", url: "../literal" } });
+});
+
+test("resolver, service, UI, and Area resources normalize within their owning structures", async () => {
+    const root = {
+        modules: { x: definition("x") },
+        xshell: {
+            resolver: { anyType: { anyRule: { url: "/resources/{name}.js", loader: "/literal-loader" } } },
+            services: { foo: { implementation: "/services/foo.js", contract: "/literal-contract" }, bar: { implementation: "./services/bar.js" } },
+            ui: { component: { lazy: "x-lazy", error: "/components/error.js", unrelated: "/literal" }, layout: { main: "x-layout-main" },
+                dialog: { confirm: "url:./dialog.js" }, unrelated: { label: "/literal" } },
+            areas: { definitions: { main: { prefix: "/public", icon: "/icons/main.svg", label: "/literal-label" } } }
+        }
+    };
+    const xshell = plain((await discover(root)).rootNode.config.xshell);
+
+    assert.equal(xshell.resolver.anyType.anyRule.url, "/_assets/x/resources/{name}.js");
+    assert.equal(xshell.resolver.anyType.anyRule.loader, "/literal-loader");
+    assert.equal(xshell.services.foo.implementation, "/_assets/x/services/foo.js");
+    assert.equal(xshell.services.bar.implementation, "/_assets/x/services/bar.js");
+    assert.equal(xshell.services.foo.contract, "/literal-contract");
+    assert.equal(xshell.ui.component.lazy, "x-lazy");
+    assert.equal(xshell.ui.component.error, "/_assets/x/components/error.js");
+    assert.equal(xshell.ui.component.unrelated, "/literal");
+    assert.equal(xshell.ui.layout.main, "x-layout-main");
+    assert.equal(xshell.ui.dialog.confirm, "https://example.test/modules/app/dialog.js");
+    assert.equal(xshell.ui.unrelated.label, "/literal");
+    assert.equal(xshell.areas.definitions.main.prefix, "/public");
+    assert.equal(xshell.areas.definitions.main.icon, "/_assets/x/icons/main.svg");
+    assert.equal(xshell.areas.definitions.main.label, "/literal-label");
+});
+
+test("assetsUrl requires an explicit physical or application URL", async () => {
+    await assert.rejects(() => discover({ modules: { x: definition("x", { assetsUrl: "/physical-looking-path" }) } }), /assetsUrl must use app:, url:, or an absolute URL/);
 });
 
 test("Service Worker rules consume normalized framework and module paths", async () => {
