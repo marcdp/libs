@@ -2,7 +2,6 @@ import Areas from "./areas.js";
 import Bus from "./bus.js";
 import Contracts from "./contracts.js";
 import Dialog from "./dialog.js";
-import Diagnostics from "./diagnostics.js";
 import I18n from "./i18n.js";
 import Loader from "./loader.js";
 import Navigation from "./navigation.js";
@@ -26,7 +25,6 @@ class XShell {
     _container = null;
     _contracts = null;
     _dialog = null;
-    _diagnostics = null;
     _i18n = null;
     _temp = null;
     _loader = null;
@@ -49,7 +47,6 @@ class XShell {
     get contracts() { return this._contracts; }
     get dialog() { return this._dialog; }
     get i18n() { return this._i18n; }
-    get diagnostics() { return this._diagnostics; }
     get loader() { return this._loader; }
     get modules() { return this._modules; }
     get navigation() { return this._navigation; }
@@ -80,7 +77,6 @@ class XShell {
         this._dialog = new Dialog( { config: config, navigation: this._navigation, i18n: this._i18n } );        
         this._temp = new Temp( { config: config } );
         this._runtime = new Runtime();
-        this._diagnostics = new Diagnostics({ bus: this._bus });
         // compose contracts list in memory from modules             
         await this._contracts.init();
         // services

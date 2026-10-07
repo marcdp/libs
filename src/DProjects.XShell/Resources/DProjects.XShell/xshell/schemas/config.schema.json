@@ -23,7 +23,8 @@
         "version": {"type": "string", "description": "Application version."},
         "copyright": {"type": "string", "description": "Application copyright notice."},
         "icon": {"type": "string", "description": "Application icon resource."},
-        "basePath": {"type": "string", "description": "Base URL path under which the application is hosted."},
+        "basePath": {"type": "string", "description": "Base path under which the application is hosted."},
+        "baseUrl": {"type": "string", "description": "Base absolute URL under which the application is hosted."},
         "params": {"type": "object", "additionalProperties": true, "description": "Application-specific parameters."}
       },
       "required": ["id", "label", "version", "copyright", "icon", "basePath", "params"],

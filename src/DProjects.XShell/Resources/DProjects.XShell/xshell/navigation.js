@@ -26,7 +26,7 @@ export default class Navigation {
         this._container = container;
         this._mode = config.xshell.navigation.mode;
         this._hashPrefix = config.xshell.navigation.hashPrefix;
-        this._appBasePath = new URL(config.app.basePath).pathname.replace(/\/+$/, "");
+        this._appBasePath = config.app.basePath;
         if (this._appBasePath == "/") this._appBasePath = "";
     }
 

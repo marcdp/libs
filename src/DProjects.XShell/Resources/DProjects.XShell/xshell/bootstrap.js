@@ -110,8 +110,8 @@ function relativizeModulePaths(config, assetsPath, declaringPath = "/module.json
 // consts
 const appConfigPath = meta("xshell:app.configPath");
 const appParams = meta("xshell:app.params");
-const appBasePath = document.location.origin + meta("xshell:app.basePath");
-const appBaseUrl = appBasePath.replace(/\/+$/, "") + "/";
+const appBasePath = meta("xshell:app.basePath");
+const appBaseUrl = document.location.origin + appBasePath.replace(/\/+$/, "") + "/";
 const xshellEnvironment = meta("xshell:xshell.environment");
 const xshellTempUrl = meta("xshell:xshell.temp.url");
 const bootstrapUrl = new URL(document.currentScript.src);
@@ -201,7 +201,11 @@ function prepareModuleConfig(config, configUrl, assetsBase) {
     for (const [moduleId, reference] of Object.entries(config.modules)) {
         if (moduleId === localModule.id) continue;
         const resolved = validateModuleReference(moduleId, reference, configUrl, localModule.definition.assetsUrl, assetsPath, declaringPath);
-        reference.configUrl = resolved.configUrl;
+        delete reference.configUrl;
+        references.push({
+            id: moduleId,
+            ...resolved
+        });
         references.push({ id: moduleId, ...resolved });
     }
     localModule.definition.configUrl = configUrl;
@@ -338,6 +342,7 @@ async function loadConfig() {
     const assetsBaseUrl = rootModuleConfig.xshell?.assetsBase === undefined ? xshellConfigUrl : rootModuleUrl;
     const assetsBase = normalizeAssetsBase(assetsBaseValue, assetsBaseUrl);
     xshellConfig.app.basePath = appBasePath;
+    xshellConfig.app.baseUrl = appBaseUrl;
     xshellConfig.xshell.environment = xshellEnvironment || xshellConfig.xshell.environment;
     xshellConfig.xshell.configUrl = xshellConfigUrl || xshellConfig.xshell.configUrl;
     xshellConfig.xshell.temp.url = new URL(xshellTempUrl, document.baseURI).href;
