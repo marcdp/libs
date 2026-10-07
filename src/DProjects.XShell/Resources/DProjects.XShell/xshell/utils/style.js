@@ -1,4 +1,3 @@
-import { resolveAppUrl } from "./urls.js";
 
 // process a fetched stylesheet or inline CSS using the declaring resource as its base
 export async function processStyle({ src, context, css }) {
@@ -95,9 +94,6 @@ function resolveResourceUrl(value, source, bases) {
     // preserve empty and fragment-only references
     if (!url || url.startsWith("#")) return url;
 
-    // resolve application-root URLs
-    if (url.startsWith("app:")) return resolveAppUrl(url, bases.appBaseUrl);
-
     // reject configuration-only physical URLs
     if (/^url:/i.test(url)) {
         throw new Error(`The 'url:' scheme is not supported in CSS resource references in '${source.requestUrl}'.`);
@@ -144,12 +140,6 @@ function resolveResourceUrl(value, source, bases) {
 function resolveImportSource(value, source, bases) {
     const url = value.trim();
     if (!url) throw new Error(`CSS @import in '${source.requestUrl}' declares an empty URL.`);
-
-    // resolve app: imports
-    if (url.startsWith("app:")) {
-        const requestUrl = resolveAppUrl(url, bases.appBaseUrl);
-        return { requestUrl, scope: "app" };
-    }
 
     // reject configuration-only physical imports
     if (/^url:/i.test(url)) {
@@ -235,11 +225,6 @@ function createAppBaseUrl(appBasePath) {
 
 // describe the declaring resource in its logical namespace
 function createInitialSource(src, bases) {
-    // resolve app: root stylesheets
-    if (src.startsWith("app:")) {
-        const requestUrl = resolveAppUrl(src, bases.appBaseUrl);
-        return { requestUrl, scope: "app" };
-    }
 
     // reject configuration-only physical sources
     if (/^url:/i.test(src)) {

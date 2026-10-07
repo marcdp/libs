@@ -1,4 +1,4 @@
-import {combineUrls, resolveAppUrl} from "./urls.js";
+import {combineUrls } from "./urls.js";
 import { processStyle, rewriteStyleUrls } from "./style.js";
 
 // rules
@@ -64,10 +64,6 @@ export function normalizeModuleResourceUrl(url, modulePath, resourcePath) {
 export function rewrite( el, attr, type, url, context ) {
     //if (url.indexOf("colibri")!=-1) debugger;
     if (/^url:/i.test(url)) throw new Error(`The 'url:' scheme is not supported in template resource references (${attr}).`);
-    if (type == "resource" && url.startsWith("app:")) {
-        const appBaseUrl = new URL((context.appBasePath || "").replace(/\/?$/, "/"), window.location.origin).href;
-        return resolveAppUrl(url, appBaseUrl);
-    }
     if (url.indexOf(":") != -1 || url.startsWith("//")) {
         return url;
     } else if (type == "resource") {

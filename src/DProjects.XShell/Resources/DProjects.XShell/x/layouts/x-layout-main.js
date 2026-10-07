@@ -330,8 +330,7 @@ export default {
                     menu  = menu || host.shadowRoot.querySelector(".body > .menu");
                     if (!menu) return;
                     const top = menu.getBoundingClientRect().top;
-                    menu.style.height = "unset";
-                    menu.style.maxHeight = `${window.innerHeight - top}px`;
+                    menu.style.height = `${window.innerHeight - top}px`;
 
                 }
                 window.addEventListener("scroll", updateMenuHeight, { passive: true });
