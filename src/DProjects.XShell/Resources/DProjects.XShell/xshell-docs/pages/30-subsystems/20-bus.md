@@ -1,6 +1,9 @@
 # Bus
 
 `bus` is the core message service used by modules, Areas, Navigation, and Pages.
+Bus events are asynchronous fire-and-forget notifications. `emit()` queues delivery and returns immediately. Listener completion is not awaited by the
+emitter.
+Bus communicates facts and events, not synchronization or request-response operations.
 
 | API | Behavior |
 | --- | --- |

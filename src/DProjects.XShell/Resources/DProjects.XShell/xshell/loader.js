@@ -119,7 +119,7 @@ export default class Loader {
                     let value = null;
                     let registryItem = {resource, definition, url, status: "pending", time: null, moduleId: definition.moduleId};
                     this._registry.push(registryItem);
-                    await this._bus.emit("xshell:loader:resource:fetch", {resource, url, moduleId: definition.moduleId});
+                    this._bus.emit("xshell:loader:resource:fetch", {resource, url, moduleId: definition.moduleId});
                     try {
                         value = await loader.load(url, {
                             resourceName: name, 
@@ -135,13 +135,13 @@ export default class Loader {
                         const time = end - start;
                         registryItem.time = time;
                         registryItem.value = value;
-                        await this._bus.emit("xshell:loader:resource:loaded", {resource, url, time});
+                        this._bus.emit("xshell:loader:resource:loaded", {resource, url, time});
                     } catch (exception) {
                         const end = performance.now();
                         const time = end - start;
                         registryItem.time = time;
                         registryItem.status = "error";
-                        await this._bus.emit("xshell:loader:resource:error", {resource, url, time});  
+                        this._bus.emit("xshell:loader:resource:error", {resource, url, time});
                         throw exception;
                     }
                     return value;

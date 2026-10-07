@@ -41,14 +41,25 @@ export default class Bus {
         // invoke
         if (this._events[event.type]) {
             for(let listener of this._events[event.type]){
-                listener(event);
+                this._dispatchToListener(listener, event);
             }
         };
         // broadcast
         if (this._events["*"]) {
             for(let listener of this._events["*"]){
-                listener(event);
+                this._dispatchToListener(listener, event);
             }
+        }
+    }
+    // isolate listener failures without waiting for completion
+    _dispatchToListener(listener, event) {
+        try {
+            const result = listener(event);
+            if (result && typeof result.then === "function") {
+                Promise.resolve(result).catch(error => console.error("Bus listener failed:", error));
+            }
+        } catch (error) {
+            console.error("Bus listener failed:", error);
         }
     }
 
