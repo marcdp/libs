@@ -83,8 +83,9 @@ class XPage extends HTMLElement {
     //props
     get src() {return this._src;}
     set src(value) {
+        value ??= "";
         let changed = (this._src != value);
-        if (!value.startsWith("/") && value.indexOf("://") == -1 && this.src) {
+        if (value && !value.startsWith("/") && value.indexOf("://") == -1 && this.src) {
             let aux = this.src;
             aux = aux.substring(0, aux.lastIndexOf("/"));   
             value = aux + "/" + value;

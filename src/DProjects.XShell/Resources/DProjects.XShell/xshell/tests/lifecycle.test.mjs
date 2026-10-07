@@ -77,7 +77,9 @@ class FakeElement extends FakeNode {
     }
 
     removeAttribute(name) {
+        const oldValue = this.getAttribute(name);
         this._attributes.delete(name);
+        if (oldValue !== null && this.constructor.observedAttributes?.includes(name)) this.attributeChangedCallback(name, oldValue, null);
     }
 
     get attributes() {
@@ -139,6 +141,31 @@ const { default: Navigation } = await import("../navigation.js");
 const { default: xshell } = await import("../xshell.js");
 const { default: Page } = await import("../page.js");
 const { default: LoaderPageMd } = await import("../loaders/page-md.js");
+
+test("x-page treats nullish and removed src as empty without loading it", () => {
+    const cases = [
+        page => { page.src = null; },
+        page => { page.src = undefined; },
+        page => {
+            page._attributes.set("src", "/pages/old.js");
+            page.removeAttribute("src");
+            assert.equal(page.getAttribute("src"), null);
+        }
+    ];
+    for (const clearSource of cases) {
+        const page = new XPage();
+        const loads = [];
+        page.load = () => loads.push(page.src);
+        page.src = "/pages/old.js";
+        page.connectedCallback();
+        assert.deepEqual(loads, ["/pages/old.js"]);
+
+        assert.doesNotThrow(() => clearSource(page));
+        assert.equal(page.src, "");
+        assert.equal(page._src, "");
+        assert.deepEqual(loads, ["/pages/old.js"]);
+    }
+});
 
 test("Markdown adapter loads its component without fetching, and follows the Page lifecycle across mounts", async (t) => {
     const resources = [];
