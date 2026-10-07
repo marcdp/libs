@@ -77,6 +77,20 @@ namespace DProjects.XShell.Test {
             Assert.Contains("templateRenderer: {", result.Content);
         }
         [Fact]
+        public void Compile_StyleResource_RejectsConfigurationOnlyUrlScheme() {
+            var exception = Assert.Throws<InvalidOperationException>(() =>
+                Compile("<style>.x{background:url(url:./image.png)}</style><template><p>content</p></template>"));
+
+            Assert.Contains("'url:' scheme is not supported", exception.Message);
+        }
+        [Fact]
+        public void Compile_TemplateResource_RejectsConfigurationOnlyUrlScheme() {
+            var exception = Assert.Throws<InvalidOperationException>(() =>
+                Compile("<template><img src=\"url:./image.png\"></template>"));
+
+            Assert.Contains("'url:' scheme is not supported", exception.Message);
+        }
+        [Fact]
         public void Compile_BackticksSubstitutionsAndBackslashes_ProducesStaticTemplateLiterals() {
             var result = Compile("""
                 <style>.sample::before { content: "` ${style}"; background: url(C:\assets\image.png); }</style>

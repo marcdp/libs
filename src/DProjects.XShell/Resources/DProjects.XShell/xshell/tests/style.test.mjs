@@ -3,10 +3,9 @@ import test from "node:test";
 import { processStyle } from "../utils/style.js";
 
 const moduleRoot = "https://example.test/console/_assets/demo/";
-const moduleAssetsRoot = "https://cdn.test/modules/demo/";
 const context = {
     appBasePath: "/console",
-    resourceDefinition: { modulePath: "/_assets/demo", assetsUrl: moduleAssetsRoot }
+    resourceDefinition: { modulePath: "/_assets/demo" }
 };
 
 function setStylesheets(files, requests) {
@@ -80,20 +79,17 @@ test("comments and ordinary strings stay intact while quoted and unquoted URLs a
     ].join("\n"));
 });
 
-test("module, app, physical and special URL namespaces retain their CSS semantics", async () => {
+test("module, app and special URL namespaces retain their CSS semantics", async () => {
     const requests = [];
     setStylesheets(new Map([
-        [`${moduleAssetsRoot}styles/theme.css`, "a{background:url('./icon.png')}"],
         ["https://example.test/console/styles/shared.css", "b{background:url('./shared.png')}\nroot{background:url(/root.png)}"]
     ]), requests);
     const css = await processStyle({
         src: "/console/_assets/demo/pages/customer.js", context,
         css: [
-            '@import "url:../styles/theme.css";',
             '@import "app:/styles/shared.css";',
             'a{background:url(/pages/images/compiled.png)}',
             'b{background:url(app:/images/app.png)}',
-            'c{background:url(url:./physical.png)}',
             'd{filter:url(#filter)}',
             'e{background:url(//cdn.test/icon.png)}',
             'f{background:url(https://cdn.test/icon.png)}',
@@ -102,19 +98,58 @@ test("module, app, physical and special URL namespaces retain their CSS semantic
         ].join("\n")
     });
 
-    assert.deepEqual(requests, [`${moduleAssetsRoot}styles/theme.css`, "https://example.test/console/styles/shared.css"]);
+    assert.deepEqual(requests, ["https://example.test/console/styles/shared.css"]);
     assert.equal(css, [
-        `a{background:url('${moduleRoot}styles/icon.png')}`,
         "b{background:url('https://example.test/console/styles/shared.png')}",
         "root{background:url(https://example.test/console/root.png)}",
         `a{background:url(${moduleRoot}pages/images/compiled.png)}`,
         "b{background:url(https://example.test/console/images/app.png)}",
-        `c{background:url(${moduleAssetsRoot}pages/physical.png)}`,
         "d{filter:url(#filter)}",
         "e{background:url(//cdn.test/icon.png)}",
         "f{background:url(https://cdn.test/icon.png)}",
         "g{background:url(data:image/png;base64,AAAA)}",
         "h{background:url(blob:https://example.test/id)}"
+    ].join("\n"));
+});
+
+test("CSS rejects url: in resource values, imports, and root stylesheet sources", async () => {
+    const requests = [];
+    setStylesheets(new Map(), requests);
+    for (const css of [
+        "a{background:url(url:./image.png)}",
+        "a{background:url('url:./image.png')}",
+        'a{background:url("URL:./image.png")}',
+        '@import "url:./theme.css";',
+        "@import url(url:./theme.css);",
+        "@import url('URL:./theme.css');"
+    ]) {
+        await assert.rejects(() => processStyle({
+            src: "/console/_assets/demo/pages/customer.js", context, css
+        }), /'url:' scheme is not supported in CSS resource references/);
+    }
+    await assert.rejects(() => processStyle({ src: "url:./site.css", context }),
+        /'url:' scheme is not supported in CSS resource references/);
+    const literal = 'a{content:"url:./literal"}/* url:./comment */';
+    assert.equal(await processStyle({ src: "/console/_assets/demo/pages/customer.js", context, css: literal }), literal);
+    assert.deepEqual(requests, []);
+});
+
+test("custom CSS without modulePath uses declaring URL and normal origin-root semantics", async () => {
+    const requests = [];
+    setStylesheets(new Map([
+        ["https://example.test/custom/theme.css", "theme{background:url(./theme.png)}"]
+    ]), requests);
+    const customContext = { appBasePath: "/console", resourceDefinition: {} };
+    const css = await processStyle({
+        src: "https://example.test/custom/card.js", context: customContext,
+        css: '@import "./theme.css";\n.card{background:url(./card.png)}\n.root{background:url(/root.png)}\n.app{background:url(app:/app.png)}'
+    });
+    assert.deepEqual(requests, ["https://example.test/custom/theme.css"]);
+    assert.equal(css, [
+        "theme{background:url(https://example.test/custom/theme.png)}",
+        ".card{background:url(https://example.test/custom/card.png)}",
+        ".root{background:url(https://example.test/root.png)}",
+        ".app{background:url(https://example.test/console/app.png)}"
     ].join("\n"));
 });
 

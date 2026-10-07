@@ -1,4 +1,4 @@
-import {combineUrls} from "../utils/urls.js";
+import {combineUrls, resolveAppUrl} from "./urls.js";
 
 // rules
 const rules = [
@@ -46,6 +46,7 @@ export function rewriteTemplateAttribute(tag, attrs, attr, value, context) {
 
 // export
 export function normalizeModuleResourceUrl(url, modulePath, resourcePath) {
+    if (/^url:/i.test(url)) throw new Error("The 'url:' scheme is not supported in template resource references.");
     if (url.indexOf(":") != -1 || url.startsWith("//")) {
         return url;
     } else if (url.startsWith("xshell/")) {
@@ -61,6 +62,11 @@ export function normalizeModuleResourceUrl(url, modulePath, resourcePath) {
 // export
 export function rewrite( el, attr, type, url, context ) {
     //if (url.indexOf("colibri")!=-1) debugger;
+    if (/^url:/i.test(url)) throw new Error(`The 'url:' scheme is not supported in template resource references (${attr}).`);
+    if (type == "resource" && url.startsWith("app:")) {
+        const appBaseUrl = new URL((context.appBasePath || "").replace(/\/?$/, "/"), window.location.origin).href;
+        return resolveAppUrl(url, appBaseUrl);
+    }
     if (url.indexOf(":") != -1 || url.startsWith("//")) {
         return url;
     } else if (type == "resource") {

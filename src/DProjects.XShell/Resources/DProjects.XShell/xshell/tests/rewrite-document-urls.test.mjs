@@ -164,3 +164,44 @@ test("navigation links retain Page routes and fragment navigation", () => {
         assert.equal(anchor.getAttribute("href"), expected);
     }
 });
+
+test("runtime template resource URLs reject the configuration-only url: scheme", () => {
+    const cases = [
+        new TestElement("img", { src: "url:./image.png" }),
+        new TestElement("a", { href: "url:./page.html" }),
+        new TestElement("video", { poster: "url:./poster.png" }),
+        new TestElement("form", { action: "url:./submit" }),
+        new TestElement("button", { formaction: "url:./submit" }),
+        new TestElement("img", { srcset: "small.png 1x, URL:./large.png 2x" }),
+        new TestElement("div", { style: "background:url(url:./image.png)" }),
+        new TestElement("style", {}, "a{background:url('url:./image.png')}")
+    ];
+    for (const element of cases) {
+        assert.throws(() => rewriteDocumentUrls(createDocument(element), context), /'url:' scheme is not supported in template resource references/);
+    }
+    createDocument();
+    assert.throws(() => rewriteTemplateAttribute("img", {}, "src", "url:./image.png", context), /'url:' scheme is not supported/);
+    assert.throws(() => rewriteTemplateAttribute("img", {}, "srcset", "small.png 1x, url:./large.png 2x", context), /'url:' scheme is not supported/);
+});
+
+test("runtime template imports reject url: while ordinary text remains untouched", () => {
+    const script = new TestElement("script", { type: "module" }, 'import x from "url:./module.js";');
+    assert.throws(() => rewriteDocumentUrls(createDocument(script), context), /'url:' scheme is not supported in template resource references/);
+
+    const plain = new TestElement("p", { title: "url:./literal" }, "url:./plain text");
+    const ordinaryScript = new TestElement("script", { type: "module" }, 'const text = "url:./literal";');
+    const doc = createDocument(plain, ordinaryScript);
+    assert.doesNotThrow(() => rewriteDocumentUrls(doc, context));
+    assert.equal(plain.getAttribute("title"), "url:./literal");
+    assert.equal(plain.textContent, "url:./plain text");
+    assert.equal(doc.elements[1].textContent, 'const text = "url:./literal";');
+});
+
+test("runtime templates resolve app: resources against the application base", () => {
+    const img = new TestElement("img", { src: "app:/images/logo.png" });
+    const style = new TestElement("style", {}, "a{background:url(app:/images/background.png)}");
+    rewriteDocumentUrls(createDocument(img, style), context);
+    assert.equal(img.getAttribute("src"), "https://example.test/app/images/logo.png");
+    assert.equal(style.textContent, 'a{background:url("https://example.test/app/images/background.png")}');
+    assert.throws(() => rewriteTemplateAttribute("img", {}, "src", "app:../../outside.png", context), /escapes the application root/);
+});

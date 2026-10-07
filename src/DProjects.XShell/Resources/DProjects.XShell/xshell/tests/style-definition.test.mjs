@@ -195,3 +195,41 @@ test("empty or omitted definition styles create no stylesheets and make no CSS r
     assert.equal(document.adoptedStyleSheets.length, 0);
     assert.deepEqual(requests, []);
 });
+
+test("custom Component and Page styles work without modulePath", async () => {
+    configureDefinitionLoaders();
+    document.adoptedStyleSheets = [];
+    const requests = [];
+    setStylesheets(new Map([["https://example.test/custom/theme.css", ".theme{background:url(./theme.png)}"]]), requests);
+    const customContext = { resourceDefinition: { moduleId: "test" } };
+
+    const Component = await createComponentClassFromJsDefinition("https://example.test/custom/card.js", customContext, {
+        meta: { id: "custom-card" }, style: '.card{background:url("./card.png")} .root{background:url(/root.png)}'
+    }, {});
+    assert.equal(new Component().shadowRoot.adoptedStyleSheets[0].text,
+        '.card{background:url("https://example.test/custom/card.png")} .root{background:url(https://example.test/root.png)}');
+
+    const PageClass = await createPageClassFromJsDefinition("https://example.test/custom/page.js", customContext, {
+        meta: { id: "custom-page" }, style: '@import "./theme.css";\n.page{background:url("./page.png")}'
+    }, {});
+    assert.deepEqual(requests, ["https://example.test/custom/theme.css"]);
+    const page = new PageClass({ src: "/navigation/page.js?id=1", context: {} });
+    const host = { nodeName: "X-PAGE", getAttribute() { return "/navigation/page.js?id=1"; }, getRootNode() { return document; } };
+    await page.mount({ host });
+    assert.equal(document.adoptedStyleSheets[0].text,
+        '@scope (x-page[src="/navigation/page.js?id=1"]) {.theme{background:url(https://example.test/custom/theme.png)}\n' +
+        '.page{background:url("https://example.test/custom/page.png")};}');
+    await page.unmount();
+    assert.deepEqual(document.adoptedStyleSheets, []);
+});
+
+test("Component and Page definitions reject url: CSS references", async () => {
+    configureDefinitionLoaders();
+    setStylesheets(new Map(), []);
+    await assert.rejects(() => createComponentClassFromJsDefinition("/_assets/test/components/card.js", createContext(), {
+        meta: { id: "invalid-card" }, style: "a{background:url(url:./image.png)}"
+    }, {}), /'url:' scheme is not supported in CSS resource references/);
+    await assert.rejects(() => createPageClassFromJsDefinition("/_assets/test/pages/page.js", createContext(), {
+        meta: { id: "invalid-page" }, style: '@import "url:./theme.css";'
+    }, {}), /'url:' scheme is not supported in CSS resource references/);
+});

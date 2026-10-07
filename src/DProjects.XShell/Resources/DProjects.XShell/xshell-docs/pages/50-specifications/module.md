@@ -84,9 +84,12 @@ Bootstrap resolves references recursively and the final effective entry is a com
 
 `configUrl` is the source document. `assetsUrl` is the physical resource container and defaults to that document's directory. Runtime resource
 references use `/_assets/<module-id>/...` rather than the physical URL.
-In authored URL fields, `/foo` starts at the module root; `./foo` and `../foo` use the declaring file's logical module directory and cannot
-escape the module root. `url:` uses the physical declaring-file URL. `app:` uses the XShell application base, including for `app:foo` and
-`app:/foo` when hosted under a nested path. Absolute schemes remain unchanged.
+In configuration URL fields, `/foo` starts at the module root; `./foo` and `../foo` use the declaring file's logical module directory and
+cannot escape the module root. `url:` is available only during configuration/bootstrap and uses the physical declaring document URL, including
+for `configUrl` and `assetsUrl`. Runtime CSS and template resource references reject `url:`. They use logical relative paths, module-root `/foo`
+when module-owned, and `app:` for the application root. Custom resources without a module path use normal URL resolution for relative and
+origin-root paths. `app:` resolves against the XShell application base, including `app:foo` and `app:/foo` under a nested path. Other absolute
+schemes remain unchanged.
 
 The effective schema requires `label`, `version`, `copyright`, `icon`, `configUrl`, `assetsUrl`, `defaults`, `assetsPath`, and `files`.
 Optional effective fields are `params`, `requires`, `menus`, `routes`, and `contract`. `contract` may declare events, actions, and intents; those

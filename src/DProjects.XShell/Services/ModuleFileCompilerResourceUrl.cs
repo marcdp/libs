@@ -4,6 +4,10 @@ namespace DProjects.XShell.Services {
 
         // methods
         public static string Normalize(string relativePath, string url) {
+            // physical configuration URLs are not valid resource references
+            if (!string.IsNullOrEmpty(url) && url.StartsWith("url:", StringComparison.OrdinalIgnoreCase)) {
+                throw new InvalidOperationException($"The 'url:' scheme is not supported in CSS or template resource references in '{relativePath}'.");
+            }
             // leave non-local and already module-root-relative references untouched
             if (string.IsNullOrEmpty(url) || url[0] == '#' || url[0] == '/' || HasExplicitScheme(url)) return url;
 

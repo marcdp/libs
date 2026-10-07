@@ -1,3 +1,5 @@
+import { resolveAppUrl } from "./urls.js";
+
 // process a fetched stylesheet or inline CSS using the declaring resource as its base
 export async function processStyle({ src, context, css }) {
     const bases = createBases(context);
@@ -94,12 +96,11 @@ function resolveResourceUrl(value, source, bases) {
     if (!url || url.startsWith("#")) return url;
 
     // resolve application-root URLs
-    if (url.startsWith("app:")) return resolveAppUrl(url, bases);
+    if (url.startsWith("app:")) return resolveAppUrl(url, bases.appBaseUrl);
 
-    // resolve physical declaring-file URLs
-    if (url.startsWith("url:")) {
-        if (!source.physicalUrl) throw new Error(`Cannot resolve physical URL '${url}' from '${source.requestUrl}': module assetsUrl is unavailable.`);
-        return new URL(url.substring(4).trim(), source.physicalUrl).href;
+    // reject configuration-only physical URLs
+    if (/^url:/i.test(url)) {
+        throw new Error(`The 'url:' scheme is not supported in CSS resource references in '${source.requestUrl}'.`);
     }
 
     // preserve protocol-relative URLs
@@ -118,13 +119,13 @@ function resolveResourceUrl(value, source, bases) {
         return new URL(url.replace(/^\/+/, ""), bases.appBaseUrl).href;
     }
 
-    // use normal URL semantics for external or physical CSS
+    // use normal URL semantics for external or custom CSS
     if (url.startsWith("/")) return new URL(url, source.requestUrl).href;
 
     // resolve ./foo and ../foo relative to the logical module stylesheet
-    if (source.scope === "module" && source.moduleUrl) {
-        const resolved = new URL(url, source.moduleUrl).href;
-        assertInside(resolved, bases.moduleVirtualBaseUrl, `Module URL '${url}' in '${source.moduleUrl}' escapes the module root.`);
+    if (source.scope === "module") {
+        const resolved = new URL(url, source.requestUrl).href;
+        assertInside(resolved, bases.moduleVirtualBaseUrl, `Module URL '${url}' in '${source.requestUrl}' escapes the module root.`);
         return resolved;
     }
 
@@ -135,175 +136,108 @@ function resolveResourceUrl(value, source, bases) {
         return resolved;
     }
 
-    // resolve normal relative URLs for external or physical CSS
+    // resolve normal relative URLs for external or custom CSS
     return new URL(url, source.requestUrl).href;
 }
 
-// resolve one CSS @import into its virtual and physical coordinates
+// resolve one CSS @import in its logical namespace
 function resolveImportSource(value, source, bases) {
     const url = value.trim();
     if (!url) throw new Error(`CSS @import in '${source.requestUrl}' declares an empty URL.`);
 
     // resolve app: imports
     if (url.startsWith("app:")) {
-        const requestUrl = resolveAppUrl(url, bases);
-        return { requestUrl, moduleUrl: null, physicalUrl: requestUrl, scope: "app" };
+        const requestUrl = resolveAppUrl(url, bases.appBaseUrl);
+        return { requestUrl, scope: "app" };
     }
 
-    // resolve url: imports against the physical declaring stylesheet
-    if (url.startsWith("url:")) {
-        if (!source.physicalUrl) throw new Error(`Cannot resolve physical CSS @import '${url}' from '${source.requestUrl}': module assetsUrl is unavailable.`);
-        const requestUrl = new URL(url.substring(4).trim(), source.physicalUrl).href;
-        const moduleUrl = mapPhysicalToVirtual(requestUrl, bases);
-        return { requestUrl, moduleUrl, physicalUrl: requestUrl, scope: moduleUrl ? "module" : "physical" };
+    // reject configuration-only physical imports
+    if (/^url:/i.test(url)) {
+        throw new Error(`The 'url:' scheme is not supported in CSS resource references in '${source.requestUrl}'.`);
     }
 
     // resolve absolute and protocol-relative imports
     if (url.startsWith("//") || hasScheme(url)) {
         const requestUrl = new URL(url, source.requestUrl).href;
-        return { requestUrl, moduleUrl: null, physicalUrl: requestUrl, scope: "external" };
+        return { requestUrl, scope: "external" };
     }
 
     // resolve module-root imports
     if (url.startsWith("/") && source.scope === "module") {
-        const moduleUrl = new URL(url.replace(/^\/+/, ""), bases.moduleVirtualBaseUrl).href;
-        return {
-            requestUrl: moduleUrl,
-            moduleUrl,
-            physicalUrl: mapVirtualToPhysical(moduleUrl, bases),
-            scope: "module"
-        };
+        const requestUrl = new URL(url.replace(/^\/+/, ""), bases.moduleVirtualBaseUrl).href;
+        return { requestUrl, scope: "module" };
     }
 
     // resolve application-root imports
     if (url.startsWith("/") && source.scope === "app") {
         const requestUrl = new URL(url.replace(/^\/+/, ""), bases.appBaseUrl).href;
-        return { requestUrl, moduleUrl: null, physicalUrl: requestUrl, scope: "app" };
+        return { requestUrl, scope: "app" };
     }
 
-    // resolve root URLs normally for external or physical CSS
+    // resolve root URLs normally for external or custom CSS
     if (url.startsWith("/")) {
         const requestUrl = new URL(url, source.requestUrl).href;
-        return { requestUrl, moduleUrl: null, physicalUrl: requestUrl, scope: source.scope };
+        return { requestUrl, scope: source.scope };
     }
 
     // resolve module-relative imports
-    if (source.scope === "module" && source.moduleUrl) {
-        const moduleUrl = new URL(url, source.moduleUrl).href;
-        assertInside(moduleUrl, bases.moduleVirtualBaseUrl, `Module CSS @import '${url}' in '${source.moduleUrl}' escapes the module root.`);
-        return {
-            requestUrl: moduleUrl,
-            moduleUrl,
-            physicalUrl: mapVirtualToPhysical(moduleUrl, bases),
-            scope: "module"
-        };
+    if (source.scope === "module") {
+        const requestUrl = new URL(url, source.requestUrl).href;
+        assertInside(requestUrl, bases.moduleVirtualBaseUrl, `Module CSS @import '${url}' in '${source.requestUrl}' escapes the module root.`);
+        return { requestUrl, scope: "module" };
     }
 
     // resolve application-relative imports
     if (source.scope === "app") {
         const requestUrl = new URL(url, source.requestUrl).href;
         assertInside(requestUrl, bases.appBaseUrl, `Application CSS @import '${url}' in '${source.requestUrl}' escapes the application root.`);
-        return { requestUrl, moduleUrl: null, physicalUrl: requestUrl, scope: "app" };
+        return { requestUrl, scope: "app" };
     }
 
-    // resolve external or explicitly physical relative imports
+    // resolve external or custom relative imports
     const requestUrl = new URL(url, source.requestUrl).href;
-    return { requestUrl, moduleUrl: null, physicalUrl: requestUrl, scope: source.scope };
+    return { requestUrl, scope: source.scope };
 }
 
-// create application, virtual-module, and physical-module bases
+// create application and optional virtual-module bases
 function createBases(context) {
-    const modulePath = context.resourceDefinition?.modulePath;
-    if (typeof modulePath !== "string" || !modulePath.startsWith("/")) throw new Error("style-css requires resourceDefinition.modulePath.");
+    const modulePath = context?.resourceDefinition?.modulePath;
+    if (modulePath != null && (typeof modulePath !== "string" || !modulePath.startsWith("/"))) {
+        throw new Error("CSS resourceDefinition.modulePath must be an absolute path.");
+    }
 
-    const appBasePath = context.appBasePath || "";
+    const appBasePath = context?.appBasePath || "";
     const appBaseUrl = new URL(joinRootPath(appBasePath), window.location.origin).href;
-    const moduleVirtualBaseUrl = new URL(joinRootPath(appBasePath, modulePath), window.location.origin).href;
-    const moduleAssetsUrl = context.moduleAssetsUrl ?? context.resourceDefinition?.assetsUrl ?? null;
-    const modulePhysicalBaseUrl = moduleAssetsUrl ? ensureDirectoryUrl(moduleAssetsUrl) : null;
+    const moduleVirtualBaseUrl = modulePath == null ? null : new URL(joinRootPath(appBasePath, modulePath), window.location.origin).href;
 
-    return { appBaseUrl, moduleVirtualBaseUrl, modulePhysicalBaseUrl };
+    return { appBaseUrl, moduleVirtualBaseUrl };
 }
 
-// describe the root stylesheet in virtual and physical coordinates
+// describe the declaring resource in its logical namespace
 function createInitialSource(src, bases) {
     // resolve app: root stylesheets
     if (src.startsWith("app:")) {
-        const requestUrl = resolveAppUrl(src, bases);
-        return { requestUrl, moduleUrl: null, physicalUrl: requestUrl, scope: "app" };
+        const requestUrl = resolveAppUrl(src, bases.appBaseUrl);
+        return { requestUrl, scope: "app" };
     }
 
-    // resolve url: root stylesheets
-    if (src.startsWith("url:")) {
-        if (!bases.modulePhysicalBaseUrl) throw new Error(`Cannot resolve physical stylesheet '${src}': module assetsUrl is unavailable.`);
-        const requestUrl = new URL(src.substring(4).trim(), bases.modulePhysicalBaseUrl).href;
-        const moduleUrl = mapPhysicalToVirtual(requestUrl, bases);
-        return { requestUrl, moduleUrl, physicalUrl: requestUrl, scope: moduleUrl ? "module" : "physical" };
+    // reject configuration-only physical sources
+    if (/^url:/i.test(src)) {
+        throw new Error(`The 'url:' scheme is not supported in CSS resource references: '${src}'.`);
     }
 
     // resolve external root stylesheets
     if (src.startsWith("//") || hasScheme(src)) {
         const requestUrl = new URL(src, window.location.origin).href;
-        return { requestUrl, moduleUrl: null, physicalUrl: requestUrl, scope: "external" };
+        return { requestUrl, scope: "external" };
     }
 
     // resolve the normal virtual module stylesheet
-    const requestUrl = new URL(src, bases.moduleVirtualBaseUrl).href;
-    if (isInside(requestUrl, bases.moduleVirtualBaseUrl)) {
-        return {
-            requestUrl,
-            moduleUrl: requestUrl,
-            physicalUrl: mapVirtualToPhysical(requestUrl, bases),
-            scope: "module"
-        };
-    }
+    const requestUrl = new URL(src, bases.moduleVirtualBaseUrl || window.location.origin).href;
+    if (bases.moduleVirtualBaseUrl && isInside(requestUrl, bases.moduleVirtualBaseUrl)) return { requestUrl, scope: "module" };
 
-    // fall back to normal external URL semantics
-    return { requestUrl, moduleUrl: null, physicalUrl: requestUrl, scope: "external" };
-}
-
-// resolve app: using the application root while preventing traversal above it
-function resolveAppUrl(value, bases) {
-    const logicalRoot = new URL("https://xshell-app.invalid/__xshell_app_root__/");
-    const authored = value.substring(4).trim().replace(/^\/+/, "");
-    const logicalUrl = new URL(authored, logicalRoot);
-
-    if (logicalUrl.origin !== logicalRoot.origin || !logicalUrl.pathname.startsWith(logicalRoot.pathname)) {
-        throw new Error(`Application URL '${value}' escapes the application root.`);
-    }
-
-    const relative = logicalUrl.pathname.substring(logicalRoot.pathname.length) + logicalUrl.search + logicalUrl.hash;
-    return new URL(relative, bases.appBaseUrl).href;
-}
-
-// map a module virtual URL to the corresponding physical assetsUrl
-function mapVirtualToPhysical(url, bases) {
-    if (!bases.modulePhysicalBaseUrl) return null;
-
-    const target = new URL(url);
-    const virtualBase = new URL(bases.moduleVirtualBaseUrl);
-    if (target.origin !== virtualBase.origin || !target.pathname.startsWith(virtualBase.pathname)) return null;
-
-    const relativePath = target.pathname.substring(virtualBase.pathname.length);
-    const physical = new URL(relativePath, bases.modulePhysicalBaseUrl);
-    physical.search = target.search;
-    physical.hash = target.hash;
-    return physical.href;
-}
-
-// map a physical module URL back into the virtual module namespace
-function mapPhysicalToVirtual(url, bases) {
-    if (!bases.modulePhysicalBaseUrl) return null;
-
-    const target = new URL(url);
-    const physicalBase = new URL(bases.modulePhysicalBaseUrl);
-    if (target.origin !== physicalBase.origin || !target.pathname.startsWith(physicalBase.pathname)) return null;
-
-    const relativePath = target.pathname.substring(physicalBase.pathname.length);
-    const virtual = new URL(relativePath, bases.moduleVirtualBaseUrl);
-    virtual.search = target.search;
-    virtual.hash = target.hash;
-    return virtual.href;
+    // fall back to normal URL semantics for custom or external resources
+    return { requestUrl, scope: "external" };
 }
 
 // scan CSS and return every @import declaration
@@ -517,15 +451,6 @@ function joinRootPath(...parts) {
         .filter(Boolean)
         .join("/");
     return "/" + path + (path ? "/" : "");
-}
-
-// normalize an absolute URL as a directory base
-function ensureDirectoryUrl(value) {
-    const url = new URL(value);
-    url.search = "";
-    url.hash = "";
-    if (!url.pathname.endsWith("/")) url.pathname += "/";
-    return url.href;
 }
 
 // test whether one URL belongs to a URL namespace

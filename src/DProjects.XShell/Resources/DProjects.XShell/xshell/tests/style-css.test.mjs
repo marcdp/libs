@@ -102,3 +102,19 @@ test("CSS @import cycles are rejected", async () => {
     await assert.rejects(() => new LoaderStyleCss().load("styles/index.css", context), /Circular CSS @import detected/);
     assert.deepEqual(requests, [`${moduleRoot}styles/index.css`, `${moduleRoot}styles/theme.css`]);
 });
+
+test("custom external stylesheets work without modulePath", async () => {
+    const requests = [];
+    setStylesheets(new Map([["https://example.test/custom/site.css", "a{background:url(./icon.png)} b{background:url(/root.png)}"]]), requests);
+
+    const sheet = await new LoaderStyleCss().load("https://example.test/custom/site.css", { resourceDefinition: {} });
+
+    assert.deepEqual(requests, ["https://example.test/custom/site.css"]);
+    assert.equal(sheet.css, "a{background:url(https://example.test/custom/icon.png)} b{background:url(https://example.test/root.png)}");
+});
+
+test("external stylesheets reject url: resource references", async () => {
+    setStylesheets(new Map([[moduleRoot + "styles/index.css", "a{background:url(url:./image.png)}"]]), []);
+
+    await assert.rejects(() => new LoaderStyleCss().load("styles/index.css", context), /'url:' scheme is not supported in CSS resource references/);
+});

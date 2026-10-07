@@ -92,6 +92,20 @@ namespace DProjects.XShell.Test {
             Assert.Contains("/image.png", ReadProperty(result.Content, "style"));
             Assert.StartsWith("export default", result.Content);
         }
+        [Fact]
+        public void Compile_StyleResource_RejectsConfigurationOnlyUrlScheme() {
+            var exception = Assert.Throws<InvalidOperationException>(() =>
+                Compile("export default { style: `a{background:url(url:./image.png)}` };", "html"));
+
+            Assert.Contains("'url:' scheme is not supported", exception.Message);
+        }
+        [Fact]
+        public void Compile_TemplateResource_RejectsConfigurationOnlyUrlScheme() {
+            var exception = Assert.Throws<InvalidOperationException>(() =>
+                Compile("export default { template: `<img src=\"url:./image.png\">` };", "html"));
+
+            Assert.Contains("'url:' scheme is not supported", exception.Message);
+        }
         [Theory]
         [InlineData("\"<img src='./image.png'>\"")]
         [InlineData("'<img src=\"./image.png\">'")]

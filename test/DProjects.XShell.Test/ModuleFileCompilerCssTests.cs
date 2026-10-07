@@ -28,11 +28,24 @@ namespace DProjects.XShell.Test {
         [InlineData("url(http://cdn.test/image.png)")]
         [InlineData("url(data:image/png;base64,AAAA)")]
         [InlineData("url(blob:https://example.test/id)")]
+        [InlineData("url(app:/images/logo.png)")]
         [InlineData("url()")]
         [InlineData("url(?v=1)")]
         [InlineData("url(#fragment)")]
         public void Compile_NonRelativeUrl_PreservesReference(string css) {
             Assert.Equal(css, Compile(css));
+        }
+        [Theory]
+        [InlineData("url(url:./image.png)")]
+        [InlineData("url('url:./image.png')")]
+        [InlineData("url(\"URL:./image.png\")")]
+        [InlineData("@import \"url:./theme.css\";")]
+        [InlineData("@import url(url:./theme.css);")]
+        public void Compile_ConfigurationOnlyUrlScheme_RejectsCssResource(string css) {
+            var exception = Assert.Throws<InvalidOperationException>(() => Compile(css));
+
+            Assert.Contains("'url:' scheme is not supported", exception.Message);
+            Assert.Contains("/styles/site.css", exception.Message);
         }
         [Theory]
         [InlineData("url(\"image.png\")", "url(\"/styles/image.png\")")]

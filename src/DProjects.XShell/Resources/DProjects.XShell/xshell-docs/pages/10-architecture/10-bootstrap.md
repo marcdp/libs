@@ -49,6 +49,7 @@ dependencies therefore load once.
 Each local definition receives its configuration document URL as `configUrl`. Its `assetsUrl` defaults to the same document's directory unless the
 definition owns an explicit value. Plain module-relative reference URLs use the owner's virtual asset namespace; `url:` explicitly selects the
 physical source document. Bootstrap uses the physical source URL to load a referenced configuration before the Service Worker is available.
+This `url:` form is limited to configuration/bootstrap; runtime stylesheet and template resource references reject it.
 
 Bootstrap normalizes the configured `xshell.assetsBasePath` once. The checked-in `app:/_assets` resolves relative to the application base URL and is
 stored as the application-relative virtual path `/_assets`. Bootstrap derives `assetsPath` from it: `/_assets/x` for module `x` and

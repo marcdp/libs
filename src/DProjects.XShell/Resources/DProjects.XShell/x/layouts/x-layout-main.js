@@ -126,8 +126,8 @@ export default {
             }
             .body .menu {
                 position:sticky;
-                top:3em;
-                height:calc(100dvh - 6.5em);
+                top:3.2em;
+                height:calc(100vh - 6.5em);
                 overflow-y:auto;
                 align-self: flex-start;
                 z-index:1;
@@ -330,8 +330,8 @@ export default {
                     menu  = menu || host.shadowRoot.querySelector(".body > .menu");
                     if (!menu) return;
                     const top = menu.getBoundingClientRect().top;
+                    menu.style.height = "unset";
                     menu.style.maxHeight = `${window.innerHeight - top}px`;
-                    console.log("Updating menu height", menu.style.maxHeight);
 
                 }
                 window.addEventListener("scroll", updateMenuHeight, { passive: true });
