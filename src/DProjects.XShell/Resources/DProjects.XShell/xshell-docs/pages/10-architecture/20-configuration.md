@@ -93,8 +93,8 @@ built once from `document.location.origin` and the host's `xshell:app.basePath` 
 `https://example.com/myapp/`, both `app:images/logo.svg` and `app:/images/logo.svg` resolve to
 `https://example.com/myapp/images/logo.svg`. Absolute schemes, including `https:`, `data:`, and `blob:`, remain unchanged.
 
-`xshell.assetsBase` defines the application-relative base of XShell's virtual asset namespace. The checked-in value is
-`"assetsBase": "app:/_assets"`. For an application base of `https://example.com/myapp/`, this resolves under
+`xshell.assetsBasePath` defines the application-relative base of XShell's virtual asset namespace. The checked-in value is
+`"assetsBasePath": "app:/_assets"`. For an application base of `https://example.com/myapp/`, this resolves under
 `https://example.com/myapp/_assets`. The effective configuration stores the normalized application-relative path `/_assets`; the framework and
 module `assetsPath` values are derived from that one base. For example, module `x` has `assetsPath: "/_assets/x"`, which the host serves under
 `/myapp/_assets/x`. `assetsUrl` remains the separate physical source location.

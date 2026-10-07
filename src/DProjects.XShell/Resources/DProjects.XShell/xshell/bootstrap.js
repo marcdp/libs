@@ -4,20 +4,20 @@ async function loadJsonWithComments(url) {const request = await fetch(url);if (!
 function meta(name) { return document.head.querySelector(`meta[name="${name}"]`)?.content; }
 function deepFreeze(obj) {if (obj === null || typeof obj !== "object") {return obj;} Object.freeze(obj); for (const value of Object.values(obj)) {deepFreeze(value);} return obj;}
 function resolveAppUrl(value) { return new URL(value.substring(4).trim().replace(/^\/+/, ""), appBaseUrl).href; }
-function normalizeAssetsBase(value, configUrl) {
-    if (typeof value !== "string" || !value.trim()) throw new Error("xshell.assetsBase must be a non-empty URL or path.");
+function normalizeAssetsBasePath(value, configUrl) {
+    if (typeof value !== "string" || !value.trim()) throw new Error("xshell.assetsBasePath must be a non-empty URL or path.");
     if (!value.startsWith("app:") && !/^https?:\/\//i.test(value)) {
-        throw new Error(`xshell.assetsBase must use app: or an absolute HTTP(S) URL: '${value}'.`);
+        throw new Error(`xshell.assetsBasePath must use app: or an absolute HTTP(S) URL: '${value}'.`);
     }
     const resolved = absolutizePrefixedUrl(value, configUrl);
     const url = new URL(resolved, appBaseUrl);
     const appPath = new URL(appBaseUrl).pathname.replace(/\/+$/, "");
     if (url.origin !== document.location.origin || (appPath && url.pathname !== appPath && !url.pathname.startsWith(appPath + "/")) || url.search || url.hash) {
-        throw new Error(`xshell.assetsBase must resolve within the application base URL: '${value}'.`);
+        throw new Error(`xshell.assetsBasePath must resolve within the application base URL: '${value}'.`);
     }
-    const assetsBase = url.pathname.substring(appPath.length).replace(/\/+$/, "");
-    if (!assetsBase) throw new Error("xshell.assetsBase must identify a namespace below the application base URL.");
-    return assetsBase;
+    const assetsBasePath = url.pathname.substring(appPath.length).replace(/\/+$/, "");
+    if (!assetsBasePath) throw new Error("xshell.assetsBasePath must identify a namespace below the application base URL.");
+    return assetsBasePath;
 }
 function absolutizePrefixedUrl(value, physicalUrl) {
     if (typeof value !== "string") return value;
@@ -187,10 +187,10 @@ function validateModuleReference(moduleId, reference, ownerConfigUrl, ownerAsset
     }
     return resolveModuleConfigUrl(reference.configUrl, ownerConfigUrl, ownerAssetsUrl, ownerAssetsPath, ownerDeclaringPath, moduleId);
 }
-function prepareModuleConfig(config, configUrl, assetsBase) {
+function prepareModuleConfig(config, configUrl, assetsBasePath) {
     // validate identity and references before adding normalized runtime fields
     const localModule = getLocalModule(config, configUrl);
-    const assetsPath = assetsBase + "/" + localModule.id;
+    const assetsPath = assetsBasePath + "/" + localModule.id;
     localModule.definition.assetsUrl = normalizeAssetsUrl(localModule.definition.assetsUrl || "url:./", configUrl);
     const source = new URL(configUrl);
     const assets = new URL(localModule.definition.assetsUrl, appBaseUrl);
@@ -202,10 +202,6 @@ function prepareModuleConfig(config, configUrl, assetsBase) {
         if (moduleId === localModule.id) continue;
         const resolved = validateModuleReference(moduleId, reference, configUrl, localModule.definition.assetsUrl, assetsPath, declaringPath);
         delete reference.configUrl;
-        references.push({
-            id: moduleId,
-            ...resolved
-        });
         references.push({ id: moduleId, ...resolved });
     }
     localModule.definition.configUrl = configUrl;
@@ -237,7 +233,7 @@ function getDependencyFirstOrder(rootNode, nodesById) {
     visit(rootNode);
     return order;
 }
-async function discoverModuleConfigs(rootConfig, rootConfigUrl, loadConfig, assetsBase) {
+async function discoverModuleConfigs(rootConfig, rootConfigUrl, loadConfig, assetsBasePath) {
     // discover the graph in deterministic breadth-first passes
     const configs = {};
     const nodesById = new Map();
@@ -267,7 +263,7 @@ async function discoverModuleConfigs(rootConfig, rootConfigUrl, loadConfig, asse
     };
 
     // register the root before following references back to it
-    const rootNode = prepareModuleConfig(rootConfig, rootConfigUrl, assetsBase);
+    const rootNode = prepareModuleConfig(rootConfig, rootConfigUrl, assetsBasePath);
     registerNode(rootNode, new Set([rootNode.id]));
     let currentNodes = [rootNode];
     while (currentNodes.length) {
@@ -294,7 +290,7 @@ async function discoverModuleConfigs(rootConfig, rootConfigUrl, loadConfig, asse
         currentNodes = [];
         for (let i = 0; i < urls.length; i++) {
             const url = urls[i];
-            const node = prepareModuleConfig(loadedConfigs[i], url, assetsBase);
+            const node = prepareModuleConfig(loadedConfigs[i], url, assetsBasePath);
             registerNode(node, pendingByUrl.get(url).expectedIds);
             currentNodes.push(node);
         }
@@ -338,9 +334,9 @@ async function loadConfig() {
     // get xshell config
     const xshellConfig = await xshellConfigTask;
     const rootModuleConfig = await rootModuleConfigTask;
-    const assetsBaseValue = rootModuleConfig.xshell?.assetsBase ?? xshellConfig.xshell.assetsBase;
-    const assetsBaseUrl = rootModuleConfig.xshell?.assetsBase === undefined ? xshellConfigUrl : rootModuleUrl;
-    const assetsBase = normalizeAssetsBase(assetsBaseValue, assetsBaseUrl);
+    const assetsBasePathValue = rootModuleConfig.xshell?.assetsBasePath ?? xshellConfig.xshell.assetsBasePath;
+    const assetsBasePathUrl = rootModuleConfig.xshell?.assetsBasePath === undefined ? xshellConfigUrl : rootModuleUrl;
+    const assetsBasePath = normalizeAssetsBasePath(assetsBasePathValue, assetsBasePathUrl);
     xshellConfig.app.basePath = appBasePath;
     xshellConfig.app.baseUrl = appBaseUrl;
     xshellConfig.xshell.environment = xshellEnvironment || xshellConfig.xshell.environment;
@@ -348,8 +344,8 @@ async function loadConfig() {
     xshellConfig.xshell.temp.url = new URL(xshellTempUrl, document.baseURI).href;
     xshellConfig.xshell.assetsUrl = xshellConfig.xshell.assetsUrl || "url:./";
     xshellConfig.xshell.assetsUrl = normalizeAssetsUrl(xshellConfig.xshell.assetsUrl, xshellConfigUrl);
-    xshellConfig.xshell.assetsBase = assetsBase;
-    relativizeModulePaths(xshellConfig, assetsBase + "/xshell", "/xshell.jsonc", xshellConfigUrl);
+    xshellConfig.xshell.assetsBasePath = assetsBasePath;
+    relativizeModulePaths(xshellConfig, assetsBasePath + "/xshell", "/xshell.jsonc", xshellConfigUrl);
     
     // get root module config
     const rootModule = getLocalModule(rootModuleConfig, rootModuleUrl);
@@ -357,20 +353,20 @@ async function loadConfig() {
     xshellConfig.app.params = rootModule.definition.params;
 
     // load canonical modules and determine dependency-first order
-    const graph = await discoverModuleConfigs(rootModuleConfig, rootModuleUrl, loadJsonWithComments, assetsBase);
+    const graph = await discoverModuleConfigs(rootModuleConfig, rootModuleUrl, loadJsonWithComments, assetsBasePath);
     const configs = graph.configs;
     configs["xshell"] = xshellConfig;
 
     // merge configs
     const configsToMerge = [configs["xshell"], ...graph.mergeOrder.map(node => node.config)];
     const configMerged = mergeConfigs(configsToMerge);
-    configMerged.xshell.assetsBase = assetsBase;
-    configMerged.xshell.assetsPath = assetsBase + "/xshell";
+    configMerged.xshell.assetsBasePath = assetsBasePath;
+    configMerged.xshell.assetsPath = assetsBasePath + "/xshell";
 
     // add generated runtime metadata and the default contract for modules
     for(const moduleId in configMerged.modules)   {
         const module = configMerged.modules[moduleId];
-        module.assetsPath = assetsBase + "/" + moduleId;
+        module.assetsPath = assetsBasePath + "/" + moduleId;
         if (!module.contract) module.contract = {};
         if (!module.contract.events) module.contract.events = {};
         if (!module.contract.intents) module.contract.intents = {};

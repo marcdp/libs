@@ -12,7 +12,7 @@ Framework and module resources can originate from different directories or URLs.
 
 ## Current implementation
 
-The namespace is controlled by `xshell.assetsBase`. The checked-in XShell configuration uses `app:/_assets`. Bootstrap resolves it against the application base URL once and derives application-relative paths such as `/_assets/xshell` and `/_assets/<module>`. It sends corresponding source-to-destination rules to the service worker.
+The namespace is controlled by `xshell.assetsBasePath`. The checked-in XShell configuration uses `app:/_assets`. Bootstrap resolves it against the application base URL once and derives application-relative paths such as `/_assets/xshell` and `/_assets/<module>`. It sends corresponding source-to-destination rules to the service worker.
 
 The `/_assets` namespace must remain stable unless a separate compatibility decision changes it.
 

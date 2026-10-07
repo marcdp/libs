@@ -13,7 +13,7 @@ test(`inventory menu normalizes root ${rootIndex} and nested Page destinations`,
     ];
     const module = { id: "x-demo", config: { menus: { navigation: "/_assets/x-demo/pages" } } };
     const config = {
-        xshell: { assetsBase: "/_assets", areas: { default: "demo", global: [], definitions: {
+        xshell: { assetsBasePath: "/_assets", areas: { default: "demo", global: [], definitions: {
             demo: { prefix: "/demo", modules: ["x-demo"] }
         } } },
         modules: { "x-demo": { label: "Demo", files: paths.map(path => ({ path })) } }

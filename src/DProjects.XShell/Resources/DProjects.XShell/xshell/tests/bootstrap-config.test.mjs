@@ -143,9 +143,9 @@ function orderOf(graph) {
     return Array.from(graph.mergeOrder, node => node.id);
 }
 
-test("checked-in assetsBase resolves for root and subpath hosting", () => {
+test("checked-in assetsBasePath resolves for root and subpath hosting", () => {
     const defaults = api.parseJsonc(readFileSync(new URL("../xshell.jsonc", import.meta.url), "utf8"));
-    assert.equal(defaults.xshell.assetsBase, "app:/_assets");
+    assert.equal(defaults.xshell.assetsBasePath, "app:/_assets");
     for (const [basePath, effectiveUrl] of [["", "https://example.test/_assets"], ["/myapp", "https://example.test/myapp/_assets"]]) {
         const isolated = vm.createContext({
             URL, URLSearchParams,
@@ -156,7 +156,7 @@ test("checked-in assetsBase resolves for root and subpath hosting", () => {
             }
         });
         new vm.Script(bootstrapSource).runInContext(isolated);
-        const base = isolated.__bootstrapTests.normalizeAssetsBase(defaults.xshell.assetsBase, "https://example.test/xshell/xshell.jsonc");
+        const base = isolated.__bootstrapTests.normalizeAssetsBase(defaults.xshell.assetsBasePath, "https://example.test/xshell/xshell.jsonc");
         assert.equal(base, "/_assets");
         assert.equal(new URL(base.substring(1), `https://example.test${basePath}/`).href, effectiveUrl);
         assert.equal(new URL(`${base.substring(1)}/x`, `https://example.test${basePath}/`).pathname,
@@ -164,7 +164,7 @@ test("checked-in assetsBase resolves for root and subpath hosting", () => {
     }
 });
 
-test("assetsBase rejects missing, application-root, and out-of-scope locations", () => {
+test("assetsBasePath rejects missing, application-root, and out-of-scope locations", () => {
     const configUrl = "https://example.test/xshell/xshell.jsonc";
     assert.throws(() => api.normalizeAssetsBase(undefined, configUrl), /non-empty/);
     assert.throws(() => api.normalizeAssetsBase("app:/", configUrl), /namespace below/);
@@ -336,7 +336,7 @@ test("Service Worker rules consume normalized framework and module paths", async
     };
     context.setTimeout = () => 0;
     const config = {
-        xshell: { assetsBase: "/runtime", assetsPath: "/runtime/xshell", assetsUrl: "https://example.test/framework/", configUrl: "https://example.test/xshell/xshell.jsonc", version: "1" },
+        xshell: { assetsBasePath: "/runtime", assetsPath: "/runtime/xshell", assetsUrl: "https://example.test/framework/", configUrl: "https://example.test/xshell/xshell.jsonc", version: "1" },
         modules: { x: { assetsPath: "/runtime/x", assetsUrl: "https://example.test/modules/x/", configUrl: rootUrl, version: "2" } }
     };
 
@@ -363,7 +363,7 @@ test("loadFilesIndexes concurrently loads module and XShell inventories through 
     }
     const config = {
         modules: { x: { assetsPath: "/_assets/x" }, reports: { assetsPath: "/_assets/reports" } },
-        xshell: { assetsBase: "/_assets", assetsPath: "/_assets/xshell" }
+        xshell: { assetsBasePath: "/_assets", assetsPath: "/_assets/xshell" }
     };
 
     const loading = api.loadFilesIndexes(config);
@@ -386,7 +386,7 @@ test("loadFilesIndexes reports the inventory id, URL, and HTTP failure", async (
     const xshellInventoryUrl = "https://example.test/app/_assets/xshell/module.files.json";
     fetchOverrides.set(inventoryUrl, async () => ({ ok: false, status: 503, statusText: "Service Unavailable" }));
     fetchedResources.set(xshellInventoryUrl, []);
-    const config = { modules: { x: { assetsPath: "/_assets/x" } }, xshell: { assetsBase: "/_assets", assetsPath: "/_assets/xshell" } };
+    const config = { modules: { x: { assetsPath: "/_assets/x" } }, xshell: { assetsBasePath: "/_assets", assetsPath: "/_assets/xshell" } };
 
     await assert.rejects(
         () => api.loadFilesIndexes(config),
@@ -398,7 +398,7 @@ test("loadFilesIndexes reports the inventory id, URL, and HTTP failure", async (
 
 test("loadFilesIndexes fails clearly when the XShell inventory is missing", async () => {
     const inventoryUrl = "https://example.test/app/_assets/xshell/module.files.json";
-    const config = { modules: {}, xshell: { assetsBase: "/_assets", assetsPath: "/_assets/xshell" } };
+    const config = { modules: {}, xshell: { assetsBasePath: "/_assets", assetsPath: "/_assets/xshell" } };
 
     await assert.rejects(
         () => api.loadFilesIndexes(config),
@@ -503,7 +503,7 @@ test("loadConfig keeps xshellConfig as the base and applies root configuration l
     fetchedResources.set(xshellUrl, {
         app: { source: "xshell" },
         modules: {},
-        xshell: { assetsBase: "app:/_assets", environment: "Production", assetsUrl: "url:./", temp: { url: "url:./" }, resolver: {} }
+        xshell: { assetsBasePath: "app:/_assets", environment: "Production", assetsUrl: "url:./", temp: { url: "url:./" }, resolver: {} }
     });
     fetchedResources.set(rootUrl, {
         app: { source: "root" },
@@ -517,18 +517,18 @@ test("loadConfig keeps xshellConfig as the base and applies root configuration l
     assert.deepEqual(config.modules.app.params, { mode: "host" });
     assert.equal(config.modules.app.assetsPath, "/_assets/app");
     assert.equal(config.xshell.configUrl, xshellUrl);
-    assert.equal(config.xshell.assetsBase, "/_assets");
+    assert.equal(config.xshell.assetsBasePath, "/_assets");
     assert.equal(config.xshell.assetsPath, "/_assets/xshell");
     assert.deepEqual(directFetchCalls, [xshellUrl, rootUrl]);
 });
 
-test("loadConfig derives every assetsPath from a custom assetsBase", async () => {
+test("loadConfig derives every assetsPath from a custom assetsBasePath", async () => {
     const xshellUrl = "https://example.test/xshell/xshell.jsonc";
     const xUrl = "https://example.test/modules/x/module.jsonc";
     fetchedResources.set(xshellUrl, {
         app: {},
         modules: {},
-        xshell: { assetsBase: "app:/runtime", assetsPath: "/authored-xshell", environment: "Production", assetsUrl: "url:./", temp: { url: "url:./" }, resolver: {} }
+        xshell: { assetsBasePath: "app:/runtime", assetsPath: "/authored-xshell", environment: "Production", assetsUrl: "url:./", temp: { url: "url:./" }, resolver: {} }
     });
     fetchedResources.set(rootUrl, {
         modules: { app: definition("app", { assetsPath: "/authored-app" }), x: reference(xUrl) }
@@ -539,23 +539,23 @@ test("loadConfig derives every assetsPath from a custom assetsBase", async () =>
 
     assert.equal(config.modules.app.assetsPath, "/runtime/app");
     assert.equal(config.modules.x.assetsPath, "/runtime/x");
-    assert.equal(config.xshell.assetsBase, "/runtime");
+    assert.equal(config.xshell.assetsBasePath, "/runtime");
     assert.equal(config.xshell.assetsPath, "/runtime/xshell");
 });
 
-test("root assetsBase override is normalized before module discovery", async () => {
+test("root assetsBasePath override is normalized before module discovery", async () => {
     const xshellUrl = "https://example.test/xshell/xshell.jsonc";
     fetchedResources.set(xshellUrl, {
         app: {}, modules: {},
-        xshell: { assetsBase: "app:/_assets", assetsUrl: "url:./", temp: { url: "url:./" }, resolver: {} }
+        xshell: { assetsBasePath: "app:/_assets", assetsUrl: "url:./", temp: { url: "url:./" }, resolver: {} }
     });
     fetchedResources.set(rootUrl, {
         modules: { app: definition("app") },
-        xshell: { assetsBase: "app:/custom-assets" }
+        xshell: { assetsBasePath: "app:/custom-assets" }
     });
 
     const config = plain(await api.loadConfig());
-    assert.equal(config.xshell.assetsBase, "/custom-assets");
+    assert.equal(config.xshell.assetsBasePath, "/custom-assets");
     assert.equal(config.xshell.assetsPath, "/custom-assets/xshell");
     assert.equal(config.modules.app.assetsPath, "/custom-assets/app");
     assert.equal(config.xshell.assetsUrl, "https://example.test/xshell/");
@@ -564,14 +564,14 @@ test("root assetsBase override is normalized before module discovery", async () 
 test("loadConfig resolves XShell assetsUrl from the application base", async () => {
     fetchedResources.set("https://example.test/xshell/xshell.jsonc", {
         app: {}, modules: {},
-        xshell: { assetsBase: "app:/_assets", assetsUrl: "app:/framework/", temp: { url: "url:./" }, resolver: {} }
+        xshell: { assetsBasePath: "app:/_assets", assetsUrl: "app:/framework/", temp: { url: "url:./" }, resolver: {} }
     });
     fetchedResources.set(rootUrl, { modules: { app: definition("app") } });
 
     const config = plain(await api.loadConfig());
 
     assert.equal(config.xshell.assetsUrl, "https://example.test/app/framework/");
-    assert.equal(config.xshell.assetsBase, "/_assets");
+    assert.equal(config.xshell.assetsBasePath, "/_assets");
     assert.equal(config.xshell.assetsPath, "/_assets/xshell");
 });
 
@@ -698,7 +698,7 @@ test("a shared dependency with the same URL is fetched and registered once", asy
     for (const module of Object.values(effective.modules)) module.files = [];
     const modules = new Modules({
         bus: {},
-        config: { xshell: { assetsBase: "/_assets" }, modules: effective.modules },
+        config: { xshell: { assetsBasePath: "/_assets" }, modules: effective.modules },
         loader: { load() { throw new Error("No resources should be loaded by this fixture."); } },
         resolver: {},
         document: { adoptedStyleSheets: [] },

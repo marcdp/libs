@@ -16,7 +16,7 @@ URL are fetched once and produce one live module instance. Bootstrap merges depe
 References can configure canonical dependency modules; the root still merges last. Optional module controllers are constructed once and started
 during module initialization. See [Bootstrap](10-bootstrap.md).
 
-Module resources use `/_assets/<module>/...` with the checked-in `xshell.assetsBase` value `app:/_assets`. The Service Worker maps that namespace to
+Module resources use `/_assets/<module>/...` with the checked-in `xshell.assetsBasePath` value `app:/_assets`. The Service Worker maps that namespace to
 source files. Resource resolution selects a URL and loader; the loader obtains the resource. A Page uses the normal Component model plus Navigation.
 Module defaults define the render and state engines for their own definition-based Pages and Components. XShell defaults are separate global UI
 infrastructure for layout contexts, lazy/error/Markdown components, and standard dialog pages.

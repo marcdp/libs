@@ -39,7 +39,7 @@ function configuration(module) {
             debug: false,
             version: "1.0.0",
             environment: "test",
-            assetsBase: "/_assets",
+            assetsBasePath: "/_assets",
             assetsPath: "/_assets/xshell",
             areas: { default: null, global: [], definitions: {} },
             navigation: { mode: "path" },
@@ -73,13 +73,13 @@ test("effective schema rejects the removed xshell.identity configuration", () =>
     assert.equal(validator.validate(config).valid, false);
 });
 
-test("effective schema requires normalized assetsBase and rejects the removed prefix", () => {
+test("effective schema requires normalized assetsBasePath and rejects the removed prefix", () => {
     const config = configuration(moduleDefinition());
-    delete config.xshell.assetsBase;
+    delete config.xshell.assetsBasePath;
     assert.equal(validator.validate(config).valid, false);
-    config.xshell.assetsBase = "app:/_assets";
+    config.xshell.assetsBasePath = "app:/_assets";
     assert.equal(validator.validate(config).valid, false);
-    config.xshell.assetsBase = "/_assets";
+    config.xshell.assetsBasePath = "/_assets";
     config.xshell.assetsPrefix = "_assets";
     assert.equal(validator.validate(config).valid, false);
 });

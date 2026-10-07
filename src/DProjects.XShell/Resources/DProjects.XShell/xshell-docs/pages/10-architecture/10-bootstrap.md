@@ -10,7 +10,7 @@ host HTML
     -> discover modules.<id>.configUrl references recursively
     -> validate reference ids and canonical URLs
     -> reject dependency cycles
-    -> resolve xshell.assetsBase against the application base and normalize configUrl, assetsUrl, and module resource paths
+    -> resolve xshell.assetsBasePath against the application base and normalize configUrl, assetsUrl, and module resource paths
     -> merge defaults, dependencies, dependents, and root
     -> generate assetsPath for every effective module and XShell
     -> install and initialize Service Worker mappings
@@ -50,7 +50,7 @@ Each local definition receives its configuration document URL as `configUrl`. It
 definition owns an explicit value. Plain module-relative reference URLs use the owner's virtual asset namespace; `url:` explicitly selects the
 physical source document. Bootstrap uses the physical source URL to load a referenced configuration before the Service Worker is available.
 
-Bootstrap normalizes the configured `xshell.assetsBase` once. The checked-in `app:/_assets` resolves relative to the application base URL and is
+Bootstrap normalizes the configured `xshell.assetsBasePath` once. The checked-in `app:/_assets` resolves relative to the application base URL and is
 stored as the application-relative virtual path `/_assets`. Bootstrap derives `assetsPath` from it: `/_assets/x` for module `x` and
 `/_assets/xshell` for the framework. With an application hosted under `/myapp/`, these are served under `/myapp/_assets/...`.
 `assetsPath` is generated runtime metadata; `assetsUrl` remains the separate physical backing location.

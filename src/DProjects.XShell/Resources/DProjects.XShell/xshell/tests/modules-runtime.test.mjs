@@ -43,7 +43,7 @@ test("module without service requirements initializes and starts normally", asyn
         }
     }
     const config = freeze({
-        xshell: { assetsBase: "/_assets" },
+        xshell: { assetsBasePath: "/_assets" },
         modules: {
             orders: moduleDefinition("orders", { files: [{ path: "/_assets/orders/module.js" }] })
         }
@@ -60,7 +60,7 @@ test("module without service requirements initializes and starts normally", asyn
 
 test("module registry is a frozen metadata snapshot of the runtime modules", async () => {
     const config = freeze({
-        xshell: { assetsBase: "/_assets" },
+        xshell: { assetsBasePath: "/_assets" },
         modules: { orders: moduleDefinition("orders") }
     });
     const modules = createModules(config);
@@ -87,7 +87,7 @@ test("module registry is a frozen metadata snapshot of the runtime modules", asy
 
 test("runtime module path uses its effective assetsPath", async () => {
     const config = freeze({
-        xshell: { assetsBase: "/_assets" },
+        xshell: { assetsBasePath: "/_assets" },
         modules: { orders: moduleDefinition("orders", { assetsPath: "/runtime/orders" }) }
     });
     const modules = createModules(config);
@@ -112,7 +112,7 @@ test("module requirements accept configured lazy services without constructing t
     const config = freeze({
         app: { basePath: "/app" },
         xshell: {
-            assetsBase: "/_assets",
+            assetsBasePath: "/_assets",
             services: { identity: { contract: "identity", implementation: servicePath } }
         },
         modules: {
@@ -145,7 +145,7 @@ test("module requirements accept configured lazy services without constructing t
 test("missing module requirement fails before its controller is loaded or started", async () => {
     const loads = [];
     const config = freeze({
-        xshell: { assetsBase: "/_assets" },
+        xshell: { assetsBasePath: "/_assets" },
         modules: {
             orders: moduleDefinition("orders", { requires: ["identity"], files: [{ path: "/_assets/orders/module.js" }] })
         }
@@ -165,7 +165,7 @@ test("runtime module exposes normalized routes from its effective configuration"
         "/repository/{repositoryId}/projects/{projectId}/items": "/_assets/x-demo/pages/items.js"
     };
     const config = freeze({
-        xshell: { assetsBase: "/_assets" },
+        xshell: { assetsBasePath: "/_assets" },
         modules: {
             "x-demo": moduleDefinition("x-demo", { routes })
         }
@@ -183,7 +183,7 @@ test("runtime module exposes normalized routes from its effective configuration"
 
 test("runtime modules expose independent route definitions", async () => {
     const config = freeze({
-        xshell: { assetsBase: "/_assets" },
+        xshell: { assetsBasePath: "/_assets" },
         modules: {
             first: moduleDefinition("first", { routes: { "/first": "/_assets/first/pages/index.js" } }),
             second: moduleDefinition("second", { routes: { "/second": "/_assets/second/pages/index.js" } })
@@ -200,7 +200,7 @@ test("runtime modules expose independent route definitions", async () => {
 
 test("runtime module without routes exposes a frozen empty object", async () => {
     const config = freeze({
-        xshell: { assetsBase: "/_assets" },
+        xshell: { assetsBasePath: "/_assets" },
         modules: { "x-demo": moduleDefinition("x-demo") }
     });
     const modules = createModules(config);
@@ -228,7 +228,7 @@ test("module styles use the Loader once per inventoried stylesheet and are adopt
     const config = freeze({
         app: { basePath: "" },
         xshell: {
-            assetsBase: "/_assets",
+            assetsBasePath: "/_assets",
             navigation: { mode: "path", hashPrefix: "#!" },
             ui: { component: { lazy: null } },
             resolver: { style: Object.fromEntries(["first", "second"].map(id => [

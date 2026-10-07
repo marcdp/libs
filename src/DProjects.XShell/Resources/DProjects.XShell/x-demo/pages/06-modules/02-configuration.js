@@ -34,7 +34,7 @@ xshell.init(config)</code></pre>
         <ul>
             <li><code>config.app</code> — application-level bootstrap values such as <code>name</code>, <code>basePath</code>, and <code>params</code>.</li>
             <li><code>config.modules</code> — canonical module definitions keyed by module id, including normalized URLs and contributions.</li>
-            <li><code>config.xshell</code> — framework/runtime configuration such as <code>environment</code>, <code>assetsBase</code>, navigation, Areas, and resolver settings.</li>
+            <li><code>config.xshell</code> — framework/runtime configuration such as <code>environment</code>, <code>assetsBasePath</code>, navigation, Areas, and resolver settings.</li>
         </ul>
 
         <h3>Root module</h3>
@@ -109,7 +109,7 @@ xshell.init(config)</code></pre>
                 state.moduleIds = JSON.stringify(Object.keys(config.modules || {}));
                 state.xshell = JSON.stringify({
                     environment: config.xshell?.environment || "",
-                    assetsBase: config.xshell?.assetsBase || "",
+                    assetsBasePath: config.xshell?.assetsBasePath || "",
                     navigation: config.xshell?.navigation || {}
                 });
             }

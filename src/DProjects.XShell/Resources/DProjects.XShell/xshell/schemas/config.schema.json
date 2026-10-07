@@ -234,14 +234,14 @@
     },
     "xshell": {
       "type": "object",
-      "required": ["build", "debug", "version", "environment", "assetsBase", "assetsPath", "areas", "navigation", "resolver", "ui", "i18n", "configUrl", "assetsUrl", "files"],
+      "required": ["build", "debug", "version", "environment", "assetsBasePath", "assetsPath", "areas", "navigation", "resolver", "ui", "i18n", "configUrl", "assetsUrl", "files"],
       "properties": {
         "build": {"type": "string", "description": "XShell build identifier."},
         "debug": {"type": "boolean", "description": "Whether XShell debug behavior is enabled."},
         "version": {"type": "string", "description": "XShell runtime version."},
         "environment": {"type": "string", "description": "Runtime environment name."},
         "configUrl": {"type": "string", "format": "uri", "description": "URL of the xshell configuration document"},
-        "assetsBase": {"type": "string", "pattern": "^/", "description": "Normalized application-relative base path for the virtual asset namespace.  (e.g app:/_assets)"},
+        "assetsBasePath": {"type": "string", "pattern": "^/", "description": "Normalized application-relative base path for the virtual asset namespace.  (e.g app:/_assets)"},
         "assetsPath": {"type": "string", "pattern": "^/", "description": "Application-root-relative virtual base path for the XShell framework assets. (e.g. /_assets/xshell)"},
         "assetsUrl": {"type": "string", "format": "uri", "description": "URL of the directory or package containing the xshell assets."},
         "ui": {"$ref": "#/$defs/xshellUi", "description": "Global ui settings."},

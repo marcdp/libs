@@ -203,7 +203,7 @@ plus relevant module definitions and ADRs.
 The current virtual asset namespace is configured through:
 
 ```text
-xshell.assetsBase
+xshell.assetsBasePath
 ```
 
 The checked-in configured value is:

@@ -21,7 +21,7 @@
         "debug": false,
         "version": "0.9.0",
         "environment": "Development",
-        "assetsBase": "app:/_assets",
+        "assetsBasePath": "app:/_assets",
         "assetsUrl": "url:./",
 
         // areas
