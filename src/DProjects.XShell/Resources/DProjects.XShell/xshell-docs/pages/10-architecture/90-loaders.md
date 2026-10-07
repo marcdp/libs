@@ -33,6 +33,13 @@ page-js
     → load or build a Page component
 ```
 
+## Timing
+
+Each Loader registry item's `time`, and the matching `xshell:loader:resource:loaded` or `xshell:loader:resource:error` Bus event's `time`, is the
+duration in milliseconds of that individual concrete resource loader operation. It is measured from immediately before `loader.load(url, context)`
+until that operation resolves or rejects. Resolution, cache lookup, loader selection, and loader implementation import are outside this duration.
+Cached requests do not start another concrete load or create another timed registry item.
+
 ## Cache identity
 
 A resolver rule can opt into Loader caching and choose how the logical resource reference contributes to cache identity:

@@ -19,8 +19,8 @@ export default {
             <div slot="column" style="width:6em;">
             <x-datafield type="search" x-model="state.query_module" placeholder="Module"></x-datafield>
             </div>
-            <div slot="column" style="width:4em; text-align:right;">
-                Time
+            <div slot="column" style="width:6em; text-align:right;">
+                Load time
             </div>
             <div slot="column" style="width:4em;">
                 Status

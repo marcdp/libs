@@ -78,7 +78,6 @@ export default class Loader {
         let urls = [];
         let paths = [];
         let tasks = [];
-        const start = performance.now();
         for(let resource of resources) {            
             // resolve definition
             let name = resource.split(":")[1];
@@ -120,19 +119,21 @@ export default class Loader {
                     let registryItem = {resource, definition, url, status: "pending", time: null, moduleId: definition.moduleId};
                     this._registry.push(registryItem);
                     this._bus.emit("xshell:loader:resource:fetch", {resource, url, moduleId: definition.moduleId});
+                    const context = {
+                        resourceName: name,
+                        resourcePath: path,
+                        resourceDefinition: definition,
+                        appBasePath: this._appBasePath,
+                        navigationMode: this._navigationMode,
+                        navigationHashPrefix: this._navigationHashPrefix,
+                        componentLazy: this._componentLazy
+                    };
+                    const start = performance.now();
                     try {
-                        value = await loader.load(url, {
-                            resourceName: name, 
-                            resourcePath:path, 
-                            resourceDefinition: definition, 
-                            appBasePath:this._appBasePath, 
-                            navigationMode: this._navigationMode,
-                            navigationHashPrefix: this._navigationHashPrefix,
-                            componentLazy: this._componentLazy
-                        });
-                        registryItem.status = "loaded";
+                        value = await loader.load(url, context);
                         const end = performance.now();
                         const time = end - start;
+                        registryItem.status = "loaded";
                         registryItem.time = time;
                         registryItem.value = value;
                         this._bus.emit("xshell:loader:resource:loaded", {resource, url, time});
