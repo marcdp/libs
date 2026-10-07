@@ -31,9 +31,12 @@ This fixed topology provides deterministic service resolution and prevents provi
 configured service. `Services.resolve(name)` returns an existing runtime instance or lazily constructs the configured implementation as a singleton.
 The implementation is validated against the contract's declared methods and properties when that singleton is first created.
 
-`getServiceItems()` exposes live runtime/diagnostic metadata. Callers must treat its returned records as read-only observational data; mutating them
-is unsupported. The registry topology remains immutable after `Services.init()`, while an individual record's internal `state` and `instance` can
-change as a configured service is resolved.
+`Services` owns its mutable runtime service records internally. `services.registry` returns a read-only snapshot of the current service metadata:
+each entry has `id`, `state`, `contractId`, `contractUrl`, `description`, `icon`, `moduleId`, `implementationName`, `url`, `size`, and `time`.
+Unavailable values are `null`. The returned array and entries are frozen, contain no live instances or implementation classes, and may become
+stale as services are resolved. `services.getServiceInfo(name)` returns the same projected metadata for one service, or `undefined` if absent.
+Live services are obtained only through `services.resolve(name)`. The registry topology remains immutable after `Services.init()`, while internal
+records change lifecycle state and acquire instances during lazy construction.
 
 For a declared contract property, V0 validation succeeds when a descriptor with that name exists on the instance or its prototype chain. Validation
 checks presence only: it does not read values, invoke getters, or validate runtime property types. `readonly: true` is contract metadata, and V0
@@ -50,6 +53,7 @@ startup
 runtime
     -> Services.has(name)       existence only
     -> Services.resolve(name)   lazy singleton construction and contract validation
+    -> Services.registry        read-only snapshot of service metadata
 ```
 
 ## Module requirements and controller access

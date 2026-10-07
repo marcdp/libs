@@ -10,6 +10,12 @@ export default class Services {
     _areas = null;
     _creationPath = [];
 
+    // props
+    get registry() {
+        // project the current mutable records into independent inspection data
+        return Object.freeze(Object.entries(this._items).map(([id, item]) => this._projectServiceInfo(id, item)));
+    }
+
     // ctor
     constructor( {config, loader, contracts, areas} ) {
         this._config = config;
@@ -103,14 +109,32 @@ export default class Services {
         }
         return result.instance;
     }
-    getServiceItems() {
-        return this._items;
-    }
-    getServiceItemById(id) {
-        return this._items[id];
+    getServiceInfo(id) {
+        return Object.hasOwn(this._items, id) ? this._projectServiceInfo(id, this._items[id]) : undefined;
     }
 
     // methods (private)
+    _projectServiceInfo(id, item) {
+        // expose scalar metadata without retaining references to runtime objects
+        const contractId = item.contractItem?.id;
+        const contractUrl = item.contractItem?.url;
+        const description = item.contractItem?.contract?.description;
+        const icon = item.contractItem?.contract?.icon;
+        const moduleId = item.implementationItem?.moduleId;
+        return Object.freeze({
+            id,
+            state: item.state,
+            contractId: typeof contractId === "string" ? contractId : null,
+            contractUrl: typeof contractUrl === "string" ? contractUrl : null,
+            description: typeof description === "string" ? description : null,
+            icon: typeof icon === "string" ? icon : null,
+            moduleId: typeof moduleId === "string" ? moduleId : null,
+            implementationName: item.implementationItem?.class?.name ?? null,
+            url: item.implementationItem?.url ?? null,
+            size: item.implementationItem?.size ?? null,
+            time: item.implementationItem?.time ?? null
+        });
+    }
     _validateImplementation(serviceName, instance, contractItem) {
         // validate the reliable callable surface declared by the contract
         for (const methodName of Object.keys(contractItem?.contract?.methods || {})) {

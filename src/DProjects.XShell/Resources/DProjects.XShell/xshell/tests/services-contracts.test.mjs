@@ -71,14 +71,71 @@ test("configured services load eagerly but instantiate lazily as singletons", as
 
     assert.deepEqual(loads, ["module:/_assets/test/services/example.js"]);
     assert.equal(constructions, 0);
-    assert.equal(services.getServiceItemById("example").state, "registered");
+    assert.equal(services.getServiceInfo("example").state, "registered");
 
     const first = services.resolve("example");
     const second = services.resolve("example");
 
     assert.equal(constructions, 1);
     assert.equal(first, second);
-    assert.equal(services.getServiceItemById("example").state, "created");
+    assert.equal(services.getServiceInfo("example").state, "created");
+});
+
+test("service inspection returns independent read-only metadata snapshots", async () => {
+    class ExampleService {
+
+        execute() {
+            return 42;
+        }
+    }
+    const definitions = { example: { contract: "example", implementation: "/_assets/test/services/example.js" } };
+    const implementations = { "module:/_assets/test/services/example.js": ExampleService };
+    const contractItems = { example: createContractItem("example", { execute: {} }) };
+    const runtime = { active: true };
+    const { services } = createServices(definitions, implementations, contractItems);
+    services.register("runtime", runtime);
+    await services.init();
+
+    const snapshot = services.registry;
+    const example = snapshot.find(item => item.id === "example");
+    assert.ok(Array.isArray(snapshot));
+    assert.ok(Object.isFrozen(snapshot));
+    assert.ok(Object.isFrozen(example));
+    assert.deepEqual(example, {
+        id: "example",
+        state: "registered",
+        contractId: "example",
+        contractUrl: "/_assets/contracts/example.json",
+        description: "example contract",
+        icon: null,
+        moduleId: "test",
+        implementationName: "ExampleService",
+        url: "/app/_assets/test/services/example.js",
+        size: 1,
+        time: example.time
+    });
+    assert.equal(typeof example.time, "number");
+    assert.equal("instance" in example, false);
+    assert.equal("implementationItem" in example, false);
+    assert.equal("contractItem" in example, false);
+    assert.equal(Object.values(example).includes(ExampleService), false);
+    assert.deepEqual(services.getServiceInfo("example"), example);
+    assert.notStrictEqual(services.getServiceInfo("example"), example);
+    assert.equal(services.getServiceInfo("missing"), undefined);
+    assert.deepEqual(snapshot.find(item => item.id === "runtime"), {
+        id: "runtime", state: "created", contractId: null, contractUrl: null, description: null, icon: null,
+        moduleId: null, implementationName: null, url: null, size: null, time: null
+    });
+
+    assert.throws(() => { example.state = "broken"; }, TypeError);
+    assert.throws(() => { snapshot[0] = { id: "broken" }; }, TypeError);
+    assert.throws(() => { snapshot.push({ id: "broken" }); }, TypeError);
+    assert.equal(services.getServiceInfo("example").state, "registered");
+    assert.equal(services.has("broken"), false);
+    assert.strictEqual(services.resolve("runtime"), runtime);
+    assert.equal(services.resolve("example").execute(), 42);
+    assert.equal(example.state, "registered");
+    assert.equal(services.registry.find(item => item.id === "example").state, "created");
 });
 
 test("has reports runtime and configured services without constructing lazy implementations", async () => {
@@ -131,7 +188,7 @@ test("service creation rejects an implementation missing a required method", asy
     await services.init();
 
     assert.throws(() => services.resolve("toast"), /Service 'toast' does not implement required method 'show'\./);
-    assert.equal(services.getServiceItemById("toast").state, "registered");
+    assert.equal(services.getServiceInfo("toast").state, "registered");
 });
 
 test("service creation accepts a declared own property", async () => {
@@ -180,7 +237,7 @@ test("service creation rejects an implementation missing a required property", a
     await services.init();
 
     assert.throws(() => services.resolve("identity"), /Service 'identity' does not implement required property 'currentUser'\./);
-    assert.equal(services.getServiceItemById("identity").state, "registered");
+    assert.equal(services.getServiceInfo("identity").state, "registered");
 });
 
 test("circular constructor dependencies fail with the service path", async () => {
@@ -273,7 +330,7 @@ test("services receive other lazily-created services through constructor injecti
     await services.init();
 
     assert.equal(services.resolve("consumer").execute(), 42);
-    assert.equal(services.getServiceItemById("dependency").state, "created");
+    assert.equal(services.getServiceInfo("dependency").state, "created");
 });
 
 test("Contracts.init rejects duplicate global IDs defensively", async () => {

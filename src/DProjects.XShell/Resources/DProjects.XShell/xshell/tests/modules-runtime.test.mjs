@@ -94,7 +94,7 @@ test("module requirements accept configured lazy services without constructing t
 
     await modules.init();
 
-    assert.equal(services.getServiceItemById("identity").state, "registered");
+    assert.equal(services.getServiceInfo("identity").state, "registered");
     assert.equal(constructions, 0);
 });
 

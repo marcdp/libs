@@ -40,10 +40,10 @@ export default {
                 >
                 <div>{{ item.moduleId }}</div>
                 <div>
-                    <x-anchor x-if="item.contractItem" x-attr:href="item.contractItem ? item.contractItem.url : ''" target="_blank" class="plain">
+                    <x-anchor x-if="item.contractUrl" x-attr:href="item.contractUrl" target="_blank" class="plain">
                         {{ item.contractId }}
                     </x-anchor>
-                    <span x-if="!item.contractItem">{{ item.contractId }}</span>
+                    <span x-if="!item.contractUrl">{{ item.contractId }}</span>
                  </div>
                 <div>{{ item.description }}</div>
                 <x-file-size x-prop:value="item.size" style="text-align:right"></x-file-size>
@@ -72,16 +72,14 @@ export default {
             async refresh() {
                 // refresh
                 const list = [];
-                const items = services.getServiceItems();
-                for (const serviceId in items) {
-                    const item = items[serviceId];
-                    const contractId = item.contractItem?.id || "";
-                    const description = item.contractItem?.contract?.description || (item.implementationItem
-                        ? `Configured service (${item.implementationItem.class?.name || "implementation"}).`
-                        : `Runtime service (${item.instance?.constructor?.name || "instance"}).`);
-                    const moduleId = item.implementationItem ? item.implementationItem.moduleId || "-" : "runtime";
+                for (const item of services.registry) {
+                    const contractId = item.contractId || "";
+                    const description = item.description || (item.url
+                        ? `Configured service (${item.implementationName || "implementation"}).`
+                        : "Runtime service.");
+                    const moduleId = item.moduleId || (item.url ? "-" : "runtime");
                     let valid = true;
-                    if (state.id && !serviceId.includes(state.id)) {
+                    if (state.id && !item.id.includes(state.id)) {
                         valid = false;
                     }
                     if (state.contractId && !contractId.includes(state.contractId)) {
@@ -95,17 +93,16 @@ export default {
                     }
                     if (valid) {
                         list.push({
-                            serviceId: serviceId,
-                            icon: item.contractItem ? item.contractItem.contract.icon || "x-service" : "x-service",
-                            contractItem: item.contractItem,
-                            implementationItem: item.implementationItem,
+                            serviceId: item.id,
+                            icon: item.icon || "x-service",
+                            contractUrl: item.contractUrl,
                             contractId: contractId || "-",
                             description: description,
                             moduleId: moduleId,
-                            url: item.implementationItem?.url || null,
+                            url: item.url,
                             status: item.state,
-                            size: item.implementationItem ? item.implementationItem.size : 0,
-                            time: item.implementationItem ? item.implementationItem.time : 0,
+                            size: item.size ?? 0,
+                            time: item.time ?? 0,
                         });
                     }
                 }
