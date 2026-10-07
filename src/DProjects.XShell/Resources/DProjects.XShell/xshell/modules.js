@@ -1,5 +1,3 @@
-import { loadStyleSheetRecursive } from './utils/stylesheets.js';
-
 // class
 export default class Modules {
 
@@ -56,13 +54,11 @@ export default class Modules {
             };
             // styles
             const moduleIndexCss = moduleConfig.assetsPath + "/styles/index.css";
-            for (const file of moduleConfig.files) {
-                if (file.path == moduleIndexCss) {
-                    tasks.push((async() => {
-                        let styleSheet = await loadStyleSheetRecursive(moduleIndexCss);
-                        module.styles.push(styleSheet);
-                    })());
-                }
+            if (moduleConfig.files.some(file => file.path == moduleIndexCss)) {
+                tasks.push((async() => {
+                    let styleSheet = await this._loader.load("style:" + moduleIndexCss);
+                    module.styles.push(styleSheet);
+                })());
             }
             // controller
             const moduleControllerJs = moduleConfig.assetsPath + "/module.js";

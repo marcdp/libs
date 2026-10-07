@@ -3,8 +3,8 @@ export default class LoaderStyleCss {
 
     // methods
     async load(src, context) {
-        const moduleBasePath = context.resourceDefinition.modulePath;
-        const css = await this._loadCss(src, moduleBasePath, new Set());
+        const moduleBaseUrl = new URL(context.resourceDefinition.modulePath.replace(/\/+$/, "") + "/", window.location.origin);
+        const css = await this._loadCss(src, moduleBaseUrl, new Set());
 
         // create stylesheet
         const styleSheet = new CSSStyleSheet();
@@ -14,8 +14,8 @@ export default class LoaderStyleCss {
     }
 
     // methods (private)
-    async _loadCss(src, moduleBasePath, loading) {
-        const sourceUrl = this._resolveModuleUrl(src, moduleBasePath);
+    async _loadCss(src, baseUrl, loading) {
+        const sourceUrl = new URL(src, baseUrl).href;
 
         // detect circular imports
         if (loading.has(sourceUrl)) throw new Error(`Circular CSS @import detected: ${sourceUrl}`);
@@ -29,10 +29,10 @@ export default class LoaderStyleCss {
             let css = await response.text();
 
             // recursively inline imported stylesheets
-            css = await this._resolveImports(css, moduleBasePath, loading);
+            css = await this._resolveImports(css, sourceUrl, loading);
 
-            // rewrite resource urls using the root module path
-            css = this._resolveUrls(css, moduleBasePath);
+            // rewrite relative resource urls against the stylesheet containing them
+            css = this._resolveUrls(css, sourceUrl);
 
             return css;
         } finally {
@@ -40,7 +40,7 @@ export default class LoaderStyleCss {
         }
     }
 
-    async _resolveImports(css, moduleBasePath, loading) {
+    async _resolveImports(css, sourceUrl, loading) {
         const imports = this._findImports(css);
         if (!imports.length) return css;
 
@@ -50,9 +50,7 @@ export default class LoaderStyleCss {
         for (const item of imports) {
             result += css.slice(position, item.start);
 
-            // import URLs are always relative to the root module path, not to the importing stylesheet
-            const importUrl = this._resolveModuleUrl(item.url, moduleBasePath);
-            const importedCss = await this._loadCss(importUrl, moduleBasePath, loading);
+            const importedCss = await this._loadCss(item.url, sourceUrl, loading);
 
             result += this._wrapImportedCss(importedCss, item.qualifiers);
             position = item.end;
@@ -62,7 +60,7 @@ export default class LoaderStyleCss {
         return result;
     }
 
-    _resolveUrls(css, moduleBasePath) {
+    _resolveUrls(css, sourceUrl) {
         let result = "";
         let position = 0;
 
@@ -88,7 +86,7 @@ export default class LoaderStyleCss {
             const parsed = this._readUrl(css, position);
             if (parsed) {
                 result += parsed.prefix;
-                result += this._resolveResourceUrl(parsed.url, moduleBasePath);
+                result += this._resolveResourceUrl(parsed.url, sourceUrl);
                 result += parsed.suffix;
                 position = parsed.end;
                 continue;
@@ -100,24 +98,13 @@ export default class LoaderStyleCss {
         return result;
     }
 
-    _resolveModuleUrl(url, moduleBasePath) {
+    _resolveResourceUrl(url, sourceUrl) {
         url = url.trim();
 
-        // external/absolute URLs
-        if (this._hasScheme(url) || url.startsWith("//")) return url;
+        // preserve absolute and special URLs
+        if (!url || url.startsWith("#") || url.startsWith("/") || this._hasScheme(url)) return url;
 
-        // all local URLs are relative to the root of the module
-        const base = new URL(moduleBasePath.replace(/\/+$/, "") + "/", window.location.origin);
-        return new URL(url.replace(/^\/+/, ""), base).toString();
-    }
-
-    _resolveResourceUrl(url, moduleBasePath) {
-        url = url.trim();
-
-        // do not rewrite URLs that do not belong to the module
-        if (!url || url.startsWith("#") || this._hasScheme(url) || url.startsWith("//")) return url;
-
-        return this._resolveModuleUrl(url, moduleBasePath);
+        return new URL(url, sourceUrl).href;
     }
 
     _findImports(css) {

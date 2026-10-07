@@ -3,6 +3,8 @@ import test from "node:test";
 
 import Modules from "../modules.js";
 import Services from "../services.js";
+import Loader from "../loader.js";
+import Resolver from "../resolver.js";
 
 function freeze(value) {
     if (value && typeof value === "object" && !Object.isFrozen(value)) {
@@ -166,4 +168,60 @@ test("runtime module without routes exposes a frozen empty object", async () => 
     const routes = modules.getModuleById("x-demo").routes;
     assert.deepEqual(routes, {});
     assert.equal(Object.isFrozen(routes), true);
+});
+
+test("module styles use the Loader once per inventoried stylesheet and are adopted after startup", async () => {
+    const paths = ["/_assets/first/styles/index.css", "/_assets/second/styles/index.css"];
+    const requests = [];
+    const events = [];
+    globalThis.window = { location: { origin: "https://example.test" }, customElements: { get() {} } };
+    globalThis.CSSStyleSheet = class {
+        async replace(css) { this.css = css; }
+    };
+    globalThis.fetch = async url => {
+        requests.push(url);
+        return { ok: true, async text() { return url.includes("/first/") ? "first{color:red}" : "second{color:blue}"; } };
+    };
+    const styleLoaderUrl = new URL("../loaders/style-css.js", import.meta.url).href;
+    const config = freeze({
+        app: { basePath: "" },
+        xshell: {
+            assetsPrefix: "_assets",
+            navigation: { mode: "path", hashPrefix: "#!" },
+            ui: { component: { lazy: null } },
+            resolver: { style: Object.fromEntries(["first", "second"].map(id => [
+                `/_assets/${id}/{path}.css`,
+                { url: `/_assets/${id}/{path}.css`, loader: styleLoaderUrl, cache: true, moduleId: id, modulePath: `/_assets/${id}` }
+            ])) }
+        },
+        modules: {
+            first: moduleDefinition("first", { files: [{ path: paths[0] }, { path: paths[0] }] }),
+            second: moduleDefinition("second", { files: [{ path: paths[1] }] }),
+            missing: moduleDefinition("missing")
+        }
+    });
+    const resolver = new Resolver({ config });
+    const loader = new Loader({ bus: { emit(name, payload) { events.push({ name, payload }); } }, config, resolver });
+    const document = { adoptedStyleSheets: [] };
+    const modules = new Modules({ bus: {}, config, loader, resolver, document, services: {} });
+
+    await modules.init();
+
+    const first = modules.getModuleById("first").styles;
+    const second = modules.getModuleById("second").styles;
+    assert.equal(first.length, 1);
+    assert.equal(second.length, 1);
+    assert.deepEqual(modules.getModuleById("missing").styles, []);
+    assert.notStrictEqual(first[0], second[0]);
+    assert.equal(first[0].css, "first{color:red}");
+    assert.equal(second[0].css, "second{color:blue}");
+    assert.deepEqual(document.adoptedStyleSheets, [first[0], second[0]]);
+    assert.deepEqual(requests, paths.map(path => `https://example.test${path}`));
+    assert.deepEqual(loader.registry.map(item => [item.resource, item.moduleId, item.status]), [
+        [`style:${paths[0]}`, "first", "loaded"],
+        [`style:${paths[1]}`, "second", "loaded"]
+    ]);
+    assert.equal(events.filter(event => event.name === "xshell:loader:resource:loaded").length, 2);
+    assert.strictEqual(await loader.load(`style:${paths[0]}`), first[0]);
+    assert.deepEqual(requests, paths.map(path => `https://example.test${path}`));
 });

@@ -19,9 +19,9 @@ function setStylesheets(files, requests) {
     };
 }
 
-test("external CSS rewrites local url() values from the module root", async () => {
+test("CSS url() values resolve against their containing stylesheet and preserve absolute or special URLs", async () => {
     const css = [
-        "a{background:url(relative.png)}",
+        "a{background:url(../icons/x-file.svg)}",
         "b{background:url(/root.png)}",
         "c{background:url(image.png?v=1#part)}",
         "d{filter:url(#filter)}",
@@ -31,15 +31,15 @@ test("external CSS rewrites local url() values from the module root", async () =
         "h{background:url(blob:https://example.test/id)}"
     ].join("\n");
     const requests = [];
-    setStylesheets(new Map([[`${moduleRoot}styles/main.css`, css]]), requests);
+    setStylesheets(new Map([[`${moduleRoot}styles/index.css`, css]]), requests);
 
-    const sheet = await new LoaderStyleCss().load("styles/main.css", context);
+    const sheet = await new LoaderStyleCss().load("/_assets/demo/styles/index.css", context);
 
-    assert.deepEqual(requests, [`${moduleRoot}styles/main.css`]);
+    assert.deepEqual(requests, [`${moduleRoot}styles/index.css`]);
     assert.equal(sheet.css, [
-        `a{background:url(${moduleRoot}relative.png)}`,
-        `b{background:url(${moduleRoot}root.png)}`,
-        `c{background:url(${moduleRoot}image.png?v=1#part)}`,
+        `a{background:url(${moduleRoot}icons/x-file.svg)}`,
+        "b{background:url(/root.png)}",
+        `c{background:url(${moduleRoot}styles/image.png?v=1#part)}`,
         "d{filter:url(#filter)}",
         "e{background:url(https://cdn.test/image.png)}",
         "f{background:url(//cdn.test/image.png)}",
@@ -48,16 +48,57 @@ test("external CSS rewrites local url() values from the module root", async () =
     ].join("\n"));
 });
 
-test("CSS @import resolves relative and root URLs from the module root", async () => {
+test("CSS @import and nested stylesheet URLs each use the containing stylesheet as their base", async () => {
     const requests = [];
     setStylesheets(new Map([
-        [`${moduleRoot}styles/main.css`, '@import "theme.css";\n@import url(/reset.css);\nmain{color:black}'],
-        [`${moduleRoot}theme.css`, "theme{background:url(theme.png)}"],
-        [`${moduleRoot}reset.css`, "reset{background:url(/reset.png)}"]
+        [`${moduleRoot}styles/index.css`, '@import "./theme.css";\n@import url(/reset.css);\nmain{color:black}'],
+        [`${moduleRoot}styles/theme.css`, '@import "./themes/dark.css";\ntheme{background:url(../icons/theme.svg)}'],
+        [`${moduleRoot}styles/themes/dark.css`, "dark{background:url(../images/dark.png)}"],
+        ["https://example.test/reset.css", "reset{background:url(/reset.png)}"]
     ]), requests);
 
-    const sheet = await new LoaderStyleCss().load("styles/main.css", context);
+    const sheet = await new LoaderStyleCss().load("styles/index.css", context);
 
-    assert.deepEqual(requests, [`${moduleRoot}styles/main.css`, `${moduleRoot}theme.css`, `${moduleRoot}reset.css`]);
-    assert.equal(sheet.css, `theme{background:url(${moduleRoot}theme.png)}\nreset{background:url(${moduleRoot}reset.png)}\nmain{color:black}`);
+    assert.deepEqual(requests, [
+        `${moduleRoot}styles/index.css`,
+        `${moduleRoot}styles/theme.css`,
+        `${moduleRoot}styles/themes/dark.css`,
+        "https://example.test/reset.css"
+    ]);
+    assert.equal(sheet.css, [
+        `dark{background:url(${moduleRoot}styles/images/dark.png)}`,
+        `theme{background:url(${moduleRoot}icons/theme.svg)}`,
+        "reset{background:url(/reset.png)}",
+        "main{color:black}"
+    ].join("\n"));
+});
+
+test("CSS @import media qualifiers remain wrapped and unsupported qualifiers remain rejected", async () => {
+    const requests = [];
+    setStylesheets(new Map([
+        [`${moduleRoot}styles/index.css`, '@import "./print.css" print;'],
+        [`${moduleRoot}styles/print.css`, "p{color:black}"]
+    ]), requests);
+
+    const sheet = await new LoaderStyleCss().load("styles/index.css", context);
+    assert.equal(sheet.css, "@media print {\np{color:black}\n}");
+
+    for (const qualifier of ["layer(theme)", "supports(display: grid)"]) {
+        setStylesheets(new Map([
+            [`${moduleRoot}styles/index.css`, `@import "./print.css" ${qualifier};`],
+            [`${moduleRoot}styles/print.css`, "p{color:black}"]
+        ]), []);
+        await assert.rejects(() => new LoaderStyleCss().load("styles/index.css", context), /Unsupported CSS @import qualifiers/);
+    }
+});
+
+test("CSS @import cycles are rejected", async () => {
+    const requests = [];
+    setStylesheets(new Map([
+        [`${moduleRoot}styles/index.css`, '@import "./theme.css";'],
+        [`${moduleRoot}styles/theme.css`, '@import "./index.css";']
+    ]), requests);
+
+    await assert.rejects(() => new LoaderStyleCss().load("styles/index.css", context), /Circular CSS @import detected/);
+    assert.deepEqual(requests, [`${moduleRoot}styles/index.css`, `${moduleRoot}styles/theme.css`]);
 });

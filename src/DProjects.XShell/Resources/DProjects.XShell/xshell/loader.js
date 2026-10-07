@@ -5,7 +5,7 @@ class ResourceLoadError extends Error {
         super(message, { cause: opts.cause });
         this.name = this.constructor.name;
         this.resource = resource;
-        this.src = opts.src;
+        this.url = opts.url;
         this.path = opts.path;
         this.code = opts.code;
     }

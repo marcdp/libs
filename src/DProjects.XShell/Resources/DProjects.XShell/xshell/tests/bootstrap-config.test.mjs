@@ -114,6 +114,22 @@ test("generated Markdown Page rules preserve document URLs and cache classes by 
     }
 });
 
+test("generated style rules route module CSS through the standard cached style-css loader", () => {
+    const config = {
+        app: { basePath: "/app" },
+        modules: { sample: { assetsPath: "/_assets/sample", files: [{ path: "/_assets/sample/styles/index.css" }] } },
+        xshell: { resolver: {} }
+    };
+    api.fillResolverRules(config);
+
+    const result = new Resolver({ config }).resolve("style:/_assets/sample/styles/index.css");
+    assert.equal(result.url, "/app/_assets/sample/styles/index.css");
+    assert.equal(result.definition.loader, "style-css");
+    assert.equal(result.definition.cache, true);
+    assert.equal(result.definition.moduleId, "sample");
+    assert.equal(result.definition.modulePath, "/_assets/sample");
+});
+
 const definition = (value, extra = {}) => ({ label: value, value, ...extra });
 const reference = configUrl => ({ configUrl });
 const plain = value => JSON.parse(JSON.stringify(value));

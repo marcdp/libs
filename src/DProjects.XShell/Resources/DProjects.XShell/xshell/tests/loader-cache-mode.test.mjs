@@ -93,6 +93,19 @@ test("failed cached load is evicted and a later request succeeds", async () => {
     assert.strictEqual(loader._cache["resource:/foo"].value, value);
 });
 
+test("failed resource exposes its resolved URL on the error", async t => {
+    t.mock.method(console, "error", () => {});
+    const { fixture, loader } = await createLoader("error-url");
+    fixture.failOnce();
+
+    await assert.rejects(() => loader.load("resource:/foo"), error => {
+        assert.equal(error.errors[0].resource, "resource:/foo");
+        assert.equal(error.errors[0].url, "/foo");
+        assert.equal(Object.hasOwn(error.errors[0], "src"), false);
+        return true;
+    });
+});
+
 test("cacheMode path keeps different paths separate", async () => {
     const { fixture, loader } = await createLoader("different-paths", { cacheMode: "path" });
     const first = await loader.load("resource:/foo?a=1");
