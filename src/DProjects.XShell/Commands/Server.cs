@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Builder;
 namespace DProjects.XShell.Commands {
 
     [Description("Launch a web server")]
-    [Example("DProjects.XShell server --app-config /_resources/DProjects.XShell/x-demo/module.jsonc --param a=123 --param b=456", "")]
+    [Example("DProjects.XShell server --app-config-path /_resources/DProjects.XShell/x-demo/module.jsonc --param a=123 --param b=456", "")]
     public class Server() : ICommand {
 
 
@@ -15,8 +15,6 @@ namespace DProjects.XShell.Commands {
         public string AppBasePath { get; init; } = "";
         [Flag('c', "App config file path", "")]
         public string AppConfigPath { get; init; } = "";
-        [Flag('r', "Resource base url", "")]
-        public string ResourceBase { get; init; } = "";
         [Flag('e', "Environment", "")]
         public string Environment { get; init; } = "";
         [Flag('p', "Parameter", "")]
@@ -29,19 +27,31 @@ namespace DProjects.XShell.Commands {
             // builder
             var builder = WebApplication.CreateBuilder();
 
-            // add services
-            builder.Services.AddXShell();
-
             // build app
             var app = builder.Build();
 
             // use XShell
             app.UseXShell(new Extensions.Configuration {
-                AppBasePath = AppBasePath,
-                AppConfigPath = (string.IsNullOrEmpty(AppConfigPath) ? ResourceBase + "/_resources/DProjects.XShell/x-demo/module.jsonc" : AppConfigPath),
-                AppParams = Param.ToDictionary(p => p.Split('=')[0], p => p.Split('=')[1]),
-                Environment = Environment,
-                ResourcesBase = ResourceBase
+                App = new Extensions.AppConfig {
+                    BasePath = AppBasePath,
+                    ConfigPath = (string.IsNullOrEmpty(AppConfigPath) ? AppBasePath + "/_resources/DProjects.XShell/x-demo/module.jsonc" : AppConfigPath),
+                    Params = Param.ToDictionary(p => p.Split('=')[0], p => p.Split('=')[1])
+                },
+                Temp = new Extensions.TempConfig {
+                    Path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Extensions.ResourceName, "temp"),
+                    BasePath = AppBasePath + "/temp",
+                    ExpirationTime = TimeSpan.FromMinutes(30),
+                    FileSizeLimit = 10 * 1024 * 1024 // 10 MB
+                },
+                Resources = new Extensions.ResourcesConfig {
+                    BasePath = AppBasePath + "/_resources/" + Extensions.ResourceName
+                },
+                XShell = new Extensions.XShellConfig {
+                    BasePath = AppBasePath + "/_resources/" + Extensions.ResourceName + "/xshell"
+                },
+                Server = new Extensions.ServerConfig {
+                    Environment = Environment
+                }
             });
 
             // run app

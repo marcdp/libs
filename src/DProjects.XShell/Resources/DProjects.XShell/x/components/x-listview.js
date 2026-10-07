@@ -54,7 +54,7 @@ export default {
         /* tiles */
         .tiles > div .columns {display:none;}
         .tiles > div { display:flex; flex-wrap:wrap; }
-        .tiles > div ::slotted(*) {}
+        .tiles > div ::slotted(*) { }
     `,
     template: `
         <div x-attr:class="state.view">

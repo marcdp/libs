@@ -6,31 +6,26 @@ namespace DProjects.XShell.Middlewares {
 
     public sealed class TempMiddleware : IDisposable {
 
-        // Holds middleware dependencies and configured physical/request paths
         // fields
         private readonly RequestDelegate mNext;
-        private readonly string mPhysicalPath;
-        private readonly string mRequestPath;
-        private readonly TimeSpan mExpirationTime;
+        private readonly Extensions.TempConfig mConfig;
         private readonly FileExtensionContentTypeProvider mContentTypes = new();
         private readonly Timer mTimer;
 
         // ctor
-        public TempMiddleware(RequestDelegate next, string physicalPath, string requestPath, TimeSpan expirationTime) {
+        public TempMiddleware(RequestDelegate next, Extensions.TempConfig tempConfig) {
             mNext = next;
-            mPhysicalPath = Path.GetFullPath(physicalPath);
-            mRequestPath = NormalizeRequestPath(requestPath);
-            mExpirationTime = expirationTime;
-            Directory.CreateDirectory(mPhysicalPath);
+            mConfig = tempConfig;
+            Directory.CreateDirectory(mConfig.Path);
             // create a cron that deletes expired files every X minutes 
             mTimer = new System.Threading.Timer(_ => {
                 try {
                     var now = DateTime.UtcNow;
-                    foreach (var dir in Directory.GetDirectories(mPhysicalPath)) {
+                    foreach (var dir in Directory.GetDirectories(mConfig.Path)) {
                         var id = Path.GetFileName(dir);
                         if (!Guid.TryParse(id, out System.Guid _)) continue;
                         var info = new DirectoryInfo(dir);
-                        var expiration = info.CreationTimeUtc.Add(mExpirationTime);
+                        var expiration = info.CreationTimeUtc.Add(mConfig.ExpirationTime);
                         if (expiration < now) {
                             try {
                                 Directory.Delete(dir, recursive: true);
@@ -47,19 +42,19 @@ namespace DProjects.XShell.Middlewares {
 
         // methods
         public async Task InvokeAsync(HttpContext context) {
-            // Check if the request path starts with the middleware's configured base path
-            if (!context.Request.Path.StartsWithSegments(mRequestPath, out var remaining)) {
+            // check if the request path starts with the middleware's configured base path
+            if (!context.Request.Path.StartsWithSegments(mConfig.BasePath, out var remaining)) {
                 await mNext(context);
                 return;
             }
 
-            // Route POST requests to the upload handler when path exactly matches the base
+            // route POST requests to the upload handler when path exactly matches the base
             if (HttpMethods.IsPost(context.Request.Method) && remaining == PathString.Empty) {
                 await PostAsync(context);
                 return;
             }
 
-            // Route GET requests to the download handler
+            // route GET requests to the download handler
             if (HttpMethods.IsGet(context.Request.Method)) {
                 await GetAsync(context, remaining);
                 return;
@@ -71,157 +66,126 @@ namespace DProjects.XShell.Middlewares {
 
         // methods (private)
         private async Task PostAsync(HttpContext context) {
-            // Reject requests that are not form submissions (multipart/form-data)
+            // reject requests that are not form submissions (multipart/form-data)
             if (!context.Request.HasFormContentType) {
                 context.Response.StatusCode = StatusCodes.Status415UnsupportedMediaType;
                 return;
             }
 
-            // Read the form data from the request
+            // read the form data from the request
             var form = await context.Request.ReadFormAsync(context.RequestAborted);
 
-            // Require exactly one uploaded file
+            // require exactly one uploaded file
             if (form.Files.Count != 1) {
                 context.Response.StatusCode = StatusCodes.Status400BadRequest;
                 return;
             }
 
-            // Take the uploaded file and sanitize its filename
+            // take the uploaded file and sanitize its filename
             var file = form.Files[0];
+
+            // check file size limit
+            if (file.Length > mConfig.FileSizeLimit) {
+                context.Response.StatusCode = StatusCodes.Status413PayloadTooLarge;
+                return;
+            }
+
             var filename = GetFilename(file.FileName);
 
-            // Reject invalid filenames
+            // reject invalid filenames
             if (filename == null) {
                 context.Response.StatusCode = StatusCodes.Status400BadRequest;
                 return;
             }
-            // Create a unique directory for this upload and compute the target file path
+            // create a unique directory for this upload and compute the target file path
             var id = Guid.NewGuid().ToString("N");
-            var directory = Path.Combine(mPhysicalPath, id);
+            var directory = Path.Combine(mConfig.Path, id);
             var filePath = Path.Combine(directory, filename);
 
             Directory.CreateDirectory(directory);
 
-            // Save the uploaded file to disk asynchronously
+            // save the uploaded file to disk asynchronously
             await using (var output = new FileStream(filePath, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, true)) {
                 await file.CopyToAsync(output, context.RequestAborted);
             }
 
-            // Respond with 201 Created and return the URL in the body
+            // respond with 201 Created and return the URL in the body
             context.Response.StatusCode = StatusCodes.Status201Created;
 
-            // Build the public URL for the saved file
-            var url = $"temp:/{id}/{Uri.EscapeDataString(filename)}?size={file.Length}&type={MimeTypeUtils.GetMimeType(filename)}&hash={ComputeHash(filePath)}&expiration={System.DateTimeOffset.UtcNow.Add(mExpirationTime).ToUnixTimeSeconds()}";
+            // build the public URL for the saved file
+            var url = $"temp:/{id}/{Uri.EscapeDataString(filename)}?size={file.Length}&type={MimeTypeUtils.GetMimeType(filename)}&hash={ComputeHash(filePath)}&expiration={System.DateTimeOffset.UtcNow.Add(mConfig.ExpirationTime).ToUnixTimeSeconds()}";
             context.Response.ContentType = "text/plain";
             await context.Response.WriteAsync(url, context.RequestAborted);
         }
 
         private string ComputeHash(string filePath) {
-            // Compute SHA256 hash of the file for integrity verification
+            // compute SHA256 hash of the file for integrity verification
             using var sha256 = System.Security.Cryptography.SHA256.Create();
             using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
             var hashBytes = sha256.ComputeHash(stream);
             return Convert.ToHexString(hashBytes).ToLowerInvariant();
         }
 
-        // Handles GET requests: validates id/filename and streams the file back
+        // handles GET requests: validates id/filename and streams the file back
         private async Task GetAsync(HttpContext context, PathString remaining) {
-            // Split the remaining path into expected [id, filename] segments
+            // split the remaining path into expected [id, filename] segments
             var parts = (remaining.Value ?? "").Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries);
 
-            // Validate expected format: {id}/{filename} where id is a GUID
+            // validate expected format: {id}/{filename} where id is a GUID
             if (parts.Length != 2 || !Guid.TryParse(parts[0], out System.Guid _)) {
                 context.Response.StatusCode = StatusCodes.Status404NotFound;
                 return;
             }
 
-            // Sanitize the filename extracted from the URL
+            // sanitize the filename extracted from the URL
             var filename = GetFilename(Uri.UnescapeDataString(parts[1]));
 
-            // If filename invalid, return 404
+            // if filename invalid, return 404
             if (filename == null) {
                 context.Response.StatusCode = StatusCodes.Status404NotFound;
                 return;
             }
-            // Compose the physical paths for the stored file
-            var directory = Path.Combine(mPhysicalPath, parts[0]);
+            // compose the physical paths for the stored file
+            var directory = Path.Combine(mConfig.Path, parts[0]);
             var filePath = Path.Combine(directory, filename);
 
-            // Ensure the file exists and the path does not escape the intended directory
+            // ensure the file exists and the path does not escape the intended directory
             if (!IsInside(filePath, directory) || !File.Exists(filePath)) {
                 context.Response.StatusCode = StatusCodes.Status404NotFound;
                 return;
             }
-            // Determine the response content type for the filename
+            // determine the response content type for the filename
             if (!mContentTypes.TryGetContentType(filename, out var contentType)) {
                 contentType = "application/octet-stream";
             }
-            // Get file info to set Content-Length
+            // get file info to set Content-Length
             var info = new FileInfo(filePath);
 
             context.Response.ContentType = contentType;
             context.Response.ContentLength = info.Length;
 
-            // Open the file and stream it to the response body
-            await using var stream = new FileStream(
-                filePath,
-                FileMode.Open,
-                FileAccess.Read,
-                FileShare.Read,
-                81920,
-                FileOptions.Asynchronous | FileOptions.SequentialScan);
+            // open the file and stream it to the response body
+            await using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, FileOptions.Asynchronous | FileOptions.SequentialScan);
 
+            // copy
             await stream.CopyToAsync(context.Response.Body, context.RequestAborted);
         }
-
-        // Normalize and validate configured request path (must not be empty or root)
-        // Validate and normalize the configured request path
-        private static string NormalizeRequestPath(string path) {
-            // Ensure the provided path is not null/empty/whitespace
-            if (String.IsNullOrWhiteSpace(path)) {
-                throw new ArgumentException("Request path cannot be empty.", nameof(path));
-            }
-
-            // Trim extra slashes and ensure it starts with a single '/'
-            path = "/" + path.Trim('/');
-
-            // Root path is not allowed for this middleware
-            if (path == "/") {
-                throw new ArgumentException("Request path cannot be root.", nameof(path));
-            }
-
-            return path;
-        }
-
-        // Extract a safe filename from input, reject path traversal and empty names
-        // Extract a safe filename by stripping path segments and rejecting invalid names
         private static string? GetFilename(string filename) {
-            // Reject empty or whitespace names
+            // sanitize the filename to prevent directory traversal and invalid characters
             if (String.IsNullOrWhiteSpace(filename)) return null;
-
-            // Normalize separators and take last path segment (basename)
             filename = filename.Replace('\\', '/');
             filename = filename[(filename.LastIndexOf('/') + 1)..];
-
-            // Reject filenames that are empty or navigation tokens
             if (filename is "" or "." or "..") return null;
-
+            if (filename.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0) return null;
             return filename;
         }
-
-        // Verify that 'path' is located inside 'root' to prevent directory escape
-        // Ensure the resolved path is contained within the given root directory
         private static bool IsInside(string path, string root) {
-            // Use case-insensitive comparison on Windows
-            var comparison = OperatingSystem.IsWindows()
-                ? StringComparison.OrdinalIgnoreCase
-                : StringComparison.Ordinal;
-
-            // Normalize both paths and ensure root ends with a directory separator
+            // use case-insensitive comparison on Windows
+            var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+            // normalize both paths and ensure root ends with a directory separator
             root = Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
             path = Path.GetFullPath(path);
-
-            // Confirm path starts with the normalized root
+            // confirm path starts with the normalized root
             return path.StartsWith(root, comparison);
         }
 

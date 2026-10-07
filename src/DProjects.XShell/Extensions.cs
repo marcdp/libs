@@ -1,13 +1,8 @@
 
 using System.Reflection;
-
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.FileProviders;
-using Microsoft.Extensions.Hosting;
 using Microsoft.AspNetCore.Http;
-
 using DProjects.Utils;
 
 namespace DProjects.XShell {
@@ -17,35 +12,47 @@ namespace DProjects.XShell {
 
         // inner class
         public class Configuration {
+            public AppConfig App { get; init; } = new AppConfig();
+            public TempConfig Temp { get; init; } = new TempConfig();
+            public XShellConfig XShell { get; init; } = new XShellConfig();
+            public ResourcesConfig Resources { get; init; } = new ResourcesConfig();
+            public ServerConfig Server { get; init; } = new ServerConfig();            
+        }
+        public class ResourcesConfig {
+            public string BasePath { get; init; } = "";
+        }
+        public class XShellConfig {
+            public string BasePath { get; init; } = "";
+        }
+        public class AppConfig {
+            public string Description { get; init; } = "";
+            public string BasePath { get; init; } = "";
+            public string ConfigPath { get; init; } = "";
+            public Dictionary<string, string> Params { get; init; } = new();
+        }
+        public class ServerConfig {
             public string? Environment { get; init; } = null;
-            public string AppDescription { get; init; } = "";
-            public string AppBasePath { get; init; } = "";
-            public string AppConfigPath { get; init; }  = ""; 
-            public Dictionary<string,string> AppParams { get; init; } = new();
-            public string ResourcesBase { get; init; } = "";
-            public string[] UnhandledPrefixes { get; init; } = new string[] {"/_", "/api", "/temp"};
-            public string TempPath { get; init; } = Path.Combine(Path.GetTempPath(), ResourceName, "temp");
-            public string TempUrl { get; init; } = "/temp";
-            public TimeSpan TempExpirationTime { get; init; } = TimeSpan.FromHours(1);
-            public string CSPValue { get; init; } = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; ";
-            public string XShellBasePath { get; init; } = "/_resources/DProjects.XShell/xshell";
+            public string HeaderCSP { get; init; } = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; ";
+            public string[] UnhandledPrefixes { get; init; } = new string[] { "/_", "/api", "/temp" };
+        }
+        public class TempConfig {
+            public string Path { get; init; } = "";
+            public string BasePath { get; init; } = "/temp";
+            public TimeSpan ExpirationTime { get; init; } = TimeSpan.FromHours(1);
+            public long FileSizeLimit { get; init; } = 100 * 1024 * 1024; // 100 MB
         }
 
 
         // constants
         public const string ResourceName = "DProjects.XShell";
-        public const string RequestPath = "/_resources/DProjects.XShell";
 
 
         // methods
-        public static void AddXShell(this IServiceCollection services) {
-            // register XShell services here when needed
-        }
         public static void UseXShell(this WebApplication app, Configuration config) {
 
             // config webapplication
             var assembly = typeof(Extensions).Assembly;
-            var environment = (string.IsNullOrEmpty(config.Environment) ? app.Environment.EnvironmentName : config.Environment);
+            var environment = (string.IsNullOrEmpty(config.Server.Environment) ? app.Environment.EnvironmentName : config.Server.Environment);
             var isDevelopment = environment.Equals("Development", StringComparison.OrdinalIgnoreCase);
             string resourcePath;
             if (isDevelopment) {
@@ -61,21 +68,20 @@ namespace DProjects.XShell {
             if (!Directory.Exists(resourcePath)) throw new DirectoryNotFoundException($"XShell resources directory not found: {resourcePath}");
 
             // /_resources
-            app.UseMiddleware<Middlewares.ResourcesMiddleware>(resourcePath, config.ResourcesBase + RequestPath, isDevelopment);
+            app.UseMiddleware<Middlewares.ResourcesMiddleware>(resourcePath, config.Resources.BasePath, isDevelopment);
 
             // /_temp
-            app.UseMiddleware<Middlewares.TempMiddleware>(config.TempPath, config.TempUrl, config.TempExpirationTime);
+            app.UseMiddleware<Middlewares.TempMiddleware>(config.Temp);
 
             // redirect canonical base URL
             app.Use(async (context, next) => {
-                if (context.Request.Path == config.AppBasePath) {
-                    context.Response.Redirect(config.AppBasePath + "/");
+                if (context.Request.Path == config.App.BasePath) {
+                    context.Response.Redirect(config.App.BasePath + "/");
                     return;
-                } else if (config.AppBasePath.Length > 0 && !context.Request.Path.StartsWithSegments(config.AppBasePath)) {
-                    if (config.ResourcesBase.Length > 0 && context.Request.Path.StartsWithSegments(config.ResourcesBase)) {
-
+                } else if (config.App.BasePath.Length > 0 && !context.Request.Path.StartsWithSegments(config.App.BasePath)) {
+                    if (config.App.BasePath.Length > 0 && context.Request.Path.StartsWithSegments(config.App.BasePath)) {
                     } else {
-                        context.Response.Redirect(config.AppBasePath + "/");
+                        context.Response.Redirect(config.App.BasePath + "/");
                         return;
 
                     }
@@ -94,7 +100,7 @@ namespace DProjects.XShell {
 
                 // bootstrap files
                 foreach (var aa in bootstrapFiles.Keys) {
-                    if (context.Request.Path == config.AppBasePath + aa) {
+                    if (context.Request.Path == config.App.BasePath + aa) {
                         context.Response.ContentType = MimeTypeUtils.GetMimeType(context.Request.Path);
                         await context.Response.WriteAsync(bootstrapFiles[aa]);
                         return;
@@ -108,7 +114,7 @@ namespace DProjects.XShell {
                 }
 
                 // only handle requests inside app.basePath
-                if (!context.Request.Path.StartsWithSegments(config.AppBasePath, out var remaining)) {
+                if (!context.Request.Path.StartsWithSegments(config.App.BasePath, out var remaining)) {
                     await next();
                     return;
                 }
@@ -116,7 +122,7 @@ namespace DProjects.XShell {
                 var slug = remaining.Value ?? "";
 
                 // reserved prefixes must continue through the pipeline
-                foreach (var unhandledPrefix in config.UnhandledPrefixes) {
+                foreach (var unhandledPrefix in config.Server.UnhandledPrefixes) {
                     if (slug.StartsWith(unhandledPrefix, StringComparison.OrdinalIgnoreCase)) {
                         await next();
                         return;

@@ -56,6 +56,7 @@
                 "demo": {
                     "prefix": "demo",
                     "label": "Demo",
+                    "description": "Demo area for the x-demo app",
                     "icon": "",
                     "modules": [ "x-demo" ]
                 }

@@ -240,7 +240,7 @@ namespace DProjects.XShell.Test {
         public void InvalidRequestRoot_IsRejected(string requestPath) {
             using var workspace = new TemporaryDirectory();
 
-            Assert.Throws<ArgumentException>(() => new TempMiddleware(_ => Task.CompletedTask, workspace.Root, requestPath, TimeSpan.FromHours(1)));
+            Assert.Throws<ArgumentException>(() => new TempMiddleware(_ => Task.CompletedTask, new Extensions.TempConfig { Path = workspace.Root, Url = requestPath }));
         }
 
         // inner classes
@@ -268,7 +268,7 @@ namespace DProjects.XShell.Test {
                     context.Response.StatusCode = StatusCodes.Status204NoContent;
                     return Task.CompletedTask;
                 };
-                mMiddleware = new TempMiddleware(next, Root, requestPath, Expiration);
+                mMiddleware = new TempMiddleware(next, new Extensions.TempConfig { Path = Root, Url = requestPath, ExpirationTime = Expiration });
             }
 
             // methods

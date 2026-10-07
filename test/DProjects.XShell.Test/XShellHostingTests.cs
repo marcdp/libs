@@ -210,12 +210,15 @@ namespace DProjects.XShell.Test {
                     configureEndpoints?.Invoke(app);
                     app.UseXShell(new Extensions.Configuration {
                         Environment = "Development",
-                        AppBasePath = appBasePath,
+                        App = new Extensions.AppConfig {
+                            BasePath = appBasePath,
+                            ConfigPath = appConfigPath,
+                            Params = new Dictionary<string, string>()
+                        },
                         ResourcesBase = resourcesBase,
                         UnhandledPrefixes = unhandledPrefixes ?? new Extensions.Configuration().UnhandledPrefixes,
-                        AppConfigPath = appConfigPath,
                         XShellBasePath = xshellBasePath,
-                        TempPath = tempPath
+                        Temp = new Extensions.TempConfig { Path = tempPath }
                     });
                     await app.StartAsync(TestContext.Current.CancellationToken);
                     return new HostingApplication(app, tempPath);
