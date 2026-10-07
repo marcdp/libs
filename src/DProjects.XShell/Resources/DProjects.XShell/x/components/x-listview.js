@@ -31,7 +31,7 @@ export default {
         .icons > div {display:flex;gap:.4em;flex-wrap:wrap;}
         .icons > div .columns {display:none;}
 
-        /* details */
+        /* details */       
         .details {}
         .details > div {
             display:table;
@@ -39,10 +39,9 @@ export default {
             width:100%;
             white-space:nowrap;
         }
-        .details > div ::slotted(*) {display:table-row;}
-        
+        .details > div ::slotted(*) {display:table-row;}       
         .details > div ::slotted(*:not([name]):nth-child(even)) {background: var(--x-color-background-alt)} 
-        .details > div .columns {display:table-row; position:sticky; top:0; background: var(--x-color-background-page);}
+        .details > div .columns {display:table-row; position:sticky; top:0; background: var(--x-color-background-page); z-index:1;}
         .details > div .columns ::slotted(*) {display:table-cell; background: none!important; color:gray; padding-right:.25em;}
         .details > div .columns ::slotted(*:first-child) {padding-left:1.5em; border-box:border;}
         .details > div .columns ::slotted(x-datafield:first-child) {padding-left:0;}
@@ -52,9 +51,23 @@ export default {
         .list > div {column-width: 15em; column-gap: 1rem;}
 
         /* tiles */
+        .tiles {}
         .tiles > div .columns {display:none;}
-        .tiles > div { display:flex; flex-wrap:wrap; }
+        .tiles > div { display:flex; flex-wrap:wrap;  container: items / inline-size; }
         .tiles > div ::slotted(*) { }
+        .tiles > div ::slotted(*) { 
+            --x-listview-item-tile-width: 17em; 
+        }
+        @container (width < 70em) {
+            .tiles > div ::slotted(*) {width: 33.33%; --x-listview-item-tile-width: 100%; }
+        }
+        @container (width < 50em) {
+            .tiles > div ::slotted(*) {width: 50%; --x-listview-item-tile-width: 100%; }
+        }
+        @container (width < 30em) {
+            .tiles > div ::slotted(*) {width: 100%; --x-listview-item-tile-width: 100%; }
+        }
+        
     `,
     template: `
         <div x-attr:class="state.view">

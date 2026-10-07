@@ -13,7 +13,7 @@ export default {
     },
     style: `
         x-tabs {width: 80em; max-width:90vw; }
-        x-tab {max-height:60vh; aoverflow-y:auto;}
+        :scope {max-height:60vh; overflow-y:auto;}
     `,
     template: `
         <x-tabs selected-index="0">

@@ -53,9 +53,10 @@ export default {
             margin-top:1em;
             margin-left:-.5em;
             max-width:90vw;
-            min-width: clamp(22em, 100%, 200%);
-            max-height:90vh;
-            overflow:auto;
+            min-width: clamp(22em, 100%, 200%);            
+        }
+        :host(.popover) .body > div {
+            max-height:unset!important;
         }
         :host(.popover) .body .helper {
             display: inline-block;
@@ -87,7 +88,7 @@ export default {
         :host(.popover.left) .body .helper {left:unset; right:1em;}
         :host(.popover.left) .body .helper2 {left:unset; right:1em;}
             
-        /* input-dropdown */
+        /* input-dropdown  (used in search page) */
         :host(.input-dropdown) .header.expanded {
             --x-datafield-border-radius: .5em .5em 0 0;
         }
@@ -95,6 +96,16 @@ export default {
             width:100%;
             border-radius:  0 0 var(--x-datafield-border-radius) var(--x-datafield-border-radius);
             border-top:none;
+        }
+
+        /* no padding */
+        :host(.no-padding) .body > div {
+            padding: 0;
+        }
+
+        /* minimal padding */
+        :host(.minimal-padding) .body > div {
+            padding: .5em;
         }
     `,
     template: `
