@@ -14,6 +14,13 @@ test("documentation inventory menus keep Markdown page and index destinations", 
     assert.equal(menu[0].children[0].children[0].href, `${root}/10-architecture/100-services.md`);
 });
 
+test("Areas identifies modules under a normalized multi-segment assetsBase", () => {
+    const config = { xshell: { assetsBase: "/virtual/assets", areas: { definitions: {}, global: [] } } };
+    const areas = new Areas({ config, bus: { addEventListener() {} } });
+    assert.equal(areas.getModuleId("/demo/virtual/assets/x/pages/index.js"), "x");
+    assert.equal(areas.getModuleId("/demo/_assets/x/pages/index.js"), null);
+});
+
 function createAreas() {
     const bus = {
         addEventListener() {},
@@ -21,6 +28,7 @@ function createAreas() {
     };
     const config = {
         xshell: {
+            assetsBase: "/_assets",
             areas: {
                 default: "sales",
                 global: [],
@@ -94,7 +102,7 @@ function createNavigation({ areas = createAreas(), mode = "path", basePath = "ht
 function createSharedRouteContext({ definitions, defaultArea, mode = "path", basePath = "https://example.test/" }) {
     const config = {
         xshell: {
-            assetsPrefix: "_assets",
+            assetsBase: "/_assets",
             areas: { default: defaultArea, global: [], definitions }
         }
     };
@@ -111,7 +119,7 @@ function createSharedRouteContext({ definitions, defaultArea, mode = "path", bas
 function createNoRouteContext() {
     const config = {
         xshell: {
-            assetsPrefix: "_assets",
+            assetsBase: "/_assets",
             areas: {
                 default: "empty",
                 global: [],
@@ -221,7 +229,7 @@ function createRouteAreas() {
     };
     const config = {
         xshell: {
-            assetsPrefix: "_assets",
+            assetsBase: "/_assets",
             areas: {
                 default: "combined",
                 global: [],

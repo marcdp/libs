@@ -39,7 +39,7 @@ function configuration(module) {
             debug: false,
             version: "1.0.0",
             environment: "test",
-            assetsPrefix: "_assets",
+            assetsBase: "/_assets",
             assetsPath: "/_assets/xshell",
             areas: { default: null, global: [], definitions: {} },
             navigation: { mode: "path" },
@@ -70,6 +70,17 @@ test("module schema keeps routes optional", () => {
 test("effective schema rejects the removed xshell.identity configuration", () => {
     const config = configuration(moduleDefinition());
     config.xshell.identity = { provider: "anonymous" };
+    assert.equal(validator.validate(config).valid, false);
+});
+
+test("effective schema requires normalized assetsBase and rejects the removed prefix", () => {
+    const config = configuration(moduleDefinition());
+    delete config.xshell.assetsBase;
+    assert.equal(validator.validate(config).valid, false);
+    config.xshell.assetsBase = "app:/_assets";
+    assert.equal(validator.validate(config).valid, false);
+    config.xshell.assetsBase = "/_assets";
+    config.xshell.assetsPrefix = "_assets";
     assert.equal(validator.validate(config).valid, false);
 });
 

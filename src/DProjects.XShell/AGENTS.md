@@ -203,16 +203,16 @@ plus relevant module definitions and ADRs.
 The current virtual asset namespace is configured through:
 
 ```text
-xshell.assetsPrefix
+xshell.assetsBase
 ```
 
-The checked-in prefix is:
+The checked-in configured value is:
 
 ```text
-_assets
+app:/_assets
 ```
 
-producing URLs such as:
+which resolves against the application base URL and produces virtual URLs such as:
 
 ```text
 /_assets/x/components/x-button.js

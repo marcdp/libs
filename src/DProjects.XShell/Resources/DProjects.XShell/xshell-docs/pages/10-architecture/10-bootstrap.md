@@ -10,7 +10,7 @@ host HTML
     -> discover modules.<id>.configUrl references recursively
     -> validate reference ids and canonical URLs
     -> reject dependency cycles
-    -> normalize configUrl, assetsUrl, and module resource paths
+    -> resolve xshell.assetsBase against the application base and normalize configUrl, assetsUrl, and module resource paths
     -> merge defaults, dependencies, dependents, and root
     -> generate assetsPath for every effective module and XShell
     -> install and initialize Service Worker mappings
@@ -48,9 +48,10 @@ dependencies therefore load once.
 Each local definition receives its configuration document URL as `configUrl`. Its `assetsUrl` defaults to the same document's directory unless the
 definition owns an explicit value. External reference URLs are resolved in the referencing document; they are not asset namespace URLs.
 
-After merging, bootstrap generates `assetsPath` from the effective `xshell.assetsPrefix`. It is not authored configuration. For example, the
-`_assets` prefix produces `/_assets/x` for module `x` and `/_assets/xshell` for the framework. `assetsUrl` remains the physical backing location,
-while `assetsPath` is the application-root-relative virtual base path exposed through the Service Worker namespace.
+Bootstrap normalizes the configured `xshell.assetsBase` once. The checked-in `app:/_assets` resolves relative to the application base URL and is
+stored as the application-relative virtual path `/_assets`. Bootstrap derives `assetsPath` from it: `/_assets/x` for module `x` and
+`/_assets/xshell` for the framework. With an application hosted under `/myapp/`, these are served under `/myapp/_assets/...`.
+`assetsPath` is generated runtime metadata; `assetsUrl` remains the separate physical backing location.
 
 The dependency graph supplies a post-order merge sequence. Dependencies precede dependents, reference contributions merge after the referenced
 local definition, sibling references retain declaration/discovery order, and the root is last. This produces deterministic root-authoritative

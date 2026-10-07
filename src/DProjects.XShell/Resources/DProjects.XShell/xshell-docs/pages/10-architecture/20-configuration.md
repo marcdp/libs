@@ -92,9 +92,14 @@ XShell application base URL built once from `document.location.origin` and the h
 `https://example.com/myapp/`, both `app:images/logo.svg` and `app:/images/logo.svg` resolve to
 `https://example.com/myapp/images/logo.svg`. Absolute URLs retain their existing meaning.
 
-Bootstrap gives each local definition its document URL as `configUrl` and defaults `assetsUrl` to the document directory. After merging, it derives
-each module `assetsPath` and `xshell.assetsPath` from the effective `xshell.assetsPrefix`, then maps module-relative runtime paths into that virtual
-namespace.
+`xshell.assetsBase` defines the application-relative base of XShell's virtual asset namespace. The checked-in value is
+`"assetsBase": "app:/_assets"`. For an application base of `https://example.com/myapp/`, this resolves under
+`https://example.com/myapp/_assets`. The effective configuration stores the normalized application-relative path `/_assets`; the framework and
+module `assetsPath` values are derived from that one base. For example, module `x` has `assetsPath: "/_assets/x"`, which the host serves under
+`/myapp/_assets/x`. `assetsUrl` remains the separate physical source location.
+
+Bootstrap gives each local definition its document URL as `configUrl` and defaults `assetsUrl` to the document directory. It maps module-relative
+runtime paths into the normalized virtual namespace.
 
 The canonical schema describes the final merged object, not partial authored references. Bootstrap generates resolver rules after Service Worker
 initialization and inventory loading, including exact contract rules from inventory.

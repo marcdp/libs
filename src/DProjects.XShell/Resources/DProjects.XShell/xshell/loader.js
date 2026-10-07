@@ -36,7 +36,7 @@ export default class Loader {
     _bus = null;
     _resolver = null;
     _appBasePath = null;
-    _assetsPrefix = null;
+    _xshellAssetsPath = null;
     _navigationMode = null;
     _navigationHashPrefix = null;
     
@@ -48,7 +48,7 @@ export default class Loader {
         this._bus = bus;
         this._resolver = resolver;
         this._appBasePath = config.app.basePath;
-        this._assetsPrefix = config.xshell.assetsPrefix;
+        this._xshellAssetsPath = config.xshell.assetsPath;
         this._navigationMode = config.xshell.navigation.mode;
         this._navigationHashPrefix = config.xshell.navigation.hashPrefix;
         this._componentLazy = config.xshell.ui.component.lazy;
@@ -98,7 +98,7 @@ export default class Loader {
                 } else if (loaderUrl.indexOf("/")!=-1) {
                     loaderUrl = this._appBasePath + definition.loader;
                 } else {
-                    loaderUrl = this._appBasePath + "/" + this._assetsPrefix + "/xshell/loaders/" + definition.loader + ".js";
+                    loaderUrl = this._appBasePath + this._xshellAssetsPath + "/loaders/" + definition.loader + ".js";
                 }
                 let loaderToUse = new (await import(loaderUrl)).default();
                 loaders[definition.loader] = loaderToUse;

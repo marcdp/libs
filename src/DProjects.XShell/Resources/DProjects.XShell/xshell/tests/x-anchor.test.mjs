@@ -98,7 +98,7 @@ function createNavigation({ areas = null, mode = "path", basePath = "https://exa
 function createRouteAreas() {
     const config = {
         xshell: {
-            assetsPrefix: "_assets",
+            assetsBase: "/_assets",
             areas: {
                 default: "demo",
                 global: [],

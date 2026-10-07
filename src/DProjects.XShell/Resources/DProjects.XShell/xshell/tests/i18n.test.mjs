@@ -34,7 +34,7 @@ function configuration(i18n) {
             debug: false,
             version: "1.0.0",
             environment: "test",
-            assetsPrefix: "_assets",
+            assetsBase: "/_assets",
             assetsPath: "/_assets/xshell",
             areas: { default: null, global: [], definitions: {} },
             navigation: { mode: "path" },

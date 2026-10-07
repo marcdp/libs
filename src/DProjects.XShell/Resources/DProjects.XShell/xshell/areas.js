@@ -6,7 +6,7 @@ export default class Areas {
     _config = null;
     _bus = null;
     _areas = [];
-    _assetsPrefix = "_assets";
+    _assetsBase = null;
     _currentAreaId = null;
     _sources = {};
     _sourceTargets = {};
@@ -16,7 +16,7 @@ export default class Areas {
     constructor({ config, bus }) {
         this._config = config;
         this._bus = bus;
-        this._assetsPrefix = (config.xshell.assetsPrefix || "_assets").replace(/^\/+|\/+$/g, "");
+        this._assetsBase = config.xshell.assetsBase;
         const areasConfig = config.xshell.areas || {};
         const definitions = areasConfig.definitions || {};
         const defaultAreaId = areasConfig.default || null;
@@ -195,9 +195,8 @@ export default class Areas {
         return null;
     }
     getModuleId(href) {
-        const parts = href.split("/");
-        const assetsIndex = parts.indexOf(this._assetsPrefix);
-        return assetsIndex === -1 ? null : parts[assetsIndex + 1] || null;
+        const assetsIndex = href.lastIndexOf(this._assetsBase + "/");
+        return assetsIndex === -1 ? null : href.substring(assetsIndex + this._assetsBase.length + 1).split("/")[0] || null;
     }
     getMenus(areaId = null) {
         const area = areaId ? this.getArea(areaId) : this.getCurrentArea();

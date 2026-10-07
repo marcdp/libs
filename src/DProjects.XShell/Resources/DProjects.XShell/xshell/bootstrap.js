@@ -4,9 +4,22 @@ function combineUrls(t, n) { if (-1 != t.indexOf("?") && (t = t.substring(0, t.i
 function meta(name) { return document.head.querySelector(`meta[name="${name}"]`)?.content; }
 function deepFreeze(obj) {if (obj === null || typeof obj !== "object") {return obj;} Object.freeze(obj); for (const value of Object.values(obj)) {deepFreeze(value);} return obj;}
 function resolveAppUrl(value) { return new URL(value.substring(4).trim().replace(/^\/+/, ""), appBaseUrl).href; }
+function normalizeAssetsBase(value, configUrl) {
+    // resolve the configured URL once into XShell's application-relative virtual path
+    if (typeof value !== "string" || !value.trim()) throw new Error("xshell.assetsBase must be a non-empty URL or path.");
+    const resolved = absolutizePrefixedUrl("assetsBase", value, configUrl);
+    const url = new URL(resolved, appBaseUrl);
+    const appPath = new URL(appBaseUrl).pathname.replace(/\/+$/, "");
+    if (url.origin !== document.location.origin || (appPath && url.pathname !== appPath && !url.pathname.startsWith(appPath + "/")) || url.search || url.hash) {
+        throw new Error(`xshell.assetsBase must resolve within the application base URL: '${value}'.`);
+    }
+    const assetsBase = url.pathname.substring(appPath.length).replace(/\/+$/, "");
+    if (!assetsBase) throw new Error("xshell.assetsBase must identify a namespace below the application base URL.");
+    return assetsBase;
+}
 function absolutizePrefixedUrl(key, obj, url) { return typeof obj === "string" ? (obj.startsWith("app:") ? resolveAppUrl(obj) : obj.startsWith("source:") ? ((obj = obj.substring(obj.indexOf(":")+1).trim()), (obj.startsWith("/") || obj.startsWith("./") || obj.startsWith("../") || obj === ".") ? combineUrls(url, obj) : obj) : obj) : Array.isArray(obj) ? (obj.forEach((v, i) => obj[i] = absolutizePrefixedUrl(i, v, url)), obj) : obj instanceof Object ? (Object.keys(obj).forEach(k => obj[k] = absolutizePrefixedUrl(k, obj[k], url)), obj) : obj;}
 function relativizePaths(key, obj, path) { return typeof obj === "string" ? (obj.startsWith("/") ? ((obj = path + obj), obj.startsWith(document.location.origin) ? obj.substring(document.location.origin.length) : obj) : (obj.startsWith("./") || obj.startsWith("../") || obj === ".") ? ((obj = combineUrls(path + "/", obj)), obj.startsWith(document.location.origin) ? obj.substring(document.location.origin.length) : obj) : obj) : Array.isArray(obj) ? (obj.forEach((v, i) => obj[i] = relativizePaths(i, v, path)), obj) : obj instanceof Object ? (Object.keys(obj).forEach(k => obj[k] = relativizePaths(k, obj[k], path)), obj) : obj; }
-function relativizeModulePaths(config, path) {const definitions = config.xshell?.areas?.definitions || {};const prefixes = Object.fromEntries(Object.entries(definitions).filter(([, area]) => Object.hasOwn(area, "prefix")).map(([id, area]) => [id, area.prefix]));relativizePaths("", config, path);for (const [id, prefix] of Object.entries(prefixes)) definitions[id].prefix = prefix;}
+function relativizeModulePaths(config, path) {const definitions = config.xshell?.areas?.definitions || {};const prefixes = Object.fromEntries(Object.entries(definitions).filter(([, area]) => Object.hasOwn(area, "prefix")).map(([id, area]) => [id, area.prefix]));const assetsBase = config.xshell?.assetsBase;relativizePaths("", config, path);for (const [id, prefix] of Object.entries(prefixes)) definitions[id].prefix = prefix;if (assetsBase !== undefined) config.xshell.assetsBase = assetsBase;}
 async function loadJsonWithComments(url) {const request = await fetch(url);if (!request.ok) throw new Error(`Failed to json file: ${url}`);let json = await request.text();return parseJsonc(json);}
  
 
@@ -91,7 +104,7 @@ function validateModuleReference(moduleId, reference, ownerConfigUrl) {
     }
     return resolveModuleConfigUrl(reference.configUrl, ownerConfigUrl, moduleId);
 }
-function prepareModuleConfig(config, configUrl, assetsPrefix) {
+function prepareModuleConfig(config, configUrl, assetsBase) {
     // validate identity and references before adding normalized runtime fields
     const localModule = getLocalModule(config, configUrl);
     const references = [];
@@ -103,7 +116,7 @@ function prepareModuleConfig(config, configUrl, assetsPrefix) {
     localModule.definition.configUrl = configUrl;
     localModule.definition.assetsUrl = localModule.definition.assetsUrl || "source:./";
     absolutizePrefixedUrl("", config, configUrl);
-    relativizeModulePaths(config, "/" + assetsPrefix + "/" + localModule.id);
+    relativizeModulePaths(config, assetsBase + "/" + localModule.id);
     return { id: localModule.id, config, configUrl, references };
 }
 function getDependencyFirstOrder(rootNode, nodesById) {
@@ -131,7 +144,7 @@ function getDependencyFirstOrder(rootNode, nodesById) {
     visit(rootNode);
     return order;
 }
-async function discoverModuleConfigs(rootConfig, rootConfigUrl, loadConfig, assetsPrefix) {
+async function discoverModuleConfigs(rootConfig, rootConfigUrl, loadConfig, assetsBase) {
     // discover the graph in deterministic breadth-first passes
     const configs = {};
     const nodesById = new Map();
@@ -161,7 +174,7 @@ async function discoverModuleConfigs(rootConfig, rootConfigUrl, loadConfig, asse
     };
 
     // register the root before following references back to it
-    const rootNode = prepareModuleConfig(rootConfig, rootConfigUrl, assetsPrefix);
+    const rootNode = prepareModuleConfig(rootConfig, rootConfigUrl, assetsBase);
     registerNode(rootNode, new Set([rootNode.id]));
     let currentNodes = [rootNode];
     while (currentNodes.length) {
@@ -188,7 +201,7 @@ async function discoverModuleConfigs(rootConfig, rootConfigUrl, loadConfig, asse
         currentNodes = [];
         for (let i = 0; i < urls.length; i++) {
             const url = urls[i];
-            const node = prepareModuleConfig(loadedConfigs[i], url, assetsPrefix);
+            const node = prepareModuleConfig(loadedConfigs[i], url, assetsBase);
             registerNode(node, pendingByUrl.get(url).expectedIds);
             currentNodes.push(node);
         }
@@ -231,7 +244,10 @@ async function loadConfig() {
     
     // get xshell config
     const xshellConfig = await xshellConfigTask;
-    const assetsPrefix = xshellConfig.xshell.assetsPrefix;
+    const rootModuleConfig = await rootModuleConfigTask;
+    const assetsBaseValue = rootModuleConfig.xshell?.assetsBase ?? xshellConfig.xshell.assetsBase;
+    const assetsBaseUrl = rootModuleConfig.xshell?.assetsBase === undefined ? xshellConfigUrl : rootModuleUrl;
+    const assetsBase = normalizeAssetsBase(assetsBaseValue, assetsBaseUrl);
     xshellConfig.app.basePath = appBasePath;
     xshellConfig.xshell.environment = xshellEnvironment || xshellConfig.xshell.environment;
     xshellConfig.xshell.configUrl = xshellConfigUrl || xshellConfig.xshell.configUrl;
@@ -239,28 +255,29 @@ async function loadConfig() {
     xshellConfig.xshell.temp.url = new URL(xshellTempUrl, document.baseURI).href;
     xshellConfig.xshell.assetsUrl = xshellConfig.xshell.assetsUrl || "source:./";
     absolutizePrefixedUrl("", xshellConfig, xshellConfigUrl);    
-    relativizeModulePaths(xshellConfig, "/" + assetsPrefix + "/xshell");
+    xshellConfig.xshell.assetsBase = assetsBase;
+    relativizeModulePaths(xshellConfig, assetsBase + "/xshell");
     
     // get root module config
-    const rootModuleConfig = await rootModuleConfigTask;
     const rootModule = getLocalModule(rootModuleConfig, rootModuleUrl);
     rootModule.definition.params = Object.fromEntries(new URLSearchParams(appParams));
     xshellConfig.app.params = rootModule.definition.params;
 
     // load canonical modules and determine dependency-first order
-    const graph = await discoverModuleConfigs(rootModuleConfig, rootModuleUrl, loadModuleConfig, assetsPrefix);
+    const graph = await discoverModuleConfigs(rootModuleConfig, rootModuleUrl, loadModuleConfig, assetsBase);
     const configs = graph.configs;
     configs["xshell"] = xshellConfig;
 
     // merge configs
     const configsToMerge = [configs["xshell"], ...graph.mergeOrder.map(node => node.config)];
     const configMerged = mergeConfigs(configsToMerge);
-    configMerged.xshell.assetsPath = "/" + configMerged.xshell.assetsPrefix + "/xshell";
+    configMerged.xshell.assetsBase = assetsBase;
+    configMerged.xshell.assetsPath = assetsBase + "/xshell";
 
     // add generated runtime metadata and the default contract for modules
     for(const moduleId in configMerged.modules)   {
         const module = configMerged.modules[moduleId];
-        module.assetsPath = "/" + configMerged.xshell.assetsPrefix + "/" + moduleId;
+        module.assetsPath = assetsBase + "/" + moduleId;
         if (!module.contract) module.contract = {};
         if (!module.contract.events) module.contract.events = {};
         if (!module.contract.intents) module.contract.intents = {};
@@ -288,7 +305,7 @@ async function installServiceWorker(config) {
     const xshellVersion = config.xshell.version;
     let rules = [];
     rules.push({ 
-        src: combineUrls((appBasePath ? appBasePath + "/" : ""), "." + config.xshell.assetsPath),
+        src: new URL(config.xshell.assetsPath.substring(1), appBaseUrl).href,
         dst: config.xshell.assetsUrl, 
         version: xshellVersion, 
         name:"xshell", 
@@ -296,7 +313,7 @@ async function installServiceWorker(config) {
     for(var moduleId of Object.keys(config.modules)) {
         const module = config.modules[moduleId];
         rules.push({ 
-            src: combineUrls((appBasePath ? appBasePath + "/" : ""), "." + module.assetsPath),
+            src: new URL(module.assetsPath.substring(1), appBaseUrl).href,
             dst: module.assetsUrl, 
             version: module.version, 
             name: moduleId, 
@@ -346,7 +363,7 @@ async function loadFilesIndexes(config) {
     const tasks = [];
     const loadFilesIndex = async (id, target) => {
         // load files index
-        const moduleFilesUrl = combineUrls(appBasePath + "/", `.${target.assetsPath}/module.files.json`);
+        const moduleFilesUrl = new URL(`${target.assetsPath.substring(1)}/module.files.json`, appBaseUrl).href;
         const response = await fetch(moduleFilesUrl);
         if (!response.ok) {
             throw new Error(`Failed to load file inventory for '${id}' from '${moduleFilesUrl}': ${response.status} ${response.statusText}`);
