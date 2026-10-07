@@ -10,7 +10,6 @@ function absolutizePrefixedUrl(key, obj, url) { return typeof obj === "string" ?
 function relativizePaths(key, obj, path) { return typeof obj === "string" ? (obj.startsWith("/") ? ((obj = path + obj), obj.startsWith(document.location.origin) ? obj.substring(document.location.origin.length) : obj) : (obj.startsWith("./") || obj.startsWith("../") || obj === ".") ? ((obj = combineUrls(path + "/", obj)), obj.startsWith(document.location.origin) ? obj.substring(document.location.origin.length) : obj) : obj) : Array.isArray(obj) ? (obj.forEach((v, i) => obj[i] = relativizePaths(i, v, path)), obj) : obj instanceof Object ? (Object.keys(obj).forEach(k => obj[k] = relativizePaths(k, obj[k], path)), obj) : obj; }
 function relativizeModulePaths(config, path) {const definitions = config.xshell?.areas?.definitions || {};const prefixes = Object.fromEntries(Object.entries(definitions).filter(([, area]) => Object.hasOwn(area, "prefix")).map(([id, area]) => [id, area.prefix]));const assetsBase = config.xshell?.assetsBase;relativizePaths("", config, path);for (const [id, prefix] of Object.entries(prefixes)) definitions[id].prefix = prefix;if (assetsBase !== undefined) config.xshell.assetsBase = assetsBase;}
  
-
 // consts
 const appConfigPath = meta("xshell:app.configPath");
 const appParams = meta("xshell:app.params");
@@ -54,10 +53,6 @@ function showSpinner() {
 function hideSpinner(){
     const spinner = document.querySelector(".spinner");
     if (spinner) spinner.remove();
-}
-async function loadModuleConfig(url) {
-    // load module config with the same JSONC dialect as root and framework configuration
-    return loadJsonWithComments(url);
 }
 function getLocalModule(config, configUrl) {
     // identify the single definition owned by this configuration document
@@ -251,7 +246,7 @@ async function loadConfig() {
     xshellConfig.app.params = rootModule.definition.params;
 
     // load canonical modules and determine dependency-first order
-    const graph = await discoverModuleConfigs(rootModuleConfig, rootModuleUrl, loadModuleConfig, assetsBase);
+    const graph = await discoverModuleConfigs(rootModuleConfig, rootModuleUrl, loadJsonWithComments, assetsBase);
     const configs = graph.configs;
     configs["xshell"] = xshellConfig;
 
@@ -445,28 +440,22 @@ async function initializeXShell(config, loadXShellModule = url => import(url)) {
     await xshell.init(deepFreeze(config));
 }
 
+// bootstrap
 async function bootstrap() {
-
     // show spinner
     showSpinner();
-
     // load config
     let config = await loadConfig();
-
     // installServiceWorker
     if (!await installServiceWorker(config)){
         return;
     }    
-
     // load files indexes
     config = await loadFilesIndexes(config);
-
     // fill resolver rules
     config = fillResolverRules(config);
-
     // import, validate, freeze, and initialize XShell
     await initializeXShell(config);
-
     // hide spinner
     hideSpinner();
 }
