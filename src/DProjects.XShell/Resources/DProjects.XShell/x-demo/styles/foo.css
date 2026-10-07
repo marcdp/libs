@@ -1,0 +1,11 @@
+
+
+:scope {background:red;}
+
+p {
+    color: blue;
+    display:block;
+    border:1px red solid;
+    background-image: url("/img/random1.jpg");
+    background-size: contain;
+}

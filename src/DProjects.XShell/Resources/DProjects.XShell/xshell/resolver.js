@@ -8,6 +8,20 @@ export default class Resolver {
     _definitions = [];
     _appBasePath = "";
 
+    //ctor
+    constructor( {debug, config}) {
+        this._debug = debug;
+        this._appBasePath = config.app.basePath;
+        for(let type in config.xshell.resolver) {
+            for(let pattern in config.xshell.resolver[type]) {
+                const value = config.xshell.resolver[type][pattern]; 
+                this.addDefinition(type + ":" + pattern, value);
+            }
+        }
+        // sort definitions by definition.resource alphabetically
+        this._definitions.sort((a, b) => a.resource.localeCompare(b.resource));
+    }
+
     // props
     get registry() {
         // expose rule metadata without sharing mutable definitions or regular expressions
@@ -19,19 +33,6 @@ export default class Resolver {
             cacheMode: definition.cacheMode
         })));
     }
-
-    //ctor
-    constructor( {debug, config}) {
-        this._debug = debug;
-        this._appBasePath = config.app.basePath;
-        for(let type in config.xshell.resolver) {
-            for(let pattern in config.xshell.resolver[type]) {
-                const value = config.xshell.resolver[type][pattern]; 
-                this.addDefinition(type + ":" + pattern, value);
-            }
-        }
-    }
-
 
     //methods
     addDefinition(resource, value) {
@@ -69,8 +70,19 @@ export default class Resolver {
     }
     resolve(resource) {                
         if (resource.indexOf("#") != -1) resource = resource.split("#")[0];
-        if (resource.indexOf("?") != -1) resource = resource.split("?")[0];
+        if (resource.indexOf("?") != -1) resource = resource.split("?")[0];        
         for(let i = 0; i < this._definitions.length ; i++) {
+            const definition = this._definitions[i];
+            if (definition.resource === resource) {
+                let url = definition.url;
+                const path = url;
+                if (url.indexOf(":")==-1) {
+                    url = (this._appBasePath + url);
+                }
+                return { definition, url, path };
+            }
+        }
+        for(let i = this._definitions.length - 1; i >= 0 ; i--) {
             const definition = this._definitions[i];
             const match = resource.match(definition.regexp);
             if (match) {

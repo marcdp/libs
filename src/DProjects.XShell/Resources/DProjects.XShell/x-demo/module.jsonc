@@ -44,6 +44,7 @@
         },
         // references
         "x":                    { "configUrl": "url:../x/module.jsonc" },
+        "x-schema":             { "configUrl": "url:../x-schema/module.jsonc" },
         "xshell-diagnostics":   { "configUrl": "url:../xshell-diagnostics/module.jsonc" },
         "xshell-docs":          { "configUrl": "url:../xshell-docs/module.jsonc" }
     },

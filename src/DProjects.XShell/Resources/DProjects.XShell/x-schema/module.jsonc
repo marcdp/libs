@@ -1,0 +1,21 @@
+{
+    // module
+    "modules": {
+        "x-schema": {
+            "label": "Schema",
+            "version": "1.0.0",
+            "icon": "",
+            "copyright": "",
+            "defaults": {
+                "component": { 
+                    "renderEngine": "x",
+                    "stateEngine": "proxy"
+                },
+                "page": { 
+                    "renderEngine": "x",
+                    "stateEngine": "proxy"
+                }
+            }
+        }
+    }
+}
