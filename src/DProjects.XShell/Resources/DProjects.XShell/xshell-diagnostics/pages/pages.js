@@ -80,16 +80,15 @@ export default {
                             const id = file.path;
                             const loaderRegistryItem = loaderRegistryCache["page:" + file.path];
                             const url = config.app.basePath + file.path;
-                            const contract = loaderRegistryItem?.value?.contract || null;
                             let valid = true;
                             if (state.id && id.indexOf(state.id) == -1 ) valid = false;
                             if (state.moduleId && moduleId.indexOf(state.moduleId) == -1 ) valid = false;
-                            if (state.description && (!contract?.description || contract.description.indexOf(state.description) == -1 )) valid = false;
+                            if (state.description && (!loaderRegistryItem?.description || loaderRegistryItem.description.indexOf(state.description) == -1 )) valid = false;
                             if (valid) {
                                 list.push({
                                     id: id,
                                     moduleId: moduleId,
-                                    description: contract?.description || "",
+                                    description: loaderRegistryItem?.description || "",
                                     icon: moduleConfig.icon || "x-page",
                                     url: url,
                                     status: loaderRegistryItem?.status || "",

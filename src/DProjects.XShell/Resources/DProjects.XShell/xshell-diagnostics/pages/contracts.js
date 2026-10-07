@@ -35,11 +35,11 @@ export default {
             <x-listview-item x-for="contractItem in state.contractItems"
                 x-attr:href="contractItem.url" 
                 x-attr:label="contractItem.id"
-                x-attr:icon="contractItem.contract.icon || 'x-contract'"
+                x-attr:icon="contractItem.icon || 'x-contract'"
                 target="_blank"
             >
-                <div>{{ contractItem.contract.label }}</div>
-                <div>{{ contractItem.contract.description }}</div>
+                <div>{{ contractItem.label }}</div>
+                <div>{{ contractItem.description }}</div>
                 <div>{{ contractItem.moduleId }}</div>
                 <x-file-size x-prop:value="contractItem.size" style="text-align:right"></x-file-size>
                 <x-time-ms x-prop:value="contractItem.time"></x-time-ms>
@@ -67,15 +67,15 @@ export default {
             async refresh() {
                 // refresh
                 const contractItems = [];
-                for (const item of Object.values(contracts.getContractItems())) {
+                for (const item of contracts.registry) {
                     let valid = true;
                     if (state.id && !item.id.includes(state.id)) {
                         valid = false;
                     }
-                    if (state.label && !item.contract.label.includes(state.label)) {
+                    if (state.label && !item.label.includes(state.label)) {
                         valid = false;
                     }
-                    if (state.description && !(item.contract.description || "").includes(state.description)) {
+                    if (state.description && !item.description.includes(state.description)) {
                         valid = false;
                     }
                     if (state.moduleId && !item.moduleId.includes(state.moduleId)) {

@@ -65,6 +65,8 @@ export default class CountingLoader {
         }
         if (returnPageClass) {
             return class PageImplementation {
+                static get contract() { return { description: "Test page" }; }
+
                 constructor({ src }) {
                     this.src = src;
                 }

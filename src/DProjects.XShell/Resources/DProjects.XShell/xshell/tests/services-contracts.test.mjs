@@ -416,7 +416,14 @@ test("Contracts.init ignores lookalike directories and non-JSON files", async ()
     await contracts.init();
 
     assert.deepEqual(loads, ["contract:toast"]);
-    assert.deepEqual(Object.keys(contracts.getContractItems()), ["toast"]);
+    assert.deepEqual(contracts.registry.map(item => item.id), ["toast"]);
+    const registry = contracts.registry;
+    assert.equal(Object.isFrozen(registry), true);
+    assert.equal(Object.isFrozen(registry[0]), true);
+    assert.equal(registry[0].label, "toast");
+    assert.equal(Object.hasOwn(registry[0], "contract"), false);
+    assert.throws(() => { registry[0].label = "changed"; }, TypeError);
+    assert.equal(contracts.getContractById("toast").label, "toast");
 });
 
 test("toast emits shown and closed events with the toast ID", () => {

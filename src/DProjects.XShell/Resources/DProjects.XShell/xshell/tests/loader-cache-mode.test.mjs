@@ -64,7 +64,8 @@ test("cacheMode path shares query variants and keeps diagnostics unnormalized", 
     assert.equal(loader.registry[0].resource, "resource:/foo?a=1");
     assert.equal(loader.registry[0].url, "/foo");
     assert.equal(loader.registry[0].status, "loaded");
-    assert.strictEqual(loader.registry[0].value, first);
+    assert.equal(Object.hasOwn(loader.registry[0], "value"), false);
+    assert.equal(Object.isFrozen(loader.registry[0]), true);
 });
 
 test("successful cached load stores its value for later requests", async () => {
@@ -185,5 +186,7 @@ test("Page path caching reuses implementations while instances retain full src",
     assert.notStrictEqual(CustomerPageA, OrderPage);
     assert.equal(customerA.src, "/customer.js?id=123");
     assert.equal(customerB.src, "/customer.js?id=456");
+    assert.equal(loader.registry[0].description, "Test page");
+    assert.equal(Object.hasOwn(loader.registry[0], "value"), false);
     assert.deepEqual(fixture.getRequests(), ["/customer.js", "/order.js"]);
 });

@@ -28,7 +28,7 @@ export default {
             <div slot="column">
                 <x-button class="plain" command="clear" icon="x-clear" title="Clear list contents"></x-button>
             </div>
-            <x-listview-item x-for="item in state.registry" x-attr:label="item.resource" icon="x-file" x-show="item.show" x-attr:href="item.url" target="_blank">
+            <x-listview-item x-for="item in state.items" x-attr:label="item.resource" icon="x-file" x-attr:href="item.url" target="_blank">
                 <div>{{ item.moduleId }}</div>
                 <div style="text-align:right"><x-time-ms x-prop:value="item.time"></x-time-ms></div>
                 <div>{{ item.status }}</div>
@@ -36,13 +36,14 @@ export default {
         </x-listview>        
     `,    
     state:{
-        registry: [],
+        items: [],
         query_resource: "",
         query_module: "",
         query_url: "",
         query_status: ""
     },
     controller({ state, events, loader, bus, page }) {
+        let clearedCount = 0;
         return {
             load() {
                 // load
@@ -51,59 +52,24 @@ export default {
                 events.on(state, "change:query_url", "refresh");
                 events.on(state, "change:query_status", "refresh");
 
-                // setup registry of already loaded resources
-                let register = (detail) => {
-                    state.registry.push({
-                        resource: detail.resource,
-                        url: detail.url,
-                        status: detail.status,
-                        time: detail.time,
-                        moduleId: detail.moduleId,
-                        show: true,
-                    });
-                }
-                for(let loaderRegistryItem of loader.registry) {
-                    register(loaderRegistryItem);
-                }
-                // listen to loader events
-                events.on(bus, "xshell:loader:resource:fetch", (event)=>{
-                    register(event.detail)
-                    this.refresh();
-                });
-                events.on(bus, "xshell:loader:resource:loaded", (event)=>{
-                    for (let item of state.registry) {
-                        if (item.resource == event.detail.resource) {
-                            item.status = "loaded";
-                            item.time = event.detail.time;
-                            break;
-                        }
-                    }
-                    this.refresh();
-                });
-                events.on(bus, "xshell:loader:resource:error", (event)=>{
-                    for (let item of state.registry) {
-                        if (item.resource == event.detail.resource) {
-                            item.status = "error";
-                            item.time = event.detail.time;
-                            break;
-                        }
-                    }
-                    this.refresh();
-                });
+                // re-read the loader snapshot whenever tracked resources change
+                this.refresh();
+                events.on(bus, "xshell:loader:resource:fetch", "refresh");
+                events.on(bus, "xshell:loader:resource:loaded", "refresh");
+                events.on(bus, "xshell:loader:resource:error", "refresh");
             },
             clear() {
-                state.registry = [];
+                clearedCount = loader.registry.length;
+                this.refresh();
             },
             refresh() {
-                // refresh
-                for(let item of state.registry) {
-                    let show = true;
-                    if (state.query_resource && item.resource.indexOf(state.query_resource) == -1 ) show = false;
-                    if (state.query_module && (!item.moduleId || item.moduleId.indexOf(state.query_module) == -1 )) show = false;
-                    if (state.query_url && item.url.indexOf(state.query_url) == -1 ) show = false;
-                    if (state.query_status && item.status.indexOf(state.query_status) == -1 ) show = false;
-                    item.show = show;
-                }
+                // derive the visible rows from current loader state and local filters
+                state.items = loader.registry.slice(clearedCount).filter(item =>
+                    (!state.query_resource || item.resource.includes(state.query_resource)) &&
+                    (!state.query_module || item.moduleId?.includes(state.query_module)) &&
+                    (!state.query_url || item.url.includes(state.query_url)) &&
+                    (!state.query_status || item.status.includes(state.query_status))
+                );
                 page.invalidate();
             }
         };

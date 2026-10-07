@@ -24,7 +24,17 @@ export default class Modules {
 
     // props
     get registry() {
-        return Object.freeze([...this._modules]);
+        // expose module metadata without returning controllers or mutable runtime records
+        return Object.freeze(this._modules.map(module => Object.freeze({
+            id: module.id,
+            label: module.label,
+            path: module.path,
+            version: module.config.version || "",
+            assetsPath: module.config.assetsPath,
+            configUrl: module.config.configUrl || "",
+            icon: module.config.icon || null,
+            files: Object.freeze(module.config.files.map(file => Object.freeze({ path: file.path, size: file.size })))
+        })));
     }
 
     // method

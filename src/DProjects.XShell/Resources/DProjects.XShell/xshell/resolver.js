@@ -8,6 +8,18 @@ export default class Resolver {
     _definitions = [];
     _appBasePath = "";
 
+    // props
+    get registry() {
+        // expose rule metadata without sharing mutable definitions or regular expressions
+        return Object.freeze(this._definitions.map(definition => Object.freeze({
+            resource: definition.resource,
+            url: definition.url,
+            loader: definition.loader,
+            cache: definition.cache,
+            cacheMode: definition.cacheMode
+        })));
+    }
+
     //ctor
     constructor( {debug, config}) {
         this._debug = debug;

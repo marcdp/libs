@@ -79,18 +79,17 @@ export default {
                         if (file.path.startsWith(moduleComponentsPath)) {
                             const id = (file.path.split("/").pop() || "").split(".")[0];
                             const loaderRegistryItem = loaderRegistryCache["component:" + id];
-                            const contract = loaderRegistryItem?.value?.contract || null;
                             const loaded = (customElements.get(id) != null);
                             const url = config.app.basePath + file.path;
                             let valid = true;
                             if (state.id && id.indexOf(state.id) == -1 ) valid = false;
                             if (state.moduleId && moduleId.indexOf(state.moduleId) == -1 ) valid = false;
-                            if (state.description && (!contract?.description || contract.description.indexOf(state.description) == -1 )) valid = false;
+                            if (state.description && (!loaderRegistryItem?.description || loaderRegistryItem.description.indexOf(state.description) == -1 )) valid = false;
                             if (valid) {
                                 list.push({
                                     id: id,
                                     moduleId: moduleId,
-                                    description: contract?.description || "",
+                                    description: loaderRegistryItem?.description || "",
                                     icon: moduleConfig.icon || "x-component",
                                     url: url,
                                     status: (loaded ? "loaded" : ""),

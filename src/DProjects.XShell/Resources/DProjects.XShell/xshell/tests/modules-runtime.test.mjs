@@ -58,23 +58,31 @@ test("module without service requirements initializes and starts normally", asyn
     assert.equal(starts, 1);
 });
 
-test("module registry is a frozen snapshot of the runtime modules", async () => {
+test("module registry is a frozen metadata snapshot of the runtime modules", async () => {
     const config = freeze({
         xshell: { assetsPrefix: "_assets" },
         modules: { orders: moduleDefinition("orders") }
     });
     const modules = createModules(config);
+    const before = modules.registry;
 
     await modules.init();
 
     const registry = modules.registry;
+    assert.deepEqual(before, []);
     const runtimeModule = modules.getModuleById("orders");
     assert.equal(Object.isFrozen(registry), true);
-    assert.strictEqual(registry[0], runtimeModule);
+    assert.notStrictEqual(registry[0], runtimeModule);
+    assert.equal(registry[0].id, runtimeModule.id);
+    assert.equal(registry[0].path, runtimeModule.path);
+    assert.equal(Object.hasOwn(registry[0], "controller"), false);
+    assert.equal(Object.hasOwn(registry[0], "config"), false);
+    assert.equal(Object.isFrozen(registry[0]), true);
+    assert.equal(Object.isFrozen(registry[0].files), true);
     assert.throws(() => registry.push({ id: "other" }), TypeError);
     assert.throws(() => registry.splice(0, 1), TypeError);
     assert.notStrictEqual(modules.registry, registry);
-    assert.deepEqual(modules.registry, [runtimeModule]);
+    assert.deepEqual(modules.registry, registry);
 });
 
 test("runtime module path uses its effective assetsPath", async () => {

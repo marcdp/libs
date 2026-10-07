@@ -47,6 +47,13 @@ public-to-canonical and
 canonical-to-public resolution. A named menu contribution can be a static array or a registered dynamic menu source; see
 [Areas](../30-subsystems/10-areas.md) for composition behavior and [Navigation](120-navigation.md) for route resolution.
 
+## Inspection registries
+
+`registry` is the standard read-only inspection property for XShell subsystems that own or track a collection of runtime or registered entries.
+It is observational, side-effect free, and normally returns a frozen snapshot. Services, Modules, Contracts, Resolver, and Loader expose metadata
+appropriate to their domains; reading a registry never creates, resolves, or loads an entry. Re-read the property after relevant Bus events to see
+current state. Operational APIs such as `services.resolve(...)` and `loader.load(...)` remain separate.
+
 ## Documents
 
 - [Bootstrap](10-bootstrap.md) — Startup and preparation versus runtime initialization.

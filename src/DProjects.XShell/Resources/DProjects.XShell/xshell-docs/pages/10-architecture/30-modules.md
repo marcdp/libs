@@ -118,7 +118,8 @@ therefore still produce one runtime instance. `module.routes` is the effective c
 object. Before creating those instances, XShell validates every module's service requirements. The effective configuration is immutable by the time
 runtime modules are initialized.
 
-Retrieve a runtime module with `xshell.modules.getModuleById(id)` or enumerate instances with the frozen snapshot `xshell.modules.registry`.
+Retrieve a runtime module with `xshell.modules.getModuleById(id)`. `xshell.modules.registry` is a frozen snapshot of module metadata; it omits
+runtime controllers and mutable internal records.
 `module.routes` is declarative metadata: Areas compose it, and Navigation uses the resulting ordered Area routes for forward and reverse resolution.
 
 See [Module Specification](../specifications/module.md), [Configuration](20-configuration.md), [Bootstrap](10-bootstrap.md), and

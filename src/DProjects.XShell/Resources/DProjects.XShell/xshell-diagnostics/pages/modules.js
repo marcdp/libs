@@ -97,10 +97,10 @@ export default {
                 for(let target of modules.registry) {
                     let valid = true;
                     if (state.id && target.id.indexOf(state.id) == -1 ) valid = false;
-                    if (state.version && (target.config.version || "").indexOf(state.version) == -1 ) valid = false;
+                    if (state.version && target.version.indexOf(state.version) == -1 ) valid = false;
                     if (state.label && (target.label || "").indexOf(state.label) == -1 ) valid = false;
-                    if (state.assetsPath && (target.config.assetsPath || "").indexOf(state.assetsPath) == -1 ) valid = false;
-                    if (state.configUrl && (target.config.configUrl || "").indexOf(state.configUrl) == -1 ) valid = false;
+                    if (state.assetsPath && target.assetsPath.indexOf(state.assetsPath) == -1 ) valid = false;
+                    if (state.configUrl && target.configUrl.indexOf(state.configUrl) == -1 ) valid = false;
                     let size = 0;
                     let files = {
                         all: 0,
@@ -110,16 +110,16 @@ export default {
                         contracts: 0,
                         others: 0
                     }
-                    for(const file of target.config.files) {
+                    for(const file of target.files) {
                         size += file.size || 0;
                         files.all++;
-                        if (file.path.startsWith(target.config.assetsPath + "/pages")) {
+                        if (file.path.startsWith(target.assetsPath + "/pages")) {
                             files.pages++;
-                        } else if (file.path.startsWith(target.config.assetsPath + "/components")) {
+                        } else if (file.path.startsWith(target.assetsPath + "/components")) {
                             files.components++;
-                        } else if (file.path.startsWith(target.config.assetsPath + "/services")) {
+                        } else if (file.path.startsWith(target.assetsPath + "/services")) {
                             files.services++;
-                        } else if (file.path.startsWith(target.config.assetsPath + "/contracts")) {
+                        } else if (file.path.startsWith(target.assetsPath + "/contracts")) {
                             files.contracts++;
                         } else {
                             files.others++;
@@ -128,12 +128,12 @@ export default {
                     if (valid) {
                         list.push({
                             id: target.id,
-                            version: target.config.version || "",
+                            version: target.version,
                             label: target.label || "",
-                            icon: target.config.icon || "x-module",
-                            assetsPath: target.config.assetsPath,
-                            configUrl: target.config.configUrl,
-                            configUrlName: target.config.configUrl.split("/").pop() || "",
+                            icon: target.icon || "x-module",
+                            assetsPath: target.assetsPath,
+                            configUrl: target.configUrl,
+                            configUrlName: target.configUrl.split("/").pop() || "",
                             files: files,
                             size: size,
                             status: "loaded"

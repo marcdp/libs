@@ -8,6 +8,23 @@ export default class Contracts {
     _loader = null;
     _items = null;
     
+    // props
+    get registry() {
+        // expose contract metadata without returning mutable contract documents
+        return Object.freeze(Object.values(this._items || {}).map(item => Object.freeze({
+            id: item.id,
+            url: item.url,
+            path: item.path,
+            moduleId: item.moduleId,
+            label: item.contract.label || "",
+            description: item.contract.description || "",
+            icon: item.contract.icon || null,
+            size: item.size,
+            status: item.status,
+            time: item.time
+        })));
+    }
+
     // ctor
     constructor( { config, loader } ) {
         this._config = config;
@@ -42,15 +59,8 @@ export default class Contracts {
         }
         this._items = Object.freeze(items);
     }
-    getContractItems() {
-        return this._items;
-    }
     getContractItemById(id) {
         return this._items ? this._items[id] : undefined;
-    }
-    
-    getContracts() {
-        return Object.values(this._items).map(item => item.contract);        
     }
     getContractById(id){
         const item = this.getContractItemById(id);

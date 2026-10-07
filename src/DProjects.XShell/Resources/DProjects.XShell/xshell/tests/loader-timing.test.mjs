@@ -32,14 +32,20 @@ test("successful resource time covers only its concrete load and matches the Bus
 
     const pending = loader.load("resource:/a");
     await fixture.waitForLoadCount(1);
+    const snapshot = loader.registry;
     assert.equal(loader.registry[0].status, "pending");
     assert.equal(loader.registry[0].time, null);
+    assert.equal(Object.isFrozen(snapshot), true);
+    assert.equal(Object.isFrozen(snapshot[0]), true);
+    assert.throws(() => { snapshot[0].status = "changed"; }, TypeError);
     now += 27;
     fixture.releaseLoads();
     const first = await pending;
 
     assert.equal(loader.registry[0].time, 27);
     assert.equal(loader.registry[0].status, "loaded");
+    assert.equal(snapshot[0].status, "pending");
+    assert.equal(Object.hasOwn(loader.registry[0], "value"), false);
     assert.equal(events[0].name, "xshell:loader:resource:fetch");
     assert.equal(events[1].name, "xshell:loader:resource:loaded");
     assert.equal(events[1].detail.time, loader.registry[0].time);

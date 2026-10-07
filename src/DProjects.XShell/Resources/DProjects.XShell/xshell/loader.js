@@ -56,11 +56,11 @@ export default class Loader {
 
     //props
     get registry() { 
-        let result = [];
-        for(let item of this._registry){
-            result.push({ resource: item.resource, url: item.url, status: item.status, time: item.time, moduleId: item.moduleId, value: item.value });
-        }
-        return Object.freeze(result);
+        // project load metadata without exposing the loaded value or mutable records
+        return Object.freeze(this._registry.map(item => Object.freeze({
+            resource: item.resource, url: item.url, status: item.status, time: item.time, moduleId: item.moduleId,
+            description: item.description || ""
+        })));
     }
 
     //methods
@@ -136,6 +136,11 @@ export default class Loader {
                         registryItem.status = "loaded";
                         registryItem.time = time;
                         registryItem.value = value;
+                        // retain only descriptive text needed for component and page inspection
+                        if (resource.startsWith("component:") || resource.startsWith("page:")) {
+                            const description = value?.contract?.description;
+                            registryItem.description = typeof description === "string" ? description : "";
+                        }
                         this._bus.emit("xshell:loader:resource:loaded", {resource, url, time});
                     } catch (exception) {
                         const end = performance.now();
