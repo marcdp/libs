@@ -1,5 +1,7 @@
 // utils
 function formatFileSize(bytes) {
+    if (bytes === undefined) return '';
+    if (bytes === null) return 'NaN';
     if (bytes === -1) return '';
     if (bytes === 0) return '0 Bytes';
     let sizes = ['bytes', 'KB', 'MB', 'GB', 'TB'];

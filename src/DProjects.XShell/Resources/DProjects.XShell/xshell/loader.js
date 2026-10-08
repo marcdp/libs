@@ -6,6 +6,7 @@ class ResourceLoadError extends Error {
         this.name = this.constructor.name;
         this.resource = resource;
         this.path = opts.path;
+        this.url = opts.url;
         this.code = opts.code;
     }
 }

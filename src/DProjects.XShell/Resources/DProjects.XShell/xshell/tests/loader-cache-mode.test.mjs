@@ -13,12 +13,12 @@ const { default: Resolver } = await import("../resolver.js");
 const bus = { async emit() {} };
 const debug = { log() {}, error() {} };
 
-async function createLoader(testName, { cacheMode, type = "resource" } = {}) {
+async function createLoader(testName, { cacheMode, type = "resource", src = "/{path}" } = {}) {
     // isolate the resource-specific loader state for each test with a distinct module URL
     const loaderUrl = new URL(`./fixtures/counting-loader.mjs?test=${testName}`, import.meta.url).href;
     const fixture = await import(loaderUrl);
     fixture.reset();
-    const definition = { src: "/{path}", loader: loaderUrl, cache: true };
+    const definition = { src, loader: loaderUrl, cache: true };
     if (cacheMode !== undefined) {
         definition.cacheMode = cacheMode;
     }
@@ -104,7 +104,20 @@ test("failed resource retains its resolved logical path on the error", async t =
     await assert.rejects(() => loader.load("resource:/foo"), error => {
         assert.equal(error.errors[0].resource, "resource:/foo");
         assert.equal(error.errors[0].path, "/foo");
+        assert.equal(error.errors[0].url, "https://example.test/foo");
         assert.equal(Object.hasOwn(error.errors[0], "src"), false);
+        return true;
+    });
+});
+
+test("failed absolute URL resource retains its resolved URL on the error", async t => {
+    t.mock.method(console, "error", () => {});
+    const { fixture, loader } = await createLoader("error-absolute-url", { src: "https://cdn.example.test/{path}" });
+    fixture.failOnce();
+
+    await assert.rejects(() => loader.load("resource:/foo"), error => {
+        assert.equal(error.errors[0].path, null);
+        assert.equal(error.errors[0].url, "https://cdn.example.test/foo");
         return true;
     });
 });

@@ -38,10 +38,12 @@ export default {
             box-shadow:var(--x-dropdown-shadow);
         }
         .body > div {
+        display:block;
             padding: var(--x-dropdown-padding-vertical) var(--x-dropdown-padding-horizontal) var(--x-dropdown-padding-vertical) var(--x-dropdown-padding-horizontal);            
-            max-height:calc(100vh - 7em);
             scrollbar-width: var(--x-scrollbar-width);
             scrollbar-gutter: var(--x-scrollbar-gutter);
+            max-height:65vh;
+            overflow-y:scroll;
         }
         :host .body.expanded {
             display:block;
@@ -54,9 +56,6 @@ export default {
             margin-left:-.5em;
             max-width:90vw;
             min-width: clamp(22em, 100%, 200%);            
-        }
-        :host(.popover) .body > div {
-            max-height:unset!important;
         }
         :host(.popover) .body .helper {
             display: inline-block;
@@ -97,16 +96,7 @@ export default {
             border-radius:  0 0 var(--x-datafield-border-radius) var(--x-datafield-border-radius);
             border-top:none;
         }
-
-        /* no padding */
-        :host(.no-padding) .body > div {
-            padding: 0;
-        }
-
-        /* minimal padding */
-        :host(.minimal-padding) .body > div {
-            padding: .5em;
-        }
+ 
     `,
     template: `
         <div class="header" x-class:expanded="state.expanded" x-on:focusin="focusHead" x-on:mousedown.stop="mousedownHead" x-on:click="clickHead" x-on:keydown.enter="clickHead">
