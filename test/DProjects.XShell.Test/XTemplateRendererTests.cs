@@ -297,10 +297,30 @@ namespace DProjects.XShell.Test {
             var both = new XTemplateRendererOptions { AllowStyleElements = true, AllowScriptElements = true };
 
             Assert.Equal("<style>.x{}</style>", Render("<style>.x{}</style>", options: styles));
+            Assert.Equal("<style></style>", Render("<style></style>", options: styles));
             Assert.Throws<XTemplateException>(() => Render("<script>alert(1)</script>", options: styles));
             Assert.Equal("<script>alert(1)</script>", Render("<script>alert(1)</script>", options: scripts));
+            Assert.Equal("<script></script>", Render("<script></script>", options: scripts));
             Assert.Throws<XTemplateException>(() => Render("<style>.x{}</style>", options: scripts));
             Assert.Equal("<style>.x{}</style><script>alert(1)</script>", Render("<style>.x{}</style><script>alert(1)</script>", options: both));
+        }
+
+        [Fact]
+        public void RejectsSelfClosingEnabledRawTextElements() {
+            var styles = new XTemplateRendererOptions { AllowStyleElements = true };
+            var scripts = new XTemplateRendererOptions { AllowScriptElements = true };
+
+            foreach (var (template, name, options) in new[] {
+                ("<script />", "script", scripts),
+                ("<style />", "style", styles),
+                ("<script x-html=\"state.code\" />", "script", scripts),
+                ("<style x-html=\"state.css\" />", "style", styles)
+            }) {
+                var exception = Assert.Throws<XTemplateException>(() => Render(template, new { code = "alert(1)", css = ".x{}" }, options: options));
+
+                Assert.Contains($"Element <{name}> cannot be self-closing", exception.Message);
+                Assert.Equal(0, exception.Offset);
+            }
         }
 
         [Fact]

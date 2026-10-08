@@ -83,6 +83,7 @@ namespace DProjects.XShell.Services.XTemplate {
             }
             var element = new MutableElement(name, offset, attributes) { ContentStart = _position };
             stack.Peek().Children.Add(element);
+            if (selfClosing && name is "script" or "style") throw Error($"Element <{name}> cannot be self-closing in an XTemplate.", offset);
             if (selfClosing || VoidElements.Contains(name)) return;
             if (name is "script" or "style") {
                 ParseRawTextElement(element, name);
