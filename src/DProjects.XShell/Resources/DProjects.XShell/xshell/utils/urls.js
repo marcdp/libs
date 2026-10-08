@@ -17,7 +17,7 @@ export function resolveAppUrl(value, appBaseUrl) {
 }
 export function combineUrls(a, b) {
     if (a.indexOf("?") != -1) a = a.substring(0, a.indexOf("?"));
-    if (b.indexOf(":") != -1) return b;
+    if (/^[A-Za-z][A-Za-z0-9+.-]*:/.test(b)) return b;
     if (b.startsWith("/")) {
         if (a.indexOf("://") != -1) {
             let i = a.indexOf("/", a.indexOf("://") + 3);

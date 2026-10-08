@@ -744,3 +744,12 @@ test("Navigation leaves external URLs untouched", () => {
         assert.equal(navigation.buildUrlAbsolute({ href, page }), href);
     }
 });
+
+test("Navigation resolves relative Page links with colons in query strings", () => {
+    const navigation = createNavigation();
+
+    assert.equal(
+        navigation.buildUrl({ href: "details?time=10:30", page: { src: "/sales/pages/current.js" } }),
+        "/sales/pages/details?time=10:30"
+    );
+});
