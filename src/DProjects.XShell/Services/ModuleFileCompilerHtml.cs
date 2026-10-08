@@ -4,6 +4,16 @@ namespace DProjects.XShell.Services {
 
     public class ModuleFileCompilerHtml {
 
+        // vars
+        // keep these built-in selectors aligned with utils/html.js; runtime-added rules have no server counterpart
+        internal static readonly (string Selector, string Attribute)[] UrlRules = [
+            ("a", "href"), ("area", "href"), ("form", "action"), ("button[formaction]", "formaction"),
+            ("x-page", "src"), ("x-anchor", "href"), ("img", "src"), ("img", "srcset"),
+            ("source", "src"), ("source", "srcset"), ("link", "href"), ("script", "src"),
+            ("iframe", "src"), ("video", "poster"), ("video", "src"), ("audio", "src"),
+            ("embed", "src"), ("object", "data"), ("input[type=image]", "src"), ("track", "src")
+        ];
+
         // methods
         public ModuleFileCompiler.FileContent Compile(ModuleFileCompilerContext context, string html) {
             ArgumentNullException.ThrowIfNull(context);
@@ -29,7 +39,7 @@ namespace DProjects.XShell.Services {
                     position = tagStart + 1;
                 } else {
                     var name = html.AsSpan(nameStart, nameEnd - nameStart);
-                    AppendProcessedTag(context, html, result, tagStart, nameEnd, tagEnd);
+                    AppendProcessedTag(context, html, result, tagStart, nameStart, nameEnd, tagEnd);
                     position = tagEnd + 1;
                     // keep script and style bodies opaque to the HTML attribute scanner
                     if (name.Equals("script", StringComparison.OrdinalIgnoreCase) || name.Equals("style", StringComparison.OrdinalIgnoreCase)) {
@@ -43,9 +53,9 @@ namespace DProjects.XShell.Services {
         }
 
         // methods (private)
-        private static void AppendProcessedTag(ModuleFileCompilerContext context, string html, StringBuilder result, int tagStart, int nameEnd, int tagEnd) {
-            // scan attributes while retaining every source slice outside replaced values
-            var lastCopied = tagStart;
+        private static void AppendProcessedTag(ModuleFileCompilerContext context, string html, StringBuilder result, int tagStart, int nameStart, int nameEnd, int tagEnd) {
+            // collect static attributes before rewriting so selectors work regardless of attribute order
+            var attributes = new List<(string Name, string Value, int Start, int End, char Quote)>();
             var position = nameEnd;
             while (position < tagEnd) {
                 while (position < tagEnd && (char.IsWhiteSpace(html[position]) || html[position] == '/')) position++;
@@ -56,7 +66,7 @@ namespace DProjects.XShell.Services {
                     position++;
                     continue;
                 }
-                var attributeName = html.AsSpan(attributeNameStart, position - attributeNameStart);
+                var attributeName = html[attributeNameStart..position];
                 while (position < tagEnd && char.IsWhiteSpace(html[position])) position++;
                 if (position >= tagEnd || html[position] != '=') continue;
                 position++;
@@ -73,24 +83,31 @@ namespace DProjects.XShell.Services {
                 }
                 var valueEnd = position;
                 if (quote != '\0' && position < tagEnd) position++;
-                var value = html[valueStart..valueEnd];
-                var replacement = ProcessAttributeValue(context, attributeName, value, quote);
+                attributes.Add((attributeName, html[valueStart..valueEnd], valueStart, valueEnd, quote));
+            }
+            var elementName = html.AsSpan(nameStart, nameEnd - nameStart);
+            var isImageInput = elementName.Equals("input", StringComparison.OrdinalIgnoreCase) &&
+                attributes.Any(attribute => attribute.Name.Equals("type", StringComparison.OrdinalIgnoreCase) && attribute.Value.Equals("image", StringComparison.OrdinalIgnoreCase));
+            var lastCopied = tagStart;
+            foreach (var attribute in attributes) {
+                var replacement = ProcessAttributeValue(context, elementName, attribute.Name, isImageInput, attribute.Value, attribute.Quote);
+                var value = attribute.Value;
                 if (replacement == value) continue;
-                result.Append(html, lastCopied, valueStart - lastCopied);
+                result.Append(html, lastCopied, attribute.Start - lastCopied);
                 result.Append(replacement);
-                lastCopied = valueEnd;
+                lastCopied = attribute.End;
             }
             result.Append(html, lastCopied, tagEnd + 1 - lastCopied);
         }
-        private static string ProcessAttributeValue(ModuleFileCompilerContext context, ReadOnlySpan<char> name, string value, char quote) {
-            // delegate inline CSS and use the common URL normalizer for HTML resource attributes
+        private static string ProcessAttributeValue(ModuleFileCompilerContext context, ReadOnlySpan<char> elementName, string name, bool isImageInput, string value, char quote) {
+            // keep inline CSS separate from the element-aware HTML URL rules
             if (name.Equals("style", StringComparison.OrdinalIgnoreCase)) {
                 var css = new ModuleFileCompilerCss().Compile(context, DecodeAttributeDelimiter(value, quote)).Content;
                 return EscapeAttributeValue(css, quote);
             }
+            if (!IsUrlAttribute(elementName, name, isImageInput)) return value;
             if (name.Equals("srcset", StringComparison.OrdinalIgnoreCase)) return NormalizeSrcset(context.RelativePath, value);
-            if (IsUrlAttribute(name)) return ModuleFileCompilerResourceUrl.Normalize(context.RelativePath, value);
-            return value;
+            return ModuleFileCompilerResourceUrl.Normalize(context.RelativePath, value);
         }
         private static string NormalizeSrcset(string relativePath, string value) {
             // rewrite each URL token independently while retaining candidate whitespace, commas, and descriptors
@@ -170,10 +187,17 @@ namespace DProjects.XShell.Services {
             }
             return -1;
         }
-        private static bool IsUrlAttribute(ReadOnlySpan<char> name) {
-            return name.Equals("src", StringComparison.OrdinalIgnoreCase) || name.Equals("href", StringComparison.OrdinalIgnoreCase) ||
-                name.Equals("poster", StringComparison.OrdinalIgnoreCase) || name.Equals("action", StringComparison.OrdinalIgnoreCase) ||
-                name.Equals("formaction", StringComparison.OrdinalIgnoreCase);
+        private static bool IsUrlAttribute(ReadOnlySpan<char> elementName, string attributeName, bool isImageInput) {
+            // match only the element/attribute combinations owned by the runtime template URL layer
+            foreach (var (selector, attribute) in UrlRules) {
+                if (!attributeName.Equals(attribute, StringComparison.OrdinalIgnoreCase)) continue;
+                if (selector == "input[type=image]") {
+                    if (isImageInput) return true;
+                } else if (selector == "button[formaction]") {
+                    if (elementName.Equals("button", StringComparison.OrdinalIgnoreCase)) return true;
+                } else if (elementName.Equals(selector, StringComparison.OrdinalIgnoreCase)) return true;
+            }
+            return false;
         }
         private static bool IsTagNameCharacter(char character) {
             return char.IsLetterOrDigit(character) || character is '-' or ':';

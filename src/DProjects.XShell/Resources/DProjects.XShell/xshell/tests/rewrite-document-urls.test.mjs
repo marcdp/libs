@@ -46,6 +46,36 @@ const context = {
 };
 const resourceBase = "https://example.test/app/_assets/demo/pages/";
 
+test("every built-in HTML URL rule rewrites a server-logical URL once", () => {
+    const cases = [
+        ["a", "href", "navigation"], ["area", "href", "navigation"], ["form", "action", "navigation"],
+        ["button", "formaction", "navigation"], ["x-page", "src", "virtual_navigation"], ["x-anchor", "href", "virtual_navigation"],
+        ["img", "src", "resource"], ["img", "srcset", "resource"], ["source", "src", "resource"],
+        ["source", "srcset", "resource"], ["link", "href", "resource"], ["script", "src", "resource"],
+        ["iframe", "src", "resource"], ["video", "poster", "resource"], ["video", "src", "resource"],
+        ["audio", "src", "resource"], ["embed", "src", "resource"], ["object", "data", "resource"],
+        ["input", "src", "resource"], ["track", "src", "resource"]
+    ];
+    for (const [tag, attr, type] of cases) {
+        const element = new TestElement(tag, { [attr]: "/pages/images/a.png", ...(tag === "input" ? { type: "image" } : {}) });
+        rewriteDocumentUrls(createDocument(element), context);
+        const expected = type === "resource" ? "https://example.test/app/_assets/demo/pages/images/a.png"
+            : type === "virtual_navigation" ? "/_assets/demo/pages/images/a.png" : "#!/_assets/demo/pages/images/a.png";
+        assert.equal(element.getAttribute(attr), expected, `${tag}[${attr}]`);
+    }
+});
+
+test("unowned URL-looking attributes remain authored through the runtime", () => {
+    const cases = [
+        new TestElement("use", { href: "./icons.svg#edit" }), new TestElement("div", { href: "./x", src: "./x", poster: "./x", action: "./x", formaction: "./x" }),
+        new TestElement("input", { type: "text", src: "./x" }), new TestElement("custom-element", { href: "./x", srcset: "./x 1x" }),
+        new TestElement("div", { "data-value": "app:/foo", href: "url:./x" })
+    ];
+    const before = cases.map(element => [...element.attributes]);
+    rewriteDocumentUrls(createDocument(...cases), context);
+    cases.forEach((element, index) => assert.deepEqual([...element.attributes], before[index]));
+});
+
 test("inline CSS uses the shared scanner and rewrites resource URLs", async () => {
     const element = new TestElement("div", { style: "color:red; background:url(images/a.png); padding:1px" });
     await rewriteDocumentUrls(createDocument(element), context);

@@ -1,4 +1,6 @@
 using DProjects.XShell.Services;
+using System.Reflection;
+using System.Text.RegularExpressions;
 
 using Xunit;
 
@@ -14,8 +16,67 @@ namespace DProjects.XShell.Test {
 
             var result = CompileHtml(html);
 
-            Assert.Equal("<img SRC = \"/pages/users/image.png\" poster='/pages/video.jpg'><a href=/pages/users/details.html>link</a>" +
+            Assert.Equal("<img SRC = \"/pages/users/image.png\" poster='../video.jpg'><a href=/pages/users/details.html>link</a>" +
                 "<form action=\"/pages/save?v=2#result\"><button formaction='/pages/users/confirm'>save</button></form>", result.Content);
+        }
+        [Theory]
+        [InlineData("a", "href")]
+        [InlineData("area", "href")]
+        [InlineData("form", "action")]
+        [InlineData("button", "formaction")]
+        [InlineData("x-page", "src")]
+        [InlineData("x-anchor", "href")]
+        [InlineData("img", "src")]
+        [InlineData("img", "srcset")]
+        [InlineData("source", "src")]
+        [InlineData("source", "srcset")]
+        [InlineData("link", "href")]
+        [InlineData("script", "src")]
+        [InlineData("iframe", "src")]
+        [InlineData("video", "poster")]
+        [InlineData("video", "src")]
+        [InlineData("audio", "src")]
+        [InlineData("embed", "src")]
+        [InlineData("object", "data")]
+        [InlineData("input", "src")]
+        [InlineData("track", "src")]
+        public void Compile_SupportedBuiltInUrlRules_Normalize(string element, string attribute) {
+            var type = element == "input" ? " type='image'" : "";
+            var html = $"<{element} {attribute}='./asset.png?v=1#part'{type}></{element}>";
+
+            Assert.Equal($"<{element} {attribute}='/pages/users/asset.png?v=1#part'{type}></{element}>", CompileHtml(html).Content);
+        }
+        [Fact]
+        public void Compile_BuiltInRules_MatchRuntimeTable() {
+            // compare the two language-specific built-in tables so additions cannot silently drift
+            var projectDirectory = typeof(ModuleFileCompilerHtml).Assembly.GetCustomAttributes<AssemblyMetadataAttribute>()
+                .Single(attribute => attribute.Key == "ProjectDirectory").Value!;
+            var runtime = File.ReadAllText(Path.Combine(projectDirectory, "Resources", "DProjects.XShell", "xshell", "utils", "html.js"));
+            var runtimeRules = Regex.Matches(runtime, "\\{ selector: \"([^\"]+)\", attr: \"([^\"]+)\", type: \"[^\"]+\" \\}")
+                .Select(match => (Selector: match.Groups[1].Value, Attribute: match.Groups[2].Value)).ToArray();
+
+            Assert.Equal(runtimeRules, ModuleFileCompilerHtml.UrlRules);
+        }
+        [Theory]
+        [InlineData("<svg><use href='./icons.svg#edit'></use></svg>")]
+        [InlineData("<div href='./x' src='./x' poster='./x' action='./x' formaction='./x'></div>")]
+        [InlineData("<input type='text' src='./x'>")]
+        [InlineData("<custom-element href='./x' srcset='./x 1x'></custom-element>")]
+        [InlineData("<div data-value='app:/foo' href='url:./x'></div>")]
+        public void Compile_UnownedUrlLookingAttributes_RemainUntouched(string html) {
+            Assert.Equal(html, CompileHtml(html).Content);
+        }
+        [Fact]
+        public void Compile_InputImageSelector_IsCaseInsensitiveAndIndependentOfAttributeOrder() {
+            Assert.Equal("<INPUT SRC='/pages/users/a.png' TYPE='IMAGE'><A HREF='/pages/users/page'></A>",
+                CompileHtml("<INPUT SRC='./a.png' TYPE='IMAGE'><A HREF='./page'></A>").Content);
+            Assert.Equal("<INPUT TYPE='TEXT' SRC='./a.png'>", CompileHtml("<INPUT TYPE='TEXT' SRC='./a.png'>").Content);
+        }
+        [Fact]
+        public void Compile_OnlyImgAndSourceSrcset_RewriteCandidates() {
+            var html = "<img srcset='./a.png 1x, ./b.png 2x'><source srcset='./c.png 320w'><div srcset='./d.png 1x'></div>";
+            Assert.Equal("<img srcset='/pages/users/a.png 1x, /pages/users/b.png 2x'><source srcset='/pages/users/c.png 320w'><div srcset='./d.png 1x'></div>",
+                CompileHtml(html).Content);
         }
         [Theory]
         [InlineData("/images/user.png")]
