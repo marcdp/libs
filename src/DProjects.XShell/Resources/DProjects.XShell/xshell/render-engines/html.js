@@ -1,5 +1,5 @@
 import {rewriteDocumentUrls} from "../utils/html.js";
-import {unloadChildComponents} from "../utils/components.js";
+import {unloadComponents} from "../utils/components.js";
 
 // export
 export class RenderEngineHtml {
@@ -13,13 +13,12 @@ export class RenderEngineHtml {
 
 	// methods
 	mount() {
-        unloadChildComponents(this._host);
         this._host.replaceChildren(this._template.content);
     }
 	render() {
 	}
 	unmount() {
-        unloadChildComponents(this._host);
+        unloadComponents(...this._host.childNodes);
         this._host.replaceChildren();
     }
 

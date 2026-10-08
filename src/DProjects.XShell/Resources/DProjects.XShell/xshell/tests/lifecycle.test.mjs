@@ -36,6 +36,10 @@ class FakeNode {
     querySelector() {
         return null;
     }
+
+    querySelectorAll() {
+        return this.childNodes.flatMap(child => [child, ...child.querySelectorAll()]);
+    }
 }
 
 class FakeElement extends FakeNode {
@@ -135,6 +139,7 @@ globalThis.requestAnimationFrame = callback => {
 };
 
 const { createComponentClassFromJsDefinition } = await import("../loaders/component-js.js");
+const { RenderEngineHtml } = await import("../render-engines/html.js");
 const { createPageClassFromJsDefinition } = await import("../loaders/page-js.js");
 const { default: XPage } = await import("../x-page.js");
 const { default: Navigation } = await import("../navigation.js");
@@ -452,6 +457,88 @@ test("component explicit unload while mounted unmounts before final cleanup", as
     assert.deepEqual(commands, ["mount", "unmount", "unload"]);
     assert.equal(renderEngine.unmountCount, 1);
     assert.equal(component._renderEngine, null);
+});
+
+test("temporary parent disconnection preserves the parent and unloads its discarded rendered child", async () => {
+    configureDefinitionLoaders();
+    const calls = [];
+    const Parent = await createComponentClassFromJsDefinition("parent-disconnect.js", createContext(), {
+        meta: { id: "x-parent-disconnect-test" },
+        controller() { return { unmount() { calls.push("parent unmount"); }, unload() { calls.push("parent unload"); } }; }
+    }, {});
+    const Child = await createComponentClassFromJsDefinition("child-disconnect.js", createContext(), {
+        meta: { id: "x-child-disconnect-test" },
+        controller() { return { unmount() { calls.push("child unmount"); }, unload() { calls.push("child unload"); } }; }
+    }, {});
+    const parent = new Parent();
+    const child = new Child();
+    parent.connectedCallback();
+    child.connectedCallback();
+    parent.shadowRoot.appendChild(child);
+    parent._renderEngine = new RenderEngineHtml({ host: parent.shadowRoot, template: { cloneNode() { return { content: new FakeNode() }; } }, state: {} });
+
+    parent.disconnectedCallback();
+    assert.deepEqual(calls, ["parent unmount", "child unmount", "child unload"]);
+    assert.equal(parent._unloaded, false);
+    assert.equal(child._unloaded, true);
+    assert.equal(parent.shadowRoot.childNodes.length, 0);
+    parent.connectedCallback();
+    assert.equal(parent._unloaded, false);
+    assert.ok(parent._renderEngine);
+    await parent.unload();
+    assert.equal(calls.at(-1), "parent unload");
+});
+
+test("Component final cleanup survives a throwing controller unmount", async () => {
+    configureDefinitionLoaders();
+    const calls = [];
+    const failure = new Error("unmount failed");
+    const Component = await createComponentClassFromJsDefinition("component-unmount-failure.js", createContext(), {
+        meta: { id: "x-component-unmount-failure-test" }, state: { settings: {} },
+        controller() { return { unmount() { calls.push("unmount"); throw failure; }, unload() { calls.push("unload"); } }; }
+    }, {});
+    const component = new Component();
+    const observer = component._mutationObserver;
+    const disposable = { count: 0, dispose() { this.count++; } };
+    component._disposables.push(disposable);
+    component.connectedCallback();
+    const renderEngine = component._renderEngine;
+
+    await assert.rejects(component.unload(), error => error === failure);
+    assert.deepEqual(calls, ["unmount", "unload"]);
+    assert.equal(renderEngine.unmountCount, 1);
+    assert.equal(component._renderEngine, null);
+    assert.equal(observer.disconnectCount, 1);
+    assert.equal(disposable.count, 1);
+    assert.deepEqual(component._disposables, []);
+    await component.unload();
+    assert.equal(disposable.count, 1);
+});
+
+test("Component final cleanup survives throwing and rejecting controller unload", async () => {
+    configureDefinitionLoaders();
+    for (const [name, unload] of [
+        ["throw", () => { throw new Error("unload failed"); }],
+        ["reject", async () => { throw new Error("unload rejected"); }]
+    ]) {
+        const Component = await createComponentClassFromJsDefinition(`component-unload-${name}.js`, createContext(), {
+            meta: { id: `x-component-unload-${name}-test` }, state: { settings: {} },
+            controller() { return { unload }; }
+        }, {});
+        const component = new Component();
+        const observer = component._mutationObserver;
+        const disposable = { count: 0, dispose() { this.count++; } };
+        component._disposables.push(disposable);
+        component.connectedCallback();
+        const renderEngine = component._renderEngine;
+
+        await assert.rejects(component.unload(), /unload failed|unload rejected/);
+        assert.equal(renderEngine.unmountCount, 1);
+        assert.equal(component._renderEngine, null);
+        assert.equal(observer.disconnectCount, 1);
+        assert.equal(disposable.count, 1);
+        assert.deepEqual(component._disposables, []);
+    }
 });
 
 test("page preserves state and disposables until its final unload", async () => {

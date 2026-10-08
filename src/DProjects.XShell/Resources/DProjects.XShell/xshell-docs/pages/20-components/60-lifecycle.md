@@ -101,6 +101,7 @@ render engine is ignored once that engine has been unmounted or replaced.
 
 Component construction invokes `load` without awaiting its result; connection/disconnection similarly invoke `mount`/`unmount` synchronously.
 Explicit Component `unload()` awaits its handler and disposes helpers in a final cleanup path.
+If the Component is still mounted, it first runs `unmount` and tears down the render engine. Final helper disposal still runs if either lifecycle handler fails.
 Page `load`, `mount`, `unmount`, and `unload` use asynchronous lifecycle methods that await their handlers.
 Use the host's Page load sequence when completion matters.
 

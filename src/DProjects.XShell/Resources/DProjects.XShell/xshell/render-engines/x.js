@@ -1,7 +1,7 @@
 import xshell from '../xshell.js';
 import {getTemplateCssSource, rewriteTemplateAttribute} from "../utils/html.js";
 import { rewriteStyleDeclarationValue } from "../utils/style.js";
-import { unloadComponents, unloadChildComponents } from "../utils/components.js";
+import { unloadComponents } from "../utils/components.js";
 
 class XTemplate {
 
@@ -564,19 +564,22 @@ class XTemplateInstance {
 				parent.appendChild(element);
 			} else if (vNodeNew == null) {
 				//remove
-				unloadComponents(parent.lastChild);
-				parent.removeChild(parent.lastChild);
+				const oldElement = parent.lastChild;
+				unloadComponents(oldElement);
+				parent.removeChild(oldElement);
 			} else if (vNodeOld.options.index < vNodeNew.options.index) {
 				//remove old node
 				let comment = document.createComment("");
-				unloadComponents(parent.childNodes[vNodeOld.options.index + inew]);
-				parent.replaceChild(comment, parent.childNodes[vNodeOld.options.index + inew]);
+				const oldElement = parent.childNodes[vNodeOld.options.index + inew];
+				unloadComponents(oldElement);
+				parent.replaceChild(comment, oldElement);
 				inew--;
 			} else if (vNodeOld.options.index > vNodeNew.options.index) {
 				//replace node
 				let element = this._createDomElement(vNodeNew);
-				unloadComponents(parent.childNodes[vNodeNew.options.index + inew]);
-				parent.replaceChild(element, parent.childNodes[vNodeNew.options.index + inew]);
+				const oldElement = parent.childNodes[vNodeNew.options.index + inew];
+				unloadComponents(oldElement);
+				parent.replaceChild(element, oldElement);
 				iold--;
 			} else if (vNodeOld.tag == "#comment" && vNodeOld.options.forType == "key" && vNodeNew.tag == "#comment" && vNodeNew.options.forType == "key") {
 				//for loop by key
@@ -603,8 +606,9 @@ class XTemplateInstance {
 			} else if (vNodeOld.tag != vNodeNew.tag) {
 				//replace node
 				let element = this._createDomElement(vNodeNew);
-				unloadComponents(parent.childNodes[vNodeNew.options.index + inew]);
-				parent.replaceChild(element, parent.childNodes[vNodeNew.options.index + inew]);
+				const oldElement = parent.childNodes[vNodeNew.options.index + inew];
+				unloadComponents(oldElement);
+				parent.replaceChild(element, oldElement);
 			} else if (vNodeOld.tag == "slot" && vNodeNew.tag == "slot") {
 				//slot
 			} else {
@@ -678,7 +682,8 @@ class XTemplateInstance {
 		//children
 		if (vNodeNew.options.format == 'node') {
 			if (Array.isArray(vNodeNew.children)) {
-				unloadChildComponents(element, vNodeNew.children);
+				const retained = new Set(vNodeNew.children);
+				unloadComponents(...[...element.childNodes].filter(child => !retained.has(child)));
 				element.replaceChildren();
 				for(let childElement of vNodeNew.children) {
 					element.appendChild(childElement);
@@ -686,20 +691,20 @@ class XTemplateInstance {
 			} else if (vNodeNew.children) {
 				if (element.firstChild != vNodeNew.children) {
 					if (element.firstChild) {
-					    unloadChildComponents(element, [vNodeNew.children]);
+					    unloadComponents(...[...element.childNodes].filter(child => child !== vNodeNew.children));
 					    element.replaceChildren();
 					}
 					element.appendChild(vNodeNew.children);
 				}
 			} else {
-				unloadChildComponents(element);
+				unloadComponents(...element.childNodes);
 				element.replaceChildren();
 			}
 		} else if (Array.isArray(vNodeNew.children)) {
 			this._diffDom(vNodeOld.children, vNodeNew.children, element, level + 1);
 		} else if (typeof (vNodeNew.children) == "string") {
 			if (vNodeOld.children != vNodeNew.children) {
-				unloadChildComponents(element);
+				unloadComponents(...element.childNodes);
 				if (vNodeNew.options.format == 'html') {
 					element.innerHTML = vNodeNew.children;
 				} else if (vNodeNew.options.format == 'json') {
@@ -834,7 +839,6 @@ export class RenderEngineX {
 
 	// methods
 	mount() {
-        unloadChildComponents(this._host);
         this._host.replaceChildren();
     }
     render() {
@@ -842,7 +846,7 @@ export class RenderEngineX {
 		this._renderCount++;
     }
 	unmount() {
-        unloadChildComponents(this._host);
+        unloadComponents(...this._host.childNodes);
         this._host.replaceChildren();
     }
 }

@@ -369,26 +369,19 @@ export async function createComponentClassFromJsDefinition(src, context, impleme
         }
         disconnectedCallback() {
             if (this._unloaded) return;
-            this.onCommand("unmount", {});
-            if (this._renderEngine) {
-                this._renderEngine.unmount();
-                this._renderEngine = null;
-            }
-            this._renderPending = false;
+            this._unmount();
         }
         // unload
         async unload() {
             if (this._unloaded) return;
             this._unloaded = true;
-            if (this._renderEngine) {
-                this.onCommand("unmount", {});
-                this._renderEngine.unmount();
-                this._renderEngine = null;
-            }
-            this._renderPending = false;
             let result;
             try {
-                result = await this.onCommand("unload", {});
+                try {
+                    this._unmount();
+                } finally {
+                    result = await this.onCommand("unload", {});
+                }
             } finally {
                 this._mutationObserver?.disconnect();
                 this._mutationObserver = null;
@@ -398,6 +391,18 @@ export async function createComponentClassFromJsDefinition(src, context, impleme
                 this._disposables = [];
             }
             return result;
+        }
+        // methods (private)
+        _unmount() {
+            const renderEngine = this._renderEngine;
+            if (!renderEngine) return;
+            this._renderEngine = null;
+            this._renderPending = false;
+            try {
+                this.onCommand("unmount", {});
+            } finally {
+                renderEngine.unmount();
+            }
         }
         // stateChange(prop, oldValue, newValue) {
         stateChange(prop, oldValue, newValue) {

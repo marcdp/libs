@@ -1,32 +1,17 @@
-function reportUnloadError(error) {
-    console.error("Component unload failed:", error);
-}
-
-function initiateComponentUnload(element) {
-    if (element?.constructor?.isXShellComponent !== true || typeof(element.unload) !== "function") return;
-    try {
-        Promise.resolve(element.unload()).catch(reportUnloadError);
-    } catch (error) {
-        reportUnloadError(error);
+// finalize definition-based Components in renderer-owned light DOM before discarding it
+export function unloadComponents(...roots) {
+    const components = new Set();
+    for (const root of roots) {
+        if (root?.constructor?.isXShellComponent === true) components.add(root);
+        for (const element of root?.querySelectorAll?.("*") ?? []) {
+            if (element.constructor.isXShellComponent === true) components.add(element);
+        }
     }
-}
-
-// Finalize definition-based XShell Components in a renderer-owned DOM subtree.
-// Shadow roots are intentionally not traversed here: each Component unloads the
-// render tree it owns through its own render engine.
-export function unloadComponents(root) {
-    if (!root) return;
-    const children = Array.from(root.childNodes ?? []);
-    initiateComponentUnload(root);
-    for (const child of children) {
-        unloadComponents(child);
-    }
-}
-
-export function unloadChildComponents(root, retainedChildren = []) {
-    if (!root) return;
-    const retained = new Set(retainedChildren);
-    for (const child of Array.from(root.childNodes ?? [])) {
-        if (!retained.has(child)) unloadComponents(child);
+    for (const component of components) {
+        try {
+            Promise.resolve(component.unload()).catch(error => console.error("Component unload failed:", error));
+        } catch (error) {
+            console.error("Component unload failed:", error);
+        }
     }
 }
