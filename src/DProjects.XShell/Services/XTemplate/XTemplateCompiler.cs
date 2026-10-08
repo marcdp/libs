@@ -10,7 +10,6 @@ namespace DProjects.XShell.Services.XTemplate {
         private static readonly HashSet<string> VoidElements = new(StringComparer.OrdinalIgnoreCase) {
             "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"
         };
-        private static readonly HashSet<string> RawTextElements = new(StringComparer.OrdinalIgnoreCase) {  };
         private static readonly string[] PrimaryStructuralDirectiveNames = ["x-if", "x-elseif", "x-else", "x-for", "x-recursive", "x-once"];
 
         private enum StructuralDirectiveKind {
@@ -540,6 +539,7 @@ namespace DProjects.XShell.Services.XTemplate {
             private void ParseElement(Stack<ElementNode> stack) {
                 var offset = mPosition++;
                 var name = ReadName().ToLowerInvariant();
+                if (name is "script" or "style") throw new XTemplateException($"Element <{name}> is not allowed in an XTemplate", offset);
                 var attributes = new List<TemplateAttribute>();
                 var selfClosing = false;
                 while (mPosition < source.Length) {
@@ -560,14 +560,6 @@ namespace DProjects.XShell.Services.XTemplate {
                 var element = new ElementNode(name, attributes, new(), offset);
                 stack.Peek().Children.Add(element);
                 if (selfClosing || VoidElements.Contains(name)) return;
-                if (RawTextElements.Contains(name)) {
-                    var closing = $"</{name}>";
-                    var end = source.IndexOf(closing, mPosition, StringComparison.OrdinalIgnoreCase);
-                    if (end < 0) throw new InvalidOperationException($"Malformed X template: element <{name}> at offset {offset} is not closed.");
-                    if (end > mPosition) element.Children.Add(new TextNode(source[mPosition..end], mPosition));
-                    mPosition = end + closing.Length;
-                    return;
-                }
                 stack.Push(element);
             }
 

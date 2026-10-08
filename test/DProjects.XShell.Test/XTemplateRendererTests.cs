@@ -282,11 +282,12 @@ namespace DProjects.XShell.Test {
         }
 
         [Fact]
-        public void DoesNotTreatRawStyleElementsAsStyleAttributes() {
-            const string template = "<div x-pre><style>span { color:red; }</style></div>";
-
-            Assert.Equal("<div><style>span { color:red; }</style></div>", Render(template));
-            Assert.Equal("<div><style>span { color:red; }</style></div>", RenderAllowingStyles(template));
+        public void RejectsForbiddenElementsEvenInsideRawContent() {
+            foreach (var template in new[] { "<style></style>", "<script></script>", "<div><style></style></div>", "<div x-pre><style></style></div>", "<div x-pre><script></script></div>" }) {
+                var exception = Assert.Throws<XTemplateException>(() => Render(template));
+                Assert.Contains("not allowed in an XTemplate", exception.Message);
+                Assert.True(exception.Offset >= 0);
+            }
         }
 
 

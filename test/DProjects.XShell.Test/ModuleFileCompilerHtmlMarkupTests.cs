@@ -26,7 +26,6 @@ namespace DProjects.XShell.Test {
         [InlineData("mailto:user@example.com")]
         [InlineData("tel:+34123456789")]
         [InlineData("file:///tmp/image.png")]
-        [InlineData("app:/images/logo.png")]
         [InlineData("javascript:void(0)")]
         [InlineData("#details")]
         public void Compile_NonRelativeUrl_LeavesValueUnchanged(string url) {
@@ -42,10 +41,14 @@ namespace DProjects.XShell.Test {
         [InlineData("<button formaction=\"url:./submit\">go</button>")]
         [InlineData("<img srcset=\"small.png 1x, url:./large.png 2x\">")]
         [InlineData("<div style=\"background:url(url:./image.png)\"></div>")]
+        [InlineData("<img src=\"app:/image.png\">")]
+        [InlineData("<a href='APP:/page.html'>link</a>")]
+        [InlineData("<img srcset=\"small.png 1x, app:/large.png 2x\">")]
+        [InlineData("<div style=\"background:url(APP:/image.png)\"></div>")]
         public void Compile_ConfigurationOnlyUrlScheme_RejectsResourceReferences(string html) {
             var exception = Assert.Throws<InvalidOperationException>(() => CompileHtml(html));
 
-            Assert.Contains("'url:' scheme is not supported", exception.Message);
+            Assert.Contains("scheme is not supported", exception.Message);
         }
         [Fact]
         public void Compile_UrlSchemeTextAndUnrelatedAttributes_RemainUntouched() {
@@ -113,8 +116,15 @@ namespace DProjects.XShell.Test {
             Assert.Equal(html, CompileHtml(html).Content);
         }
         [Fact]
+        public void Compile_GenericHtml_AllowsScriptsAndStylesAndRewritesScriptSource() {
+            var html = "<script src=\"./module.js\"></script><style>.x{background:url(./image.png)}</style>";
+
+            Assert.Equal("<script src=\"/pages/users/module.js\"></script><style>.x{background:url(./image.png)}</style>", CompileHtml(html).Content);
+        }
+        [Fact]
         public void Compile_TraversalAboveModuleRoot_Throws() {
             Assert.Throws<InvalidOperationException>(() => CompileHtml("<img src=\"../../../outside.png\">"));
+            Assert.Throws<InvalidOperationException>(() => CompileHtml("<img src=\"/../outside.png\">"));
         }
         [Fact]
         public void Compile_CssAndHtml_UseIdenticalUrlNormalization() {

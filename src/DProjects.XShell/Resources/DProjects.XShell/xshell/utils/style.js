@@ -95,9 +95,8 @@ function resolveResourceUrl(value, source, bases) {
     if (!url || url.startsWith("#")) return url;
 
     // reject configuration-only physical URLs
-    if (/^url:/i.test(url)) {
-        throw new Error(`The 'url:' scheme is not supported in CSS resource references in '${source.requestUrl}'.`);
-    }
+    if (/^url:/i.test(url)) throw new Error(`The 'url:' scheme is not supported in CSS resource references in '${source.requestUrl}'.`);
+    if (/^app:/i.test(url)) throw new Error(`The 'app:' scheme is not supported in CSS resource references in '${source.requestUrl}'.`);
 
     // preserve protocol-relative URLs
     if (url.startsWith("//")) return url;
@@ -107,7 +106,9 @@ function resolveResourceUrl(value, source, bases) {
 
     // resolve /foo against the module root
     if (url.startsWith("/") && source.scope === "module") {
-        return new URL(url.replace(/^\/+/, ""), bases.moduleVirtualBaseUrl).href;
+        const resolved = new URL(url.replace(/^\/+/, ""), bases.moduleVirtualBaseUrl).href;
+        assertInside(resolved, bases.moduleVirtualBaseUrl, `Module URL '${url}' in '${source.requestUrl}' escapes the module root.`);
+        return resolved;
     }
 
     // resolve /foo against the application root for app-scoped CSS
@@ -142,9 +143,8 @@ function resolveImportSource(value, source, bases) {
     if (!url) throw new Error(`CSS @import in '${source.requestUrl}' declares an empty URL.`);
 
     // reject configuration-only physical imports
-    if (/^url:/i.test(url)) {
-        throw new Error(`The 'url:' scheme is not supported in CSS resource references in '${source.requestUrl}'.`);
-    }
+    if (/^url:/i.test(url)) throw new Error(`The 'url:' scheme is not supported in CSS resource references in '${source.requestUrl}'.`);
+    if (/^app:/i.test(url)) throw new Error(`The 'app:' scheme is not supported in CSS resource references in '${source.requestUrl}'.`);
 
     // resolve absolute and protocol-relative imports
     if (url.startsWith("//") || hasScheme(url)) {
@@ -155,6 +155,7 @@ function resolveImportSource(value, source, bases) {
     // resolve module-root imports
     if (url.startsWith("/") && source.scope === "module") {
         const requestUrl = new URL(url.replace(/^\/+/, ""), bases.moduleVirtualBaseUrl).href;
+        assertInside(requestUrl, bases.moduleVirtualBaseUrl, `Module CSS @import '${url}' in '${source.requestUrl}' escapes the module root.`);
         return { requestUrl, scope: "module" };
     }
 
@@ -192,7 +193,20 @@ function resolveImportSource(value, source, bases) {
 // rewrite CSS resource URLs without loading @import declarations
 export function rewriteStyleUrls({ src, context, css }) {
     const bases = createBases(context);
-    return resolveUrls(css, createInitialSource(src, bases), bases);
+    const source = createInitialSource(src, bases);
+    return resolveUrls(rewriteImportsOnly(css, source, bases), source, bases);
+}
+
+// rewrite quoted and url(...) imports without fetching them from inline CSS
+function rewriteImportsOnly(css, source, bases) {
+    const imports = findImports(css);
+    let result = "";
+    let position = 0;
+    for (const item of imports) {
+        result += css.slice(position, item.urlStart) + resolveImportSource(item.url, source, bases).requestUrl;
+        position = item.urlEnd;
+    }
+    return result + css.slice(position);
 }
 
 // rewrite one already-parsed declaration value without introducing a second CSS parser
@@ -227,9 +241,8 @@ function createAppBaseUrl(appBasePath) {
 function createInitialSource(src, bases) {
 
     // reject configuration-only physical sources
-    if (/^url:/i.test(src)) {
-        throw new Error(`The 'url:' scheme is not supported in CSS resource references: '${src}'.`);
-    }
+    if (/^url:/i.test(src)) throw new Error(`The 'url:' scheme is not supported in CSS resource references: '${src}'.`);
+    if (/^app:/i.test(src)) throw new Error(`The 'app:' scheme is not supported in CSS resource references: '${src}'.`);
 
     // resolve external root stylesheets
     if (src.startsWith("//") || hasScheme(src)) {
@@ -275,17 +288,23 @@ function findImports(css) {
         position += 7;
         position = skipTrivia(css, position);
         let url = null;
+        let urlStart;
+        let urlEnd;
 
         if (css[position] === "'" || css[position] === '"') {
             const quoteStart = position;
             const end = findStringEnd(css, position);
             if (end <= quoteStart + 1 || css[end - 1] !== css[quoteStart]) throw new Error(`Invalid CSS @import near offset ${start}`);
             url = decodeCssString(css.slice(quoteStart + 1, end - 1));
+            urlStart = quoteStart + 1;
+            urlEnd = end - 1;
             position = end;
         } else {
             const parsed = readUrl(css, position);
             if (!parsed) throw new Error(`Invalid CSS @import near offset ${start}`);
             url = parsed.url;
+            urlStart = parsed.valueStart;
+            urlEnd = parsed.valueEnd;
             position = parsed.end;
         }
 
@@ -296,7 +315,7 @@ function findImports(css) {
         const qualifiers = css.slice(qualifiersStart, position).trim();
         position++;
 
-        result.push({ start, end: position, url, qualifiers });
+        result.push({ start, end: position, url, urlStart, urlEnd, qualifiers });
     }
 
     return result;
@@ -361,7 +380,7 @@ function readUrl(css, start) {
     if (position >= css.length || css[position] !== ")") return null;
     position++;
 
-    return { url: value, prefix: css.slice(start, valueStart), suffix: css.slice(valueEnd, position), end: position };
+    return { url: value, prefix: css.slice(start, valueStart), suffix: css.slice(valueEnd, position), valueStart, valueEnd, end: position };
 }
 
 // detect the beginning of a CSS @import declaration

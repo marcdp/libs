@@ -8,8 +8,11 @@ namespace DProjects.XShell.Services {
             if (!string.IsNullOrEmpty(url) && url.StartsWith("url:", StringComparison.OrdinalIgnoreCase)) {
                 throw new InvalidOperationException($"The 'url:' scheme is not supported in CSS or template resource references in '{relativePath}'.");
             }
-            // leave non-local and already module-root-relative references untouched
-            if (string.IsNullOrEmpty(url) || url[0] == '#' || url[0] == '/' || HasExplicitScheme(url)) return url;
+            if (!string.IsNullOrEmpty(url) && url.StartsWith("app:", StringComparison.OrdinalIgnoreCase)) {
+                throw new InvalidOperationException($"The 'app:' scheme is not supported in CSS or template resource references in '{relativePath}'.");
+            }
+            // leave non-local references untouched while checking module-root paths for traversal
+            if (string.IsNullOrEmpty(url) || url[0] == '#' || url.StartsWith("//", StringComparison.Ordinal) || HasExplicitScheme(url)) return url;
 
             // separate suffixes that are not part of logical path traversal
             var queryIndex = url.IndexOf('?');
@@ -21,7 +24,7 @@ namespace DProjects.XShell.Services {
 
             // resolve against the logical source directory using URL separators
             var lastSlash = relativePath.LastIndexOf('/');
-            var directory = lastSlash <= 0 ? "" : relativePath[1..lastSlash];
+            var directory = path.StartsWith('/') || lastSlash <= 0 ? "" : relativePath[1..lastSlash];
             var segments = new List<string>();
             if (directory.Length > 0) segments.AddRange(directory.Split('/', StringSplitOptions.RemoveEmptyEntries));
             foreach (var segment in path.Split('/')) {
@@ -45,7 +48,7 @@ namespace DProjects.XShell.Services {
             for (var index = 1; index < url.Length; index++) {
                 var character = url[index];
                 if (character == ':') return true;
-                if (!IsAsciiLetter(character) && !char.IsDigit(character) && character != '+' && character != '-' && character != '.') return false;
+                if (!IsAsciiLetter(character) && character is not (>= '0' and <= '9') && character != '+' && character != '-' && character != '.') return false;
             }
             return false;
         }

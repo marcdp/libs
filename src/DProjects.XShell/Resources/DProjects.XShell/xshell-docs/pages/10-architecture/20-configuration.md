@@ -88,8 +88,8 @@ each with non-empty `renderEngine` and `stateEngine`. These module defaults
 are separate from global `xshell.ui` settings.
 
 In configuration URL fields, `/foo` starts at the module root, while `./foo` and `../foo` use the declaring file's directory in logical module
-coordinates. Paths that traverse above the module root are invalid. `url:` is configuration-only and uses the physical declaring document URL;
-runtime CSS and template resource references reject it. `app:` uses the XShell application base URL
+coordinates. Paths that traverse above the module root are invalid. `app:` and `url:` are configuration-only; runtime CSS and template resource
+references reject both. In configuration, `url:` uses the physical declaring document URL. `app:` uses the XShell application base URL
 built once from `document.location.origin` and the host's `xshell:app.basePath` meta value. For example, with a base of
 `https://example.com/myapp/`, both `app:images/logo.svg` and `app:/images/logo.svg` resolve to
 `https://example.com/myapp/images/logo.svg`. Absolute schemes, including `https:`, `data:`, and `blob:`, remain unchanged.

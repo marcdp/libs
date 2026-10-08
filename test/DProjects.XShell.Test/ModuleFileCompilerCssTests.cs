@@ -28,7 +28,6 @@ namespace DProjects.XShell.Test {
         [InlineData("url(http://cdn.test/image.png)")]
         [InlineData("url(data:image/png;base64,AAAA)")]
         [InlineData("url(blob:https://example.test/id)")]
-        [InlineData("url(app:/images/logo.png)")]
         [InlineData("url()")]
         [InlineData("url(?v=1)")]
         [InlineData("url(#fragment)")]
@@ -41,10 +40,14 @@ namespace DProjects.XShell.Test {
         [InlineData("url(\"URL:./image.png\")")]
         [InlineData("@import \"url:./theme.css\";")]
         [InlineData("@import url(url:./theme.css);")]
+        [InlineData("url(app:/image.png)")]
+        [InlineData("url('APP:/image.png')")]
+        [InlineData("@import \"app:/theme.css\";")]
+        [InlineData("@import url(APP:/theme.css);")]
         public void Compile_ConfigurationOnlyUrlScheme_RejectsCssResource(string css) {
             var exception = Assert.Throws<InvalidOperationException>(() => Compile(css));
 
-            Assert.Contains("'url:' scheme is not supported", exception.Message);
+            Assert.Contains("scheme is not supported", exception.Message);
             Assert.Contains("/styles/site.css", exception.Message);
         }
         [Theory]
@@ -100,6 +103,7 @@ namespace DProjects.XShell.Test {
 
             Assert.Contains("../../outside.png", exception.Message);
             Assert.Contains("/styles/site.css", exception.Message);
+            Assert.Throws<InvalidOperationException>(() => Compile("url(/../outside.png)"));
         }
         [Theory]
         [InlineData("myurl(image.png)")]

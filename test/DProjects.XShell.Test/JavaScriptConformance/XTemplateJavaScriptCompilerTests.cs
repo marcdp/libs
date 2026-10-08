@@ -5,6 +5,18 @@ namespace DProjects.XShell.Test {
     public sealed class XTemplateJavaScriptCompilerTests {
 
         // methods
+        [Theory]
+        [InlineData("<style></style>", 0)]
+        [InlineData("<script></script>", 0)]
+        [InlineData("<div><style></style></div>", 5)]
+        [InlineData("<div x-pre><style></style></div>", 11)]
+        [InlineData("<div x-pre><script></script></div>", 11)]
+        public void Compile_ForbiddenElements_ReportsSourceOffset(string template, int offset) {
+            var exception = Assert.Throws<XTemplateException>(() => new XTemplateCompiler().Compile(template));
+            Assert.Equal(offset, exception.Offset);
+        }
+
+        // methods
         [Fact]
         public void CompilesExpressionsFromValidatedAstThroughSemanticHelpers() {
             var javascript = new XTemplateCompiler().Compile("<p>{{ state.user.name ?? 'Anonymous' }} {{ state.price + 1 | number(2) }}</p>");

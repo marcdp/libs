@@ -4,7 +4,7 @@ import test from "node:test";
 globalThis.HTMLElement = class {};
 globalThis.CSSStyleSheet = class { replaceSync() {} };
 globalThis.customElements = { get() {}, define() {} };
-globalThis.window = { customElements: globalThis.customElements };
+globalThis.window = { customElements: globalThis.customElements, location: { origin: "https://example.test" } };
 let templateCreationCount = 0;
 globalThis.document = {
     createElement(tag) {
@@ -53,10 +53,10 @@ test("render engine rejects the legacy renderer shape", () => {
 
 test("compiled template attributes use navigation and resource URL rules", () => {
     const context = {
-        appBasePath: "/app", resourcePath: "/pages/card.js", resourceDefinition: { modulePath: "/module" },
+        appBasePath: "/app", resourcePath: "/module/pages/card.js", resourceDefinition: { modulePath: "/module" },
         navigationMode: "hash", navigationHashPrefix: "#"
     };
-    assert.equal(rewriteTemplateAttribute("a", { href: "details" }, "href", "details", context), "#/pages/details");
-    assert.equal(rewriteTemplateAttribute("img", { src: "images/a.png" }, "src", "images/a.png", context), "/app/pages/images/a.png");
-    assert.equal(rewriteTemplateAttribute("input", { type: "image", src: "send.png" }, "src", "send.png", context), "/app/pages/send.png");
+    assert.equal(rewriteTemplateAttribute("a", { href: "details" }, "href", "details", context), "#/module/pages/details");
+    assert.equal(rewriteTemplateAttribute("img", { src: "images/a.png" }, "src", "images/a.png", context), "/app/module/pages/images/a.png");
+    assert.equal(rewriteTemplateAttribute("input", { type: "image", src: "send.png" }, "src", "send.png", context), "/app/module/pages/send.png");
 });

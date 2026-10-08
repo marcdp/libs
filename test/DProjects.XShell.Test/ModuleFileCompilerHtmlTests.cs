@@ -82,6 +82,9 @@ namespace DProjects.XShell.Test {
                 Compile("<style>.x{background:url(url:./image.png)}</style><template><p>content</p></template>"));
 
             Assert.Contains("'url:' scheme is not supported", exception.Message);
+            var appException = Assert.Throws<InvalidOperationException>(() =>
+                Compile("<style>.x{background:url(app:/image.png)}</style><template><p>content</p></template>"));
+            Assert.Contains("'app:' scheme is not supported", appException.Message);
         }
         [Fact]
         public void Compile_TemplateResource_RejectsConfigurationOnlyUrlScheme() {
@@ -89,6 +92,9 @@ namespace DProjects.XShell.Test {
                 Compile("<template><img src=\"url:./image.png\"></template>"));
 
             Assert.Contains("'url:' scheme is not supported", exception.Message);
+            var appException = Assert.Throws<InvalidOperationException>(() =>
+                Compile("<template><img src=\"APP:/image.png\"></template>"));
+            Assert.Contains("'app:' scheme is not supported", appException.Message);
         }
         [Fact]
         public void Compile_BackticksSubstitutionsAndBackslashes_ProducesStaticTemplateLiterals() {

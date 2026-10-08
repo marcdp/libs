@@ -98,6 +98,9 @@ namespace DProjects.XShell.Test {
                 Compile("export default { style: `a{background:url(url:./image.png)}` };", "html"));
 
             Assert.Contains("'url:' scheme is not supported", exception.Message);
+            var appException = Assert.Throws<InvalidOperationException>(() =>
+                Compile("export default { style: `a{background:url(APP:/image.png)}` };", "html"));
+            Assert.Contains("'app:' scheme is not supported", appException.Message);
         }
         [Fact]
         public void Compile_TemplateResource_RejectsConfigurationOnlyUrlScheme() {
@@ -105,6 +108,9 @@ namespace DProjects.XShell.Test {
                 Compile("export default { template: `<img src=\"url:./image.png\">` };", "html"));
 
             Assert.Contains("'url:' scheme is not supported", exception.Message);
+            var appException = Assert.Throws<InvalidOperationException>(() =>
+                Compile("export default { template: `<img src=\"APP:/image.png\">` };", "html"));
+            Assert.Contains("'app:' scheme is not supported", appException.Message);
         }
         [Theory]
         [InlineData("\"<img src='./image.png'>\"")]

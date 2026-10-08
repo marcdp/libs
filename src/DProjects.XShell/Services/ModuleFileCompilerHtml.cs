@@ -29,13 +29,13 @@ namespace DProjects.XShell.Services {
                     position = tagStart + 1;
                 } else {
                     var name = html.AsSpan(nameStart, nameEnd - nameStart);
-                    if (name.Equals("script", StringComparison.OrdinalIgnoreCase)) {
-                        throw new InvalidOperationException("A <script> element is not allowed inside a template. Use the definition 'script' property instead.");
-                    } else if (name.Equals("style", StringComparison.OrdinalIgnoreCase)) {
-                        throw new InvalidOperationException("A <style> element is not allowed inside a template. Use the definition 'style' property instead.");                        
-                    } else {
-                        AppendProcessedTag(context, html, result, tagStart, nameEnd, tagEnd);
-                        position = tagEnd + 1;
+                    AppendProcessedTag(context, html, result, tagStart, nameEnd, tagEnd);
+                    position = tagEnd + 1;
+                    // keep script and style bodies opaque to the HTML attribute scanner
+                    if (name.Equals("script", StringComparison.OrdinalIgnoreCase) || name.Equals("style", StringComparison.OrdinalIgnoreCase)) {
+                        var rawEnd = FindRawTextElementEnd(html, position, name);
+                        result.Append(html, position, rawEnd - position);
+                        position = rawEnd;
                     }
                 }
             }

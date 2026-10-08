@@ -26,7 +26,9 @@ loads dependencies, initializes the render factory, and defines the custom eleme
 Definition styles are processed once while the Component or Page class is created. Relative CSS URLs use the definition resource as their base;
 recursive `@import` URLs use each imported stylesheet as their base. Page CSS is scoped after imports are expanded. Each Page mount creates its own
 scoped stylesheet and removes it on unmount.
-Styles and template resource references use logical paths or `app:`; the configuration-only `url:` scheme is rejected.
+Runtime CSS and template resource references use relative or module-root paths, or standard URI schemes. `app:` and `url:` are
+configuration/bootstrap-only and are rejected in runtime CSS and templates. Custom resources without a module path resolve relative and
+origin-root URLs against their declaring URL.
 
 ## Construction and loading
 

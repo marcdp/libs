@@ -223,7 +223,7 @@ test("custom Component and Page styles work without modulePath", async () => {
     assert.deepEqual(document.adoptedStyleSheets, []);
 });
 
-test("Component and Page definitions reject url: CSS references", async () => {
+test("Component and Page definitions reject configuration-only CSS references", async () => {
     configureDefinitionLoaders();
     setStylesheets(new Map(), []);
     await assert.rejects(() => createComponentClassFromJsDefinition("/_assets/test/components/card.js", createContext(), {
@@ -232,4 +232,10 @@ test("Component and Page definitions reject url: CSS references", async () => {
     await assert.rejects(() => createPageClassFromJsDefinition("/_assets/test/pages/page.js", createContext(), {
         meta: { id: "invalid-page" }, style: '@import "url:./theme.css";'
     }, {}), /'url:' scheme is not supported in CSS resource references/);
+    await assert.rejects(() => createComponentClassFromJsDefinition("/_assets/test/components/card.js", createContext(), {
+        meta: { id: "invalid-card" }, style: "a{background:url(APP:/image.png)}"
+    }, {}), /'app:' scheme is not supported in CSS resource references/);
+    await assert.rejects(() => createPageClassFromJsDefinition("/_assets/test/pages/page.js", createContext(), {
+        meta: { id: "invalid-page" }, style: '@import "app:/theme.css";'
+    }, {}), /'app:' scheme is not supported in CSS resource references/);
 });

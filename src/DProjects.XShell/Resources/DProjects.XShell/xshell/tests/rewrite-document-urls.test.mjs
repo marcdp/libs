@@ -70,6 +70,15 @@ test("style elements preserve fragment references and rewrite root URLs", async 
     assert.equal(style.textContent, '.a { filter:url(#filter); background:url(https://example.test/app/_assets/demo/images/a.png?v=1#part); }');
 });
 
+test("style elements resolve quoted imports through the CSS scanner", () => {
+    const style = new TestElement("style", {}, '@import "./theme.css"; .a{background:url(./image.png)}');
+    rewriteDocumentUrls(createDocument(style), context);
+    assert.equal(style.textContent, `@import "${resourceBase}theme.css"; .a{background:url(${resourceBase}image.png)}`);
+    for (const scheme of ["app:", "APP:", "url:", "URL:"]) {
+        assert.throws(() => rewriteDocumentUrls(createDocument(new TestElement("style", {}, `@import "${scheme}/theme.css";`)), context), /scheme is not supported/);
+    }
+});
+
 test("inline module imports use module paths while preserving special specifiers", async () => {
     const script = new TestElement("script", { type: "module" }, [
         'import helper from "./helper.js";',
@@ -165,6 +174,17 @@ test("navigation links retain Page routes and fragment navigation", async () => 
     }
 });
 
+test("path navigation respects the application base form", () => {
+    for (const [appBasePath, expected] of [
+        ["/app", "/app/_assets/demo/pages/details"],
+        ["https://example.test/app", "https://example.test/app/_assets/demo/pages/details"]
+    ]) {
+        const anchor = new TestElement("a", { href: "./details" });
+        rewriteDocumentUrls(createDocument(anchor), { ...context, appBasePath, navigationMode: "path" });
+        assert.equal(anchor.getAttribute("href"), expected);
+    }
+});
+
 test("runtime template resource URLs reject the configuration-only url: scheme", async () => {
     const cases = [
         new TestElement("img", { src: "url:./image.png" }),
@@ -177,7 +197,7 @@ test("runtime template resource URLs reject the configuration-only url: scheme",
         new TestElement("style", {}, "a{background:url('url:./image.png')}")
     ];
     for (const element of cases) {
-        await assert.rejects(() => rewriteDocumentUrls(createDocument(element), context), /'url:' scheme is not supported/);
+        assert.throws(() => rewriteDocumentUrls(createDocument(element), context), /'url:' scheme is not supported/);
     }
     createDocument();
     assert.throws(() => rewriteTemplateAttribute("img", {}, "src", "url:./image.png", context), /'url:' scheme is not supported/);
@@ -186,7 +206,7 @@ test("runtime template resource URLs reject the configuration-only url: scheme",
 
 test("runtime template imports reject url: while ordinary text remains untouched", async () => {
     const script = new TestElement("script", { type: "module" }, 'import x from "url:./module.js";');
-    await assert.rejects(() => rewriteDocumentUrls(createDocument(script), context), /'url:' scheme is not supported/);
+    assert.throws(() => rewriteDocumentUrls(createDocument(script), context), /'url:' scheme is not supported/);
 
     const plain = new TestElement("p", { title: "url:./literal" }, "url:./plain text");
     const ordinaryScript = new TestElement("script", { type: "module" }, 'const text = "url:./literal";');
@@ -197,11 +217,79 @@ test("runtime template imports reject url: while ordinary text remains untouched
     assert.equal(doc.elements[1].textContent, 'const text = "url:./literal";');
 });
 
-test("runtime templates resolve app: resources against the application base", async () => {
-    const img = new TestElement("img", { src: "app:/images/logo.png" });
-    const style = new TestElement("style", {}, "a{background:url(app:/images/background.png)}");
-    await rewriteDocumentUrls(createDocument(img, style), context);
-    assert.equal(img.getAttribute("src"), "https://example.test/app/images/logo.png");
-    assert.equal(style.textContent, 'a{background:url(https://example.test/app/images/background.png)}');
-    assert.throws(() => rewriteTemplateAttribute("img", {}, "src", "app:../../outside.png", context), /escapes the application root/);
+test("ordinary HTML inline module imports support single-line static imports", () => {
+    const script = new TestElement("script", { type: "module" }, [
+        'import "./side.js";',
+        'import { helper } from "./helper.js";',
+        'const text = "import x from \'app:/literal.js\'";',
+        '// import ignored from "./ignored.js";'
+    ].join("\n"));
+    const doc = createDocument(script);
+    rewriteDocumentUrls(doc, context);
+    assert.equal(doc.elements[0].textContent, [
+        `import "${resourceBase}side.js";`,
+        `import { helper } from "${resourceBase}helper.js";`,
+        'const text = "import x from \'app:/literal.js\'";',
+        '// import ignored from "./ignored.js";'
+    ].join("\n"));
+    const custom = { resourceDefinition: {}, resourcePath: "https://cdn.example.com/widgets/card.js" };
+    const external = createDocument(new TestElement("script", { type: "module" }, 'import x from "../lib.js";'));
+    rewriteDocumentUrls(external, custom);
+    assert.equal(external.elements[0].textContent, 'import x from "https://cdn.example.com/lib.js";');
+});
+
+test("runtime templates reject app: and url: in all static URL locations", () => {
+    for (const scheme of ["app:", "APP:", "url:", "URL:"]) {
+        for (const element of [
+            new TestElement("img", { src: scheme + "/image.png" }),
+            new TestElement("a", { href: scheme + "/page" }),
+            new TestElement("x-page", { src: scheme + "/page" }),
+            new TestElement("img", { srcset: `small.png 1x, ${scheme}/large.png 2x` }),
+            new TestElement("div", { style: `background:url(${scheme}/image.png)` }),
+            new TestElement("style", {}, `a{background:url(${scheme}/image.png)}`)
+        ]) assert.throws(() => rewriteDocumentUrls(createDocument(element), context), /scheme is not supported/);
+        createDocument();
+        assert.throws(() => rewriteTemplateAttribute("img", {}, "src", scheme + "/image.png", context), /scheme is not supported/);
+    }
+});
+
+test("custom declaring URLs use ordinary URL semantics", () => {
+    const custom = { resourceDefinition: {}, resourcePath: "https://cdn.example.com/widgets/card.js", appBasePath: "/app", navigationMode: "hash", navigationHashPrefix: "#!" };
+    for (const [value, expected] of [
+        ["./a.png", "https://cdn.example.com/widgets/a.png"],
+        ["../a.png", "https://cdn.example.com/a.png"],
+        ["/a.png", "https://cdn.example.com/a.png"]
+    ]) {
+        const img = new TestElement("img", { src: value });
+        rewriteDocumentUrls(createDocument(img), custom);
+        assert.equal(img.getAttribute("src"), expected);
+    }
+    const anchor = new TestElement("a", { href: "./details" });
+    rewriteDocumentUrls(createDocument(anchor), custom);
+    assert.equal(anchor.getAttribute("href"), "https://cdn.example.com/widgets/details");
+});
+
+test("module URL resolution keeps colons in suffixes and rejects root traversal", () => {
+    for (const [value, expected] of [
+        ["./image.png?time=10:30", `${resourceBase}image.png?time=10:30`],
+        ["./image.png#state:active", `${resourceBase}image.png#state:active`]
+    ]) {
+        const img = new TestElement("img", { src: value });
+        rewriteDocumentUrls(createDocument(img), context);
+        assert.equal(img.getAttribute("src"), expected);
+    }
+    assert.throws(() => rewriteDocumentUrls(createDocument(new TestElement("img", { src: "../../../outside.png" })), context), /escapes the module root/);
+});
+
+test("server-normalized logical module URLs map once to runtime URLs", () => {
+    const img = new TestElement("img", { src: "/pages/images/a.png" });
+    rewriteDocumentUrls(createDocument(img), context);
+    assert.equal(img.getAttribute("src"), "https://example.test/app/_assets/demo/pages/images/a.png");
+});
+
+test("video source and poster are rewritten", () => {
+    const video = new TestElement("video", { src: "./movie.mp4", poster: "./poster.png" });
+    rewriteDocumentUrls(createDocument(video), context);
+    assert.equal(video.getAttribute("src"), `${resourceBase}movie.mp4`);
+    assert.equal(video.getAttribute("poster"), `${resourceBase}poster.png`);
 });

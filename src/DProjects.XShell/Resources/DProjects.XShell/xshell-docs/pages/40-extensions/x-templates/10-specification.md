@@ -1059,7 +1059,12 @@ Ordinary HTML is emitted normally:
 </section>
 ```
 
-Static attributes are literal strings unless they are boolean HTML attributes interpreted by the browser.
+Static attributes are literal strings unless they are boolean HTML attributes interpreted by the browser. Literal URL-bearing attributes use the
+HTML template URL rules: module-relative and module-root paths are resolved from the declaring template, while `app:` and `url:` are invalid.
+Dynamic `x-attr` values remain runtime values and are not resolved against the declaring template.
+
+`<script>` and `<style>` are invalid elements within XTemplate source, including inside `x-pre`. An HTML single-file component may have separate
+top-level `<script type="module">` and `<style>` sections outside its `<template>` section.
 
 XTL does not evaluate ordinary attribute text as an expression.
 
@@ -1091,8 +1096,8 @@ This restriction does not change the separately explicit and security-sensitive 
 The C# server HTML renderer cannot reproduce these CSSOM semantics without serializing an inline attribute. It rejects final case-insensitive
 `style` attributes by default, regardless of whether they originated from literal, bound, spread, dynamic, or `x-pre` raw content. An embedding
 environment MAY explicitly enable style-attribute serialization through `XTemplateRendererOptions.AllowStyleAttributes`; the caller is responsible
-for deploying a CSP compatible with emitted inline style attributes. This rule concerns the `style="..."` attribute and does not redefine `<style>`
-element support.
+for deploying a CSP compatible with emitted inline style attributes. This option concerns only the `style="..."` attribute; `<style>` remains
+invalid XTemplate syntax.
 
 These semantics permit the browser XTemplate path to operate with `style-src-attr 'none'` and do not require `'unsafe-inline'`.
 

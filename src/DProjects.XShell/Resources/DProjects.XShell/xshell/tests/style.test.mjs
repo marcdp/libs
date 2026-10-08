@@ -79,17 +79,13 @@ test("comments and ordinary strings stay intact while quoted and unquoted URLs a
     ].join("\n"));
 });
 
-test("module, app and special URL namespaces retain their CSS semantics", async () => {
+test("module and standard URL namespaces retain their CSS semantics", async () => {
     const requests = [];
-    setStylesheets(new Map([
-        ["https://example.test/console/styles/shared.css", "b{background:url('./shared.png')}\nroot{background:url(/root.png)}"]
-    ]), requests);
+    setStylesheets(new Map(), requests);
     const css = await processStyle({
         src: "/console/_assets/demo/pages/customer.js", context,
         css: [
-            '@import "app:/styles/shared.css";',
             'a{background:url(/pages/images/compiled.png)}',
-            'b{background:url(app:/images/app.png)}',
             'd{filter:url(#filter)}',
             'e{background:url(//cdn.test/icon.png)}',
             'f{background:url(https://cdn.test/icon.png)}',
@@ -98,12 +94,9 @@ test("module, app and special URL namespaces retain their CSS semantics", async 
         ].join("\n")
     });
 
-    assert.deepEqual(requests, ["https://example.test/console/styles/shared.css"]);
+    assert.deepEqual(requests, []);
     assert.equal(css, [
-        "b{background:url('https://example.test/console/styles/shared.png')}",
-        "root{background:url(https://example.test/console/root.png)}",
         `a{background:url(${moduleRoot}pages/images/compiled.png)}`,
-        "b{background:url(https://example.test/console/images/app.png)}",
         "d{filter:url(#filter)}",
         "e{background:url(//cdn.test/icon.png)}",
         "f{background:url(https://cdn.test/icon.png)}",
@@ -112,7 +105,7 @@ test("module, app and special URL namespaces retain their CSS semantics", async 
     ].join("\n"));
 });
 
-test("CSS rejects url: in resource values, imports, and root stylesheet sources", async () => {
+test("CSS rejects configuration-only schemes in resource values, imports, and root stylesheet sources", async () => {
     const requests = [];
     setStylesheets(new Map(), requests);
     for (const css of [
@@ -121,14 +114,20 @@ test("CSS rejects url: in resource values, imports, and root stylesheet sources"
         'a{background:url("URL:./image.png")}',
         '@import "url:./theme.css";',
         "@import url(url:./theme.css);",
-        "@import url('URL:./theme.css');"
+        "@import url('URL:./theme.css');",
+        "a{background:url(app:/image.png)}",
+        "a{background:url('APP:/image.png')}",
+        '@import "app:/theme.css";',
+        "@import url(APP:/theme.css);"
     ]) {
         await assert.rejects(() => processStyle({
             src: "/console/_assets/demo/pages/customer.js", context, css
-        }), /'url:' scheme is not supported in CSS resource references/);
+        }), /scheme is not supported in CSS resource references/);
     }
     await assert.rejects(() => processStyle({ src: "url:./site.css", context }),
         /'url:' scheme is not supported in CSS resource references/);
+    await assert.rejects(() => processStyle({ src: "APP:./site.css", context }),
+        /'app:' scheme is not supported in CSS resource references/);
     const literal = 'a{content:"url:./literal"}/* url:./comment */';
     assert.equal(await processStyle({ src: "/console/_assets/demo/pages/customer.js", context, css: literal }), literal);
     assert.deepEqual(requests, []);
@@ -142,14 +141,13 @@ test("custom CSS without modulePath uses declaring URL and normal origin-root se
     const customContext = { appBasePath: "/console", resourceDefinition: {} };
     const css = await processStyle({
         src: "https://example.test/custom/card.js", context: customContext,
-        css: '@import "./theme.css";\n.card{background:url(./card.png)}\n.root{background:url(/root.png)}\n.app{background:url(app:/app.png)}'
+        css: '@import "./theme.css";\n.card{background:url(./card.png)}\n.root{background:url(/root.png)}'
     });
     assert.deepEqual(requests, ["https://example.test/custom/theme.css"]);
     assert.equal(css, [
         "theme{background:url(https://example.test/custom/theme.png)}",
         ".card{background:url(https://example.test/custom/card.png)}",
-        ".root{background:url(https://example.test/root.png)}",
-        ".app{background:url(https://example.test/console/app.png)}"
+        ".root{background:url(https://example.test/root.png)}"
     ].join("\n"));
 });
 
@@ -159,6 +157,6 @@ test("module and application traversal outside their roots is rejected", async (
         src: "/console/_assets/demo/pages/customer.js", context, css: "a{background:url(../../../outside.png)}"
     }), /escapes the module root/);
     await assert.rejects(() => processStyle({
-        src: "/console/_assets/demo/pages/customer.js", context, css: '@import "app:../../outside.css";'
-    }), /escapes the application root/);
+        src: "/console/_assets/demo/pages/customer.js", context, css: "a{background:url(/../../outside.png)}"
+    }), /escapes the module root/);
 });

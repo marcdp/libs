@@ -101,3 +101,25 @@ test("compiler-literal structured style URLs are resolved before CSSOM applicati
     assert.equal(host.childNodes[0].style.values["background-image"].value,
         "url(https://example.test/app/_assets/demo/pages/image.png)");
 });
+
+test("literal structured styles reject configuration schemes while dynamic values stay untouched", () => {
+    const context = {
+        appBasePath: "/app", resourceDefinition: { modulePath: "/_assets/demo" },
+        resourcePath: "/_assets/demo/pages/page.html"
+    };
+    for (const scheme of ["app:", "APP:", "url:", "URL:"]) {
+        const renderer = (state, handler, invalidate, utils) => [utils.createVDOM("div", null, null, {
+            "background-image": { value: utils.rewriteStyleValue(`url(${scheme}/image.png)`), priority: "" }
+        }, null, { index: 0 })];
+        const factory = createRenderEngineFactoryX("", context, { render: renderer, dependencies: [], slots: [] });
+        factory.init();
+        assert.throws(() => factory.create({ host: new FakeElement("host"), state: {}, handler() {}, invalidate() {} }).render(), /scheme is not supported/);
+    }
+    const dynamicValue = "url(app:/runtime-value.png)";
+    const renderer = state => [{ tag: "div", attrs: {}, props: {}, styles: { "background-image": { value: state.value, priority: "" } }, events: {}, options: { index: 0 }, children: [] }];
+    const factory = createRenderEngineFactoryX("", context, { render: renderer, dependencies: [], slots: [] });
+    factory.init();
+    const host = new FakeElement("host");
+    factory.create({ host, state: { value: dynamicValue }, handler() {}, invalidate() {} }).render();
+    assert.equal(host.childNodes[0].style.values["background-image"].value, dynamicValue);
+});

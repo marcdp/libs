@@ -6,7 +6,6 @@ namespace DProjects.XShell.Services.XTemplate {
 
         // consts
         private static readonly HashSet<string> VoidElements = new(StringComparer.OrdinalIgnoreCase) { "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr" };
-        private static readonly HashSet<string> RawTextElements = new(StringComparer.OrdinalIgnoreCase) {  };
 
         // vars
         private readonly string _source;
@@ -55,6 +54,7 @@ namespace DProjects.XShell.Services.XTemplate {
         private void ParseElement(Stack<MutableElement> stack) {
             var offset = _position++;
             var name = ReadName().ToLowerInvariant();
+            if (name is "script" or "style") throw Error($"Element <{name}> is not allowed in an XTemplate", offset);
             var attributes = new List<RawAttribute>();
             var selfClosing = false;
             while (_position < _source.Length) {
@@ -75,15 +75,6 @@ namespace DProjects.XShell.Services.XTemplate {
             var element = new MutableElement(name, offset, attributes) { ContentStart = _position };
             stack.Peek().Children.Add(element);
             if (selfClosing || VoidElements.Contains(name)) return;
-            if (RawTextElements.Contains(name)) {
-                var closing = $"</{name}>";
-                var end = _source.IndexOf(closing, _position, StringComparison.OrdinalIgnoreCase);
-                if (end < 0) throw Error($"Element <{name}> is not closed", offset);
-                if (end > _position) element.Children.Add(new XTemplateTextNode(_source[_position..end], _position));
-                element.ContentEnd = end;
-                _position = end + closing.Length;
-                return;
-            }
             stack.Push(element);
         }
         private void ParseText(MutableElement parent) {
