@@ -1,4 +1,5 @@
 
+
 // class
 export default class Resolver {
 
@@ -38,24 +39,56 @@ export default class Resolver {
 
     //methods
     addDefinition(resource, value) {
-        //regexp
-        resource  = resource.replaceAll("/", "\\/");
-        resource  = resource.replaceAll(".", "\\.");
+        // compile pattern
         let regexp = "^";
-        let k = 0;
-        let i = resource.indexOf("{"), j = resource.indexOf("}");
-        while (i != -1) {
-            regexp += resource.substring(k, i);
-            regexp += "(?<" + resource.substring(i + 1, j) + ">.+)";
-            k = j + 1;
-            i = resource.indexOf("{", j), j = resource.indexOf("}", i);
+        let index = 0;
+        let previousTokenWasPlaceholder = false;
+        const placeholders = new Set();
+        // parse literal text and placeholders without exposing regular expression syntax
+        while (index < resource.length) {
+            const literalStart = index;
+            while (index < resource.length && resource[index] !== "{" && resource[index] !== "}") {
+                index++;
+            }
+            if (index > literalStart) {
+                regexp += resource.substring(literalStart, index).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+                previousTokenWasPlaceholder = false;
+            }
+            if (index === resource.length) {
+                break;
+            }
+            if (resource[index] === "}") {
+                throw new Error(`Invalid resolver pattern '${resource}': unmatched '}'.`);
+            }
+            if (previousTokenWasPlaceholder) {
+                throw new Error(`Invalid resolver pattern '${resource}': adjacent placeholders are not supported.`);
+            }
+            // validate the placeholder before compiling its named capture
+            const end = resource.indexOf("}", index + 1);
+            if (end === -1) {
+                throw new Error(`Invalid resolver pattern '${resource}': unmatched '{'.`);
+            }
+            const name = resource.substring(index + 1, end);
+            if (name.length === 0) {
+                throw new Error(`Invalid resolver pattern '${resource}': empty placeholder name.`);
+            }
+            if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) {
+                throw new Error(`Invalid resolver pattern '${resource}': invalid placeholder name '${name}'.`);
+            }
+            if (placeholders.has(name)) {
+                throw new Error(`Invalid resolver pattern '${resource}': duplicate placeholder '${name}'.`);
+            }
+            placeholders.add(name);
+            regexp += `(?<${name}>.+?)`;
+            index = end + 1;
+            previousTokenWasPlaceholder = true;
         }
-        regexp += resource.substring(k) + "$";
+        const regexpCompiled = new RegExp(regexp + "$");
         //add definition
         let definition = {
             resource,
             src: value.src,
-            regexp: new RegExp(regexp), 
+            regexp: regexpCompiled,
             ...value
         };
         this._definitions.push(definition);
@@ -87,7 +120,7 @@ export default class Resolver {
             const match = resource.match(definition.regexp);
             if (match) {
                 const isAbsoluteUrl = /^[A-Za-z][A-Za-z0-9+.-]*:/.test(definition.src);
-                let url = isAbsoluteUrl ? definition.src : new URL(definition.src.replace(/^\/+/, ""), this._appBaseUrl).href.replace("%7B","{").replace("%7D","}");
+                let url = isAbsoluteUrl ? definition.src : new URL(definition.src.replace(/^\/+/, ""), this._appBaseUrl).href.replaceAll("%7B", "{").replaceAll("%7D", "}");
                 let path = isAbsoluteUrl ? null : definition.src;
                 for(var key in match.groups) {
                     url = url.replaceAll("{" + key + "}", match.groups[key]);

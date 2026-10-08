@@ -21,6 +21,10 @@ A custom rule may use this nested shape:
 Bootstrap generates conventional rules for module icons, layouts, components, pages, and JavaScript modules. The checked-in default prefix is
 `/_assets`. Rules for a canonical module definition are generated once, regardless of repeated dependency references.
 
+Resolver patterns consist of literal text and named placeholders `{name}`. Placeholder names follow `[A-Za-z_][A-Za-z0-9_]*`. Literal text has
+no regular-expression semantics. Placeholders match one or more characters and may include `/`. Multiple placeholders must be separated by
+literal text; malformed, adjacent, or duplicate placeholders are invalid.
+
 `resolver.js` reads nested `config.xshell.resolver` rule objects. Bootstrap adds defaults for each canonical module id after merging. Resolver
 matching and loader dispatch still require the usual resource location and loader metadata.
 
