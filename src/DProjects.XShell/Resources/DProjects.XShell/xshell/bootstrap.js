@@ -48,11 +48,27 @@ function showSpinner() {
         document.body.appendChild(div);
     });
 }
-
 function hideSpinner() {
     document.querySelector(".spinner")?.remove();
 }
-
+function showBootstrapError(error) {
+    const render = () => {
+        hideSpinner();
+        console.error("XShell bootstrap failed:", error);
+        const container = document.createElement("main");
+        const title = document.createElement("h1");
+        const message = document.createElement("pre");
+        title.textContent = "Application failed to start";
+        message.textContent = error?.message || String(error);
+        container.append(title, message);
+        document.body.replaceChildren(container);
+    };
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", render, { once: true });
+    } else {
+        render();
+    }
+}
 
 // module functions
 function getLocalModule(config, configUrl) {
@@ -630,4 +646,8 @@ async function bootstrap() {
 
 
 // exec bootstrap
-bootstrap();
+bootstrap().catch(error => {
+    console.error("XShell bootstrap failed:", error);
+    hideSpinner();
+    showBootstrapError(error);
+});
