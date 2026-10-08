@@ -361,8 +361,6 @@ async function loadConfig() {
 
         module.contract ??= {};
         module.contract.events ??= {};
-        module.contract.intents ??= {};
-        module.contract.actions ??= {};
     }
 
     console.log("bootstrap: config:", config);

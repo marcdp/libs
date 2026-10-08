@@ -18,9 +18,7 @@
                 }
             },
             "contract": {
-                "events": {},
-                "actions": {},
-                "intents": {}
+                "events": {}
             }
         }
     }

@@ -24,7 +24,7 @@ The local definition is the one entry without `configUrl`. Its object key is the
                 "/something": "/pages/index.js",
                 "/repository/{repositoryId}/projects/{projectId}/items": "/pages/index.js"
             },
-            "contract": { "events": {}, "actions": {}, "intents": {} }
+            "contract": { "events": {} }
         }
     }
 }
@@ -92,8 +92,8 @@ module-owned. Custom resources without a module path use normal URL resolution a
 Standard absolute schemes and protocol-relative URLs remain unchanged.
 
 The effective schema requires `label`, `version`, `copyright`, `icon`, `configUrl`, `assetsUrl`, `defaults`, `assetsPath`, and `files`.
-Optional effective fields are `params`, `requires`, `menus`, `routes`, and `contract`. `contract` may declare events, actions, and intents; those
-declarations remain descriptive metadata and do not by themselves implement runtime dispatch.
+Optional effective fields are `params`, `requires`, `menus`, `routes`, and `contract`. In V0, `contract` may declare `events` as descriptive module
+metadata. These declarations do not automatically register, validate, or dispatch Bus events.
 
 ## Required services
 

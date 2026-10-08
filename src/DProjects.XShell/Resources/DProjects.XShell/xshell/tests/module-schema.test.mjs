@@ -67,6 +67,22 @@ test("module schema keeps routes optional", () => {
     assertValid(moduleDefinition());
 });
 
+test("effective schema accepts descriptive module events", () => {
+    const module = moduleDefinition();
+    module.contract = { events: { ready: { description: "Module is ready" } } };
+
+    assertValid(module);
+});
+
+test("effective schema rejects module actions and intents", () => {
+    for (const field of ["actions", "intents"]) {
+        const module = moduleDefinition();
+        module.contract = { events: {}, [field]: {} };
+
+        assert.equal(validator.validate(configuration(module)).valid, false, `${field} must not be part of the V0 module contract`);
+    }
+});
+
 test("effective schema rejects the removed xshell.identity configuration", () => {
     const config = configuration(moduleDefinition());
     config.xshell.identity = { provider: "anonymous" };

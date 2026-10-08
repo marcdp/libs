@@ -201,7 +201,8 @@ Use Navigation methods and browser-history paths.
 
 ## Intents
 
-Module `contract.intents` is descriptive configuration. Navigation has no intent registry or dispatch API in V0; use supported Page hrefs/routes.
+Navigation intents are outside V0. V0 defines neither `module.contract.intents` nor an intent registry/dispatch API; use supported Page hrefs/routes.
+A future intent feature may define its configuration/schema together with its runtime semantics.
 
 See [Pages](70-pages.md) and [ADR-0003](../adr/0003-navigation.md).
 

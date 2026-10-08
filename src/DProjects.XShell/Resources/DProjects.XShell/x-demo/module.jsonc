@@ -26,9 +26,7 @@
                 }
             },
             "contract": {
-                "events": {},
-                "actions": {},
-                "intents": {}
+                "events": {}
             },
             "menus":{
                 "navigation": "/pages",

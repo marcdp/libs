@@ -9,7 +9,7 @@ import Resolver from "../resolver.js";
 const rootUrl = "https://example.test/modules/app/module.jsonc";
 const bootstrapPath = new URL("../bootstrap.js", import.meta.url);
 const bootstrapSource = readFileSync(bootstrapPath, "utf8").replace(
-    /\/\/ exec bootstrap\s*bootstrap\(\);\s*$/,
+    /\/\/ exec bootstrap[\s\S]*$/,
     `globalThis.__bootstrapTests = {
         parseJsonc,
         getLocalModule: (config, configUrl) => getLocalModule(JSON.parse(JSON.stringify(config)), configUrl),
@@ -29,7 +29,7 @@ const bootstrapSource = readFileSync(bootstrapPath, "utf8").replace(
         fillResolverRules,
         initializeXShell,
         installServiceWorker,
-        normalizeAssetsBase,
+        normalizeAssetsBase: normalizeAssetsBasePath,
         relativizePaths
     };`
 );
@@ -539,6 +539,8 @@ test("loadConfig derives every assetsPath from a custom assetsBasePath", async (
 
     assert.equal(config.modules.app.assetsPath, "/runtime/app");
     assert.equal(config.modules.x.assetsPath, "/runtime/x");
+    assert.deepEqual(config.modules.app.contract, { events: {} });
+    assert.deepEqual(config.modules.x.contract, { events: {} });
     assert.equal(config.xshell.assetsBasePath, "/runtime");
     assert.equal(config.xshell.assetsPath, "/runtime/xshell");
 });
