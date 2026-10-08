@@ -1,9 +1,15 @@
+using System.Net;
+
 namespace DProjects.XShell.Services {
 
     public sealed class BoostrapFilesBuilder {
 
         public Dictionary<string, string> Build(Extensions.Configuration config, string environment) {
             var result = new Dictionary<string, string>();
+
+            // serialize app params
+            var appParams = string.Join("&", config.App.Params.Select(kv => Uri.EscapeDataString(kv.Key) + "=" + Uri.EscapeDataString(kv.Value)));
+            var appParamsHtml = WebUtility.HtmlEncode(appParams);
 
             // index
             result["/index.html"] = $"""
@@ -20,7 +26,7 @@ namespace DProjects.XShell.Services {
                         <!-- config xshell -->
                         <meta name="xshell:app.basePath"       content="{config.App.BasePath}">
                         <meta name="xshell:app.configPath"     content="{config.App.ConfigPath}">
-                        <meta name="xshell:app.params"         content="{string.Join("&", config.App.Params.Select(kv => kv.Key + "=" + kv.Value))}">
+                        <meta name="xshell:app.params"         content="{appParamsHtml}">
                         <meta name="xshell:xshell.environment" content="{(environment)}">
                         <meta name="xshell:xshell.temp.url"    content="{(config.Temp.BasePath)}">
 
