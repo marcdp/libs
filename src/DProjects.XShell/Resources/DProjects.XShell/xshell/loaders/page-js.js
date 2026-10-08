@@ -5,6 +5,7 @@ import xshell from "../xshell.js";
 import validateComponentContract from "../validation/component.contract.js";
 import validateComponent from "../validation/component.js";
 import { processStyle } from "../utils/style.js";
+import { deepFreeze } from "../utils/object.js";
 
 
 // utils
@@ -192,8 +193,8 @@ export async function createPageClassFromJsDefinition(src, context, implementati
     if (!implementation.template) implementation.template = "";
     if (!implementation.controller) implementation.controller = () => ({});
     // freeze implementation and contract
-    implementation = Object.seal(Object.freeze(implementation));
-    contract = Object.seal(Object.freeze(contract));
+    implementation = deepFreeze(implementation);
+    contract = deepFreeze(contract);
     // validate contract
     if (contract) {
         await validateComponentContract(src, contract);

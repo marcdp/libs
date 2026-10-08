@@ -4,6 +4,7 @@ import xshell from "../xshell.js";
 import validateComponentContract from "../validation/component.contract.js";
 import validateComponent from "../validation/component.js";
 import { processStyle } from "../utils/style.js";
+import { deepFreeze } from "../utils/object.js";
 
 // utils
 function kebabToCamel(str) {
