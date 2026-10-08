@@ -99,6 +99,47 @@ function createNavigation({ areas = createAreas(), mode = "path", basePath = "ht
     });
 }
 
+test("Navigation.init preserves path-mode fragments on load and popstate without changing root home selection", async (t) => {
+    const areas = createAreas();
+    const location = { pathname: "/app/demo/repository/12", search: "?sort=name", hash: "#summary" };
+    const pushedUrls = [];
+    let onPopstate;
+    globalThis.document = { location };
+    globalThis.window = { addEventListener(type, listener) { if (type === "popstate") onPopstate = listener; } };
+    globalThis.history = { pushState(state, title, url) { pushedUrls.push(url); } };
+    t.after(() => {
+        delete globalThis.document;
+        delete globalThis.window;
+        delete globalThis.history;
+    });
+
+    const navigation = createNavigation({ areas, basePath: "/app" });
+    navigation._stackToDom = async () => {};
+    await navigation.init();
+    assert.equal(navigation.stack[0].href, "/demo/repository/12#summary");
+    assert.deepEqual(navigation.stack[0].params, { sort: "name" });
+    assert.equal(navigation._buildUrlFinal(navigation.stack[0]), "/demo/_assets/x-demo/pages/repository.js?mode=list&repositoryId=12&sort=name#summary");
+
+    location.pathname = "/app/sales/detail";
+    location.search = "?customer=42";
+    location.hash = "#actions";
+    await onPopstate();
+    assert.equal(navigation.stack[0].href, "/sales/detail#actions");
+    assert.deepEqual(navigation.stack[0].params, { customer: "42" });
+    assert.equal(navigation._buildUrlFinal(navigation.stack[0]), "/sales/_assets/customer/pages/detail.js?customer=42#actions");
+
+    for (const pathname of ["/app", "/app/"]) {
+        location.pathname = pathname;
+        location.search = "";
+        location.hash = "#section";
+        const rootNavigation = createNavigation({ areas, basePath: "/app" });
+        rootNavigation._stackToDom = async () => {};
+        await rootNavigation.init();
+        assert.equal(rootNavigation.stack[0].href, areas.getDefaultArea().home);
+    }
+    assert.equal(pushedUrls.length, 2);
+});
+
 function createSharedRouteContext({ definitions, defaultArea, mode = "path", basePath = "https://example.test/" }) {
     const config = {
         xshell: {

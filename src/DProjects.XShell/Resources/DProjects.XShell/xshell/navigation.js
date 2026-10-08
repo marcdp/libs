@@ -67,14 +67,14 @@ export default class Navigation {
             window.addEventListener("popstate", async () => {
                 let url = document.location.pathname + document.location.search;
                 if (url.startsWith(this._appBasePath)) url = url.substring(this._appBasePath.length);
-                this._stack = this._browserUrlToStack(url);
+                this._stack = this._browserUrlToStack(url + document.location.hash);
                 await this._stackToDom();
             });
             // init
             let url = document.location.pathname + document.location.search;
             if (url.startsWith(this._appBasePath)) url = url.substring(this._appBasePath.length);
             if (url != "" && url != "/") {
-                this._stack = this._browserUrlToStack(url);
+                this._stack = this._browserUrlToStack(url + document.location.hash);
                 await this._stackToDom();
             } else {
                 let defaultArea = this._areas.getDefaultArea();
