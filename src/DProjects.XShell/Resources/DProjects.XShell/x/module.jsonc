@@ -1,5 +1,5 @@
 {
-    //"$schema": "../../xshell/schemes/config.scheme.json",
+    //"$schema": "../../xshell/schemas/config.schema.json",
 
     // module
     "modules": {

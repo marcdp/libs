@@ -23,7 +23,7 @@ Progress receives `{ loaded, total, percent }` only for length-computable events
 independently. There is no cancellation argument.
 
 `getAbsoluteUrl(resource)` replaces leading `temp:/` with `xshell.temp.url`, preserving path/query. It performs string conversion rather than
-validation or Resolver/Loader processing; call it only on a successful identifier. The host supplies this URL from `TempUrl`.
+validation or Resolver/Loader processing; call it only on a successful identifier. The host supplies this URL from `Temp.BasePath`.
 
 ## HTTP contract
 
@@ -36,7 +36,7 @@ temp:/<guid-N>/<escaped-file-name>?size=<bytes>&type=<extension-mime-type>&hash=
 
 `size` is stored length, `type` is inferred from the filename extension, `hash` covers stored bytes, and `expiration` is a UTC Unix timestamp.
 
-GET uses `TempUrl/<guid>/<escaped-file-name>`; metadata query parameters are not checked.
+GET uses `Temp.BasePath/<guid>/<escaped-file-name>`; metadata query parameters are not checked.
 The middleware validates the GUID, normalizes filenames to their basename, rejects empty/`.`/`..` names, and checks containment inside the root.
 It streams the stored file with content length and extension-based content type, falling back to `application/octet-stream`.
 
@@ -47,9 +47,10 @@ Unsupported methods, including HEAD/DELETE, and POST to child paths return **405
 
 | Host setting | Default |
 | --- | --- |
-| `TempPath` | System temporary directory / `DProjects.XShell` / `temp` |
-| `TempUrl` | `/temp` |
-| `TempExpirationTime` | One hour |
+| `Temp.Path` | `""` |
+| `Temp.BasePath` | `/temp` |
+| `Temp.ExpirationTime` | One hour |
+| `Temp.FileSizeLimit` | `104857600` bytes (100 MiB) |
 
 The storage root is created on middleware construction. Cleanup first runs after five minutes and then every five minutes.
 It deletes GUID directories whose creation time plus retention has passed; errors are swallowed.

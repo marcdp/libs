@@ -84,7 +84,7 @@ forward:   /demo/repository/12/items → /demo/_assets/x-demo/pages/items.js?rep
 `x-anchor` preserves its logical `href` as the canonical target and delegates its rendered native `<a href>` to
 `Navigation.buildUrlAbsolute(...)`. The native href can therefore expose the friendly route for status-bar previews, copying, middle-click, and new
 tabs, while intercepted navigation still sends the unchanged canonical href to Navigation. The component does not read `area.routes`, parse route
-patterns, or substitute placeholders. Path and hash modes apply AppBasePath and the configured hash prefix only after Navigation has selected the
+patterns, or substitute placeholders. Path and hash modes apply `App.BasePath` and the configured hash prefix only after Navigation has selected the
 menu alias, reverse route, or canonical fallback.
 
 A menu item may provide both `path` and `href`. `path` is an optional friendly/public navigation path; `href` is the canonical XShell navigation
@@ -137,7 +137,7 @@ An absent/empty target or `_self` permits interception of an internal link. `x-a
 Navigation listens for hash changes, decodes the page stack, and updates `x-page` elements. The configured `hashPrefix` is `#!`. Because the
 destination is in the fragment, the server needs no path fallback for deep links.
 
-After reverse route generation, hash mode wraps the public application path with AppBasePath and `hashPrefix`. With AppBasePath `/app`, Area prefix
+After reverse route generation, hash mode wraps the public application path with `App.BasePath` and `hashPrefix`. With `App.BasePath` `/app`, Area prefix
 `/demo`, and public route `/repository/12/items`, the browser href is `/app/#!/demo/repository/12/items`.
 
 ```text
@@ -148,10 +148,10 @@ host page#!/_assets/test/pages/test1.js → Navigation → x-page → page resou
 
 Path mode uses `history.pushState()`, `history.replaceState()`, and `popstate` with the same Pages and encoded stack data as hash mode. It removes the
 configured application base path before interpreting the browser URL. Direct loads and refreshes require host collaboration so a deep application
-path returns the XShell host page. `Extensions.UseXShell()` provides that SPA fallback within `AppBasePath`, while allowing configured reserved
+path returns the XShell host page. `Extensions.UseXShell()` provides that SPA fallback within `App.BasePath`, while allowing configured reserved
 prefixes and already-selected ASP.NET endpoints to continue through the pipeline.
 
-After reverse route generation, path mode prepends AppBasePath directly. With AppBasePath `/app`, Area prefix `/demo`, and public route
+After reverse route generation, path mode prepends `App.BasePath` directly. With `App.BasePath` `/app`, Area prefix `/demo`, and public route
 `/repository/12/items`, the browser href is `/app/demo/repository/12/items`.
 
 ```jsonc

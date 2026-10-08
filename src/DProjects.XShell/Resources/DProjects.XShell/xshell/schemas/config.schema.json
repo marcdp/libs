@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://xshell.dev/schemes/config.scheme.json",
+  "$id": "https://xshell.dev/schemas/config.schema.json",
   "title": "XShell Effective Configuration",
   "type": "object",
   "required": ["app", "modules", "xshell"],
@@ -241,7 +241,7 @@
         "version": {"type": "string", "description": "XShell runtime version."},
         "environment": {"type": "string", "description": "Runtime environment name."},
         "configUrl": {"type": "string", "format": "uri", "description": "URL of the xshell configuration document"},
-        "assetsBasePath": {"type": "string", "pattern": "^/", "description": "Normalized application-relative base path for the virtual asset namespace.  (e.g app:/_assets)"},
+        "assetsBasePath": {"type": "string", "pattern": "^/", "description": "Normalized application-relative base path for the virtual asset namespace. (e.g. /_assets)"},
         "assetsPath": {"type": "string", "pattern": "^/", "description": "Application-root-relative virtual base path for the XShell framework assets. (e.g. /_assets/xshell)"},
         "assetsUrl": {"type": "string", "format": "uri", "description": "URL of the directory or package containing the xshell assets."},
         "ui": {"$ref": "#/$defs/xshellUi", "description": "Global ui settings."},
@@ -423,7 +423,7 @@
       "type": "object",
       "required": ["url"],
       "properties": {
-        "url": {"type": "string", "description": "Temporary storage URL (e.g /temp)"}
+        "url": {"type": "string", "description": "Absolute browser URL for temporary storage after host-path normalization (e.g. https://example.test/temp)."}
       },
       "additionalProperties": false,
       "description": "Temporary storage configuration."

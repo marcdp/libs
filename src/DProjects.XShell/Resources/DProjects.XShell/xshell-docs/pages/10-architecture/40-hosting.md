@@ -11,7 +11,29 @@ builder.Services.AddXShell();
 var app = builder.Build();
 app.MapGet("/api/health", () => "ok");
 app.UseXShell(new Extensions.Configuration {
-    AppConfigPath = "/_resources/DProjects.XShell/x-demo/module.jsonc"
+    App = new Extensions.AppConfig {
+        Description = "",
+        BasePath = "",
+        ConfigPath = "/_resources/DProjects.XShell/x-demo/module.jsonc",
+        Params = new Dictionary<string, string>()
+    },
+    Resources = new Extensions.ResourcesConfig {
+        BasePath = ""
+    },
+    XShell = new Extensions.XShellConfig {
+        BasePath = ""
+    },
+    Server = new Extensions.ServerConfig {
+        Environment = null,
+        HeaderCSP = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; ",
+        UnhandledPrefixes = new[] { "/_", "/api", "/temp" }
+    },
+    Temp = new Extensions.TempConfig {
+        Path = "",
+        BasePath = "/temp",
+        ExpirationTime = TimeSpan.FromHours(1),
+        FileSizeLimit = 100 * 1024 * 1024
+    }
 });
 app.Run();
 ```
@@ -20,17 +42,19 @@ app.Run();
 
 | Setting | Default and effect |
 | --- | --- |
-| `AppBasePath` | `""`; application prefix with a trailing-slash entry URL. |
-| `AppConfigPath` | `""`; set the root module configuration URL. |
-| `AppParams` | Empty string dictionary; host params become root-module/application params. |
-| `Environment` | `null`; use ASP.NET's environment name. An explicit value overrides XShell's own environment and development resource behavior. |
-| `ResourcesBase` | `""`; prefixes resource middleware route `/_resources/DProjects.XShell`. |
-| `XShellBasePath` | `/_resources/DProjects.XShell/xshell`; bootstrap and worker source base. |
-| `UnhandledPrefixes` | `["/_", "/api", "/temp"]`; unmatched relative paths with these prefixes bypass SPA fallback. |
-| `TempPath` | System temporary directory / `DProjects.XShell` / `temp`. |
-| `TempUrl` | `/temp`; independent public Temp prefix. |
-| `TempExpirationTime` | One hour. |
-| `CSPValue` | Same-origin default policy, data images allowed, objects disabled; HTML CSP meta value. |
+| `App.Description` | `""`; HTML description meta value. |
+| `App.BasePath` | `""`; application prefix with a trailing-slash entry URL. |
+| `App.ConfigPath` | `""`; root module configuration URL. |
+| `App.Params` | Empty string dictionary; host params become root-module/application params. |
+| `Resources.BasePath` | `""`; prefixes resource middleware route `/_resources/DProjects.XShell`. |
+| `XShell.BasePath` | `""`; bootstrap and worker source base. |
+| `Server.Environment` | `null`; use ASP.NET's environment name. An explicit value overrides XShell's own environment and development resource behavior. |
+| `Server.HeaderCSP` | Same-origin default policy, data images allowed, objects disabled; HTML CSP meta value. |
+| `Server.UnhandledPrefixes` | `["/_", "/api", "/temp"]`; unmatched relative paths with these prefixes bypass SPA fallback. |
+| `Temp.Path` | `""`; temporary-file storage root. |
+| `Temp.BasePath` | `/temp`; independent public Temp prefix. |
+| `Temp.ExpirationTime` | One hour. |
+| `Temp.FileSizeLimit` | `104857600` bytes (100 MiB); maximum accepted upload size. |
 
 The default CSP text is:
 
@@ -38,16 +62,16 @@ The default CSP text is:
 default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self';
 ```
 
-`ResourcesBase`, `XShellBasePath`, and `TempUrl` are independent, not automatically rebased by `AppBasePath`.
+`Resources.BasePath`, `XShell.BasePath`, and `Temp.BasePath` are independent, not automatically rebased by `App.BasePath`.
 Set browser runtime paths consistently when changing resource routing.
-Params are serialized as joined query text; values requiring query escaping must be encoded appropriately.
+The host URL-encodes each `App.Params` key and value, joins them as query text, and HTML-encodes the resulting meta attribute value.
 Generated HTML interpolates host settings, so use trusted configuration.
 
 ## Request pipeline
 
 1. Resource middleware serves the physical resource tree.
 2. Temp middleware handles its prefix.
-3. The application base redirects to `AppBasePath + "/"`. Paths outside a nonempty application base redirect too unless under the resource base.
+3. The application base redirects to `App.BasePath + "/"`. Paths outside a nonempty application base redirect too unless under the resource base.
 4. `UseRouting()` selects registered endpoints.
 5. Generated `index.html`/`sw.js` at the application base are returned first; other already-matched endpoints continue.
 6. Remaining requests inside the base receive host HTML unless their relative path starts with an unhandled prefix.
@@ -57,7 +81,7 @@ SPA fallback has no method filter. Path navigation needs this fallback for frien
 
 `BoostrapFilesBuilder` emits HTML, CSP meta, `xshell:` startup meta, and the bootstrap script.
 Generated `sw.js` imports the configured worker source. Bootstrap registers it with the application base-path scope
-`AppBasePath + "/"` (root scope only when `AppBasePath` is empty).
+`App.BasePath + "/"` (root scope only when `App.BasePath` is empty).
 
 ## Resources and development
 

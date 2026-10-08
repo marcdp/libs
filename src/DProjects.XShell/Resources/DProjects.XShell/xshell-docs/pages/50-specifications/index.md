@@ -12,8 +12,7 @@ The X module has no module controller; XShell validates configuration during boo
 
 The schema defines `app`, `modules`, and `xshell`, including module `configUrl`, `assetsUrl`, defaults, menus, optional service `requires`, optional
 declarative routes, declarative `contract.events`/`actions`/`intents`, named `xshell.services`, and the required `xshell.i18n` language, formatting,
-and translation configuration. The schema's `$id` still contains the stale `https://xshell.dev/schemes/config.scheme.json` identifier; the repository
-path above is canonical.
+and translation configuration.
 
 Every resolved module requires **module defaults** at `modules.<id>.defaults`: both `page` and `component` require non-empty render-engine and
 state-engine names. These select how the owning module's definition-based resources execute after a resource `meta` override. The separate
