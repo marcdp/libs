@@ -356,6 +356,7 @@ test("Component definitions reject an ID already registered by another source", 
     const id = "x-component-collision-test";
     const Component = await createComponentClassFromJsDefinition("first-component.js", createContext(), { meta: { id } }, {});
     assert.equal(customElements.get(id), Component);
+    assert.equal(Component.isXShellComponent, true);
 
     await assert.rejects(
         createComponentClassFromJsDefinition("second-component.js", createContext(), { meta: { id } }, {}),
@@ -423,6 +424,34 @@ test("component preserves its instance lifetime across reconnects and unloads on
     assert.equal(mutationObserver.disconnectCount, 1);
     assert.equal(disposable.disposeCount, 1);
     assert.deepEqual(component._disposables, []);
+});
+
+test("component explicit unload while mounted unmounts before final cleanup", async () => {
+    configureDefinitionLoaders();
+    renderEngines.length = 0;
+    animationFrames.length = 0;
+    const commands = [];
+    const Component = await createComponentClassFromJsDefinition("component-explicit-unload.js", createContext(), {
+        meta: { id: "x-component-explicit-unload-test" },
+        controller() {
+            return {
+                mount() { commands.push("mount"); },
+                unmount() { commands.push("unmount"); },
+                unload() { commands.push("unload"); }
+            };
+        }
+    }, {});
+    const component = new Component();
+    component.connectedCallback();
+    const renderEngine = component._renderEngine;
+
+    await component.unload();
+    component.disconnectedCallback();
+    await component.unload();
+
+    assert.deepEqual(commands, ["mount", "unmount", "unload"]);
+    assert.equal(renderEngine.unmountCount, 1);
+    assert.equal(component._renderEngine, null);
 });
 
 test("page preserves state and disposables until its final unload", async () => {

@@ -75,9 +75,13 @@ The runtime keeps controller, state, `Timer`, `Events`, and registered `_disposa
 instances and page-specific adopted stylesheets are mount-owned resources; they are created/adopted for `mount` and unmounted/de-adopted for
 `unmount`.
 
-For definition-based components, ordinary DOM disconnection invokes only `unmount`; it does not invoke `unload` or dispose helpers. A caller that
-knows a component is being destroyed permanently must explicitly call its idempotent `unload()` method. The browser custom-element API has no
-reliable universal signal that distinguishes a temporary disconnection from permanent destruction.
+For definition-based components, ordinary DOM disconnection invokes only `unmount`; it does not invoke `unload` or dispose helpers. The browser
+custom-element API has no reliable universal signal that distinguishes a temporary disconnection from permanent destruction.
+
+When an XShell render engine permanently discards renderer-owned DOM, it initiates `unload()` for definition-based Components in the discarded
+light-DOM subtree before removing or replacing those nodes. The walk does not traverse Component shadow roots externally: unloading a Component
+tears down its own render engine, which finalizes the renderer-owned descendants in that shadow tree. Code outside these owned destruction paths
+that permanently destroys a Component remains responsible for calling its idempotent `unload()` method.
 
 For Pages, `x-page` unmounts its current Page when disconnected and remounts the same Page on reconnection. Replacing a Page, or using the
 explicit `removePage()` destruction path, unmounts the old Page and then unloads it before discarding the instance. `unload()` is idempotent as a

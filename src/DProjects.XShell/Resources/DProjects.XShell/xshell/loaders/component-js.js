@@ -221,6 +221,9 @@ export async function createComponentClassFromJsDefinition(src, context, impleme
         static get observedAttributes() { 
             return propertyAttributeNames;
         }
+        static get isXShellComponent() {
+            return true;
+        }
         static get contract() { 
             return contract;
         }
@@ -377,17 +380,18 @@ export async function createComponentClassFromJsDefinition(src, context, impleme
         async unload() {
             if (this._unloaded) return;
             this._unloaded = true;
+            if (this._renderEngine) {
+                this.onCommand("unmount", {});
+                this._renderEngine.unmount();
+                this._renderEngine = null;
+            }
+            this._renderPending = false;
             let result;
             try {
                 result = await this.onCommand("unload", {});
             } finally {
-                if (this._renderEngine) {
-                    this._renderEngine.unmount();
-                    this._renderEngine = null;
-                }
                 this._mutationObserver?.disconnect();
                 this._mutationObserver = null;
-                this._renderPending = false;
                 for (const disposable of this._disposables) {
                     disposable.dispose();
                 }
