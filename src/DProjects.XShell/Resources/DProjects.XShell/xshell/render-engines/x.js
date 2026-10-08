@@ -699,8 +699,8 @@ class XTemplateInstance {
 			this._diffDom(vNodeOld.children, vNodeNew.children, element, level + 1);
 		} else if (typeof (vNodeNew.children) == "string") {
 			if (vNodeOld.children != vNodeNew.children) {
+				unloadChildComponents(element);
 				if (vNodeNew.options.format == 'html') {
-					unloadChildComponents(element);
 					element.innerHTML = vNodeNew.children;
 				} else if (vNodeNew.options.format == 'json') {
 					element.textContent = JSON.stringify(vNodeNew.children);
