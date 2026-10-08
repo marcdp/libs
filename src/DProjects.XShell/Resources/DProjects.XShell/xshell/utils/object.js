@@ -22,3 +22,16 @@ export function findObjectsPath(obj, keyToFind, valueToFind) {
     // If no matching object is found, return null
     return null;
 }
+
+// export deepFreeze
+export function deepFreeze(value) {
+    if (value === null || typeof value !== "object" || Object.isFrozen(value)) {
+        return value;
+    }
+
+    for (const child of Object.values(value)) {
+        deepFreeze(child);
+    }
+
+    return Object.freeze(value);
+}
