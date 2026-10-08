@@ -86,7 +86,6 @@ export default {
                             if (state.moduleId && moduleId.indexOf(state.moduleId) == -1 ) valid = false;
                             if (state.description && (!loaderRegistryItem?.description || loaderRegistryItem.description.indexOf(state.description) == -1 )) valid = false;
                             if (valid) {
-                                console.log(url);
                                 list.push({
                                     id: id,
                                     moduleId: moduleId,

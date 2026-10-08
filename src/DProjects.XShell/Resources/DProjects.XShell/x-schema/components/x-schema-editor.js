@@ -44,7 +44,6 @@ export default {
                 if (state.schema && state.value) {
                     console.log(JSON.stringify(state))
                 }
-                //debugger;
             }
         }
     }

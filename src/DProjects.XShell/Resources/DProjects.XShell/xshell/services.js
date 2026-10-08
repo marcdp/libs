@@ -54,7 +54,6 @@ export default class Services {
                         }
                     }
                 }
-                debugger
                 this.register(serviceName, null, { 
                     contractItem: serviceContractItem, 
                     implementationItem: {
