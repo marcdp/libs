@@ -100,7 +100,7 @@ test("browser JSONC accepts comments and trailing commas without changing string
 
 test("generated Markdown Page rules preserve document URLs and cache classes by path", () => {
     const config = {
-        app: { basePath: "/app" },
+        app: { basePath: "/app", baseUrl: "https://example.test/app/" },
         modules: { "xshell-docs": { assetsPath: "/_assets/xshell-docs", files: [] }, sample: { assetsPath: "/_assets/sample", files: [] } },
         xshell: { resolver: {} }
     };
@@ -109,7 +109,8 @@ test("generated Markdown Page rules preserve document URLs and cache classes by 
     for (const moduleId of ["xshell-docs", "sample"]) {
         const path = `/_assets/${moduleId}/pages/10-architecture/100-services.md`;
         const result = resolver.resolve(`page:${path}?mode=one#section`);
-        assert.equal(result.url, "/app" + path);
+        assert.equal(result.path, path);
+        assert.equal(result.url, "https://example.test/app" + path);
         assert.equal(result.definition.loader, "page-md");
         assert.equal(result.definition.cache, true);
         assert.equal(result.definition.cacheMode, "path");
@@ -119,14 +120,15 @@ test("generated Markdown Page rules preserve document URLs and cache classes by 
 
 test("generated style rules route module CSS through the standard cached style-css loader", () => {
     const config = {
-        app: { basePath: "/app" },
+        app: { basePath: "/app", baseUrl: "https://example.test/app/" },
         modules: { sample: { assetsPath: "/_assets/sample", files: [{ path: "/_assets/sample/styles/index.css" }] } },
         xshell: { resolver: {} }
     };
     api.fillResolverRules(config);
 
     const result = new Resolver({ config }).resolve("style:/_assets/sample/styles/index.css");
-    assert.equal(result.url, "/app/_assets/sample/styles/index.css");
+    assert.equal(result.path, "/_assets/sample/styles/index.css");
+    assert.equal(result.url, "https://example.test/app/_assets/sample/styles/index.css");
     assert.equal(result.definition.loader, "style-css");
     assert.equal(result.definition.cache, true);
     assert.equal(result.definition.moduleId, "sample");

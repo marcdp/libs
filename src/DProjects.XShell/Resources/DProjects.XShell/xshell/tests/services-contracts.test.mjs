@@ -23,7 +23,7 @@ function createServices(definitions, implementations, contractItems) {
     const loads = [];
     const emitted = [];
     const config = {
-        app: { basePath: "/app" },
+        app: { basePath: "/app", baseUrl: "https://example.test/app/" },
         modules: {
             test: {
                 files: Object.values(definitions).map((service, index) => ({ path: service.implementation, size: index + 1 }))
@@ -146,7 +146,7 @@ test("service inspection returns independent read-only metadata snapshots", asyn
         icon: null,
         moduleId: "test",
         implementationName: "ExampleService",
-        url: "/app/_assets/test/services/example.js",
+        url: "https://example.test/app/_assets/test/services/example.js",
         size: 1,
         time: example.time
     });
@@ -374,7 +374,7 @@ test("Contracts.init rejects duplicate global IDs defensively", async () => {
     const contract = createContractItem("identity").contract;
     const contracts = new Contracts({
         config: {
-            app: { basePath: "/app" },
+            app: { basePath: "/app", baseUrl: "https://example.test/app/" },
             modules: {
                 x: { assetsPath: "/_assets/x", files: [{ path: "/_assets/x/contracts/identity.json", size: 1 }] },
                 auth: { assetsPath: "/_assets/auth", files: [{ path: "/_assets/auth/contracts/identity.json", size: 2 }] }
@@ -393,7 +393,7 @@ test("Contracts.init ignores lookalike directories and non-JSON files", async ()
     const loads = [];
     const contracts = new Contracts({
         config: {
-            app: { basePath: "/app" },
+            app: { basePath: "/app", baseUrl: "https://example.test/app/" },
             modules: {
                 x: {
                     assetsPath: "/_assets/x",
@@ -441,7 +441,7 @@ test("Contracts.init deeply freezes validated contract documents", async () => {
     };
     const contracts = new Contracts({
         config: {
-            app: { basePath: "/app" },
+            app: { basePath: "/app", baseUrl: "https://example.test/app/" },
             modules: {
                 x: { assetsPath: "/_assets/x", files: [{ path: "/_assets/x/contracts/executor.json", size: 1 }] }
             }

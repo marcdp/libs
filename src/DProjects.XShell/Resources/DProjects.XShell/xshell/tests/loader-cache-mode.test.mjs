@@ -23,7 +23,7 @@ async function createLoader(testName, { cacheMode, type = "resource" } = {}) {
         definition.cacheMode = cacheMode;
     }
     const config = {
-        app: { basePath: "" },
+        app: { basePath: "", baseUrl: "https://example.test/" },
         xshell: {
             assetsBasePath: "/_assets",
             assetsPath: "/_assets/xshell",
@@ -42,7 +42,7 @@ test("cacheMode defaults to full cache identity", async () => {
     const second = await loader.load("resource:/foo?a=2");
 
     assert.notStrictEqual(first, second);
-    assert.deepEqual(fixture.getRequests(), ["/foo", "/foo"]);
+    assert.deepEqual(fixture.getRequests(), ["https://example.test/foo", "https://example.test/foo"]);
 });
 
 test("cacheMode full keeps query variants separate", async () => {
@@ -51,7 +51,7 @@ test("cacheMode full keeps query variants separate", async () => {
     const second = await loader.load("resource:/foo?a=2");
 
     assert.notStrictEqual(first, second);
-    assert.deepEqual(fixture.getRequests(), ["/foo", "/foo"]);
+    assert.deepEqual(fixture.getRequests(), ["https://example.test/foo", "https://example.test/foo"]);
 });
 
 test("cacheMode path shares query variants and keeps diagnostics unnormalized", async () => {
@@ -60,10 +60,11 @@ test("cacheMode path shares query variants and keeps diagnostics unnormalized", 
     const second = await loader.load("resource:/foo?a=2");
 
     assert.strictEqual(first, second);
-    assert.deepEqual(fixture.getRequests(), ["/foo"]);
+    assert.deepEqual(fixture.getRequests(), ["https://example.test/foo"]);
     assert.equal(loader.registry.length, 1);
     assert.equal(loader.registry[0].resource, "resource:/foo?a=1");
-    assert.equal(loader.registry[0].url, "/foo");
+    assert.equal(loader.registry[0].path, "/foo");
+    assert.equal(loader.registry[0].url, "https://example.test/foo");
     assert.equal(loader.registry[0].status, "loaded");
     assert.equal(Object.hasOwn(loader.registry[0], "value"), false);
     assert.equal(Object.isFrozen(loader.registry[0]), true);
@@ -77,7 +78,7 @@ test("successful cached load stores its value for later requests", async () => {
     const second = await loader.load("resource:/foo");
 
     assert.strictEqual(second, first);
-    assert.deepEqual(fixture.getRequests(), ["/foo"]);
+    assert.deepEqual(fixture.getRequests(), ["https://example.test/foo"]);
 });
 
 test("failed cached load is evicted and a later request succeeds", async () => {
@@ -90,19 +91,19 @@ test("failed cached load is evicted and a later request succeeds", async () => {
 
     const value = await loader.load("resource:/foo");
 
-    assert.deepEqual(fixture.getRequests(), ["/foo", "/foo"]);
+    assert.deepEqual(fixture.getRequests(), ["https://example.test/foo", "https://example.test/foo"]);
     assert.equal(loader.registry[1].status, "loaded");
     assert.strictEqual(loader._cache["resource:/foo"].value, value);
 });
 
-test("failed resource exposes its resolved URL on the error", async t => {
+test("failed resource retains its resolved logical path on the error", async t => {
     t.mock.method(console, "error", () => {});
     const { fixture, loader } = await createLoader("error-url");
     fixture.failOnce();
 
     await assert.rejects(() => loader.load("resource:/foo"), error => {
         assert.equal(error.errors[0].resource, "resource:/foo");
-        assert.equal(error.errors[0].url, "/foo");
+        assert.equal(error.errors[0].path, "/foo");
         assert.equal(Object.hasOwn(error.errors[0], "src"), false);
         return true;
     });
@@ -114,7 +115,7 @@ test("cacheMode path keeps different paths separate", async () => {
     const second = await loader.load("resource:/bar?a=1");
 
     assert.notStrictEqual(first, second);
-    assert.deepEqual(fixture.getRequests(), ["/foo", "/bar"]);
+    assert.deepEqual(fixture.getRequests(), ["https://example.test/foo", "https://example.test/bar"]);
 });
 
 test("cacheMode path deduplicates concurrent query variants", async () => {
@@ -125,7 +126,7 @@ test("cacheMode path deduplicates concurrent query variants", async () => {
     const secondPromise = loader.load("resource:/foo?a=2");
     await fixture.waitForLoadCount(1);
 
-    assert.deepEqual(fixture.getRequests(), ["/foo"]);
+    assert.deepEqual(fixture.getRequests(), ["https://example.test/foo"]);
     fixture.releaseLoads();
     const [first, second] = await Promise.all([firstPromise, secondPromise]);
     assert.strictEqual(first, second);
@@ -140,7 +141,7 @@ test("concurrent failures share one load and a later request retries", async () 
     const secondPromise = loader.load("resource:/foo?a=2");
     await fixture.waitForLoadCount(1);
 
-    assert.deepEqual(fixture.getRequests(), ["/foo"]);
+    assert.deepEqual(fixture.getRequests(), ["https://example.test/foo"]);
     fixture.releaseLoads();
     const [first, second] = await Promise.allSettled([firstPromise, secondPromise]);
 
@@ -152,7 +153,7 @@ test("concurrent failures share one load and a later request retries", async () 
     const value = await loader.load("resource:/foo?a=3");
 
     assert.equal(value.requestNumber, 2);
-    assert.deepEqual(fixture.getRequests(), ["/foo", "/foo"]);
+    assert.deepEqual(fixture.getRequests(), ["https://example.test/foo", "https://example.test/foo"]);
     assert.equal(loader.registry.length, 2);
 });
 
@@ -164,7 +165,7 @@ test("cacheMode path removes only query and preserves fragment identity", async 
 
     assert.strictEqual(first, second);
     assert.notStrictEqual(first, third);
-    assert.deepEqual(fixture.getRequests(), ["/foo", "/foo"]);
+    assert.deepEqual(fixture.getRequests(), ["https://example.test/foo", "https://example.test/foo"]);
 });
 
 test("invalid cacheMode fails clearly", async () => {
@@ -189,5 +190,5 @@ test("Page path caching reuses implementations while instances retain full src",
     assert.equal(customerB.src, "/customer.js?id=456");
     assert.equal(loader.registry[0].description, "Test page");
     assert.equal(Object.hasOwn(loader.registry[0], "value"), false);
-    assert.deepEqual(fixture.getRequests(), ["/customer.js", "/order.js"]);
+    assert.deepEqual(fixture.getRequests(), ["https://example.test/customer.js", "https://example.test/order.js"]);
 });

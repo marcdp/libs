@@ -6,7 +6,7 @@ import Navigation from "../navigation.js";
 import Areas from "../areas.js";
 
 test("resolver registry snapshots expose rule metadata without mutable definitions", () => {
-    const resolver = new Resolver({ config: { app: { basePath: "" }, xshell: { resolver: {} } } });
+    const resolver = new Resolver({ config: { app: { basePath: "", baseUrl: "https://example.test/" }, xshell: { resolver: {} } } });
     const before = resolver.registry;
     assert.deepEqual(before, []);
 
@@ -18,7 +18,9 @@ test("resolver registry snapshots expose rule metadata without mutable definitio
     assert.equal(Object.hasOwn(after[0], "regexp"), false);
     assert.throws(() => { after[0].url = "/changed"; }, TypeError);
     assert.deepEqual(before, []);
-    assert.equal(resolver.resolve("icon:check").url, "/icons/check.svg");
+    const result = resolver.resolve("icon:check");
+    assert.equal(result.path, "/icons/check.svg");
+    assert.equal(result.url, "https://example.test/icons/check.svg");
 });
 
 test("navigation and areas keep their domain-specific inspection APIs", () => {

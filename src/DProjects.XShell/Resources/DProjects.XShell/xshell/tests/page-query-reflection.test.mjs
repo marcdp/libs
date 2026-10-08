@@ -129,7 +129,7 @@ function createNavigation(mode, xpages) {
         areas: { resolvePath() { return null; } },
         bus: { emit() {} },
         config: {
-            app: { basePath: "https://example.test/" },
+            app: { basePath: "", baseUrl: "https://example.test/" },
             xshell: { navigation: { mode, hashPrefix: "#!" } }
         },
         container

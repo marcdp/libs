@@ -87,12 +87,12 @@ function createAreas() {
     return areas;
 }
 
-function createNavigation({ areas = createAreas(), mode = "path", basePath = "https://example.test/" } = {}) {
+function createNavigation({ areas = createAreas(), mode = "path", basePath = "", baseUrl = "https://example.test/" } = {}) {
     return new Navigation({
         areas,
         bus: { emit() {} },
         config: {
-            app: { basePath },
+            app: { basePath, baseUrl },
             xshell: { navigation: { mode, hashPrefix: "#!" } }
         },
         container: { querySelectorAll() { return []; } }
@@ -140,7 +140,7 @@ test("Navigation.init preserves path-mode fragments on load and popstate without
     assert.equal(pushedUrls.length, 2);
 });
 
-function createSharedRouteContext({ definitions, defaultArea, mode = "path", basePath = "https://example.test/" }) {
+function createSharedRouteContext({ definitions, defaultArea, mode = "path", basePath = "", baseUrl = "https://example.test/" }) {
     const config = {
         xshell: {
             assetsBasePath: "/_assets",
@@ -154,7 +154,7 @@ function createSharedRouteContext({ definitions, defaultArea, mode = "path", bas
     };
     const areas = new Areas({ config, bus: { addEventListener() {}, emit() {} } });
     areas.init({ modules: { getModuleById(id) { return id === module.id ? module : null; } } });
-    return { areas, navigation: createNavigation({ areas, mode, basePath }), module };
+    return { areas, navigation: createNavigation({ areas, mode, basePath, baseUrl }), module };
 }
 
 function createNoRouteContext() {
@@ -334,8 +334,8 @@ test("Navigation discovers a target module's Area when the originating Page belo
 
 test("Navigation formats friendly URLs through existing path and hash modes with AppBasePath", () => {
     const page = { src: "/sales/_assets/customer/pages/origin.js" };
-    const pathNavigation = createNavigation({ mode: "path", basePath: "https://example.test/app/" });
-    const hashNavigation = createNavigation({ mode: "hash", basePath: "https://example.test/app/" });
+    const pathNavigation = createNavigation({ mode: "path", basePath: "/app", baseUrl: "https://example.test/app/" });
+    const hashNavigation = createNavigation({ mode: "hash", basePath: "/app", baseUrl: "https://example.test/app/" });
 
     assert.equal(pathNavigation.buildUrlAbsolute({ href: "/_assets/customer/pages/detail.js", page }), "/app/sales/detail");
     assert.equal(hashNavigation.buildUrlAbsolute({ href: "/_assets/customer/pages/detail.js", page }), "/app/#!/sales/detail");
@@ -437,8 +437,8 @@ test("Navigation keeps malformed encoded route parameters distinct from normal n
 });
 
 test("Navigation route resolution is mode-independent and keeps browser-facing route URLs", () => {
-    const pathNavigation = createNavigation({ mode: "path", basePath: "https://example.test/app/" });
-    const hashNavigation = createNavigation({ mode: "hash", basePath: "https://example.test/app/" });
+    const pathNavigation = createNavigation({ mode: "path", basePath: "/app", baseUrl: "https://example.test/app/" });
+    const hashNavigation = createNavigation({ mode: "hash", basePath: "/app", baseUrl: "https://example.test/app/" });
     const href = "/demo/repository/12";
 
     assert.equal(pathNavigation.buildUrlAbsolute({ href }), "/app/demo/repository/12");
@@ -658,8 +658,8 @@ test("Navigation preserves explicit and originating Area context when one module
 
 test("Navigation wraps root and prefixed route URLs through path and hash AppBasePath modes", () => {
     const definitions = { demo: { prefix: "/demo", modules: ["shared"] } };
-    const path = createSharedRouteContext({ definitions, defaultArea: "demo", mode: "path", basePath: "https://example.test/app/" }).navigation;
-    const hash = createSharedRouteContext({ definitions, defaultArea: "demo", mode: "hash", basePath: "https://example.test/app/" }).navigation;
+    const path = createSharedRouteContext({ definitions, defaultArea: "demo", mode: "path", basePath: "/app", baseUrl: "https://example.test/app/" }).navigation;
+    const hash = createSharedRouteContext({ definitions, defaultArea: "demo", mode: "hash", basePath: "/app", baseUrl: "https://example.test/app/" }).navigation;
     const canonicalHref = "/_assets/shared/pages/items.js?repositoryId=12&sort=name#details";
 
     assert.equal(path.buildUrlAbsolute({ href: canonicalHref }), "/app/demo/repository/12/items?sort=name#details");
@@ -676,8 +676,8 @@ test("Navigation reverse routing requires intrinsic target query parameters", ()
 });
 
 test("Navigation reverse routes consistently in path and hash modes with AppBasePath", () => {
-    const pathNavigation = createNavigation({ mode: "path", basePath: "https://example.test/app/" });
-    const hashNavigation = createNavigation({ mode: "hash", basePath: "https://example.test/app/" });
+    const pathNavigation = createNavigation({ mode: "path", basePath: "/app", baseUrl: "https://example.test/app/" });
+    const hashNavigation = createNavigation({ mode: "hash", basePath: "/app", baseUrl: "https://example.test/app/" });
     const href = "/_assets/x-demo/pages/repository.js?mode=list&repositoryId=12";
 
     assert.equal(pathNavigation.buildUrlAbsolute({ href }), "/app/demo/repository/12");
@@ -724,8 +724,8 @@ test("Navigation round-trips routes through path and hash modes with AppBasePath
     const canonical = "/_assets/x-demo/pages/items.js?repositoryId=12&projectId=7&sort=name#summary";
     const expected = "/demo/_assets/x-demo/pages/items.js?repositoryId=12&projectId=7&sort=name#summary";
     const cases = [
-        { navigation: createNavigation({ mode: "path", basePath: "https://example.test/app/" }), browserPrefix: "/app" },
-        { navigation: createNavigation({ mode: "hash", basePath: "https://example.test/app/" }), browserPrefix: "/app/#!" }
+        { navigation: createNavigation({ mode: "path", basePath: "/app", baseUrl: "https://example.test/app/" }), browserPrefix: "/app" },
+        { navigation: createNavigation({ mode: "hash", basePath: "/app", baseUrl: "https://example.test/app/" }), browserPrefix: "/app/#!" }
     ];
 
     for (const { navigation, browserPrefix } of cases) {

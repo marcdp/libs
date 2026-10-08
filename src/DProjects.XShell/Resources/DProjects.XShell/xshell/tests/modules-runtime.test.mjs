@@ -110,7 +110,7 @@ test("module requirements accept configured lazy services without constructing t
     }
     const servicePath = "/_assets/orders/services/identity.js";
     const config = freeze({
-        app: { basePath: "/app" },
+        app: { basePath: "/app", baseUrl: "https://example.test/app/" },
         xshell: {
             assetsBasePath: "/_assets",
             services: { identity: { contract: "identity", implementation: servicePath } }
@@ -226,7 +226,7 @@ test("module styles use the Loader once per inventoried stylesheet and are adopt
     };
     const styleLoaderUrl = new URL("../loaders/style-css.js", import.meta.url).href;
     const config = freeze({
-        app: { basePath: "" },
+        app: { basePath: "", baseUrl: "https://example.test/" },
         xshell: {
             assetsBasePath: "/_assets",
             navigation: { mode: "path", hashPrefix: "#!" },

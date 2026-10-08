@@ -8,7 +8,7 @@ function createNavigation() {
         areas: {},
         bus: {},
         config: {
-            app: { basePath: "https://example.test/" },
+            app: { basePath: "", baseUrl: "https://example.test/" },
             xshell: { navigation: { mode: "path", hashPrefix: "#!" } }
         },
         container: {}

@@ -76,7 +76,7 @@ class RenderEngineFactory {
     init() {}
 }
 
-function createNavigation({ areas = null, mode = "path", basePath = "https://example.test/" } = {}) {
+function createNavigation({ areas = null, mode = "path", basePath = "", baseUrl = "https://example.test/" } = {}) {
     return new Navigation({
         areas: areas || {
             resolveAreaId() { return null; },
@@ -88,7 +88,7 @@ function createNavigation({ areas = null, mode = "path", basePath = "https://exa
         },
         bus: {},
         config: {
-            app: { basePath },
+            app: { basePath, baseUrl },
             xshell: { navigation: { mode, hashPrefix: "#!" } }
         },
         container: {}
@@ -246,7 +246,7 @@ test("x-anchor retains its canonical href while exposing and navigating the frie
 });
 
 test("x-anchor delegates route-aware native href generation to Navigation while retaining its canonical target", async () => {
-    const navigation = createNavigation({ areas: createRouteAreas(), basePath: "https://example.test/app/" });
+    const navigation = createNavigation({ areas: createRouteAreas(), basePath: "/app", baseUrl: "https://example.test/app/" });
     const { anchor, navigateCalls } = await createAnchor({}, navigation);
     anchor.parentNode.page.src = "/demo/_assets/x-demo/pages/origin.js";
     anchor.href = "/_assets/x-demo/pages/items.js";
