@@ -426,6 +426,49 @@ test("Contracts.init ignores lookalike directories and non-JSON files", async ()
     assert.equal(contracts.getContractById("toast").label, "toast");
 });
 
+test("Contracts.init deeply freezes validated contract documents", async () => {
+    const contract = {
+        label: "executor",
+        properties: {},
+        events: {},
+        methods: {
+            execute: {
+                parameters: [
+                    { name: "mode", type: "string", enum: ["safe", "fast"] }
+                ]
+            }
+        }
+    };
+    const contracts = new Contracts({
+        config: {
+            app: { basePath: "/app" },
+            modules: {
+                x: { assetsPath: "/_assets/x", files: [{ path: "/_assets/x/contracts/executor.json", size: 1 }] }
+            }
+        },
+        loader: { async load() { return contract; } }
+    });
+
+    await contracts.init();
+
+    const contractItem = contracts.getContractItemById("executor");
+    const loadedContract = contracts.getContractById("executor");
+    const parameters = loadedContract.methods.execute.parameters;
+
+    assert.strictEqual(contractItem.contract, loadedContract);
+    assert.strictEqual(loadedContract, contract);
+    assert.equal(Object.isFrozen(loadedContract), true);
+    assert.equal(Object.isFrozen(loadedContract.methods), true);
+    assert.equal(Object.isFrozen(loadedContract.methods.execute), true);
+    assert.equal(Object.isFrozen(parameters), true);
+    assert.equal(Object.isFrozen(parameters[0]), true);
+    assert.equal(Object.isFrozen(parameters[0].enum), true);
+    assert.throws(() => { loadedContract.label = "changed"; }, TypeError);
+    assert.throws(() => { loadedContract.methods.other = {}; }, TypeError);
+    assert.throws(() => { parameters.push({ name: "extra", type: "string" }); }, TypeError);
+    assert.deepEqual(contracts.registry.map(item => item.id), ["executor"]);
+});
+
 test("toast emits shown and closed events with the toast ID", () => {
     const previousDocument = globalThis.document;
     const bodyChildren = [];

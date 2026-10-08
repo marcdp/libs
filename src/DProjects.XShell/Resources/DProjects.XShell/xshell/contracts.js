@@ -1,4 +1,5 @@
 import validateContract from "./validation/contract.js";
+import { deepFreeze } from "./utils/object.js";
 
 // class
 export default class Contracts {
@@ -73,6 +74,7 @@ export default class Contracts {
         const start = performance.now();
         const contract = await this._loader.load("contract:" + id);
         await validateContract(url, contract);
+        deepFreeze(contract);
         return {
             id: id,
             url: url,
