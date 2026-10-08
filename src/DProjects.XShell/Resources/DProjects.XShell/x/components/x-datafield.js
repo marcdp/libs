@@ -344,7 +344,7 @@ export default {
                     <li>
                         <x-anchor class="plain" x-attr:href="state.files[filename].url" target="_blank"><x-icon icon="x-file"></x-icon>{{ filename }}</x-anchor>
                         <span x-if="state.files[filename].size"> ({{ state.files[filename].sizeFormatted }})</span>
-                        <span x-if="state.files[filename].progress">, {{ state.files[filename].progress }} %</span>                        
+                        <span x-if="state.files[filename].percent">, {{ state.files[filename].percent }} %</span>                        
                         <x-button x-on:click="fileRemove" x-attr:data-file="state.files[filename].id" icon="x-close" class="anchor"></x-button>
                     </li>                    
                 </ul>
@@ -358,8 +358,8 @@ export default {
                     </li>
                     <li x-else>
                         <x-anchor class="plain" x-attr:href="file.url" target="_blank"><x-spinner></x-spinner><x-icon icon="x-file"></x-icon> {{ file.name }}</x-anchor>
-                        <span x-if="file.size">({{ file.sizeFormatted }})</span>
-                        <span x-if="file.progress">, {{ file.progress }} %</span>                        
+                        <span x-if="file.size">/ {{ file.sizeFormatted }}</span>
+                        <span x-if="file.percent">/ {{ file.percent | number(1) }} %</span>                        
                         <x-button x-on:click="fileRemove" x-attr:data-file="file.id" icon="x-close" class="anchor"></x-button>
                     </li>                    
                 </ul>
@@ -635,21 +635,22 @@ export default {
                 // temp upload
                 let filesTemp = [];
                 for(const file of files) {
-                    filesTemp.push({ id:file.name, name: file.name, size: file.size, sizeFormatted: formatFileSize(file.size), type: file.type, progress: 25});
+                    filesTemp.push({ id:file.name, name: file.name, size: file.size, sizeFormatted: formatFileSize(file.size), type: file.type, percent: 0});
                 }
                 // action
                 state.filesTemp = filesTemp;
-                const result = await temp.upload(files, (name, progress) => {
+                const result = await temp.upload(files, ({ name, loaded, total, percent }) => {
+                    // onProgress({ loaded: event.loaded, total: event.total, percent })
                     const fileTemp = filesTemp.find(f => f.name === name);
                     if (fileTemp) {
-                        fileTemp.progress = (progress == 100 ? 99 : Math.min(Math.max(progress, 0), 100));
+                        fileTemp.percent = (percent == 100 ? 99 : Math.min(Math.max(percent, 0), 100));
                     }
                     host.invalidate();                        
                 });
                 let index = 0;
                 for(const fileTemp of filesTemp) {
                     const fileResult = result[index++];
-                    fileTemp.progress = 100;
+                    fileTemp.percent = 100;
                     if (fileResult.startsWith("error:")) {
                         fileTemp.error = fileResult;
                         fileTemp.value = null;

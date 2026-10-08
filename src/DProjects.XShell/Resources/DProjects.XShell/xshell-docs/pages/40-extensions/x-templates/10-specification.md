@@ -1063,8 +1063,11 @@ Static attributes are literal strings unless they are boolean HTML attributes in
 HTML template URL rules: module-relative and module-root paths are resolved from the declaring template, while `app:` and `url:` are invalid.
 Dynamic `x-attr` values remain runtime values and are not resolved against the declaring template.
 
-`<script>` and `<style>` are invalid elements within XTemplate source, including inside `x-pre`. An HTML single-file component may have separate
-top-level `<script type="module">` and `<style>` sections outside its `<template>` section.
+`<script>` and `<style>` are invalid elements within XTemplate source for `XTemplateCompiler`, including inside `x-pre`.
+
+`XTemplateRenderer` also rejects these elements by default, but an embedding application may enable them through `XTemplateRendererOptions.AllowStyleElements` and `XTemplateRendererOptions.AllowScriptElements`, respectively.
+
+An HTML single-file component may have separate top-level `<script type="module">` and `<style>` sections outside its `<template>` section.
 
 XTL does not evaluate ordinary attribute text as an expression.
 

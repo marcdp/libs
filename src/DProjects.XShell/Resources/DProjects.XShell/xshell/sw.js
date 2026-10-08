@@ -58,6 +58,9 @@ self.addEventListener("message", (event) => {
     })());
 });
 self.addEventListener("fetch", (event) => {
+    if (event.request.method !== "GET" && event.request.method !== "HEAD") {
+        return;
+    }
     event.respondWith((async () => {
         if (!state) {
             state = await loadDBState("state") || { rules: [] };

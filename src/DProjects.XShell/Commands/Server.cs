@@ -40,8 +40,7 @@ namespace DProjects.XShell.Commands {
                 Temp = new Extensions.TempConfig {
                     Path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Extensions.ResourceName, "temp"),
                     BasePath = AppBasePath + "/temp",
-                    ExpirationTime = TimeSpan.FromMinutes(30),
-                    FileSizeLimit = 10 * 1024 * 1024 // 10 MB
+                    ExpirationTime = TimeSpan.FromHours(1)
                 },
                 Resources = new Extensions.ResourcesConfig {
                     BasePath = AppBasePath + "/_resources/" + Extensions.ResourceName

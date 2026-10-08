@@ -14,10 +14,7 @@ export default class Temp {
         if (files instanceof File) files = [files];
         const tasks = [];
         for (const file of files) {
-            tasks.push(
-                this._upload(file, onProgress)
-                    .catch(error => "error: " + error.message)
-            );
+            tasks.push(this._upload(file, onProgress).catch(error => "error: " + error.message));
         }
         return await Promise.all(tasks);
     }
@@ -32,14 +29,16 @@ export default class Temp {
 
             // prepare request
             const xhr = new XMLHttpRequest();
-            xhr.open("POST", this._url);
 
+            // progress
             xhr.upload.addEventListener("progress", event => {
                 if (event.lengthComputable) {
                     const percent = event.loaded / event.total * 100;
-                    onProgress?.({ loaded: event.loaded, total: event.total, percent });
+                    onProgress?.({ name: file.name, loaded: event.loaded, total: event.total, percent });
                 }
             });
+
+            // load
             xhr.addEventListener("load", () => {
                 if (xhr.status >= 200 && xhr.status < 300) {
                     resolve(xhr.responseText);
@@ -48,14 +47,15 @@ export default class Temp {
                 }
             });
 
+            // error
             xhr.addEventListener("error", () => {
                 reject(new Error("Upload failed"));
             });
 
             // set up form data and send the request
+            xhr.open("POST", this._url);
             const formData = new FormData();
             formData.append("file", file);
-
             xhr.send(formData);
         });
     }
