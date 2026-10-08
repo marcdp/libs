@@ -79,8 +79,8 @@ Bootstrap converts only the effective-config copy into the virtual application r
 { "path": "/_assets/x/components/x-button.js", "size": 1234, "hash": "..." }
 ```
 
-The same conversion produces paths such as `/_assets/xshell/xshell.js` in `config.xshell.files`. These paths follow the same absolute or
-application-root-relative URL convention as the rest of the effective configuration; `size` and `hash` are unchanged. Bootstrap then loads the
+The same conversion produces Paths such as `/_assets/xshell/xshell.js` in `config.xshell.files`. These are application-root-relative virtual Paths,
+not absolute browser URLs; `size` and `hash` are unchanged. Bootstrap then loads the
 XShell runtime, validates the complete enriched configuration, deeply freezes it, and calls `xshell.init(config)`. `xshell.init` validates again,
 constructs runtime services, awaits i18n and Contracts initialization, registers core instances, and finalizes
 configured Services. Modules checks requirements before loading any controller and then initializes one instance per canonical id.

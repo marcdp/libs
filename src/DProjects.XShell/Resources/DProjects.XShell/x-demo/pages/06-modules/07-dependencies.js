@@ -20,7 +20,7 @@ export default {
     ↓
 Resolver
     ↓
-URL + loader metadata
+resource location + loader metadata
     ↓
 Loader
     ↓

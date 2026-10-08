@@ -2,6 +2,61 @@
 
 XShell authors JSONC fragments and produces one normalized **effective configuration** with `app`, `modules`, and `xshell` sections.
 
+## Path and URL terminology
+
+In XShell documentation and normalized/effective runtime configuration, a **Path** is an application-root-relative value. It starts with `/`, has no
+scheme or origin, and is relative to the XShell application URL namespace. For example:
+
+```text
+/my-app-prefix
+/_assets/x/page.js
+/_assets/codemirror/components/editor.js
+```
+
+A **URL** is a fully qualified absolute browser URL. It contains a scheme and, where applicable, an origin, so it can be passed directly to browser
+URL, fetch, or import APIs. For example:
+
+```text
+https://server/my-app-prefix/
+https://server/my-app-prefix/_assets/x/page.js
+https://cdn.example.com/codemirror/
+```
+
+This establishes the naming convention for normalized/effective/runtime values: `...Path` denotes an application-root-relative Path and `...Url`
+denotes a fully qualified absolute URL. A Path is a logical application resource location; it is not interchangeable with the browser-facing physical
+URL for that resource. Convert a Path when a browser or native-link API requires an absolute URL, for example:
+
+```js
+new URL("_assets/x/page.js", config.app.baseUrl)
+```
+
+The application base preserves that distinction:
+
+```text
+app.basePath = "/prefix"
+app.baseUrl  = "https://server/prefix/"
+```
+
+`app.basePath` is a Path prefix and does not require a trailing slash. `app.baseUrl` is an absolute base-directory URL and intentionally ends in `/`
+so ordinary URL resolution works:
+
+```js
+new URL("file.js", config.app.baseUrl)
+```
+
+Authored configuration is a separate input layer. It may contain configuration coordinates / URL expressions such as `app:/foo`, `url:./foo`,
+`/foo`, `./foo`, and `../foo`; these are not necessarily final runtime URLs. Bootstrap normalizes them before runtime:
+
+```text
+authored configuration expression
+    ↓ bootstrap/config normalization
+effective Path or absolute URL
+    ↓ runtime
+```
+
+For example, an authored `"assetsUrl": "url:./"` becomes an absolute effective `assetsUrl`, while authored
+`"assetsBasePath": "app:/_assets"` becomes the effective Path `/_assets`.
+
 ## Authored module configuration
 
 Every module configuration has exactly one local definition and zero or more external references:
@@ -87,8 +142,8 @@ Every effective module requires generated `files`/`assetsPath`, source locations
 each with non-empty `renderEngine` and `stateEngine`. These module defaults
 are separate from global `xshell.ui` settings.
 
-In configuration URL fields, `/foo` starts at the module root, while `./foo` and `../foo` use the declaring file's directory in logical module
-coordinates. Paths that traverse above the module root are invalid. `app:` and `url:` are configuration-only; runtime CSS and template resource
+In authored configuration URL expressions, `/foo` starts at the module root, while `./foo` and `../foo` use the declaring file's directory in logical
+module coordinates. Paths that traverse above the module root are invalid. `app:` and `url:` are configuration-only; runtime CSS and template resource
 references reject both. In configuration, `url:` uses the physical declaring document URL. `app:` uses the XShell application base URL
 built once from `document.location.origin` and the host's `xshell:app.basePath` meta value. For example, with a base of
 `https://example.com/myapp/`, both `app:images/logo.svg` and `app:/images/logo.svg` resolve to

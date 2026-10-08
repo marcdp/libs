@@ -1,7 +1,9 @@
 # Resolvers
 
-A Resolver maps a logical resource such as `icon:x-file` to a concrete URL and loader metadata. The Loader then obtains the resource. They are
-separate responsibilities.
+A Resolver maps a logical resource such as `icon:x-file` to a concrete resource location and loader metadata. The Loader then obtains the resource.
+They are separate responsibilities. Generated resolver entries currently use application-root-relative virtual Paths such as
+`/_assets/x/icons/x-file.svg`; callers that require an absolute browser URL must resolve that Path against `app.baseUrl`. See
+[Configuration](20-configuration.md#path-and-url-terminology).
 
 A custom rule may use this nested shape:
 
@@ -21,7 +23,7 @@ Bootstrap generates conventional rules for module icons, layouts, components, pa
 `/_assets`. Rules for a canonical module definition are generated once, regardless of repeated dependency references.
 
 `resolver.js` reads nested `config.xshell.resolver` rule objects. Bootstrap adds defaults for each canonical module id after merging. Resolver
-matching and loader dispatch still require the usual resource URL and loader metadata.
+matching and loader dispatch still require the usual resource location and loader metadata.
 
 Resolver entries may set `cache: true` and optionally select `cacheMode: "full"` or `cacheMode: "path"`. The default `full` mode includes the query
 in Loader cache identity. The `path` mode excludes the query from cache identity without changing resolution or the URL passed to the

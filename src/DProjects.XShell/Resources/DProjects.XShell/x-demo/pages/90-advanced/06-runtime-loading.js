@@ -20,7 +20,7 @@ export default {
     ↓
 Resolver
     ↓
-resolved URL + loader metadata
+resolved resource location + loader metadata
     ↓
 Loader
     ↓
@@ -40,7 +40,7 @@ loaded runtime value</code></pre>
 
         <x-datafields>
             <x-datafield label="Logical reference"><code>{{ state.result.resource }}</code></x-datafield>
-            <x-datafield label="Resolved URL"><code>{{ state.result.url }}</code></x-datafield>
+            <x-datafield label="Resolved resource location"><code>{{ state.result.url }}</code></x-datafield>
             <x-datafield label="Resource loader"><code>{{ state.result.loader }}</code></x-datafield>
             <x-datafield label="Loaded value"><span>{{ state.result.value }}</span></x-datafield>
         </x-datafields>

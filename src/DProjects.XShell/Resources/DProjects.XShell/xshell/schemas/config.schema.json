@@ -23,8 +23,8 @@
         "version": {"type": "string", "description": "Application version."},
         "copyright": {"type": "string", "description": "Application copyright notice."},
         "icon": {"type": "string", "description": "Application icon resource."},
-        "basePath": {"type": "string", "description": "Base path under which the application is hosted."},
-        "baseUrl": {"type": "string", "description": "Base absolute URL under which the application is hosted."},
+        "basePath": {"type": "string", "description": "Application-root-relative Path prefix under which the application is hosted; no trailing slash is required."},
+        "baseUrl": {"type": "string", "description": "Fully qualified absolute application base-directory URL; ends with / for normal URL resolution."},
         "params": {"type": "object", "additionalProperties": true, "description": "Application-specific parameters."}
       },
       "required": ["id", "label", "version", "copyright", "icon", "basePath", "params"],
@@ -38,10 +38,10 @@
         "version": {"type": "string", "description": "Module version."},
         "copyright": {"type": "string", "description": "Module copyright notice."},
         "icon": {"type": "string", "description": "Module icon resource."},
-        "configUrl": {"type": "string", "format": "uri", "description": "URL of the module configuration document."},
+        "configUrl": {"type": "string", "format": "uri", "description": "Fully qualified absolute URL of the normalized module configuration document."},
         "params": {"type": "object", "additionalProperties": true, "description": "Parameters supplied to the canonical module by root application composition."},
         "requires": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true, "description": "Names of services that must be registered before the module is initialized."},
-        "assetsUrl": {"type": "string", "format": "uri", "description": "URL of the directory or package containing the module assets, absolute."},
+        "assetsUrl": {"type": "string", "format": "uri", "description": "Fully qualified absolute URL of the directory or package containing the module assets."},
         "assetsPath": {"type": "string", "pattern": "^/", "description": "Application-root-relative virtual base path for the module assets."},
         "menus": {"$ref": "#/$defs/menus", "description": "Menu contributions exposed by the module."},
         "routes": {
@@ -60,7 +60,7 @@
     "file": {
       "type": "object",
       "properties": {
-        "path": {"type": "string", "minLength": 1, "description": "Absolute or application-root-relative virtual resource path."},
+        "path": {"type": "string", "minLength": 1, "description": "Application-root-relative virtual resource Path."},
         "size": {"type": "integer", "minimum": 0, "description": "Size of the physical file in bytes."},
         "hash": {"type": "string", "minLength": 1, "description": "Hash of the physical file content."}
       },
@@ -174,10 +174,10 @@
         "debug": {"type": "boolean", "description": "Whether XShell debug behavior is enabled."},
         "version": {"type": "string", "description": "XShell runtime version."},
         "environment": {"type": "string", "description": "Runtime environment name."},
-        "configUrl": {"type": "string", "format": "uri", "description": "URL of the xshell configuration document"},
+        "configUrl": {"type": "string", "format": "uri", "description": "Fully qualified absolute URL of the normalized XShell configuration document."},
         "assetsBasePath": {"type": "string", "pattern": "^/", "description": "Normalized application-relative base path for the virtual asset namespace. (e.g. /_assets)"},
         "assetsPath": {"type": "string", "pattern": "^/", "description": "Application-root-relative virtual base path for the XShell framework assets. (e.g. /_assets/xshell)"},
-        "assetsUrl": {"type": "string", "format": "uri", "description": "URL of the directory or package containing the xshell assets."},
+        "assetsUrl": {"type": "string", "format": "uri", "description": "Fully qualified absolute URL of the directory or package containing the XShell assets."},
         "ui": {"$ref": "#/$defs/xshellUi", "description": "Global ui settings."},
         "i18n": {"$ref": "#/$defs/xshellI18n", "description": "Language, translation, and date/time formatting settings."},
         "areas": {"$ref": "#/$defs/xshellAreas", "description": "Application area configuration."},
@@ -343,7 +343,7 @@
       "type": "object",
       "required": ["url"],
       "properties": {
-        "url": {"type": "string", "description": "Concrete resource URL or URL template."},
+        "url": {"type": "string", "description": "Concrete resource location or template. Generated resolver entries currently use application-root-relative virtual Paths."},
         "loader": {"type": "string", "description": "Loader used to load the resolved resource."},
         "cache": {"type": "boolean", "description": "Whether the resolved resource may be cached."},
         "cacheMode": {"type": "string", "enum": ["full", "path"], "default": "full", "description": "Cache identity strategy. Full includes the query; path excludes it."},

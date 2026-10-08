@@ -12,7 +12,7 @@ The Loader is responsible for:
 
 * asking the Resolver to resolve a logical resource;
 * selecting the resource-specific loader;
-* invoking that loader with the resolved URL and context;
+* invoking that loader with the resolved resource location and context;
 * returning the loaded runtime result.
 
 The resource-specific loader is responsible for understanding the resource format.
@@ -53,7 +53,7 @@ A resolver rule can opt into Loader caching and choose how the logical resource 
 and `object:/data.json?page=2` remain separate cache entries. `path` excludes only the query from cache identity, so query variants share the same
 cached value and any in-flight load promise. The logical resource scheme is preserved, and fragments remain part of identity.
 
-`cacheMode` affects only the Loader's internal cache key. It does not rewrite the requested resource, resolved URL, registry diagnostics, or values
+`cacheMode` affects only the Loader's internal cache key. It does not rewrite the requested resource, resolved resource location, registry diagnostics, or values
 such as a Page instance's `src`. Use `path` only for resource types whose implementation identity is genuinely independent of query state.
 
 ## Flow
@@ -63,7 +63,7 @@ logical resource
     ↓
 Resolver
     ↓
-URL + loader metadata
+resource location + loader metadata
     ↓
 Loader
     ↓
@@ -151,7 +151,7 @@ loader exposes that result to the controller as `controller({ dependencies })`.
 ```text
 dependencies: { fileIcon: "icon:x-file" }
     ↓
-Resolver → URL + loader metadata
+Resolver → resource location + loader metadata
     ↓
 Loader → loaded icon
     ↓
@@ -200,7 +200,7 @@ flowchart LR
     A["Logical resource<br/>icon:x-file"]
         --> B[Resolver]
 
-    B --> C["Resolved URL<br/>/_assets/x/icons/x-file.svg<br/>loader=icon-svg"]
+    B --> C["Resolved Path<br/>/_assets/x/icons/x-file.svg<br/>loader=icon-svg"]
 
     C --> D[Loader]
 
