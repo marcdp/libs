@@ -7,11 +7,13 @@ export default class Resolver {
     _debug = null;
     _definitions = [];
     _appBasePath = "";
+    _appBaseUrl = "";
 
     //ctor
     constructor( {debug, config}) {
         this._debug = debug;
         this._appBasePath = config.app.basePath;
+        this._appBaseUrl = config.app.baseUrl;
         for(let type in config.xshell.resolver) {
             for(let pattern in config.xshell.resolver[type]) {
                 const value = config.xshell.resolver[type][pattern]; 
@@ -74,11 +76,8 @@ export default class Resolver {
         for(let i = 0; i < this._definitions.length ; i++) {
             const definition = this._definitions[i];
             if (definition.resource === resource) {
-                let url = definition.url;
-                const path = url;
-                if (url.indexOf(":")==-1) {
-                    url = (this._appBasePath + url);
-                }
+                let url = new URL(definition.url.replace(/^\/+/, ""), this._appBaseUrl).href;
+                let path = definition.url;
                 return { definition, url, path };
             }
         }
@@ -86,14 +85,12 @@ export default class Resolver {
             const definition = this._definitions[i];
             const match = resource.match(definition.regexp);
             if (match) {
-                let url = definition.url;
+                let url = new URL(definition.url.replace(/^\/+/, ""), this._appBaseUrl).href.replace("%7B","{").replace("%7D","}");
+                let path = definition.url;
                 for(var key in match.groups) {
                     url = url.replaceAll("{" + key + "}", match.groups[key]);
-                }
-                const path = url;
-                if (url.indexOf(":")==-1) {
-                    url = (this._appBasePath + url);
-                }
+                    path = path.replaceAll("{" + key + "}", match.groups[key]);
+                }                
                 return { definition, url, path };
             }
         }

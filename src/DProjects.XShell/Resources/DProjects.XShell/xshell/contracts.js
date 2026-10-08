@@ -43,7 +43,7 @@ export default class Contracts {
             for (const file of Object.values(module.files)) {
                 if (file.path.startsWith(moduleContractsPath + "/") && file.path.endsWith(".json")) {
                     const contractId = file.path.substring(moduleContractsPath.length + 1, file.path.length - ".json".length);
-                    const fileUrl = this._config.app.basePath + file.path;
+                    const fileUrl = new URL(file.path.replace(/^\/+/, ""),this._config.app.baseUrl).href;
                     tasks.push(this._processContractFile(contractId, fileUrl, file, moduleId, file.size));
                 }
             }

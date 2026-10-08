@@ -68,6 +68,7 @@ export default {
                 // refresh
                 const contractItems = [];
                 for (const item of contracts.registry) {
+                    debugger
                     let valid = true;
                     if (state.id && !item.id.includes(state.id)) {
                         valid = false;

@@ -79,7 +79,7 @@ export default {
                         if (file.path.startsWith(modulePagesPath)) {
                             const id = file.path;
                             const loaderRegistryItem = loaderRegistryCache["page:" + file.path];
-                            const url = config.app.basePath + file.path;
+                            const url = new URL(file.path.replace(/^\/+/, ""),config.app.baseUrl).href;
                             let valid = true;
                             if (state.id && id.indexOf(state.id) == -1 ) valid = false;
                             if (state.moduleId && moduleId.indexOf(state.moduleId) == -1 ) valid = false;

@@ -11,7 +11,6 @@ import Resolver from "./resolver.js";
 import Runtime from "./runtime.js";
 import Services from "./services.js";
 import Temp from "./temp.js";
-import UrlRewriter from "./urlRewriter.js";
 import validateConfig from "./validation/config.js";
 import XPage from "./x-page.js";
 
@@ -33,7 +32,6 @@ class XShell {
     _resolver = null;
     _runtime = null;
     _services = null;
-    _urlRewriter = null;
     
     //ctor
     constructor() {
@@ -54,7 +52,6 @@ class XShell {
     get runtime() { return this._runtime; }
     get services() { return this._services; }
     get temp() { return this._temp; }
-    get urlRewriter() { return this._urlRewriter; }
 
     //methods
     async init(config) {
@@ -73,7 +70,6 @@ class XShell {
         this._services = new Services( {config, loader: this._loader, contracts: this._contracts, areas: this._areas, bus: this._bus } );
         this._modules = new Modules( { bus: this._bus, config: config, loader: this._loader, resolver: this._resolver, document: document, services: this._services } );
         this._navigation = new Navigation( { areas: this._areas, bus: this._bus, config: config, container: this._container });
-        this._urlRewriter = new UrlRewriter();
         this._dialog = new Dialog( { config: config, navigation: this._navigation, i18n: this._i18n } );        
         this._temp = new Temp( { config: config } );
         this._runtime = new Runtime();
@@ -94,7 +90,6 @@ class XShell {
         this._services.register("contracts", this._contracts);
         this._services.register("services", this._services);
         this._services.register("temp", this._temp);
-        this._services.register("urlRewriter", this._urlRewriter);
         await this._services.init();
         // modules
         await this._modules.init();  

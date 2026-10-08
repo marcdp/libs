@@ -64,6 +64,7 @@ export default {
             },
             refresh() {
                 // derive the visible rows from current loader state and local filters
+                debugger
                 state.items = loader.registry.slice(clearedCount).filter(item =>
                     (!state.query_resource || item.resource.includes(state.query_resource)) &&
                     (!state.query_module || item.moduleId?.includes(state.query_module)) &&

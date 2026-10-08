@@ -82,8 +82,8 @@ export default {
                     let moduleIconsPath = moduleConfig.assetsPath + "/icons";
                     for(const file of Object.values(moduleConfig.files)) {
                         if (file.path.startsWith(moduleIconsPath)) {
-                            const id = (file.path.split("/").pop() || "").split(".")[0];
-                            const url = config.app.basePath + file.path;
+                            const id = (file.path.split("/").pop() || "").split(".")[0];    
+                            const url = new URL(file.path.replace(/^\/+/, ""), config.app.baseUrl).href;
                             await loader.load("icon:" + id);
                             const loaderRegistryItem = loaderRegistryCache["icon:" + id];
                             let valid = true;

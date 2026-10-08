@@ -80,12 +80,13 @@ export default {
                             const id = (file.path.split("/").pop() || "").split(".")[0];
                             const loaderRegistryItem = loaderRegistryCache["component:" + id];
                             const loaded = (customElements.get(id) != null);
-                            const url = config.app.basePath + file.path;
+                            const url = new URL(file.path.replace(/^\/+/, ""),config.app.baseUrl).href;
                             let valid = true;
                             if (state.id && id.indexOf(state.id) == -1 ) valid = false;
                             if (state.moduleId && moduleId.indexOf(state.moduleId) == -1 ) valid = false;
                             if (state.description && (!loaderRegistryItem?.description || loaderRegistryItem.description.indexOf(state.description) == -1 )) valid = false;
                             if (valid) {
+                                console.log(url);
                                 list.push({
                                     id: id,
                                     moduleId: moduleId,

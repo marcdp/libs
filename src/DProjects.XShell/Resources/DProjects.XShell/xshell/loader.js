@@ -5,7 +5,6 @@ class ResourceLoadError extends Error {
         super(message, { cause: opts.cause });
         this.name = this.constructor.name;
         this.resource = resource;
-        this.url = opts.url;
         this.path = opts.path;
         this.code = opts.code;
     }
@@ -58,7 +57,12 @@ export default class Loader {
     get registry() { 
         // project load metadata without exposing the loaded value or mutable records
         return Object.freeze(this._registry.map(item => Object.freeze({
-            resource: item.resource, url: item.url, status: item.status, time: item.time, moduleId: item.moduleId,
+            resource: item.resource, 
+            url: item.url, 
+            path: item.path, 
+            status: item.status, 
+            time: item.time, 
+            moduleId: item.moduleId,
             description: item.description || ""
         })));
     }
@@ -116,9 +120,15 @@ export default class Loader {
                 console.log(`loader: load '${resource}' from ${url} ...`);
                 let promise = (async () => {
                     let value = null;
-                    let registryItem = {resource, definition, url, status: "pending", time: null, moduleId: definition.moduleId};
+                    let registryItem = {resource, 
+                        definition, 
+                        url,
+                        path,
+                        status: "pending", 
+                        time: null, 
+                        moduleId: definition.moduleId};
                     this._registry.push(registryItem);
-                    this._bus.emit("xshell:loader:resource:fetch", {resource, url, moduleId: definition.moduleId});
+                    this._bus.emit("xshell:loader:resource:fetch", {resource, url, path, moduleId: definition.moduleId});
                     const context = {
                         resourceName: name,
                         resourcePath: path,
@@ -141,13 +151,13 @@ export default class Loader {
                             const description = value?.contract?.description;
                             registryItem.description = typeof description === "string" ? description : "";
                         }
-                        this._bus.emit("xshell:loader:resource:loaded", {resource, url, time});
+                        this._bus.emit("xshell:loader:resource:loaded", {resource, url, path, time});
                     } catch (exception) {
                         const end = performance.now();
                         const time = end - start;
                         registryItem.time = time;
                         registryItem.status = "error";
-                        this._bus.emit("xshell:loader:resource:error", {resource, url, time});
+                        this._bus.emit("xshell:loader:resource:error", {resource, url, path, time});
                         throw exception;
                     }
                     return value;
@@ -194,7 +204,6 @@ export default class Loader {
                     }
                     result[resultIndex] = value;
                 } else if (taskResult.status === 'rejected') {
-                    //debugger
                     const exception = taskResult.reason instanceof Error ? taskResult.reason : new Error(String(taskResult.reason));
                     const error = new ResourceLoadError(
                         resources[resultIndex],

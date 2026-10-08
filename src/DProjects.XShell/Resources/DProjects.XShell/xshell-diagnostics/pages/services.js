@@ -59,7 +59,7 @@ export default {
         description: "",
         items: []
     },
-    controller({ state, events, services, bus}) {
+    controller({ state, events, services, bus, config}) {
         return {
             load() {
                // load

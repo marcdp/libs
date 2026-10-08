@@ -54,6 +54,7 @@ export default class Services {
                         }
                     }
                 }
+                debugger
                 this.register(serviceName, null, { 
                     contractItem: serviceContractItem, 
                     implementationItem: {
@@ -61,7 +62,8 @@ export default class Services {
                         moduleId: moduleId,
                         size: size,
                         time: performance.now() - start,
-                        url: this._config.app.basePath + service.implementation
+                        path: service.implementation,
+                        url: new URL(service.implementation.replace(/^\/+/, ""), this._config.app.baseUrl).href
                     }
                 });
             })());
