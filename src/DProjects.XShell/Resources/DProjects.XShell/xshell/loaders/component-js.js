@@ -149,8 +149,8 @@ export async function createComponentClassFromJsDefinition(src, context, impleme
         await validateComponent(src, implementation);
     }
     // freeze and seal the implementation and contract to prevent further modifications
-    implementation = Object.seal(Object.freeze(implementation));
-    contract = Object.seal(Object.freeze(contract));
+    implementation = deepFreeze(implementation);
+    contract = deepFreeze(contract);
     // process definition CSS once before creating Component instances
     const style = implementation.style ? await processStyle({ src, context, css: implementation.style }) : "";
     // stylesheets
