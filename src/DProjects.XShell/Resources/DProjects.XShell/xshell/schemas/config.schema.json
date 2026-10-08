@@ -27,7 +27,7 @@
         "baseUrl": {"type": "string", "description": "Fully qualified absolute application base-directory URL; ends with / for normal URL resolution."},
         "params": {"type": "object", "additionalProperties": true, "description": "Application-specific parameters."}
       },
-      "required": ["id", "label", "version", "copyright", "icon", "basePath", "params"],
+      "required": ["id", "label", "version", "copyright", "icon", "basePath", "baseUrl", "params"],
       "additionalProperties": false,
       "description": "Application metadata, base path, and application parameters."
     },

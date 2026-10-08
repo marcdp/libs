@@ -31,6 +31,7 @@ function configuration(module) {
             copyright: "",
             icon: "",
             basePath: "/",
+            baseUrl: "https://example.test/",
             params: {}
         },
         modules: { test: module },
@@ -65,6 +66,15 @@ function assertValid(module) {
 
 test("module schema keeps routes optional", () => {
     assertValid(moduleDefinition());
+});
+
+test("effective schema requires app baseUrl", () => {
+    const config = configuration(moduleDefinition());
+    delete config.app.baseUrl;
+    assert.equal(validator.validate(config).valid, false);
+
+    config.app.baseUrl = "https://example.test/";
+    assert.equal(validator.validate(config).valid, true, JSON.stringify(validator.validate(config).errors));
 });
 
 test("effective schema accepts descriptive module events", () => {
