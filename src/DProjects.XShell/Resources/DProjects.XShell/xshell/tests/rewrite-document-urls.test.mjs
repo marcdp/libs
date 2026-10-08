@@ -109,31 +109,21 @@ test("style elements resolve quoted imports through the CSS scanner", () => {
     }
 });
 
-test("inline module imports use module paths while preserving special specifiers", async () => {
-    const script = new TestElement("script", { type: "module" }, [
-        'import helper from "./helper.js";',
-        'import root from "/shared.js";',
-        'import shell from "xshell/runtime.js";',
-        'import remote from "https://cdn.test/remote.js";',
-        'import protocolRelative from "//cdn.test/remote.js";'
-    ].join("\n"));
-    const doc = createDocument(script);
-    await rewriteDocumentUrls(doc, context);
-    assert.notEqual(doc.elements[0], script);
-    assert.equal(doc.elements[0].textContent, [
-        `import helper from "${resourceBase}helper.js";`,
-        'import root from "https://example.test/app/_assets/demo/shared.js";',
-        'import shell from "xshell/runtime.js";',
-        'import remote from "https://cdn.test/remote.js";',
-        'import protocolRelative from "//cdn.test/remote.js";'
-    ].join("\n"));
-});
-
-test("inline module imports resolve parent paths and retain query strings and fragments", async () => {
-    const script = new TestElement("script", { type: "module" }, 'import parent from "../shared.js?v=1#part";');
-    const doc = createDocument(script);
-    await rewriteDocumentUrls(doc, context);
-    assert.equal(doc.elements[0].textContent, 'import parent from "https://example.test/app/_assets/demo/shared.js?v=1#part";');
+test("inline module script bodies remain exactly authored", () => {
+    const source = [
+        'import realLooking from "./module.js";',
+        '',
+        '/*',
+        'import commented from "./commented.js";',
+        '*/',
+        '',
+        'const sample = `',
+        'import templateText from "./template.js";',
+        '`;'
+    ].join("\n");
+    const script = new TestElement("script", { type: "module" }, source);
+    rewriteDocumentUrls(createDocument(script), context);
+    assert.equal(script.textContent, source);
 });
 
 test("img srcset rewrites density candidates independently", async () => {
@@ -232,40 +222,6 @@ test("runtime template resource URLs reject the configuration-only url: scheme",
     createDocument();
     assert.throws(() => rewriteTemplateAttribute("img", {}, "src", "url:./image.png", context), /'url:' scheme is not supported/);
     assert.throws(() => rewriteTemplateAttribute("img", {}, "srcset", "small.png 1x, url:./large.png 2x", context), /'url:' scheme is not supported/);
-});
-
-test("runtime template imports reject url: while ordinary text remains untouched", async () => {
-    const script = new TestElement("script", { type: "module" }, 'import x from "url:./module.js";');
-    assert.throws(() => rewriteDocumentUrls(createDocument(script), context), /'url:' scheme is not supported/);
-
-    const plain = new TestElement("p", { title: "url:./literal" }, "url:./plain text");
-    const ordinaryScript = new TestElement("script", { type: "module" }, 'const text = "url:./literal";');
-    const doc = createDocument(plain, ordinaryScript);
-    await rewriteDocumentUrls(doc, context);
-    assert.equal(plain.getAttribute("title"), "url:./literal");
-    assert.equal(plain.textContent, "url:./plain text");
-    assert.equal(doc.elements[1].textContent, 'const text = "url:./literal";');
-});
-
-test("ordinary HTML inline module imports support single-line static imports", () => {
-    const script = new TestElement("script", { type: "module" }, [
-        'import "./side.js";',
-        'import { helper } from "./helper.js";',
-        'const text = "import x from \'app:/literal.js\'";',
-        '// import ignored from "./ignored.js";'
-    ].join("\n"));
-    const doc = createDocument(script);
-    rewriteDocumentUrls(doc, context);
-    assert.equal(doc.elements[0].textContent, [
-        `import "${resourceBase}side.js";`,
-        `import { helper } from "${resourceBase}helper.js";`,
-        'const text = "import x from \'app:/literal.js\'";',
-        '// import ignored from "./ignored.js";'
-    ].join("\n"));
-    const custom = { resourceDefinition: {}, resourcePath: "https://cdn.example.com/widgets/card.js" };
-    const external = createDocument(new TestElement("script", { type: "module" }, 'import x from "../lib.js";'));
-    rewriteDocumentUrls(external, custom);
-    assert.equal(external.elements[0].textContent, 'import x from "https://cdn.example.com/lib.js";');
 });
 
 test("runtime templates reject app: and url: in all static URL locations", () => {

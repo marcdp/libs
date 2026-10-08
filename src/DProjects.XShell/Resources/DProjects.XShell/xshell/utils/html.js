@@ -113,18 +113,6 @@ export function rewriteDocumentUrls(doc, context) {
     doc.querySelectorAll("style").forEach(el => {
         el.textContent = rewriteStyleUrls({ src: cssSource, context, css: el.textContent });
     });
-    // ordinary HTML templates support a limited static import form in inline module scripts
-    for (const script of doc.querySelectorAll('script[type="module"]')) {
-        if (script.src) continue;
-        const original = script.textContent;
-        const rewritten = original.replace(/(^|[;\n])([ \t]*import[ \t]+(?:[^'";\n]*?\bfrom[ \t]+)?)(['"])([^'"\n]+)\3/gm,
-            (match, prefix, statement, quote, specifier) => prefix + statement + quote + (specifier.startsWith("xshell/") ? specifier : rewrite(null, "import", "resource", specifier, context)) + quote);
-        if (rewritten === original) continue;
-        const replacement = document.createElement("script");
-        replacement.type = "module";
-        replacement.textContent = rewritten;
-        script.replaceWith(replacement);
-    }
     return doc;
 }
 
