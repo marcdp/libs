@@ -1,6 +1,7 @@
 import xshell from '../xshell.js';
 import {getTemplateCssSource, rewriteTemplateAttribute} from "../utils/html.js";
 import { rewriteStyleDeclarationValue } from "../utils/style.js";
+import { unloadComponents, unloadChildComponents } from "../utils/components.js";
 
 class XTemplate {
 
@@ -563,15 +564,18 @@ class XTemplateInstance {
 				parent.appendChild(element);
 			} else if (vNodeNew == null) {
 				//remove
+				unloadComponents(parent.lastChild);
 				parent.removeChild(parent.lastChild);
 			} else if (vNodeOld.options.index < vNodeNew.options.index) {
 				//remove old node
 				let comment = document.createComment("");
+				unloadComponents(parent.childNodes[vNodeOld.options.index + inew]);
 				parent.replaceChild(comment, parent.childNodes[vNodeOld.options.index + inew]);
 				inew--;
 			} else if (vNodeOld.options.index > vNodeNew.options.index) {
 				//replace node
 				let element = this._createDomElement(vNodeNew);
+				unloadComponents(parent.childNodes[vNodeNew.options.index + inew]);
 				parent.replaceChild(element, parent.childNodes[vNodeNew.options.index + inew]);
 				iold--;
 			} else if (vNodeOld.tag == "#comment" && vNodeOld.options.forType == "key" && vNodeNew.tag == "#comment" && vNodeNew.options.forType == "key") {
@@ -599,6 +603,7 @@ class XTemplateInstance {
 			} else if (vNodeOld.tag != vNodeNew.tag) {
 				//replace node
 				let element = this._createDomElement(vNodeNew);
+				unloadComponents(parent.childNodes[vNodeNew.options.index + inew]);
 				parent.replaceChild(element, parent.childNodes[vNodeNew.options.index + inew]);
 			} else if (vNodeOld.tag == "slot" && vNodeNew.tag == "slot") {
 				//slot
@@ -673,16 +678,21 @@ class XTemplateInstance {
 		//children
 		if (vNodeNew.options.format == 'node') {
 			if (Array.isArray(vNodeNew.children)) {
+				unloadChildComponents(element, vNodeNew.children);
 				element.replaceChildren();
 				for(let childElement of vNodeNew.children) {
 					element.appendChild(childElement);
 				}
 			} else if (vNodeNew.children) {
 				if (element.firstChild != vNodeNew.children) {
-					if (element.firstChild) element.replaceChildren();
+					if (element.firstChild) {
+					    unloadChildComponents(element, [vNodeNew.children]);
+					    element.replaceChildren();
+					}
 					element.appendChild(vNodeNew.children);
 				}
 			} else {
+				unloadChildComponents(element);
 				element.replaceChildren();
 			}
 		} else if (Array.isArray(vNodeNew.children)) {
@@ -690,6 +700,7 @@ class XTemplateInstance {
 		} else if (typeof (vNodeNew.children) == "string") {
 			if (vNodeOld.children != vNodeNew.children) {
 				if (vNodeNew.options.format == 'html') {
+					unloadChildComponents(element);
 					element.innerHTML = vNodeNew.children;
 				} else if (vNodeNew.options.format == 'json') {
 					element.textContent = JSON.stringify(vNodeNew.children);
@@ -723,6 +734,7 @@ class XTemplateInstance {
 		}
 		while (newLength < oldLength) {
 			let element = parent.childNodes[newStartIndex + 1 + newLength + parentChildrenDesp];
+			unloadComponents(element);
 			parent.removeChild(element);
 			oldLength--;
 		}        
@@ -747,7 +759,9 @@ class XTemplateInstance {
 		for (let i = oldKeys.length - 1; i >= 0; i--) {
 			let key = oldKeys[i];
 			if (newKeys.indexOf(key) == -1) {
-				parent.removeChild(parent.childNodes[newStartIndex + i + 1]);
+				const element = parent.childNodes[newStartIndex + i + 1];
+				unloadComponents(element);
+				parent.removeChild(element);
 				removeKeys.push(key);
 				oldKeys.splice(i, 1);
 			}
@@ -820,15 +834,17 @@ export class RenderEngineX {
 
 	// methods
 	mount() {
-		this._host.replaceChildren();
-	}
+        unloadChildComponents(this._host);
+        this._host.replaceChildren();
+    }
     render() {
 		this._xtemplateInstance.render(this._state);
 		this._renderCount++;
     }
 	unmount() {
-		this._host.replaceChildren();
-	}
+        unloadChildComponents(this._host);
+        this._host.replaceChildren();
+    }
 }
 export default function createRenderEngineFactoryX(template, context, templateRenderer) {
 	// retain template only as the first parameter of the common render-engine interface
