@@ -18,7 +18,7 @@ async function createLoader(testName, { cacheMode, type = "resource" } = {}) {
     const loaderUrl = new URL(`./fixtures/counting-loader.mjs?test=${testName}`, import.meta.url).href;
     const fixture = await import(loaderUrl);
     fixture.reset();
-    const definition = { url: "/{path}", loader: loaderUrl, cache: true };
+    const definition = { src: "/{path}", loader: loaderUrl, cache: true };
     if (cacheMode !== undefined) {
         definition.cacheMode = cacheMode;
     }

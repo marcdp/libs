@@ -477,7 +477,7 @@ function fillResolverRules(config) {
 
         resolver.icon ??= {};
         resolver.icon[moduleId] ??= {
-            url: `${moduleAssetsPath}/icons/${moduleId}.svg`,
+            src: `${moduleAssetsPath}/icons/${moduleId}.svg`,
             loader: "icon-svg",
             cache: true,
             moduleId,
@@ -485,7 +485,7 @@ function fillResolverRules(config) {
         };
 
         resolver.icon[`${moduleId}-{name}`] ??= {
-            url: `${moduleAssetsPath}/icons/${moduleId}-{name}.svg`,
+            src: `${moduleAssetsPath}/icons/${moduleId}-{name}.svg`,
             loader: "icon-svg",
             cache: true,
             moduleId,
@@ -494,7 +494,7 @@ function fillResolverRules(config) {
 
         resolver.layout ??= {};
         resolver.layout[`${moduleId}-layout-{name}`] ??= {
-            url: `${moduleAssetsPath}/layouts/${moduleId}-layout-{name}.js`,
+            src: `${moduleAssetsPath}/layouts/${moduleId}-layout-{name}.js`,
             loader: "component-js",
             cache: true,
             moduleId,
@@ -503,7 +503,7 @@ function fillResolverRules(config) {
 
         resolver.component ??= {};
         resolver.component[`${moduleId}-{name}`] ??= {
-            url: `${moduleAssetsPath}/components/${moduleId}-{name}.js`,
+            src: `${moduleAssetsPath}/components/${moduleId}-{name}.js`,
             loader: "component-js",
             cache: true,
             moduleId,
@@ -512,7 +512,7 @@ function fillResolverRules(config) {
 
         resolver.page ??= {};
         resolver.page[`${moduleAssetsPath}/{path}.js`] ??= {
-            url: `${moduleAssetsPath}/{path}.js`,
+            src: `${moduleAssetsPath}/{path}.js`,
             loader: "page-js",
             cache: true,
             cacheMode: "path",
@@ -521,7 +521,7 @@ function fillResolverRules(config) {
         };
 
         resolver.page[`${moduleAssetsPath}/{path}.html`] ??= {
-            url: `${moduleAssetsPath}/{path}.js`,
+            src: `${moduleAssetsPath}/{path}.js`,
             loader: "page-js",
             cache: true,
             cacheMode: "path",
@@ -530,7 +530,7 @@ function fillResolverRules(config) {
         };
 
         resolver.page[`${moduleAssetsPath}/{path}.md`] ??= {
-            url: `${moduleAssetsPath}/{path}.md`,
+            src: `${moduleAssetsPath}/{path}.md`,
             loader: "page-md",
             cache: true,
             cacheMode: "path",
@@ -540,7 +540,7 @@ function fillResolverRules(config) {
 
         resolver.module ??= {};
         resolver.module[`${moduleId}-{name}`] ??= {
-            url: `${moduleAssetsPath}/${moduleId}-{name}.js`,
+            src: `${moduleAssetsPath}/${moduleId}-{name}.js`,
             loader: "module-js",
             cache: true,
             moduleId,
@@ -548,7 +548,7 @@ function fillResolverRules(config) {
         };
 
         resolver.module[`${moduleAssetsPath}/{path}.js`] ??= {
-            url: `${moduleAssetsPath}/{path}.js`,
+            src: `${moduleAssetsPath}/{path}.js`,
             loader: "module-js",
             cache: true,
             moduleId,
@@ -557,7 +557,7 @@ function fillResolverRules(config) {
 
         resolver.style ??= {};
         resolver.style[`${moduleAssetsPath}/{path}.css`] ??= {
-            url: `${moduleAssetsPath}/{path}.css`,
+            src: `${moduleAssetsPath}/{path}.css`,
             loader: "style-css",
             cache: true,
             moduleId,
@@ -566,7 +566,7 @@ function fillResolverRules(config) {
 
         resolver.string ??= {};
         resolver.string[`${moduleAssetsPath}/{path}`] ??= {
-            url: `${moduleAssetsPath}/{path}`,
+            src: `${moduleAssetsPath}/{path}`,
             loader: "string",
             cache: true,
             moduleId,
@@ -598,7 +598,7 @@ function fillResolverRules(config) {
             contractDeclarations.set(id, { moduleId, path: file.path });
 
             resolver.contract[id] = {
-                url: `${moduleAssetsPathContracts}/${id}.json`,
+                src: `${moduleAssetsPathContracts}/${id}.json`,
                 loader: "object-json",
                 cache: true,
                 moduleId,
@@ -614,8 +614,8 @@ function fillResolverRules(config) {
 async function initializeXShell(config, loadXShellModule = url => import(url)) {
     console.log("bootstrap: loading xshell ...");
 
-    const authoredUrl = config.xshell.resolver.module.xshell.url;
-    const xshellUrl = new URL(authoredUrl.startsWith("/") ? authoredUrl.substring(1) : authoredUrl, appBaseUrl).href;
+    const authoredSrc = config.xshell.resolver.module.xshell.src;
+    const xshellUrl = new URL(authoredSrc.startsWith("/") ? authoredSrc.substring(1) : authoredSrc, appBaseUrl).href;
     const xshell = (await loadXShellModule(xshellUrl)).default;
 
     await xshell.validateConfig(config);

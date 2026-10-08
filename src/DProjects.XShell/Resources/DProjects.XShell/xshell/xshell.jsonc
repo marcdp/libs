@@ -41,19 +41,19 @@
         // resolver
         "resolver": {
             "component": {
-                "x-page": {"url": "/x-page.js", "loader": "module-js", "cache": true}
+                "x-page": {"src": "/x-page.js", "loader": "module-js", "cache": true}
             },
             "module": {
-                "xshell": {"url": "/xshell.js", "loader": "module-js", "cache": true}
+                "xshell": {"src": "/xshell.js", "loader": "module-js", "cache": true}
             },
             "render-engine": {
-                "{name}": {"url": "/render-engines/{name}.js","loader": "module-js", "cache": true}
+                "{name}": {"src": "/render-engines/{name}.js","loader": "module-js", "cache": true}
             },
             "state-engine": {
-                "{name}": {"url": "/state-engines/{name}.js","loader": "module-js", "cache": true}
+                "{name}": {"src": "/state-engines/{name}.js","loader": "module-js", "cache": true}
             },
             "schema": {
-                "{name}.json": {"url": "/schemas/{name}.json","loader": "object-json", "cache": true}
+                "{name}.json": {"src": "/schemas/{name}.json","loader": "object-json", "cache": true}
             }
         },
 

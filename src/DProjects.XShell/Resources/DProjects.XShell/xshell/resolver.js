@@ -29,7 +29,7 @@ export default class Resolver {
         // expose rule metadata without sharing mutable definitions or regular expressions
         return Object.freeze(this._definitions.map(definition => Object.freeze({
             resource: definition.resource,
-            url: definition.url,
+            src: definition.src,
             loader: definition.loader,
             cache: definition.cache,
             cacheMode: definition.cacheMode
@@ -54,7 +54,7 @@ export default class Resolver {
         //add definition
         let definition = {
             resource,
-            url: value.url,
+            src: value.src,
             regexp: new RegExp(regexp), 
             ...value
         };
@@ -76,8 +76,9 @@ export default class Resolver {
         for(let i = 0; i < this._definitions.length ; i++) {
             const definition = this._definitions[i];
             if (definition.resource === resource) {
-                let url = new URL(definition.url.replace(/^\/+/, ""), this._appBaseUrl).href;
-                let path = definition.url;
+                const isAbsoluteUrl = /^[A-Za-z][A-Za-z0-9+.-]*:/.test(definition.src);
+                let url = isAbsoluteUrl ? definition.src : new URL(definition.src.replace(/^\/+/, ""), this._appBaseUrl).href;
+                let path = isAbsoluteUrl ? null : definition.src;
                 return { definition, url, path };
             }
         }
@@ -85,11 +86,12 @@ export default class Resolver {
             const definition = this._definitions[i];
             const match = resource.match(definition.regexp);
             if (match) {
-                let url = new URL(definition.url.replace(/^\/+/, ""), this._appBaseUrl).href.replace("%7B","{").replace("%7D","}");
-                let path = definition.url;
+                const isAbsoluteUrl = /^[A-Za-z][A-Za-z0-9+.-]*:/.test(definition.src);
+                let url = isAbsoluteUrl ? definition.src : new URL(definition.src.replace(/^\/+/, ""), this._appBaseUrl).href.replace("%7B","{").replace("%7D","}");
+                let path = isAbsoluteUrl ? null : definition.src;
                 for(var key in match.groups) {
                     url = url.replaceAll("{" + key + "}", match.groups[key]);
-                    path = path.replaceAll("{" + key + "}", match.groups[key]);
+                    if (path !== null) path = path.replaceAll("{" + key + "}", match.groups[key]);
                 }                
                 return { definition, url, path };
             }

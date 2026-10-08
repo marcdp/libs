@@ -341,9 +341,9 @@
     },
     "resolverEntry": {
       "type": "object",
-      "required": ["url"],
+      "required": ["src"],
       "properties": {
-        "url": {"type": "string", "description": "Concrete resource location or template. Generated resolver entries currently use application-root-relative virtual Paths."},
+        "src": {"type": "string", "description": "Resource source locator or template. May be an application Path or an absolute URL."},
         "loader": {"type": "string", "description": "Loader used to load the resolved resource."},
         "cache": {"type": "boolean", "description": "Whether the resolved resource may be cached."},
         "cacheMode": {"type": "string", "enum": ["full", "path"], "default": "full", "description": "Cache identity strategy. Full includes the query; path excludes it."},

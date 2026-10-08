@@ -204,7 +204,7 @@ test("bootstrap preserves resolver placeholders in normalized XShell URL templat
 
     const config = plain(await api.loadConfig());
     const resolver = new Resolver({ config });
-    assert.equal(config.xshell.resolver["state-engine"]["{name}"].url, "/_assets/xshell/state-engines/{name}.js");
+    assert.equal(config.xshell.resolver["state-engine"]["{name}"].src, "/_assets/xshell/state-engines/{name}.js");
     assert.equal(resolver.resolve("state-engine:proxy").url, "https://example.test/app/_assets/xshell/state-engines/proxy.js");
     assert.equal(resolver.resolve("render-engine:x").url, "https://example.test/app/_assets/xshell/render-engines/x.js");
     assert.equal(resolver.resolve("schema:config.json").url, "https://example.test/app/_assets/xshell/schemas/config.json");
@@ -291,7 +291,7 @@ test("resolver, service, UI, and Area resources normalize within their owning st
     const root = {
         modules: { x: definition("x") },
         xshell: {
-            resolver: { anyType: { anyRule: { url: "/resources/{name}.js", loader: "/literal-loader" } } },
+            resolver: { anyType: { anyRule: { src: "/resources/{name}.js", loader: "/literal-loader" } } },
             services: { foo: { implementation: "/services/foo.js", contract: "/literal-contract" }, bar: { implementation: "./services/bar.js" } },
             ui: { component: { lazy: "x-lazy", error: "/components/error.js", unrelated: "/literal" }, layout: { main: "x-layout-main" },
                 dialog: { confirm: "url:./dialog.js" }, unrelated: { label: "/literal" } },
@@ -300,7 +300,7 @@ test("resolver, service, UI, and Area resources normalize within their owning st
     };
     const xshell = plain((await discover(root)).rootNode.config.xshell);
 
-    assert.equal(xshell.resolver.anyType.anyRule.url, "/_assets/x/resources/{name}.js");
+    assert.equal(xshell.resolver.anyType.anyRule.src, "/_assets/x/resources/{name}.js");
     assert.equal(xshell.resolver.anyType.anyRule.loader, "/literal-loader");
     assert.equal(xshell.services.foo.implementation, "/_assets/x/services/foo.js");
     assert.equal(xshell.services.bar.implementation, "/_assets/x/services/bar.js");
@@ -427,7 +427,7 @@ test("fillResolverRules discovers only JSON files inside the contracts directory
 
     assert.deepEqual(plain(config.xshell.resolver.contract), {
         toast: {
-            url: "/_assets/x/contracts/toast.json",
+            src: "/_assets/x/contracts/toast.json",
             loader: "object-json",
             cache: true,
             moduleId: "x",
@@ -460,7 +460,7 @@ test("effective inventories exist before validation and configuration is frozen 
         xshell: {
             assetsPath: "/_assets/xshell",
             files: [{ path: "/_assets/xshell/xshell.js", size: 2, hash: "xshell" }],
-            resolver: { module: { xshell: { url: "/_assets/xshell/xshell.js" } } }
+            resolver: { module: { xshell: { src: "/_assets/xshell/xshell.js" } } }
         }
     };
     const runtime = {
@@ -490,7 +490,7 @@ test("effective inventories exist before validation and configuration is frozen 
 });
 
 test("initializeXShell imports an absolute XShell module URL unchanged", async () => {
-    const config = { xshell: { resolver: { module: { xshell: { url: "https://cdn.example.test/xshell.js" } } } } };
+    const config = { xshell: { resolver: { module: { xshell: { src: "https://cdn.example.test/xshell.js" } } } } };
     let importedUrl;
     await api.initializeXShell(config, async url => {
         importedUrl = url;

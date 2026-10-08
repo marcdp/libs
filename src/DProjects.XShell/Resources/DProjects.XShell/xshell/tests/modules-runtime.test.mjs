@@ -233,7 +233,7 @@ test("module styles use the Loader once per inventoried stylesheet and are adopt
             ui: { component: { lazy: null } },
             resolver: { style: Object.fromEntries(["first", "second"].map(id => [
                 `/_assets/${id}/{path}.css`,
-                { url: `/_assets/${id}/{path}.css`, loader: styleLoaderUrl, cache: true, moduleId: id, modulePath: `/_assets/${id}` }
+                { src: `/_assets/${id}/{path}.css`, loader: styleLoaderUrl, cache: true, moduleId: id, modulePath: `/_assets/${id}` }
             ])) }
         },
         modules: {
