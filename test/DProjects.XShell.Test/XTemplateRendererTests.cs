@@ -290,6 +290,74 @@ namespace DProjects.XShell.Test {
             }
         }
 
+        [Fact]
+        public void AllowsStyleAndScriptElementsOnlyWhenTheirIndependentOptionsAreEnabled() {
+            var styles = new XTemplateRendererOptions { AllowStyleElements = true };
+            var scripts = new XTemplateRendererOptions { AllowScriptElements = true };
+            var both = new XTemplateRendererOptions { AllowStyleElements = true, AllowScriptElements = true };
+
+            Assert.Equal("<style>.x{}</style>", Render("<style>.x{}</style>", options: styles));
+            Assert.Throws<XTemplateException>(() => Render("<script>alert(1)</script>", options: styles));
+            Assert.Equal("<script>alert(1)</script>", Render("<script>alert(1)</script>", options: scripts));
+            Assert.Throws<XTemplateException>(() => Render("<style>.x{}</style>", options: scripts));
+            Assert.Equal("<style>.x{}</style><script>alert(1)</script>", Render("<style>.x{}</style><script>alert(1)</script>", options: both));
+        }
+
+        [Fact]
+        public void KeepsStyleElementAndStyleAttributePoliciesIndependent() {
+            var elements = new XTemplateRendererOptions { AllowStyleElements = true };
+            var attributes = new XTemplateRendererOptions { AllowStyleAttributes = true };
+
+            Assert.Equal("<style>.x{}</style>", Render("<style>.x{}</style>", options: elements));
+            Assert.Throws<XTemplateException>(() => Render("<div style=\"color:red\"></div>", options: elements));
+            Assert.Equal("<div style=\"color:red\"></div>", Render("<div style=\"color:red\"></div>", options: attributes));
+            Assert.Throws<XTemplateException>(() => Render("<style>.x{}</style>", options: attributes));
+            Assert.Throws<XTemplateException>(() => Render("<style style=\"display:none\"></style>", options: elements));
+        }
+
+        [Fact]
+        public void RendersEnabledStyleAndScriptBodiesAsLiteralRawText() {
+            var options = new XTemplateRendererOptions { AllowStyleElements = true, AllowScriptElements = true };
+            var script = "<script>\nif (a < b) {\n    const value = \"{{ state.value }}\";\n}\n</script>";
+            var style = "<style>\n.x::before { content:\"{{ state.value }} <div>\"; }\n</style>";
+
+            Assert.Equal(script, Render(script, new { value = "changed" }, options: options));
+            Assert.Equal(style, Render(style, new { value = "changed" }, options: options));
+        }
+
+        [Fact]
+        public void AppliesStructuralDirectivesToEnabledRawTextElements() {
+            var options = new XTemplateRendererOptions { AllowStyleElements = true, AllowScriptElements = true };
+
+            Assert.Equal("<style>.x{}</style>", Render("<style x-if=\"state.enabled\">.x{}</style>", new { enabled = true }, options: options));
+            Assert.Equal(string.Empty, Render("<style x-if=\"state.enabled\">.x{}</style>", new { enabled = false }, options: options));
+            Assert.Equal("<script>const value = '{{ state.value }}';</script>", Render("<script x-if=\"state.enabled\">const value = '{{ state.value }}';</script>", new { enabled = true, value = "changed" }, options: options));
+            Assert.Equal(string.Empty, Render("<script x-if=\"state.enabled\">alert(1)</script>", new { enabled = false }, options: options));
+        }
+
+        [Fact]
+        public void AppliesElementPolicyInsideXPreAndMatchesTagsCaseInsensitively() {
+            var styles = new XTemplateRendererOptions { AllowStyleElements = true };
+            var scripts = new XTemplateRendererOptions { AllowScriptElements = true };
+
+            Assert.Throws<XTemplateException>(() => Render("<div x-pre><style>.x{}</style></div>"));
+            Assert.Throws<XTemplateException>(() => Render("<div x-pre><script>alert(1)</script></div>"));
+            Assert.Equal("<div><style>.x{}</style></div>", Render("<div x-pre><style>.x{}</style></div>", options: styles));
+            Assert.Equal("<div><script>alert(1)</script></div>", Render("<div x-pre><script>alert(1)</script></div>", options: scripts));
+            Assert.Equal("<style>.x{}</style>", Render("<STYLE>.x{}</STYLE>", options: styles));
+            Assert.Equal("<script>alert(1)</script>", Render("<SCRIPT>alert(1)</SCRIPT>", options: scripts));
+        }
+
+        [Theory]
+        [InlineData("<style></style>", 0)]
+        [InlineData("<script></script>", 0)]
+        [InlineData("<div><style></style></div>", 5)]
+        public void RejectsDisabledElementsAtTheirSourceOffset(string template, int offset) {
+            var exception = Assert.Throws<XTemplateException>(() => Render(template));
+
+            Assert.Equal(offset, exception.Offset);
+        }
+
 
         [Fact]
         public void RendersOnlyTheSelectedConditionalBranch() {
@@ -412,7 +480,7 @@ namespace DProjects.XShell.Test {
         }
 
         // methods (private)
-        private static string Render(string template, object? state = null, string? locale = null) => new XTemplateRenderer(new[] { new XTemplateReflectionObjectAdapter() }, locale).Render(template, state ?? new { });
+        private static string Render(string template, object? state = null, string? locale = null, XTemplateRendererOptions? options = null) => new XTemplateRenderer(new[] { new XTemplateReflectionObjectAdapter() }, locale, options).Render(template, state ?? new { });
         private static string RenderAllowingStyles(string template, object? state = null) {
             return new XTemplateRenderer(new[] { new XTemplateReflectionObjectAdapter() },
                 options: new XTemplateRendererOptions { AllowStyleAttributes = true }).Render(template, state ?? new { });

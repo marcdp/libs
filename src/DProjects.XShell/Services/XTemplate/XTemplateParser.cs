@@ -2,6 +2,13 @@ using System.Net;
 
 namespace DProjects.XShell.Services.XTemplate {
 
+    internal sealed record XTemplateParserOptions {
+
+        // props
+        public bool AllowStyleElements { get; init; } = false;
+        public bool AllowScriptElements { get; init; } = false;
+    }
+
     internal sealed class XTemplateParser {
 
         // consts
@@ -9,11 +16,13 @@ namespace DProjects.XShell.Services.XTemplate {
 
         // vars
         private readonly string _source;
+        private readonly XTemplateParserOptions _options;
         private int _position;
 
         // ctor
-        public XTemplateParser(string source) {
+        public XTemplateParser(string source, XTemplateParserOptions? options = null) {
             _source = source ?? throw new ArgumentNullException(nameof(source));
+            _options = options ?? new XTemplateParserOptions();
         }
 
         // methods
@@ -54,7 +63,7 @@ namespace DProjects.XShell.Services.XTemplate {
         private void ParseElement(Stack<MutableElement> stack) {
             var offset = _position++;
             var name = ReadName().ToLowerInvariant();
-            if (name is "script" or "style") throw Error($"Element <{name}> is not allowed in an XTemplate", offset);
+            EnsureElementAllowed(name, offset);
             var attributes = new List<RawAttribute>();
             var selfClosing = false;
             while (_position < _source.Length) {
@@ -75,7 +84,39 @@ namespace DProjects.XShell.Services.XTemplate {
             var element = new MutableElement(name, offset, attributes) { ContentStart = _position };
             stack.Peek().Children.Add(element);
             if (selfClosing || VoidElements.Contains(name)) return;
+            if (name is "script" or "style") {
+                ParseRawTextElement(element, name);
+                return;
+            }
             stack.Push(element);
+        }
+        private void EnsureElementAllowed(string name, int offset) {
+            if (name == "style" && !_options.AllowStyleElements) throw Error("Element <style> is not allowed in an XTemplate.", offset);
+            if (name == "script" && !_options.AllowScriptElements) throw Error("Element <script> is not allowed in an XTemplate.", offset);
+        }
+        private void ParseRawTextElement(MutableElement element, string name) {
+            var closingTagOffset = FindRawTextClosingTag(name, _position);
+            if (closingTagOffset < 0) throw Error($"Element <{name}> is not closed", element.Offset);
+            element.Children.Add(new XTemplateRawTextNode(_source[_position..closingTagOffset], _position));
+            element.ContentEnd = closingTagOffset;
+            _position = closingTagOffset + 2 + name.Length;
+            SkipWhitespace();
+            _position++;
+        }
+        private int FindRawTextClosingTag(string name, int start) {
+            var position = start;
+            while (position < _source.Length) {
+                position = _source.IndexOf("</", position, StringComparison.Ordinal);
+                if (position < 0) return -1;
+                var nameStart = position + 2;
+                if (nameStart + name.Length <= _source.Length && _source.AsSpan(nameStart, name.Length).Equals(name, StringComparison.OrdinalIgnoreCase)) {
+                    var end = nameStart + name.Length;
+                    while (end < _source.Length && char.IsWhiteSpace(_source[end])) end++;
+                    if (end < _source.Length && _source[end] == '>') return position;
+                }
+                position += 2;
+            }
+            return -1;
         }
         private void ParseText(MutableElement parent) {
             var offset = _position;

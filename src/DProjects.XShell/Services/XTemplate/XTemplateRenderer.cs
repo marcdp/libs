@@ -14,6 +14,7 @@ namespace DProjects.XShell.Services.XTemplate {
     }
     internal abstract record XTemplateNode(int Offset);
     internal sealed record XTemplateTextNode(string Text, int Offset) : XTemplateNode(Offset);
+    internal sealed record XTemplateRawTextNode(string Text, int Offset) : XTemplateNode(Offset);
     internal sealed record XTemplateRawHtmlNode(string Html, bool ContainsStyleAttributes, int Offset) : XTemplateNode(Offset);
     internal sealed record XTemplateInterpolationNode(XTemplateExpression Expression, int Offset) : XTemplateNode(Offset);
     internal sealed record XTemplateCommentNode(string Text, int Offset) : XTemplateNode(Offset);
@@ -42,14 +43,8 @@ namespace DProjects.XShell.Services.XTemplate {
         public string? GetValue(string name) => _items.FirstOrDefault(item => string.Equals(item.Key, name, StringComparison.OrdinalIgnoreCase)).Value;
     }
     internal sealed class OrderedStyles {
-
-        // vars
         private readonly List<XTemplateStyleDeclaration> mItems = new();
-
-        // props
         public IReadOnlyList<XTemplateStyleDeclaration> Items => mItems;
-
-        // methods
         public void Set(string name, string value, string priority) {
             var index = mItems.FindIndex(item => string.Equals(item.Name, name, StringComparison.Ordinal));
             var declaration = new XTemplateStyleDeclaration(name, value, priority);
@@ -59,7 +54,10 @@ namespace DProjects.XShell.Services.XTemplate {
     }
     public sealed class XTemplateRendererOptions {
         public bool AllowStyleAttributes { get; init; } = false;
+        public bool AllowStyleElements { get; init; } = false;
+        public bool AllowScriptElements { get; init; } = false;
     }
+
 
     // class
     public sealed class XTemplateRenderer {
@@ -82,7 +80,10 @@ namespace DProjects.XShell.Services.XTemplate {
 
         // methods
         public string Render(string template, object? state) {
-            var root = new XTemplateParser(template.Trim()).Parse();
+            var root = new XTemplateParser(template.Trim(), new XTemplateParserOptions {
+                AllowStyleElements = mOptions.AllowStyleElements,
+                AllowScriptElements = mOptions.AllowScriptElements
+            }).Parse();
             var context = new XTemplateExpressionContext(new Dictionary<string, object?> { ["state"] = state }, mObjectAccess.Adapters, mLocale);
             var result = new StringBuilder();
             RenderChildren(root.Children, context, result, null);
@@ -135,6 +136,7 @@ namespace DProjects.XShell.Services.XTemplate {
         private void RenderNode(XTemplateNode node, XTemplateExpressionContext context, StringBuilder result, XTemplateSelectModel? selectModel) {
             switch (node) {
                 case XTemplateTextNode text: result.Append(HtmlText(text.Text)); break;
+                case XTemplateRawTextNode rawText: result.Append(rawText.Text); break;
                 case XTemplateInterpolationNode interpolation: result.Append(HtmlText(ScalarString(XTemplateExpressions.Evaluate(interpolation.Expression, context), interpolation.Offset))); break;
                 case XTemplateCommentNode comment: result.Append("<!--").Append(comment.Text).Append("-->"); break;
                 case XTemplateRawHtmlNode raw:

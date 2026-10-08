@@ -62,6 +62,18 @@ which the renderer applies through CSSOM without materializing an HTML style att
 HTML renderer rejects style attributes by default, including in x-pre raw content, and can serialize them only when
 `XTemplateRendererOptions.AllowStyleAttributes` is enabled.
 
+## Server-only style and script elements
+
+The browser `XTemplateCompiler` always rejects `<style>` and `<script>` elements. This rule has no compiler option and applies even inside `x-pre`.
+The server `XTemplateRenderer` also rejects both by default, but an embedding application may independently opt in with
+`XTemplateRendererOptions.AllowStyleElements` and `XTemplateRendererOptions.AllowScriptElements`. These options do not enable
+`style=""` attributes; those remain independently controlled by `AllowStyleAttributes`.
+
+When enabled for server rendering, `<style>` and `<script>` element bodies are raw text. Their enclosing elements can use structural directives such
+as `x-if`, but their bodies do not parse HTML, directives, or `{{ expression }}` interpolation. `x-pre` does not bypass the element or attribute
+policies. Callers that enable style or script output are responsible for using an appropriate CSP and for the security implications of their output;
+these options are not a sandbox or a security boundary.
+
 Named dynamic styles use `x-style:<css-property>="expression"`. The property name remains CSS syntax (`margin-top` is not camel-cased, and `--accent`
 is a custom property), values use scalar conversion, and `null` omits the declaration. Browser output remains structured `VNode.styles`/CSSOM; server
 serialization follows `XTemplateRendererOptions.AllowStyleAttributes`. Later literal, whole-object, or named declarations win by source order.

@@ -137,6 +137,13 @@ bound, spread, dynamic, or x-pre raw content source because serializing that val
 style-attribute serialization through `XTemplateRendererOptions.AllowStyleAttributes`; the caller is then responsible for deploying a CSP compatible
 with emitted inline style attributes. The option does not affect `<style>` elements or the browser's structured CSSOM path.
 
+The browser `XTemplateCompiler` unconditionally rejects `<style>` and `<script>` elements, including in `x-pre`; it has no opt-in switch. The server
+`XTemplateRenderer` independently rejects both by default, and may serialize them only through `AllowStyleElements` or `AllowScriptElements`.
+`AllowStyleAttributes` remains a separate option. Enabled server-side `<style>` and `<script>` bodies are opaque raw text, so they do not parse child
+markup, XTemplate directives, or interpolation. Their elements still participate in structural directives such as `x-if`. `x-pre` does not bypass these
+output policies. Applications enabling these outputs must deploy a suitable CSP and remain responsible for the security implications; renderer options
+are not a sandbox or a security boundary.
+
 Named `x-style:<css-property>` bindings join the same ordered structured-style map as literal declarations. The compiler emits a single-evaluation
 `utils.expr.style(name, value)` helper call; the helper scalar-converts non-null values and returns an empty declaration map for `null`. The browser
 therefore retains the structured `VNode.styles` → CSSOM path, while the server parser stores the property-level expression and merges effective
