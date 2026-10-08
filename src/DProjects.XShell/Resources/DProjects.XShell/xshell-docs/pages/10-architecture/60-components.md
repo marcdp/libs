@@ -498,8 +498,11 @@ The default export provides the runtime implementation.
 
 ## Markdown component inputs
 
-`x-markdown.value` accepts raw Markdown text. `x-markdown.src` accepts a normal browser URL and uses `fetch`, without routing the document through
-the Loader or requiring a `string:` prefix. Both inputs use the same renderer, backed by `x/utils/markdown.js` and its vendored parser.
+`x-markdown` is a trusted-content renderer and does not sanitize generated HTML. `x-markdown.value` accepts trusted raw Markdown text, and
+`x-markdown.src` accepts a normal browser URL to trusted Markdown content and uses `fetch`, without routing the document through the Loader or
+requiring a `string:` prefix. Both inputs use the same renderer, backed by `x/utils/markdown.js` and its vendored parser. Applications must
+sanitize untrusted or user-controlled Markdown according to their own policy before rendering it, or use a different Markdown Component with an
+appropriate sanitization policy. CSP is defense in depth and does not replace sanitizing untrusted content.
 
 ```html
 <x-markdown src="/_assets/xshell-docs/pages/10-architecture/100-services.md"></x-markdown>
@@ -512,8 +515,9 @@ root-relative, fully qualified, and protocol URLs. Relative query strings and fr
 query, and fragment. Without `src`, direct `value` content retains its authored URLs.
 
 After conversion, the component discovers custom elements, including nested template content, and loads their `component:<name>` dependencies
-before committing the DOM. Raw HTML policy is unchanged. HTTP failures render the response status and source URL as text through the same Markdown
-path. A newer input supersedes an older fetch or pending render. Changing `src` to a document with identical text still updates its relative URLs.
+before committing the DOM. Raw HTML and custom XShell elements are intentionally supported and may become live DOM. HTTP failures render the
+response status and source URL as text through the same Markdown path. A newer input supersedes an older fetch or pending render. Changing `src`
+to a document with identical text still updates its relative URLs.
 
 Ordinary anchors remain anchors. Inside a Page, `x-page` performs navigation interception; `x-markdown` does not call Navigation. Markdown links
 retain their `.md` URLs and resolve through the generic [Markdown Page adapter](70-pages.md#markdown-pages).

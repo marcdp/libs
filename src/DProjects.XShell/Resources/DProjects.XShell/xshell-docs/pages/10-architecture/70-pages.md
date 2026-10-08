@@ -38,14 +38,15 @@ page:/_assets/xshell-docs/pages/10-architecture/100-services.md
     → fetch(src) → Markdown text → rendered DOM
 ```
 
-`page-md` is a Page adapter, not a Markdown renderer. It reads `xshell.ui.component.markdown`, loads that Component through the normal Loader, and
-mounts it with the resolved document URL. Unmount detaches the component, and a later mount creates it again. Page load/unload and navigation metadata follow the
-normal lifecycle. Labels come from menu/breadcrumb/navigation metadata, not from parsing a Markdown heading.
+`page-md` is a Page adapter, not a Markdown renderer. It delegates rendering to `xshell.ui.component.markdown`, loading that Component through the
+normal Loader and mounting it with the resolved document URL. The configured Markdown Component owns the rendering and security policy. Unmount
+detaches the component, and a later mount creates it again. Page load/unload and navigation metadata follow the normal lifecycle. Labels come
+from menu/breadcrumb/navigation metadata, not from parsing a Markdown heading.
 
-The current `x` module selects `x-markdown` by default. That Component owns loading, Markdown conversion, relative URL normalization,
-embedded-component loading, and its rendered content. Its `src` is a
-normal browser URL, without a logical resource prefix. `/_assets/...` works because the Service Worker virtualizes that browser URL. Each Page
-instance retains its navigation query while the cached Page class uses the resolved Markdown resource URL.
+The current `x` module selects `x-markdown` by default. This trusted-content-only Component performs no sanitization and owns loading, Markdown
+conversion, relative URL normalization, embedded-component loading, and its rendered content. A replacement Markdown Component may define a
+different policy. Its `src` is a normal browser URL, without a logical resource prefix. `/_assets/...` works because the Service Worker virtualizes
+that browser URL. Each Page instance retains its navigation query while the cached Page class uses the resolved Markdown resource URL.
 
 Relative links and media resolve against `src`. For the example above, `30-modules.md` resolves to
 `/_assets/xshell-docs/pages/10-architecture/30-modules.md`. Query strings and fragments are retained. Links to other Markdown documents stay normal

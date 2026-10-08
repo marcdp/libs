@@ -2,11 +2,11 @@ import parser from "../utils/markdown.js";
 
 // contract
 export const contract = {
-    description: "Renders Markdown text or Markdown loaded from a source URL.",
+    description: "Renders trusted Markdown text or trusted Markdown loaded from a source URL. Generated HTML is not sanitized.",
     events: {},
     properties: {
-        value: {type:"string", default:"", attribute:true, state:true, description:"Markdown content."},
-        src:   {type:"string", default:"", attribute:true, state:true, description:"Normal browser URL to fetch Markdown from; relative links and resources use this base."}
+        value: {type:"string", default:"", attribute:true, state:true, description:"Trusted Markdown content. Generated HTML is not sanitized."},
+        src:   {type:"string", default:"", attribute:true, state:true, description:"Normal browser URL to trusted Markdown content; relative links and resources use this base."}
     },
     methods: {},
     slots: {
