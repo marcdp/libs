@@ -25,7 +25,7 @@ export function findObjectsPath(obj, keyToFind, valueToFind) {
 
 // export deepFreeze
 export function deepFreeze(value) {
-    if (value === null || typeof value !== "object" || Object.isFrozen(value)) {
+    if (value === null || typeof value !== "object") {
         return value;
     }
 

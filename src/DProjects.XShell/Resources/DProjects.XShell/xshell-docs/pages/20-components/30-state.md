@@ -39,7 +39,8 @@ There is no engine fallback under `xshell.ui`.
 | `proxy` | Returns a JSON-cloned skeleton behind a Proxy; observes top-level assignment and notifies the loader. |
 
 JSON cloning does not preserve functions, prototypes, Date instances, or undefined members and rejects cycles.
-Non-state-backed Component properties are stored separately; their object defaults are not cloned by the state engine.
+Non-state-backed Component properties are stored separately; structured array and plain-object defaults are instantiated independently by the Component loader,
+not cloned by the state engine.
 
 ## Proxy changes
 

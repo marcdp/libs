@@ -162,6 +162,14 @@ export async function createComponentClassFromJsDefinition(src, context, impleme
     }
     // state skeleton
     const stateSkeleton = createStateSkeleton(src, implementation, contract);
+    // non-state-backed property defaults
+    const serializedPropertyDefaults = {};
+    for (const [propName, property] of Object.entries(contract.properties)) {
+        const defaultValue = property.default;
+        if (property.state !== true && defaultValue !== null && typeof(defaultValue) === "object" && (Array.isArray(defaultValue) || isPlainObject(defaultValue))) {
+            serializedPropertyDefaults[propName] = JSON.stringify(defaultValue);
+        }
+    }
     const propertyAttributeNames = [];
     const reflectedPropertyNames = [];
     const stateMapAttributes = [];
@@ -248,7 +256,7 @@ export async function createComponentClassFromJsDefinition(src, context, impleme
             this._properties = {};
             for (const [propName, property] of Object.entries(contract.properties)) {
                 if (property.state !== true) {
-                    this._properties[propName] = property.default;
+                    this._properties[propName] = Object.hasOwn(serializedPropertyDefaults, propName) ? JSON.parse(serializedPropertyDefaults[propName]) : property.default;
                 }
             }
             // services provider

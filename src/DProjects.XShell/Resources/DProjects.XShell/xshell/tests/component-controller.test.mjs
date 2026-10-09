@@ -143,3 +143,33 @@ test("slot validation uses render-engine metadata, ignores raw markup and accept
         templateRenderer: { slots: [""] }
     }), contract()), /slot '\(default\)'/);
 });
+
+test("non-state-backed structured property defaults are instance-owned", async () => {
+    const Component = await createComponentClassFromJsDefinition("properties.js", context, definition("x-structured-properties-test"), {
+        description: "Structured properties test.",
+        properties: {
+            settings: { type: "object", state: false, default: { enabled: true, nested: { count: 1 } } },
+            items: { type: "array", state: false, default: [{ id: 1 }] },
+            label: { type: "string", state: false, default: "default" }
+        },
+        events: {},
+        slots: {},
+        methods: {}
+    });
+    const first = new Component();
+    const second = new Component();
+
+    assert.notEqual(first.settings, second.settings);
+    assert.notEqual(first.settings.nested, second.settings.nested);
+    assert.notEqual(first.items, second.items);
+    assert.notEqual(first.items[0], second.items[0]);
+    assert.equal(first.label, "default");
+
+    first.settings.nested.count = 99;
+    first.items[0].id = 2;
+
+    assert.equal(second.settings.nested.count, 1);
+    assert.equal(second.items[0].id, 1);
+    assert.equal(Component.contract.properties.settings.default.nested.count, 1);
+    assert.equal(Component.contract.properties.items.default[0].id, 1);
+});
