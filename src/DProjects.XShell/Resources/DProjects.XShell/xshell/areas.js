@@ -1,4 +1,6 @@
 
+import { normalizeAreaPrefix } from "./utils/area.js";
+
 // class
 export default class Areas {
 
@@ -19,7 +21,7 @@ export default class Areas {
         this._assetsBasePath = config.xshell.assetsBasePath;
         const areasConfig = config.xshell.areas || {};
         const definitions = areasConfig.definitions || {};
-        const defaultAreaId = areasConfig.default || null;
+        const defaultAreaId = areasConfig.default;
 
         // create navigation contexts without accepting a configured home
         const areas = [];
@@ -30,7 +32,7 @@ export default class Areas {
                 id: areaId,
                 label: areaConfig.label || areaId,
                 icon: areaConfig.icon || null,
-                prefix: this._normalizePrefix(areaConfig.prefix),
+                prefix: normalizeAreaPrefix(areaConfig.prefix),
                 modules: Object.freeze([...(areaConfig.modules || [])]),
                 order: areaConfig.order || 0,
                 default: areaId === defaultAreaId,
@@ -39,7 +41,6 @@ export default class Areas {
                 home: null
             });
         }
-        this._validateAreas(areas, defaultAreaId);
         areas.sort((a, b) => {
             if (a.default !== b.default) return a.default ? -1 : 1;
             if (a.order !== b.order) return a.order - b.order;
@@ -324,10 +325,6 @@ export default class Areas {
         const suffixIndexes = [queryIndex, hashIndex].filter(index => index !== -1);
         return suffixIndexes.length ? href.substring(0, Math.min(...suffixIndexes)) : href;
     }
-    _normalizePrefix(prefix) {
-        if (!prefix || prefix === "/") return "";
-        return "/" + prefix.replace(/^\/+|\/+$/g, "");
-    }
     _setCurrentArea(areaId) {
         if (this._currentAreaId === areaId) return;
         const area = this.getArea(areaId);
@@ -338,14 +335,6 @@ export default class Areas {
     _matchesPrefix(href, prefix) {
         if (prefix === "") return href.startsWith("/");
         return href === prefix || href.startsWith(prefix + "/") || href.startsWith(prefix + "?");
-    }
-    _validateAreas(areas, defaultAreaId) {
-        if (defaultAreaId && !areas.some(area => area.id === defaultAreaId)) throw new Error(`Default area '${defaultAreaId}' is not defined`);
-        const prefixes = new Set();
-        for (const area of areas) {
-            if (prefixes.has(area.prefix)) throw new Error(`Duplicate area prefix '${area.prefix}'`);
-            prefixes.add(area.prefix);
-        }
     }
     _findMenuitemPath(items, predicate, parents = []) {
         for (const item of items || []) {

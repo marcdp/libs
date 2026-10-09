@@ -3,6 +3,7 @@ import test from "node:test";
 
 import ConfigSchema from "../schemas/config.schema.json" with { type: "json" };
 import { Validator } from "../vendor/json-schema/4.1.1/json-schema.js";
+import Areas from "../areas.js";
 import validateConfig from "../validation/config.js";
 
 const validator = new Validator(ConfigSchema, "2020-12");
@@ -37,7 +38,6 @@ function configuration(module) {
         },
         modules: { test: module },
         xshell: {
-            build: "test",
             debug: false,
             version: "1.0.0",
             environment: "test",
@@ -90,6 +90,52 @@ test("effective config rejects unknown Area modules and accepts canonical ids", 
 
     config.xshell.areas.definitions.admin.modules = ["test"];
     await assert.doesNotReject(validateConfig("test", config));
+});
+
+test("effective config requires a defined Area when a default is configured", async () => {
+    const config = configuration(moduleDefinition());
+    config.xshell.areas.default = "missing";
+    await assert.rejects(validateConfig("test", config), /Default area 'missing' is not defined/);
+
+    config.xshell.areas.default = "";
+    await assert.rejects(validateConfig("test", config), /Invalid config/);
+
+    config.xshell.areas.default = null;
+    await assert.doesNotReject(validateConfig("test", config));
+
+    config.xshell.areas.definitions.main = { prefix: "/main" };
+    config.xshell.areas.default = "main";
+    await assert.doesNotReject(validateConfig("test", config));
+});
+
+test("effective config rejects duplicate normalized Area prefixes", async () => {
+    const config = configuration(moduleDefinition());
+    config.xshell.areas.definitions.first = { prefix: "demo" };
+    for (const duplicate of ["demo", "/demo/", "///demo///"]) {
+        config.xshell.areas.definitions.second = { prefix: duplicate };
+        await assert.rejects(validateConfig("test", config), /Areas 'first' and 'second' have duplicate normalized prefix '\/demo'/);
+    }
+
+    config.xshell.areas.definitions.first.prefix = "";
+    config.xshell.areas.definitions.second.prefix = "/";
+    await assert.rejects(validateConfig("test", config), /Areas 'first' and 'second' have duplicate normalized prefix ''/);
+
+    config.xshell.areas.definitions.second.prefix = "/other/";
+    await assert.doesNotReject(validateConfig("test", config));
+});
+
+test("validated Area configuration constructs with normalized prefixes and an explicit default", async () => {
+    const config = configuration(moduleDefinition());
+    config.xshell.areas.default = "second";
+    config.xshell.areas.definitions = {
+        first: { prefix: "///demo///" },
+        second: { prefix: "/other/" }
+    };
+
+    await validateConfig("test", config);
+    const areas = new Areas({ config, bus: { addEventListener() {} } });
+    assert.equal(areas.getArea("first").prefix, "/demo");
+    assert.equal(areas.getDefaultArea().id, "second");
 });
 
 test("effective config validates route grammar before runtime construction", async () => {

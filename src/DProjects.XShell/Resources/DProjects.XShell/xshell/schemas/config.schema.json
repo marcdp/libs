@@ -244,7 +244,7 @@
       "type": "object",
       "required": ["default", "global", "definitions"],
       "properties": {
-        "default": {"type": ["string", "null"], "description": "Identifier of the default area."},
+        "default": {"type": ["string", "null"], "minLength": 1, "description": "Identifier of the default area."},
         "global": { "type": "array", "items": {"type": "string"}, "description": "Global menu names."},
         "definitions": {"type": "object", "additionalProperties": {"$ref": "#/$defs/xshellArea"}, "description": "Area definitions keyed by area identifier."}
       },

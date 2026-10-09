@@ -1,6 +1,7 @@
 import ConfigSchema from "../schemas/config.schema.json" with { type: "json" };
 import { Validator } from "../vendor/json-schema/4.1.1/json-schema.js"
 import { compileRoute } from "../utils/route.js";
+import { normalizeAreaPrefix } from "../utils/area.js";
 
 // vars
 const validator = new Validator(ConfigSchema, "2020-12");
@@ -13,8 +14,15 @@ export default async function validateConfig(src, config) {
         console.error(`Invalid config: ${src}`, result.errors);
         throw new Error(`Invalid config: ${src}`, { cause: result.errors });
     }
-    // validate cross-field Area module references
-    for (const [areaId, area] of Object.entries(config.xshell.areas.definitions)) {
+    // validate static Area configuration
+    const definitions = config.xshell.areas.definitions;
+    const defaultAreaId = config.xshell.areas.default;
+    if (defaultAreaId !== null && !Object.hasOwn(definitions, defaultAreaId)) throw new Error(`Default area '${defaultAreaId}' is not defined.`);
+    const prefixes = new Map();
+    for (const [areaId, area] of Object.entries(definitions)) {
+        const prefix = normalizeAreaPrefix(area.prefix);
+        if (prefixes.has(prefix)) throw new Error(`Areas '${prefixes.get(prefix)}' and '${areaId}' have duplicate normalized prefix '${prefix}'.`);
+        prefixes.set(prefix, areaId);
         for (const moduleId of area.modules || []) {
             if (!Object.hasOwn(config.modules, moduleId)) throw new Error(`Area '${areaId}' references unknown module '${moduleId}'.`);
         }
