@@ -3,7 +3,7 @@ using System.Text.Json;
 using DProjects.Utils;
 
 namespace DProjects.XShell.Services {
-    public sealed class ModuleFileCompiler {
+    internal sealed class ModuleFileCompiler {
 
 
         // inner class

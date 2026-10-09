@@ -1,6 +1,6 @@
 namespace DProjects.XShell.Services {
 
-    public sealed class ModuleFileCompilerContext {
+    internal sealed class ModuleFileCompilerContext {
 
         // props
         public ModuleFileCompiler.Config Config { get; }

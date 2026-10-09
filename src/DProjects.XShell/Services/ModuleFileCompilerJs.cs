@@ -1,6 +1,6 @@
 namespace DProjects.XShell.Services {
 
-    public class ModuleFileCompilerJs {
+    internal class ModuleFileCompilerJs {
 
         // methods
         public ModuleFileCompiler.FileContent Compile(ModuleFileCompilerContext context, string js) {

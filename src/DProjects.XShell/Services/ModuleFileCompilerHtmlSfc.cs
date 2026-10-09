@@ -2,7 +2,7 @@ using DProjects.XShell.Services.XTemplate;
 
 namespace DProjects.XShell.Services {
 
-    public class ModuleFileCompilerHtmlSfc {
+    internal class ModuleFileCompilerHtmlSfc {
 
         // inner classes
         private readonly record struct HtmlTag(string Name, int End, string Source);

@@ -2,9 +2,9 @@ using System.Net;
 
 namespace DProjects.XShell.Services {
 
-    public sealed class BoostrapFilesBuilder {
+    internal sealed class BootstrapFilesBuilder {
 
-        public Dictionary<string, string> Build(Extensions.Configuration config, string environment) {
+        internal Dictionary<string, string> Build(Extensions.Configuration config, string environment) {
             var result = new Dictionary<string, string>();
 
             // serialize app params

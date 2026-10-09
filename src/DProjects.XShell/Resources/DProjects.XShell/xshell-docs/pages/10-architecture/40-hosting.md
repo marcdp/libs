@@ -82,7 +82,7 @@ Generated host HTML attribute values are HTML encoded. This serialization safety
 Unhandled matching is case-insensitive textual prefix matching: `/apiary` also matches `/api`.
 SPA fallback has no method filter. Path navigation needs this fallback for friendly-URL reloads.
 
-`BoostrapFilesBuilder` emits HTML, CSP meta, `xshell:` startup meta, and the bootstrap script.
+`BootstrapFilesBuilder` emits HTML, CSP meta, `xshell:` startup meta, and the bootstrap script.
 Generated `sw.js` imports the configured worker source. Bootstrap registers it with the application base-path scope
 `App.BasePath + "/"` (root scope only when `App.BasePath` is empty).
 

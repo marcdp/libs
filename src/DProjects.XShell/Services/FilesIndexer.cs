@@ -3,7 +3,7 @@ using System.Security.Cryptography;
 
 namespace DProjects.XShell.Services {
 
-    public sealed class FilesIndexer {
+    internal sealed class FilesIndexer {
 
         // consts
         public const string ModuleFilesJson = "module.files.json";

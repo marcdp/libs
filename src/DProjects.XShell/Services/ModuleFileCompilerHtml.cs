@@ -2,7 +2,7 @@ using System.Text;
 
 namespace DProjects.XShell.Services {
 
-    public class ModuleFileCompilerHtml {
+    internal class ModuleFileCompilerHtml {
 
         // vars
         // keep these built-in selectors aligned with utils/html.js; runtime-added rules have no server counterpart

@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.StaticFiles;
 
 namespace DProjects.XShell.Middlewares {
 
-    public sealed class TempMiddleware : IDisposable {
+    internal sealed class TempMiddleware : IDisposable {
 
         // fields
         private readonly RequestDelegate mNext;

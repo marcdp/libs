@@ -2,7 +2,7 @@ using System.Text;
 
 namespace DProjects.XShell.Services {
 
-    public class ModuleFileCompilerCss {
+    internal class ModuleFileCompilerCss {
 
         // methods
         public ModuleFileCompiler.FileContent Compile(ModuleFileCompilerContext context, string css) {

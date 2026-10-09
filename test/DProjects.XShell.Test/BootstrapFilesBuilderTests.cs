@@ -4,7 +4,7 @@ using DProjects.XShell.Services;
 
 namespace DProjects.XShell.Test {
 
-    public sealed class BoostrapFilesBuilderTests {
+    public sealed class BootstrapFilesBuilderTests {
 
         // methods
         [Fact]
@@ -41,7 +41,7 @@ namespace DProjects.XShell.Test {
 
         // methods (private)
         private static string BuildIndex(Dictionary<string, string> parameters) {
-            return new BoostrapFilesBuilder().Build(new Extensions.Configuration {
+            return new BootstrapFilesBuilder().Build(new Extensions.Configuration {
                 App = new Extensions.AppConfig { Params = parameters }
             }, "Development")["/index.html"];
         }

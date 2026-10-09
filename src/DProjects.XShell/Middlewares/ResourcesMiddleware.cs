@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.FileProviders;
 
 namespace DProjects.XShell.Middlewares {
-    public sealed class ResourcesMiddleware {
+    internal sealed class ResourcesMiddleware {
 
 
         // fields
