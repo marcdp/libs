@@ -50,6 +50,11 @@ namespace DProjects.XShell {
         // methods
         public static void UseXShell(this WebApplication app, Configuration config) {
 
+            // validate static host configuration before resolving resources or registering middleware
+            ArgumentNullException.ThrowIfNull(app);
+            ArgumentNullException.ThrowIfNull(config);
+            ValidateConfiguration(config);
+
             // config webapplication
             var assembly = typeof(Extensions).Assembly;
             var environment = (string.IsNullOrEmpty(config.Server.Environment) ? app.Environment.EnvironmentName : config.Server.Environment);
@@ -135,6 +140,49 @@ namespace DProjects.XShell {
             });
 
 
+        }
+
+        // methods (private)
+        private static void ValidateConfiguration(Configuration config) {
+            if (config.App == null) throw new ArgumentNullException(nameof(config.App), "XShell App configuration is required.");
+            if (config.Temp == null) throw new ArgumentNullException(nameof(config.Temp), "XShell Temp configuration is required.");
+            if (config.XShell == null) throw new ArgumentNullException(nameof(config.XShell), "XShell XShell configuration is required.");
+            if (config.Resources == null) throw new ArgumentNullException(nameof(config.Resources), "XShell Resources configuration is required.");
+            if (config.Server == null) throw new ArgumentNullException(nameof(config.Server), "XShell Server configuration is required.");
+            if (config.App.Description == null) throw new ArgumentNullException(nameof(config.App.Description), "XShell App.Description must not be null.");
+            if (config.App.Params == null) throw new ArgumentNullException(nameof(config.App.Params), "XShell App.Params must not be null.");
+
+            // validate required paths and numeric Temp limits
+            if (string.IsNullOrWhiteSpace(config.App.ConfigPath)) throw new ArgumentException("XShell App.ConfigPath must be a non-empty application configuration path or URL.", nameof(config));
+            if (string.IsNullOrWhiteSpace(config.Temp.Path)) throw new ArgumentException("XShell Temp.Path must be a non-empty physical storage path.", nameof(config));
+            try {
+                Path.GetFullPath(config.Temp.Path);
+            } catch (ArgumentException exception) {
+                throw new ArgumentException("XShell Temp.Path must be a valid physical storage path.", nameof(config), exception);
+            } catch (NotSupportedException exception) {
+                throw new ArgumentException("XShell Temp.Path must be a valid physical storage path.", nameof(config), exception);
+            }
+            if (config.Temp.FileSizeLimit <= 0) throw new ArgumentOutOfRangeException(nameof(config.Temp.FileSizeLimit), "XShell Temp.FileSizeLimit must be greater than zero.");
+            if (config.Temp.ExpirationTime <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(config.Temp.ExpirationTime), "XShell Temp.ExpirationTime must be greater than zero.");
+
+            // validate independent host request paths without changing their values
+            if (!IsRequestBasePath(config.App.BasePath, true)) throw new ArgumentException("XShell App.BasePath must be empty or a rooted request path starting with '/'.", nameof(config));
+            if (!IsRequestBasePath(config.Resources.BasePath, true)) throw new ArgumentException("XShell Resources.BasePath must be empty or a rooted request path starting with '/'.", nameof(config));
+            if (!IsRequestBasePath(config.XShell.BasePath, false)) throw new ArgumentException("XShell XShell.BasePath must be a non-empty rooted request path starting with '/'.", nameof(config));
+            if (!IsRequestBasePath(config.Temp.BasePath, false)) throw new ArgumentException("XShell Temp.BasePath must be a non-empty rooted request path starting with '/'.", nameof(config));
+
+            // validate values consumed by generated HTML and SPA fallback
+            if (config.Server.UnhandledPrefixes == null) throw new ArgumentNullException(nameof(config.Server.UnhandledPrefixes), "XShell Server.UnhandledPrefixes must not be null.");
+            for (var index = 0; index < config.Server.UnhandledPrefixes.Length; index++) {
+                if (!IsRequestBasePath(config.Server.UnhandledPrefixes[index], false, true)) {
+                    throw new ArgumentException($"XShell Server.UnhandledPrefixes[{index}] must be a non-empty rooted request path starting with '/'.", nameof(config));
+                }
+            }
+        }
+        private static bool IsRequestBasePath(string? path, bool allowEmpty, bool allowTrailingSlash = false) {
+            if (path == "" && allowEmpty) return true;
+            return !string.IsNullOrEmpty(path) && path.StartsWith('/') && !path.StartsWith("//", StringComparison.Ordinal) && (allowTrailingSlash || !path.EndsWith('/')) &&
+                path.IndexOfAny(['?', '#', '\\']) < 0 && !path.Any(char.IsWhiteSpace);
         }
 
     }

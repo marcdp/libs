@@ -21,7 +21,7 @@ app.UseXShell(new Extensions.Configuration {
         BasePath = ""
     },
     XShell = new Extensions.XShellConfig {
-        BasePath = ""
+        BasePath = "/_resources/DProjects.XShell/xshell"
     },
     Server = new Extensions.ServerConfig {
         Environment = null,
@@ -29,7 +29,7 @@ app.UseXShell(new Extensions.Configuration {
         UnhandledPrefixes = new[] { "/_", "/api", "/temp" }
     },
     Temp = new Extensions.TempConfig {
-        Path = "",
+        Path = Path.Combine(Path.GetTempPath(), Extensions.ResourceName, "temp"),
         BasePath = "/temp",
         ExpirationTime = TimeSpan.FromHours(1),
         FileSizeLimit = 100 * 1024 * 1024
@@ -43,15 +43,15 @@ app.Run();
 | Setting | Default and effect |
 | --- | --- |
 | `App.Description` | `""`; HTML description meta value. |
-| `App.BasePath` | `""`; application prefix with a trailing-slash entry URL. |
-| `App.ConfigPath` | `""`; root module configuration URL. |
+| `App.BasePath` | `""`; valid root hosting. A nonempty value must be a rooted request path such as `/app`. |
+| `App.ConfigPath` | `""` is a placeholder rejected by `UseXShell()`; supply a nonempty root module configuration path or URL. |
 | `App.Params` | Empty string dictionary; host params become root-module/application params. |
 | `Resources.BasePath` | `""`; prefixes resource middleware route `/_resources/DProjects.XShell`. |
-| `XShell.BasePath` | `""`; bootstrap and worker source base. |
+| `XShell.BasePath` | `""` is a placeholder rejected by `UseXShell()`; supply a rooted bootstrap and worker source base. |
 | `Server.Environment` | `null`; use ASP.NET's environment name. An explicit value overrides XShell's own environment and development resource behavior. |
 | `Server.HeaderCSP` | Same-origin default policy, data images allowed, objects disabled; HTML CSP meta value. |
 | `Server.UnhandledPrefixes` | `["/_", "/api", "/temp"]`; unmatched relative paths with these prefixes bypass SPA fallback. |
-| `Temp.Path` | `""`; temporary-file storage root. |
+| `Temp.Path` | `""` is a placeholder rejected by `UseXShell()`; supply a nonempty physical temporary-file storage root. |
 | `Temp.BasePath` | `/temp`; independent public Temp prefix. |
 | `Temp.ExpirationTime` | One hour. |
 | `Temp.FileSizeLimit` | `104857600` bytes (100 MiB); maximum accepted upload size. |
@@ -62,6 +62,9 @@ The default CSP text is:
 default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self';
 ```
 
+`UseXShell()` rejects invalid static host settings before resource lookup, middleware registration, or bootstrap generation. It requires positive Temp limits,
+rooted request paths for `Temp.BasePath`, `XShell.BasePath`, and each `Server.UnhandledPrefixes` entry. Nonempty `App.BasePath` and
+`Resources.BasePath` values must also be rooted; empty values remain valid. Temp directory creation remains in `TempMiddleware`.
 `Resources.BasePath`, `XShell.BasePath`, and `Temp.BasePath` are independent, not automatically rebased by `App.BasePath`.
 Set browser runtime paths consistently when changing resource routing.
 The host URL-encodes each `App.Params` key and value, joins them as query text, and HTML-encodes the resulting meta attribute value.
