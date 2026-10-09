@@ -124,7 +124,6 @@ export default class Areas {
                     }
                     if (!Array.isArray(menuItems)) {
                         throw new Error(`Menu source '${menuDefinition}' for Area '${area.id}', module '${module.id}', menu '${menuName}' must resolve to an array.`);
-                        continue;
                     }
                     menus[menuName] ??= [];
                     menus[menuName].push(...menuItems.map(menuitem => this._cloneMenuitem(menuitem, module, area)));
@@ -229,7 +228,10 @@ export default class Areas {
         // register a dynamic menu source
         if (Object.hasOwn(this._sources, name)) {
             throw new Error(`Menu source '${name}' is already registered.`);
-        }
+        }        
+        if (!source || typeof source.resolve !== "function") {
+            throw new Error(`Menu source '${name}' must provide a resolve() function.`);
+        }        
         this._sources[name] = source;
         this._sourceTargets[name] = [];
         // refresh every effective copy backed by this source

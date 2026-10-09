@@ -1,5 +1,5 @@
 import { rewriteStyleUrls } from "./style.js";
-import { HASH_PREFIX } from "./navigation.js";
+import { HASH_PREFIX } from "../navigation.js";
 
 // rules
 const rules = [
