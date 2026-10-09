@@ -86,6 +86,12 @@ Generated `sw.js` imports the configured worker source. Bootstrap registers it w
 
 ## Resources and development
 
+## Browser platform requirement
+
+XShell V0 requires a secure context because the browser runtime uses platform capabilities such as Service Workers. Production hosting must use HTTPS;
+trusted local origins such as `localhost` may use the browser's normal development exception. See [Browser Platform Baseline](15-browser-platform.md)
+for the Baseline 2026 compatibility contract and the absence of legacy-browser compatibility, polyfills, and downlevel builds.
+
 XShell uses the effective `Configuration.Sserver.Environment` when supplied, otherwise ASP.NET's environment name. A case-insensitive `Development`
 value enables XShell development resources; an explicit `Production` disables them even if the ASP.NET host is Development. This does not modify
 ASP.NET's own environment object.

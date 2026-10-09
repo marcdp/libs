@@ -7,6 +7,7 @@ virtualizes assets, initializes services/modules, and activates Pages through Ar
 
 - [Modules](10-architecture/30-modules.md) and [Configuration](10-architecture/20-configuration.md) — Composition, defaults, and one instance per id.
 - [Bootstrap](10-architecture/10-bootstrap.md) — Startup order and validation.
+- [Browser Platform Baseline](10-architecture/15-browser-platform.md) — Baseline 2026, secure-context, and V0 compatibility contract.
 - [Components](20-components/index.md) and [Pages](10-architecture/70-pages.md) — Contracts, controllers, state, lifecycle, and presentation.
 - [Resolvers](10-architecture/80-resolvers.md) and [Loaders](10-architecture/90-loaders.md) — Resource meaning versus obtaining concrete resources.
 - [Services and service Contracts](10-architecture/100-services.md) — Fixed registry, eager class loading, lazy singletons.

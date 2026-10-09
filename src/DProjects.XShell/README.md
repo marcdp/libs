@@ -154,6 +154,13 @@ Pages share many concepts with Components, but add navigation context and Page l
 Page = Component model + Navigation context
 ```
 
+## Browser platform baseline
+
+XShell V0 targets Web Platform capabilities that are **Baseline 2026** or earlier and requires a secure context. Production applications must be
+served over HTTPS. XShell does not provide legacy-browser compatibility, browser polyfills, or transpiled/downlevel browser builds; support below
+the Baseline 2026 platform target is outside V0. The canonical documentation is
+[Browser Platform Baseline](Resources/DProjects.XShell/xshell-docs/pages/10-architecture/15-browser-platform.md).
+
 ## Modules, Areas, and Navigation
 
 A **Module** owns reusable resources and configuration.

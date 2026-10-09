@@ -57,6 +57,7 @@ current state. Operational APIs such as `services.resolve(...)` and `loader.load
 ## Documents
 
 - [Bootstrap](10-bootstrap.md) — Startup and preparation versus runtime initialization.
+- [Browser Platform Baseline](15-browser-platform.md) — Baseline 2026 and the secure-context requirement.
 - [Configuration](20-configuration.md) — Nested effective configuration and merge rules.
 - [Modules](30-modules.md) — Definitions, references, root composition, params, and live instances.
 - [Hosting](40-hosting.md) — ASP.NET middleware, generated bootstrap, and SPA fallback.
