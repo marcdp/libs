@@ -1,4 +1,5 @@
 import { rewriteStyleUrls } from "./style.js";
+import { HASH_PREFIX } from "./navigation.js";
 
 // rules
 const rules = [
@@ -61,8 +62,7 @@ export function rewrite(el, attr, type, url, context) {
     if (type === "navigation") {
         const virtualUrl = resolveLocalUrl(url, source, type, true);
         if (!source.moduleBase) return virtualUrl;
-        return context.navigationMode === "hash" ? context.navigationHashPrefix + virtualUrl
-            : source.absoluteOutput ? new URL(virtualUrl.replace(/^\/+/, ""), source.appBase).href : source.appPath + virtualUrl;
+        return context.navigationMode === "hash" ? HASH_PREFIX + virtualUrl : source.absoluteOutput ? new URL(virtualUrl.replace(/^\/+/, ""), source.appBase).href : source.appPath + virtualUrl;
     }
     throw new Error("Unknown rewrite type: " + type);
 }

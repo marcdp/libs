@@ -3,7 +3,7 @@ import { base64UrlEncode, base64UrlDecode } from "./utils/base64.js";
 import { compileRoute } from "./utils/route.js";
 
 // consts
-const HASH_PREFIX = "#!";
+export const HASH_PREFIX = "#!";
 
 // class
 export default class Navigation {

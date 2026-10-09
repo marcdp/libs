@@ -27,7 +27,7 @@ async function createLoader(testName, { cacheMode, type = "resource", src = "/{p
         xshell: {
             assetsBasePath: "/_assets",
             assetsPath: "/_assets/xshell",
-            navigation: { mode: "path", hashPrefix: "#!" },
+            navigation: { mode: "path" },
             ui: { component: { lazy: null } },
             resolver: { [type]: { "/{path}": definition } }
         }

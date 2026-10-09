@@ -89,7 +89,7 @@ function createNavigation({ areas = null, mode = "path", basePath = "", baseUrl 
         bus: {},
         config: {
             app: { basePath, baseUrl },
-            xshell: { navigation: { mode, hashPrefix: "#!" } }
+            xshell: { navigation: { mode } }
         },
         container: {}
     });

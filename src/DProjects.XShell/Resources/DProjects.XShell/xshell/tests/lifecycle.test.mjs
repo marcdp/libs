@@ -252,7 +252,7 @@ test("x-page intercepts only application anchors and preserves native clicks", a
                 // exercise the registered click listener with real Navigation URL parsing
                 const navigation = new Navigation({
                     areas: {}, bus: {}, container: {},
-                    config: { app: { basePath: "", baseUrl: "https://example.test/" }, xshell: { navigation: { mode, hashPrefix: "#!" } } }
+                    config: { app: { basePath: "", baseUrl: "https://example.test/" }, xshell: { navigation: { mode } } }
                 });
                 const calls = [];
                 navigation.navigate = item => calls.push(item);
@@ -698,7 +698,7 @@ test("dialog close completes after one final Page unload and host removal", asyn
     const navigation = new Navigation({
         areas: {},
         bus: {},
-        config: { app: { basePath: "", baseUrl: "https://example.test/" }, xshell: { navigation: { mode: "path", hashPrefix: "#!" } } },
+        config: { app: { basePath: "", baseUrl: "https://example.test/" }, xshell: { navigation: { mode: "path" } } },
         container
     });
     navigation._buildUrlFinal = item => item.href;
@@ -734,7 +734,7 @@ test("dialog close rejects its promise when final Page cleanup fails", async () 
     const navigation = new Navigation({
         areas: {},
         bus: {},
-        config: { app: { basePath: "", baseUrl: "https://example.test/" }, xshell: { navigation: { mode: "path", hashPrefix: "#!" } } },
+        config: { app: { basePath: "", baseUrl: "https://example.test/" }, xshell: { navigation: { mode: "path" } } },
         container
     });
     navigation._buildUrlFinal = item => item.href;
@@ -757,7 +757,7 @@ test("navigation stack changes close dialogs through final Page cleanup", async 
     const navigation = new Navigation({
         areas: {},
         bus: {},
-        config: { app: { basePath: "", baseUrl: "https://example.test/" }, xshell: { navigation: { mode: "path", hashPrefix: "#!" } } },
+        config: { app: { basePath: "", baseUrl: "https://example.test/" }, xshell: { navigation: { mode: "path" } } },
         container
     });
     navigation._buildUrlFinal = item => item.href;
@@ -780,7 +780,7 @@ test("navigation shrinks three stack Pages to one after asynchronous final unloa
     container.querySelectorAll = () => container.childNodes;
     const navigation = new Navigation({
         areas: {}, bus: { emit() {} },
-        config: { app: { basePath: "", baseUrl: "https://example.test/" }, xshell: { navigation: { mode: "path", hashPrefix: "#!" } } },
+        config: { app: { basePath: "", baseUrl: "https://example.test/" }, xshell: { navigation: { mode: "path" } } },
         container
     });
     const counts = [0, 0, 0];
@@ -838,7 +838,7 @@ test("x-page and dialog preserve falsy results", async () => {
     const container = new FakeNode();
     const navigation = new Navigation({
         areas: {}, bus: {},
-        config: { app: { basePath: "", baseUrl: "https://example.test/" }, xshell: { navigation: { mode: "path", hashPrefix: "#!" } } },
+        config: { app: { basePath: "", baseUrl: "https://example.test/" }, xshell: { navigation: { mode: "path" } } },
         container
     });
     navigation._buildUrlFinal = item => item.href;

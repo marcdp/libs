@@ -9,7 +9,7 @@ function createNavigation() {
         bus: {},
         config: {
             app: { basePath: "", baseUrl: "https://example.test/" },
-            xshell: { navigation: { mode: "path", hashPrefix: "#!" } }
+            xshell: { navigation: { mode: "path" } }
         },
         container: {}
     });

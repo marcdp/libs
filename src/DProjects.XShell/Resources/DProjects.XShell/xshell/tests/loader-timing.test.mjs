@@ -17,7 +17,7 @@ async function createLoader(testName, events, onResolve = () => {}) {
     };
     const config = {
         app: { basePath: "" },
-        xshell: { assetsBasePath: "/_assets", assetsPath: "/_assets/xshell", navigation: { mode: "path", hashPrefix: "#!" }, ui: { component: { lazy: null } } }
+        xshell: { assetsBasePath: "/_assets", assetsPath: "/_assets/xshell", navigation: { mode: "path" }, ui: { component: { lazy: null } } }
     };
     const bus = { emit(name, detail) { events.push({ name, detail }); } };
     return { fixture, loader: new Loader({ bus, config, resolver }) };

@@ -41,8 +41,7 @@ const context = {
     appBasePath: "https://example.test/app",
     resourceDefinition: { modulePath: "/_assets/demo" },
     resourcePath: "/_assets/demo/pages/page.html",
-    navigationMode: "hash",
-    navigationHashPrefix: "#!"
+    navigationMode: "hash"
 };
 const resourceBase = "https://example.test/app/_assets/demo/pages/";
 
@@ -240,7 +239,7 @@ test("runtime templates reject app: and url: in all static URL locations", () =>
 });
 
 test("custom declaring URLs use ordinary URL semantics", () => {
-    const custom = { resourceDefinition: {}, resourcePath: "https://cdn.example.com/widgets/card.js", appBasePath: "/app", navigationMode: "hash", navigationHashPrefix: "#!" };
+    const custom = { resourceDefinition: {}, resourcePath: "https://cdn.example.com/widgets/card.js", appBasePath: "/app", navigationMode: "hash" };
     for (const [value, expected] of [
         ["./a.png", "https://cdn.example.com/widgets/a.png"],
         ["../a.png", "https://cdn.example.com/a.png"],

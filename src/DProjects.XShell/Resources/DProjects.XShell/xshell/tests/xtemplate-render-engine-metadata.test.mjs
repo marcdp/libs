@@ -54,7 +54,7 @@ test("render engine rejects the legacy renderer shape", () => {
 test("compiled template attributes use navigation and resource URL rules", () => {
     const context = {
         appBasePath: "/app", resourcePath: "/module/pages/card.js", resourceDefinition: { modulePath: "/module" },
-        navigationMode: "hash", navigationHashPrefix: "#"
+        navigationMode: "hash"
     };
     assert.equal(rewriteTemplateAttribute("a", { href: "details" }, "href", "details", context), "#/module/pages/details");
     assert.equal(rewriteTemplateAttribute("img", { src: "images/a.png" }, "src", "images/a.png", context), "/app/module/pages/images/a.png");
