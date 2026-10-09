@@ -68,7 +68,7 @@ rooted request paths for `Temp.BasePath`, `XShell.BasePath`, and each `Server.Un
 `Resources.BasePath`, `XShell.BasePath`, and `Temp.BasePath` are independent, not automatically rebased by `App.BasePath`.
 Set browser runtime paths consistently when changing resource routing.
 The host URL-encodes each `App.Params` key and value, joins them as query text, and HTML-encodes the resulting meta attribute value.
-Generated HTML interpolates host settings, so use trusted configuration.
+Generated host HTML attribute values are HTML encoded. This serialization safety does not replace semantic host configuration validation.
 
 ## Request pipeline
 
