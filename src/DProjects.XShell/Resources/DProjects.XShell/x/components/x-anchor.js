@@ -14,7 +14,8 @@ export const contract = {
         target:     {type:"string", default:null, attribute:true, state:true, description:""},
         outlet:     {type:"string", default:null, attribute:true, state:true, description:""},
         rel:        {type:"string", default:null, attribute:true, state:true, description:"", reflect:true},
-        replace:    {type:"boolean", default:false, attribute:true, state:true, description:""}
+        replace:    {type:"boolean", default:false, attribute:true, state:true, description:""},
+        tooltip:     {type:"string", default:"", attribute:true, state:true, description:""}
     },
     methods: {},
     slots: {
@@ -46,7 +47,7 @@ export default {
         :host(.plain.selected) a:hover {color:var(--x-color-primary-dark);}    
     `,
     template: `
-        <a part="a" x-attr:href="state.hrefReal" x-attr:disabled="state.disabled" x-attr:target="state.target" x-attr:rel="state.rel" x-on:click="click"><slot></slot></a>
+        <a part="a" x-attr:href="state.hrefReal" x-attr:disabled="state.disabled" x-attr:target="state.target" x-attr:rel="state.rel" x-attr:tooltip="state.tooltip" x-on:click="click" ><slot></slot></a>
     `,
     state: {
         hrefReal: null

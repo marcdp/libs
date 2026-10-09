@@ -83,7 +83,7 @@ export default {
         <div x-elseif="state.embedded">
             <x-page x-attr:src="state.href" loading="lazy"></x-page>
         </div>
-        <x-anchor x-else class="menuitem anchor" x-class:down="state.childsDown" x-attr:href="state.href" x-attr:command="state.command" x-attr:disabled="state.disabled" x-attr:expanded="state.expanded" x-class:selected="state.selected" x-attr:title="state.tooltip">
+        <x-anchor x-else class="menuitem anchor" x-class:down="state.childsDown" x-attr:href="state.href" x-attr:command="state.command" x-attr:disabled="state.disabled" x-attr:expanded="state.expanded" x-class:selected="state.selected" x-attr:tooltip="state.tooltip">
             <x-icon x-if="state.checked" icon="x-check"></x-icon>
             <x-icon x-if="!state.checked && state.icon" class="icon"x-attr:icon="state.icon"></x-icon>
             <span   x-if="state.label" class="label">{{ state.label }}</span>
