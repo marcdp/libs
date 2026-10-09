@@ -6,6 +6,18 @@ A module configuration is a JSONC document whose `modules` object contains exact
 
 The local definition is the one entry without `configUrl`. Its object key is the canonical module id.
 
+## Module ID
+
+A module ID is a case-sensitive canonical identifier consisting only of lowercase ASCII letters, decimal digits, and single hyphens. It must begin
+with a letter, must not end with a hyphen, and must not contain consecutive hyphens. The identifier `xshell` is reserved for the XShell framework.
+Module IDs are used directly as virtual asset path segments and package directory names and are never normalized or URL-encoded.
+
+```regex
+^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$
+```
+
+For example, `orders`, `orders-v2`, and `xshell-docs` are valid module IDs. `Orders`, `orders_v2`, `orders--v2`, and `xshell` are invalid.
+
 ```jsonc
 {
     "modules": {

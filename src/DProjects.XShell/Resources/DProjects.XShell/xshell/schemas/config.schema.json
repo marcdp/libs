@@ -8,6 +8,9 @@
     "app": {"$ref": "#/$defs/app", "description": "Application metadata and runtime parameters."},
     "modules": {
       "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+      },
       "additionalProperties": {"$ref": "#/$defs/module"},
       "description": "Resolved modules participating in the application."
     },

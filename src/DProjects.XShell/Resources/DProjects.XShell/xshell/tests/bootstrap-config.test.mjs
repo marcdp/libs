@@ -145,6 +145,30 @@ function orderOf(graph) {
     return Array.from(graph.mergeOrder, node => node.id);
 }
 
+test("module discovery accepts canonical module ids", async () => {
+    for (const moduleId of ["x", "app", "orders", "x-demo", "orders-v2", "xshell-docs"]) {
+        await assert.doesNotReject(discover({ modules: { [moduleId]: definition(moduleId) } }));
+    }
+});
+
+test("module discovery rejects malformed and reserved local module ids before path construction", async () => {
+    for (const moduleId of ["", "XDemo", "123", "x_demo", "x.demo", "x/demo", "x demo", "-x-demo", "x-demo-", "x--demo", "café", "foo%20bar"]) {
+        await assert.rejects(discover({ modules: { [moduleId]: definition(moduleId, { assetsUrl: "/not-used" }) } }),
+            error => error.message === `Invalid module id '${moduleId}' in module configuration '${rootUrl}'.`);
+    }
+
+    await assert.rejects(discover({ modules: { xshell: definition("xshell", { assetsUrl: "/not-used" }) } }), /Module id 'xshell' is reserved/);
+});
+
+test("module discovery rejects malformed and reserved external reference ids before loading them", async () => {
+    for (const moduleId of ["bad/id", "xshell"]) {
+        const calls = [];
+        await assert.rejects(discover({ modules: { app: definition("app"), [moduleId]: reference("./other/module.jsonc") } }, {}, calls),
+            moduleId === "xshell" ? /Module id 'xshell' is reserved/ : /Invalid module id 'bad\/id'/);
+        assert.deepEqual(calls, []);
+    }
+});
+
 test("checked-in assetsBasePath resolves for root and subpath hosting", () => {
     const defaults = api.parseJsonc(readFileSync(new URL("../xshell.jsonc", import.meta.url), "utf8"));
     assert.equal(defaults.xshell.assetsBasePath, "app:/_assets");

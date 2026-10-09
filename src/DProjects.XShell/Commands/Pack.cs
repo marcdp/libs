@@ -3,6 +3,7 @@ using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 
 using DProjects.Commands;
 using DProjects.Commands.Attributes;
@@ -18,6 +19,9 @@ namespace DProjects.XShell.Commands {
     [Example("DProjects.XShell pack --source ./x --output ./dist", "Pack an XShell module")]
     [Example("DProjects.XShell pack --source ./xshell --output ./dist", "Pack the XShell framework")]
     public class Pack(IEnvironment environment) : ICommand {
+
+        // consts
+        private const string ModuleIdPattern = "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$";
 
         // inner classes
         private enum PackageKind {
@@ -129,6 +133,7 @@ namespace DProjects.XShell.Commands {
             }
             if (moduleDescriptorPath != null) {
                 var (id, version) = await ReadModuleIdentityAsync(moduleDescriptorPath, cancellationToken);
+                ValidateModuleId(id);
                 return new PackageInfo(PackageKind.Module, id, version, moduleDescriptorPath);
             }
             if (xshellDescriptorPath != null) {
@@ -356,6 +361,15 @@ namespace DProjects.XShell.Commands {
             // keep descriptor identity from escaping or corrupting the output filename
             if (value is "." or ".." || value.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 || value.Contains(Path.DirectorySeparatorChar) || value.Contains(Path.AltDirectorySeparatorChar)) {
                 throw new InvalidOperationException($"{label} '{value}' cannot be used in a package path.");
+            }
+        }
+        private static void ValidateModuleId(string value) {
+            // keep module identity consistent with its virtual asset and package path segments
+            if (!Regex.IsMatch(value, ModuleIdPattern, RegexOptions.CultureInvariant)) {
+                throw new InvalidOperationException($"Invalid module id '{value}'.");
+            }
+            if (value == "xshell") {
+                throw new InvalidOperationException($"Module id '{value}' is reserved.");
             }
         }
         private static void CopyDirectory(string source, string destination, CancellationToken cancellationToken) {

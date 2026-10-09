@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.Json;
 
 namespace DProjects.XShell.Services {
 
@@ -41,7 +42,7 @@ namespace DProjects.XShell.Services {
             // sw.js
             result["/sw.js"] = $"""
                     // import real service worker script from xshell cdn
-                    importScripts("{config.XShell.BasePath}/sw.js"); 
+                    importScripts({JsonSerializer.Serialize(config.XShell.BasePath + "/sw.js")}); 
                     """;
 
             // return

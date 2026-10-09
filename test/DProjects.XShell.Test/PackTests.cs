@@ -143,9 +143,55 @@ namespace DProjects.XShell.Test {
             Assert.Equal(Path.GetFileName(first), Path.GetFileName(second));
             Assert.Equal(Path.GetFileName(first), Path.GetFileName(zipped));
         }
+        [Theory]
+        [InlineData("x")]
+        [InlineData("app")]
+        [InlineData("orders")]
+        [InlineData("x-demo")]
+        [InlineData("orders-v2")]
+        [InlineData("xshell-docs")]
+        public async Task Module_PacksWithCanonicalId(string moduleId) {
+            using var workspace = new TemporaryDirectory();
+            var source = CreateModuleSource(workspace.PathFor("source"), moduleId: moduleId);
+            var output = workspace.PathFor("output");
+
+            var package = await PackAsync(source, output, zip: false, moduleId: moduleId);
+
+            AssertPackagePath(package, output, moduleId, ModuleVersion);
+        }
+        [Theory]
+        [InlineData("")]
+        [InlineData("XDemo")]
+        [InlineData("123")]
+        [InlineData("x_demo")]
+        [InlineData("x.demo")]
+        [InlineData("x/demo")]
+        [InlineData("x demo")]
+        [InlineData("-x-demo")]
+        [InlineData("x-demo-")]
+        [InlineData("x--demo")]
+        [InlineData("café")]
+        [InlineData("foo%20bar")]
+        public async Task Module_PackRejectsMalformedModuleId(string moduleId) {
+            using var workspace = new TemporaryDirectory();
+            var source = CreateModuleSource(workspace.PathFor("source"), moduleId: moduleId);
+
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => PackAsync(source, workspace.PathFor("output"), zip: false, moduleId: moduleId));
+
+            Assert.Equal($"Invalid module id '{moduleId}'.", exception.Message);
+        }
+        [Fact]
+        public async Task Module_PackRejectsReservedModuleId() {
+            using var workspace = new TemporaryDirectory();
+            var source = CreateModuleSource(workspace.PathFor("source"), moduleId: "xshell");
+
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => PackAsync(source, workspace.PathFor("output"), zip: false, moduleId: "xshell"));
+
+            Assert.Equal("Module id 'xshell' is reserved.", exception.Message);
+        }
 
         // methods (private)
-        private static string CreateModuleSource(string path, bool reverseCreationOrder = false) {
+        private static string CreateModuleSource(string path, bool reverseCreationOrder = false, string moduleId = ModuleId) {
             Directory.CreateDirectory(path);
             var files = new (string Name, string Content)[] {
                 ("module.jsonc", """
@@ -159,7 +205,7 @@ namespace DProjects.XShell.Test {
                             },
                         },
                     }
-                    """),
+                    """.Replace("\"sample\"", JsonSerializer.Serialize(moduleId), StringComparison.Ordinal)),
                 ("page.html", "<template><p>pack</p></template>"),
                 ("data/value.txt", "value")
             };
@@ -178,10 +224,10 @@ namespace DProjects.XShell.Test {
             File.WriteAllText(Path.Combine(path, "assets", "runtime.txt"), "runtime");
             return path;
         }
-        private static async Task<string> PackAsync(string source, string output, bool zip) {
+        private static async Task<string> PackAsync(string source, string output, bool zip, string moduleId = ModuleId) {
             var command = new Pack(new TestEnvironment()) { Source = source, Output = output, Zip = zip };
             Assert.Equal(0, await command.ExecuteAsync(TestContext.Current.CancellationToken));
-            var id = File.Exists(Path.Combine(source, "module.jsonc")) ? ModuleId : "xshell";
+            var id = File.Exists(Path.Combine(source, "module.jsonc")) ? moduleId : "xshell";
             return Assert.Single(Directory.GetDirectories(Path.Combine(output, id)));
         }
         private static void AssertPackagePath(string package, string output, string id, string version) {

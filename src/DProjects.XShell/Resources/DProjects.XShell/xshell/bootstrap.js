@@ -17,6 +17,8 @@ const xshellEnvironment = meta("xshell:xshell.environment");
 const xshellTempUrl = meta("xshell:xshell.temp.url");
 const bootstrapUrl = new URL(document.currentScript.src);
 const bootstrapUrlDir = bootstrapUrl.href.substring(0, bootstrapUrl.href.lastIndexOf("/"));
+const moduleIdPattern = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
+const reservedModuleId = "xshell";
 
 
 // spinner functions
@@ -71,11 +73,24 @@ function showBootstrapError(error) {
 }
 
 // module functions
+function validateModuleId(moduleId, configUrl) {
+    if (!moduleIdPattern.test(moduleId)) {
+        throw new Error(`Invalid module id '${moduleId}' in module configuration '${configUrl}'.`);
+    }
+
+    if (moduleId === reservedModuleId) {
+        throw new Error(`Module id '${moduleId}' is reserved in module configuration '${configUrl}'.`);
+    }
+}
 function getLocalModule(config, configUrl) {
     const modules = config?.modules;
 
     if (!modules || typeof modules !== "object" || Array.isArray(modules)) {
         throw new Error(`Module configuration '${configUrl}' must contain a modules object with exactly one local module definition.`);
+    }
+
+    for (const moduleId of Object.keys(modules)) {
+        validateModuleId(moduleId, configUrl);
     }
 
     const entries = Object.entries(modules).filter(([, module]) =>

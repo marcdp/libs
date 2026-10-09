@@ -69,6 +69,20 @@ test("module schema keeps routes optional", () => {
     assertValid(moduleDefinition());
 });
 
+test("effective schema enforces the lexical module ID grammar", () => {
+    for (const moduleId of ["x", "app", "orders", "x-demo", "orders-v2", "xshell-docs"]) {
+        const config = configuration(moduleDefinition());
+        config.modules = { [moduleId]: moduleDefinition() };
+        assert.equal(validator.validate(config).valid, true, moduleId);
+    }
+
+    for (const moduleId of ["", "XDemo", "123", "x_demo", "x.demo", "x/demo", "x demo", "-x-demo", "x-demo-", "x--demo", "café", "foo%20bar"]) {
+        const config = configuration(moduleDefinition());
+        config.modules = { [moduleId]: moduleDefinition() };
+        assert.equal(validator.validate(config).valid, false, moduleId);
+    }
+});
+
 test("effective config rejects unknown Area modules and accepts canonical ids", async () => {
     const config = configuration(moduleDefinition());
     config.xshell.areas.definitions.admin = { modules: ["missing"] };
