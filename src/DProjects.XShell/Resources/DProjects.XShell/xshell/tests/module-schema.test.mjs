@@ -3,6 +3,7 @@ import test from "node:test";
 
 import ConfigSchema from "../schemas/config.schema.json" with { type: "json" };
 import { Validator } from "../vendor/json-schema/4.1.1/json-schema.js";
+import validateConfig from "../validation/config.js";
 
 const validator = new Validator(ConfigSchema, "2020-12");
 
@@ -66,6 +67,37 @@ function assertValid(module) {
 
 test("module schema keeps routes optional", () => {
     assertValid(moduleDefinition());
+});
+
+test("effective config rejects unknown Area modules and accepts canonical ids", async () => {
+    const config = configuration(moduleDefinition());
+    config.xshell.areas.definitions.admin = { modules: ["missing"] };
+    await assert.rejects(validateConfig("test", config), /Area 'admin' references unknown module 'missing'/);
+
+    config.xshell.areas.definitions.admin.modules = ["test"];
+    await assert.doesNotReject(validateConfig("test", config));
+});
+
+test("effective config validates route grammar before runtime construction", async () => {
+    const config = configuration(moduleDefinition({ "/repository/{123id}": "/_assets/test/pages/index.js" }));
+    await assert.rejects(validateConfig("test", config), /Module 'test' declares invalid route '\/repository\/\{123id\}'/);
+
+    config.modules.test.routes = { "/repository/{repositoryId}/items": "/_assets/test/pages/index.js" };
+    await assert.doesNotReject(validateConfig("test", config));
+});
+
+test("global menus require arrays while ordinary named menu sources remain valid", async () => {
+    const config = configuration(moduleDefinition());
+    config.xshell.areas.global = ["shortcuts"];
+    config.modules.test.menus = { shortcuts: "runtime-shortcuts", tools: "runtime-tools" };
+    await assert.rejects(validateConfig("test", config), /Global menu 'shortcuts' from module 'test' must be a static array/);
+
+    config.modules.test.menus.shortcuts = [{ label: "Shortcut", href: "/pages/shortcut.js" }];
+    await assert.doesNotReject(validateConfig("test", config));
+
+    config.xshell.areas.global = [];
+    config.modules.test.menus.shortcuts = "runtime-shortcuts";
+    await assert.doesNotReject(validateConfig("test", config));
 });
 
 test("effective schema requires app baseUrl", () => {

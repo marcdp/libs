@@ -98,8 +98,7 @@ export default class Areas {
             for (const moduleId of area.modules) {
                 const module = modules.getModuleById(moduleId);
                 if (!module) {
-                    console.warn(`Area '${area.id}' references unknown module '${moduleId}'`);
-                    continue;
+                    throw new Error(`Area '${area.id}' references unknown module '${moduleId}'.`);
                 }
                 for (const [menuName, menuDefinition] of Object.entries(module.config.menus || {})) {
                     let menuItems;

@@ -4,6 +4,13 @@ import test from "node:test";
 import Areas from "../areas.js";
 import Navigation from "../navigation.js";
 
+test("Areas.init rejects an unknown configured module", () => {
+    const config = { xshell: { assetsBasePath: "/_assets", areas: { default: "admin", global: [], definitions: { admin: { modules: ["missing"] } } } } };
+    const areas = new Areas({ config, bus: { addEventListener() {} } });
+
+    assert.throws(() => areas.init({ modules: { getModuleById() { return null; } } }), /Area 'admin' references unknown module 'missing'/);
+});
+
 test("documentation inventory menus keep Markdown page and index destinations", () => {
     const areas = new Areas({ config: { xshell: { areas: { definitions: {}, global: [] } } }, bus: { addEventListener() {} } });
     const root = "/_assets/xshell-docs/pages";

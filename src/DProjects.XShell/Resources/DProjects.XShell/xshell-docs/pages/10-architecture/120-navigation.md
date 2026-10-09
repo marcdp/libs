@@ -24,7 +24,8 @@ Areas also expose an ordered `area.routes` collection composed from their partic
 Area composition preserves each route's application-facing `path`, canonical Page `href`, source `module`, and declaration order without applying the
 Area prefix or interpreting placeholders. Navigation compiles and matches these declarations when resolving incoming friendly paths.
 
-Navigation has a private compiler for the intentionally small route syntax: literal path segments and whole-segment named parameters such as
+Configuration validation and Navigation share a compiler for the intentionally small route syntax, so invalid patterns fail before runtime initialization.
+It supports literal path segments and whole-segment named parameters such as
 `/repository/{repositoryId}/projects/{projectId}/items`. Optional parameters, wildcards, catch-alls, typed parameters, custom regular expressions,
 partial-segment placeholders, duplicate parameter names, and route priorities are unsupported. The compiler records parameter names in declaration
 order and creates an internal escaped matcher; the same compiled segment metadata is used for forward matching and reverse path construction.
@@ -63,7 +64,7 @@ the ordered collection and therefore follow the same first-match rule.
 Route failure normally preserves established Navigation fallback behavior. A forward path with no matching route continues as the existing
 Navigation target. Reverse generation with no applicable route retains the concrete menu alias when one exists, otherwise the Area-aware canonical
 href. A reverse candidate missing any required placeholder value is skipped without throwing, allowing a later candidate or canonical fallback.
-Canonical Page URLs remain directly navigable whether or not a route exists. Bad route declarations still fail during route compilation, and malformed
+Canonical Page URLs remain directly navigable whether or not a route exists. Bad route declarations fail during startup configuration validation, and malformed
 percent encoding in a matched parameter remains an invalid-URL error rather than a silent no-match.
 
 Area prefixes form the boundary between public URLs and Area-relative routes. Route paths in `module.routes` and `area.routes` never acquire the

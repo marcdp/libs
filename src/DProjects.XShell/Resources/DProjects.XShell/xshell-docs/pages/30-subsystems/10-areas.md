@@ -46,8 +46,8 @@ module-relative inventory path beginning with `/` (for example `"/pages"`), or a
 `Areas.registerSource(name, source)`. For a named source, Areas calls `source.resolve()` during composition and clones the returned array as the
 complete contribution. Each effective item has its
 module id, Area id, label, icon, children, path, and href. `path` is optional and is the friendly/public navigation alias; `href` is the canonical
-XShell navigation target. Effective menu structures are separate for each Area; participation creates no additional module instances. Unknown
-module ids and unknown sources produce warnings and are skipped.
+XShell navigation target. Effective menu structures are separate for each Area; participation creates no additional module instances. Area module ids
+are checked against the complete effective module set during startup; an unknown id fails validation. Unknown runtime sources produce warnings and are skipped.
 
 `childrenSource` is a separate pattern. It belongs on a static menu item and adds dynamically resolved children to that item; it does not replace
 the named menu contribution:
@@ -63,6 +63,8 @@ the named menu contribution:
 
 Here `customer-pages` supplies only `Customers` children, while `report-tools` supplies the entire `tools` menu. Source names are runtime lookup
 identifiers, not URLs or resolver entries. They provide runtime data without mutating the readonly effective configuration.
+Named Area menu sources are registered during module startup, so configuration validation does not check whether they exist. Global menu slots
+listed in `xshell.areas.global` instead require static array contributions from modules; strings are invalid for those slots.
 
 The bundled `x-demo` and `xshell-docs` modules use `"navigation": "/pages"`. Areas derives a hierarchy from each module's normalized
 `moduleConfig.files` inventory. It recognizes `.js`, `.html`, and `.md` Pages; HTML destinations become `.js`, while Markdown retains `.md`.

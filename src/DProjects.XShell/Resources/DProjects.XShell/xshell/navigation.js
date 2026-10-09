@@ -1,5 +1,6 @@
 import {combineUrls} from "./utils/urls.js";
 import { base64UrlEncode, base64UrlDecode } from "./utils/base64.js";
+import { compileRoute } from "./utils/route.js";
 
 // class
 export default class Navigation {
@@ -529,39 +530,7 @@ export default class Navigation {
         return canonicalHref + suffix;
     }
     _compileRoute(path) {
-        // compile literal segments and whole-segment parameters for future route matching
-        if (typeof path !== "string" || !path.startsWith("/")) {
-            throw new Error(`Invalid route path '${path}': routes must start with '/'.`);
-        }
-
-        const parameters = [];
-        const routeSegments = [];
-        const segments = path.substring(1).split("/");
-        const matcherSegments = segments.map(segment => {
-            const parameter = segment.match(/^\{([A-Za-z_][A-Za-z0-9_]*)\}$/);
-            if (parameter) {
-                const name = parameter[1];
-                if (parameters.includes(name)) throw new Error(`Invalid route path '${path}': duplicate parameter '${name}'.`);
-                parameters.push(name);
-                routeSegments.push({ parameter: name });
-                return "([^/]+)";
-            }
-            if (segment.includes("{") || segment.includes("}") || segment.includes("*") || segment.includes("?")) {
-                throw new Error(`Invalid route path '${path}': unsupported parameter or wildcard syntax.`);
-            }
-            routeSegments.push({ literal: segment });
-            return this._escapeRouteLiteral(segment);
-        });
-
-        return {
-            path,
-            parameters,
-            segments: routeSegments,
-            matcher: new RegExp(`^/${matcherSegments.join("/")}$`)
-        };
-    }
-    _escapeRouteLiteral(value) {
-        return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        return compileRoute(path);
     }
     _matchAreaRoutes(path, area) {
         return this._matchRoutes(path, area?.routes || []);
