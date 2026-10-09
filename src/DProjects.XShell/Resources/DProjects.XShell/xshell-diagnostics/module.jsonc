@@ -21,7 +21,7 @@
                 "navigation": "/pages",
                 "shortcuts": [
                     {"label": "", "tooltip":"Diagnostics", "icon": "xshell-diagnostics", "children":[
-                        {"label": "Shortcut 1.1", "href": "/pages/index.js", "icon": "x-settings", "embeded": true }
+                        {"label": "Shortcut 1.1", "href": "/pages/index.js", "icon": "x-settings", "embedded": true }
                     ] }
                 ]
             }

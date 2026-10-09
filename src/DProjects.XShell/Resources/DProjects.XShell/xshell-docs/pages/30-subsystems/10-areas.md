@@ -47,7 +47,12 @@ module-relative inventory path beginning with `/` (for example `"/pages"`), or a
 complete contribution. Each effective item has its
 module id, Area id, label, icon, children, path, and href. `path` is optional and is the friendly/public navigation alias; `href` is the canonical
 XShell navigation target. Effective menu structures are separate for each Area; participation creates no additional module instances. Area module ids
-are checked against the complete effective module set during startup; an unknown id fails validation. Unknown runtime sources produce warnings and are skipped.
+are checked against the complete effective module set during startup; an unknown id fails validation. Unknown runtime sources produce warnings and
+are skipped.
+
+Menu items may also declare `tooltip` and `embedded`. `tooltip` supplies the navigation anchor's tooltip text. When rendered by `x-menu`, an
+`embedded` menu item causes `x-menuitem` to host its target Page inline instead of rendering a navigation anchor. This presentation behavior belongs
+specifically to `x-menu` / `x-menuitem`; it is distinct from Navigation's dialog or embedded Page lifecycle and from `xshell.ui.layout.embed`.
 
 `childrenSource` is a separate pattern. It belongs on a static menu item and adds dynamically resolved children to that item; it does not replace
 the named menu contribution:

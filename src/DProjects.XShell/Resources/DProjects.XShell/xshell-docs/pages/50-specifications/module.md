@@ -178,6 +178,9 @@ the standard Resolver → Loader → `style-css` pipeline. Relative CSS imports 
 accepted effective module `styles` field.
 `params` is a free-form object. `menus` maps arbitrary menu names to static arrays, module-relative inventory paths beginning with `/` such as
 `"/pages"`, or registered runtime source names. Inventory paths derive Page menus from generated `files`; see [Areas](../subsystems/10-areas.md).
+Menu items may set `tooltip` for navigation-anchor tooltip text. They may set `embedded` so `x-menu` / `x-menuitem` hosts the target Page inline
+instead of rendering a navigation anchor; that menu presentation option is separate from general Navigation Page lifecycle and
+`xshell.ui.layout.embed`.
 
 The effective schema requires complete module defaults, source locations, and generated `files`/`assetsPath` metadata.
 Bootstrap enriches the object before schema validation. See [Packaging](../architecture/50-packaging.md).

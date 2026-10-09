@@ -11,8 +11,8 @@ export const contract = {
         selected:    {type:"boolean", default:false, attribute:true, state:true, description:""},
         checked:     {type:"boolean", default:false, attribute:true, state:true, description:""},
         disabled:    {type:"boolean", default:false, attribute:true, state:true, description:""},
-        embeded:     {type:"boolean", default:false, attribute:true, state:true, description:""},
-        toooltip:    {type:"string", default:"", attribute:true, state:true, description:""},
+        embedded:    {type:"boolean", default:false, attribute:true, state:true, description:"Hosts the target Page inline instead of rendering a navigation anchor."},
+        tooltip:     {type:"string", default:"", attribute:true, state:true, description:"Optional tooltip text shown on the navigation anchor."},
     },
     methods: {},
     slots: {
@@ -73,14 +73,14 @@ export default {
         }
     `,
     state: {
-        embeded: false,
+        embedded: false,
         expanded: false,
         childsDown: false,
         childsLeft: false,
     },
     template: `
         <hr x-if="state.label=='-'" />
-        <div x-elseif="state.embeded">
+        <div x-elseif="state.embedded">
             <x-page x-attr:src="state.href" loading="lazy"></x-page>
         </div>
         <x-anchor x-else class="menuitem anchor" x-class:down="state.childsDown" x-attr:href="state.href" x-attr:command="state.command" x-attr:disabled="state.disabled" x-attr:expanded="state.expanded" x-class:selected="state.selected" x-attr:title="state.tooltip">

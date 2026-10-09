@@ -114,6 +114,15 @@ test("global menus require arrays while ordinary named menu sources remain valid
     await assert.doesNotReject(validateConfig("test", config));
 });
 
+test("menu schema accepts embedded and rejects the pre-V0 embeded spelling", () => {
+    const module = moduleDefinition();
+    module.menus = { navigation: [{ label: "Inline report", href: "/pages/report.js", embedded: true }] };
+    assertValid(module);
+
+    module.menus.navigation[0] = { label: "Inline report", href: "/pages/report.js", embeded: true };
+    assert.equal(validator.validate(configuration(module)).valid, false);
+});
+
 test("effective schema requires app baseUrl", () => {
     const config = configuration(moduleDefinition());
     delete config.app.baseUrl;

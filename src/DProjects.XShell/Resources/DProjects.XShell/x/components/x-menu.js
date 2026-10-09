@@ -21,13 +21,13 @@ export default {
         <nav x-if="state.menu" x-attr:class="state.horizontal ? 'horizontal' : ''">
             <x-menuitem x-recursive="menuitem in state.menu" 
                 x-key="href" 
-                x-attr:embeded="menuitem.embeded" 
+                x-attr:embedded="menuitem.embedded" 
                 x-attr:label="menuitem.label" 
                 x-attr:href="menuitem.path || menuitem.href" 
                 x-attr:icon="menuitem.icon" 
                 x-attr:selected="menuitem.selected" 
                 x-attr:class="menuitem.class"
-                x-attr:toooltip="menuitem.toooltip" 
+                x-attr:tooltip="menuitem.tooltip" 
                 >
                 
             </x-menuitem>

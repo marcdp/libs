@@ -28,6 +28,63 @@ test("Areas identifies modules under a normalized multi-segment assetsBasePath",
     assert.equal(areas.getModuleId("/demo/_assets/x/pages/index.js"), null);
 });
 
+test("Areas preserve tooltip and embedded across effective menu projections", () => {
+    const bus = { addEventListener() {}, emit() {} };
+    const globalItem = {
+        label: "Global",
+        href: "/_assets/menu/pages/global.js",
+        tooltip: "Global tooltip",
+        embedded: true,
+        children: [{ label: "Global child", href: "/_assets/menu/pages/global-child.js", tooltip: "Global child tooltip", embedded: true }]
+    };
+    const config = {
+        modules: { menu: { menus: { shortcuts: [globalItem] } } },
+        xshell: {
+            assetsBasePath: "/_assets",
+            areas: { default: "main", global: ["shortcuts"], definitions: { main: { prefix: "/main", modules: ["menu"] } } }
+        }
+    };
+    const module = {
+        id: "menu",
+        routes: {},
+        config: {
+            menus: {
+                navigation: [{
+                    label: "Reports",
+                    href: "/_assets/menu/pages/reports.js",
+                    tooltip: "Reports tooltip",
+                    embedded: true,
+                    children: [{ label: "Detail", href: "/_assets/menu/pages/detail.js", tooltip: "Detail tooltip", embedded: true }]
+                }],
+                dynamic: [{ label: "Dynamic parent", childrenSource: "dynamic-children" }]
+            }
+        }
+    };
+    const dynamicItems = [{ label: "Dynamic child", href: "/_assets/menu/pages/dynamic.js", tooltip: "Dynamic tooltip", embedded: true }];
+    const areas = new Areas({ config, bus });
+    areas.registerSource("dynamic-children", { resolve() { return dynamicItems; } });
+    areas.init({ modules: { getModuleById(id) { return id === module.id ? module : null; } } });
+
+    const report = areas.getMenu("navigation", "main")[0];
+    assert.equal(report.tooltip, "Reports tooltip");
+    assert.equal(report.embedded, true);
+    assert.equal(report.children[0].tooltip, "Detail tooltip");
+    assert.equal(report.children[0].embedded, true);
+
+    const dynamic = areas.getMenu("dynamic", "main")[0].children[0];
+    assert.equal(dynamic.tooltip, "Dynamic tooltip");
+    assert.equal(dynamic.embedded, true);
+
+    const global = areas.getGlobalMenu("shortcuts")[0];
+    assert.equal(global.tooltip, "Global tooltip");
+    assert.equal(global.embedded, true);
+    assert.equal(global.children[0].tooltip, "Global child tooltip");
+    assert.equal(global.children[0].embedded, true);
+
+    const breadcrumb = areas.getMenuitemBreadcrumb("/main/_assets/menu/pages/detail.js", "main");
+    assert.deepEqual(breadcrumb.map(item => item.embedded), [true, true]);
+});
+
 function createAreas() {
     const bus = {
         addEventListener() {},
