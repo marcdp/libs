@@ -81,6 +81,39 @@ namespace DProjects.XShell.Middlewares {
                 });
             }
 
+            // expose an authored XShell JSONC descriptor through its canonical runtime URL during development
+            if (isDevelopment) {
+                app.Use(async (context, nextMiddleware) => {
+                    if (!HttpMethods.IsGet(context.Request.Method) && !HttpMethods.IsHead(context.Request.Method)) {
+                        await nextMiddleware();
+                        return;
+                    }
+                    if (!context.Request.Path.StartsWithSegments(requestPath, out var remaining)) {
+                        await nextMiddleware();
+                        return;
+                    }
+                    var relativePath = remaining.Value ?? "";
+                    if (!relativePath.EndsWith("/xshell.json", StringComparison.OrdinalIgnoreCase)) {
+                        await nextMiddleware();
+                        return;
+                    }
+                    var relativeFile = relativePath.TrimStart('/');
+                    var xshellJson = Path.GetFullPath(Path.Combine(physicalPath, relativeFile.Replace('/', Path.DirectorySeparatorChar)));
+                    if (!IsInside(xshellJson, physicalPath) || File.Exists(xshellJson)) {
+                        await nextMiddleware();
+                        return;
+                    }
+                    var xshellJsonc = Path.ChangeExtension(xshellJson, ".jsonc");
+                    if (!File.Exists(xshellJsonc)) {
+                        await nextMiddleware();
+                        return;
+                    }
+                    SetNoCacheHeaders(context.Response);
+                    context.Response.ContentType = "application/json";
+                    await context.Response.SendFileAsync(xshellJsonc, context.RequestAborted);
+                });
+            }
+
             // compile module resources during development
             if (isDevelopment) {
                 app.Use(async (context, nextMiddleware) => {

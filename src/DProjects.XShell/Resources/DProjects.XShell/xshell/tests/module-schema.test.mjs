@@ -53,7 +53,7 @@ function configuration(module) {
                 datetime: { options: {}, formats: {} },
                 strings: {}
             },
-            configUrl: "https://example.test/xshell/xshell.jsonc",
+            configUrl: "https://example.test/xshell/xshell.json",
             assetsUrl: "https://example.test/xshell/",
             files: [{ path: "/_assets/xshell/xshell.js", size: 456, hash: "xshell-hash" }]
         }

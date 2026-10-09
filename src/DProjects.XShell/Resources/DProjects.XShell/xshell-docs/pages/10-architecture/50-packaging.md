@@ -13,7 +13,9 @@ The source must resolve to exactly one package kind. A normal module contains ex
 must contain exactly one entry without `configUrl`, whose key and non-empty `version` supply the package identity. The XShell framework contains
 exactly one of `xshell.json` or `xshell.jsonc`; its id is `xshell` and its version comes from the required non-empty `xshell.version`. 
 
-JSONC comments and trailing commas are accepted in authored descriptors. For a normal module, an authored module.jsonc is parsed with JSONC semantics and emitted into staging as normalized module.json; comments, trailing commas, and original formatting are not preserved.
+Module and XShell descriptors may be authored as JSON or JSONC during development. Packaging parses either form and publishes normalized strict JSON
+using the canonical filenames `module.json` and `xshell.json`. Production packages therefore do not contain `module.jsonc` or `xshell.jsonc`.
+Comments, trailing commas, and original formatting are not preserved.
 
 The command uses one staging and compilation flow for both output modes:
 
@@ -32,14 +34,15 @@ and replaced at the same path; resources are not bundled or concatenated.
 Both representations use `<output>/<id>/<version>.<hash>/`. The 16-character lowercase hash comes from SHA-256 over ordered relative file paths and bytes in
 the compiled staging tree, including the generated inventory. It is not a hash of ZIP bytes.
 
-Without --zip, the package directory contains the compiled resources, generated module.files.json, and descriptor. An authored module.jsonc appears as normalized module.json.
+Without `--zip`, the package directory contains the compiled resources, generated `module.files.json`, and canonical descriptor. Normal modules contain
+`module.json`; XShell framework packages contain `xshell.json`.
 
 For a normal module, `--zip` publishes `module.json` and `module.zip`. The emitted `module.json` is normalized JSON with
 `modules.<local-id>.assetsUrl = "url:./module.zip"` and `modules.<local-id>.files = [...]` from the generated inventory.
 
-For the XShell framework, `--zip` publishes `xshell.jsonc` and `xshell.zip`. The emitted `xshell.jsonc` is normalized JSON, including
-`xshell.assetsUrl = "url:./xshell.zip"` and `xshell.files = [...]` from the same generated inventory. The authored source may be `xshell.json` or
-`xshell.jsonc`. Each archive contains the staged tree at its root, including `module.files.json`.
+For the XShell framework, `--zip` publishes `xshell.json` and `xshell.zip`. The emitted `xshell.json` is normalized strict JSON, including
+`xshell.assetsUrl = "url:./xshell.zip"` and `xshell.files = [...]` from the same generated inventory. Each archive contains the staged tree at its
+root, including `module.files.json`.
 
 The package path is immutable after first publication. Repeating a pack with the same content identity and representation reuses that path without
 rewriting it. Requesting expanded output where a ZIP package exists, or ZIP output where an expanded package exists, fails with a representation
@@ -75,7 +78,8 @@ Worker virtualizes delivery but does not discover or interpret inventories.
 `ResourcesMiddleware` uses the same `ModuleFileCompiler` on demand in development, including HTML-to-JavaScript resolution and conflict detection.
 It also generates `module.files.json` on demand and adds no-cache headers when ASP.NET is Development. Debugger presence does not enable it.
 Development inventories enumerate physical sources, so HTML SFC entries retain authored `.html` paths rather than packed `.js` paths.
-Server descriptor parsing and browser bootstrap both accept JSONC comments and trailing commas.
+Server descriptor parsing and browser bootstrap both accept JSONC comments and trailing commas. Bootstrap requests the canonical `xshell.json` URL;
+when the checked-in development source is `xshell.jsonc`, `ResourcesMiddleware` serves that physical source through the canonical request path.
 
 ZIP packaging is implemented. Runtime ZIP-backed browser loading is not implemented; current Service Worker mapping and fetch behavior supports
 expanded directories only.

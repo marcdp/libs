@@ -106,10 +106,13 @@ JavaScript, CSS, Pages, and icons are served from those expanded resources.
 
 The `pack` command publishes immutable expanded or ZIP packages under `<output>/<id>/<version>.<hash>/` for normal modules and the XShell framework.
 Module ZIPs contain `module.json` and `module.zip`, with `modules.<id>.assetsUrl = "url:./module.zip"` and `modules.<id>.files = [...]` in the descriptor.
-XShell ZIPs contain `xshell.jsonc` and `xshell.zip`, with `xshell.assetsUrl = "url:./xshell.zip"` and `xshell.files = [...]` in the descriptor.
+XShell ZIPs contain `xshell.json` and `xshell.zip`, with `xshell.assetsUrl = "url:./xshell.zip"` and `xshell.files = [...]` in the descriptor.
 Both `files` arrays use the generated physical inventory. An existing package path is reused for the same representation and cannot be replaced
 by the other representation. ZIP packaging is implemented, but runtime ZIP-backed browser loading is not; deploy expanded resources for the current
 Service Worker.
+
+Module and XShell descriptors may be authored as JSON or JSONC during development. Packaging parses either form and publishes normalized strict JSON
+using the canonical filenames `module.json` and `xshell.json`. Production packages therefore do not contain `module.jsonc` or `xshell.jsonc`.
 
 
 

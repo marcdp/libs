@@ -1,6 +1,6 @@
 # Configuration
 
-XShell authors JSONC fragments and produces one normalized **effective configuration** with `app`, `modules`, and `xshell` sections.
+XShell accepts JSON or JSONC authored fragments and produces one normalized **effective configuration** with `app`, `modules`, and `xshell` sections.
 
 ## Path and URL terminology
 
@@ -111,10 +111,11 @@ This excerpt shows location/params fields only, omitting required metadata and d
 }
 ```
 
-The module key is the identity; duplicate `name`, `id`, or `moduleId` fields are unnecessary. `configUrl` locates `module.jsonc`, while `assetsUrl`
-locates the physical resources. Bootstrap generates `assetsPath` as the application-root-relative virtual package base in the Service Worker
+The module key is the identity; duplicate `name`, `id`, or `moduleId` fields are unnecessary. `configUrl` locates the module descriptor, which may be
+`module.json` or `module.jsonc` during development and is canonical `module.json` in production. `assetsUrl` locates the physical resources. Bootstrap
+generates `assetsPath` as the application-root-relative virtual package base in the Service Worker
 namespace. The local definition owns `assetsUrl`; references cannot override it. `assetsPath` is effective runtime metadata and is not authored in
-`module.json`, `module.jsonc`, or `xshell.jsonc`.
+`module.json`, `module.jsonc`, `xshell.json`, or `xshell.jsonc`.
 
 ## Merge and precedence
 

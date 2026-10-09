@@ -5,7 +5,7 @@ The ASP.NET host writes `xshell:` meta values and loads `xshell/bootstrap.js`. T
 
 ```text
 host HTML
-    -> load xshell.jsonc and root module.jsonc
+    -> load canonical xshell.json and the configured root module descriptor
     -> find the root file's one local module definition
     -> discover modules.<id>.configUrl references recursively
     -> validate reference ids and canonical URLs
@@ -92,5 +92,7 @@ See [Configuration](20-configuration.md), [Services](100-services.md), [Modules]
 
 Browser bootstrap accepts JSONC comments and trailing commas in framework, root, and dependency configuration documents. Its scanner preserves
 quoted content while removing comments and commas before closing object or array delimiters. Server/build descriptor parsing accepts the same dialect.
+The framework request always uses the canonical runtime URL `xshell.json`; development middleware maps it to the checked-in `xshell.jsonc` source
+when no physical `xshell.json` exists.
 
 See [Hosting](40-hosting.md) for meta inputs and generated worker files.

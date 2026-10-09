@@ -65,28 +65,14 @@ namespace DProjects.XShell.Commands {
             try {
                 // copy
                 CopyDirectory(sourcePath, stagingPath, cancellationToken);
-                var moduleJson = Path.Combine(stagingPath, "module.json");
-                var moduleJsonc = Path.Combine(stagingPath, "module.jsonc");
-                if (File.Exists(moduleJsonc)) {
-                    File.Move(moduleJsonc, moduleJson, overwrite: true);
-                    if (package.Kind == PackageKind.Module) {
-                        // publish a JSON descriptor after accepting comments and trailing commas in the authored source
-                        var authoredJson = await File.ReadAllTextAsync(moduleJson, cancellationToken);
-                        var normalizedJson = JsonNode.Parse(authoredJson, documentOptions: new JsonDocumentOptions {
-                            CommentHandling = JsonCommentHandling.Skip,
-                            AllowTrailingCommas = true
-                        }) ?? throw new InvalidOperationException($"Invalid module configuration '{moduleJson}'.");
-                        await File.WriteAllTextAsync(moduleJson, normalizedJson.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), cancellationToken);
-                    }
-                    package = new PackageInfo(package.Kind, package.Id, package.Version, moduleJson);
-                }
+                var stagedDescriptorPath = await NormalizeDescriptorAsync(stagingPath, package, cancellationToken);
+                package = package with { DescriptorPath = stagedDescriptorPath };
 
                 // remove a copied inventory before compiling the distributable tree
                 var indexPath = Path.Combine(stagingPath, FilesIndexer.ModuleFilesJson);
                 if (File.Exists(indexPath)) File.Delete(indexPath);
 
                 // compile all runtime resources against the staged descriptor and paths
-                var stagedDescriptorPath = Path.Combine(stagingPath, Path.GetFileName(package.DescriptorPath));
                 if (package.Kind == PackageKind.Module) await CompileResourcesAsync(stagingPath, stagedDescriptorPath, cancellationToken);
 
                 // inventory only the final compiled package contents
@@ -244,7 +230,7 @@ namespace DProjects.XShell.Commands {
                 }
 
                 // write the normalized external descriptor beside the archive
-                var descriptorName = package.Kind == PackageKind.Module ? "module.json" : "xshell.jsonc";
+                var descriptorName = package.Kind == PackageKind.Module ? "module.json" : "xshell.json";
                 var outputDescriptorPath = Path.Combine(stagingZipPath, descriptorName);
                 await File.WriteAllTextAsync(outputDescriptorPath, root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), cancellationToken);
 
@@ -299,17 +285,17 @@ namespace DProjects.XShell.Commands {
             // distinguish the two published representations without relying on ZIP archive bytes
             var hasModuleZip = File.Exists(Path.Combine(packagePath, "module.zip"));
             var hasXShellZip = File.Exists(Path.Combine(packagePath, "xshell.zip"));
-            var hasModuleDescriptor = File.Exists(Path.Combine(packagePath, "module.json")) || File.Exists(Path.Combine(packagePath, "module.jsonc"));
-            var hasXShellDescriptor = File.Exists(Path.Combine(packagePath, "xshell.json")) || File.Exists(Path.Combine(packagePath, "xshell.jsonc"));
+            var hasModuleDescriptor = File.Exists(Path.Combine(packagePath, "module.json"));
+            var hasXShellDescriptor = File.Exists(Path.Combine(packagePath, "xshell.json"));
+            var hasLegacyDescriptor = File.Exists(Path.Combine(packagePath, "module.jsonc")) ||
+                File.Exists(Path.Combine(packagePath, "xshell.jsonc"));
             var hasInventory = File.Exists(Path.Combine(packagePath, FilesIndexer.ModuleFilesJson));
             var hasExpectedZip = kind == PackageKind.Module ? hasModuleZip : hasXShellZip;
             var hasOtherZip = kind == PackageKind.Module ? hasXShellZip : hasModuleZip;
             var hasExpectedDescriptor = kind == PackageKind.Module ? hasModuleDescriptor : hasXShellDescriptor;
             var hasOtherDescriptor = kind == PackageKind.Module ? hasXShellDescriptor : hasModuleDescriptor;
-            var hasZipDescriptor = kind == PackageKind.Module ? File.Exists(Path.Combine(packagePath, "module.json")) : File.Exists(Path.Combine(packagePath, "xshell.jsonc"));
-            var hasAlternateZipDescriptor = kind == PackageKind.Module ? File.Exists(Path.Combine(packagePath, "module.jsonc")) : File.Exists(Path.Combine(packagePath, "xshell.json"));
-            if (zip ? hasExpectedZip && hasZipDescriptor && !hasAlternateZipDescriptor && !hasOtherZip && !hasOtherDescriptor && !hasInventory :
-                !hasModuleZip && !hasXShellZip && hasExpectedDescriptor && !hasOtherDescriptor && hasInventory) return true;
+            if (zip ? hasExpectedZip && hasExpectedDescriptor && !hasOtherZip && !hasOtherDescriptor && !hasLegacyDescriptor && !hasInventory :
+                !hasModuleZip && !hasXShellZip && hasExpectedDescriptor && !hasOtherDescriptor && !hasLegacyDescriptor && hasInventory) return true;
             if (hasExpectedDescriptor && !hasOtherDescriptor && zip != (hasModuleZip || hasXShellZip)) {
                 throw new InvalidOperationException($"Immutable package identity already exists using another representation: {packagePath}");
             }
@@ -339,6 +325,21 @@ namespace DProjects.XShell.Commands {
                 }
             }
             return Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant()[..16];
+        }
+        private static async Task<string> NormalizeDescriptorAsync(string stagingPath, PackageInfo package, CancellationToken cancellationToken) {
+            // parse either authored extension and publish one canonical strict JSON descriptor
+            var authoredDescriptorPath = Path.Combine(stagingPath, Path.GetFileName(package.DescriptorPath));
+            var canonicalDescriptorName = package.Kind == PackageKind.Module ? "module.json" : "xshell.json";
+            var canonicalDescriptorPath = Path.Combine(stagingPath, canonicalDescriptorName);
+            var authoredJson = await File.ReadAllTextAsync(authoredDescriptorPath, cancellationToken);
+            var normalizedJson = JsonNode.Parse(authoredJson, documentOptions: new JsonDocumentOptions {
+                CommentHandling = JsonCommentHandling.Skip,
+                AllowTrailingCommas = true
+            }) ?? throw new InvalidOperationException($"Invalid {package.Kind} configuration '{authoredDescriptorPath}'.");
+            var normalizedContent = normalizedJson.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
+            await File.WriteAllTextAsync(canonicalDescriptorPath, normalizedContent, cancellationToken);
+            if (!authoredDescriptorPath.Equals(canonicalDescriptorPath, StringComparison.OrdinalIgnoreCase)) File.Delete(authoredDescriptorPath);
+            return canonicalDescriptorPath;
         }
         private static string CreateStagingPath(string sourcePath, string outputPath) {
             // keep staging outside both the authored module and requested output tree

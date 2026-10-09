@@ -182,7 +182,7 @@ test("checked-in assetsBasePath resolves for root and subpath hosting", () => {
             }
         });
         new vm.Script(bootstrapSource).runInContext(isolated);
-        const base = isolated.__bootstrapTests.normalizeAssetsBase(defaults.xshell.assetsBasePath, "https://example.test/xshell/xshell.jsonc");
+        const base = isolated.__bootstrapTests.normalizeAssetsBase(defaults.xshell.assetsBasePath, "https://example.test/xshell/xshell.json");
         assert.equal(base, "/_assets");
         assert.equal(new URL(base.substring(1), `https://example.test${basePath}/`).href, effectiveUrl);
         assert.equal(new URL(`${base.substring(1)}/x`, `https://example.test${basePath}/`).pathname,
@@ -191,7 +191,7 @@ test("checked-in assetsBasePath resolves for root and subpath hosting", () => {
 });
 
 test("assetsBasePath rejects missing, application-root, and out-of-scope locations", () => {
-    const configUrl = "https://example.test/xshell/xshell.jsonc";
+    const configUrl = "https://example.test/xshell/xshell.json";
     assert.throws(() => api.normalizeAssetsBase(undefined, configUrl), /non-empty/);
     assert.throws(() => api.normalizeAssetsBase("app:/", configUrl), /namespace below/);
     assert.throws(() => api.normalizeAssetsBase("https://example.test/elsewhere/assets", configUrl), /within the application base/);
@@ -221,13 +221,14 @@ test("module URLs normalize against the declaring logical file and keep explicit
     assert.equal(normalize("foo/bar.js"), "foo/bar.js");
 });
 
-test("bootstrap preserves resolver placeholders in normalized XShell URL templates", async () => {
-    const xshellUrl = "https://example.test/xshell/xshell.jsonc";
+test("bootstrap loads the authored XShell JSONC source through the canonical runtime URL", async () => {
+    const xshellUrl = "https://example.test/xshell/xshell.json";
     fetchedResources.set(xshellUrl, api.parseJsonc(readFileSync(new URL("../xshell.jsonc", import.meta.url), "utf8")));
     fetchedResources.set(rootUrl, { modules: { app: definition("app") } });
 
     const config = plain(await api.loadConfig());
     const resolver = new Resolver({ config });
+    assert.equal(config.xshell.configUrl, xshellUrl);
     assert.equal(config.xshell.resolver["state-engine"]["{name}"].src, "/_assets/xshell/state-engines/{name}.js");
     assert.equal(resolver.resolve("state-engine:proxy").url, "https://example.test/app/_assets/xshell/state-engines/proxy.js");
     assert.equal(resolver.resolve("render-engine:x").url, "https://example.test/app/_assets/xshell/render-engines/x.js");
@@ -362,7 +363,7 @@ test("Service Worker rules consume normalized framework and module paths", async
     };
     context.setTimeout = () => 0;
     const config = {
-        xshell: { assetsBasePath: "/runtime", assetsPath: "/runtime/xshell", assetsUrl: "https://example.test/framework/", configUrl: "https://example.test/xshell/xshell.jsonc", version: "1" },
+        xshell: { assetsBasePath: "/runtime", assetsPath: "/runtime/xshell", assetsUrl: "https://example.test/framework/", configUrl: "https://example.test/xshell/xshell.json", version: "1" },
         modules: { x: { assetsPath: "/runtime/x", assetsUrl: "https://example.test/modules/x/", configUrl: rootUrl, version: "2" } }
     };
 
@@ -525,7 +526,7 @@ test("initializeXShell imports an absolute XShell module URL unchanged", async (
 
 test("loadConfig keeps xshellConfig as the base and applies root configuration last", async () => {
     directFetchCalls.length = 0;
-    const xshellUrl = "https://example.test/xshell/xshell.jsonc";
+    const xshellUrl = "https://example.test/xshell/xshell.json";
     fetchedResources.set(xshellUrl, {
         app: { source: "xshell" },
         modules: {},
@@ -549,7 +550,7 @@ test("loadConfig keeps xshellConfig as the base and applies root configuration l
 });
 
 test("loadConfig derives every assetsPath from a custom assetsBasePath", async () => {
-    const xshellUrl = "https://example.test/xshell/xshell.jsonc";
+    const xshellUrl = "https://example.test/xshell/xshell.json";
     const xUrl = "https://example.test/modules/x/module.jsonc";
     fetchedResources.set(xshellUrl, {
         app: {},
@@ -572,7 +573,7 @@ test("loadConfig derives every assetsPath from a custom assetsBasePath", async (
 });
 
 test("root assetsBasePath override is normalized before module discovery", async () => {
-    const xshellUrl = "https://example.test/xshell/xshell.jsonc";
+    const xshellUrl = "https://example.test/xshell/xshell.json";
     fetchedResources.set(xshellUrl, {
         app: {}, modules: {},
         xshell: { assetsBasePath: "app:/_assets", assetsUrl: "url:./", temp: { url: "url:./" }, resolver: {} }
@@ -590,7 +591,7 @@ test("root assetsBasePath override is normalized before module discovery", async
 });
 
 test("loadConfig resolves XShell assetsUrl from the application base", async () => {
-    fetchedResources.set("https://example.test/xshell/xshell.jsonc", {
+    fetchedResources.set("https://example.test/xshell/xshell.json", {
         app: {}, modules: {},
         xshell: { assetsBasePath: "app:/_assets", assetsUrl: "app:/framework/", temp: { url: "url:./" }, resolver: {} }
     });

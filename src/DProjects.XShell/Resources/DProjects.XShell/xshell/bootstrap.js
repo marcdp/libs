@@ -307,7 +307,7 @@ function mergeConfigs(configs) {
 async function loadConfig() {
     console.log("bootstrap: loading config ...");
 
-    const xshellConfigUrl = bootstrapUrlDir + "/xshell.jsonc";
+    const xshellConfigUrl = bootstrapUrlDir + "/xshell.json";
     const rootModuleUrl = new URL(appConfigPath, document.baseURI).href;
 
     const [xshellConfig, rootModuleConfig] = await Promise.all([
@@ -324,7 +324,7 @@ async function loadConfig() {
     let xshellAssetsUrl = relativizePaths(
         xshellConfig.xshell.assetsUrl || "url:./",
         xshellAssetsPath,
-        "/xshell.jsonc",
+        "/xshell.json",
         xshellConfigUrl
     );
 
@@ -340,7 +340,7 @@ async function loadConfig() {
 
     xshellConfig.xshell.assetsUrl = xshellAssetsUrlObject.href;
 
-    relativizePaths(xshellConfig, xshellAssetsPath, "/xshell.jsonc", xshellConfigUrl);
+    relativizePaths(xshellConfig, xshellAssetsPath, "/xshell.json", xshellConfigUrl);
 
     // Host/runtime values are added after normalization so they are not reinterpreted as authored configuration.
     xshellConfig.app.basePath = appBasePath;

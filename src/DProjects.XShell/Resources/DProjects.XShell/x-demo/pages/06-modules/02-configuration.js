@@ -12,12 +12,12 @@ export default {
         <h2>Configuration</h2>
 
         <p>
-            Bootstrap builds one effective configuration before the browser runtime starts. It loads the framework's <code>xshell.jsonc</code>
+            Bootstrap builds one effective configuration before the browser runtime starts. It loads the framework's canonical <code>xshell.json</code>
             and the root module's <code>module.jsonc</code>, discovers referenced module definitions, normalizes them, and merges the fragments.
             XShell then receives that one object through <code>xshell.init(config)</code>; it does not query every module configuration separately.
         </p>
 
-        <pre x-pre><code>xshell.jsonc
+        <pre x-pre><code>xshell.json
     +
 root module.jsonc
     +
@@ -41,7 +41,7 @@ xshell.init(config)</code></pre>
 
         <p>
             The root module is the application's entry configuration. It is the single <code>modules</code> entry without <code>configUrl</code>,
-            regardless of property order. Other entries reference dependencies. The root module is a module; <code>xshell.jsonc</code> is the
+            regardless of property order. Other entries reference dependencies. The root module is a module; <code>xshell.json</code> is the
             separate framework configuration source.
         </p>
 

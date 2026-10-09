@@ -41,7 +41,7 @@ function configuration(i18n) {
             resolver: {},
             ui: { layout: {}, component: {}, dialog: {} },
             i18n,
-            configUrl: "https://example.test/xshell/xshell.jsonc",
+            configUrl: "https://example.test/xshell/xshell.json",
             assetsUrl: "https://example.test/xshell/",
             files: []
         }
