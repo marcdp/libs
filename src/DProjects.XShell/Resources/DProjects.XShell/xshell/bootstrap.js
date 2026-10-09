@@ -633,6 +633,7 @@ async function initializeXShell(config, loadXShellModule = url => import(url)) {
     const xshellUrl = new URL(authoredSrc.startsWith("/") ? authoredSrc.substring(1) : authoredSrc, appBaseUrl).href;
     const xshell = (await loadXShellModule(xshellUrl)).default;
 
+    console.log("bootstrap: validating xshell config ...");
     await xshell.validateConfig(config);
 
     console.log("bootstrap: initializing xshell ...");

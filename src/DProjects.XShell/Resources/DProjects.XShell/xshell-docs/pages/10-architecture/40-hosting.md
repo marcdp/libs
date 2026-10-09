@@ -1,13 +1,11 @@
 # ASP.NET Hosting
 
-`services.AddXShell()` is currently an empty extension hook. Browser services are initialized by XShell.
 `app.UseXShell(configuration)` installs resource/Temp middleware, generated bootstrap files, and SPA fallback.
 
 ```csharp
 using DProjects.XShell;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.Services.AddXShell();
 var app = builder.Build();
 app.MapGet("/api/health", () => "ok");
 app.UseXShell(new Extensions.Configuration {

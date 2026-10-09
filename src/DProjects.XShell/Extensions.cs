@@ -32,7 +32,7 @@ namespace DProjects.XShell {
         }
         public class ServerConfig {
             public string? Environment { get; init; } = null;
-            public string HeaderCSP { get; init; } = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; ";
+            public string ContentSecurityPolicy { get; init; } = "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; ";
             public string[] UnhandledPrefixes { get; init; } = new string[] { "/_", "/api", "/temp" };
         }
         public class TempConfig {

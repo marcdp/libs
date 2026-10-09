@@ -20,7 +20,7 @@ namespace DProjects.XShell.Services {
                         <!-- general -->
                         <meta charset="utf-8">
                         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                        <meta http-equiv="Content-Security-Policy" content="{EncodeAttribute(config.Server.HeaderCSP)}">
+                        <meta http-equiv="Content-Security-Policy" content="{EncodeAttribute(config.Server.ContentSecurityPolicy)}">
                         <meta name="description" content="{EncodeAttribute(config.App.Description)}">
 
                         <!-- config xshell -->
