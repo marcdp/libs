@@ -10,7 +10,7 @@ XShell maps browser location to Pages. One Navigation subsystem serves hash and 
 
 ## Decision
 
-Hash mode uses the configured `#!` prefix and needs no server path fallback. Path mode uses browser paths, History API updates, and `popstate`; it
+Hash mode uses XShell's fixed #! fragment prefix, and needs no server path fallback. Path mode uses browser paths, History API updates, and `popstate`; it
 requires server fallback for direct deep links. `Extensions.UseXShell()` supplies that fallback within the application base path. The checked-in
 framework configuration currently selects path mode. Both modes decode the same Page stack representation.
 

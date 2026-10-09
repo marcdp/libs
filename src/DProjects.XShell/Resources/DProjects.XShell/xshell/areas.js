@@ -116,15 +116,14 @@ export default class Areas {
                         // menuDefinition is a menu source identifier
                         const source = this._sources[menuDefinition];
                         if (!source) {
-                            console.warn(`Unknown menu source '${menuDefinition}'`);
-                            continue;
+                            throw new Error(`Module '${module.id}' menu '${menuName}' references unregistered menu source '${menuDefinition}'.`);
                         }
                         menuItems = source.resolve?.() || [];
                     } else {
                         continue;
                     }
                     if (!Array.isArray(menuItems)) {
-                        console.warn(`Menu '${menuName}' must resolve to an array`);
+                        throw new Error(`Menu source '${menuDefinition}' for Area '${area.id}', module '${module.id}', menu '${menuName}' must resolve to an array.`);
                         continue;
                     }
                     menus[menuName] ??= [];
@@ -228,6 +227,9 @@ export default class Areas {
     }
     registerSource(name, source) {
         // register a dynamic menu source
+        if (Object.hasOwn(this._sources, name)) {
+            throw new Error(`Menu source '${name}' is already registered.`);
+        }
         this._sources[name] = source;
         this._sourceTargets[name] = [];
         // refresh every effective copy backed by this source
@@ -296,7 +298,7 @@ export default class Areas {
         if (menuitem.childrenSource) {
             const source = this._sources[menuitem.childrenSource];
             if (!source) {
-                console.warn(`Unknown menu source '${menuitem.childrenSource}'`);
+                throw new Error(`Module '${module.id}' menu item '${menuitem.label}' references unregistered children source '${menuitem.childrenSource}'.`);
             } else {
                 this._sourceTargets[menuitem.childrenSource].push({ children: result.children, staticCount: result.children.length, module, area });
                 result.children.push(...(source.resolve?.() || []).map(child => this._cloneMenuitem(child, module, area)));
