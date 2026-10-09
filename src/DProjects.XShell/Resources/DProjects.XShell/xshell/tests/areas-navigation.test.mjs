@@ -157,7 +157,7 @@ function createNavigation({ areas = createAreas(), mode = "path", basePath = "",
         bus: { emit() {} },
         config: {
             app: { basePath, baseUrl },
-            xshell: { navigation: { mode, hashPrefix: "#!" } }
+            xshell: { navigation: { mode } }
         },
         container: { querySelectorAll() { return []; } }
     });

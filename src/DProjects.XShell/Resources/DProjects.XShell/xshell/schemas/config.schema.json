@@ -274,7 +274,6 @@
       "required": ["mode"],
       "properties": {
         "mode": {"type": "string", "enum": ["hash", "path"], "description": "Navigation strategy used by the application."},
-        "hashPrefix": {"type": ["string", "null"], "description": "Prefix used for hash-based navigation."}
       },
       "additionalProperties": false,
       "description": "Application navigation mode and related options."

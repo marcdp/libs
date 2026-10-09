@@ -47,7 +47,7 @@ export default {
         :host(.plain.selected) a:hover {color:var(--x-color-primary-dark);}    
     `,
     template: `
-        <a part="a" x-attr:href="state.hrefReal" x-attr:disabled="state.disabled" x-attr:target="state.target" x-attr:rel="state.rel" x-attr:tooltip="state.tooltip" x-on:click="click" ><slot></slot></a>
+        <a part="a" x-attr:href="state.hrefReal" x-attr:disabled="state.disabled" x-attr:target="state.target" x-attr:rel="state.rel" x-attr:title="state.tooltip" x-on:click="click" ><slot></slot></a>
     `,
     state: {
         hrefReal: null

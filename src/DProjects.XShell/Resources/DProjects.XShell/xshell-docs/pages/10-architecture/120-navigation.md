@@ -4,7 +4,7 @@ One Navigation subsystem maps browser location to Pages. Hash and path modes are
 
 An Area is a navigation context within a mode. Its `xshell.areas.definitions.<id>.prefix` identifies that context, while a module's
 `/_assets/<module-id>/...` Path identifies a Page resource. Navigation mode, Area, and resource ownership are separate. The hash-mode
-`hashPrefix = "#!"` marks the browser fragment; it is not an Area prefix.
+`#!` marks the browser fragment; it is not an Area prefix.
 
 ```text
 Module.routes
@@ -135,10 +135,10 @@ An absent/empty target or `_self` permits interception of an internal link. `x-a
 
 ## Hash mode
 
-Navigation listens for hash changes, decodes the page stack, and updates `x-page` elements. The configured `hashPrefix` is `#!`. Because the
+Navigation listens for hash changes, decodes the page stack, and updates `x-page` elements.  Because the
 destination is in the fragment, the server needs no path fallback for deep links.
 
-After reverse route generation, hash mode wraps the public application path with `App.BasePath` and `hashPrefix`. With `App.BasePath` `/app`, Area prefix
+After reverse route generation, hash mode wraps the public application path with `App.BasePath` and `#!`. With `App.BasePath` `/app`, Area prefix
 `/demo`, and public route `/repository/12/items`, the browser href is `/app/#!/demo/repository/12/items`.
 
 ```text
@@ -156,11 +156,11 @@ After reverse route generation, path mode prepends `App.BasePath` directly. With
 `/repository/12/items`, the browser href is `/app/demo/repository/12/items`.
 
 ```jsonc
-{ "xshell": { "navigation": { "mode": "path", "hashPrefix": "#!" } } }
+{ "xshell": { "navigation": { "mode": "path" } } }
 ```
 
 The nested names match `xshell.jsonc`; its checked-in default is currently `path`. The runtime `Navigation` constructor reads
-`config.xshell.navigation.mode` and `hashPrefix`.
+`config.xshell.navigation.mode`.
 
 On a fresh load at the mode's empty/root URL, Navigation uses the default Area's `home`, derived from the first depth-first navigation item marked
 `default: true`, with a fallback to the first depth-first item having `path || href`. No visibility flag is tested.

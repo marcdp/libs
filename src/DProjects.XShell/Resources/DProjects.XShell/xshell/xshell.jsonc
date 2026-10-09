@@ -34,8 +34,7 @@
 
         // navigation
         "navigation": {
-            "mode": "path", 
-            "hashPrefix": "#!"
+            "mode": "path"
         },
 
         // resolver

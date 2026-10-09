@@ -2,6 +2,9 @@ import {combineUrls} from "./utils/urls.js";
 import { base64UrlEncode, base64UrlDecode } from "./utils/base64.js";
 import { compileRoute } from "./utils/route.js";
 
+// consts
+const HASH_PREFIX = "#!";
+
 // class
 export default class Navigation {
 
@@ -12,7 +15,6 @@ export default class Navigation {
     _container = null;
 
     _mode = ""; 
-    _hashPrefix = "";
     _appBasePath = "";
     _compiledRoutes = new Map();
 
@@ -26,7 +28,6 @@ export default class Navigation {
         this._config = config;
         this._container = container;
         this._mode = config.xshell.navigation.mode;
-        this._hashPrefix = config.xshell.navigation.hashPrefix;
         this._appBasePath = config.app.basePath;
         if (this._appBasePath == "/") this._appBasePath = "";
     }
@@ -132,7 +133,7 @@ export default class Navigation {
         let href = this._buildUrlPublic(params);
         if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(href)) return href;
         if (this._mode == "hash") {
-            href = this._appBasePath + "/" + this._hashPrefix + href;
+            href = this._appBasePath + "/" + HASH_PREFIX + href;
         } else {
             href = this._appBasePath + href;
         }
@@ -306,9 +307,9 @@ export default class Navigation {
         this._stack = stack;
         if (this._mode === "hash") {
             if (replace) {
-                location.replace(this._hashPrefix + url);
+                location.replace(HASH_PREFIX + url);
             } else {
-                location.hash = this._hashPrefix + url;
+                location.hash = HASH_PREFIX + url;
             }            
         } else if (this._mode === "path") {
             if (replace) {
@@ -326,8 +327,8 @@ export default class Navigation {
         }
         // remove hash prefix if needed
         if (this._mode === "hash") {
-            if (url.startsWith(this._hashPrefix)) {
-                url = url.substring(this._hashPrefix.length);
+            if (url.startsWith(HASH_PREFIX)) {
+                url = url.substring(HASH_PREFIX.length);
             }
         } 
         // parse root page normally

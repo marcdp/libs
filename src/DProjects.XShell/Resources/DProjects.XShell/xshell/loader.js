@@ -38,7 +38,6 @@ export default class Loader {
     _appBasePath = null;
     _xshellAssetsPath = null;
     _navigationMode = null;
-    _navigationHashPrefix = null;
     
     _cache = {};
     _registry = [];
@@ -50,7 +49,6 @@ export default class Loader {
         this._appBasePath = config.app.basePath;
         this._xshellAssetsPath = config.xshell.assetsPath;
         this._navigationMode = config.xshell.navigation.mode;
-        this._navigationHashPrefix = config.xshell.navigation.hashPrefix;
         this._componentLazy = config.xshell.ui.component.lazy;
     }
 
@@ -136,7 +134,6 @@ export default class Loader {
                         resourceDefinition: definition,
                         appBasePath: this._appBasePath,
                         navigationMode: this._navigationMode,
-                        navigationHashPrefix: this._navigationHashPrefix,
                         componentLazy: this._componentLazy
                     };
                     const start = performance.now();
