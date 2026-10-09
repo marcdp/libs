@@ -3,7 +3,17 @@
 Bootstrap always installs the XShell Service Worker. It provides resource virtualization: a stable client-facing namespace for module files regardless
 of where their source files reside.
 
-The checked-in `xshell.assetsBase` is `app:/_assets`. Bootstrap normalizes it against the application base URL, producing virtual paths such as
+The checked-in value is normalized as follows:
+
+```text
+authored:
+    xshell.assetsBasePath = "app:/_assets"
+
+effective:
+    xshell.assetsBasePath = "/_assets"
+```
+
+Bootstrap normalizes the authored value against the application base URL, producing effective application Paths such as
 `/_assets/x/components/x-button.js` (served under `/myapp/_assets/...` when the application base is `/myapp/`). It sends a mapping for each
 canonical module definition and the XShell framework files. Each rule maps the virtual prefix to `assetsUrl` and carries `configUrl` in an
 `exceptions` field. The current worker does not apply that field;

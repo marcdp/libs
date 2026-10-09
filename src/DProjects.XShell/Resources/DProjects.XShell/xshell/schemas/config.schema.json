@@ -47,7 +47,7 @@
         "routes": {
           "type": "object",
           "additionalProperties": {"type": "string"},
-          "description": "Declarative application URL patterns mapped to module-relative Page targets."
+          "description": "Declarative Area-relative application Path patterns mapped to module-relative Page targets."
         },
         "defaults": {"$ref": "#/$defs/moduleDefaults", "description": "Defaults for that module."},
         "contract": {"$ref": "#/$defs/moduleContract", "description": "Public contract exposed by the module."},
@@ -252,7 +252,7 @@
     "xshellArea": {
       "type": "object",
       "properties": {
-        "prefix": {"type": "string", "description": "URL prefix assigned to the area."},
+        "prefix": {"type": "string", "description": "Application navigation Path prefix assigned to the Area."},
         "label": {"type": "string", "description": "Human-readable area label."},
         "icon": {"type": ["string", "null"], "description": "Optional icon associated with the area."},
         "modules": {

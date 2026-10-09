@@ -509,7 +509,7 @@ appropriate sanitization policy. CSP is defense in depth and does not replace sa
 <x-markdown value="This is **Markdown**."></x-markdown>
 ```
 
-The Service Worker maps browser-facing `/_assets/...` URLs to physical resources. The component keeps that virtual source URL as the base for
+The Service Worker maps requests for `/_assets/...` application Paths to physical resources. The component keeps that virtual source URL as the base for
 relative `a[href]`, `img[src]`, `source[src]`, `video[src]`, and `audio[src]` attributes, including those inside templates. It preserves fragment-only,
 root-relative, fully qualified, and protocol URLs. Relative query strings and fragments survive resolution; same-origin results use pathname,
 query, and fragment. Without `src`, direct `value` content retains its authored URLs.

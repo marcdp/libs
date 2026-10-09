@@ -166,10 +166,11 @@ The X module currently has no module controller; configuration validation occurs
 `xshell.ui.component.markdown` selects the Component used by `page-md` for Markdown Pages; the current X module sets it to `x-markdown`.
 The required `xshell.i18n` section supplies the current language, available languages, date/time formats, and translation dictionaries. The X module
 provides the baseline values, and application composition may override them through the normal merge precedence.
-An effective module may optionally declare `routes`, an object mapping friendly application URL patterns to module-relative Page targets. During
-bootstrap, route target values are normalized into the owning module's `/_assets/<module-id>/...` namespace; route keys remain application-facing
-patterns unchanged. Routes are distinct from module `menus`: menus describe user-visible navigation declarations, while routes are application
-URL-to-Page declarations. Runtime modules expose the normalized object as `module.routes`; Areas compose ordered `area.routes` from participating
+An effective module may optionally declare `routes`, an object mapping friendly application Path patterns to module-relative Page targets. During
+bootstrap, route target values are normalized into canonical module resource Paths in the owning module's `/_assets/<module-id>/...` namespace;
+route keys remain Area-relative application Path patterns unchanged. Routes are distinct from module `menus`: menus describe user-visible navigation
+declarations, while routes are application
+Path-to-Page declarations. Runtime modules expose the normalized object as `module.routes`; Areas compose ordered `area.routes` from participating
 modules without adding their prefixes, and Navigation performs forward and reverse route resolution. See [Modules](30-modules.md),
 [Areas](../subsystems/10-areas.md), and [Navigation](120-navigation.md).
 Bootstrap deeply freezes the result before `xshell.init(config)`.

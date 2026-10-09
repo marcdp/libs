@@ -3,7 +3,7 @@
 One Navigation subsystem maps browser location to Pages. Hash and path modes are both implemented on the same Page and stack model.
 
 An Area is a navigation context within a mode. Its `xshell.areas.definitions.<id>.prefix` identifies that context, while a module's
-`/_assets/<module-id>/...` URL identifies a page resource. Navigation mode, Area, and resource ownership are separate. The hash-mode
+`/_assets/<module-id>/...` Path identifies a Page resource. Navigation mode, Area, and resource ownership are separate. The hash-mode
 `hashPrefix = "#!"` marks the browser fragment; it is not an Area prefix.
 
 ```text

@@ -110,7 +110,7 @@ resource `dependencies` object, or controller service access. Controllers contin
 
 ## Routes
 
-`routes` is an optional object whose keys are friendly application URL patterns and whose values are module-relative Page targets:
+`routes` is an optional object whose keys are friendly application Path patterns and whose values are module-relative Page targets:
 
 ```jsonc
 "routes": {
@@ -119,12 +119,13 @@ resource `dependencies` object, or controller service access. Controllers contin
 }
 ```
 
-Routes are application URL-to-Page declarations, distinct from `menus`, which define visible navigation structures and concrete destinations. Route
-keys are Area-relative friendly paths. They support literal segments and whole-segment `{parameterName}` placeholders only; optional parameters,
+Routes are application Path-to-Page declarations, distinct from `menus`, which define visible navigation structures and concrete destinations.
+Route
+keys are Area-relative application Path patterns. They support literal segments and whole-segment `{parameterName}` placeholders only; optional parameters,
 wildcards, catch-alls, typed parameters, custom regular expressions, and route priorities are unsupported.
 
-During bootstrap, each authored module-relative route target is normalized into the owning module's canonical
-`/_assets/<module-id>/...` resource namespace. Route keys remain unchanged, and neither Area prefixes nor application base paths are stored in the
+During bootstrap, each authored module-relative route target is normalized into a canonical module resource Path in the owning module's
+`/_assets/<module-id>/...` namespace. Route keys remain unchanged, and neither Area prefixes nor application base paths are stored in the
 declaration. The runtime module exposes the normalized object as `module.routes`. Areas compose `area.routes` from `area.modules`, preserving module
 order, route declaration order, and duplicate paths.
 

@@ -112,6 +112,6 @@ After a configured service is first constructed and validated, XShell emits `xsh
 created event. Consumers can re-read `services.registry` to inspect the current state.
 
 The registered core names are `areas`, `bus`, `config`, `container`, `dialog`, `i18n`, `loader`, `modules`, `navigation`, `resolver`, `runtime`,
-`contracts`, `services`, `temp`, and `urlRewriter`. There is no auth/identity registration. A Diagnostics getter is not a registered service contract.
+`contracts`, `services`, and `temp`. There is no auth/identity registration. A Diagnostics getter is not a registered service contract.
 
 See [Bus](../subsystems/20-bus.md), [Dialogs](../subsystems/30-dialogs.md), and [Temp](../subsystems/50-temp.md).
