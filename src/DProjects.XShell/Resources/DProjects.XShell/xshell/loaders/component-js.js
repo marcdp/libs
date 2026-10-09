@@ -163,7 +163,7 @@ export async function createComponentClassFromJsDefinition(src, context, impleme
     // state skeleton
     const stateSkeleton = createStateSkeleton(src, implementation, contract);
     // non-state-backed property defaults
-    const serializedPropertyDefaults = {};
+    const serializedPropertyDefaults = Object.create(null);;
     for (const [propName, property] of Object.entries(contract.properties)) {
         const defaultValue = property.default;
         if (property.state !== true && defaultValue !== null && typeof(defaultValue) === "object" && (Array.isArray(defaultValue) || isPlainObject(defaultValue))) {
