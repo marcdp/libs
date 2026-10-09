@@ -11,7 +11,7 @@ namespace DProjects.XShell.Commands {
 
 
         // Arguments
-        [Flag('a', "Base path", "")]
+        [Flag('a', "App base path", "")]
         public string AppBasePath { get; init; } = "";
         [Flag('c', "App config file path", "")]
         public string AppConfigPath { get; init; } = "";

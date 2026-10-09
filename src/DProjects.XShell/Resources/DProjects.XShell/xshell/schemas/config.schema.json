@@ -171,9 +171,8 @@
     },
     "xshell": {
       "type": "object",
-      "required": ["build", "debug", "version", "environment", "assetsBasePath", "assetsPath", "areas", "navigation", "resolver", "ui", "i18n", "configUrl", "assetsUrl", "files"],
+      "required": ["debug", "version", "environment", "assetsBasePath", "assetsPath", "areas", "navigation", "resolver", "ui", "i18n", "configUrl", "assetsUrl", "files"],
       "properties": {
-        "build": {"type": "string", "description": "XShell build identifier."},
         "debug": {"type": "boolean", "description": "Whether XShell debug behavior is enabled."},
         "version": {"type": "string", "description": "XShell runtime version."},
         "environment": {"type": "string", "description": "Runtime environment name."},

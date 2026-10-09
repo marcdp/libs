@@ -86,7 +86,7 @@ Generated `sw.js` imports the configured worker source. Bootstrap registers it w
 
 ## Resources and development
 
-XShell uses the effective `Configuration.Environment` when supplied, otherwise ASP.NET's environment name. A case-insensitive `Development`
+XShell uses the effective `Configuration.Sserver.Environment` when supplied, otherwise ASP.NET's environment name. A case-insensitive `Development`
 value enables XShell development resources; an explicit `Production` disables them even if the ASP.NET host is Development. This does not modify
 ASP.NET's own environment object.
 Development uses assembly ProjectDirectory metadata to locate `Resources/DProjects.XShell`; other environments use the assembly output directory.
@@ -99,7 +99,7 @@ Debugger presence does not select this behavior.
 
 ## Server command
 
-The bundled `server` command hosts resources and the demo. Options include `-a` (application base), `-c` (root config), `-r` (resource base),
+The bundled `server` command hosts resources and the demo. Options include `-a` (app base path), `-c` (app config file path),
 `-e` / `--environment` (XShell environment), and repeatable `-p` (params). Its default application is x-demo; it supplies no application
 authentication pipeline. Select `Development` for on-demand compilation.
 

@@ -11,9 +11,9 @@ DProjects.XShell pack --source <package-directory> --output <directory> [--zip]
 
 The source must resolve to exactly one package kind. A normal module contains exactly one of `module.json` or `module.jsonc`; its `modules` object
 must contain exactly one entry without `configUrl`, whose key and non-empty `version` supply the package identity. The XShell framework contains
-exactly one of `xshell.json` or `xshell.jsonc`; its id is `xshell` and its version comes from the required non-empty `xshell.version`. A source with
-both JSON and JSONC variants, both module and XShell descriptors, or no supported descriptor is rejected. JSONC comments and trailing commas are
-supported. An authored `module.jsonc` is renamed to `module.json` in staging; its JSONC content is preserved in expanded output.
+exactly one of `xshell.json` or `xshell.jsonc`; its id is `xshell` and its version comes from the required non-empty `xshell.version`. 
+
+JSONC comments and trailing commas are accepted in authored descriptors. For a normal module, an authored module.jsonc is parsed with JSONC semantics and emitted into staging as normalized module.json; comments, trailing commas, and original formatting are not preserved.
 
 The command uses one staging and compilation flow for both output modes:
 
@@ -32,8 +32,7 @@ and replaced at the same path; resources are not bundled or concatenated.
 Both representations use `<output>/<id>/<version>.<hash>/`. The 16-character lowercase hash comes from SHA-256 over ordered relative file paths and bytes in
 the compiled staging tree, including the generated inventory. It is not a hash of ZIP bytes.
 
-Without `--zip`, the package directory contains the compiled resources, generated `module.files.json`, and descriptor. An authored `module.jsonc`
-appears there as `module.json` with its original JSONC content. An authored `xshell.jsonc` remains `xshell.jsonc`.
+Without --zip, the package directory contains the compiled resources, generated module.files.json, and descriptor. An authored module.jsonc appears as normalized module.json.
 
 For a normal module, `--zip` publishes `module.json` and `module.zip`. The emitted `module.json` is normalized JSON with
 `modules.<local-id>.assetsUrl = "url:./module.zip"` and `modules.<local-id>.files = [...]` from the generated inventory.

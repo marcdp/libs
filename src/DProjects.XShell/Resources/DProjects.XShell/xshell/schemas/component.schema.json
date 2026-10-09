@@ -21,7 +21,8 @@
         "description": { "type": "string", "minLength": 1, "description": "The description of the component." },
         "icon": { "type": "string", "minLength": 1, "description": "The icon of the component." },
         "renderEngine": { "type": "string", "minLength": 1, "description": "The rendering engine used by the component." },
-        "stateEngine": { "type": "string", "minLength": 1, "description": "The state management engine used by the component." }
+        "stateEngine": { "type": "string", "minLength": 1, "description": "The state management engine used by the component." },
+        "shadowRootOptions": { "type": "object", "description": "Options for the component's shadow root." }
       },
       "required": [ "id" ],
       "additionalProperties": false
