@@ -22,7 +22,7 @@ export default {
                 <x-icon icon="x-page"></x-icon>
                 {{ state.href }}
             </div>
-            <x-propertygrid x-prop:value="state"></x-propertygrid>
+            <x-object x-prop:value="state" expanded="true"></x-object>
         </x-details>
     `,
     state: {

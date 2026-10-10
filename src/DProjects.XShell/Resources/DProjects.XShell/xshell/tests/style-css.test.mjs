@@ -48,6 +48,25 @@ test("CSS url() values resolve against their containing stylesheet and preserve 
     ].join("\n"));
 });
 
+test("absolute stylesheet URLs inside the module namespace retain module CSS semantics", async () => {
+    const moduleRoot = "https://example.test/prefix/_assets/demo/1.0.0.dev/";
+    const stylesheetUrl = `${moduleRoot}styles/index.css`;
+    const context = {
+        appBasePath: "/prefix",
+        resourceDefinition: {
+            modulePath: "/_assets/demo/1.0.0.dev"
+        }
+    };
+    const requests = [];
+    setStylesheets(new Map([[stylesheetUrl, "a{background:url(/icons/test.svg)}"]]), requests);
+
+    const sheet = await new LoaderStyleCss().load(`${moduleRoot}styles/index.css`, context);
+
+    assert.deepEqual(requests, ["https://example.test/prefix/_assets/demo/1.0.0.dev/styles/index.css"]);
+    assert.equal(sheet.css, `a{background:url(${moduleRoot}icons/test.svg)}`);
+    assert.ok(!sheet.css.includes("https://example.test/icons/test.svg"));
+});
+
 test("CSS @import and nested stylesheet URLs each use the containing stylesheet as their base", async () => {
     const requests = [];
     setStylesheets(new Map([

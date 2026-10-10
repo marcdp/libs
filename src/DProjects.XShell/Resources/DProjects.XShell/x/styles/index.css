@@ -1,6 +1,7 @@
 /* default font */
 /* import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap'); */
 
+
 /* reset */
 @layer reset {
     /*! normalize.css v8.0.1 | MIT License | github.com/necolas/normalize.css */
@@ -11,6 +12,9 @@
 /* vars */
 :root {
    
+    /* color scheme */
+    color-scheme: light;
+
     /* general */
     --x-transition-duration:250ms;
 
@@ -75,10 +79,10 @@
     --x-layout-dialog-page-padding-vertical: 1em;
     --x-layout-dialog-page-padding-horizontal: 1.5em;
     --x-layout-dialog-backdrop: rgba(0,0,0,.1);
-
-    
-        
 }  
+:root[data-theme="dark"] {
+    color-scheme: dark;
+}
 
 @media only screen and (max-width: 768px) {
     :root {
@@ -333,3 +337,5 @@ x-page[layout='main'] > x-markdown:first-child > h1:first-child {display:none;}
 }
 
 
+/* dark theme overrides */
+@import url("dark.css");

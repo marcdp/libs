@@ -35,7 +35,6 @@ async function resolveImports(css, source, bases, loading) {
 
     let result = "";
     let position = 0;
-
     for (const item of imports) {
         result += css.slice(position, item.start);
         const importedSource = resolveImportSource(item.url, source, bases);
@@ -239,22 +238,19 @@ function createAppBaseUrl(appBasePath) {
 
 // describe the declaring resource in its logical namespace
 function createInitialSource(src, bases) {
-
     // reject configuration-only physical sources
     if (/^url:/i.test(src)) throw new Error(`The 'url:' scheme is not supported in CSS resource references: '${src}'.`);
     if (/^app:/i.test(src)) throw new Error(`The 'app:' scheme is not supported in CSS resource references: '${src}'.`);
 
-    // resolve external root stylesheets
-    if (src.startsWith("//") || hasScheme(src)) {
-        const requestUrl = new URL(src, window.location.origin).href;
-        return { requestUrl, scope: "external" };
+    // resolve the declaring stylesheet first
+    const requestUrl = new URL(src, bases.moduleVirtualBaseUrl || window.location.origin).href;
+
+    // an absolute URL can still belong to the virtual module namespace
+    if (bases.moduleVirtualBaseUrl && isInside(requestUrl, bases.moduleVirtualBaseUrl)) {
+        return { requestUrl, scope: "module" };
     }
 
-    // resolve the normal virtual module stylesheet
-    const requestUrl = new URL(src, bases.moduleVirtualBaseUrl || window.location.origin).href;
-    if (bases.moduleVirtualBaseUrl && isInside(requestUrl, bases.moduleVirtualBaseUrl)) return { requestUrl, scope: "module" };
-
-    // fall back to normal URL semantics for custom or external resources
+    // everything outside the module namespace uses normal URL semantics
     return { requestUrl, scope: "external" };
 }
 
