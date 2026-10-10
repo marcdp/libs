@@ -433,22 +433,29 @@ async function installServiceWorker(config) {
         return false;
     }
 
-    console.log("bootstrap: send init message to service worker ...");
+    console.log("bootstrap: register mappings with service worker ...");
 
     await new Promise((resolve, reject) => {
         const channel = new MessageChannel();
 
         channel.port1.onmessage = event => {
-            resolve(event.data);
+            clearTimeout(timeoutId);
             channel.port1.close();
+            if (event.data?.type === "registered") {
+                resolve();
+            } else if (event.data?.type === "error") {
+                reject(new Error(event.data.message || "Service Worker mapping registration failed."));
+            } else {
+                reject(new Error(`Unexpected Service Worker mapping registration response: '${event.data?.type}'.`));
+            }
         };
 
-        setTimeout(() => {
+        const timeoutId = setTimeout(() => {
             reject(new Error("Service Worker did not reply in time"));
             channel.port1.close();
         }, 5000);
 
-        reg.active.postMessage({ type: "init", payload: { rules } }, [channel.port2]);
+        reg.active.postMessage({ type: "registerMappings", payload: { rules } }, [channel.port2]);
     });
 
     console.log("bootstrap: service worker ready to receive requests");

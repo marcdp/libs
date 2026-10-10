@@ -25,8 +25,12 @@ named `<version>.<hash>`, where `hash` is the generated package-level identity. 
 `/_assets/<module-id>/<generation>/...`, including `xshell` as a module id for framework assets.
 
 Bootstrap selects `.dev` only when the effective environment is Development, ignoring any hash. Other environments require the descriptor's
-non-empty package hash. Service Worker rule sources use the resulting generation-qualified paths. The worker's mapping persistence and replacement
-behavior has not yet changed to retain multiple generations.
+non-empty package hash. Service Worker rule sources use the resulting generation-qualified paths.
+
+The Service Worker owns one persistent application-scope registry. Registration is additive and serialized. Canonical `src` identifies an
+immutable mapping: the same `src` and `dst` is idempotent, while the same `src` with another `dst` rejects the complete registration batch.
+Different generation paths coexist across tabs and worker restarts. V0 has no per-tab mapping state and does not expire or garbage-collect old
+generations.
 
 ## Consequences
 

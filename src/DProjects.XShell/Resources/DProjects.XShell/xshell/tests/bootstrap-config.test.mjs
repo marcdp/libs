@@ -379,12 +379,17 @@ test("assetsUrl requires an explicit physical or application URL", async () => {
 
 test("Service Worker rules consume normalized framework and module paths", async () => {
     let rules;
+    let registrationMessage;
     context.navigator = { serviceWorker: {
         controller: {}, ready: Promise.resolve(),
         async register(url, options) {
             assert.equal(url, "/app/sw.js");
             assert.equal(options.scope, "/app/");
-            return { active: { postMessage(message, ports) { rules = message.payload.rules; ports[0].reply({ type: "ready" }); } } };
+            return { active: { postMessage(message, ports) {
+                registrationMessage = message;
+                rules = message.payload.rules;
+                ports[0].reply({ type: "registered" });
+            } } };
         }
     } };
     context.MessageChannel = class {
@@ -394,16 +399,65 @@ test("Service Worker rules consume normalized framework and module paths", async
         }
     };
     context.setTimeout = () => 0;
+    context.clearTimeout = () => {};
     const config = {
         xshell: { assetsBasePath: "/runtime", assetsPath: "/runtime/xshell/1.dev", assetsUrl: "https://example.test/framework/", configUrl: "https://example.test/xshell/xshell.json", version: "1" },
         modules: { x: { assetsPath: "/runtime/x/2.dev", assetsUrl: "https://example.test/modules/x/", configUrl: rootUrl, version: "2" } }
     };
 
     assert.equal(await api.installServiceWorker(config), true);
+    assert.equal(registrationMessage.type, "registerMappings");
     assert.deepEqual(plain(rules.map(({ src, dst }) => ({ src, dst }))), [
         { src: "https://example.test/app/runtime/xshell/1.dev", dst: "https://example.test/framework/" },
         { src: "https://example.test/app/runtime/x/2.dev", dst: "https://example.test/modules/x/" }
     ]);
+});
+
+test("Service Worker mapping registration rejects explicit errors and unexpected replies", async () => {
+    const config = {
+        xshell: { assetsPath: "/_assets/xshell/1.dev", assetsUrl: "https://example.test/framework/", configUrl: "https://example.test/xshell/xshell.json", version: "1" },
+        modules: {}
+    };
+    context.MessageChannel = class {
+        constructor() {
+            this.port1 = { onmessage: null, close() {} };
+            this.port2 = { reply: data => this.port1.onmessage({ data }) };
+        }
+    };
+    context.setTimeout = () => 0;
+    context.clearTimeout = () => {};
+
+    for (const [reply, expected] of [
+        [{ type: "error", message: "immutable mapping conflict" }, /immutable mapping conflict/],
+        [{ type: "ready" }, /Unexpected Service Worker mapping registration response/]
+    ]) {
+        context.navigator = { serviceWorker: {
+            controller: {}, ready: Promise.resolve(),
+            async register() { return { active: { postMessage(message, ports) { ports[0].reply(reply); } } }; }
+        } };
+        await assert.rejects(api.installServiceWorker(config), expected);
+    }
+});
+
+test("Service Worker mapping registration keeps the no-response timeout", async () => {
+    const config = {
+        xshell: { assetsPath: "/_assets/xshell/1.dev", assetsUrl: "https://example.test/framework/", configUrl: "https://example.test/xshell/xshell.json", version: "1" },
+        modules: {}
+    };
+    context.navigator = { serviceWorker: {
+        controller: {}, ready: Promise.resolve(),
+        async register() { return { active: { postMessage() {} } }; }
+    } };
+    context.MessageChannel = class {
+        constructor() {
+            this.port1 = { onmessage: null, close() {} };
+            this.port2 = {};
+        }
+    };
+    context.setTimeout = callback => { queueMicrotask(callback); return 1; };
+    context.clearTimeout = () => {};
+
+    await assert.rejects(api.installServiceWorker(config), /Service Worker did not reply in time/);
 });
 
 test("loadFilesIndexes concurrently loads module and XShell inventories through the virtual namespace", async () => {

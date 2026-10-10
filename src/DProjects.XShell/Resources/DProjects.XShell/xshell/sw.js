@@ -1,5 +1,7 @@
 // state
 let state = null;
+let stateLoadPromise = null;
+let registrationQueue = Promise.resolve();
 
 // utils
 const DB_NAME = "xshell-sw" + self.location.pathname.substring(0, self.location.pathname.lastIndexOf("/")).replaceAll("/", "-");
@@ -36,6 +38,55 @@ async function loadDBState(key) {
     req.onerror = () => reject(req.error);
   });
 }
+function getState() {
+    if (state) return Promise.resolve(state);
+    stateLoadPromise ??= loadDBState("state").then(persistedState => {
+        state = persistedState || { rules: [] };
+        return state;
+    });
+    return stateLoadPromise;
+}
+function normalizeRule(rule) {
+    if (!rule || typeof rule.src !== "string" || !rule.src.trim() || typeof rule.dst !== "string" || !rule.dst.trim()) {
+        throw new Error("Service Worker mappings require non-empty src and dst values.");
+    }
+    const src = new URL(rule.src, self.location.origin);
+    src.search = "";
+    src.hash = "";
+    src.pathname = src.pathname.replace(/\/+$/, "") || "/";
+    return { ...rule, src: src.href };
+}
+async function registerMappings(rules) {
+    if (!Array.isArray(rules)) throw new Error("Service Worker mappings must be an array.");
+
+    // build and validate the complete candidate registry before changing durable or in-memory state
+    const currentState = await getState();
+    const candidateRules = currentState.rules.map(normalizeRule);
+    const rulesBySrc = new Map(candidateRules.map(rule => [rule.src, rule]));
+    for (const incomingRule of rules.map(normalizeRule)) {
+        const registeredRule = rulesBySrc.get(incomingRule.src);
+        if (registeredRule) {
+            if (registeredRule.dst !== incomingRule.dst) {
+                throw new Error(
+                    `Service Worker mapping '${incomingRule.src}' is already registered to '${registeredRule.dst}' ` +
+                    `and cannot be remapped to '${incomingRule.dst}'.`
+                );
+            }
+            continue;
+        }
+        candidateRules.push(incomingRule);
+        rulesBySrc.set(incomingRule.src, incomingRule);
+    }
+
+    const candidateState = { ...currentState, rules: candidateRules };
+    await saveDBState("state", candidateState);
+    state = candidateState;
+}
+function enqueueMappingRegistration(rules) {
+    const registration = registrationQueue.then(() => registerMappings(rules));
+    registrationQueue = registration.catch(() => {});
+    return registration;
+}
 
 
 // events
@@ -50,10 +101,16 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("message", (event) => {
     event.waitUntil((async () => {
         console.log("sw: received message:", event.data);
-        if (event.data.type === "init") {
-            state = event.data.payload;
-            await saveDBState("state", state);
-            event.ports?.[0]?.postMessage({ type: "ready" });
+        const port = event.ports?.[0];
+        if (event.data?.type !== "registerMappings") {
+            port?.postMessage({ type: "error", message: `Unsupported Service Worker message '${event.data?.type}'.` });
+            return;
+        }
+        try {
+            await enqueueMappingRegistration(event.data.payload?.rules);
+            port?.postMessage({ type: "registered" });
+        } catch (error) {
+            port?.postMessage({ type: "error", message: error?.message || String(error) });
         }
     })());
 });
@@ -62,9 +119,8 @@ self.addEventListener("fetch", (event) => {
         return;
     }
     event.respondWith((async () => {
-        if (!state) {
-            state = await loadDBState("state") || { rules: [] };
-        }
+        await registrationQueue;
+        await getState();
         return handleRequest(event.request);
     })());
 });
@@ -97,9 +153,10 @@ async function handleRequest(request) {
     for (const targetRule of state.rules) {
         const srcUrl = new URL(targetRule.src, self.location.origin);
         if (requestUrl.origin === srcUrl.origin && (requestUrl.pathname === srcUrl.pathname || requestUrl.pathname.startsWith(srcUrl.pathname + "/"))) {
-            rule = targetRule;
-            ruleSrcUrl = srcUrl;
-            break;
+            if (!ruleSrcUrl || srcUrl.pathname.length > ruleSrcUrl.pathname.length) {
+                rule = targetRule;
+                ruleSrcUrl = srcUrl;
+            }
         }
     }
 
