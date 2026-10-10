@@ -91,6 +91,10 @@ constructs runtime services, awaits i18n and Contracts initialization, registers
 configured Services. Modules checks requirements before loading any controller and then initializes one instance per canonical id.
 Areas composes menus, ordered routes, and homes after module startup; Navigation starts last.
 
+In Development, this effective configuration and its inventories are bootstrap-time values. File changes do not mutate an already initialized
+application; reloading runs bootstrap again and can load the current development configuration, inventory, and resources. See
+[Service Worker](110-service-worker.md#development-generations).
+
 See [Configuration](20-configuration.md), [Services](100-services.md), [Modules](30-modules.md), and [Service Worker](110-service-worker.md).
 
 ## JSONC boundary

@@ -20,8 +20,8 @@ The `/_assets` namespace must remain stable unless a separate compatibility deci
 
 ## Implemented V0 generation identity contract
 
-Development generations are mutable and named `<version>.dev`; they do not require a package content hash. Published generations are immutable and
-named `<version>.<hash>`, where `hash` is the generated package-level identity. The runtime asset URL form is
+Development generations are named `<version>.dev`; they do not require a package content hash and are not content-addressed snapshots. Published
+generations are immutable and named `<version>.<hash>`, where `hash` is the generated package-level identity. The runtime asset URL form is
 `/_assets/<module-id>/<generation>/...`, including `xshell` as a module id for framework assets.
 
 Bootstrap selects `.dev` only when the effective environment is Development, ignoring any hash. Other environments require the descriptor's
@@ -30,7 +30,9 @@ non-empty package hash. Service Worker rule sources use the resulting generation
 The Service Worker owns one persistent application-scope registry. Registration is additive and serialized. Canonical `src` identifies an
 immutable mapping: the same `src` and `dst` is idempotent, while the same `src` with another `dst` rejects the complete registration batch.
 Different generation paths coexist across tabs and worker restarts. V0 has no per-tab mapping state and does not expire or garbage-collect old
-generations.
+generations. A development mapping remains immutable while the files at its physical destination may change; same-version tabs share that mutable
+source, and different `.dev` versions may coexist. Reload, not HMR, is the V0 boundary for loading current development configuration, inventories,
+and resources. See [Service Worker](../architecture/110-service-worker.md#development-generations) for the canonical details.
 
 ## Consequences
 

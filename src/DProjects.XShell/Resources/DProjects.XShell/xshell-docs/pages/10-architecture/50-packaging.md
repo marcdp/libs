@@ -91,6 +91,10 @@ Development inventories enumerate physical sources, so HTML SFC entries retain a
 Server descriptor parsing and browser bootstrap both accept JSONC comments and trailing commas. Bootstrap requests the canonical `xshell.json` URL;
 when the checked-in development source is `xshell.jsonc`, `ResourcesMiddleware` serves that physical source through the canonical request path.
 
+Development resources use `<version>.dev` virtual generations. Their Service Worker mappings are immutable, but the mapped physical files remain
+mutable; the mapping is not a content snapshot. Reload is the V0 boundary for a new effective configuration or inventory. See
+[Service Worker](110-service-worker.md#development-generations) for the complete development-generation contract.
+
 ZIP packaging is implemented. Runtime ZIP-backed browser loading is not implemented; current Service Worker mapping and fetch behavior supports
 expanded directories only.
 
