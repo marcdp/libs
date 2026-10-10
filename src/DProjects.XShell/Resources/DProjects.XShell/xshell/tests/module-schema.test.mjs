@@ -38,7 +38,6 @@ function configuration(module) {
         },
         modules: { test: module },
         xshell: {
-            debug: false,
             version: "1.0.0",
             environment: "test",
             assetsBasePath: "/_assets",

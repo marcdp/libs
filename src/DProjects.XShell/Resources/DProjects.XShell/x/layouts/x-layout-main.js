@@ -288,7 +288,7 @@ export default {
                         <x-page-title></x-page-title>
                     </h1>
                     <x-page-description></x-page-description>
-                    <x-page-debug></x-page-debug>
+                    <x-page-info></x-page-info>
                     <slot></slot>
                 </div>
             </main>

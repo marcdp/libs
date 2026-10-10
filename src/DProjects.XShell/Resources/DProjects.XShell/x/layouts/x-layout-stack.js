@@ -101,7 +101,7 @@ export default {
             <div class="header">            
                 <div>
                     <h2><x-page-title></x-page-title></h2>
-                    <x-page-debug></x-page-debug>
+                    <x-page-info></x-page-info>
                 </div>
                 <x-button class="anchor" icon="x-close" x-on:click="queryClose"></x-button>               
             </div>            

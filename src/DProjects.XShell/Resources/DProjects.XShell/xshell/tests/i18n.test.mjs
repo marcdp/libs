@@ -30,8 +30,7 @@ function configuration(i18n) {
         },
         modules: {},
         xshell: {
-            build: "test",
-            debug: false,
+            build: "test"
             version: "1.0.0",
             environment: "test",
             assetsBasePath: "/_assets",

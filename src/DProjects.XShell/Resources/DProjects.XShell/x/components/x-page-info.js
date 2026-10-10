@@ -1,7 +1,7 @@
 
 // contract
 export const contract = {
-    description: "Displays the current page diagnostrics debug information.",
+    description: "Displays diagnostic information about the current Page",
     events: {},
     properties: {},
     methods: {}
@@ -17,7 +17,7 @@ export default {
         x-icon {vertical-align:bottom;}
     `,
     template: `
-        <x-details>
+        <x-details x-if="state.visible">
             <div slot="summary">
                 <x-icon icon="x-page"></x-icon>
                 {{ state.href }}
@@ -35,12 +35,14 @@ export default {
         breadcrumb: [],
         context: {},
         contract: null,
-        implementation: null        
+        implementation: null,
+        visible: false
     },
-    controller({ events, bus, state, getPage, areas }) {
+    controller({ events, config, bus, state, getPage, areas }) {
         return {
             async load() {
                 // mount
+                state.visible = (config.xshell.environment.toLowerCase() === "developmenta");
                 events.on(bus, "xshell:page:load", (event)=> {
                     let page = getPage();
                     if (event.detail.id == page?.id) {
