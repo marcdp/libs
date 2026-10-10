@@ -336,14 +336,36 @@ namespace DProjects.XShell.Commands {
             var canonicalDescriptorName = package.Kind == PackageKind.Module ? "module.json" : "xshell.json";
             var canonicalDescriptorPath = Path.Combine(stagingPath, canonicalDescriptorName);
             var authoredJson = await File.ReadAllTextAsync(authoredDescriptorPath, cancellationToken);
+
             var normalizedJson = JsonNode.Parse(authoredJson, documentOptions: new JsonDocumentOptions {
                 CommentHandling = JsonCommentHandling.Skip,
                 AllowTrailingCommas = true
             })?.AsObject() ?? throw new InvalidOperationException($"Invalid {package.Kind} configuration '{authoredDescriptorPath}'.");
+
+            // packaged module descriptors are always published as module.json, so normalize referenced module.jsonc descriptors too
+            if (package.Kind == PackageKind.Module && normalizedJson["modules"] is JsonObject modules) {
+                foreach (var moduleNode in modules.Select(x => x.Value).OfType<JsonObject>()) {
+                    if (moduleNode["configUrl"] is not JsonValue configUrlNode || !configUrlNode.TryGetValue<string>(out var configUrl)) continue;
+
+                    var suffixIndex = configUrl.IndexOfAny(['?', '#']);
+                    var path = suffixIndex >= 0 ? configUrl[..suffixIndex] : configUrl;
+
+                    if (!path.EndsWith("/module.jsonc", StringComparison.OrdinalIgnoreCase) &&
+                        !path.EndsWith(":module.jsonc", StringComparison.OrdinalIgnoreCase) &&
+                        !path.Equals("module.jsonc", StringComparison.OrdinalIgnoreCase)) continue;
+
+                    path = path[..^"module.jsonc".Length] + "module.json";
+                    moduleNode["configUrl"] = suffixIndex >= 0 ? path + configUrl[suffixIndex..] : path;
+                }
+            }
+
             GetOwnDescriptorObject(normalizedJson, package)["hash"] = "";
+
             var normalizedContent = normalizedJson.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
             await File.WriteAllTextAsync(canonicalDescriptorPath, normalizedContent, cancellationToken);
+
             if (!authoredDescriptorPath.Equals(canonicalDescriptorPath, StringComparison.OrdinalIgnoreCase)) File.Delete(authoredDescriptorPath);
+
             return canonicalDescriptorPath;
         }
         private static async Task WriteDescriptorHashAsync(string descriptorPath, PackageInfo package, string hash, CancellationToken cancellationToken) {
