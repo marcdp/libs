@@ -24,6 +24,7 @@ export default {
                         x-attr:href="result.path || result.href"
                         x-attr:target="result.target"
                         x-attr:category="result.category"                    
+                        tooltip="Lorem ipsum"
                         open="top"
                     ></x-listview-item>
                 </x-listview>       

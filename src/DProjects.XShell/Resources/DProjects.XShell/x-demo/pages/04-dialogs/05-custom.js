@@ -29,7 +29,7 @@ export default {
         </x-datafields>
 
         <p>
-            <x-button label="Open custom dialog" command="open-custom" class="submit"></x-button>
+            <x-button label="Open custom dialog" command="openCustom" class="submit"></x-button>
         </p>
 
         <pre x-pre><code>const result = await dialog.open({
@@ -45,6 +45,8 @@ export default {
         <h2>Result</h2>
 
         <p x-text="state.resultText"></p>
+
+        
     `,
     state: {
         contextMessage: "Hello from the parent Page",
@@ -53,7 +55,7 @@ export default {
     },
     controller({ state, dialog, page }) {
         return {
-            async "open-custom"() {
+            async openCustom() {
                 const pageDirectory = page.src.substring(0, page.src.lastIndexOf("/") + 1);
                 const result = await dialog.open({
                     href: pageDirectory + "custom-dialog.js",

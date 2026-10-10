@@ -163,6 +163,8 @@ x-markdown table {width:100%; border-collapse:collapse; margin:1em 0; }
 x-markdown table th, x-markdown table td {border:1px solid var(--x-color-gray); padding:.5em; text-align:left;}
 x-page[layout='main'] > x-markdown:first-child > h1:first-child {display:none;}
 
+.x-toast-container {position: absolute; top: 1em; right: 1em; width: min(30em, calc(100vw - 2em)); z-index: 1000; pointer-events: none;}
+.x-toast-container > x-notice { pointer-events: auto;}
 
 :root {
 
@@ -319,6 +321,7 @@ x-page[layout='main'] > x-markdown:first-child > h1:first-child {display:none;}
     /* x-splitter */
     --x-splitter-background: #dddddd;
 
+    
     /* x-tooltip */
     --x-tooltip-background: #303030;
     --x-tooltip-color: #ffffff;

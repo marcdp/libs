@@ -50,7 +50,7 @@ export default {
             transform:translateX(-50%);
             z-index:10;
         }
-        .container { position:relative;}
+        .container { position:relative; }
         .header {display:flex; align-items:baseline; padding-bottom:.5em;}
         .header div {flex:1; }
         .header div h2 {margin:0; flex:1; font-size: var(--x-font-size-subtitle); margin-right:1em}

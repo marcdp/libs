@@ -1,39 +1,85 @@
 {
   "label": "Toast",
-  "description": "Displays transient toast notifications to the user.",
+  "description": "Displays transient toast notifications at Page or application scope.",
   "properties": {},
   "events": {
     "shown": {
       "description": "Emitted when a toast becomes visible.",
       "detail": {
-        "id": {"type": "string", "required": true, "description": "Identifier of the toast."}
+        "id": { "type": "string", "required": true, "description": "Identifier of the toast." }
       }
     },
     "closed": {
-      "description": "Emitted when a toast is closed or expires.",
+      "description": "Emitted when a toast is closed, cleared, or expires.",
       "detail": {
-        "id": {"type": "string", "required": true, "description": "Identifier of the toast."}
+        "id": { "type": "string", "required": true, "description": "Identifier of the toast." }
       }
     }
   },
   "methods": {
     "show": {
-      "description": "Displays a toast notification.",
+      "description": "Displays a toast notification. When a Page is supplied, the toast belongs to that Page; otherwise it is application-scoped.",
       "parameters": [
-        { "name": "message", "type": "string", "required": true,"description": "Text displayed by the toast."},
-        { "name": "type", "type": "string", "required": false, "default": "info", "description": "Toast type.",  "enum": [ "info", "success", "warning", "error" ]},
-        { "name": "duration", "type": "number", "required": false, "description": "Duration in milliseconds before automatic dismissal."}
+        {
+          "name": "message",
+          "type": "string",
+          "required": true,
+          "description": "Text displayed by the toast."
+        },
+        {
+          "name": "options",
+          "type": "object",
+          "required": false,
+          "default": {},
+          "description": "Toast presentation, lifetime, and ownership options.",
+          "properties": {
+            "type": {
+              "type": "string",
+              "required": false,
+              "default": "info",
+              "enum": [ "info", "success", "warning", "error" ],
+              "description": "Notice type used to present the toast."
+            },
+            "duration": {
+              "type": "number",
+              "required": false,
+              "default": 4000,
+              "description": "Duration in milliseconds before automatic dismissal. Zero or a negative value disables automatic dismissal."
+            },
+            "page": {
+              "type": "object",
+              "required": false,
+              "description": "Owning Page. When supplied, the toast is rendered in that Page's visual surface; when omitted, the toast is application-scoped."
+            }
+          }
+        }
       ],
-      "returns": {"type": "string", "description": "Identifier of the created toast."}
+      "returns": {
+        "type": "string",
+        "description": "Identifier of the created toast."
+      }
     },
     "close": {
       "description": "Closes a toast by identifier.",
       "parameters": [
-        { "name": "id", "type": "string", "required": true, "description": "Identifier of the toast to close." }
+        {
+          "name": "id",
+          "type": "string",
+          "required": true,
+          "description": "Identifier of the toast to close."
+        }
       ]
     },
     "clear": {
-      "description": "Closes all currently visible toasts."
+      "description": "Closes visible toasts. When a Page is supplied, only toasts owned by that Page are closed; when omitted, all toasts are closed.",
+      "parameters": [
+        {
+          "name": "page",
+          "type": "object",
+          "required": false,
+          "description": "Optional Page whose toasts should be closed."
+        }
+      ]
     }
   }
 }

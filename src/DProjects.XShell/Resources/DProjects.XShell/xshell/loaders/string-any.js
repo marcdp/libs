@@ -1,5 +1,5 @@
 // export
-export default class LoaderObjectString {
+export default class LoaderObjectStringAny {
     async load(src) {
         // load text from the given source URL
         let response = await fetch(src);

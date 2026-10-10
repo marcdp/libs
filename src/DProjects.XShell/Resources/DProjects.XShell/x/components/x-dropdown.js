@@ -36,15 +36,18 @@ export default {
             border:var(--x-dropdown-border);
             border-radius:var(--x-dropdown-border-radius);
             box-shadow:var(--x-dropdown-shadow);
+            overflow: hidden
         }
         .body > div {
-        display:block;
+            display:block;
             padding: var(--x-dropdown-padding-vertical) var(--x-dropdown-padding-horizontal) var(--x-dropdown-padding-vertical) var(--x-dropdown-padding-horizontal);            
-            scrollbar-width: var(--x-scrollbar-width);
-            scrollbar-gutter: var(--x-scrollbar-gutter);
+            border-radius:var(--x-dropdown-border-radius);
             max-height:65vh;
-            overflow-y:scroll;
+            overflow-y:auto;
+            _scrollbar-width: var(--x-scrollbar-width);
+            _scrollbar-gutter: var(--x-scrollbar-gutter);
         }
+
         :host .body.expanded {
             display:block;
             max-width:95vw;

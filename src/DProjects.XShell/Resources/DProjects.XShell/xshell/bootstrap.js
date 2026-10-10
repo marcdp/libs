@@ -603,8 +603,17 @@ function fillResolverRules(config) {
         resolver.string ??= {};
         resolver.string[`${moduleAssetsPath}/{path}`] ??= {
             src: `${moduleAssetsPath}/{path}`,
-            loader: "string",
-            cache: true,
+            loader: "string-any",
+            cache: false,
+            moduleId,
+            modulePath: moduleAssetsPath
+        };
+
+        resolver.bytes ??= {};
+        resolver.bytes[`${moduleAssetsPath}/{path}`] ??= {
+            src: `${moduleAssetsPath}/{path}`,
+            loader: "bytes-any",
+            cache: false,
             moduleId,
             modulePath: moduleAssetsPath
         };

@@ -17,7 +17,7 @@ XShell is currently **pre-1.0** and evolving.
 - **Low cognitive load**: years later, an engineer should still be able to open a module and quickly understand what it does.
 - **Minimum magic**: important behavior should be visible in code or configuration.
 - **Modularity**: applications are composed from independent Modules with stable identities and predictable structure.
-- **Portable deployment**: application code uses the same URLs regardless of where resources are physically stored.
+- **Portable deployment**: application code uses stable application Paths while XShell maps them to the appropriate resource URLs.
 - **Developer friendly**: behavior should be easy to trace from source to browser, with minimal build-time machinery.
 - **Understandable by humans and AI**: predictable files, naming, schemas, contracts, and boundaries make the system easy to inspect and reason about.
 - **Explicit contracts**: public capabilities should be described wherever practical — properties, methods, events, slots, service APIs, and module-level capabilities.
@@ -101,7 +101,7 @@ my-module/
 
 ### Packaging and current deployment
 
-The V0 browser runtime maps expanded module directories through its Service Worker to normal URLs such as `/_assets/my-module/...`.
+The V0 browser runtime maps expanded module directories through its Service Worker into the application resource namespace, using Paths such as `/_assets/my-module/...`.
 JavaScript, CSS, Pages, and icons are served from those expanded resources.
 
 The `pack` command publishes immutable expanded or ZIP packages under `<output>/<id>/<version>.<hash>/` for normal modules and the XShell framework.
@@ -187,7 +187,7 @@ Long-lived software must be easy to diagnose.
 
 XShell favors:
 
-- predictable resource URLs
+- predictable resource Paths
 - stable Module identities
 - explicit configuration
 - deterministic resource inventories

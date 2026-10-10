@@ -36,12 +36,14 @@ export default {
             <x-button slot="footer" label="Save" command="save" class="submit"></x-button>
             <x-button slot="footer" label="Cancel" command="cancel" class="cancel"></x-button>
         </x-form>
+
+        <x-button command="showToast" label="Show Toast"></x-button>
     `,
     state: {
         message: "",
         value: ""
     },
-    controller({ state, context, page }) {
+    controller({ state, context, page, toast }) {
         return {
             save() {
                 // save
@@ -50,6 +52,13 @@ export default {
             cancel() {
                 // cancel
                 page.close(null);
+            },
+            showToast() {
+                toast.show("Hello world", {
+                    type: "success",
+                    page,
+                    duration: 4000,
+                });
             }
         };
     }

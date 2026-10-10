@@ -20,6 +20,31 @@
       "description": "Declares an XShell value type.",
       "enum": [ "string", "number", "integer", "boolean", "object", "array", "function", "date", "any" ]
     },
+    "objectProperties": {
+      "type": "object",
+      "description": "Structure of an object value.",
+      "additionalProperties": { "$ref": "#/$defs/objectProperty" }
+    },
+    "objectProperty": {
+      "type": "object",
+      "description": "Describes one member of an object value.",
+      "additionalProperties": false,
+      "properties": {
+        "description": { "type": "string", "description": "Human-readable description of the member." },
+        "type": { "$ref": "#/$defs/valueType", "description": "Value type of the member." },
+        "required": { "type": "boolean", "description": "Whether the member is required." },
+        "default": { "description": "Default value of the member." },
+        "enum": { "type": "array", "description": "Optional set of allowed string values for the member.", "items": { "type": "string" }, "uniqueItems": true },
+        "properties": { "$ref": "#/$defs/objectProperties" }
+      },
+      "required": [ "type" ],
+      "allOf": [
+        {
+          "if": { "required": [ "properties" ] },
+          "then": { "properties": { "type": { "const": "object" } } }
+        }
+      ]
+    },
     "property": {
       "type": "object",
       "description": "Describes a property and its runtime behavior.",
@@ -29,9 +54,16 @@
         "type": { "$ref": "#/$defs/valueType", "description": "Value type accepted by the property." },
         "default": { "description": "Default value of the property." },
         "readonly": { "type": "boolean", "description": "Whether consumers should treat the property as read-only." },
-        "enum": { "type": "array", "description": "Optional set of allowed string values for the property.", "items": { "type": "string" }, "uniqueItems": true }
+        "enum": { "type": "array", "description": "Optional set of allowed string values for the property.", "items": { "type": "string" }, "uniqueItems": true },
+        "properties": { "$ref": "#/$defs/objectProperties" }
       },
-      "required": [ "type" ]
+      "required": [ "type" ],
+      "allOf": [
+        {
+          "if": { "required": [ "properties" ] },
+          "then": { "properties": { "type": { "const": "object" } } }
+        }
+      ]
     },
     "event": {
       "type": "object",
@@ -49,9 +81,16 @@
       "properties": {
         "description": { "type": "string", "description": "Human-readable description of the detail field." },
         "type": { "$ref": "#/$defs/valueType", "description": "Value type of the detail field." },
-        "required": { "type": "boolean", "description": "Whether the detail field is always present." }        
+        "required": { "type": "boolean", "description": "Whether the detail field is always present." },
+        "properties": { "$ref": "#/$defs/objectProperties" }
       },
-      "required": [ "type" ]
+      "required": [ "type" ],
+      "allOf": [
+        {
+          "if": { "required": [ "properties" ] },
+          "then": { "properties": { "type": { "const": "object" } } }
+        }
+      ]
     },
     "method": {
       "type": "object",
@@ -71,18 +110,32 @@
         "type": { "$ref": "#/$defs/valueType" },
         "required": { "type": "boolean" },
         "enum": { "type": "array", "description": "Optional set of allowed string values for the parameter.", "items": { "type": "string" }, "uniqueItems": true },
-        "default": {}
+        "default": {},
+        "properties": { "$ref": "#/$defs/objectProperties" }
       },
-      "required": [ "name", "type" ]
+      "required": [ "name", "type" ],
+      "allOf": [
+        {
+          "if": { "required": [ "properties" ] },
+          "then": { "properties": { "type": { "const": "object" } } }
+        }
+      ]
     },
     "returnValue": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "description": { "type": "string" },
-        "type": { "$ref": "#/$defs/valueType" }
+        "type": { "$ref": "#/$defs/valueType" },
+        "properties": { "$ref": "#/$defs/objectProperties" }
       },
-      "required": [ "type" ]
+      "required": [ "type" ],
+      "allOf": [
+        {
+          "if": { "required": [ "properties" ] },
+          "then": { "properties": { "type": { "const": "object" } } }
+        }
+      ]
     }
   }
 }

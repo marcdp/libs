@@ -9,7 +9,7 @@ export const contract = {
 // export page
 export default {
     dependencies: {
-        code: "string:/_assets/x-demo/pages/02-pages/01-js-pages.js"
+        code: "string:/_assets/x-demo/1.0.0.dev/pages/02-pages/01-js-pages.js"
     },
     style: `
         P.p2 {

@@ -65,11 +65,13 @@ export default {
             cursor:pointer;
             user-select:none;
         }
+        .node.expandable:hover {color:var(--x-color-primary);}
 
         .toggle {
             flex:none;
             width:1.1em;
             user-select:none;
+            margin-right:.25em;
         }
 
         .toggle.empty {
@@ -84,6 +86,7 @@ export default {
             flex:none;
             margin-right:.35em;
         }
+            
 
         .name:not(:empty)::after {
             content:":";
@@ -146,9 +149,7 @@ export default {
                 class="node expandable"
                 x-on:click="toggle">
 
-                <span
-                    class="toggle"
-                    x-class:expanded="state.expanded">
+                <span class="toggle" x-class:expanded="state.expanded">
                     <x-icon icon="x-arrow-down-fill"></x-icon>
                 </span>
 
