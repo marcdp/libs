@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, mkdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { createHash } from "node:crypto";
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
+import { inflateRawSync } from "node:zlib";
 
 const projectPath = fileURLToPath(new URL("../../../../DProjects.XShell.csproj", import.meta.url));
 const projectDirectory = dirname(projectPath);
@@ -44,9 +46,9 @@ function packFailure(source, output, zip = false) {
     return spawnSync("dotnet", args, { encoding: "utf8" });
 }
 
-function zipEntryNames(path) {
+function zipEntries(path) {
     const archive = readFileSync(path);
-    const names = [];
+    const entries = new Map();
     for (let offset = 0; offset <= archive.length - 46;) {
         if (archive.readUInt32LE(offset) !== 0x02014b50) {
             offset++;
@@ -55,10 +57,41 @@ function zipEntryNames(path) {
         const nameLength = archive.readUInt16LE(offset + 28);
         const extraLength = archive.readUInt16LE(offset + 30);
         const commentLength = archive.readUInt16LE(offset + 32);
-        names.push(archive.toString("utf8", offset + 46, offset + 46 + nameLength));
+        const name = archive.toString("utf8", offset + 46, offset + 46 + nameLength);
+        const localOffset = archive.readUInt32LE(offset + 42);
+        const contentOffset = localOffset + 30 + archive.readUInt16LE(localOffset + 26) + archive.readUInt16LE(localOffset + 28);
+        const compressed = archive.subarray(contentOffset, contentOffset + archive.readUInt32LE(offset + 20));
+        const method = archive.readUInt16LE(offset + 10);
+        entries.set(name, method === 8 ? inflateRawSync(compressed) : compressed);
         offset += 46 + nameLength + extraLength + commentLength;
     }
-    return names;
+    return entries;
+}
+
+function packageHash(entries) {
+    const digest = createHash("sha256");
+    for (const [name, content] of [...entries].sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)) {
+        const path = Buffer.from(name);
+        const pathLength = Buffer.alloc(4);
+        pathLength.writeInt32LE(path.length);
+        const fileLength = Buffer.alloc(8);
+        fileLength.writeBigInt64LE(BigInt(content.length));
+        digest.update(pathLength).update(path).update(fileLength).update(content);
+    }
+    return digest.digest("hex").slice(0, 16);
+}
+
+function expandedEntries(root) {
+    const entries = new Map();
+    function visit(directory) {
+        for (const entry of readdirSync(directory, { withFileTypes: true })) {
+            const path = join(directory, entry.name);
+            if (entry.isDirectory()) visit(path);
+            else entries.set(relative(root, path).split(sep).join("/"), readFileSync(path));
+        }
+    }
+    visit(root);
+    return entries;
 }
 
 test("pack normalizes JSON and JSONC descriptors to canonical production filenames", () => {
@@ -110,10 +143,10 @@ test("pack normalizes JSON and JSONC descriptors to canonical production filenam
         assert.equal(readFileSync(join(xshellZipPackage, "xshell.json"), "utf8").includes('"files"'), true);
         assert.equal(existsSync(join(xshellZipPackage, "xshell.jsonc")), false);
         assert.equal(existsSync(join(xshellZipPackage, "xshell.zip")), true);
-        const archiveEntries = zipEntryNames(join(xshellZipPackage, "xshell.zip"));
-        assert.equal(archiveEntries.includes("xshell.json"), true);
-        assert.equal(archiveEntries.includes("xshell.jsonc"), false);
-        assert.equal(archiveEntries.includes("module.files.json"), true);
+        const archiveEntries = zipEntries(join(xshellZipPackage, "xshell.zip"));
+        assert.equal(archiveEntries.has("xshell.json"), true);
+        assert.equal(archiveEntries.has("xshell.jsonc"), false);
+        assert.equal(archiveEntries.has("module.files.json"), true);
         assert.equal(pack(xshellJson, xshellZipOutput, true), xshellZipPackage);
 
         // published package reuse recognizes only the canonical production descriptor
@@ -121,6 +154,57 @@ test("pack normalizes JSON and JSONC descriptors to canonical production filenam
         const legacyReuse = packFailure(xshellJson, xshellZipOutput, true);
         assert.notEqual(legacyReuse.status, 0);
         assert.match(legacyReuse.stderr, /incomplete or unrecognized representation/);
+    } finally {
+        rmSync(root, { recursive: true, force: true });
+    }
+});
+
+test("package hash includes the canonical descriptor and inventory for expanded and ZIP output", () => {
+    ensureAssembly();
+    mkdirSync(join(projectDirectory, "obj"), { recursive: true });
+    const root = mkdtempSync(join(projectDirectory, "obj", "pack-hash-"));
+    try {
+        for (const kind of ["module", "xshell"]) {
+            const source = join(root, kind);
+            const descriptorName = `${kind}.json`;
+            const own = kind === "module" ? config => config.modules.orders : config => config.xshell;
+            const descriptor = kind === "module" ? { modules: { orders: { version: "1.4.0", hash: "authored" } } } :
+                { xshell: { version: "0.9.0", hash: "authored" } };
+            writeDescriptor(source, descriptorName, JSON.stringify(descriptor));
+            writeDescriptor(join(source, "contracts"), "customer.json", '{"name":"customer"}');
+            writeDescriptor(source, "module.files.json", '[{"path":"/stale"}]');
+
+            const expanded = pack(source, join(root, `${kind}-expanded`));
+            const zipped = pack(source, join(root, `${kind}-zip`), true);
+            const suffix = expanded.split(/[\\/]/).at(-1).split(".").at(-1);
+            assert.match(suffix, /^[0-9a-f]{16}$/);
+            assert.equal(zipped.split(/[\\/]/).at(-1), expanded.split(/[\\/]/).at(-1));
+
+            const publishedText = readFileSync(join(expanded, descriptorName), "utf8");
+            const published = JSON.parse(publishedText);
+            assert.equal(own(published).hash, suffix);
+            const inventory = JSON.parse(readFileSync(join(expanded, "module.files.json"), "utf8"));
+            assert.deepEqual(inventory.map(file => file.path), ["/contracts/customer.json"]);
+
+            const canonical = expandedEntries(expanded);
+            canonical.set(descriptorName, Buffer.from(publishedText.replace(`"hash": "${suffix}"`, '"hash": ""')));
+            assert.equal(packageHash(canonical), suffix);
+
+            const external = JSON.parse(readFileSync(join(zipped, descriptorName), "utf8"));
+            assert.equal(own(external).hash, suffix);
+            const archive = zipEntries(join(zipped, `${kind}.zip`));
+            assert.equal(own(JSON.parse(archive.get(descriptorName))).hash, "");
+            assert.equal(packageHash(archive), suffix);
+            assert.equal(archive.has("module.files.json"), true);
+
+            // an authored hash is ignored, while other descriptor content changes package identity
+            own(descriptor).hash = "another-authored-value";
+            writeDescriptor(source, descriptorName, JSON.stringify(descriptor));
+            assert.equal(pack(source, join(root, `${kind}-expanded`)), expanded);
+            own(descriptor).label = "Changed";
+            writeDescriptor(source, descriptorName, JSON.stringify(descriptor));
+            assert.notEqual(pack(source, join(root, `${kind}-expanded`)), expanded);
+        }
     } finally {
         rmSync(root, { recursive: true, force: true });
     }

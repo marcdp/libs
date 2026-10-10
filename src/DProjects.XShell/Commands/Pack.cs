@@ -221,10 +221,12 @@ namespace DProjects.XShell.Commands {
                         throw new InvalidOperationException($"Module configuration '{descriptorPath}' must contain exactly one local module definition.");
                     }
                     var localModule = (JsonObject)localModules[0].Value!;
+                    localModule["hash"] = hash;
                     localModule["assetsUrl"] = "url:./module.zip";
                     localModule["files"] = JsonNode.Parse(moduleFilesJson);
                 } else {
                     var xshell = root["xshell"] as JsonObject ?? throw new InvalidOperationException($"XShell configuration '{descriptorPath}' must contain an xshell object.");
+                    xshell["hash"] = hash;
                     xshell["assetsUrl"] = "url:./xshell.zip";
                     xshell["files"] = JsonNode.Parse(moduleFilesJson);
                 }
@@ -265,6 +267,8 @@ namespace DProjects.XShell.Commands {
             var tempPackagePath = Path.Combine(outputPath, $".{package.Id}-{package.Version}-{Guid.NewGuid():N}.tmp");
             try {
                 CopyDirectory(stagingPath, tempPackagePath, cancellationToken);
+                var publishedDescriptorPath = Path.Combine(tempPackagePath, Path.GetFileName(package.DescriptorPath));
+                await WriteDescriptorHashAsync(publishedDescriptorPath, package, hash, cancellationToken);
                 Directory.CreateDirectory(Path.GetDirectoryName(packagePath)!);
                 try {
                     Directory.Move(tempPackagePath, packagePath);
@@ -335,11 +339,25 @@ namespace DProjects.XShell.Commands {
             var normalizedJson = JsonNode.Parse(authoredJson, documentOptions: new JsonDocumentOptions {
                 CommentHandling = JsonCommentHandling.Skip,
                 AllowTrailingCommas = true
-            }) ?? throw new InvalidOperationException($"Invalid {package.Kind} configuration '{authoredDescriptorPath}'.");
+            })?.AsObject() ?? throw new InvalidOperationException($"Invalid {package.Kind} configuration '{authoredDescriptorPath}'.");
+            GetOwnDescriptorObject(normalizedJson, package)["hash"] = "";
             var normalizedContent = normalizedJson.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
             await File.WriteAllTextAsync(canonicalDescriptorPath, normalizedContent, cancellationToken);
             if (!authoredDescriptorPath.Equals(canonicalDescriptorPath, StringComparison.OrdinalIgnoreCase)) File.Delete(authoredDescriptorPath);
             return canonicalDescriptorPath;
+        }
+        private static async Task WriteDescriptorHashAsync(string descriptorPath, PackageInfo package, string hash, CancellationToken cancellationToken) {
+            var root = JsonNode.Parse(await File.ReadAllTextAsync(descriptorPath, cancellationToken))?.AsObject()
+                ?? throw new InvalidOperationException($"Invalid {package.Kind} configuration '{descriptorPath}'.");
+            GetOwnDescriptorObject(root, package)["hash"] = hash;
+            await File.WriteAllTextAsync(descriptorPath, root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), cancellationToken);
+        }
+        private static JsonObject GetOwnDescriptorObject(JsonObject root, PackageInfo package) {
+            if (package.Kind == PackageKind.XShell) {
+                return root["xshell"] as JsonObject ?? throw new InvalidOperationException($"XShell configuration must contain an xshell object.");
+            }
+            var modules = root["modules"] as JsonObject ?? throw new InvalidOperationException("Module configuration must contain a modules object.");
+            return modules[package.Id] as JsonObject ?? throw new InvalidOperationException($"Module configuration must contain local module '{package.Id}'.");
         }
         private static string CreateStagingPath(string sourcePath, string outputPath) {
             // keep staging outside both the authored module and requested output tree

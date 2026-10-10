@@ -45,6 +45,7 @@
         "params": {"type": "object", "additionalProperties": true, "description": "Parameters supplied to the canonical module by root application composition."},
         "requires": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true, "description": "Names of services that must be registered before the module is initialized."},
         "assetsUrl": {"type": "string", "format": "uri", "description": "Fully qualified absolute URL of the directory or package containing the module assets."},
+        "hash": {"type": "string", "minLength": 1, "description": "Generated immutable package-generation hash when published."},
         "assetsPath": {"type": "string", "pattern": "^/", "description": "Application-root-relative virtual base path for the module assets."},
         "menus": {"$ref": "#/$defs/menus", "description": "Menu contributions exposed by the module."},
         "routes": {
@@ -180,6 +181,7 @@
         "assetsBasePath": {"type": "string", "pattern": "^/", "description": "Normalized application-relative base path for the virtual asset namespace. (e.g. /_assets)"},
         "assetsPath": {"type": "string", "pattern": "^/", "description": "Application-root-relative virtual base path for the XShell framework assets. (e.g. /_assets/xshell)"},
         "assetsUrl": {"type": "string", "format": "uri", "description": "Fully qualified absolute URL of the directory or package containing the XShell assets."},
+        "hash": {"type": "string", "minLength": 1, "description": "Generated immutable package-generation hash when published."},
         "ui": {"$ref": "#/$defs/xshellUi", "description": "Global ui settings."},
         "i18n": {"$ref": "#/$defs/xshellI18n", "description": "Language, translation, and date/time formatting settings."},
         "areas": {"$ref": "#/$defs/xshellAreas", "description": "Application area configuration."},

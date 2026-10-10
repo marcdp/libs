@@ -5,6 +5,17 @@ function meta(name){return document.head.querySelector(`meta[name="${name}"]`)?.
 function deepFreeze(obj){if(obj===null||typeof obj!=="object")return obj;Object.freeze(obj);for(const value of Object.values(obj))deepFreeze(value);return obj;}
 function resolveAppUrl(value){const root="/__xshell_app_root__/";const logicalUrl=new URL(value.substring(4).trim().replace(/^\/+/,""),"https://app.invalid"+root);if(logicalUrl.origin!=="https://app.invalid"||!logicalUrl.pathname.startsWith(root))throw new Error(`Application URL '${value}' escapes the application root.`);return new URL(logicalUrl.pathname.substring(root.length)+logicalUrl.search+logicalUrl.hash,appBaseUrl).href;}
 function normalizeAssetsBasePath(value){if(typeof value!=="string"||!value.trim())throw new Error("xshell.assetsBasePath must be a non-empty URL or path.");let resolved;if(value.startsWith("app:"))resolved=resolveAppUrl(value);else if(/^https?:\/\//i.test(value))resolved=value;else throw new Error(`xshell.assetsBasePath must use app: or an absolute HTTP(S) URL: '${value}'.`);const url=new URL(resolved),appPath=new URL(appBaseUrl).pathname.replace(/\/+$/,"");if(url.origin!==document.location.origin||(appPath&&url.pathname!==appPath&&!url.pathname.startsWith(appPath+"/"))||url.search||url.hash)throw new Error(`xshell.assetsBasePath must resolve within the application base URL: '${value}'.`);const assetsBasePath=url.pathname.substring(appPath.length).replace(/\/+$/,"");if(!assetsBasePath)throw new Error("xshell.assetsBasePath must identify a namespace below the application base URL.");return assetsBasePath;}
+function getAssetsPath(assetsBasePath, moduleId, version, hash, environment) {
+    if (typeof version !== "string" || !version.trim()) throw new Error(`Module '${moduleId}' requires a non-empty version for its asset generation.`);
+    let generation;
+    if (String(environment).toLowerCase() === "development") {
+        generation = `${version}.dev`;
+    } else {
+        if (typeof hash !== "string" || !hash.trim()) throw new Error(`Published module '${moduleId}' requires a non-empty package hash.`);
+        generation = `${version}.${hash}`;
+    }
+    return `${assetsBasePath}/${moduleId}/${generation}`;
+}
 function relativizePaths(value,assetsPath,declaringPath="/module.jsonc",physicalUrl=""){if(Array.isArray(value))return value.map(item=>relativizePaths(item,assetsPath,declaringPath,physicalUrl));if(value&&typeof value==="object"){for(const[name,item]of Object.entries(value))value[name]=relativizePaths(item,assetsPath,declaringPath,physicalUrl);return value;}if(typeof value!=="string")return value;const restoreBraces=normalized=>value.includes("{")||value.includes("}")?normalized.replace(/%7B/gi,"{").replace(/%7D/gi,"}"):normalized;if(value.startsWith("app:"))return restoreBraces(resolveAppUrl(value));if(value.startsWith("url:"))return restoreBraces(new URL(value.substring(4).trim(),physicalUrl).href);if(/^[a-z][a-z0-9+.-]*:/i.test(value))return value;if(!value.startsWith("/")&&!value.startsWith("./")&&!value.startsWith("../"))return value;const root="/__xshell_module_root__",logicalUrl=value.startsWith("/")?new URL(root+value,"https://module.invalid"):new URL(value,"https://module.invalid"+root+declaringPath);if(!logicalUrl.pathname.startsWith(root+"/"))throw new Error(`Module URL '${value}' in '${physicalUrl||declaringPath}' escapes the module root.`);return restoreBraces(assetsPath+logicalUrl.pathname.substring(root.length)+logicalUrl.search+logicalUrl.hash);}
 
 
@@ -111,9 +122,9 @@ function getLocalModule(config, configUrl) {
     return { id: entries[0][0], definition: entries[0][1] };
 }
 
-function prepareModuleConfig(config, configUrl, assetsBasePath) {
+function prepareModuleConfig(config, configUrl, assetsBasePath, environment) {
     const localModule = getLocalModule(config, configUrl);
-    const assetsPath = assetsBasePath + "/" + localModule.id;
+    const assetsPath = getAssetsPath(assetsBasePath, localModule.id, localModule.definition.version, localModule.definition.hash, environment);
 
     let assetsUrl = relativizePaths(localModule.definition.assetsUrl || "url:./", assetsPath, "/module.jsonc", configUrl);
 
@@ -176,10 +187,10 @@ function prepareModuleConfig(config, configUrl, assetsBasePath) {
 
     relativizePaths(config, assetsPath, declaringPath, configUrl);
 
-    return { id: localModule.id, config, configUrl, references };
+    return { id: localModule.id, config, configUrl, assetsPath, references };
 }
 
-async function discoverModuleConfigs(rootConfig, rootConfigUrl, loadConfig, assetsBasePath) {
+async function discoverModuleConfigs(rootConfig, rootConfigUrl, loadConfig, assetsBasePath, environment) {
     const nodesById = new Map();
     const nodesByUrl = new Map();
 
@@ -200,7 +211,7 @@ async function discoverModuleConfigs(rootConfig, rootConfigUrl, loadConfig, asse
         nodesByUrl.set(node.configUrl, node);
     };
 
-    const rootNode = prepareModuleConfig(rootConfig, rootConfigUrl, assetsBasePath);
+    const rootNode = prepareModuleConfig(rootConfig, rootConfigUrl, assetsBasePath, environment);
 
     registerNode(rootNode, new Set([rootNode.id]));
 
@@ -244,7 +255,7 @@ async function discoverModuleConfigs(rootConfig, rootConfigUrl, loadConfig, asse
 
         for (let i = 0; i < urls.length; i++) {
             const url = urls[i];
-            const node = prepareModuleConfig(loadedConfigs[i], url, assetsBasePath);
+            const node = prepareModuleConfig(loadedConfigs[i], url, assetsBasePath, environment);
 
             registerNode(node, pendingByUrl.get(url).expectedIds);
             currentNodes.push(node);
@@ -319,7 +330,8 @@ async function loadConfig() {
         rootModuleConfig.xshell?.assetsBasePath ?? xshellConfig.xshell.assetsBasePath
     );
 
-    const xshellAssetsPath = assetsBasePath + "/xshell";
+    const environment = xshellEnvironment || rootModuleConfig.xshell?.environment || xshellConfig.xshell.environment;
+    const xshellAssetsPath = getAssetsPath(assetsBasePath, "xshell", xshellConfig.xshell.version, xshellConfig.xshell.hash, environment);
 
     let xshellAssetsUrl = relativizePaths(
         xshellConfig.xshell.assetsUrl || "url:./",
@@ -345,7 +357,7 @@ async function loadConfig() {
     // Host/runtime values are added after normalization so they are not reinterpreted as authored configuration.
     xshellConfig.app.basePath = appBasePath;
     xshellConfig.app.baseUrl = appBaseUrl;
-    xshellConfig.xshell.environment = xshellEnvironment || xshellConfig.xshell.environment;
+    xshellConfig.xshell.environment = environment;
     xshellConfig.xshell.configUrl = xshellConfigUrl;
     xshellConfig.xshell.temp.url = new URL(xshellTempUrl, document.baseURI).href;
     xshellConfig.xshell.assetsBasePath = assetsBasePath;
@@ -354,7 +366,7 @@ async function loadConfig() {
     rootModule.definition.params = Object.fromEntries(new URLSearchParams(appParams));
     xshellConfig.app.params = rootModule.definition.params;
 
-    const graph = await discoverModuleConfigs(rootModuleConfig, rootModuleUrl, loadJsonWithComments, assetsBasePath);
+    const graph = await discoverModuleConfigs(rootModuleConfig, rootModuleUrl, loadJsonWithComments, assetsBasePath, environment);
     const config = mergeConfigs([xshellConfig, ...graph.mergeOrder.map(node => node.config)]);
 
     if (!/^[a-z][a-z0-9+.-]*:/i.test(config.xshell.assetsUrl)) {
@@ -368,11 +380,12 @@ async function loadConfig() {
     }
 
     config.xshell.assetsUrl = finalAssetsUrl.href;
+    config.xshell.environment = environment;
     config.xshell.assetsBasePath = assetsBasePath;
     config.xshell.assetsPath = xshellAssetsPath;
 
     for (const [moduleId, module] of Object.entries(config.modules)) {
-        module.assetsPath = assetsBasePath + "/" + moduleId;
+        module.assetsPath = graph.nodesById.get(moduleId).assetsPath;
 
         module.contract ??= {};
         module.contract.events ??= {};

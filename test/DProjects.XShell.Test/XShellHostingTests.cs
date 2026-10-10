@@ -133,16 +133,7 @@ namespace DProjects.XShell.Test {
 
             Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
             Assert.Equal("/app/", response.Headers.Location?.OriginalString);
-        }
-        [Fact]
-        public async Task ResourcesBasePath_IsExemptFromAppRedirect() {
-            await using var host = await HostingApplication.StartAsync(resourcesBase: "/resources-base");
-
-            using var response = await host.Client.GetAsync("/resources-base/missing", TestContext.Current.CancellationToken);
-
-            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-            Assert.Null(response.Headers.Location);
-        }
+        } 
         [Fact]
         public async Task RootMountedApp_ServesSpaAndPreservesUnhandledPaths() {
             await using var host = await HostingApplication.StartAsync(appBasePath: "");
@@ -199,8 +190,7 @@ namespace DProjects.XShell.Test {
             }
 
             // methods
-            public static async Task<HostingApplication> StartAsync(string appBasePath = "/app", string resourcesBase = "",
-                string[]? unhandledPrefixes = null, string appConfigPath = "", string xshellBasePath = "/_resources/DProjects.XShell/xshell",
+            public static async Task<HostingApplication> StartAsync(string appBasePath = "/app", string[]? unhandledPrefixes = null, string appConfigPath = "", string xshellBasePath = "/_resources/DProjects.XShell/xshell",
                 Action<WebApplication>? configureEndpoints = null) {
                 var tempPath = Path.Combine(Path.GetTempPath(), "DProjects.XShell.Test", Guid.NewGuid().ToString("N"));
                 var builder = WebApplication.CreateBuilder(new WebApplicationOptions { EnvironmentName = "Development" });
@@ -209,16 +199,24 @@ namespace DProjects.XShell.Test {
                 try {
                     configureEndpoints?.Invoke(app);
                     app.UseXShell(new Extensions.Configuration {
-                        Environment = "Development",
+                        
                         App = new Extensions.AppConfig {
                             BasePath = appBasePath,
                             ConfigPath = appConfigPath,
                             Params = new Dictionary<string, string>()
                         },
-                        ResourcesBase = resourcesBase,
-                        UnhandledPrefixes = unhandledPrefixes ?? new Extensions.Configuration().UnhandledPrefixes,
-                        XShellBasePath = xshellBasePath,
-                        Temp = new Extensions.TempConfig { Path = tempPath }
+                        Server = new Extensions.ServerConfig {
+                            Environment = "Development"
+                        },
+                        Temp = new Extensions.TempConfig {
+                            Path = tempPath,
+                            BasePath = "/temp",
+                            ExpirationTime = TimeSpan.FromMinutes(30),
+                            FileSizeLimit = 10 * 1024 * 1024
+                        },
+                        XShell = new Extensions.XShellConfig {
+                           BasePath = xshellBasePath
+                        },
                     });
                     await app.StartAsync(TestContext.Current.CancellationToken);
                     return new HostingApplication(app, tempPath);

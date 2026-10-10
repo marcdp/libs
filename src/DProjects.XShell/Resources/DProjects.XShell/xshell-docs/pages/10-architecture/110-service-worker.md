@@ -14,7 +14,7 @@ effective:
 ```
 
 Bootstrap normalizes the authored value against the application base URL, producing effective application Paths such as
-`/_assets/x/components/x-button.js` (served under `/myapp/_assets/...` when the application base is `/myapp/`). It sends a mapping for each
+`/_assets/x/1.4.0.dev/components/x-button.js` (served under `/myapp/_assets/...` when the application base is `/myapp/`). It sends a mapping for each
 canonical module definition and the XShell framework files. Each rule maps the virtual prefix to `assetsUrl` and carries `configUrl` in an
 `exceptions` field. The current worker does not apply that field;
 configuration discovery still fetches the original document URL before worker setup. The worker rewrites matching requests and fetches the physical
@@ -22,25 +22,28 @@ resource. Repeated
 references to a definition share one mapping; they do not create additional live module instances.
 
 ```text
-client: /_assets/<module-id>/<resource>
+client: /_assets/<module-id>/<generation>/<resource>
     → Service Worker mapping
     → assetsUrl (currently an expanded directory)
     → resource response
 ```
 
 `configUrl` identifies a module configuration document. `assetsUrl` identifies the physical directory or package holding its assets. Normal clients
-must use `/_assets/<module-id>/...` and remain independent of whether storage is expanded or packaged. Current mapping and fetch behavior supports
+must use `/_assets/<module-id>/<generation>/...` and remain independent of whether storage is expanded or packaged. Current mapping and fetch
+behavior supports
 expanded directories. Runtime ZIP loading is not implemented. The mapped fetch has no explicit `mode` option; the source's `same-origin` option
 is commented out. Cross-origin destinations remain subject to fetch/CORS and the host CSP, whose default connect policy is same-origin.
 Arbitrary CDN backing is not a supported deployment guarantee.
 
 The worker stores bootstrap's initialization payload in IndexedDB and reloads it when handling requests after its in-memory state has been lost.
 After the worker is ready and acknowledges its mappings, bootstrap concurrently loads every normal module inventory from
-`/_assets/<module-id>/module.files.json` and the framework inventory from `/_assets/xshell/module.files.json`. The worker only virtualizes those
+`/_assets/<module-id>/<generation>/module.files.json` and the framework inventory from `/_assets/xshell/<generation>/module.files.json`. The worker
+only virtualizes those
 requests; inventory discovery, path normalization, and attachment to the effective configuration remain bootstrap responsibilities.
 
 Every physical inventory uses the filename `module.files.json` and package-relative paths such as `/pages/home.js`. Bootstrap exposes those entries
-as virtual application resource paths such as `/_assets/x/pages/home.js` in `config.modules.x.files` or `/_assets/xshell/xshell.js` in
+as virtual application resource paths such as `/_assets/x/1.4.0.dev/pages/home.js` in `config.modules.x.files` or
+`/_assets/xshell/0.9.0.dev/xshell.js` in
 `config.xshell.files` before validation and XShell initialization.
 
 See [Asset URL Namespace ADR](../adr/0001-asset-url-namespace.md) and [Modules](30-modules.md).
@@ -50,6 +53,8 @@ See [Asset URL Namespace ADR](../adr/0001-asset-url-namespace.md) and [Modules](
 The first rule whose origin/path prefix matches a complete namespace boundary wins. The worker preserves the incoming query, method, and headers,
 fetches the rewritten destination, and removes Location/Content-Location from the returned response.
 Initialization waits for IndexedDB persistence and a ready acknowledgement before bootstrap requests inventories.
+Rule source prefixes are generation-qualified, but initialization still replaces the worker's rule state; retaining multiple generations is
+separate work.
 IndexedDB stores mappings, not a resource cache. Rule version/name/exceptions and inventory hashes are not used for cache versioning, exclusion,
 or fetched-byte verification. This does not provide offline packaging.
 

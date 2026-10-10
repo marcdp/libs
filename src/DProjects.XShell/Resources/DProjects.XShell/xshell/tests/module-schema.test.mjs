@@ -272,6 +272,19 @@ test("effective schema requires generated module and XShell assetsPath values", 
     assert.equal(validator.validate(config).valid, false);
 });
 
+test("effective schema accepts optional published package hashes but rejects empty values", () => {
+    const config = configuration(moduleDefinition());
+    assert.equal(validator.validate(config).valid, true);
+    config.modules.test.hash = "a82c31f943e01abc";
+    config.xshell.hash = "31d04ab8e220a581";
+    assert.equal(validator.validate(config).valid, true);
+    config.modules.test.hash = "";
+    assert.equal(validator.validate(config).valid, false);
+    config.modules.test.hash = "a82c31f943e01abc";
+    config.xshell.hash = "";
+    assert.equal(validator.validate(config).valid, false);
+});
+
 test("effective schema validates inventory path, size, and hash", () => {
     for (const file of [
         { size: 1, hash: "hash" },

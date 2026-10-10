@@ -79,10 +79,11 @@ precedence. Dependency cycles are rejected because they make this precedence amb
 
 The normalized `configUrl` records the definition document. `assetsUrl` identifies its physical resource container and defaults to that document's
 directory. References cannot override `assetsUrl`; physical resource ownership stays with the local definition. Runtime resources use
-`/_assets/<module-id>/...`; the Service Worker maps that stable namespace to `assetsUrl`.
+`/_assets/<module-id>/<generation>/...`; the Service Worker maps that generation-qualified namespace to `assetsUrl`.
 
 The optional module `routes` object follows the same normalization boundary: its values are module-relative Page targets authored in the module
-configuration and become `/_assets/<module-id>/...` paths during bootstrap. Its application-facing keys are not normalized. Route placeholders remain
+configuration and become `/_assets/<module-id>/<generation>/...` paths during bootstrap. Its application-facing keys are not normalized. Route
+placeholders remain
 declarative module metadata; Navigation interprets them only after Areas compose the participating modules' routes.
 
 ## Menu contributions and Areas

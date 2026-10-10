@@ -215,7 +215,7 @@ app:/_assets
 which resolves against the application base URL and produces virtual URLs such as:
 
 ```text
-/_assets/x/components/x-button.js
+/_assets/x/1.0.0.dev/components/x-button.js
 ```
 
 Do not describe `/_cdn` as the current namespace.

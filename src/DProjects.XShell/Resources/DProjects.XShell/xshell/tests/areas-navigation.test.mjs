@@ -25,6 +25,7 @@ test("Areas identifies modules under a normalized multi-segment assetsBasePath",
     const config = { xshell: { assetsBasePath: "/virtual/assets", areas: { definitions: {}, global: [] } } };
     const areas = new Areas({ config, bus: { addEventListener() {} } });
     assert.equal(areas.getModuleId("/demo/virtual/assets/x/pages/index.js"), "x");
+    assert.equal(areas.getModuleId("/demo/virtual/assets/orders/1.4.0.a82c31f943e01abc/pages/index.js"), "orders");
     assert.equal(areas.getModuleId("/demo/_assets/x/pages/index.js"), null);
 });
 

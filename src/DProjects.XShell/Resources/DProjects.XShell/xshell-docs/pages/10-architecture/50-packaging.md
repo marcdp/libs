@@ -20,29 +20,36 @@ Comments, trailing commas, and original formatting are not preserved.
 The command uses one staging and compilation flow for both output modes:
 
 1. copy the complete source package to a temporary staging directory outside the source and output trees;
-2. remove any copied `module.files.json`;
-3. for a normal module, compile staged JavaScript, HTML XShell SFC, and standalone CSS resources through `ModuleFileCompiler`; XShell framework files
+2. normalize the canonical descriptor's own generated `hash` to `""`, overwriting any authored value;
+3. remove any copied `module.files.json`;
+4. for a normal module, compile staged JavaScript, HTML XShell SFC, and standalone CSS resources through `ModuleFileCompiler`; XShell framework files
    remain unchanged because the module compiler depends on module-definition semantics;
-4. generate `module.files.json` from the final compiled files; and
-5. publish the staged tree as an expanded directory or, with `--zip`, a ZIP distribution package.
+5. generate `module.files.json` from the final compiled files;
+6. calculate the package hash over the complete canonical staging tree; and
+7. publish the staged tree as an expanded directory or, with `--zip`, a ZIP distribution package.
 
 JavaScript is replaced at its existing path with its compiled content. An authored HTML SFC such as `pages/orders.html` or
 `components/x-example.html` becomes the corresponding JavaScript resource (`pages/orders.js` or `components/x-example.js`), and the source HTML is
 not included. Packing fails if both the HTML and JavaScript source exist because they resolve to the same runtime path. Standalone CSS is compiled
 and replaced at the same path; resources are not bundled or concatenated.
 
-Both representations use `<output>/<id>/<version>.<hash>/`. The 16-character lowercase hash comes from SHA-256 over ordered relative file paths and bytes in
-the compiled staging tree, including the generated inventory. It is not a hash of ZIP bytes.
+Both representations use `<output>/<id>/<version>.<hash>/`. The generated 16-character lowercase hash comes from SHA-256 over ordered relative file
+paths and bytes in the compiled staging tree. This includes the canonical `module.json` or `xshell.json` with its own `hash` set to `""`, the generated
+`module.files.json`, and every other staged file. Expanded and ZIP packages use the same algorithm; the hash is not calculated from ZIP bytes.
+Development descriptors need not contain `hash`. Packaging owns it, and an authored value cannot control package identity.
 
 Without `--zip`, the package directory contains the compiled resources, generated `module.files.json`, and canonical descriptor. Normal modules contain
-`module.json`; XShell framework packages contain `xshell.json`.
+`module.json`; XShell framework packages contain `xshell.json`. After calculating package identity, the published descriptor receives the actual
+hash, equal to the package directory suffix. The package identity is not recalculated after this injection.
 
 For a normal module, `--zip` publishes `module.json` and `module.zip`. The emitted `module.json` is normalized JSON with
 `modules.<local-id>.assetsUrl = "url:./module.zip"` and `modules.<local-id>.files = [...]` from the generated inventory.
 
 For the XShell framework, `--zip` publishes `xshell.json` and `xshell.zip`. The emitted `xshell.json` is normalized strict JSON, including
 `xshell.assetsUrl = "url:./xshell.zip"` and `xshell.files = [...]` from the same generated inventory. Each archive contains the staged tree at its
-root, including `module.files.json`.
+root, including `module.files.json`. The external descriptor contains the actual package hash. The descriptor inside the ZIP retains `hash: ""`,
+because the archive is created from canonical staging before the external descriptor is updated. The external descriptor also carries the existing
+`assetsUrl` and `files` publication metadata.
 
 The package path is immutable after first publication. Repeating a pack with the same content identity and representation reuses that path without
 rewriting it. Requesting expanded output where a ZIP package exists, or ZIP output where an expanded package exists, fails with a representation
@@ -53,7 +60,9 @@ and resource compilation failures are not swallowed.
 
 ## Module file inventory
 
-`FilesIndexer` records every final package file except `module.files.json` itself. Both normal modules and XShell use this one inventory filename.
+`FilesIndexer` records runtime resources, excluding `module.files.json`, `module.json`, and `xshell.json`. Other JSON files remain ordinary resources.
+The canonical descriptor still participates in the whole-package hash; it is excluded only from the runtime file inventory. Both normal modules and
+XShell use this one inventory filename.
 Each entry contains:
 
 ```json
@@ -70,7 +79,8 @@ compilation, an HTML SFC contributes its generated `.js` path and not its author
 
 The inventory is a generated physical package inventory rather than authored semantic configuration. After Service Worker initialization, bootstrap
 loads it through the virtual resource namespace and converts its package-relative paths into effective-config paths. For example,
-`/components/x-button.js` in module `x` becomes `/_assets/x/components/x-button.js`; `/xshell.js` becomes `/_assets/xshell/xshell.js`. The Service
+`/components/x-button.js` in Development module `x` version `1.4.0` becomes `/_assets/x/1.4.0.dev/components/x-button.js`;
+`/xshell.js` in XShell version `0.9.0` becomes `/_assets/xshell/0.9.0.dev/xshell.js`. The Service
 Worker virtualizes delivery but does not discover or interpret inventories.
 
 ## Development resources

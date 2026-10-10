@@ -21,13 +21,16 @@ namespace DProjects.XShell.Services {
             var files = new List<FileIndexItem>();
             foreach (var file in Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories)) {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (Path.GetFileName(file).Equals(ModuleFilesJson, StringComparison.OrdinalIgnoreCase)) { 
+                var relativePath = Path.GetRelativePath(path, file);
+                if (relativePath.Equals(ModuleFilesJson, StringComparison.OrdinalIgnoreCase) ||
+                    relativePath.Equals("module.json", StringComparison.OrdinalIgnoreCase) ||
+                    relativePath.Equals("xshell.json", StringComparison.OrdinalIgnoreCase)) {
                     continue;
                 }
                 await using var stream = File.OpenRead(file);
                 var hash = await SHA256.HashDataAsync(stream, cancellationToken);
                 files.Add(new FileIndexItem(
-                    "/" + Path.GetRelativePath(path, file).Replace('\\', '/'),
+                    "/" + relativePath.Replace('\\', '/'),
                     new FileInfo(file).Length,
                     Convert.ToHexString(hash).ToLowerInvariant()
                 ));

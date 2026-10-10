@@ -13,7 +13,7 @@ const bootstrapSource = readFileSync(bootstrapPath, "utf8").replace(
     `globalThis.__bootstrapTests = {
         parseJsonc,
         getLocalModule: (config, configUrl) => getLocalModule(JSON.parse(JSON.stringify(config)), configUrl),
-        discover: (rootConfig, rootConfigUrl, configs, calls) => discoverModuleConfigs(
+        discover: (rootConfig, rootConfigUrl, configs, calls, environment = "Development") => discoverModuleConfigs(
             JSON.parse(JSON.stringify(rootConfig)),
             rootConfigUrl,
             async configUrl => {
@@ -21,7 +21,8 @@ const bootstrapSource = readFileSync(bootstrapPath, "utf8").replace(
                 if (!Object.hasOwn(configs, configUrl)) throw new Error(\`Missing test config: \${configUrl}\`);
                 return JSON.parse(JSON.stringify(configs[configUrl]));
             },
-            "/_assets"
+            "/_assets",
+            environment
         ),
         mergeConfigs,
         loadConfig,
@@ -29,6 +30,7 @@ const bootstrapSource = readFileSync(bootstrapPath, "utf8").replace(
         fillResolverRules,
         initializeXShell,
         installServiceWorker,
+        getAssetsPath,
         normalizeAssetsBase: normalizeAssetsBasePath,
         relativizePaths
     };`
@@ -135,7 +137,7 @@ test("generated style rules route module CSS through the standard cached style-c
     assert.equal(result.definition.modulePath, "/_assets/sample");
 });
 
-const definition = (value, extra = {}) => ({ label: value, value, ...extra });
+const definition = (value, extra = {}) => ({ label: value, value, version: "1.0.0", ...extra });
 const reference = configUrl => ({ configUrl });
 const plain = value => JSON.parse(JSON.stringify(value));
 async function discover(root, configs = {}, calls = []) {
@@ -185,8 +187,10 @@ test("checked-in assetsBasePath resolves for root and subpath hosting", () => {
         const base = isolated.__bootstrapTests.normalizeAssetsBase(defaults.xshell.assetsBasePath, "https://example.test/xshell/xshell.json");
         assert.equal(base, "/_assets");
         assert.equal(new URL(base.substring(1), `https://example.test${basePath}/`).href, effectiveUrl);
-        assert.equal(new URL(`${base.substring(1)}/x`, `https://example.test${basePath}/`).pathname,
-            `${basePath}/_assets/x`);
+        const generated = api.getAssetsPath(base, "orders", "1.4.0", undefined, "Development");
+        assert.equal(generated, "/_assets/orders/1.4.0.dev");
+        assert.equal(new URL(`${generated.substring(1)}/pages/index.js`, `https://example.test${basePath}/`).pathname,
+            `${basePath}/_assets/orders/1.4.0.dev/pages/index.js`);
     }
 });
 
@@ -197,6 +201,34 @@ test("assetsBasePath rejects missing, application-root, and out-of-scope locatio
     assert.throws(() => api.normalizeAssetsBase("https://example.test/elsewhere/assets", configUrl), /within the application base/);
     assert.throws(() => api.normalizeAssetsBase("/_assets", configUrl), /must use app: or an absolute HTTP\(S\) URL/);
     assert.throws(() => api.normalizeAssetsBase("url:./assets", configUrl), /must use app: or an absolute HTTP\(S\) URL/);
+});
+
+test("development and published generations use descriptor version and package hash", async () => {
+    assert.equal(api.getAssetsPath("/_assets", "orders", "1.4.0", undefined, "Development"), "/_assets/orders/1.4.0.dev");
+    assert.equal(api.getAssetsPath("/_assets", "xshell", "0.9.0", undefined, "development"), "/_assets/xshell/0.9.0.dev");
+    assert.equal(api.getAssetsPath("/_assets", "orders", "1.4.0", "ignored", "DEVELOPMENT"), "/_assets/orders/1.4.0.dev");
+    assert.equal(api.getAssetsPath("/_assets", "orders", "1.4.0", "a82c31f943e01abc", "Production"), "/_assets/orders/1.4.0.a82c31f943e01abc");
+    assert.equal(api.getAssetsPath("/_assets", "xshell", "0.9.0", "31d04ab8e220a581", "Staging"), "/_assets/xshell/0.9.0.31d04ab8e220a581");
+    assert.throws(() => api.getAssetsPath("/_assets", "xshell", "0.9.0", "", "Production"), /Published module 'xshell'.*hash/);
+    assert.throws(() => api.getAssetsPath("/_assets", "orders", "1.4.0", "  ", "Production"), /Published module 'orders'.*hash/);
+
+    const root = { modules: { orders: definition("orders", { version: "1.4.0", hash: "a82c31f943e01abc", controller: "/module.js" }) } };
+    const development = await api.discover(root, rootUrl, {}, [], "Development");
+    const published = await api.discover(root, rootUrl, {}, [], "Production");
+    assert.equal(development.rootNode.assetsPath, "/_assets/orders/1.4.0.dev");
+    assert.equal(development.rootNode.config.modules.orders.controller, "/_assets/orders/1.4.0.dev/module.js");
+    assert.equal(published.rootNode.assetsPath, "/_assets/orders/1.4.0.a82c31f943e01abc");
+    assert.equal(published.rootNode.config.modules.orders.controller, "/_assets/orders/1.4.0.a82c31f943e01abc/module.js");
+    const dependencyUrl = "https://example.test/modules/app/dependency/module.jsonc";
+    const calls = [];
+    const withDependency = await api.discover({ modules: { ...root.modules, dependency: reference("./dependency/module.jsonc") } }, rootUrl,
+        { [dependencyUrl]: { modules: { dependency: definition("dependency", { hash: "dependency-hash" }) } } }, calls, "Production");
+    assert.equal(withDependency.rootNode.references[0].configUrl,
+        "/_assets/orders/1.4.0.a82c31f943e01abc/dependency/module.jsonc");
+    assert.equal(withDependency.rootNode.references[0].loadUrl, dependencyUrl);
+    assert.deepEqual(calls, [dependencyUrl]);
+    await assert.rejects(api.discover({ modules: { orders: definition("orders", { version: "1.4.0" }) } }, rootUrl, {}, [], "Production"),
+        /Published module 'orders'.*hash/);
 });
 
 test("module URLs normalize against the declaring logical file and keep explicit escapes distinct", () => {
@@ -229,10 +261,10 @@ test("bootstrap loads the authored XShell JSONC source through the canonical run
     const config = plain(await api.loadConfig());
     const resolver = new Resolver({ config });
     assert.equal(config.xshell.configUrl, xshellUrl);
-    assert.equal(config.xshell.resolver["state-engine"]["{name}"].src, "/_assets/xshell/state-engines/{name}.js");
-    assert.equal(resolver.resolve("state-engine:proxy").url, "https://example.test/app/_assets/xshell/state-engines/proxy.js");
-    assert.equal(resolver.resolve("render-engine:x").url, "https://example.test/app/_assets/xshell/render-engines/x.js");
-    assert.equal(resolver.resolve("schema:config.json").url, "https://example.test/app/_assets/xshell/schemas/config.json");
+    assert.equal(config.xshell.resolver["state-engine"]["{name}"].src, "/_assets/xshell/0.9.0.dev/state-engines/{name}.js");
+    assert.equal(resolver.resolve("state-engine:proxy").url, "https://example.test/app/_assets/xshell/0.9.0.dev/state-engines/proxy.js");
+    assert.equal(resolver.resolve("render-engine:x").url, "https://example.test/app/_assets/xshell/0.9.0.dev/render-engines/x.js");
+    assert.equal(resolver.resolve("schema:config.json").url, "https://example.test/app/_assets/xshell/0.9.0.dev/schemas/config.json");
 });
 
 test("module URL traversal fails after logical normalization and reports the declaring document", () => {
@@ -250,8 +282,8 @@ test("module discovery keeps logical configUrl separate from its pre-Service-Wor
     const graph = await discover(root, { [physicalUrl]: { modules: { x: definition("x") } } }, calls);
 
     assert.deepEqual(calls, [physicalUrl]);
-    assert.equal(graph.rootNode.references[0].configUrl, "/_assets/app/x/module.jsonc");
-    assert.equal(graph.rootNode.config.modules.x.configUrl, "/_assets/app/x/module.jsonc");
+    assert.equal(graph.rootNode.references[0].configUrl, "/_assets/app/1.0.0.dev/x/module.jsonc");
+    assert.equal(graph.rootNode.config.modules.x.configUrl, "/_assets/app/1.0.0.dev/x/module.jsonc");
     assert.equal(graph.nodesById.get("x").config.modules.x.configUrl, physicalUrl);
 
     const siblingUrl = "https://example.test/modules/x/module.jsonc";
@@ -269,8 +301,8 @@ test("module configuration URLs use the file's logical path when assetsUrl names
     const graph = await api.discover(config, sourceUrl, {}, []);
 
     assert.equal(graph.rootNode.config.modules.orders.assetsUrl, "https://cdn.example.test/orders/");
-    assert.equal(graph.rootNode.config.modules.orders.controller, "/_assets/orders/pages/orders/edit.js");
-    assert.equal(graph.rootNode.config.modules.orders.routes["/shared"], "/_assets/orders/pages/shared.js");
+    assert.equal(graph.rootNode.config.modules.orders.controller, "/_assets/orders/1.0.0.dev/pages/orders/edit.js");
+    assert.equal(graph.rootNode.config.modules.orders.routes["/shared"], "/_assets/orders/1.0.0.dev/pages/shared.js");
 });
 
 test("non-URL configuration text and area prefixes keep their authored values", async () => {
@@ -282,7 +314,7 @@ test("non-URL configuration text and area prefixes keep their authored values", 
     assert.deepEqual(plain(graph.rootNode.config.modules.app.params), { note: "/literal", hint: "../literal" });
     assert.equal(graph.rootNode.config.xshell.areas.definitions.main.prefix, "/public");
     assert.equal(graph.rootNode.config.xshell.areas.definitions.main.label, "/literal");
-    assert.equal(graph.rootNode.config.modules.app.routes["/home"], "/_assets/app/pages/index.js");
+    assert.equal(graph.rootNode.config.modules.app.routes["/home"], "/_assets/app/1.0.0.dev/pages/index.js");
 });
 
 test("menu contributions normalize by structure regardless of menu name", async () => {
@@ -299,15 +331,15 @@ test("menu contributions normalize by structure regardless of menu name", async 
     const graph = await discover(root);
     const module = plain(graph.rootNode.config.modules.x);
 
-    assert.equal(module.menus.navigation, "/_assets/x/pages/navigation");
-    assert.equal(module.menus.tools, "/_assets/x/pages/tools");
-    assert.equal(module.menus.arbitraryMenu123, "/_assets/x/pages/custom");
+    assert.equal(module.menus.navigation, "/_assets/x/1.0.0.dev/pages/navigation");
+    assert.equal(module.menus.tools, "/_assets/x/1.0.0.dev/pages/tools");
+    assert.equal(module.menus.arbitraryMenu123, "/_assets/x/1.0.0.dev/pages/custom");
     assert.equal(module.menus.registered, "customer-pages");
     assert.equal(module.menus.reports[0].path, "/reports");
-    assert.equal(module.menus.reports[0].href, "/_assets/x/pages/report.js");
+    assert.equal(module.menus.reports[0].href, "/_assets/x/1.0.0.dev/pages/report.js");
     assert.equal(module.menus.reports[0].tooltip, "/literal-tooltip");
     assert.equal(module.menus.reports[0].children[0].path, "/reports/detail");
-    assert.equal(module.menus.reports[0].children[0].href, "/_assets/x/pages/detail.js");
+    assert.equal(module.menus.reports[0].children[0].href, "/_assets/x/1.0.0.dev/pages/detail.js");
     assert.equal(module.menus.reports[0].children[0].class, "/literal-class");
     assert.deepEqual(module.params, { metadata: { path: "/must-remain-literal" }, sample: { href: "/literal", url: "../literal" } });
 });
@@ -325,19 +357,19 @@ test("resolver, service, UI, and Area resources normalize within their owning st
     };
     const xshell = plain((await discover(root)).rootNode.config.xshell);
 
-    assert.equal(xshell.resolver.anyType.anyRule.src, "/_assets/x/resources/{name}.js");
+    assert.equal(xshell.resolver.anyType.anyRule.src, "/_assets/x/1.0.0.dev/resources/{name}.js");
     assert.equal(xshell.resolver.anyType.anyRule.loader, "/literal-loader");
-    assert.equal(xshell.services.foo.implementation, "/_assets/x/services/foo.js");
-    assert.equal(xshell.services.bar.implementation, "/_assets/x/services/bar.js");
+    assert.equal(xshell.services.foo.implementation, "/_assets/x/1.0.0.dev/services/foo.js");
+    assert.equal(xshell.services.bar.implementation, "/_assets/x/1.0.0.dev/services/bar.js");
     assert.equal(xshell.services.foo.contract, "/literal-contract");
     assert.equal(xshell.ui.component.lazy, "x-lazy");
-    assert.equal(xshell.ui.component.error, "/_assets/x/components/error.js");
+    assert.equal(xshell.ui.component.error, "/_assets/x/1.0.0.dev/components/error.js");
     assert.equal(xshell.ui.component.unrelated, "/literal");
     assert.equal(xshell.ui.layout.main, "x-layout-main");
     assert.equal(xshell.ui.dialog.confirm, "https://example.test/modules/app/dialog.js");
     assert.equal(xshell.ui.unrelated.label, "/literal");
     assert.equal(xshell.areas.definitions.main.prefix, "/public");
-    assert.equal(xshell.areas.definitions.main.icon, "/_assets/x/icons/main.svg");
+    assert.equal(xshell.areas.definitions.main.icon, "/_assets/x/1.0.0.dev/icons/main.svg");
     assert.equal(xshell.areas.definitions.main.label, "/literal-label");
 });
 
@@ -350,8 +382,8 @@ test("Service Worker rules consume normalized framework and module paths", async
     context.navigator = { serviceWorker: {
         controller: {}, ready: Promise.resolve(),
         async register(url, options) {
-            assert.equal(url, "https://example.test/app/sw.js");
-            assert.equal(options.scope, "https://example.test/app/");
+            assert.equal(url, "/app/sw.js");
+            assert.equal(options.scope, "/app/");
             return { active: { postMessage(message, ports) { rules = message.payload.rules; ports[0].reply({ type: "ready" }); } } };
         }
     } };
@@ -363,21 +395,21 @@ test("Service Worker rules consume normalized framework and module paths", async
     };
     context.setTimeout = () => 0;
     const config = {
-        xshell: { assetsBasePath: "/runtime", assetsPath: "/runtime/xshell", assetsUrl: "https://example.test/framework/", configUrl: "https://example.test/xshell/xshell.json", version: "1" },
-        modules: { x: { assetsPath: "/runtime/x", assetsUrl: "https://example.test/modules/x/", configUrl: rootUrl, version: "2" } }
+        xshell: { assetsBasePath: "/runtime", assetsPath: "/runtime/xshell/1.dev", assetsUrl: "https://example.test/framework/", configUrl: "https://example.test/xshell/xshell.json", version: "1" },
+        modules: { x: { assetsPath: "/runtime/x/2.dev", assetsUrl: "https://example.test/modules/x/", configUrl: rootUrl, version: "2" } }
     };
 
     assert.equal(await api.installServiceWorker(config), true);
     assert.deepEqual(plain(rules.map(({ src, dst }) => ({ src, dst }))), [
-        { src: "https://example.test/app/runtime/xshell", dst: "https://example.test/framework/" },
-        { src: "https://example.test/app/runtime/x", dst: "https://example.test/modules/x/" }
+        { src: "https://example.test/app/runtime/xshell/1.dev", dst: "https://example.test/framework/" },
+        { src: "https://example.test/app/runtime/x/2.dev", dst: "https://example.test/modules/x/" }
     ]);
 });
 
 test("loadFilesIndexes concurrently loads module and XShell inventories through the virtual namespace", async () => {
-    const xUrl = "https://example.test/app/_assets/x/module.files.json";
-    const reportsUrl = "https://example.test/app/_assets/reports/module.files.json";
-    const xshellUrl = "https://example.test/app/_assets/xshell/module.files.json";
+    const xUrl = "https://example.test/app/_assets/x/1.0.0.dev/module.files.json";
+    const reportsUrl = "https://example.test/app/_assets/reports/2.0.0.abc123/module.files.json";
+    const xshellUrl = "https://example.test/app/_assets/xshell/0.9.0.dev/module.files.json";
     const pending = new Map();
     const response = value => ({
         ok: true,
@@ -389,8 +421,8 @@ test("loadFilesIndexes concurrently loads module and XShell inventories through 
         fetchOverrides.set(url, () => new Promise(resolve => pending.set(url, resolve)));
     }
     const config = {
-        modules: { x: { assetsPath: "/_assets/x" }, reports: { assetsPath: "/_assets/reports" } },
-        xshell: { assetsBasePath: "/_assets", assetsPath: "/_assets/xshell" }
+        modules: { x: { assetsPath: "/_assets/x/1.0.0.dev" }, reports: { assetsPath: "/_assets/reports/2.0.0.abc123" } },
+        xshell: { assetsBasePath: "/_assets", assetsPath: "/_assets/xshell/0.9.0.dev" }
     };
 
     const loading = api.loadFilesIndexes(config);
@@ -402,9 +434,9 @@ test("loadFilesIndexes concurrently loads module and XShell inventories through 
     pending.get(xshellUrl)(response([{ path: "/xshell.js", size: 5678, hash: "xshell-hash" }]));
     await loading;
 
-    assert.deepEqual(plain(config.modules.x.files), [{ path: "/_assets/x/components/x-button.js", size: 1234, hash: "x-hash" }]);
-    assert.deepEqual(plain(config.modules.reports.files), [{ path: "/_assets/reports/pages/home.js", size: 25, hash: "reports-hash" }]);
-    assert.deepEqual(plain(config.xshell.files), [{ path: "/_assets/xshell/xshell.js", size: 5678, hash: "xshell-hash" }]);
+    assert.deepEqual(plain(config.modules.x.files), [{ path: "/_assets/x/1.0.0.dev/components/x-button.js", size: 1234, hash: "x-hash" }]);
+    assert.deepEqual(plain(config.modules.reports.files), [{ path: "/_assets/reports/2.0.0.abc123/pages/home.js", size: 25, hash: "reports-hash" }]);
+    assert.deepEqual(plain(config.xshell.files), [{ path: "/_assets/xshell/0.9.0.dev/xshell.js", size: 5678, hash: "xshell-hash" }]);
     for (const url of [xUrl, reportsUrl, xshellUrl]) fetchOverrides.delete(url);
 });
 
@@ -530,22 +562,26 @@ test("loadConfig keeps xshellConfig as the base and applies root configuration l
     fetchedResources.set(xshellUrl, {
         app: { source: "xshell" },
         modules: {},
-        xshell: { assetsBasePath: "app:/_assets", environment: "Production", assetsUrl: "url:./", temp: { url: "url:./" }, resolver: {} }
+        xshell: { assetsBasePath: "app:/_assets", environment: "Production", version: "0.9.0", hash: "31d04ab8e220a581", assetsUrl: "url:./", temp: { url: "url:./" }, resolver: {} }
     });
     fetchedResources.set(rootUrl, {
         app: { source: "root" },
-        modules: { app: definition("app") }
+        modules: { app: definition("app", { hash: "a82c31f943e01abc" }) }
     });
     const config = plain(await api.loadConfig());
 
     assert.equal(config.app.source, "root");
-    assert.equal(config.app.basePath, "https://example.test/app");
+    assert.equal(config.app.basePath, "/app");
     assert.deepEqual(config.app.params, { mode: "host" });
     assert.deepEqual(config.modules.app.params, { mode: "host" });
-    assert.equal(config.modules.app.assetsPath, "/_assets/app");
+    assert.equal(config.modules.app.assetsPath, "/_assets/app/1.0.0.a82c31f943e01abc");
     assert.equal(config.xshell.configUrl, xshellUrl);
     assert.equal(config.xshell.assetsBasePath, "/_assets");
-    assert.equal(config.xshell.assetsPath, "/_assets/xshell");
+    assert.equal(config.xshell.assetsPath, "/_assets/xshell/0.9.0.31d04ab8e220a581");
+    config.modules.app.files = [];
+    api.fillResolverRules(config);
+    assert.equal(config.xshell.resolver.page["/_assets/app/1.0.0.a82c31f943e01abc/{path}.js"].modulePath,
+        "/_assets/app/1.0.0.a82c31f943e01abc");
     assert.deepEqual(directFetchCalls, [xshellUrl, rootUrl]);
 });
 
@@ -555,28 +591,28 @@ test("loadConfig derives every assetsPath from a custom assetsBasePath", async (
     fetchedResources.set(xshellUrl, {
         app: {},
         modules: {},
-        xshell: { assetsBasePath: "app:/runtime", assetsPath: "/authored-xshell", environment: "Production", assetsUrl: "url:./", temp: { url: "url:./" }, resolver: {} }
+        xshell: { assetsBasePath: "app:/runtime", assetsPath: "/authored-xshell", environment: "Production", version: "0.9.0", hash: "31d04ab8e220a581", assetsUrl: "url:./", temp: { url: "url:./" }, resolver: {} }
     });
     fetchedResources.set(rootUrl, {
-        modules: { app: definition("app", { assetsPath: "/authored-app" }), x: reference(xUrl) }
+        modules: { app: definition("app", { assetsPath: "/authored-app", hash: "app-hash" }), x: reference(xUrl) }
     });
-    fetchedResources.set(xUrl, { modules: { x: definition("x", { assetsPath: "/authored-x" }) } });
+    fetchedResources.set(xUrl, { modules: { x: definition("x", { assetsPath: "/authored-x", hash: "x-hash" }) } });
 
     const config = plain(await api.loadConfig());
 
-    assert.equal(config.modules.app.assetsPath, "/runtime/app");
-    assert.equal(config.modules.x.assetsPath, "/runtime/x");
+    assert.equal(config.modules.app.assetsPath, "/runtime/app/1.0.0.app-hash");
+    assert.equal(config.modules.x.assetsPath, "/runtime/x/1.0.0.x-hash");
     assert.deepEqual(config.modules.app.contract, { events: {} });
     assert.deepEqual(config.modules.x.contract, { events: {} });
     assert.equal(config.xshell.assetsBasePath, "/runtime");
-    assert.equal(config.xshell.assetsPath, "/runtime/xshell");
+    assert.equal(config.xshell.assetsPath, "/runtime/xshell/0.9.0.31d04ab8e220a581");
 });
 
 test("root assetsBasePath override is normalized before module discovery", async () => {
     const xshellUrl = "https://example.test/xshell/xshell.json";
     fetchedResources.set(xshellUrl, {
         app: {}, modules: {},
-        xshell: { assetsBasePath: "app:/_assets", assetsUrl: "url:./", temp: { url: "url:./" }, resolver: {} }
+        xshell: { assetsBasePath: "app:/_assets", environment: "Development", version: "0.9.0", assetsUrl: "url:./", temp: { url: "url:./" }, resolver: {} }
     });
     fetchedResources.set(rootUrl, {
         modules: { app: definition("app") },
@@ -585,15 +621,15 @@ test("root assetsBasePath override is normalized before module discovery", async
 
     const config = plain(await api.loadConfig());
     assert.equal(config.xshell.assetsBasePath, "/custom-assets");
-    assert.equal(config.xshell.assetsPath, "/custom-assets/xshell");
-    assert.equal(config.modules.app.assetsPath, "/custom-assets/app");
+    assert.equal(config.xshell.assetsPath, "/custom-assets/xshell/0.9.0.dev");
+    assert.equal(config.modules.app.assetsPath, "/custom-assets/app/1.0.0.dev");
     assert.equal(config.xshell.assetsUrl, "https://example.test/xshell/");
 });
 
 test("loadConfig resolves XShell assetsUrl from the application base", async () => {
     fetchedResources.set("https://example.test/xshell/xshell.json", {
         app: {}, modules: {},
-        xshell: { assetsBasePath: "app:/_assets", assetsUrl: "app:/framework/", temp: { url: "url:./" }, resolver: {} }
+        xshell: { assetsBasePath: "app:/_assets", environment: "Development", version: "0.9.0", assetsUrl: "app:/framework/", temp: { url: "url:./" }, resolver: {} }
     });
     fetchedResources.set(rootUrl, { modules: { app: definition("app") } });
 
@@ -601,7 +637,34 @@ test("loadConfig resolves XShell assetsUrl from the application base", async () 
 
     assert.equal(config.xshell.assetsUrl, "https://example.test/app/framework/");
     assert.equal(config.xshell.assetsBasePath, "/_assets");
-    assert.equal(config.xshell.assetsPath, "/_assets/xshell");
+    assert.equal(config.xshell.assetsPath, "/_assets/xshell/0.9.0.dev");
+});
+
+test("host Development override selects mutable generations without package hashes", async () => {
+    fetchedResources.set("https://example.test/xshell/xshell.json", {
+        app: {}, modules: {},
+        xshell: { assetsBasePath: "app:/_assets", environment: "Production", version: "0.9.0", assetsUrl: "url:./", temp: { url: "url:./" }, resolver: {} }
+    });
+    fetchedResources.set(rootUrl, { modules: { app: definition("app") } });
+    const hostedDocument = {
+        ...context.document,
+        head: { querySelector: selector => selector === 'meta[name="xshell:xshell.environment"]' ? { content: "dEvElOpMeNt" } : context.document.head.querySelector(selector) }
+    };
+    const hostedContext = vm.createContext({ ...context, document: hostedDocument });
+    new vm.Script(bootstrapSource, { filename: bootstrapPath.pathname }).runInContext(hostedContext);
+    const config = plain(await hostedContext.__bootstrapTests.loadConfig());
+    assert.equal(config.xshell.environment, "dEvElOpMeNt");
+    assert.equal(config.xshell.assetsPath, "/_assets/xshell/0.9.0.dev");
+    assert.equal(config.modules.app.assetsPath, "/_assets/app/1.0.0.dev");
+});
+
+test("non-Development XShell without a package hash fails clearly", async () => {
+    fetchedResources.set("https://example.test/xshell/xshell.json", {
+        app: {}, modules: {},
+        xshell: { assetsBasePath: "app:/_assets", environment: "Production", version: "0.9.0", assetsUrl: "url:./", temp: { url: "url:./" }, resolver: {} }
+    });
+    fetchedResources.set(rootUrl, { modules: { app: definition("app", { hash: "app-hash" }) } });
+    await assert.rejects(api.loadConfig(), /Published module 'xshell'.*hash/);
 });
 
 test("root config accepts exactly one local module regardless of module key order", async () => {
@@ -841,10 +904,10 @@ test("module route targets use the owning module asset namespace while route key
     const module = graph.rootNode.config.modules.app;
 
     assert.deepEqual(plain(module.routes), {
-        "/something": "/_assets/app/pages/index.js",
-        "/repository/{repositoryId}/projects/{projectId}/items": "/_assets/app/pages/items.js"
+        "/something": "/_assets/app/1.0.0.dev/pages/index.js",
+        "/repository/{repositoryId}/projects/{projectId}/items": "/_assets/app/1.0.0.dev/pages/items.js"
     });
-    assert.equal(module.controller, "/_assets/app/js/module.js");
+    assert.equal(module.controller, "/_assets/app/1.0.0.dev/js/module.js");
 });
 
 test("module route targets are normalized independently for dependency modules", async () => {
@@ -867,8 +930,8 @@ test("module route targets are normalized independently for dependency modules",
     const module = graph.nodesById.get("x").config.modules.x;
 
     assert.deepEqual(plain(module.routes), {
-        "/something": "/_assets/x/pages/index.js",
-        "/repository/{repositoryId}": "/_assets/x/pages/repository.js"
+        "/something": "/_assets/x/1.0.0.dev/pages/index.js",
+        "/repository/{repositoryId}": "/_assets/x/1.0.0.dev/pages/repository.js"
     });
 });
 

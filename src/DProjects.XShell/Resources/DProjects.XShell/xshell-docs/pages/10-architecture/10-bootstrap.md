@@ -10,9 +10,10 @@ host HTML
     -> discover modules.<id>.configUrl references recursively
     -> validate reference ids and canonical URLs
     -> reject dependency cycles
-    -> resolve xshell.assetsBasePath against the application base and normalize configUrl, assetsUrl, and module resource paths
+    -> resolve xshell.assetsBasePath and the effective environment
+    -> normalize configUrl, assetsUrl, and resource paths using each generation's assetsPath
     -> merge defaults, dependencies, dependents, and root
-    -> generate assetsPath for every effective module and XShell
+    -> retain the generated assetsPath for every effective module and XShell
     -> install and initialize Service Worker mappings
     -> load every module.files.json through the virtual resource namespace
     -> normalize and attach module and XShell file inventories
@@ -52,8 +53,10 @@ physical source document. Bootstrap uses the physical source URL to load a refer
 This `url:` form is limited to configuration/bootstrap; runtime stylesheet and template resource references reject it.
 
 Bootstrap normalizes the configured `xshell.assetsBasePath` once. The checked-in `app:/_assets` resolves relative to the application base URL and is
-stored as the application-relative virtual path `/_assets`. Bootstrap derives `assetsPath` from it: `/_assets/x` for module `x` and
-`/_assets/xshell` for the framework. With an application hosted under `/myapp/`, these are served under `/myapp/_assets/...`.
+stored as the application-relative virtual path `/_assets`. Bootstrap derives generation-qualified `assetsPath` before normalizing resources:
+`/_assets/x/1.4.0.dev` for a Development module and `/_assets/xshell/0.9.0.<hash>` for a published framework. Development uses
+`<version>.dev` regardless of any descriptor hash; other environments require the generated package hash and use `<version>.<hash>`.
+With an application hosted under `/myapp/`, these are served under `/myapp/_assets/...`.
 `assetsPath` is generated runtime metadata; `assetsUrl` remains the separate physical backing location.
 
 The dependency graph supplies a post-order merge sequence. Dependencies precede dependents, reference contributions merge after the referenced
@@ -64,7 +67,8 @@ composition independent of network completion order. The final
 ## Runtime handoff
 
 Bootstrap installs and initializes the Service Worker before requesting inventories. It concurrently requests `module.files.json` for every canonical
-module through `/_assets/<module-id>/module.files.json` and for the framework through `/_assets/xshell/module.files.json`. Any missing or failed
+module through `/_assets/<module-id>/<generation>/module.files.json` and for the framework through
+`/_assets/xshell/<generation>/module.files.json`. Any missing or failed
 inventory aborts bootstrap with the package id, requested URL, HTTP status, and status text.
 
 The physical inventory remains package-relative:
@@ -76,10 +80,11 @@ The physical inventory remains package-relative:
 Bootstrap converts only the effective-config copy into the virtual application resource namespace:
 
 ```json
-{ "path": "/_assets/x/components/x-button.js", "size": 1234, "hash": "..." }
+{ "path": "/_assets/x/1.4.0.dev/components/x-button.js", "size": 1234, "hash": "..." }
 ```
 
-The same conversion produces Paths such as `/_assets/xshell/xshell.js` in `config.xshell.files`. These are application-root-relative virtual Paths,
+The same conversion produces Paths such as `/_assets/xshell/0.9.0.dev/xshell.js` in `config.xshell.files`. These are application-root-relative
+virtual Paths,
 not absolute browser URLs; `size` and `hash` are unchanged. Bootstrap then loads the
 XShell runtime, validates the complete enriched configuration, deeply freezes it, and calls `xshell.init(config)`. `xshell.init` validates again,
 constructs runtime services, awaits i18n and Contracts initialization, registers core instances, and finalizes
