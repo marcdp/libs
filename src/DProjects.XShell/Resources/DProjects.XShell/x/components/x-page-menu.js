@@ -20,7 +20,7 @@ export default {
         hr {border-top:var(--x-layout-main-border); margin-top:1.5em; margin-bottom:1.5em; display:block;}
 
         :host > nav > ul > li + li {margin-top:1.5em; }
-        :host > nav > ul > li > x-anchor {font-size:var(--x-font-size-subtitle); font-weight:bold!important; display:block; margin-bottom:.5em; }
+        :host > nav > ul > li > x-anchor {font-size:var(--x-font-size-subtitle); font-weight:500!important; display:block; margin-bottom:.5em; }
 
         x-icon.new {padding-left:.15em; display:inline-block; transform: translateY(-.1em);}
 

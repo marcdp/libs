@@ -98,6 +98,11 @@ export default {
             width:100%;
             border-radius:  0 0 var(--x-datafield-border-radius) var(--x-datafield-border-radius);
             border-top:none;
+            background:var(--x-datafield-background);
+        }
+
+        .expanded ::slotted(x-button) {
+            --x-button-background: var(--x-button-background-hover-light);
         }
  
     `,
@@ -114,6 +119,7 @@ export default {
         </div>
     `,
     state: {
+        expanded: false,
     },
     controller({ state, events, bus, host }) {
         return {

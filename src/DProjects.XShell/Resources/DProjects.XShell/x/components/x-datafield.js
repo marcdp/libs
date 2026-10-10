@@ -121,8 +121,8 @@ export default {
             line-height:var(--x-datafield-line-height);
             outline:none;
         }
-        .input:focus {border-color:var(--x-color-black);}
-        .input:focus-within {border-color:var(--x-color-black);}
+        .input:focus {border-color:var(--x-datafield-border-focus);}
+        .input:focus-within {border-color:var(--x-datafield-border-focus);}
         .input.code {padding:0;}
         select.input {
             padding-top:calc(var(--x-datafield-padding) - .1em);

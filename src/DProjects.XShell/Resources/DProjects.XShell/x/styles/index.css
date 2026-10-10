@@ -136,6 +136,8 @@ h4 {font-size:var(--x-font-size); font-weight:700;}
 h5 {font-size:var(--x-font-size); font-weight:600;}
 h6 {font-size:var(--x-font-size); font-weight:normal;}
 
+p {color:var(--x-color-gray);}
+
 table th {text-align: left;}
 
 details > summary {font-size:var(--x-font-size-subtitle); font-weight:600; cursor: pointer;}
@@ -196,8 +198,11 @@ x-page[layout='main'] > x-markdown:first-child > h1:first-child {display:none;}
     --x-button-padding: .35em 1.5em .4em 1.5em;
     --x-button-line-height: 1.5em;
     --x-button-border-radius: 1.5em;
+    --x-button-background: var(--x-color-background-x-gray);
     --x-button-background-hover: #F0FBFF;
     --x-button-background-active: #D1F1FF;
+    --x-button-background-hover-light: var(--x-color-background-x-gray);
+    --x-button-background-active-light: var(--x-color-background-x-gray);
     
     /* x-card */
     --x-card-border-radius: .75em;
@@ -377,5 +382,5 @@ x-page[layout='main'] > x-markdown:first-child > h1:first-child {display:none;}
 
 
 /* themes */
-@import url("light.css");
-@import url("dark.css");
+/*@import url("light.css");
+@import url("dark.css");*/

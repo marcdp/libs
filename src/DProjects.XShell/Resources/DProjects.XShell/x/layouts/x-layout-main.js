@@ -33,6 +33,7 @@ export default {
         :host {
             display:block;
             min-height:100vh;
+            background:var(--x-color-background-page);
         }
         x-loading {
             position:fixed;
@@ -132,6 +133,7 @@ export default {
                 align-self: flex-start;
                 z-index:1;
                 background:var(--x-layout-main-drawer-background);
+                border-right: var(--x-layout-main-border);
             }
             .body .menu {overflow: auto;scrollbar-width: none;}
             .body .menu::-webkit-scrollbar {width: 0;height: 0;}
