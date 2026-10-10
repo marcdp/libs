@@ -340,17 +340,16 @@ x-page[layout='main'] > x-markdown:first-child > h1:first-child {display:none;}
     --x-loading-delay: .250ms;
 
     /* x-object */
+    --x-object-row-background-hover:var(--x-color-background-alt);
+    --x-object-guide-color:var(--x-color-xxxx-gray);
+    --x-object-key-color:var(--x-color-text);
+    --x-object-summary-color:var(--x-color-text-gray);
     --x-object-string:green;
     --x-object-number:darkorange;
     --x-object-boolean:blue;
     --x-object-null:magenta;
     --x-object-undefined:gray;
     --x-object-date:teal;
-
-    /* x-propertygrid */
-    --x-propertygrid-date-color:red;
-    --x-propertygrid-number-color:green;
-    --x-propertygrid-text-color:blue;
 
     /* x-progress */
     --x-progress-height: var(--x-loading-height);

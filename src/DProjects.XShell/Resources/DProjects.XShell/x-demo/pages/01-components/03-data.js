@@ -154,13 +154,6 @@ export default {
 
         <x-divider></x-divider>
 
-        <h2>Propertygrid</h2>
-
-        <x-propertygrid x-prop:value="state.value"></x-propertygrid>
-
-        <x-divider></x-divider>
-
-
         <h2>Date and time</h2>
 
         <p>

@@ -13,7 +13,6 @@ export default {
     style: `
         :host {display:block;}
         summary:hover {text-decoration:underline; cursor:pointer;}
-        x-propertygrid {margin-bottom:.5em;}
         x-icon {vertical-align:bottom;}
     `,
     template: `

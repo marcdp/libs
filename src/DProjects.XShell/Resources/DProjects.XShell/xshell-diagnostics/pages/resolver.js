@@ -23,7 +23,7 @@ export default {
                 <x-button label="Resolve" command="resolve"></x-button>
             </x-toolbar>
 
-            <x-propertygrid x-if="state.test_result" x-prop:value="state.test_result"></x-propertygrid>
+            <x-object x-if="state.test_result" x-prop:value="state.test_result" expanded="true"></x-object>
             <div x-if="state.test_message">{{ state.test_message }}</div>
         </div>
 

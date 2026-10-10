@@ -53,7 +53,11 @@ export default {
             align-items:flex-start;
             min-width:0;
             line-height:1.5em;
+            padding:.05em .25em;
+            border-radius:.25em;
         }
+
+        .row:hover {background:var(--x-object-row-background-hover);}
 
         .node {
             display:flex;
@@ -64,8 +68,17 @@ export default {
         .node.expandable {
             cursor:pointer;
             user-select:none;
+            appearance:none;
+            border:0;
+            background:none;
+            padding:0;
+            font:inherit;
+            color:inherit;
+            text-align:left;
         }
-        .node.expandable:hover {color:var(--x-color-primary);}
+        .node.expandable:hover .toggle,
+        .node.expandable:hover .name {color:var(--x-color-primary);}
+        .node.expandable:focus-visible {outline:2px solid var(--x-color-primary);outline-offset:2px;}
 
         .toggle {
             flex:none;
@@ -85,6 +98,7 @@ export default {
         .name {
             flex:none;
             margin-right:.35em;
+            color:var(--x-object-key-color);
         }
             
 
@@ -99,14 +113,8 @@ export default {
 
         .children {
             margin-left:1.1em;
-        }
-
-        .children x-object:nth-child(odd) {
-            background:var(--x-color-background-alt);
-        }
-
-        .children x-object:nth-child(even) {
-            background:var(--x-color-background-page);
+            padding-left:.35em;
+            border-left:1px solid var(--x-object-guide-color);
         }
 
         .string {
@@ -134,19 +142,23 @@ export default {
         }
 
         .summary {
-            color:var(--x-color-text-gray);
+            color:var(--x-object-summary-color);
             white-space:nowrap;
             overflow:hidden;
             text-overflow:ellipsis;
         }
+
+        .object, .array, .accessor, .circular {color:var(--x-object-summary-color);}
     `,
 
     template: `
         <div class="row">
 
-            <div
+            <button
                 x-if="state.expandable"
+                type="button"
                 class="node expandable"
+                x-attr:aria-expanded="state.expanded ? 'true' : 'false'"
                 x-on:click="toggle">
 
                 <span class="toggle" x-class:expanded="state.expanded">
@@ -167,7 +179,7 @@ export default {
                     x-else
                     class="value summary"
                     x-text="state.openText"></span>
-            </div>
+            </button>
 
             <div
                 x-else
@@ -197,7 +209,8 @@ export default {
             <x-object
                 x-for="entry in state.entries"
                 x-attr:name="entry.name"
-                x-prop:value="entry.value">
+                x-prop:_inspection="entry.inspection"
+                x-prop:value="entry.renderValue">
             </x-object>
 
             <div class="row">
@@ -218,8 +231,9 @@ export default {
         entries: []
     },
 
-    controller({state, events}) {
+    controller({state, events, host}) {
         const SUMMARY_MAX_LENGTH = 100;
+        let inspection = null;
 
         function getType(value) {
             if (value === null) {
@@ -254,12 +268,12 @@ export default {
                     return "undefined";
 
                 case "date":
-                    return value.toISOString();
+                    return Number.isNaN(Date.prototype.getTime.call(value)) ? "Invalid Date" : Date.prototype.toISOString.call(value);
 
-                case "function":
-                    return value.name
-                        ? `ƒ ${value.name}()`
-                        : "ƒ ()";
+                case "function": {
+                    const name = Object.getOwnPropertyDescriptor(value, "name")?.value;
+                    return typeof name === "string" && name ? `ƒ ${name}()` : "ƒ ()";
+                }
 
                 case "symbol":
                     return String(value);
@@ -269,21 +283,32 @@ export default {
             }
         }
 
-        function formatSummaryValue(value) {
+        function getConstructorName(value) {
+            const prototype = Object.getPrototypeOf(value);
+            const constructor = prototype && Object.getOwnPropertyDescriptor(prototype, "constructor")?.value;
+            const name = typeof constructor === "function" && Object.getOwnPropertyDescriptor(constructor, "name")?.value;
+            return typeof name === "string" ? name : "";
+        }
+
+        function formatSummaryValue(value, ancestors) {
             const type = getType(value);
+
+            if ((type === "array" || type === "object") && ancestors.includes(value)) {
+                return "[Circular]";
+            }
 
             if (type === "array") {
                 return `Array(${value.length})`;
             }
 
             if (type === "object") {
-                const name = value?.constructor?.name;
+                const name = getConstructorName(value);
 
                 if (name && name !== "Object") {
-                    return `${name} {…}`;
+                    return `${name} ${Object.keys(value).length ? "{…}" : "{}"}`;
                 }
 
-                return "{…}";
+                return Object.keys(value).length ? "{…}" : "{}";
             }
 
             return formatPrimitive(value, type);
@@ -297,38 +322,33 @@ export default {
             return text.substring(0, maxLength - 1) + "…";
         }
 
-        function createEntries(value) {
-            if (Array.isArray(value)) {
-                return value.map((item, index) => ({
-                    name: String(index),
-                    value: item
-                }));
-            }
-
-            if (value && typeof value === "object") {
-                return Object.keys(value).map(name => ({
-                    name,
-                    value: value[name]
-                }));
-            }
-
-            return [];
+        function createEntries(value, ancestors) {
+            return Object.keys(value).map(name => {
+                const descriptor = Object.getOwnPropertyDescriptor(value, name);
+                const accessor = descriptor && !Object.hasOwn(descriptor, "value")
+                    ? descriptor.get && descriptor.set ? "[Getter/Setter]" : descriptor.get ? "[Getter]" : "[Setter]"
+                    : null;
+                const entryValue = accessor ? undefined : descriptor?.value;
+                // return functions as data because XTemplate evaluates function-valued bindings.
+                const renderValue = typeof entryValue === "function" ? () => entryValue : entryValue;
+                return { name, value: entryValue, renderValue, inspection: { ancestors, accessor } };
+            });
         }
 
-        function getSummary(value, type) {
+        function getSummary(value, type, entries, ancestors) {
+            const parts = entries.map(entry => {
+                const text = entry.inspection.accessor || formatSummaryValue(entry.value, ancestors);
+                return type === "array" ? text : `${entry.name}: ${text}`;
+            });
+
             if (type === "array") {
-                const parts = value.map(item => formatSummaryValue(item));
                 const text = `[${parts.join(", ")}]`;
 
                 return truncate(text, SUMMARY_MAX_LENGTH);
             }
 
             if (type === "object") {
-                const parts = Object.keys(value).map(name => {
-                    return `${name}: ${formatSummaryValue(value[name])}`;
-                });
-
-                const name = value?.constructor?.name;
+                const name = getConstructorName(value);
                 const prefix =
                     name && name !== "Object"
                         ? `${name} `
@@ -348,7 +368,7 @@ export default {
             }
 
             if (type === "object") {
-                const name = value?.constructor?.name;
+                const name = getConstructorName(value);
 
                 if (name && name !== "Object") {
                     return `${name} {`;
@@ -364,7 +384,7 @@ export default {
             return type === "array" ? "]" : "}";
         }
 
-        return {
+        const controller = {
             load() {
                 events.on(state, "change:value", "refresh");
                 this.refresh();
@@ -373,6 +393,7 @@ export default {
             refresh() {
                 const value = state.value;
                 const type = getType(value);
+                const ancestors = inspection?.ancestors ?? [];
 
                 state.type = type;
                 state.entries = [];
@@ -382,14 +403,30 @@ export default {
                 state.closeText = "";
                 state.text = "";
 
+                if (inspection?.accessor) {
+                    state.type = "accessor";
+                    state.text = inspection.accessor;
+                    return;
+                }
+
                 if (type === "array" || type === "object") {
-                    const entries = createEntries(value);
+                    if (ancestors.includes(value)) {
+                        state.type = "circular";
+                        state.text = "[Circular]";
+                        return;
+                    }
+
+                    const branch = [...ancestors, value];
+                    const entries = createEntries(value, branch);
 
                     state.entries = entries;
-                    state.expandable = true;
-                    state.summary = getSummary(value, type);
+                    state.expandable = entries.length > 0;
+                    state.summary = getSummary(value, type, entries, branch);
                     state.openText = getOpenText(value, type);
                     state.closeText = getCloseText(type);
+                    if (!state.expandable) {
+                        state.text = state.summary;
+                    }
                     return;
                 }
 
@@ -414,5 +451,15 @@ export default {
                 state.expanded = false;
             }
         };
+
+        Object.defineProperty(host, "_inspection", {
+            get() { return inspection; },
+            set(value) {
+                inspection = value;
+                controller.refresh();
+            }
+        });
+
+        return controller;
     }
 };

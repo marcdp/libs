@@ -26,6 +26,20 @@ namespace DProjects.XShell.Test {
         }
 
         [Fact]
+        public void XObjectTemplateCompiles() {
+            var source = File.ReadAllText(Path.Combine(GetResourceDirectory(), "x", "components", "x-object.js"));
+            var compilerType = typeof(XTemplateCompiler).Assembly.GetType("DProjects.XShell.Services.XTemplate.XTemplateJavaScriptCompiler", throwOnError: true)!;
+            var compiler = Activator.CreateInstance(compilerType, new XTemplateCompiler())!;
+            var transform = compilerType.GetMethod("Transform", BindingFlags.Instance | BindingFlags.Public)!;
+
+            var transformed = (string)transform.Invoke(compiler, [source, null])!;
+
+            Assert.Contains("templateRenderer:", transformed, StringComparison.Ordinal);
+            Assert.Contains("aria-expanded", transformed, StringComparison.Ordinal);
+            Assert.Contains("_inspection", transformed, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void StaticModuleTemplatesCompileWhenTemplatePropertyUsesWhitespaceBeforeTheColon() {
             var compilerType = typeof(XTemplateCompiler).Assembly.GetType("DProjects.XShell.Services.XTemplate.XTemplateJavaScriptCompiler", throwOnError: true)!;
             var compiler = Activator.CreateInstance(compilerType, new XTemplateCompiler())!;
