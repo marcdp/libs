@@ -131,7 +131,7 @@ export default {
                 overflow-y:auto;
                 align-self: flex-start;
                 z-index:1;
-                background:#f9f9f9;
+                background:var(--x-layout-main-drawer-background);
             }
             .body .menu {overflow: auto;scrollbar-width: none;}
             .body .menu::-webkit-scrollbar {width: 0;height: 0;}

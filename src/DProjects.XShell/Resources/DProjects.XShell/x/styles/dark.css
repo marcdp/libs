@@ -1,5 +1,136 @@
-
-/* dark theme overrides */
 :root[data-theme="dark"] {
-    
+    color-scheme: dark;
+
+    /* x-colors */
+    --x-color-primary: #4A9EFF;
+    --x-color-primary-dark: #2F8EF5;
+    --x-color-primary-x-dark: #1476D4;
+    --x-color-primary-light: #6FAEFF;
+    --x-color-primary-x-light: #91C1FF;
+
+    --x-color-secondary: #FFB347;
+    --x-color-secondary-dark: #F5A02A;
+    --x-color-secondary-x-dark: #DF8918;
+
+    --x-color-error: #FF6B6B;
+
+    --x-color-text: #E8EAED;
+    --x-color-text-gray: #B0B4BA;
+    --x-color-text-x-gray: #8B9098;
+    --x-color-text-inverse: #202124;
+    --x-color-text-disabled: #70757A;
+    --x-color-text-black: #F1F3F4;
+
+    --x-color-gray: #888888;
+    --x-color-x-gray: #707070;
+    --x-color-xx-gray: #5C5C5C;
+    --x-color-xxx-gray: #484848;
+    --x-color-xxxx-gray: #363636;
+    --x-color-xxxxx-gray: #2A2A2A;
+
+    --x-color-background-page: #121212;
+    --x-color-background-alt: #181818;
+    --x-color-background-gray: #1E1E1E;
+    --x-color-background-x-gray: #242424;
+    --x-color-background-xx-gray: #303030;
+    --x-color-background-xxx-gray: #3A3A3A;
+
+
+    /* x-layout */
+    --x-layout-main-border: 1px #45454D solid;
+    --x-layout-main-drawer-background: #090909;
+
+    --x-layout-stack-border: .1em #45454D solid;
+    --x-layout-stack-shadow: rgba(0, 0, 0, 0.55) 0px 25.6px 57.6px 0px, rgba(0, 0, 0, 0.40) 0px 4.8px 14.4px 0px;
+    --x-layout-stack-backdrop: rgba(0, 0, 0, .45);
+
+    --x-layout-dialog-shadow: 0 4px 15px rgba(0, 0, 0, .45);
+    --x-layout-dialog-backdrop: rgba(0, 0, 0, .45);
+
+
+    /* x-accordion */
+    --x-accordion-border: 1px #45454D solid;
+
+
+    /* x-avatar */
+    --x-avatar-background: #303030;
+    --x-avatar-text-color: #DADCE0;
+
+
+    /* x-button */
+    --x-button-background-hover: #18344F;
+    --x-button-background-active: #204A70;
+
+
+    /* x-card */
+    --x-card-border: 1px #45454D solid;
+
+
+    /* x-datafield */
+    --x-datafield-color: #E8EAED;
+    --x-datafield-color-placeholder: #8B949E;
+    --x-datafield-background: #1E1E1E;
+    --x-datafield-border: .1em #505058 solid;
+    --x-datafield-error-color: #FF6B6B;
+
+
+    /* x-divider */
+    --x-divider-border: 1px #484848 solid;
+
+
+    /* x-dropdown */
+    --x-dropdown-background: #202020;
+    --x-dropdown-border-color: #505058;
+    --x-dropdown-border: .1em #505058 solid;
+    --x-dropdown-shadow: 0 4px 15px rgba(0, 0, 0, .45);
+
+
+    /* x-form */
+    --x-form-border: 1px #45454D solid;
+
+
+    /* x-menu */
+    --x-contextmenu-background: #202020;
+    --x-contextmenu-border: .1em #505058 solid;
+    --x-contextmenu-shadow: 0 4px 15px rgba(0, 0, 0, .45);
+
+    --x-menuitem-border: .1em #505058 solid;
+
+
+    /* x-notice */
+    --x-notice-background-info: #102A43;
+    --x-notice-background-warning: #332A12;
+    --x-notice-background-error: #35191B;
+    --x-notice-background-success: #15301D;
+    --x-notice-background-working: #242424;
+
+    --x-notice-border-info: .1em #4A9EFF solid;
+    --x-notice-border-warning: .1em #FFB347 solid;
+    --x-notice-border-error: .1em #FF6B6B solid;
+    --x-notice-border-success: .1em #56C271 solid;
+    --x-notice-border-working: .1em #606060 solid;
+
+    --x-notice-color-info: #7EB8FF;
+    --x-notice-color-warning: #FFD080;
+    --x-notice-color-error: #FF9292;
+    --x-notice-color-success: #7ED991;
+    --x-notice-color-working: #B0B4BA;
+
+
+    /* x-progress */
+    --x-progress-background: #3A3A3A;
+
+
+    /* x-skeleton */
+    --x-skeleton-background: #363636;
+    --x-skeleton-highlight: rgba(255, 255, 255, .10);
+
+
+    /* x-splitter */
+    --x-splitter-background: #404040;
+
+
+    /* x-tooltip */
+    --x-tooltip-background: #E8EAED;
+    --x-tooltip-color: #202124;
 }
