@@ -15,7 +15,7 @@ export default {
             display:block;
             position:relative;
             width:100%;            
-            background:#cccccc;
+            background:var(--x-loading-background);
             height:var(--x-loading-height);
             border-radius:.25em;
         }

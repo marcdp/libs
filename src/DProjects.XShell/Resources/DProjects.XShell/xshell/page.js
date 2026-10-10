@@ -129,8 +129,18 @@ export default class Page {
         const src = xshell.navigation?.replacePageQuery(this, query);
         if (src !== null && typeof(src) !== "undefined") {
             this._src = src;
-            if (this._host && typeof(this._host._synchronizePageSrc) === "function") {
-                this._host._synchronizePageSrc(src);
+            if (this._host && typeof(this._host.synchronizePageSrc) === "function") {
+                this._host.synchronizePageSrc(src);
+            }
+        }
+        return src;
+    }
+    replaceHash(hash) {
+        const src = xshell.navigation?.replacePageHash(this, hash);
+        if (src !== null && typeof(src) !== "undefined") {
+            this._src = src;
+            if (this._host && typeof(this._host.synchronizePageSrc) === "function") {
+                this._host.synchronizePageSrc(src);
             }
         }
         return src;

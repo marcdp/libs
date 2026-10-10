@@ -30,8 +30,8 @@ export default {
 
             padding:.35em .65em;
 
-            background:var(--x-tooltip-background, #303030);
-            color:var(--x-tooltip-color, #ffffff);
+            background:var(--x-tooltip-background);
+            color:var(--x-tooltip-color);
 
             border-radius:var(--x-tooltip-border-radius, .35em);
             box-shadow:var(--x-tooltip-shadow, none);

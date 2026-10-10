@@ -91,12 +91,12 @@ export default {
         .wizard-header li > span.icon .number {font-size:var(--x-font-size-small);}
         .wizard-header li > span.label {margin-top:.25em;}
         .wizard-header li > span.message {font-size:var(--x-font-size-small); }
-        .wizard-header li:before {content:"";border:.075em gray solid; top:1.25em;width:calc(50% - 1.25em);left:0;position:absolute;}
-        .wizard-header li:after {content:"";border:.075em gray solid; top:1.25em;width:calc(50% - 1.25em);right:0;position:absolute;}
+        .wizard-header li:before {content:"";border:.075em var(--x-color-gray) solid; top:1.25em;width:calc(50% - 1.25em);left:0;position:absolute;}
+        .wizard-header li:after {content:"";border:.075em var(--x-color-gray) solid; top:1.25em;width:calc(50% - 1.25em);right:0;position:absolute;}
         .wizard-header li:first-child:before {display:none;}
         .wizard-header li:last-child:after {display:none;}
         .wizard-header li[visited] span.label {}
-        .wizard-header li[visited] span.icon {background:var(--x-color-primary); color:white;}
+        .wizard-header li[visited] span.icon {background:var(--x-color-primary); color:var(--x-color-white);}
         .wizard-header li[selected] span.label {font-weight:600; }
 
         .errors {margin-top:1em;padding:1em;color:var(--x-datafield-error-color);border: var(--x-datafield-border); border-color:var(--x-datafield-error-color);border-radius:var(--x-datafield-border-radius);}

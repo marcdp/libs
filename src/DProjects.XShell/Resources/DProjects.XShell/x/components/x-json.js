@@ -46,11 +46,11 @@ export default {
         pre.indent {
             white-space: normal;
         }
-        pre .string {color: green;}
-        pre .number {color: darkorange;}
-        pre .boolean {color: blue;}
-        pre .null {color: magenta;}
-        pre .key {color: red;}
+        pre .string {color: var(--x-json-string-color);}
+        pre .number {color: var(--x-json-number-color);}
+        pre .boolean {color: var(--x-json-boolean-color);}
+        pre .null {color: var(--x-json-null-color);}
+        pre .key {color: var(--x-json-key-color);}
         
         :host(.truncate) {}
         :host(.truncate) pre {white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

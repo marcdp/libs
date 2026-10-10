@@ -5,7 +5,8 @@ export const contract = {
     events: {},
     properties: {
         selectedIndex: {type:"number", default:0, attribute:true, state:true, description:""},
-        selectedHash:  {type:"string", default:"", attribute:true, state:true, description:""}
+        selectedHash:  {type:"string", default:"", attribute:true, state:true, description:""},
+        useHash:       {type:"boolean", default:false, attribute:true, state:true, description:"Whether to use the hash in the URL to track the selected tab."}
     },
     methods: {},
     slots: {
@@ -48,7 +49,8 @@ export default {
 
     `,
     state: {
-        tabs: []
+        tabs: [],
+        useHash: false,
     },
     template: `
         <nav>
@@ -83,11 +85,13 @@ export default {
                     if (tab) state.selectedHash = tab.hash;
                 });
                 //hash
-                var hash = (host.src + "#").split("#")[1];
-                if (!hash) hash = state.selectedHash;
-                if (hash) {
-                    state.selectedHash = "";
-                    state.selectedHash = hash;
+                if (state.useHash) {
+                    var hash = (host.src + "#").split("#")[1];
+                    if (!hash) hash = state.selectedHash;
+                    if (hash) {
+                        state.selectedHash = "";
+                        state.selectedHash = hash;
+                    }
                 }
             },
             mount() {
@@ -117,14 +121,13 @@ export default {
                 state.tabs = tabs;
                 styleSheet.replaceSync(`::slotted(x-tab:nth-child(${parseInt(state.selectedIndex) + 1})) {display:block;}`);
                 // hash
-                // let tab = tabs[state.selectedIndex];
-                // if (tab && tab.hash) {
-                //     const page = getPage();
-                //     if (page) {
-                //         //debugger
-                //         //page.replace("#" + tab.hash);
-                //     }
-                // }
+                let tab = tabs[state.selectedIndex];
+                if (tab && tab.hash) {
+                    const page = getPage();
+                    if (page) {
+                        page.replaceHash(tab.hash);
+                    }
+                }
             }
         }
     }

@@ -12,7 +12,7 @@ export default {
         title: "Application Page"
     },
     template: `
-        <x-propertygrid x-prop:value="state.config.app"></x-propertygrid>
+        <x-object x-prop:value="state.config.app" expanded="true"></x-object>
     `,    
     state:{
         config: null

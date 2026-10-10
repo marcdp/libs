@@ -31,7 +31,7 @@ export default {
     style: `
         :host {}
         :host a {display:inline; align-items:center; width:100%; }
-        :host a[disabled] { pointer-events: none; color:gray;}
+        :host a[disabled] { pointer-events: none; color:var(--x-color-gray);}
         
         :host(.menuitem) {}
         :host(.menuitem) a {display:flex; padding-left:.6em; padding-right:.6em; text-decoration:none; height:2.1em;}

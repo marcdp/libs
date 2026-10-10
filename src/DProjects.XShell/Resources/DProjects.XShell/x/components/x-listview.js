@@ -42,7 +42,7 @@ export default {
         .details > div ::slotted(*) {display:table-row;}       
         .details > div ::slotted(*:not([name]):nth-child(even)) {background: var(--x-color-background-alt)} 
         .details > div .columns {display:table-row; position:sticky; top:0; background: var(--x-color-background-page); z-index:1;}
-        .details > div .columns ::slotted(*) {display:table-cell; background: none!important; color:gray; padding-right:.25em;}
+        .details > div .columns ::slotted(*) {display:table-cell; background: none!important; color:var(--x-color-gray); padding-right:.25em;}
         .details > div .columns ::slotted(*:first-child) {padding-left:1.5em; border-box:border;}
         .details > div .columns ::slotted(x-datafield:first-child) {padding-left:0;}
 

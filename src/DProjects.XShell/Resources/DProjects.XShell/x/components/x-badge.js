@@ -18,7 +18,7 @@ export default  {
             display:inline-block;
             border-radius:1em; 
             background-color:var(--x-color-primary); 
-            color:white; 
+            color:var(--x-color-white);
             padding:.225em .5em .175em .5em; 
             font-size:var(--x-font-size-small); 
             font-weight:600; 
@@ -29,7 +29,7 @@ export default  {
 
         :host(.plain) .message {
             color: var(--x-color-primary); 
-            background-color: white; 
+            background-color: var(--x-color-background-page);
             border:.1em var(--x-color-primary) solid;
         }
     `,

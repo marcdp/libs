@@ -10,7 +10,7 @@ export const contract = {
 // implementation
 export default {
     style: `
-        :host {border:1px solid black; display:inline-block; padding:10px;}
+        :host {border:1px solid var(--x-clock-border-color); display:inline-block; padding:10px;}
     `,
     template: `
         {{ state.time }}

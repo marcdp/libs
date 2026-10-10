@@ -328,7 +328,7 @@ class XPage extends HTMLElement {
             await this._page.unmount();
         }
     }
-    _synchronizePageSrc(value) {
+    synchronizePageSrc(value) {
         // update query-only source state without invoking the resource-loading setter
         this._src = value;
     }

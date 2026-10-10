@@ -23,7 +23,7 @@ export default {
             position:relative;
             overflow:hidden;
 
-            background:var(--x-skeleton-background, var(--x-color-xxxx-gray));
+            background:var(--x-skeleton-background);
 
             width:100%;
             height:1em;
@@ -40,7 +40,7 @@ export default {
             background:linear-gradient(
                 90deg,
                 transparent,
-                var(--x-skeleton-highlight, rgba(255,255,255,.55)),
+                var(--x-skeleton-highlight),
                 transparent
             );
 

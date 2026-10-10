@@ -21,15 +21,15 @@ export default {
         }
         table {width:100%; border-collapse: collapse; border-radius: var(--x-datafield-border-radius);}
         th:first-child, td:first-child {width:10em; }
-        th, td {text-align:left; padding:.15em; vertical-align:top; background:white; padding-left:.5em;}
+        th, td {text-align:left; padding:.15em; vertical-align:top; background:var(--x-datafield-background); padding-left:.5em;}
         td.object, td.array {padding:0}
         td.object x-propertygrid, td.array x-propertygrid {margin:-1px;}
         
         tr:nth-child(odd) th, tr:nth-child(odd) td {background:var(--x-color-background-alt);}
         
-        .date {color:Red;}
-        .number {color:green;}
-        .text {color:blue;}
+        .date {color:var(--x-propertygrid-date-color);}
+        .number {color:var(--x-propertygrid-number-color);}
+        .text {color:var(--x-propertygrid-text-color);}
 
         :host(.no-border) {
             border: none;

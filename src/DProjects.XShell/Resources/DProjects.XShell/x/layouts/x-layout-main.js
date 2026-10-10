@@ -48,7 +48,7 @@ export default {
             padding-left:1.2em;
             padding-right:1.5em;
             border-bottom:var(--x-layout-main-border);
-            background:white;
+            background:var(--x-layout-main-header-background);
             min-height:3.15em;
             position:relative;
         }
@@ -77,7 +77,7 @@ export default {
         /* breadcrumb */
         .breadcrumb {position:sticky; top:0; user-select: none; flex:1;}
         
-        .breadcrumb x-icon.toggle {border-radius:50%; font-size:1.225em; width:1.75em; height:1.75em; display:inline-flex; align-items:center; justify-content:center;line-height:1em; background:var(--x-color-primary); color:white; margin-right:.25em; cursor:pointer; margin-right:.5em}
+        .breadcrumb x-icon.toggle {border-radius:50%; font-size:1.225em; width:1.75em; height:1.75em; display:inline-flex; align-items:center; justify-content:center;line-height:1em; background:var(--x-color-primary); color:var(--x-color-white); margin-right:.25em; cursor:pointer; margin-right:.5em}
         .breadcrumb x-icon.toggle:hover {background:var(--x-color-primary-dark); }
         .breadcrumb x-icon.toggle:active {background:var(--x-color-primary-x-dark)}
         
@@ -189,7 +189,7 @@ export default {
             }
             .body .menu {
                 width: 100vw;
-                background:var(--x-color-white);
+                background:var(--x-layout-main-drawer-background);
                 position:fixed;
                 top:0em; 
                 

@@ -38,10 +38,10 @@ export default {
 
             overflow:auto;
 
-            background:var(--x-code-background, var(--x-color-background-gray));
-            color:var(--x-code-color, var(--x-color-text));
+            background:var(--x-code-background);
+            color:var(--x-code-color);
 
-            border:var(--x-code-border, var(--x-datafield-border));
+            border:var(--x-code-border);
             border-radius:var(--x-code-border-radius, var(--x-datafield-border-radius));
 
             font-family:var(--x-code-font-family, monospace);
@@ -73,8 +73,8 @@ export default {
 
             padding:.3em .55em;
 
-            background:var(--x-code-copy-background, var(--x-color-background-x-gray));
-            color:var(--x-code-copy-color, var(--x-color-text-gray));
+            background:var(--x-code-copy-background);
+            color:var(--x-code-copy-color);
 
             font:inherit;
             font-size:var(--x-font-size-small);

@@ -161,7 +161,7 @@ function createXPage(src, layout = "main") {
         getAttribute(name) {
             return name === "layout" ? layout : null;
         },
-        _synchronizePageSrc(value) {
+        synchronizePageSrc(value) {
             this.src = value;
         }
     };

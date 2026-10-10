@@ -129,6 +129,10 @@ export default class Navigation {
         this._stackToBrowser(stack, { replace: true });
         return this._buildUrlFinal(stack[index]);
     }
+    replacePageHash(page, hash) {
+        // todo ...
+
+    }
     buildUrlAbsolute(params){
         let href = this._buildUrlPublic(params);
         if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(href)) return href;

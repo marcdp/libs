@@ -76,13 +76,15 @@ export default {
         x-anchor.details .description::after {content:")";}
         
         /* tiles */
-        x-anchor.tiles {display:block; width:var(--x-listview-item-tile-width, 17em); align-items:center; padding-top:0;}
+        x-anchor.tiles {display:block; width:var(--x-listview-item-tile-width, 17em); align-items:center; padding-top:0; margin-bottom:.3em;}
         x-anchor.tiles x-icon {position:absolute;font-size:24px; padding:.1em; margin-left:.35em; margin-top:.1em;}   
         x-anchor.tiles span {display:block; margin-left:50px; }
         x-anchor.tiles .label {padding-top:.4em;}
         x-anchor.tiles .description {color:var(--x-color-text-gray); display:block; max-width: 100%; text-overflow:ellipsis; white-space:nowrap; overflow:hidden; padding-bottom:.4em; height:1.4em;}
         x-anchor.tiles:hover {background:var(--x-color-xxxxx-gray); border-radius:var(--x-card-border-radius);}
         x-anchor.tiles[category]::before {display:none;}
+        :host(.selected) x-anchor.tiles {font-weight:600; outline:.15em solid var(--x-color-primary); border-radius:.5em;}
+        
 
     `,
     template: `

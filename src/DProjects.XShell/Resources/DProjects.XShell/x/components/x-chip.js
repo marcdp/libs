@@ -29,10 +29,10 @@ export default {
 
             padding:var(--x-chip-padding, .25em .65em);
 
-            background:var(--x-chip-background, var(--x-color-background-x-gray));
-            color:var(--x-chip-color, var(--x-color-text));
+            background:var(--x-chip-background);
+            color:var(--x-chip-color);
 
-            border:var(--x-chip-border, 1px solid var(--x-color-xxx-gray));
+            border:var(--x-chip-border);
             border-radius:var(--x-chip-border-radius, 1em);
 
             font-size:var(--x-chip-font-size, var(--x-font-size-small));

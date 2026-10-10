@@ -38,14 +38,22 @@
 
     /* x-layout */
     --x-layout-main-border: 1px #45454D solid;
+    --x-layout-main-header-background:#121212;
     --x-layout-main-drawer-background: #090909;
 
     --x-layout-stack-border: .1em #45454D solid;
+    --x-layout-stack-background:#181818;
     --x-layout-stack-shadow: rgba(0, 0, 0, 0.55) 0px 25.6px 57.6px 0px, rgba(0, 0, 0, 0.40) 0px 4.8px 14.4px 0px;
     --x-layout-stack-backdrop: rgba(0, 0, 0, .45);
 
     --x-layout-dialog-shadow: 0 4px 15px rgba(0, 0, 0, .45);
     --x-layout-dialog-backdrop: rgba(0, 0, 0, .45);
+
+    /* x-markdown */
+    --x-markdown-blockquote-background:#242424;
+    --x-markdown-code-color:#FF7B9C;
+    --x-markdown-code-background:#2B1F24;
+    --x-markdown-pre-background:#1E1E1E;
 
 
     /* x-accordion */
@@ -64,6 +72,9 @@
 
     /* x-card */
     --x-card-border: 1px #45454D solid;
+
+    /* x-clock */
+    --x-clock-border-color:#E8EAED;
 
 
     /* x-datafield */
@@ -87,6 +98,19 @@
 
     /* x-form */
     --x-form-border: 1px #45454D solid;
+
+    /* x-html */
+    --x-html-tag-color:#79C0FF;
+    --x-html-attribute-name-color:#FF7B72;
+    --x-html-attribute-value-color:#7EE787;
+    --x-html-text-color:#8B949E;
+
+    /* x-json */
+    --x-json-string-color:#7EE787;
+    --x-json-number-color:#FFA657;
+    --x-json-boolean-color:#79C0FF;
+    --x-json-null-color:#D2A8FF;
+    --x-json-key-color:#FF7B72;
 
 
     /* x-menu */
@@ -115,6 +139,22 @@
     --x-notice-color-error: #FF9292;
     --x-notice-color-success: #7ED991;
     --x-notice-color-working: #B0B4BA;
+
+    /* x-loading */
+    --x-loading-background:#3A3A3A;
+
+    /* x-object */
+    --x-object-string:#7EE787;
+    --x-object-number:#FFA657;
+    --x-object-boolean:#79C0FF;
+    --x-object-null:#D2A8FF;
+    --x-object-undefined:#8B949E;
+    --x-object-date:#56D4DD;
+
+    /* x-propertygrid */
+    --x-propertygrid-date-color:#FF7B72;
+    --x-propertygrid-number-color:#7EE787;
+    --x-propertygrid-text-color:#79C0FF;
 
 
     /* x-progress */

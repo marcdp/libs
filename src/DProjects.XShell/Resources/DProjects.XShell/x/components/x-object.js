@@ -110,27 +110,27 @@ export default {
         }
 
         .string {
-            color:var(--x-object-string, green);
+            color:var(--x-object-string);
         }
 
         .number {
-            color:var(--x-object-number, darkorange);
+            color:var(--x-object-number);
         }
 
         .boolean {
-            color:var(--x-object-boolean, blue);
+            color:var(--x-object-boolean);
         }
 
         .null {
-            color:var(--x-object-null, magenta);
+            color:var(--x-object-null);
         }
 
         .undefined {
-            color:var(--x-object-undefined, gray);
+            color:var(--x-object-undefined);
         }
 
         .date {
-            color:var(--x-object-date, teal);
+            color:var(--x-object-date);
         }
 
         .summary {

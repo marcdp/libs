@@ -26,7 +26,7 @@ export default {
             display:block;
             text-align:center;
             padding:var(--x-empty-padding, 2em);
-            color:var(--x-empty-color, var(--x-color-text-gray));
+            color:var(--x-empty-color);
         }
 
         .container {
@@ -38,14 +38,14 @@ export default {
 
         x-icon {
             font-size:var(--x-empty-icon-size, 3em);
-            color:var(--x-empty-icon-color, var(--x-color-x-gray));
+            color:var(--x-empty-icon-color);
             margin-bottom:.5em;
         }
 
         .label {
             font-size:var(--x-empty-label-size, var(--x-font-size-subtitle));
             font-weight:600;
-            color:var(--x-empty-label-color, var(--x-color-text));
+            color:var(--x-empty-label-color);
         }
 
         .message {

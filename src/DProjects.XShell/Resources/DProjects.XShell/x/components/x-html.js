@@ -72,11 +72,11 @@ export default {
             white-space: wrap;
             word-break: break-all;
         }
-        .tag { color: blue; font-weight: bold}
-        .tag-name { color: blue; font-weight: 600; }
-        .attribute-name { color: red; font-weight:normal;}
-        .attribute-value { color: green; font-weight:normal;}
-        .text {color:gray}
+        .tag { color: var(--x-html-tag-color); font-weight: bold}
+        .tag-name { color: var(--x-html-tag-color); font-weight: 600; }
+        .attribute-name { color: var(--x-html-attribute-name-color); font-weight:normal;}
+        .attribute-value { color: var(--x-html-attribute-value-color); font-weight:normal;}
+        .text {color:var(--x-html-text-color)}
     `,
     template: `
         <pre><code x-html="state.colorized"></code></pre>

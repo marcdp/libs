@@ -44,7 +44,7 @@ export default {
             background: var(--x-layout-stack-backdrop);
         }
         div.panel {
-            background:white;
+            background:var(--x-layout-stack-background);
             position:fixed;
             top:0;
             bottom:0;

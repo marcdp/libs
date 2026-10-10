@@ -18,7 +18,7 @@ export default {
             display:block;
             width:100%;
             height:var(--x-progress-height, var(--x-loading-height));
-            background:var(--x-progress-background, #cccccc);
+            background:var(--x-progress-background);
             border-radius:.25em;
             overflow:hidden;
         }
@@ -27,7 +27,7 @@ export default {
             display:block;
             height:100%;
             width:0;
-            background:var(--x-progress-color, var(--x-loading-color));
+            background:var(--x-progress-color);
             border-radius:inherit;
             transition:width var(--x-transition-duration) ease;
         }
