@@ -376,5 +376,6 @@ x-page[layout='main'] > x-markdown:first-child > h1:first-child {display:none;}
 }
 
 
-/* dark theme overrides */
+/* themes */
+@import url("light.css");
 @import url("dark.css");

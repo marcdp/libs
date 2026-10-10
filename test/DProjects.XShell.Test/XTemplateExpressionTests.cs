@@ -240,6 +240,43 @@ namespace DProjects.XShell.Test {
         }
 
         [Theory]
+        [InlineData("Hello World", "hello-world")]
+        [InlineData("  Hello, World!  ", "hello-world")]
+        [InlineData("Crème brûlée", "creme-brulee")]
+        [InlineData("España", "espana")]
+        [InlineData("Über uns", "uber-uns")]
+        [InlineData("foo___bar", "foo-bar")]
+        [InlineData("Foo / Bar / Baz", "foo-bar-baz")]
+        [InlineData("東京 News", "東京-news")]
+        [InlineData("C++", "c")]
+        [InlineData("C#", "c")]
+        [InlineData("", "")]
+        [InlineData("---", "")]
+        [InlineData("e\u0301", "e")]
+        [InlineData("ﬁ Title", "fi-title")]
+        [InlineData("𠀀 News", "𠀀-news")]
+        public void SlugFollowsTheUnicodeConformanceCases(string input, string expected) {
+            Assert.Equal(expected, XTemplateExpressions.Evaluate("state.value | slug", Context(new { state = new { value = input } })));
+        }
+
+        [Fact]
+        public void SlugPropagatesNullAndRejectsArgumentsAndNonStringInput() {
+            Assert.Null(XTemplateExpressions.Evaluate("null | slug(1 / 0)", Context()));
+            var arguments = Assert.Throws<XTemplateExpressionEvaluationException>(() => XTemplateExpressions.Evaluate("'title' | slug(1)", Context()));
+            Assert.Contains("Transformer 'slug' received an invalid argument count", arguments.Message);
+            var input = Assert.Throws<XTemplateExpressionEvaluationException>(() => XTemplateExpressions.Evaluate("123 | slug", Context()));
+            Assert.Contains("Transformer 'slug' requires a string input", input.Message);
+        }
+
+        [Theory]
+        [InlineData("en-US")]
+        [InlineData("es-ES")]
+        [InlineData("tr-TR")]
+        public void SlugIsLocaleInvariant(string locale) {
+            Assert.Equal("istanbul", XTemplateExpressions.Evaluate("'İstanbul' | slug", Context(locale: locale)));
+        }
+
+        [Theory]
         [InlineData("1 | startsWith('1')")]
         [InlineData("'abc' | startsWith(1)")]
         [InlineData("'abc' | startsWith()")]

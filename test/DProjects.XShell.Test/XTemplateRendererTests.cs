@@ -490,6 +490,14 @@ namespace DProjects.XShell.Test {
         }
 
         [Fact]
+        public void RendersSlugThroughInterpolationAndAttributeBinding() {
+            var state = new { title = "Crème brûlée" };
+
+            Assert.Equal("<p>creme-brulee</p>", Render("<p>{{ state.title | slug }}</p>", state));
+            Assert.Equal("<a href=\"/articles/creme-brulee\">Crème brûlée</a>", Render("<a x-attr:href=\"'/articles/' + (state.title | slug)\">{{ state.title }}</a>", state));
+        }
+
+        [Fact]
         public void RendersPredicateTransformerResultsThroughNormalDirectiveAndScalarSemantics() {
             Assert.Equal("<span>Languages</span>", Render("<span x-if=\"state.type | endsWith('_i18n')\">Languages</span>", new { type = "field_i18n" }));
             Assert.Equal(string.Empty, Render("<span x-if=\"state.type | endsWith('_i18n')\">Languages</span>", new { type = "field" }));

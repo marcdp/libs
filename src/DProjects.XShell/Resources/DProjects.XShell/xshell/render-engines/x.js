@@ -302,6 +302,11 @@ const utils = new class {
 				if (args.length || typeof value !== "string") return fail("Transformer 'trim' requires a string input and no arguments");
 				return value.trim();
 			}
+			if (name === "slug") {
+				if (args.length) return fail("Transformer 'slug' received an invalid argument count");
+				if (typeof value !== "string") return fail("Transformer 'slug' requires a string input");
+				return value.normalize("NFKD").replace(/\p{M}+/gu, "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-+|-+$/g, "");
+			}
 			if (name === "startsWith" || name === "endsWith" || name === "contains") {
 				if (args.length !== 1 || typeof value !== "string" || typeof args[0] !== "string") return fail(`Transformer '${name}' requires a string input and one string argument`);
 				return name === "startsWith" ? value.startsWith(args[0]) : name === "endsWith" ? value.endsWith(args[0]) : value.includes(args[0]);

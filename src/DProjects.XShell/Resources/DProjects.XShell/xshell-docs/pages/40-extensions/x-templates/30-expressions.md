@@ -30,6 +30,7 @@ Transformers are the restricted pipeline extension:
 <p>{{ state.price | number(2) }}</p>
 <p>{{ state.createdAt | date('dd/MM/yyyy') }}</p>
 <p>{{ state.name | trim | upper }}</p>
+<p>{{ state.title | slug }}</p>
 <code>{{ state.value | json_stringify }}</code>
 <span x-text="state.json | json_parse | json_stringify"></span>
 <span x-if="state.type | endsWith('_i18n')">Languages</span>
@@ -38,6 +39,8 @@ Transformers are the restricted pipeline extension:
 
 Transformer arguments are full XTemplate expressions, but transformer names refer only to the specified built-in language operations. General calls and
 method access remain invalid: `formatPrice(state.price)`, `state.price.toFixed(2)`, and `state.name.toUpperCase()` are not XTemplate expressions.
+
+`slug` is a pure built-in string-formatting transformer. It produces the same result regardless of the active locale.
 
 The transformer pipeline has lower precedence than the conditional operator. An unparenthesized pipeline transforms the complete preceding conditional,
 so `state.ok ? 'yes' : 'no' | upper` means `(state.ok ? 'yes' : 'no') | upper`. Parenthesize a branch to transform only that branch. Transformer-call

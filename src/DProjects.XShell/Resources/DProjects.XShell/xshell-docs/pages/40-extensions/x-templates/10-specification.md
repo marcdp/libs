@@ -591,7 +591,7 @@ internally, but their observable XTemplate behavior MUST be equivalent for the c
 use compatible locale data and preserve equivalent results where the host locale data permits.
 
 The locale-sensitive transformers are `number`, `percent`, `currency`, `date`, `datetime`, `time`, `upper`, and `lower`. The locale-insensitive
-transformers are `trim`, `startsWith`, `endsWith`, `contains`, `json_stringify`, and `json_parse`.
+transformers are `trim`, `slug`, `startsWith`, `endsWith`, `contains`, `json_stringify`, and `json_parse`.
 
 Locale behavior has three distinct parts:
 
@@ -655,6 +655,7 @@ reinterpret their names as host-language calls.
 | Transformer | Input | Arguments | Result | Locale-sensitive |
 |---|---|---|---|---|
 | `trim` | string | none | string | no |
+| `slug` | string | none | string | no |
 | `upper` | string | none | string | yes |
 | `lower` | string | none | string | yes |
 | `startsWith` | string | exactly 1 string | boolean | no |
@@ -684,8 +685,14 @@ change that contract. When supplied, digits are exact. Locale controls currency 
 ISO 4217 representation, supplied as a string literal or an expression that evaluates to that representation. `'EUR'` and `'USD'` are valid;
 `'eur'` and `'Usd'` are invalid. Implementations MUST NOT automatically uppercase or otherwise normalize the code.
 
-`upper`, `lower`, and `trim` accept no arguments. Their casing is locale-aware but remains a pure XTemplate operation; an implementation MUST NOT
+`upper`, `lower`, and `trim` accept no arguments. The casing of `upper` and `lower` is locale-aware, but each remains a pure XTemplate operation; an implementation MUST NOT
 call a method on the source object. Unicode whitespace for `trim` is the Unicode White_Space property, not just ASCII space.
+
+`slug` accepts a string and no arguments and returns a string. It follows ordinary null propagation, so `null | slug` returns `null`. It is
+locale-independent: normalize with Unicode NFKD, remove all Unicode combining marks (nonspacing, spacing combining, and enclosing marks), convert to
+invariant lowercase, preserve Unicode letters and numbers, replace each run of other characters with one `-`, and trim leading and trailing `-`.
+Thus `'Crème brûlée' | slug` returns `creme-brulee` and `'東京 News' | slug` returns `東京-news`. Non-Latin letters remain Unicode letters; `slug`
+does not transliterate to ASCII, percent-encode a URL, or guarantee a unique identifier.
 
 `startsWith`, `endsWith`, and `contains` each accept exactly one string argument and return a boolean. They use ordinal Unicode string semantics;
 they MUST NOT use locale-sensitive comparison or implicit type coercion. Thus `'abcdef' | startsWith('abc')`, `'abcdef' | endsWith('def')`, and

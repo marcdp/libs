@@ -197,6 +197,13 @@ Pages opened as dialogs or embeds are outside the browser navigation stack; thei
 URL. Contract-property reflection is decided by `page-js`: only `query: true` plus `reflect: true` participates, and query values use the property's
 declared scalar contract type.
 
+## Page fragment updates
+
+`Page.replaceHash(hash)` replaces only that Page's URL fragment while preserving its path, query, and navigation metadata. A non-empty string may
+include a leading `#`; an empty string or `null` removes the fragment. Other values throw `TypeError`. A Page in the navigation stack replaces the
+browser URL, including in `#!` mode. Dialog and embedded Pages update only their local source. The Page and its host synchronize the source without
+using the normal `src` loading setter, so fragment reflection does not reload the Page.
+
 The legacy `x-page` `replace`/`navigate` listener code is commented out, so it is not an active navigation API.
 Use Navigation methods and browser-history paths.
 

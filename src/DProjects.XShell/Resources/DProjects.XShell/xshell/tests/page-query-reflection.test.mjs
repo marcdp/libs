@@ -272,6 +272,156 @@ test("dialog and embedded Pages patch local src without changing the navigation 
     assert.equal(locationReplacements.length, 0);
 });
 
+test("root Page hash replacement preserves query and synchronizes its source without loading", async () => {
+    const host = {
+        _src: "/page.js?tab=summary#overview",
+        syncCalls: 0,
+        get src() { return this._src; },
+        set src(value) { throw new Error(`Page reload attempted: ${value}`); },
+        getAttribute(name) { return name === "layout" ? "main" : null; },
+        synchronizePageSrc(value) { this._src = value; this.syncCalls++; }
+    };
+    const { navigation, replaceCalls, pushCalls } = createNavigation("path", [host]);
+    navigation._stack = [navigation.parseUrl(host.src)];
+    const originalStack = navigation._stack;
+    const originalItem = originalStack[0];
+    const page = new Page({ src: host.src, context: {} });
+    page._host = host;
+    xshell._navigation = navigation;
+
+    assert.equal(page.replaceHash("details"), "/page.js?tab=summary#details");
+    await navigation._stackToDomTask;
+
+    assert.equal(navigation._stack[0].href, "/page.js#details");
+    assert.deepEqual(navigation._stack[0].params, { tab: "summary" });
+    assert.notEqual(navigation._stack, originalStack);
+    assert.notEqual(navigation._stack[0], originalItem);
+    assert.deepEqual(replaceCalls, ["/page.js?tab=summary#details"]);
+    assert.equal(pushCalls.length, 0);
+    assert.equal(page.src, "/page.js?tab=summary#details");
+    assert.equal(host.src, page.src);
+    assert.equal(host.syncCalls, 1);
+});
+
+test("Page hashes accept a leading marker and empty values remove the fragment", async () => {
+    const host = createXPage("/page.js?tab=summary#overview");
+    const { navigation, replaceCalls } = createNavigation("path", [host]);
+    navigation._stack = [navigation.parseUrl(host.src)];
+    const page = new Page({ src: host.src, context: {} });
+    page._host = host;
+    xshell._navigation = navigation;
+
+    assert.equal(page.replaceHash("#details"), "/page.js?tab=summary#details");
+    assert.equal(page.replaceHash(""), "/page.js?tab=summary");
+    assert.equal(page.replaceHash("#again"), "/page.js?tab=summary#again");
+    assert.equal(page.replaceHash(null), "/page.js?tab=summary");
+    await navigation._stackToDomTask;
+
+    assert.deepEqual(replaceCalls, [
+        "/page.js?tab=summary#details",
+        "/page.js?tab=summary",
+        "/page.js?tab=summary#again",
+        "/page.js?tab=summary"
+    ]);
+    assert.equal(navigation._stack[0].href, "/page.js");
+    assert.deepEqual(navigation._stack[0].params, { tab: "summary" });
+});
+
+test("stacked Page hash replacement changes only its item", async () => {
+    const xpages = [
+        createXPage("/customers?status=active#list"),
+        createXPage("/customer?id=42&tab=summary#overview"),
+        createXPage("/order?id=100#receipt")
+    ];
+    const { navigation, replaceCalls, pushCalls } = createNavigation("path", xpages);
+    navigation._stack = [
+        navigation.parseUrl(xpages[0].src),
+        { ...navigation.parseUrl(xpages[1].src), nav: { title: "Customer", marker: "keep" } },
+        navigation.parseUrl(xpages[2].src)
+    ];
+    const [root, oldTarget, order] = navigation._stack;
+    const page = new Page({ src: xpages[1].src, context: {} });
+    page._host = xpages[1];
+    xshell._navigation = navigation;
+
+    const src = page.replaceHash("details");
+    await navigation._stackToDomTask;
+
+    assert.equal(navigation.parseUrl(src).href, "/customer#details");
+    assert.deepEqual(navigation.parseUrl(src).params, { id: "42", tab: "summary" });
+    assert.equal(navigation._stack[0], root);
+    assert.equal(navigation._stack[2], order);
+    assert.notEqual(navigation._stack[1], oldTarget);
+    assert.equal(navigation._stack[1].href, "/customer#details");
+    assert.deepEqual(navigation._stack[1].params, { id: "42", tab: "summary" });
+    assert.equal(navigation._stack[1].nav, oldTarget.nav);
+    assert.equal(xpages[1].src, page.src);
+    assert.equal(replaceCalls.length, 1);
+    assert.equal(pushCalls.length, 0);
+    const restored = navigation._browserUrlToStack(replaceCalls[0]);
+    assert.equal(restored[1].href, "/customer#details");
+    assert.deepEqual(restored[1].params, oldTarget.params);
+    assert.deepEqual(restored[1].nav, oldTarget.nav);
+});
+
+test("hash-mode Page fragment replacement preserves the XShell navigation prefix", async () => {
+    const host = createXPage("/page.js?tab=summary#overview");
+    const { navigation, locationReplacements, pushCalls } = createNavigation("hash", [host]);
+    navigation._stack = [navigation.parseUrl(host.src)];
+    const page = new Page({ src: host.src, context: {} });
+    page._host = host;
+    xshell._navigation = navigation;
+
+    page.replaceHash("details");
+    await navigation._stackToDomTask;
+
+    assert.deepEqual(locationReplacements, ["#!/page.js?tab=summary#details"]);
+    assert.equal(pushCalls.length, 0);
+    const restored = navigation._browserUrlToStack(locationReplacements[0]);
+    assert.equal(restored[0].href, "/page.js#details");
+    assert.deepEqual(restored[0].params, { tab: "summary" });
+});
+
+test("dialog and embedded Page hashes change only their local sources", () => {
+    const stackHost = createXPage("/page.js?root=1#main");
+    const { navigation, replaceCalls, pushCalls, locationReplacements } = createNavigation("path", [stackHost]);
+    navigation._stack = [navigation.parseUrl(stackHost.src)];
+    const stack = navigation._stack;
+    xshell._navigation = navigation;
+
+    for (const layout of ["dialog", "embed"]) {
+        const host = createXPage("/dialog.js?tab=summary#old", layout);
+        const page = new Page({ src: host.src, context: {} });
+        page._host = host;
+        assert.equal(page.replaceHash("new"), "/dialog.js?tab=summary#new");
+        assert.equal(host.src, page.src);
+        assert.equal(page.replaceHash(null), "/dialog.js?tab=summary");
+        assert.equal(host.src, page.src);
+    }
+
+    assert.equal(navigation._stack, stack);
+    assert.equal(stackHost.src, "/page.js?root=1#main");
+    assert.equal(replaceCalls.length, 0);
+    assert.equal(pushCalls.length, 0);
+    assert.equal(locationReplacements.length, 0);
+    assert.equal(navigation._replacePageSrcHash(null, "#new"), null);
+});
+
+test("Page hash replacement rejects values other than strings and null", () => {
+    const host = createXPage("/page.js#old");
+    const { navigation, replaceCalls } = createNavigation("path", [host]);
+    navigation._stack = [navigation.parseUrl(host.src)];
+    const page = new Page({ src: host.src, context: {} });
+    page._host = host;
+    xshell._navigation = navigation;
+
+    for (const value of [{}, [], 123, undefined]) {
+        assert.throws(() => page.replaceHash(value), { name: "TypeError", message: "Navigation.replacePageHash: hash must be a string or null." });
+    }
+    assert.equal(page.src, "/page.js#old");
+    assert.equal(replaceCalls.length, 0);
+});
+
 test("attribute reflection remains independent from Page-query metadata", async () => {
     configureDefinitionLoaders();
     const Component = await createComponentClassFromJsDefinition(

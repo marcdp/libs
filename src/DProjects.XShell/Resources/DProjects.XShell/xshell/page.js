@@ -124,7 +124,7 @@ export default class Page {
         return this._host.close(result);
     }
 
-     // url methods (replace this Page's query parameters without navigating or reloading it)
+     // url methods (replace this Page's query or fragment without navigating or reloading it)
     replaceQuery(query) {
         const src = xshell.navigation?.replacePageQuery(this, query);
         if (src !== null && typeof(src) !== "undefined") {

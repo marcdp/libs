@@ -26,6 +26,7 @@ accepted, including attribute bindings:
 <p>{{ state.createdAt | date('dd/MM/yyyy') }}</p>
 <p>{{ state.createdAt | datetime('dd/MM/yyyy HH:mm') }}</p>
 <p>{{ state.name | trim | upper }}</p>
+<a x-attr:href="'/articles/' + (state.title | slug)">{{ state.title }}</a>
 <code>{{ state.value | json_stringify }}</code>
 <span x-text="state.json | json_parse | json_stringify"></span>
 <span x-if="state.type | endsWith('_i18n')">Languages</span>
@@ -37,6 +38,8 @@ parenthesize a branch when only that branch should be transformed. Locale-sensit
 ordinary scalar conversion remains invariant. General function calls and object methods remain invalid; use `number(2)` instead of `toFixed(2)` and
 `upper` instead of `toUpperCase()`. The JavaScript and C# backends share the `en-US`, `es-ES`, and `tr-TR` locale conformance profile; see the
 specification for its required numeric, percent, currency, month-name, and casing cases.
+
+`slug` formats a title as a locale-independent URL path segment; see the specification for its Unicode rules.
 
 `json_stringify` accepts any JSON-compatible XTemplate value, takes no arguments, and returns compact JSON. `json_parse` accepts a JSON string, takes no
 arguments, and returns the corresponding XTemplate value. Parsed objects and arrays participate in ordinary member access, indexing, and collection

@@ -23,11 +23,13 @@ export default {
         <p><code>state.name | trim</code>: <strong>{{ state.name | trim }}</strong></p>
         <p><code>state.name | trim | upper</code>: <strong>{{ state.name | trim | upper }}</strong></p>
         <p><code>state.name | trim | lower</code>: <strong>{{ state.name | trim | lower }}</strong></p>
+        <p><code>state.name | slug</code>: <strong>{{ state.name | slug }}</strong></p>
 
         <pre x-pre><code>{{ state.name }}
 {{ state.name | trim }}
 {{ state.name | trim | upper }}
-{{ state.name | trim | lower }}</code></pre>
+{{ state.name | trim | lower }}
+{{ state.name | slug }}</code></pre>
 
         <x-divider></x-divider>
 

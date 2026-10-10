@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Globalization;
+using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -30,6 +31,7 @@ namespace DProjects.XShell.Services.XTemplate {
                 "upper" => String(input, arguments, GetCulture(locale, offset), offset, true),
                 "lower" => String(input, arguments, GetCulture(locale, offset), offset, false),
                 "trim" => Trim(input, arguments, offset),
+                "slug" => Slug(input, arguments, offset),
                 "startsWith" => StartsWith(input, arguments, offset),
                 "endsWith" => EndsWith(input, arguments, offset),
                 "contains" => Contains(input, arguments, offset),
@@ -143,6 +145,33 @@ namespace DProjects.XShell.Services.XTemplate {
             RequireCount("trim", arguments, 0, 0, offset);
             if (input is not string text) throw Error("Transformer 'trim' requires a string input", offset);
             return text.Trim();
+        }
+        private static string Slug(object input, IReadOnlyList<object?> arguments, int offset) {
+            RequireCount("slug", arguments, 0, 0, offset);
+            if (input is not string text) throw Error("Transformer 'slug' requires a string input", offset);
+
+            // remove all Unicode mark categories after compatibility decomposition.
+            var unmarked = new StringBuilder();
+            foreach (var rune in text.Normalize(NormalizationForm.FormKD).EnumerateRunes()) {
+                var category = Rune.GetUnicodeCategory(rune);
+                if (category is not (UnicodeCategory.NonSpacingMark or UnicodeCategory.SpacingCombiningMark or UnicodeCategory.EnclosingMark)) unmarked.Append(rune.ToString());
+            }
+
+            // lowercase invariantly, then collapse every run outside Unicode letters and numbers.
+            var result = new StringBuilder();
+            var separator = false;
+            foreach (var rune in unmarked.ToString().ToLowerInvariant().EnumerateRunes()) {
+                var category = Rune.GetUnicodeCategory(rune);
+                if (category is UnicodeCategory.UppercaseLetter or UnicodeCategory.LowercaseLetter or UnicodeCategory.TitlecaseLetter or UnicodeCategory.ModifierLetter or UnicodeCategory.OtherLetter
+                    or UnicodeCategory.DecimalDigitNumber or UnicodeCategory.LetterNumber or UnicodeCategory.OtherNumber) {
+                    if (separator && result.Length > 0) result.Append('-');
+                    result.Append(rune.ToString());
+                    separator = false;
+                } else {
+                    separator = true;
+                }
+            }
+            return result.ToString();
         }
         private static bool StartsWith(object input, IReadOnlyList<object?> arguments, int offset) => StringPredicate(input, arguments, "startsWith", (text, value) => text.StartsWith(value, StringComparison.Ordinal), offset);
         private static bool EndsWith(object input, IReadOnlyList<object?> arguments, int offset) => StringPredicate(input, arguments, "endsWith", (text, value) => text.EndsWith(value, StringComparison.Ordinal), offset);

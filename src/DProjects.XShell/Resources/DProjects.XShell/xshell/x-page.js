@@ -329,7 +329,7 @@ class XPage extends HTMLElement {
         }
     }
     synchronizePageSrc(value) {
-        // update query-only source state without invoking the resource-loading setter
+        // update reflected Page source state without invoking the resource-loading setter
         this._src = value;
     }
     async unload() {

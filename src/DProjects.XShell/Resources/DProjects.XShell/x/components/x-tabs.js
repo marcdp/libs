@@ -69,7 +69,7 @@ export default {
     controller({ state, events, getPage, host }) {
         let styleSheet = new CSSStyleSheet();
         return {
-            load(params) {
+            load() {
                 //load
                 events.on(state, "change:selectedHash", (event) => {
                     let hash = event.newValue;
@@ -84,18 +84,19 @@ export default {
                     let tab = tabs[selectedIndex];
                     if (tab) state.selectedHash = tab.hash;
                 });
-                //hash
-                if (state.useHash) {
-                    var hash = (host.src + "#").split("#")[1];
-                    if (!hash) hash = state.selectedHash;
-                    if (hash) {
-                        state.selectedHash = "";
-                        state.selectedHash = hash;
-                    }
-                }
             },
             mount() {
                 host.shadowRoot.adoptedStyleSheets = [...host.shadowRoot.adoptedStyleSheets, styleSheet];
+                if (state.useHash) {
+                    const page = getPage();
+                    if (page) {
+                        const hash = page.src.split("#")[1];
+                        if (hash) {
+                            state.selectedHash = "";
+                            state.selectedHash = hash;
+                        }
+                    }
+                }
                 this.refresh();
             },
 

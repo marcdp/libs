@@ -130,8 +130,22 @@ export default class Navigation {
         return this._buildUrlFinal(stack[index]);
     }
     replacePageHash(page, hash) {
-        // todo ...
-
+        // replace one Page fragment without navigating or reloading the Page
+        if (hash !== null && typeof(hash) !== "string") {
+            throw new TypeError("Navigation.replacePageHash: hash must be a string or null.");
+        }
+        const fragment = hash ? `#${hash.replace(/^#+/, "")}` : "";
+        const xpage = page?.host || null;
+        const xpages = xpage ? this.getXPages() : [];
+        const index = xpages.indexOf(xpage);
+        if (index < 0 || index >= this._stack.length) {
+            return this._replacePageSrcHash(page?.src || null, fragment);
+        }
+        const item = this._stack[index];
+        const stack = [...this._stack];
+        stack[index] = { ...item, href: this._replacePageSrcHash(item.href, fragment) };
+        this._stackToBrowser(stack, { replace: true });
+        return this._buildUrlFinal(stack[index]);
     }
     buildUrlAbsolute(params){
         let href = this._buildUrlPublic(params);
@@ -697,6 +711,14 @@ export default class Navigation {
         this._applyQueryChanges(params, changes);
         const serialized = new URLSearchParams(params).toString();
         return href + (serialized ? `?${serialized}` : "") + hash;
+    }
+    _replacePageSrcHash(src, hash) {
+        // replace only a Page source fragment while preserving its path and query
+        if (typeof(src) !== "string") {
+            return null;
+        }
+        const hashIndex = src.indexOf("#");
+        return (hashIndex < 0 ? src : src.substring(0, hashIndex)) + hash;
     }
 }
 
