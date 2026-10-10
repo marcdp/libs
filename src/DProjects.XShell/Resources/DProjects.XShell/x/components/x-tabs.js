@@ -116,15 +116,15 @@ export default {
                 });
                 state.tabs = tabs;
                 styleSheet.replaceSync(`::slotted(x-tab:nth-child(${parseInt(state.selectedIndex) + 1})) {display:block;}`);
-                //hash
-                let tab = tabs[state.selectedIndex];
-                if (tab && tab.hash) {
-                    const page = getPage();
-                    if (page) {
-                        //debugger
-                        //page.replace("#" + tab.hash);
-                    }
-                }
+                // hash
+                // let tab = tabs[state.selectedIndex];
+                // if (tab && tab.hash) {
+                //     const page = getPage();
+                //     if (page) {
+                //         //debugger
+                //         //page.replace("#" + tab.hash);
+                //     }
+                // }
             }
         }
     }

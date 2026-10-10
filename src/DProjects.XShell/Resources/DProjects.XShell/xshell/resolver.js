@@ -5,14 +5,12 @@ export default class Resolver {
 
 
     //vars
-    _debug = null;
     _definitions = [];
     _appBasePath = "";
     _appBaseUrl = "";
 
     //ctor
-    constructor( {debug, config}) {
-        this._debug = debug;
+    constructor( { config }) {
         this._appBasePath = config.app.basePath;
         this._appBaseUrl = config.app.baseUrl;
         for(let type in config.xshell.resolver) {

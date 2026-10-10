@@ -57,7 +57,7 @@
         "contract": {"$ref": "#/$defs/moduleContract", "description": "Public contract exposed by the module."},
         "files": {"type": "array", "items": {"$ref": "#/$defs/file"}, "description": "Normalized virtual resource inventory for the module."}
       },
-      "required": ["label", "version", "copyright", "icon", "configUrl", "assetsUrl", "defaults", "files", "assetsPath"],
+      "required": ["label", "version", "hash", "copyright", "icon", "configUrl", "assetsUrl", "defaults", "files", "assetsPath"],
       "additionalProperties": false,
       "description": "Effective configuration of a resolved XShell module."
     },
@@ -172,9 +172,8 @@
     },
     "xshell": {
       "type": "object",
-      "required": ["debug", "version", "environment", "assetsBasePath", "assetsPath", "areas", "navigation", "resolver", "ui", "i18n", "configUrl", "assetsUrl", "files"],
+      "required": ["version", "hash", "environment", "assetsBasePath", "assetsPath", "areas", "navigation", "resolver", "ui", "i18n", "configUrl", "assetsUrl", "files"],
       "properties": {
-        "debug": {"type": "boolean", "description": "Whether XShell debug behavior is enabled."},
         "version": {"type": "string", "description": "XShell runtime version."},
         "environment": {"type": "string", "description": "Runtime environment name."},
         "configUrl": {"type": "string", "format": "uri", "description": "Fully qualified absolute URL of the normalized XShell configuration document."},

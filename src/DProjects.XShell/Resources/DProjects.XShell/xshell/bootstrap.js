@@ -361,6 +361,7 @@ async function loadConfig() {
     xshellConfig.xshell.configUrl = xshellConfigUrl;
     xshellConfig.xshell.temp.url = new URL(xshellTempUrl, document.baseURI).href;
     xshellConfig.xshell.assetsBasePath = assetsBasePath;
+    xshellConfig.xshell.hash = xshellConfig.xshell.hash || "dev";
 
     const rootModule = getLocalModule(rootModuleConfig, rootModuleUrl);
     rootModule.definition.params = Object.fromEntries(new URLSearchParams(appParams));
@@ -386,7 +387,7 @@ async function loadConfig() {
 
     for (const [moduleId, module] of Object.entries(config.modules)) {
         module.assetsPath = graph.nodesById.get(moduleId).assetsPath;
-
+        module.hash ??= "dev";
         module.contract ??= {};
         module.contract.events ??= {};
     }

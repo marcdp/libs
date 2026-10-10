@@ -17,7 +17,6 @@
     "xshell": {
 
         // core
-        "debug": false,
         "version": "0.9.0",
         "environment": "Development",
         "assetsBasePath": "app:/_assets",
