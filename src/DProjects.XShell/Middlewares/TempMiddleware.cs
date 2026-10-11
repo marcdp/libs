@@ -1,12 +1,16 @@
 using DProjects.Utils;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.StaticFiles;
+using Microsoft.Net.Http.Headers;
 
 namespace DProjects.XShell.Middlewares {
 
     internal sealed class TempMiddleware : IDisposable {
 
-        // fields
+        // vars
+        private static readonly HashSet<string> InlineContentTypes = new(StringComparer.OrdinalIgnoreCase) {
+            "image/png", "image/jpeg", "image/gif", "image/webp", "image/avif", "text/plain", "application/pdf"
+        };
         private readonly RequestDelegate mNext;
         private readonly Extensions.TempConfig mConfig;
         private readonly FileExtensionContentTypeProvider mContentTypes = new();
@@ -163,6 +167,16 @@ namespace DProjects.XShell.Middlewares {
 
             context.Response.ContentType = contentType;
             context.Response.ContentLength = info.Length;
+
+            // restrict inline rendering to the explicit preview types
+            var inline = InlineContentTypes.Contains(contentType);
+            var disposition = new ContentDispositionHeaderValue(inline ? "inline" : "attachment");
+            if (!inline) {
+                disposition.FileName = filename;
+                disposition.FileNameStar = filename;
+            }
+            context.Response.Headers[HeaderNames.ContentDisposition] = disposition.ToString();
+            context.Response.Headers["X-Content-Type-Options"] = "nosniff";
 
             // open the file and stream it to the response body
             await using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, FileOptions.Asynchronous | FileOptions.SequentialScan);

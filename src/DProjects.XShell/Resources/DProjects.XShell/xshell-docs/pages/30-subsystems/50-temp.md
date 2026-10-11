@@ -39,6 +39,10 @@ temp:/<guid-N>/<escaped-file-name>?size=<bytes>&type=<extension-mime-type>&hash=
 GET uses `Temp.BasePath/<guid>/<escaped-file-name>`; metadata query parameters are not checked.
 The middleware validates the GUID, normalizes filenames to their basename, rejects empty/`.`/`..` names, and checks containment inside the root.
 It streams the stored file with content length and extension-based content type, falling back to `application/octet-stream`.
+Only `image/png`, `image/jpeg`, `image/gif`, `image/webp`, `image/avif`, `text/plain`, and `application/pdf` are served with
+`Content-Disposition: inline`. All other content types are served with `Content-Disposition: attachment` and the sanitized filename;
+`image/svg+xml` is intentionally not inline. Every successful GET includes `X-Content-Type-Options: nosniff`.
+The `type` metadata in a `temp:/...` identifier does not control the HTTP content type or disposition.
 
 Non-form uploads return **415**; invalid file count/name returns **400**; invalid/missing GET paths/files return **404**.
 Unsupported methods, including HEAD/DELETE, and POST to child paths return **405**. There is no delete API.
