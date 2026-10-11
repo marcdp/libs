@@ -40,6 +40,12 @@
             "component": {
                 "x-page": {"src": "/x-page.js", "loader": "module-js", "cache": true}
             },
+            "http": {
+                "{url}": {"src": "http:{url}","loader": "response-http", "cache": false}
+            },
+            "https": {
+                "{url}": {"src": "https:{url}","loader": "response-http", "cache": false}
+            },
             "module": {
                 "xshell": {"src": "/xshell.js", "loader": "module-js", "cache": true}
             },
@@ -52,6 +58,7 @@
             "schema": {
                 "{name}.json": {"src": "/schemas/{name}.json","loader": "object-json", "cache": true}
             }
+
         },
 
         // services
