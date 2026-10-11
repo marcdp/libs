@@ -60,7 +60,7 @@ export default {
             >
                 <div>{{ module.label }}</div>
                 <div>{{ module.version }}</div>
-                <div>{{ module.assetsPath }}</div>
+                <div><x-anchor x-attr:href="module.assetsUrl" target="_blank" class="plain">{{ module.assetsPath }}</x-anchor></div>
                 <div>{{ module.builtAt }}</div>
                 <x-file-size x-prop:value="module.size" style="text-align:right"></x-file-size>
                 <div style="text-align:right">{{ module.files.all }}</div>
@@ -130,12 +130,15 @@ export default {
                         }
                     }
                     if (valid) {
+                        debugger
                         list.push({
                             id: target.id,
                             version: target.version,
                             label: target.label || "",
                             icon: target.icon || "x-module",
                             assetsPath: target.assetsPath,
+                            assetsUrl: target.assetsUrl || "",
+                            builtAt: target.builtAt || "",
                             configUrl: target.configUrl,
                             configUrlName: target.configUrl.split("/").pop() || "",
                             files: files,

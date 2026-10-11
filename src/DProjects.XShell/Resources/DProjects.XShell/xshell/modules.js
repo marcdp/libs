@@ -31,6 +31,8 @@ export default class Modules {
             path: module.path,
             version: module.config.version || "",
             assetsPath: module.config.assetsPath,
+            assetsUrl: module.config.assetsUrl || "",
+            builtAt: module.config.builtAt || "",
             configUrl: module.config.configUrl || "",
             icon: module.config.icon || null,
             files: Object.freeze(module.config.files.map(file => Object.freeze({ path: file.path, size: file.size })))

@@ -34,6 +34,7 @@
           "description": "Toast presentation, lifetime, and ownership options.",
           "schema": {
             "type": "object",
+            "additionalProperties": false,
             "properties": {
               "type": {
                 "type": "string",
