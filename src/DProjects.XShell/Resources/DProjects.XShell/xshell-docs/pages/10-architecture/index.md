@@ -61,7 +61,7 @@ current state. Operational APIs such as `services.resolve(...)` and `loader.load
 - [Configuration](20-configuration.md) — Nested effective configuration and merge rules.
 - [Modules](30-modules.md) — Definitions, references, root composition, params, and live instances.
 - [Hosting](40-hosting.md) — ASP.NET middleware, generated bootstrap, and SPA fallback.
-- [Packaging](50-packaging.md) — Development inventories and immutable module ZIP creation.
+- [Packaging](50-packaging.md) — Development inventories and transactional application ZIP distributions.
 - [Components](60-components.md) — The Web Component model.
 - [Pages](70-pages.md) — Pages and layouts.
 - [Resolvers](80-resolvers.md) — Logical resource resolution.

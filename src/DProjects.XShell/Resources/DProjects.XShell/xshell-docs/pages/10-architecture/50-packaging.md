@@ -1,108 +1,86 @@
 # Packaging
 
-Normal modules and the XShell framework are authored as expanded directories. The `pack` command publishes expanded or ZIP distribution packages
-for either kind. It does not recursively package modules referenced by `configUrl`.
+`pack` builds a complete application distribution from its root module. It follows every `modules.<id>.configUrl` reference recursively, packages
+each canonical module once, and publishes independent immutable ZIP packages. Recursion and ZIP output are mandatory.
 
-## Pack command
+## Command
 
 ```text
-DProjects.XShell pack --source <package-directory> --output <directory> [--zip]
+DProjects.XShell pack --source ./app --output ./dist
 ```
 
-The source must resolve to exactly one package kind. A normal module contains exactly one of `module.json` or `module.jsonc`; its `modules` object
-must contain exactly one entry without `configUrl`, whose key and non-empty `version` supply the package identity. The XShell framework contains
-exactly one of `xshell.json` or `xshell.jsonc`; its id is `xshell` and its version comes from the required non-empty `xshell.version`. 
+`--source` is the root application module directory. It contains `module.json` or `module.jsonc` with exactly one local module definition.
+`--output` is the distribution directory. The command rejects an output directory containing the source or contained by the source.
+The former `--zip` flag and expanded output mode have been removed.
 
-Module and XShell descriptors may be authored as JSON or JSONC during development. Packaging parses either form and publishes normalized strict JSON
-using the canonical filenames `module.json` and `xshell.json`. Production packages therefore do not contain `module.jsonc` or `xshell.jsonc`.
-Comments, trailing commas, and original formatting are not preserved.
+For compatibility with framework packaging, a source containing `xshell.json` or `xshell.jsonc` can still produce a standalone XShell framework
+ZIP distribution. It has no module dependency graph. A source cannot contain both descriptor kinds.
 
-The command uses one staging and compilation flow for both output modes:
+## Discovery and build
 
-1. copy the complete source package to a temporary staging directory outside the source and output trees;
-2. normalize the canonical descriptor's own generated `hash` to `""`, overwriting any authored value;
-3. remove any copied `module.files.json`;
-4. for a normal module, compile staged JavaScript, HTML XShell SFC, and standalone CSS resources through `ModuleFileCompiler`; XShell framework files
-   remain unchanged because the module compiler depends on module-definition semantics;
-5. generate `module.files.json` from the final compiled files;
-6. calculate the package hash over the complete canonical staging tree; and
-7. publish the staged tree as an expanded directory or, with `--zip`, a ZIP distribution package.
+The command parses the full graph before changing published output. Each reference key must equal the local module id in the referenced document.
+References are resolved relative to the document that contains them. Repeated references to one canonical document are deduplicated. Missing
+documents, id conflicts, cycles, invalid ids, and references without `configUrl` fail the build.
 
-JavaScript is replaced at its existing path with its compiled content. An authored HTML SFC such as `pages/orders.html` or
-`components/x-example.html` becomes the corresponding JavaScript resource (`pages/orders.js` or `components/x-example.js`), and the source HTML is
-not included. Packing fails if both the HTML and JavaScript source exist because they resolve to the same runtime path. Standalone CSS is compiled
-and replaced at the same path; resources are not bundled or concatenated.
+Only local filesystem source definitions are supported. A `url:../other/module.jsonc` reference and a `file:` URL resolve to local files.
+Remote HTTP(S), `app:`, and deployment-root references fail clearly because the packer has no authenticated remote package fetch and integrity
+verification mechanism. It does not recompile remote immutable packages or omit unsupported dependencies.
 
-Both representations use `<output>/<id>/<version>.<hash>/`. The generated 16-character lowercase hash comes from SHA-256 over ordered relative file
-paths and bytes in the compiled staging tree. This includes the canonical `module.json` or `xshell.json` with its own `hash` set to `""`, the generated
-`module.files.json`, and every other staged file. Expanded and ZIP packages use the same algorithm; the hash is not calculated from ZIP bytes.
-Development descriptors need not contain `hash`. Packaging owns it, and an authored value cannot control package identity.
+Modules are built in topological order, with dependencies before consumers. Each package retains its own local definition and its own dependency
+references and reference contributions. The packer changes only each dependency's `configUrl` to the definitive packaged descriptor, such as
+`url:../../customers/1.2.0.<hash>/module.json`. The relative URL works regardless of where the distribution is deployed. Original source
+descriptors are never edited.
 
-Without `--zip`, the package directory contains the compiled resources, generated `module.files.json`, and canonical descriptor. Normal modules contain
-`module.json`; XShell framework packages contain `xshell.json`. After calculating package identity, the published descriptor receives the actual
-hash, equal to the package directory suffix. The package identity is not recalculated after this injection.
+The command copies source files into private staging, normalizes JSONC descriptors to strict `module.json`, compiles JavaScript, HTML XShell SFC,
+and standalone CSS through `ModuleFileCompiler`, then generates `module.files.json`. An HTML SFC becomes a JavaScript file; conflicting authored
+HTML and JavaScript runtime paths fail. Framework resources remain uncompiled under the existing framework convention.
 
-For a normal module, `--zip` publishes `module.json` and `module.zip`. The emitted `module.json` is normalized JSON with
-`modules.<local-id>.assetsUrl = "url:./module.zip"` and `modules.<local-id>.files = [...]` from the generated inventory.
+Each canonical archive contains the compiled tree, `module.files.json`, and a descriptor whose own generated `hash` is empty. The external
+descriptor beside the ZIP has the calculated hash, `assetsUrl = "url:./module.zip"` (or `xshell.zip`), and the physical file inventory. Both
+descriptors contain the same rewritten dependency references. The archive is created before external publication metadata is added.
 
-For the XShell framework, `--zip` publishes `xshell.json` and `xshell.zip`. The emitted `xshell.json` is normalized strict JSON, including
-`xshell.assetsUrl = "url:./xshell.zip"` and `xshell.files = [...]` from the same generated inventory. Each archive contains the staged tree at its
-root, including `module.files.json`. The external descriptor contains the actual package hash. The descriptor inside the ZIP retains `hash: ""`,
-because the archive is created from canonical staging before the external descriptor is updated. The external descriptor also carries the existing
-`assetsUrl` and `files` publication metadata.
+The package hash is the first 16 lowercase hexadecimal characters of SHA-256 over sorted canonical relative paths, lengths, and file bytes.
+It includes the canonical descriptor, inventory, and final rewritten references. It excludes ZIP timestamps and external publication metadata.
+ZIP entries are written in sorted order with a fixed timestamp, so the archive bytes are also reproducible for the same canonical tree.
+Changing a dependency identity can change its consumers' hashes. Unchanged packages keep their identities and are reused after the existing
+archive and external descriptor pass integrity checks. Existing immutable packages are never overwritten.
 
-The package path is immutable after first publication. Repeating a pack with the same content identity and representation reuses that path without
-rewriting it. Requesting expanded output where a ZIP package exists, or ZIP output where an expanded package exists, fails with a representation
-collision. New packages are prepared in temporary directories and published by a directory move.
+## Distribution and transaction boundary
 
-The command rejects an output directory that equals or is inside the source directory. Temporary staging is always cleaned after success or failure,
-and resource compilation failures are not swallowed.
+A committed output has this structure:
+
+```text
+dist/
+  release.json
+  app/1.0.0.<hash>/module.json
+  app/1.0.0.<hash>/module.zip
+  orders/2.0.0.<hash>/module.json
+  orders/2.0.0.<hash>/module.zip
+  customers/1.2.0.<hash>/module.json
+  customers/1.2.0.<hash>/module.zip
+```
+
+`release.json` is the authoritative commit record. Its `root` field gives the packaged root descriptor relative to `dist/`; its sorted
+`packages` array lists every descriptor in the complete release. Consumers should read `release.json` to select a distribution, then resolve
+its paths within the same output directory. Package directories outside the manifest are uncommitted and may be left by an interrupted publish.
+
+The build has three phases: full graph discovery and validation, private staging of all ZIP packages, then publication. A short exclusive lock
+serializes concurrent commits. The command moves immutable packages to their final paths, verifies any existing identities, writes a complete
+temporary release manifest, then atomically installs the manifest. A failed build or publication before that final operation leaves the previous
+`release.json` selecting the previous complete release. Temporary staging and manifest files are removed after ordinary failures. Previously
+published and newly moved immutable packages are left intact.
+
+The atomic boundary is one file rename or replacement on the output filesystem. This requires a filesystem with atomic same-volume file rename
+and replacement semantics and readers that use `release.json` as the release selector. It does not rely on atomic directory replacement across
+filesystems. The staging directory is created beside `--output` to keep package moves on the same filesystem.
 
 ## Module file inventory
 
-`FilesIndexer` records runtime resources, excluding `module.files.json`, `module.json`, and `xshell.json`. Other JSON files remain ordinary resources.
-The canonical descriptor still participates in the whole-package hash; it is excluded only from the runtime file inventory. Both normal modules and
-XShell use this one inventory filename.
-Each entry contains:
+`FilesIndexer` records compiled runtime resources, excluding `module.files.json`, `module.json`, and `xshell.json`. Each entry contains a
+package-relative path, byte size, and lowercase SHA-256 hash. Paths start with `/`, use forward slashes, and are sorted ordinally.
+Bootstrap loads this physical inventory through the virtual resource namespace after Service Worker initialization.
 
-```json
-{
-  "path": "/pages/home.js",
-  "size": 1234,
-  "hash": "<lowercase-sha256>"
-}
-```
+Packaging creates distribution artifacts; deployment and browser runtime loading are separate concerns. The current Service Worker supports
+expanded physical resources and does not load ZIP archives directly. The packer does not upload artifacts or implement deployment.
 
-`path` is relative to the package root, uses forward slashes, and carries a leading `/`. `size` is the file byte length. `hash` is the lowercase
-SHA-256 digest of the file bytes. Entries are sorted deterministically by path using ordinal comparison. Because the inventory is generated after
-compilation, an HTML SFC contributes its generated `.js` path and not its authored `.html` path.
-
-The inventory is a generated physical package inventory rather than authored semantic configuration. After Service Worker initialization, bootstrap
-loads it through the virtual resource namespace and converts its package-relative paths into effective-config paths. For example,
-`/components/x-button.js` in Development module `x` version `1.4.0` becomes `/_assets/x/1.4.0.dev/components/x-button.js`;
-`/xshell.js` in XShell version `0.9.0` becomes `/_assets/xshell/0.9.0.dev/xshell.js`. The Service
-Worker virtualizes delivery but does not discover or interpret inventories.
-
-## Development resources
-
-`ResourcesMiddleware` uses the same `ModuleFileCompiler` on demand in development, including HTML-to-JavaScript resolution and conflict detection.
-It also generates `module.files.json` on demand and adds no-cache headers when ASP.NET is Development. Debugger presence does not enable it.
-Development inventories enumerate physical sources, so HTML SFC entries retain authored `.html` paths rather than packed `.js` paths.
-Server descriptor parsing and browser bootstrap both accept JSONC comments and trailing commas. Bootstrap requests the canonical `xshell.json` URL;
-when the checked-in development source is `xshell.jsonc`, `ResourcesMiddleware` serves that physical source through the canonical request path.
-
-Development resources use `<version>.dev` virtual generations. Their Service Worker mappings are immutable, but the mapped physical files remain
-mutable; the mapping is not a content snapshot. Reload is the V0 boundary for a new effective configuration or inventory. See
-[Service Worker](110-service-worker.md#development-generations) for the complete development-generation contract.
-
-ZIP packaging is implemented. Runtime ZIP-backed browser loading is not implemented; current Service Worker mapping and fetch behavior supports
-expanded directories only.
-
-## Outside V0
-
-The project copies `Resources/**` to output without automatic MSBuild/publish-time packing.
-ZIPs are distribution artifacts. Runtime ZIP loading is not implemented; deploy an expanded directory for the current worker mapping.
-
-See [Modules](30-modules.md), [Service Worker](110-service-worker.md), and [Configuration](20-configuration.md).
-
-See [Hosting](40-hosting.md) for the development environment and resource middleware.
+See [Modules](30-modules.md), [Service Worker](110-service-worker.md), and [Hosting](40-hosting.md).

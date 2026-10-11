@@ -560,13 +560,16 @@ Services/FilesIndexer.cs
 Services/ModuleFileCompiler.cs
 ```
 
-Packaging can create expanded packages, immutable ZIP packages, and physical file inventories. Both package kinds use:
+Packaging recursively builds complete application distributions as immutable ZIP packages and physical file inventories. Both normal module and
+XShell framework packages use:
 
 ```text
 module.files.json
 ```
 
-The physical inventory contains package-relative paths. Bootstrap loads it after Service Worker initialization and attaches a normalized copy to
+The physical inventory contains package-relative paths. A committed distribution is selected through `release.json`; its `root` names the root
+descriptor and its `packages` list names the complete package set. Bootstrap loads the inventory after Service Worker initialization and attaches
+a normalized copy to
 `config.modules.<id>.files` or `config.xshell.files`, where paths use the virtual application resource namespace.
 
 Do not infer from packaging support that the browser runtime can load modules directly from ZIP files.

@@ -1,54 +1,53 @@
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
-import { dirname, join, relative, sep } from "node:path";
-import { fileURLToPath } from "node:url";
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { dirname, join, relative, resolve } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import test from "node:test";
 import { inflateRawSync } from "node:zlib";
 
-const projectPath = fileURLToPath(new URL("../../../../DProjects.XShell.csproj", import.meta.url));
-const projectDirectory = dirname(projectPath);
+const projectDirectory = dirname(fileURLToPath(new URL("../../../../DProjects.XShell.csproj", import.meta.url)));
 const assemblyPath = join(projectDirectory, "bin", "Release", "net10.0", "DProjects.XShell.dll");
-let assemblyReady = false;
+let ready = false;
 
 function ensureAssembly() {
-    if (assemblyReady) return;
-    const packSourcePath = join(projectDirectory, "Commands", "Pack.cs");
-    if (existsSync(assemblyPath) && statSync(assemblyPath).mtimeMs >= statSync(packSourcePath).mtimeMs) {
-        assemblyReady = true;
-        return;
-    }
-    const args = ["build", projectPath, "--configuration", "Release", "--no-restore", "-m:1", "-p:UseSharedCompilation=false"];
-    const result = spawnSync("dotnet", args, {
-        encoding: "utf8"
-    });
-    assert.equal(result.status, 0, `Unable to build pack test target.\n${result.stdout}\n${result.stderr}`);
-    assemblyReady = true;
+    if (ready) return;
+    const result = spawnSync("dotnet", ["build", join(projectDirectory, "DProjects.XShell.csproj"), "--configuration", "Release", "--no-restore", "-m:1",
+        "-p:UseSharedCompilation=false"], { encoding: "utf8" });
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    ready = true;
 }
 
-function writeDescriptor(directory, name, content) {
+function fixture() {
+    ensureAssembly();
+    mkdirSync(join(projectDirectory, "obj"), { recursive: true });
+    return mkdtempSync(join(projectDirectory, "obj", "pack-distribution-"));
+}
+
+function module(directory, id, references = {}, extra = {}) {
     mkdirSync(directory, { recursive: true });
-    writeFileSync(join(directory, name), content);
+    const modules = { [id]: { version: "1.0.0", ...extra }, ...references };
+    const content = JSON.stringify({ modules });
+    writeFileSync(join(directory, "module.jsonc"), "// authored configuration\n" + content);
+    writeFileSync(join(directory, "resource.txt"), id);
+    return content;
 }
 
-function pack(source, output, zip = false) {
-    const args = [assemblyPath, "pack", "--source", source, "--output", output];
-    if (zip) args.push("--zip");
-    const result = spawnSync("dotnet", args, { encoding: "utf8" });
-    assert.equal(result.status, 0, `Pack failed.\n${result.stdout}\n${result.stderr}`);
-    return result.stdout.trim().split(/\r?\n/).at(-1);
+function pack(source, output) {
+    return spawnSync("dotnet", [assemblyPath, "pack", "--source", source, "--output", output], { encoding: "utf8" });
 }
 
-function packFailure(source, output, zip = false) {
-    const args = [assemblyPath, "pack", "--source", source, "--output", output];
-    if (zip) args.push("--zip");
-    return spawnSync("dotnet", args, { encoding: "utf8" });
+function successfulPack(source, output) {
+    const result = pack(source, output);
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    assert.equal(result.stdout.trim().split(/\r?\n/).at(-1), join(output, "release.json"));
+    return JSON.parse(readFileSync(join(output, "release.json"), "utf8"));
 }
 
-function zipEntries(path) {
-    const archive = readFileSync(path);
-    const entries = new Map();
+function entries(archivePath) {
+    const archive = readFileSync(archivePath);
+    const result = new Map();
     for (let offset = 0; offset <= archive.length - 46;) {
         if (archive.readUInt32LE(offset) !== 0x02014b50) {
             offset++;
@@ -61,150 +60,280 @@ function zipEntries(path) {
         const localOffset = archive.readUInt32LE(offset + 42);
         const contentOffset = localOffset + 30 + archive.readUInt16LE(localOffset + 26) + archive.readUInt16LE(localOffset + 28);
         const compressed = archive.subarray(contentOffset, contentOffset + archive.readUInt32LE(offset + 20));
-        const method = archive.readUInt16LE(offset + 10);
-        entries.set(name, method === 8 ? inflateRawSync(compressed) : compressed);
+        result.set(name, archive.readUInt16LE(offset + 10) === 8 ? inflateRawSync(compressed) : compressed);
         offset += 46 + nameLength + extraLength + commentLength;
     }
-    return entries;
+    return result;
 }
 
-function packageHash(entries) {
-    const digest = createHash("sha256");
-    for (const [name, content] of [...entries].sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)) {
+function contentHash(archive) {
+    const hash = createHash("sha256");
+    for (const [name, content] of [...archive].filter(([name]) => !name.endsWith("/")).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)) {
         const path = Buffer.from(name);
         const pathLength = Buffer.alloc(4);
         pathLength.writeInt32LE(path.length);
         const fileLength = Buffer.alloc(8);
         fileLength.writeBigInt64LE(BigInt(content.length));
-        digest.update(pathLength).update(path).update(fileLength).update(content);
+        hash.update(pathLength).update(path).update(fileLength).update(content);
     }
-    return digest.digest("hex").slice(0, 16);
+    return hash.digest("hex").slice(0, 16);
 }
 
-function expandedEntries(root) {
-    const entries = new Map();
-    function visit(directory) {
-        for (const entry of readdirSync(directory, { withFileTypes: true })) {
-            const path = join(directory, entry.name);
-            if (entry.isDirectory()) visit(path);
-            else entries.set(relative(root, path).split(sep).join("/"), readFileSync(path));
-        }
-    }
-    visit(root);
-    return entries;
+function descriptor(output, packagePath) {
+    return JSON.parse(readFileSync(join(output, packagePath), "utf8"));
 }
 
-test("pack normalizes JSON and JSONC descriptors to canonical production filenames", () => {
-    ensureAssembly();
-    mkdirSync(join(projectDirectory, "obj"), { recursive: true });
-    const root = mkdtempSync(join(projectDirectory, "obj", "pack-descriptors-"));
+test("pack discovers a dependency graph, rewrites references, and commits one complete release", () => {
+    const root = fixture();
     try {
-        const moduleJsonc = join(root, "module-jsonc");
-        const moduleJson = join(root, "module-json");
-        const moduleOutput = join(root, "module-output");
-        writeDescriptor(moduleJsonc, "module.jsonc", `{
-            // authored comment
-            "modules": { "sample": { "version": "1.0.0", }, },
-        }`);
-        writeDescriptor(moduleJson, "module.json", `{
-            "modules": { "sample": { "version": "1.0.0", }, },
-        }`);
+        const sources = join(root, "sources");
+        const output = join(root, "dist");
+        module(join(sources, "customers"), "customers");
+        module(join(sources, "x"), "x");
+        module(join(sources, "orders"), "orders", {
+            customers: { configUrl: "url:../customers/module.jsonc", params: { theme: "blue" } },
+            x: { configUrl: "url:../x/module.jsonc" }
+        });
+        module(join(sources, "reports"), "reports", { x: { configUrl: "url:../x/module.jsonc" } });
+        const authored = module(join(sources, "app"), "app", {
+            orders: { configUrl: "url:../orders/module.jsonc" },
+            reports: { configUrl: "url:../reports/module.jsonc" }
+        });
 
-        const moduleJsoncPackage = pack(moduleJsonc, moduleOutput);
-        const moduleJsonPackage = pack(moduleJson, moduleOutput);
-        assert.equal(moduleJsonPackage, moduleJsoncPackage);
-        assert.doesNotThrow(() => JSON.parse(readFileSync(join(moduleJsoncPackage, "module.json"), "utf8")));
-        assert.equal(readFileSync(join(moduleJsoncPackage, "module.json"), "utf8").includes("authored comment"), false);
-        assert.equal(existsSync(join(moduleJsoncPackage, "module.jsonc")), false);
-        assert.equal(readFileSync(join(moduleJsoncPackage, "module.files.json"), "utf8").includes("module.jsonc"), false);
+        const release = successfulPack(join(sources, "app"), output);
+        assert.equal(release.packages.length, 5);
+        assert.equal(release.root, release.packages.find(path => path.startsWith("app/")));
+        assert.equal(release.packages.filter(path => path.startsWith("x/")).length, 1);
+        for (const path of release.packages) {
+            const directory = join(output, dirname(path));
+            const archive = entries(join(directory, "module.zip"));
+            assert.deepEqual(readdirSync(directory).sort(), ["module.json", "module.zip"]);
+            assert.equal(archive.has("module.json"), true);
+            assert.equal(archive.has("module.jsonc"), false);
+            assert.equal(archive.has("module.files.json"), true);
+            assert.equal(contentHash(archive), dirname(path).split(".").at(-1));
+            assert.equal(JSON.parse(archive.get("module.json")).modules[path.split("/")[0]].hash, "");
+            const published = descriptor(output, path);
+            assert.equal(published.modules[path.split("/")[0]].hash, dirname(path).split(".").at(-1));
+            assert.equal(published.modules[path.split("/")[0]].assetsUrl, "url:./module.zip");
+            assert.deepEqual(published.modules[path.split("/")[0]].files.map(file => file.path), ["/resource.txt"]);
+            assert.equal(published.modules[path.split("/")[0]].files[0].hash, createHash("sha256").update(path.split("/")[0]).digest("hex"));
+            assert.equal(published.modules[path.split("/")[0]].files[0].size, Buffer.byteLength(path.split("/")[0]));
+            const archived = JSON.parse(archive.get("module.json"));
+            for (const [id, reference] of Object.entries(published.modules)) {
+                if (id === path.split("/")[0]) continue;
+                assert.deepEqual(archived.modules[id], reference);
+                assert.equal(reference.configUrl.startsWith("url:../../"), true);
+                const target = resolve(directory, reference.configUrl.slice(4));
+                assert.equal(existsSync(target), true);
+                assert.equal(target, join(output, release.packages.find(candidate => candidate.startsWith(id + "/"))));
+            }
+        }
+        const orders = descriptor(output, release.packages.find(path => path.startsWith("orders/")));
+        assert.deepEqual(orders.modules.customers.params, { theme: "blue" });
+        assert.equal(readFileSync(join(sources, "app", "module.jsonc"), "utf8"), "// authored configuration\n" + authored);
 
-        const xshellJsonc = join(root, "xshell-jsonc");
-        const xshellJson = join(root, "xshell-json");
-        const xshellOutput = join(root, "xshell-output");
-        writeDescriptor(xshellJsonc, "xshell.jsonc", `{
-            // authored comment
-            "xshell": { "version": "1.0.0", },
-        }`);
-        writeDescriptor(xshellJson, "xshell.json", `{
-            "xshell": { "version": "1.0.0", },
-        }`);
-
-        const xshellJsoncPackage = pack(xshellJsonc, xshellOutput);
-        const xshellJsonPackage = pack(xshellJson, xshellOutput);
-        assert.equal(xshellJsonPackage, xshellJsoncPackage);
-        assert.doesNotThrow(() => JSON.parse(readFileSync(join(xshellJsoncPackage, "xshell.json"), "utf8")));
-        assert.equal(existsSync(join(xshellJsoncPackage, "xshell.jsonc")), false);
-        assert.equal(readFileSync(join(xshellJsoncPackage, "module.files.json"), "utf8").includes("xshell.jsonc"), false);
-
-        const xshellZipOutput = join(root, "xshell-zip-output");
-        const xshellZipPackage = pack(xshellJsonc, xshellZipOutput, true);
-        assert.doesNotThrow(() => JSON.parse(readFileSync(join(xshellZipPackage, "xshell.json"), "utf8")));
-        assert.equal(readFileSync(join(xshellZipPackage, "xshell.json"), "utf8").includes('"assetsUrl": "url:./xshell.zip"'), true);
-        assert.equal(readFileSync(join(xshellZipPackage, "xshell.json"), "utf8").includes('"files"'), true);
-        assert.equal(existsSync(join(xshellZipPackage, "xshell.jsonc")), false);
-        assert.equal(existsSync(join(xshellZipPackage, "xshell.zip")), true);
-        const archiveEntries = zipEntries(join(xshellZipPackage, "xshell.zip"));
-        assert.equal(archiveEntries.has("xshell.json"), true);
-        assert.equal(archiveEntries.has("xshell.jsonc"), false);
-        assert.equal(archiveEntries.has("module.files.json"), true);
-        assert.equal(pack(xshellJson, xshellZipOutput, true), xshellZipPackage);
-
-        // published package reuse recognizes only the canonical production descriptor
-        renameSync(join(xshellZipPackage, "xshell.json"), join(xshellZipPackage, "xshell.jsonc"));
-        const legacyReuse = packFailure(xshellJson, xshellZipOutput, true);
-        assert.notEqual(legacyReuse.status, 0);
-        assert.match(legacyReuse.stderr, /incomplete or unrecognized representation/);
+        const prior = readFileSync(join(output, "release.json"), "utf8");
+        assert.deepEqual(successfulPack(join(sources, "app"), output), release);
+        assert.equal(readFileSync(join(output, "release.json"), "utf8"), prior);
+        const otherOutput = join(root, "another-dist");
+        assert.deepEqual(successfulPack(join(sources, "app"), otherOutput), release);
+        for (const path of release.packages) {
+            assert.deepEqual(readFileSync(join(output, dirname(path), "module.zip")), readFileSync(join(otherOutput, dirname(path), "module.zip")));
+        }
+        assert.equal(readdirSync(output).some(name => name.endsWith(".tmp")), false);
     } finally {
         rmSync(root, { recursive: true, force: true });
     }
 });
 
-test("package hash includes the canonical descriptor and inventory for expanded and ZIP output", () => {
-    ensureAssembly();
-    mkdirSync(join(projectDirectory, "obj"), { recursive: true });
-    const root = mkdtempSync(join(projectDirectory, "obj", "pack-hash-"));
+test("dependency identity changes propagate to consumers while unrelated packages are reused", () => {
+    const root = fixture();
     try {
-        for (const kind of ["module", "xshell"]) {
-            const source = join(root, kind);
-            const descriptorName = `${kind}.json`;
-            const own = kind === "module" ? config => config.modules.orders : config => config.xshell;
-            const descriptor = kind === "module" ? { modules: { orders: { version: "1.4.0", hash: "authored" } } } :
-                { xshell: { version: "0.9.0", hash: "authored" } };
-            writeDescriptor(source, descriptorName, JSON.stringify(descriptor));
-            writeDescriptor(join(source, "contracts"), "customer.json", '{"name":"customer"}');
-            writeDescriptor(source, "module.files.json", '[{"path":"/stale"}]');
+        const sources = join(root, "sources");
+        const output = join(root, "dist");
+        module(join(sources, "child"), "child");
+        module(join(sources, "other"), "other");
+        module(join(sources, "app"), "app", {
+            child: { configUrl: "url:../child/module.jsonc" },
+            other: { configUrl: "url:../other/module.jsonc" }
+        });
+        const before = successfulPack(join(sources, "app"), output);
+        writeFileSync(join(sources, "child", "resource.txt"), "changed");
+        const after = successfulPack(join(sources, "app"), output);
+        assert.notEqual(after.root, before.root);
+        assert.notEqual(after.packages.find(path => path.startsWith("child/")), before.packages.find(path => path.startsWith("child/")));
+        assert.equal(after.packages.find(path => path.startsWith("other/")), before.packages.find(path => path.startsWith("other/")));
+    } finally {
+        rmSync(root, { recursive: true, force: true });
+    }
+});
 
-            const expanded = pack(source, join(root, `${kind}-expanded`));
-            const zipped = pack(source, join(root, `${kind}-zip`), true);
-            const suffix = expanded.split(/[\\/]/).at(-1).split(".").at(-1);
-            assert.match(suffix, /^[0-9a-f]{16}$/);
-            assert.equal(zipped.split(/[\\/]/).at(-1), expanded.split(/[\\/]/).at(-1));
+test("invalid graphs and build failures leave the committed release unchanged", () => {
+    const root = fixture();
+    try {
+        const sources = join(root, "sources");
+        const output = join(root, "dist");
+        module(join(sources, "app"), "app");
+        successfulPack(join(sources, "app"), output);
+        const committed = readFileSync(join(output, "release.json"), "utf8");
+        module(join(sources, "app"), "app", { missing: { configUrl: "url:../missing/module.jsonc" } });
+        assert.match(pack(join(sources, "app"), output).stderr, /Missing module configuration/);
+        module(join(sources, "child"), "child", { app: { configUrl: "url:../app/module.jsonc" } });
+        module(join(sources, "app"), "app", { child: { configUrl: "url:../child/module.jsonc" } });
+        assert.match(pack(join(sources, "app"), output).stderr, /cycle/i);
+        module(join(sources, "child"), "wrong");
+        assert.match(pack(join(sources, "app"), output).stderr, /defines local module 'wrong'/);
+        module(join(sources, "child"), "child");
+        module(join(sources, "app"), "app", { child: { configUrl: "url:../child/module.jsonc" } });
+        writeFileSync(join(sources, "child", "pages.html"), "<div></div>");
+        writeFileSync(join(sources, "child", "pages.js"), "export default {};");
+        assert.match(pack(join(sources, "app"), output).stderr, /Conflicting module resources/);
+        assert.equal(readFileSync(join(output, "release.json"), "utf8"), committed);
+        assert.equal(readdirSync(root).some(name => name.includes("-pack-")), false);
+    } finally {
+        rmSync(root, { recursive: true, force: true });
+    }
+});
 
-            const publishedText = readFileSync(join(expanded, descriptorName), "utf8");
-            const published = JSON.parse(publishedText);
-            assert.equal(own(published).hash, suffix);
-            const inventory = JSON.parse(readFileSync(join(expanded, "module.files.json"), "utf8"));
-            assert.deepEqual(inventory.map(file => file.path), ["/contracts/customer.json"]);
+test("framework packaging retains its distinct descriptor and ZIP format", () => {
+    const root = fixture();
+    try {
+        const source = join(root, "xshell");
+        mkdirSync(source);
+        writeFileSync(join(source, "xshell.jsonc"), '// comment\n{"xshell":{"version":"2.0.0"}}');
+        writeFileSync(join(source, "xshell.js"), "console.log('x');");
+        const output = join(root, "dist");
+        const release = successfulPack(source, output);
+        assert.equal(release.root.startsWith("xshell/2.0.0."), true);
+        const published = descriptor(output, release.root);
+        assert.equal(published.xshell.assetsUrl, "url:./xshell.zip");
+        const archive = entries(join(output, dirname(release.root), "xshell.zip"));
+        assert.equal(archive.has("xshell.json"), true);
+        assert.equal(contentHash(archive), published.xshell.hash);
+    } finally {
+        rmSync(root, { recursive: true, force: true });
+    }
+});
 
-            const canonical = expandedEntries(expanded);
-            canonical.set(descriptorName, Buffer.from(publishedText.replace(`"hash": "${suffix}"`, '"hash": ""')));
-            assert.equal(packageHash(canonical), suffix);
+test("equivalent JSON and JSONC property orders produce the same package identity", () => {
+    const root = fixture();
+    try {
+        const first = join(root, "first");
+        const second = join(root, "second");
+        module(first, "app", {}, { label: "Application" });
+        mkdirSync(second);
+        writeFileSync(join(second, "module.json"), '{"modules":{"app":{"label":"Application","version":"1.0.0"}}}');
+        writeFileSync(join(second, "resource.txt"), "app");
+        const a = successfulPack(first, join(root, "output-a"));
+        const b = successfulPack(second, join(root, "output-b"));
+        assert.deepEqual(a, b);
+    } finally {
+        rmSync(root, { recursive: true, force: true });
+    }
+});
 
-            const external = JSON.parse(readFileSync(join(zipped, descriptorName), "utf8"));
-            assert.equal(own(external).hash, suffix);
-            const archive = zipEntries(join(zipped, `${kind}.zip`));
-            assert.equal(own(JSON.parse(archive.get(descriptorName))).hash, "");
-            assert.equal(packageHash(archive), suffix);
-            assert.equal(archive.has("module.files.json"), true);
+test("conflicting identities and unsupported dependency URLs fail before publication", () => {
+    const root = fixture();
+    try {
+        const sources = join(root, "sources");
+        const output = join(root, "dist");
+        module(join(sources, "one"), "shared");
+        module(join(sources, "two"), "shared");
+        module(join(sources, "app"), "app", {
+            shared: { configUrl: "url:../one/module.jsonc" },
+            branch: { configUrl: "url:../branch/module.jsonc" }
+        });
+        module(join(sources, "branch"), "branch", { shared: { configUrl: "url:../two/module.jsonc" } });
+        assert.match(pack(join(sources, "app"), output).stderr, /conflicting configUrl/);
+        assert.equal(existsSync(join(output, "release.json")), false);
+        module(join(sources, "app"), "app", { shared: { configUrl: "url:https://example.invalid/shared/module.json" } });
+        assert.match(pack(join(sources, "app"), output).stderr, /Remote module dependency/);
+        module(join(sources, "app"), "app", { shared: { params: { mode: "compact" } } });
+        assert.match(pack(join(sources, "app"), output).stderr, /exactly one local module definition/);
+        assert.equal(existsSync(join(output, "release.json")), false);
+    } finally {
+        rmSync(root, { recursive: true, force: true });
+    }
+});
 
-            // an authored hash is ignored, while other descriptor content changes package identity
-            own(descriptor).hash = "another-authored-value";
-            writeDescriptor(source, descriptorName, JSON.stringify(descriptor));
-            assert.equal(pack(source, join(root, `${kind}-expanded`)), expanded);
-            own(descriptor).label = "Changed";
-            writeDescriptor(source, descriptorName, JSON.stringify(descriptor));
-            assert.notEqual(pack(source, join(root, `${kind}-expanded`)), expanded);
-        }
+test("already packaged immutable dependencies are rejected instead of recompiled", () => {
+    const root = fixture();
+    try {
+        const childSource = join(root, "child-source");
+        const appSource = join(root, "app-source");
+        module(childSource, "child");
+        const childOutput = join(root, "child-dist");
+        const childRelease = successfulPack(childSource, childOutput);
+        module(appSource, "app", { child: { configUrl: "url:" + pathToFileURL(join(childOutput, childRelease.root)).href } });
+        const output = join(root, "app-dist");
+        assert.match(pack(appSource, output).stderr, /Immutable package dependency/);
+        assert.equal(existsSync(join(output, "release.json")), false);
+    } finally {
+        rmSync(root, { recursive: true, force: true });
+    }
+});
+
+test("an immutable package collision cannot replace the committed release", () => {
+    const root = fixture();
+    try {
+        const sources = join(root, "sources");
+        const output = join(root, "dist");
+        module(join(sources, "child"), "child");
+        module(join(sources, "app"), "app", { child: { configUrl: "url:../child/module.jsonc" } });
+        const release = successfulPack(join(sources, "app"), output);
+        const committed = readFileSync(join(output, "release.json"), "utf8");
+        const child = release.packages.find(path => path.startsWith("child/"));
+        writeFileSync(join(output, child), '{"modules":{"child":{"hash":"corrupt"}}}');
+        assert.match(pack(join(sources, "app"), output).stderr, /collides with different or damaged content/);
+        assert.equal(readFileSync(join(output, "release.json"), "utf8"), committed);
+    } finally {
+        rmSync(root, { recursive: true, force: true });
+    }
+});
+
+test("a collision after publishing one new package leaves the old release selected", () => {
+    const root = fixture();
+    try {
+        const sources = join(root, "sources");
+        const output = join(root, "dist");
+        module(join(sources, "child"), "child");
+        module(join(sources, "app"), "app", { child: { configUrl: "url:../child/module.jsonc" } });
+        successfulPack(join(sources, "app"), output);
+        const committed = readFileSync(join(output, "release.json"), "utf8");
+        writeFileSync(join(sources, "child", "resource.txt"), "changed");
+        const candidate = successfulPack(join(sources, "app"), join(root, "candidate"));
+        const child = candidate.packages.find(path => path.startsWith("child/"));
+        mkdirSync(join(output, dirname(child)), { recursive: true });
+        writeFileSync(join(output, child), "invalid");
+        writeFileSync(join(output, dirname(child), "module.zip"), "invalid");
+        assert.match(pack(join(sources, "app"), output).stderr, /collides with different or damaged content/);
+        assert.equal(readFileSync(join(output, "release.json"), "utf8"), committed);
+        assert.equal(existsSync(join(output, candidate.root)), true);
+    } finally {
+        rmSync(root, { recursive: true, force: true });
+    }
+});
+
+test("concurrent publication attempts preserve a complete release", async () => {
+    const root = fixture();
+    try {
+        const source = join(root, "app");
+        const output = join(root, "dist");
+        module(source, "app");
+        const run = () => new Promise(resolve => {
+            const child = spawn("dotnet", [assemblyPath, "pack", "--source", source, "--output", output]);
+            let stderr = "";
+            child.stderr.on("data", chunk => { stderr += chunk; });
+            child.on("close", status => resolve({ status, stderr }));
+        });
+        const results = await Promise.all([run(), run()]);
+        assert.equal(results.some(result => result.status === 0), true);
+        for (const result of results.filter(result => result.status !== 0)) assert.match(result.stderr, /publication lock/);
+        const release = JSON.parse(readFileSync(join(output, "release.json"), "utf8"));
+        assert.deepEqual(release.packages, [release.root]);
+        assert.equal(existsSync(join(output, release.root)), true);
+        assert.equal(existsSync(join(output, dirname(release.root), "module.zip")), true);
     } finally {
         rmSync(root, { recursive: true, force: true });
     }

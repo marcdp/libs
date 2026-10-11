@@ -81,6 +81,11 @@ The normalized `configUrl` records the definition document. `assetsUrl` identifi
 directory. References cannot override `assetsUrl`; physical resource ownership stays with the local definition. Runtime resources use
 `/_assets/<module-id>/<generation>/...`; the Service Worker maps that generation-qualified namespace to `assetsUrl`.
 
+The build-time `pack` command follows the same local-definition and reference ownership rules. It recursively packages the root application and
+all local source dependencies into independent ZIPs, preserving each descriptor's reference contributions. It replaces each reference's
+`configUrl` with a relative URL to the immutable dependency descriptor before hashing the consumer. The committed `release.json` identifies the
+root package and complete package set. See [Packaging](50-packaging.md) for the command, local-source policy, and transaction boundary.
+
 The optional module `routes` object follows the same normalization boundary: its values are module-relative Page targets authored in the module
 configuration and become `/_assets/<module-id>/<generation>/...` paths during bootstrap. Its application-facing keys are not normalized. Route
 placeholders remain

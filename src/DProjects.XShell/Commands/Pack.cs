@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using System.IO.Compression;
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
@@ -10,425 +11,419 @@ using DProjects.Commands.Attributes;
 using DProjects.Utils;
 using DProjects.XShell.Services;
 
-using Microsoft.AspNetCore.Diagnostics;
-
 namespace DProjects.XShell.Commands {
 
-
-    [Description("Pack an XShell module or the XShell framework")]
-    [Example("DProjects.XShell pack --source ./x --output ./dist", "Pack an XShell module")]
-    [Example("DProjects.XShell pack --source ./xshell --output ./dist", "Pack the XShell framework")]
+    [Description("Build and publish a complete XShell application distribution")]
+    [Example("DProjects.XShell pack --source ./app --output ./dist", "Package an application and all its dependencies")]
     public class Pack(IEnvironment environment) : ICommand {
 
         // consts
         private const string ModuleIdPattern = "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$";
+        private const string ReleaseFileName = "release.json";
+        private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
         // inner classes
-        private enum PackageKind {
-            Module,
-            XShell
-        }
-        private sealed record PackageInfo(PackageKind Kind, string Id, string Version, string DescriptorPath);
+        private sealed record ModuleNode(string Id, string Version, string DescriptorPath, JsonObject Configuration, List<Reference> References);
+        private sealed record Reference(string Id, string DescriptorPath);
+        private sealed record BuiltPackage(string Id, string Version, string Hash, string RelativeDirectory, string DescriptorName);
 
-        
-        // arguments
-        [Flag('s', "Source package directory", "")]
+        // props
+        [Flag('s', "Root application module directory", "")]
         public string Source { get; init; } = "";
-        [Flag('o', "Output directory", "")]
+        [Flag('o', "Distribution output directory", "")]
         public string Output { get; init; } = "";
-        [Flag('z', "Zip", false)]
-        public bool Zip { get; init; } = false;
-
 
         // methods
         public async Task<int> ExecuteAsync(CancellationToken cancellationToken) {
-            // validations
+            // validate paths before touching the destination
             if (string.IsNullOrWhiteSpace(Source)) throw new ArgumentException("Source directory is required.");
             if (string.IsNullOrWhiteSpace(Output)) throw new ArgumentException("Output directory is required.");
-
-            // prepare
             var sourcePath = Path.GetFullPath(Source);
             var outputPath = Path.GetFullPath(Output);
-            if (!Directory.Exists(sourcePath)) {
-                throw new DirectoryNotFoundException($"Package directory not found: {sourcePath}");
+            if (!Directory.Exists(sourcePath)) throw new DirectoryNotFoundException($"Application directory not found: {sourcePath}");
+            if (IsSameOrInside(outputPath, sourcePath) || IsSameOrInside(sourcePath, outputPath)) {
+                throw new InvalidOperationException("Source and output directories must not contain one another.");
             }
-            if (IsSameOrInside(outputPath, sourcePath)) {
-                throw new InvalidOperationException("Output directory must not be the source package directory or a directory inside it.");
-            }
-            var package = await GetPackageInfoAsync(sourcePath, cancellationToken);
-            ValidatePackageNamePart(package.Id, "Package id");
-            ValidatePackageNamePart(package.Version, "Package version");
-            Directory.CreateDirectory(outputPath);
-            var stagingPath = CreateStagingPath(sourcePath, outputPath);
+
+            // discover and validate the complete graph without publishing anything
+            var hasModule = File.Exists(Path.Combine(sourcePath, "module.json")) || File.Exists(Path.Combine(sourcePath, "module.jsonc"));
+            var hasFramework = File.Exists(Path.Combine(sourcePath, "xshell.json")) || File.Exists(Path.Combine(sourcePath, "xshell.jsonc"));
+            if (hasModule && hasFramework) throw new InvalidOperationException("Source cannot contain both a module and an XShell descriptor.");
+            var rootDescriptor = FindDescriptor(sourcePath, hasFramework ? "xshell" : "module");
+            var order = hasFramework ? [] : await DiscoverAsync(rootDescriptor, cancellationToken);
+
+            // build every canonical package in private staging on the output filesystem
+            var stagingPath = Path.Combine(Path.GetDirectoryName(outputPath)!, $".{Path.GetFileName(outputPath)}-pack-{Guid.NewGuid():N}.tmp");
             Directory.CreateDirectory(stagingPath);
-
             try {
-                // copy
-                CopyDirectory(sourcePath, stagingPath, cancellationToken);
-                var stagedDescriptorPath = await NormalizeDescriptorAsync(stagingPath, package, cancellationToken);
-                package = package with { DescriptorPath = stagedDescriptorPath };
-
-                // remove a copied inventory before compiling the distributable tree
-                var indexPath = Path.Combine(stagingPath, FilesIndexer.ModuleFilesJson);
-                if (File.Exists(indexPath)) File.Delete(indexPath);
-
-                // compile all runtime resources against the staged descriptor and paths
-                if (package.Kind == PackageKind.Module) await CompileResourcesAsync(stagingPath, stagedDescriptorPath, cancellationToken);
-
-                // inventory only the final compiled package contents
-                var moduleFilesIndexer = new FilesIndexer();
-                var moduleFilesJson = await moduleFilesIndexer.CreateJsonAsync(stagingPath, cancellationToken);
-                await File.WriteAllTextAsync(indexPath, moduleFilesJson, cancellationToken);
-
-                // emit the requested representation from the same compiled staging tree
-                var packagePath = Zip ? 
-                    await EmitZipAsync(stagingPath, outputPath, package, moduleFilesJson, cancellationToken) :
-                    await EmitExpandedAsync(stagingPath, sourcePath, outputPath, package, cancellationToken);
-
-                // output
-                await environment.Out.WriteLineAsync(packagePath);
-                
-            } finally {
-                // cleanup
-                if (Directory.Exists(stagingPath)) {
-                    Directory.Delete(stagingPath, recursive: true);
+                var packages = new Dictionary<string, BuiltPackage>(StringComparer.Ordinal);
+                foreach (var node in order) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    packages.Add(node.Id, await BuildModuleAsync(node, packages, stagingPath, outputPath, cancellationToken));
                 }
+                await ValidateBuiltReferencesAsync(order, packages, stagingPath, cancellationToken);
+                var root = hasFramework ? await BuildFrameworkAsync(rootDescriptor, stagingPath, outputPath, cancellationToken) : packages[order[^1].Id];
+                if (hasFramework) packages.Add(root.Id, root);
+                await PublishAsync(outputPath, stagingPath, root,
+                    packages.Values.OrderBy(p => p.Id, StringComparer.Ordinal).ToArray(), cancellationToken);
+                await environment.Out.WriteLineAsync(Path.Combine(outputPath, ReleaseFileName));
+            } finally {
+                if (Directory.Exists(stagingPath)) Directory.Delete(stagingPath, recursive: true);
             }
-
-            // return
             return 0;
         }
 
+        // methods (private)
+        private static async Task<List<ModuleNode>> DiscoverAsync(string rootDescriptor, CancellationToken cancellationToken) {
+            // follow local definition documents with the same ownership rules as Bootstrap
+            var byPath = new Dictionary<string, ModuleNode>(PathComparer());
+            var byId = new Dictionary<string, ModuleNode>(StringComparer.Ordinal);
+            var states = new Dictionary<string, int>(PathComparer());
+            var order = new List<ModuleNode>();
+            var path = new List<string>();
 
-        // private methods
-        private static async Task<PackageInfo> GetPackageInfoAsync(string sourcePath, CancellationToken cancellationToken) {
-            var moduleJson = Path.Combine(sourcePath, "module.json");
-            var moduleJsonc = Path.Combine(sourcePath, "module.jsonc");
-            var xshellJson = Path.Combine(sourcePath, "xshell.json");
-            var xshellJsonc = Path.Combine(sourcePath, "xshell.jsonc");
-            if (File.Exists(moduleJson) && File.Exists(moduleJsonc)) {
-                throw new InvalidOperationException("Package source contains both module.json and module.jsonc.");
-            }
-            if (File.Exists(xshellJson) && File.Exists(xshellJsonc)) {
-                throw new InvalidOperationException("Package source contains both xshell.json and xshell.jsonc.");
-            }
-            var moduleDescriptorPath = File.Exists(moduleJson) ? moduleJson : File.Exists(moduleJsonc) ? moduleJsonc : null;
-            var xshellDescriptorPath = File.Exists(xshellJson) ? xshellJson : File.Exists(xshellJsonc) ? xshellJsonc : null;
-            if (moduleDescriptorPath != null && xshellDescriptorPath != null) {
-                throw new InvalidOperationException("Package source cannot contain both a module descriptor and an XShell descriptor.");
-            }
-            if (moduleDescriptorPath != null) {
-                var (id, version) = await ReadModuleIdentityAsync(moduleDescriptorPath, cancellationToken);
-                ValidateModuleId(id);
-                return new PackageInfo(PackageKind.Module, id, version, moduleDescriptorPath);
-            }
-            if (xshellDescriptorPath != null) {
-                var version = await ReadXShellVersionAsync(xshellDescriptorPath, cancellationToken);
-                return new PackageInfo(PackageKind.XShell, "xshell", version, xshellDescriptorPath);
-            }
-            throw new InvalidOperationException("Package source must contain exactly one supported descriptor: module.json[c] or xshell.json[c].");
-        }
-        private static async Task<(string Id, string Version)> ReadModuleIdentityAsync(string descriptorPath, CancellationToken cancellationToken) {
-            // package identity is the descriptor's single local module definition
-            var config = await ModuleFileCompiler.ReadConfigAsync(descriptorPath, cancellationToken);
-            var localModule = ModuleFileCompiler.GetLocalModule(config, descriptorPath);
-            var id = localModule.Key;
-            var version = localModule.Value.Version;
-            if (string.IsNullOrWhiteSpace(id)) throw new InvalidOperationException("Module id cannot be empty.");
-            if (string.IsNullOrWhiteSpace(version)) throw new InvalidOperationException("Module version cannot be empty.");
-            return (id, version);
-        }
-        private static async Task<string> ReadXShellVersionAsync(string descriptorPath, CancellationToken cancellationToken) {
-            // parse the XShell descriptor with the same JSONC behavior as module descriptors
-            var configJson = await File.ReadAllTextAsync(descriptorPath, cancellationToken);
-            using var document = JsonDocument.Parse(configJson, new JsonDocumentOptions {
-                CommentHandling = JsonCommentHandling.Skip,
-                AllowTrailingCommas = true
-            });
-            if (document.RootElement.ValueKind != JsonValueKind.Object || !document.RootElement.TryGetProperty("xshell", out var xshell) ||
-                xshell.ValueKind != JsonValueKind.Object || !xshell.TryGetProperty("version", out var versionElement) ||
-                versionElement.ValueKind != JsonValueKind.String) {
-                throw new InvalidOperationException($"XShell configuration '{descriptorPath}' must contain xshell.version.");
-            }
-            var version = versionElement.GetString() ?? "";
-            if (string.IsNullOrWhiteSpace(version)) throw new InvalidOperationException("XShell version cannot be empty.");
-            return version;
-        }
-        private static async Task CompileResourcesAsync(string stagingPath, string descriptorPath, CancellationToken cancellationToken) {
-            // snapshot authored resources so generated JavaScript is not compiled a second time
-            var resources = Directory.EnumerateFiles(stagingPath, "*", SearchOption.AllDirectories)
-                .Where(file => IsCompiledResourceExtension(Path.GetExtension(file)))
-                .OrderBy(file => Path.GetRelativePath(stagingPath, file), StringComparer.Ordinal)
-                .ToArray();
-
-            // reject JavaScript and HTML SFC sources that target the same runtime path
-            var pathComparer = OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
-            var runtimePaths = new Dictionary<string, string>(pathComparer);
-            foreach (var resource in resources) {
-                var isHtml = Path.GetExtension(resource).Equals(".html", StringComparison.OrdinalIgnoreCase);
-                var runtimePath = isHtml ? Path.ChangeExtension(resource, ".js") : resource;
-                if (runtimePaths.TryGetValue(runtimePath, out var existingResource)) {
-                    var existingRelativePath = Path.GetRelativePath(stagingPath, existingResource);
-                    var resourceRelativePath = Path.GetRelativePath(stagingPath, resource);
-                    var runtimeRelativePath = Path.GetRelativePath(stagingPath, runtimePath);
-                    var message = $"Conflicting module resources '{existingRelativePath}' and '{resourceRelativePath}' " +
-                        $"both resolve to '{runtimeRelativePath}'.";
-                    throw new InvalidOperationException(message);
+            async Task VisitAsync(string descriptorPath, string? expectedId) {
+                cancellationToken.ThrowIfCancellationRequested();
+                descriptorPath = Path.GetFullPath(descriptorPath);
+                if (!File.Exists(descriptorPath)) throw new FileNotFoundException($"Missing module configuration '{descriptorPath}'.", descriptorPath);
+                var descriptorDirectory = Path.GetDirectoryName(descriptorPath)!;
+                if (File.Exists(Path.Combine(descriptorDirectory, "module.zip"))) {
+                    throw new NotSupportedException($"Immutable package dependency '{descriptorPath}' cannot be used as local source; remote package reuse is not supported.");
                 }
-                runtimePaths.Add(runtimePath, resource);
+                if (File.Exists(Path.Combine(descriptorDirectory, "module.json")) && File.Exists(Path.Combine(descriptorDirectory, "module.jsonc"))) {
+                    throw new InvalidOperationException($"Source '{descriptorDirectory}' contains both module.json and module.jsonc.");
+                }
+                if (!byPath.TryGetValue(descriptorPath, out var node)) {
+                    var root = await ReadJsonObjectAsync(descriptorPath, cancellationToken);
+                    var modules = root["modules"] as JsonObject ?? throw new InvalidOperationException($"Module configuration '{descriptorPath}' must contain a modules object.");
+                    var locals = modules.Where(item => item.Value is JsonObject value && !value.ContainsKey("configUrl")).ToArray();
+                    if (locals.Length != 1) throw new InvalidOperationException($"Module configuration '{descriptorPath}' must contain exactly one local module definition.");
+                    foreach (var item in modules) ValidateModuleId(item.Key);
+                    var id = locals[0].Key;
+                    var local = (JsonObject)locals[0].Value!;
+                    var version = local["version"]?.GetValue<string>() ?? "";
+                    if (string.IsNullOrWhiteSpace(version)) throw new InvalidOperationException($"Module '{id}' must declare a non-empty version.");
+                    ValidatePackageNamePart(version, "Module version");
+                    var references = new List<Reference>();
+                    foreach (var item in modules.OrderBy(item => item.Key, StringComparer.Ordinal)) {
+                        if (item.Key == id) continue;
+                        var reference = item.Value as JsonObject ?? throw new InvalidOperationException($"Module reference '{item.Key}' in '{descriptorPath}' must be an object.");
+                        if (reference.ContainsKey("assetsUrl")) throw new InvalidOperationException($"Module reference '{item.Key}' cannot override assetsUrl.");
+                        var configUrl = reference["configUrl"]?.GetValue<string>();
+                        if (string.IsNullOrWhiteSpace(configUrl)) throw new InvalidOperationException($"Module reference '{item.Key}' in '{descriptorPath}' must declare configUrl.");
+                        references.Add(new Reference(item.Key, ResolveConfigUrl(descriptorPath, configUrl)));
+                    }
+                    node = new ModuleNode(id, version, descriptorPath, root, references);
+                    byPath.Add(descriptorPath, node);
+                    if (byId.TryGetValue(id, out var existing) && !PathComparer().Equals(existing.DescriptorPath, descriptorPath)) {
+                        throw new InvalidOperationException($"Module '{id}' is referenced with conflicting configUrl values: '{existing.DescriptorPath}' and '{descriptorPath}'.");
+                    }
+                    byId[id] = node;
+                }
+                if (expectedId != null && expectedId != node.Id) {
+                    throw new InvalidOperationException($"Module reference '{expectedId}' points to '{descriptorPath}', but that configuration defines local module '{node.Id}'.");
+                }
+                if (states.TryGetValue(descriptorPath, out var state)) {
+                    if (state == 2) return;
+                    var cycle = string.Join(" -> ", path.Skip(path.IndexOf(node.Id)).Append(node.Id));
+                    throw new InvalidOperationException($"Module dependency cycle detected: {cycle}.");
+                }
+                states[descriptorPath] = 1;
+                path.Add(node.Id);
+                foreach (var reference in node.References) await VisitAsync(reference.DescriptorPath, reference.Id);
+                path.RemoveAt(path.Count - 1);
+                states[descriptorPath] = 2;
+                order.Add(node);
             }
 
-            // reuse the development compiler for JavaScript, HTML SFC, and standalone CSS
+            await VisitAsync(rootDescriptor, null);
+            return order;
+        }
+        private static string ResolveConfigUrl(string ownerDescriptor, string value) {
+            // only filesystem source documents can be compiled reliably at build time
+            var path = value.StartsWith("url:", StringComparison.OrdinalIgnoreCase) ? value[4..] : value;
+            if (path.Contains('?') || path.Contains('#')) throw new NotSupportedException($"Package dependency URL '{value}' cannot contain a query or fragment.");
+            if (Uri.TryCreate(path, UriKind.Absolute, out var uri) && uri.Scheme.Equals("file", StringComparison.OrdinalIgnoreCase)) return Path.GetFullPath(uri.LocalPath);
+            if (Uri.TryCreate(path, UriKind.Absolute, out uri) && !Path.IsPathFullyQualified(path)) {
+                throw new NotSupportedException($"Remote module dependency '{value}' is not supported by pack. Provide a local source definition.");
+            }
+            if (path.StartsWith("app:", StringComparison.OrdinalIgnoreCase) || path.StartsWith('/')) {
+                throw new NotSupportedException($"Application-root dependency URL '{value}' cannot be resolved without a deployment base.");
+            }
+            return Path.GetFullPath(Path.IsPathFullyQualified(path) ? path : Path.Combine(Path.GetDirectoryName(ownerDescriptor)!, path));
+        }
+        private static async Task<BuiltPackage> BuildModuleAsync(ModuleNode node, Dictionary<string, BuiltPackage> dependencies, string stagingPath, string outputPath,
+            CancellationToken cancellationToken) {
+            // retain the owner's local definition and reference contributions while changing only dependency URLs
+            var workPath = Path.Combine(stagingPath, "work", node.Id);
+            CopyDirectory(Path.GetDirectoryName(node.DescriptorPath)!, workPath, cancellationToken);
+            var stagedDescriptor = Path.Combine(workPath, "module.json");
+            var root = (JsonObject)Canonicalize(node.Configuration)!;
+            var modules = (JsonObject)root["modules"]!;
+            foreach (var reference in node.References) {
+                var dependency = dependencies[reference.Id];
+                ((JsonObject)modules[reference.Id]!)["configUrl"] = $"url:../../{dependency.RelativeDirectory.Replace('\\', '/')}/module.json";
+            }
+            ((JsonObject)modules[node.Id]!)["hash"] = "";
+            await File.WriteAllTextAsync(stagedDescriptor, root.ToJsonString(JsonOptions), cancellationToken);
+            var jsoncPath = Path.Combine(workPath, "module.jsonc");
+            if (File.Exists(jsoncPath)) File.Delete(jsoncPath);
+            var indexPath = Path.Combine(workPath, FilesIndexer.ModuleFilesJson);
+            if (File.Exists(indexPath)) File.Delete(indexPath);
+            await CompileResourcesAsync(workPath, stagedDescriptor, cancellationToken);
+            var inventory = await new FilesIndexer().CreateJsonAsync(workPath, cancellationToken);
+            await File.WriteAllTextAsync(indexPath, inventory, cancellationToken);
+            var hash = await ComputeHashAsync(workPath, cancellationToken);
+            var relativeDirectory = $"{node.Id}/{node.Version}.{hash}";
+            var packagePath = Path.Combine(stagingPath, "packages", node.Id, $"{node.Version}.{hash}");
+            Directory.CreateDirectory(packagePath);
+            if (!Directory.Exists(Path.Combine(outputPath, relativeDirectory.Replace('/', Path.DirectorySeparatorChar)))) {
+                var zipPath = Path.Combine(packagePath, "module.zip");
+                await CreateZipAsync(workPath, zipPath, cancellationToken);
+                if (await ComputeZipHashAsync(zipPath, cancellationToken) != hash) throw new InvalidOperationException($"Generated ZIP for '{node.Id}' does not match its package hash.");
+            }
+            ((JsonObject)modules[node.Id]!)["hash"] = hash;
+            ((JsonObject)modules[node.Id]!)["assetsUrl"] = "url:./module.zip";
+            ((JsonObject)modules[node.Id]!)["files"] = JsonNode.Parse(inventory);
+            await File.WriteAllTextAsync(Path.Combine(packagePath, "module.json"), root.ToJsonString(JsonOptions), cancellationToken);
+            return new BuiltPackage(node.Id, node.Version, hash, relativeDirectory, "module.json");
+        }
+        private static async Task<BuiltPackage> BuildFrameworkAsync(string descriptorPath, string stagingPath, string outputPath, CancellationToken cancellationToken) {
+            // retain the framework's separate descriptor and resource compilation rules
+            var root = (JsonObject)Canonicalize(await ReadJsonObjectAsync(descriptorPath, cancellationToken))!;
+            var framework = root["xshell"] as JsonObject ?? throw new InvalidOperationException("XShell configuration must contain xshell.");
+            var version = framework["version"]?.GetValue<string>() ?? "";
+            if (string.IsNullOrWhiteSpace(version)) throw new InvalidOperationException("XShell configuration must contain xshell.version.");
+            ValidatePackageNamePart(version, "XShell version");
+            var workPath = Path.Combine(stagingPath, "work", "xshell");
+            CopyDirectory(Path.GetDirectoryName(descriptorPath)!, workPath, cancellationToken);
+            framework["hash"] = "";
+            await File.WriteAllTextAsync(Path.Combine(workPath, "xshell.json"), root.ToJsonString(JsonOptions), cancellationToken);
+            var jsonc = Path.Combine(workPath, "xshell.jsonc");
+            if (File.Exists(jsonc)) File.Delete(jsonc);
+            var indexPath = Path.Combine(workPath, FilesIndexer.ModuleFilesJson);
+            if (File.Exists(indexPath)) File.Delete(indexPath);
+            var inventory = await new FilesIndexer().CreateJsonAsync(workPath, cancellationToken);
+            await File.WriteAllTextAsync(indexPath, inventory, cancellationToken);
+            var hash = await ComputeHashAsync(workPath, cancellationToken);
+            var relativeDirectory = $"xshell/{version}.{hash}";
+            var packagePath = Path.Combine(stagingPath, "packages", "xshell", $"{version}.{hash}");
+            Directory.CreateDirectory(packagePath);
+            if (!Directory.Exists(Path.Combine(outputPath, relativeDirectory.Replace('/', Path.DirectorySeparatorChar)))) {
+                var zipPath = Path.Combine(packagePath, "xshell.zip");
+                await CreateZipAsync(workPath, zipPath, cancellationToken);
+                if (await ComputeZipHashAsync(zipPath, cancellationToken) != hash) throw new InvalidOperationException("Generated XShell ZIP does not match its package hash.");
+            }
+            framework["hash"] = hash;
+            framework["assetsUrl"] = "url:./xshell.zip";
+            framework["files"] = JsonNode.Parse(inventory);
+            await File.WriteAllTextAsync(Path.Combine(packagePath, "xshell.json"), root.ToJsonString(JsonOptions), cancellationToken);
+            return new BuiltPackage("xshell", version, hash, relativeDirectory, "xshell.json");
+        }
+        private static async Task ValidateBuiltReferencesAsync(List<ModuleNode> order, Dictionary<string, BuiltPackage> packages, string stagingPath,
+            CancellationToken cancellationToken) {
+            // verify every published descriptor resolves to the staged canonical dependency identity
+            foreach (var node in order) {
+                var package = packages[node.Id];
+                var descriptor = Path.Combine(stagingPath, "packages", package.RelativeDirectory.Replace('/', Path.DirectorySeparatorChar), "module.json");
+                var root = await ReadJsonObjectAsync(descriptor, cancellationToken);
+                var modules = (JsonObject)root["modules"]!;
+                foreach (var reference in node.References) {
+                    var url = ((JsonObject)modules[reference.Id]!)["configUrl"]!.GetValue<string>();
+                    var resolved = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(descriptor)!, url[4..]));
+                    var expected = Path.GetFullPath(Path.Combine(stagingPath, "packages", packages[reference.Id].RelativeDirectory.Replace('/', Path.DirectorySeparatorChar), "module.json"));
+                    if (!PathComparer().Equals(resolved, expected) || !File.Exists(resolved)) {
+                        throw new InvalidOperationException($"Packaged reference '{node.Id}' -> '{reference.Id}' does not resolve to its staged descriptor.");
+                    }
+                }
+            }
+        }
+        private static async Task PublishAsync(string outputPath, string stagingPath, BuiltPackage root, BuiltPackage[] packages,
+            CancellationToken cancellationToken) {
+            // the release manifest is the only visibility boundary; published packages are immutable
+            Directory.CreateDirectory(outputPath);
+            var lockPath = Path.Combine(outputPath, ".pack.lock");
+            using var publicationLock = AcquirePublicationLock(lockPath);
+            foreach (var package in packages) {
+                cancellationToken.ThrowIfCancellationRequested();
+                var source = Path.Combine(stagingPath, "packages", package.RelativeDirectory.Replace('/', Path.DirectorySeparatorChar));
+                var target = Path.Combine(outputPath, package.RelativeDirectory.Replace('/', Path.DirectorySeparatorChar));
+                if (Directory.Exists(target)) {
+                    await ValidateExistingPackageAsync(target, source, package, cancellationToken);
+                    continue;
+                }
+                var zipName = package.Id == "xshell" ? "xshell.zip" : "module.zip";
+                if (!File.Exists(Path.Combine(source, zipName))) {
+                    throw new IOException($"Previously published package '{target}' disappeared before commit; no staged ZIP is available.");
+                }
+                Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+                Directory.Move(source, target);
+            }
+            var manifest = new JsonObject {
+                ["root"] = $"{root.RelativeDirectory}/{root.DescriptorName}",
+                ["packages"] = new JsonArray(packages.Select(package => (JsonNode?)JsonValue.Create($"{package.RelativeDirectory}/{package.DescriptorName}")).ToArray())
+            };
+            var temporaryManifest = Path.Combine(outputPath, $".release-{Guid.NewGuid():N}.tmp");
+            try {
+                await File.WriteAllTextAsync(temporaryManifest, manifest.ToJsonString(JsonOptions), cancellationToken);
+                var publishedManifest = Path.Combine(outputPath, ReleaseFileName);
+                if (File.Exists(publishedManifest)) File.Replace(temporaryManifest, publishedManifest, null);
+                else File.Move(temporaryManifest, publishedManifest);
+            } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) {
+                throw new IOException($"Failed to commit XShell distribution in '{outputPath}'. The previous release remains selected.", exception);
+            } finally {
+                if (File.Exists(temporaryManifest)) File.Delete(temporaryManifest);
+            }
+        }
+        private static async Task ValidateExistingPackageAsync(string target, string source, BuiltPackage package, CancellationToken cancellationToken) {
+            // compare canonical archive contents and external metadata, never overwrite an immutable identity
+            var descriptor = Path.Combine(target, package.DescriptorName);
+            var archive = Path.Combine(target, package.Id == "xshell" ? "xshell.zip" : "module.zip");
+            if (Directory.EnumerateFileSystemEntries(target).Count() != 2 || !File.Exists(descriptor) || !File.Exists(archive)) {
+                throw new InvalidOperationException($"Existing immutable package has an incomplete or unrecognized representation: {target}");
+            }
+            if (!string.Equals(await File.ReadAllTextAsync(descriptor, cancellationToken),
+                await File.ReadAllTextAsync(Path.Combine(source, package.DescriptorName), cancellationToken), StringComparison.Ordinal) ||
+                await ComputeZipHashAsync(archive, cancellationToken) != package.Hash) {
+                throw new InvalidOperationException($"Existing immutable package identity collides with different or damaged content: {target}");
+            }
+        }
+        private static FileStream AcquirePublicationLock(string lockPath) {
+            try {
+                return new FileStream(lockPath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+            } catch (IOException exception) {
+                throw new IOException($"Cannot acquire XShell distribution publication lock '{lockPath}'; another pack may be committing.", exception);
+            }
+        }
+        private static async Task<string> ComputeZipHashAsync(string archivePath, CancellationToken cancellationToken) {
+            using var archive = ZipFile.OpenRead(archivePath);
+            using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+            var entries = archive.Entries.Where(entry => !entry.FullName.EndsWith('/')).OrderBy(entry => entry.FullName, StringComparer.Ordinal).ToArray();
+            if (entries.Select(entry => entry.FullName).Distinct(StringComparer.Ordinal).Count() != entries.Length) {
+                throw new InvalidOperationException($"Archive '{archivePath}' contains duplicate entries.");
+            }
+            foreach (var entry in entries) {
+                cancellationToken.ThrowIfCancellationRequested();
+                var pathBytes = Encoding.UTF8.GetBytes(entry.FullName);
+                var pathLength = new byte[4];
+                var fileLength = new byte[8];
+                BinaryPrimitives.WriteInt32LittleEndian(pathLength, pathBytes.Length);
+                BinaryPrimitives.WriteInt64LittleEndian(fileLength, entry.Length);
+                hash.AppendData(pathLength);
+                hash.AppendData(pathBytes);
+                hash.AppendData(fileLength);
+                await using var stream = entry.Open();
+                var buffer = new byte[81920];
+                int read;
+                while ((read = await stream.ReadAsync(buffer, cancellationToken)) > 0) hash.AppendData(buffer.AsSpan(0, read));
+            }
+            return Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant()[..16];
+        }
+        private static async Task CreateZipAsync(string sourcePath, string archivePath, CancellationToken cancellationToken) {
+            // sorted entries and a fixed ZIP timestamp make archive bytes reproducible
+            await using var stream = File.Create(archivePath);
+            using var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true);
+            foreach (var file in Directory.EnumerateFiles(sourcePath, "*", SearchOption.AllDirectories)
+                .Select(full => (Full: full, Relative: Path.GetRelativePath(sourcePath, full).Replace('\\', '/')))
+                .OrderBy(item => item.Relative, StringComparer.Ordinal)) {
+                cancellationToken.ThrowIfCancellationRequested();
+                var entry = archive.CreateEntry(file.Relative, CompressionLevel.Optimal);
+                entry.LastWriteTime = new DateTimeOffset(1980, 1, 1, 0, 0, 0, TimeSpan.Zero);
+                await using var input = File.OpenRead(file.Full);
+                await using var output = entry.Open();
+                await input.CopyToAsync(output, cancellationToken);
+            }
+        }
+        private static async Task<string> ComputeHashAsync(string path, CancellationToken cancellationToken) {
+            // hash canonical package paths and bytes, independent of ZIP metadata and staging location
+            using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+            foreach (var file in Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories)
+                .Select(full => (Full: full, Relative: Path.GetRelativePath(path, full).Replace('\\', '/')))
+                .OrderBy(item => item.Relative, StringComparer.Ordinal)) {
+                cancellationToken.ThrowIfCancellationRequested();
+                var pathBytes = Encoding.UTF8.GetBytes(file.Relative);
+                var pathLength = new byte[4];
+                var fileLength = new byte[8];
+                BinaryPrimitives.WriteInt32LittleEndian(pathLength, pathBytes.Length);
+                hash.AppendData(pathLength);
+                hash.AppendData(pathBytes);
+                await using var stream = File.OpenRead(file.Full);
+                BinaryPrimitives.WriteInt64LittleEndian(fileLength, stream.Length);
+                hash.AppendData(fileLength);
+                var buffer = new byte[81920];
+                int read;
+                while ((read = await stream.ReadAsync(buffer, cancellationToken)) > 0) hash.AppendData(buffer.AsSpan(0, read));
+            }
+            return Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant()[..16];
+        }
+        private static async Task CompileResourcesAsync(string workPath, string descriptorPath, CancellationToken cancellationToken) {
+            // compile authored resources once and reject conflicting HTML and JavaScript targets
+            var resources = Directory.EnumerateFiles(workPath, "*", SearchOption.AllDirectories)
+                .Where(file => new[] { ".js", ".html", ".css" }.Contains(Path.GetExtension(file), StringComparer.OrdinalIgnoreCase))
+                .OrderBy(file => Path.GetRelativePath(workPath, file), StringComparer.Ordinal).ToArray();
+            var runtimePaths = new HashSet<string>(PathComparer());
+            foreach (var resource in resources) {
+                var target = Path.GetExtension(resource).Equals(".html", StringComparison.OrdinalIgnoreCase) ? Path.ChangeExtension(resource, ".js") : resource;
+                if (!runtimePaths.Add(target)) throw new InvalidOperationException($"Conflicting module resources target '{Path.GetRelativePath(workPath, target)}'.");
+            }
             var compiler = new ModuleFileCompiler();
             foreach (var resource in resources) {
                 cancellationToken.ThrowIfCancellationRequested();
                 var compiled = await compiler.CompileAsync(descriptorPath, resource, cancellationToken);
                 if (Path.GetExtension(resource).Equals(".html", StringComparison.OrdinalIgnoreCase)) {
-                    var jsPath = Path.ChangeExtension(resource, ".js");
-                    await File.WriteAllTextAsync(jsPath, compiled.Content, cancellationToken);
+                    await File.WriteAllTextAsync(Path.ChangeExtension(resource, ".js"), compiled.Content, cancellationToken);
                     File.Delete(resource);
-                } else {
-                    await File.WriteAllTextAsync(resource, compiled.Content, cancellationToken);
-                }
+                } else await File.WriteAllTextAsync(resource, compiled.Content, cancellationToken);
             }
         }
-        private static async Task<string> EmitZipAsync(string stagingPath, string outputPath, PackageInfo package, string moduleFilesJson, CancellationToken cancellationToken) {
-            var hash = await ComputeHashAsync(stagingPath, cancellationToken);
-            var packagePath = Path.Combine(outputPath, package.Id, $"{package.Version}.{hash}");
-            if (ReusePublishedPackage(packagePath, package.Kind, zip: true)) return packagePath;
-            var stagingZipPath = stagingPath + "-zip";
-            Directory.CreateDirectory(stagingZipPath);
-            try {
-                // create the immutable resource archive from the staged package tree
-                var zipName = package.Kind == PackageKind.Module ? "module.zip" : "xshell.zip";
-                var zipPath = Path.Combine(stagingZipPath, zipName);
-                ZipFile.CreateFromDirectory(stagingPath, zipPath, CompressionLevel.Optimal, includeBaseDirectory: false);
-
-                // parse the staged descriptor with JSONC semantics
-                var descriptorPath = Path.Combine(stagingPath, Path.GetFileName(package.DescriptorPath));
-                var json = await File.ReadAllTextAsync(descriptorPath, cancellationToken);
-                var root = JsonNode.Parse(json, documentOptions: new JsonDocumentOptions {
-                        CommentHandling = JsonCommentHandling.Skip,
-                        AllowTrailingCommas = true
-                    })?.AsObject()
-                    ?? throw new InvalidOperationException($"Invalid {package.Kind} configuration '{descriptorPath}'.");
-
-                // place archive metadata on the package's own configuration object
-                if (package.Kind == PackageKind.Module) {
-                    var modules = root["modules"] as JsonObject ?? throw new InvalidOperationException($"Module configuration '{descriptorPath}' must contain a modules object.");
-                    var localModules = modules.Where(item => item.Value is JsonObject module && !module.ContainsKey("configUrl")).ToArray();
-                    if (localModules.Length != 1) {
-                        throw new InvalidOperationException($"Module configuration '{descriptorPath}' must contain exactly one local module definition.");
-                    }
-                    var localModule = (JsonObject)localModules[0].Value!;
-                    localModule["hash"] = hash;
-                    localModule["assetsUrl"] = "url:./module.zip";
-                    localModule["files"] = JsonNode.Parse(moduleFilesJson);
-                } else {
-                    var xshell = root["xshell"] as JsonObject ?? throw new InvalidOperationException($"XShell configuration '{descriptorPath}' must contain an xshell object.");
-                    xshell["hash"] = hash;
-                    xshell["assetsUrl"] = "url:./xshell.zip";
-                    xshell["files"] = JsonNode.Parse(moduleFilesJson);
-                }
-
-                // write the normalized external descriptor beside the archive
-                var descriptorName = package.Kind == PackageKind.Module ? "module.json" : "xshell.json";
-                var outputDescriptorPath = Path.Combine(stagingZipPath, descriptorName);
-                await File.WriteAllTextAsync(outputDescriptorPath, root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), cancellationToken);
-
-                // publish the descriptor and archive under the immutable package identity
-                var tempPackagePath = Path.Combine(outputPath, $".{package.Id}-{package.Version}-{Guid.NewGuid():N}.tmp");
-                try {
-                    CopyDirectory(stagingZipPath, tempPackagePath, cancellationToken);
-                    Directory.CreateDirectory(Path.GetDirectoryName(packagePath)!);
-                    try {
-                        Directory.Move(tempPackagePath, packagePath);
-                    } catch (IOException) when (Directory.Exists(packagePath)) {
-                        // another pack may have published the same identity first
-                        if (ReusePublishedPackage(packagePath, package.Kind, zip: true)) return packagePath;
-                        throw;
-                    }
-                    return packagePath;
-                } finally {
-                    if (Directory.Exists(tempPackagePath)) Directory.Delete(tempPackagePath, recursive: true);
-                }
-            } finally {
-                if (Directory.Exists(stagingZipPath)) Directory.Delete(stagingZipPath, recursive: true);
+        private static async Task<JsonObject> ReadJsonObjectAsync(string path, CancellationToken cancellationToken) {
+            return JsonNode.Parse(await File.ReadAllTextAsync(path, cancellationToken), documentOptions: new JsonDocumentOptions {
+                CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true
+            }) as JsonObject ?? throw new InvalidOperationException($"Invalid configuration '{path}'.");
+        }
+        private static JsonNode? Canonicalize(JsonNode? node) {
+            // object key order is authored formatting, not part of package semantics
+            if (node is JsonObject value) {
+                var result = new JsonObject();
+                foreach (var item in value.OrderBy(item => item.Key, StringComparer.Ordinal)) result[item.Key] = Canonicalize(item.Value);
+                return result;
             }
+            if (node is JsonArray array) return new JsonArray(array.Select(Canonicalize).ToArray());
+            return node?.DeepClone();
         }
-        private static async Task<string> EmitExpandedAsync(string stagingPath, string sourcePath, string outputPath, PackageInfo package, CancellationToken cancellationToken) {
-            // build a complete sibling directory before first publication
-            var hash = await ComputeHashAsync(stagingPath, cancellationToken);
-            var packagePath = Path.Combine(outputPath, package.Id, $"{package.Version}.{hash}");
-            if (IsSameOrInside(sourcePath, packagePath)) {
-                throw new InvalidOperationException("Expanded package path must not contain or replace the source module directory.");
+        private static string FindDescriptor(string directory, string name) {
+            // reject ambiguous authored descriptors
+            var json = Path.Combine(directory, name + ".json");
+            var jsonc = Path.Combine(directory, name + ".jsonc");
+            if (File.Exists(json) && File.Exists(jsonc)) throw new InvalidOperationException($"Source contains both {name}.json and {name}.jsonc.");
+            return File.Exists(json) ? json : File.Exists(jsonc) ? jsonc :
+                throw new FileNotFoundException($"Source must contain {name}.json or {name}.jsonc.");
+        }
+        private static void ValidateModuleId(string id) {
+            if (!Regex.IsMatch(id, ModuleIdPattern, RegexOptions.CultureInvariant) || id == "xshell") {
+                throw new InvalidOperationException($"Invalid or reserved module id '{id}'.");
             }
-            if (ReusePublishedPackage(packagePath, package.Kind, zip: false)) return packagePath;
-            var tempPackagePath = Path.Combine(outputPath, $".{package.Id}-{package.Version}-{Guid.NewGuid():N}.tmp");
-            try {
-                CopyDirectory(stagingPath, tempPackagePath, cancellationToken);
-                var publishedDescriptorPath = Path.Combine(tempPackagePath, Path.GetFileName(package.DescriptorPath));
-                await WriteDescriptorHashAsync(publishedDescriptorPath, package, hash, cancellationToken);
-                Directory.CreateDirectory(Path.GetDirectoryName(packagePath)!);
-                try {
-                    Directory.Move(tempPackagePath, packagePath);
-                } catch (IOException) when (Directory.Exists(packagePath)) {
-                    // another pack may have published the same identity first
-                    if (ReusePublishedPackage(packagePath, package.Kind, zip: false)) return packagePath;
-                    throw;
-                }
-                return packagePath;
-            } finally {
-                if (Directory.Exists(tempPackagePath)) Directory.Delete(tempPackagePath, recursive: true);
-            }
-        }
-        private static bool ReusePublishedPackage(string packagePath, PackageKind kind, bool zip) {
-            if (File.Exists(packagePath)) throw new InvalidOperationException($"Package path is an existing file: {packagePath}");
-            if (!Directory.Exists(packagePath)) return false;
-
-            // distinguish the two published representations without relying on ZIP archive bytes
-            var hasModuleZip = File.Exists(Path.Combine(packagePath, "module.zip"));
-            var hasXShellZip = File.Exists(Path.Combine(packagePath, "xshell.zip"));
-            var hasModuleDescriptor = File.Exists(Path.Combine(packagePath, "module.json"));
-            var hasXShellDescriptor = File.Exists(Path.Combine(packagePath, "xshell.json"));
-            var hasLegacyDescriptor = File.Exists(Path.Combine(packagePath, "module.jsonc")) ||
-                File.Exists(Path.Combine(packagePath, "xshell.jsonc"));
-            var hasInventory = File.Exists(Path.Combine(packagePath, FilesIndexer.ModuleFilesJson));
-            var hasExpectedZip = kind == PackageKind.Module ? hasModuleZip : hasXShellZip;
-            var hasOtherZip = kind == PackageKind.Module ? hasXShellZip : hasModuleZip;
-            var hasExpectedDescriptor = kind == PackageKind.Module ? hasModuleDescriptor : hasXShellDescriptor;
-            var hasOtherDescriptor = kind == PackageKind.Module ? hasXShellDescriptor : hasModuleDescriptor;
-            if (zip ? hasExpectedZip && hasExpectedDescriptor && !hasOtherZip && !hasOtherDescriptor && !hasLegacyDescriptor && !hasInventory :
-                !hasModuleZip && !hasXShellZip && hasExpectedDescriptor && !hasOtherDescriptor && !hasLegacyDescriptor && hasInventory) return true;
-            if (hasExpectedDescriptor && !hasOtherDescriptor && zip != (hasModuleZip || hasXShellZip)) {
-                throw new InvalidOperationException($"Immutable package identity already exists using another representation: {packagePath}");
-            }
-            throw new InvalidOperationException($"Existing immutable package has an incomplete or unrecognized representation: {packagePath}");
-        }
-        private static async Task<string> ComputeHashAsync(string path, CancellationToken cancellationToken) {
-            // compute a stable hash of the package contents for immutable identity
-            var files = Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories)
-                .Select(file => (FullPath: file, RelativePath: Path.GetRelativePath(path, file).Replace('\\', '/')))
-                .OrderBy(file => file.RelativePath, StringComparer.Ordinal);
-            using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-            var buffer = new byte[81920];
-            var pathLength = new byte[sizeof(int)];
-            var fileLength = new byte[sizeof(long)];
-            foreach (var file in files) {
-                cancellationToken.ThrowIfCancellationRequested();
-                var pathBytes = System.Text.Encoding.UTF8.GetBytes(file.RelativePath);
-                BinaryPrimitives.WriteInt32LittleEndian(pathLength, pathBytes.Length);
-                hash.AppendData(pathLength);
-                hash.AppendData(pathBytes);
-                await using var stream = File.OpenRead(file.FullPath);
-                BinaryPrimitives.WriteInt64LittleEndian(fileLength, stream.Length);
-                hash.AppendData(fileLength);
-                int read;
-                while ((read = await stream.ReadAsync(buffer, cancellationToken)) > 0) {
-                    hash.AppendData(buffer.AsSpan(0, read));
-                }
-            }
-            return Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant()[..16];
-        }
-        private static async Task<string> NormalizeDescriptorAsync(string stagingPath, PackageInfo package, CancellationToken cancellationToken) {
-            // parse either authored extension and publish one canonical strict JSON descriptor
-            var authoredDescriptorPath = Path.Combine(stagingPath, Path.GetFileName(package.DescriptorPath));
-            var canonicalDescriptorName = package.Kind == PackageKind.Module ? "module.json" : "xshell.json";
-            var canonicalDescriptorPath = Path.Combine(stagingPath, canonicalDescriptorName);
-            var authoredJson = await File.ReadAllTextAsync(authoredDescriptorPath, cancellationToken);
-
-            var normalizedJson = JsonNode.Parse(authoredJson, documentOptions: new JsonDocumentOptions {
-                CommentHandling = JsonCommentHandling.Skip,
-                AllowTrailingCommas = true
-            })?.AsObject() ?? throw new InvalidOperationException($"Invalid {package.Kind} configuration '{authoredDescriptorPath}'.");
-
-            // packaged module descriptors are always published as module.json, so normalize referenced module.jsonc descriptors too
-            if (package.Kind == PackageKind.Module && normalizedJson["modules"] is JsonObject modules) {
-                foreach (var moduleNode in modules.Select(x => x.Value).OfType<JsonObject>()) {
-                    if (moduleNode["configUrl"] is not JsonValue configUrlNode || !configUrlNode.TryGetValue<string>(out var configUrl)) continue;
-
-                    var suffixIndex = configUrl.IndexOfAny(['?', '#']);
-                    var path = suffixIndex >= 0 ? configUrl[..suffixIndex] : configUrl;
-
-                    if (!path.EndsWith("/module.jsonc", StringComparison.OrdinalIgnoreCase) &&
-                        !path.EndsWith(":module.jsonc", StringComparison.OrdinalIgnoreCase) &&
-                        !path.Equals("module.jsonc", StringComparison.OrdinalIgnoreCase)) continue;
-
-                    path = path[..^"module.jsonc".Length] + "module.json";
-                    moduleNode["configUrl"] = suffixIndex >= 0 ? path + configUrl[suffixIndex..] : path;
-                }
-            }
-
-            GetOwnDescriptorObject(normalizedJson, package)["hash"] = "";
-
-            var normalizedContent = normalizedJson.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
-            await File.WriteAllTextAsync(canonicalDescriptorPath, normalizedContent, cancellationToken);
-
-            if (!authoredDescriptorPath.Equals(canonicalDescriptorPath, StringComparison.OrdinalIgnoreCase)) File.Delete(authoredDescriptorPath);
-
-            return canonicalDescriptorPath;
-        }
-        private static async Task WriteDescriptorHashAsync(string descriptorPath, PackageInfo package, string hash, CancellationToken cancellationToken) {
-            var root = JsonNode.Parse(await File.ReadAllTextAsync(descriptorPath, cancellationToken))?.AsObject()
-                ?? throw new InvalidOperationException($"Invalid {package.Kind} configuration '{descriptorPath}'.");
-            GetOwnDescriptorObject(root, package)["hash"] = hash;
-            await File.WriteAllTextAsync(descriptorPath, root.ToJsonString(new JsonSerializerOptions { WriteIndented = true }), cancellationToken);
-        }
-        private static JsonObject GetOwnDescriptorObject(JsonObject root, PackageInfo package) {
-            if (package.Kind == PackageKind.XShell) {
-                return root["xshell"] as JsonObject ?? throw new InvalidOperationException($"XShell configuration must contain an xshell object.");
-            }
-            var modules = root["modules"] as JsonObject ?? throw new InvalidOperationException("Module configuration must contain a modules object.");
-            return modules[package.Id] as JsonObject ?? throw new InvalidOperationException($"Module configuration must contain local module '{package.Id}'.");
-        }
-        private static string CreateStagingPath(string sourcePath, string outputPath) {
-            // keep staging outside both the authored module and requested output tree
-            var stagingPath = Path.Combine(Path.GetTempPath(), "DProjects.XShell", "pack", Guid.NewGuid().ToString("N"));
-            if (IsSameOrInside(stagingPath, sourcePath) || IsSameOrInside(stagingPath, outputPath)) {
-                throw new InvalidOperationException("Temporary staging directory must be outside the source and output directories.");
-            }
-            return stagingPath;
-        }
-        private static bool IsCompiledResourceExtension(string extension) {
-            return extension.Equals(".js", StringComparison.OrdinalIgnoreCase) || extension.Equals(".html", StringComparison.OrdinalIgnoreCase) || extension.Equals(".css", StringComparison.OrdinalIgnoreCase);
-        }
-        private static bool IsSameOrInside(string path, string root) {
-            var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
-            var normalizedPath = Path.TrimEndingDirectorySeparator(Path.GetFullPath(path));
-            var normalizedRoot = Path.TrimEndingDirectorySeparator(Path.GetFullPath(root));
-            return normalizedPath.Equals(normalizedRoot, comparison) || normalizedPath.StartsWith(normalizedRoot + Path.DirectorySeparatorChar, comparison);
         }
         private static void ValidatePackageNamePart(string value, string label) {
-            // keep descriptor identity from escaping or corrupting the output filename
-            if (value is "." or ".." || value.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 || value.Contains(Path.DirectorySeparatorChar) || value.Contains(Path.AltDirectorySeparatorChar)) {
+            if (value is "." or ".." || value.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 ||
+                value.Contains(Path.DirectorySeparatorChar) || value.Contains(Path.AltDirectorySeparatorChar)) {
                 throw new InvalidOperationException($"{label} '{value}' cannot be used in a package path.");
             }
         }
-        private static void ValidateModuleId(string value) {
-            // keep module identity consistent with its virtual asset and package path segments
-            if (!Regex.IsMatch(value, ModuleIdPattern, RegexOptions.CultureInvariant)) {
-                throw new InvalidOperationException($"Invalid module id '{value}'.");
-            }
-            if (value == "xshell") {
-                throw new InvalidOperationException($"Module id '{value}' is reserved.");
-            }
+        private static StringComparer PathComparer() => OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
+        private static bool IsSameOrInside(string path, string root) {
+            var normalizedPath = Path.TrimEndingDirectorySeparator(Path.GetFullPath(path));
+            var normalizedRoot = Path.TrimEndingDirectorySeparator(Path.GetFullPath(root));
+            return PathComparer().Equals(normalizedPath, normalizedRoot) || normalizedPath.StartsWith(normalizedRoot + Path.DirectorySeparatorChar,
+                OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
         }
         private static void CopyDirectory(string source, string destination, CancellationToken cancellationToken) {
             Directory.CreateDirectory(destination);
-
-            foreach (var directory in Directory.EnumerateDirectories(source, "*", SearchOption.AllDirectories)) {
+            foreach (var file in Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories).OrderBy(file => file, StringComparer.Ordinal)) {
                 cancellationToken.ThrowIfCancellationRequested();
-                var relativePath = Path.GetRelativePath(source, directory);
-                Directory.CreateDirectory(Path.Combine(destination, relativePath));
-            }
-
-            foreach (var file in Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories)) {
-                cancellationToken.ThrowIfCancellationRequested();
-                var relativePath = Path.GetRelativePath(source, file);
-                var targetPath = Path.Combine(destination, relativePath);
-
-                Directory.CreateDirectory(Path.GetDirectoryName(targetPath)!);
-                File.Copy(file, targetPath, overwrite: true);
+                var target = Path.Combine(destination, Path.GetRelativePath(source, file));
+                Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+                File.Copy(file, target);
             }
         }
     }

@@ -6,7 +6,7 @@
         },
         "DProjects.XShell pack": {
             "commandName": "Project",
-            "commandLineArgs": "pack --source ./Resources/DProjects.XShell/codemirror/ --output a --zip"
+            "commandLineArgs": "pack --source ./Resources/DProjects.XShell/x-demo --output a"
         }
     }
 }
