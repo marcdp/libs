@@ -85,221 +85,128 @@ function showBootstrapError(error) {
 
 // module functions
 function validateModuleId(moduleId, configUrl) {
-    if (!moduleIdPattern.test(moduleId)) {
-        throw new Error(`Invalid module id '${moduleId}' in module configuration '${configUrl}'.`);
-    }
-
-    if (moduleId === reservedModuleId) {
-        throw new Error(`Module id '${moduleId}' is reserved in module configuration '${configUrl}'.`);
-    }
+    if (!moduleIdPattern.test(moduleId)) throw new Error(`Invalid module id '${moduleId}' in module configuration '${configUrl}'.`);
+    if (moduleId === reservedModuleId) throw new Error(`Module id '${moduleId}' is reserved in module configuration '${configUrl}'.`);
 }
 function getLocalModule(config, configUrl) {
-    if (config && typeof config === "object" && Object.hasOwn(config, "app")) {
-        throw new Error(`Authored module configuration '${configUrl}' must not define top-level app; application metadata comes from the root module.`);
-    }
+    if (config && typeof config === "object" && Object.hasOwn(config, "app")) throw new Error(`Authored module configuration '${configUrl}' must not define top-level app; application metadata comes from the root module.`);
     const modules = config?.modules;
-
-    if (!modules || typeof modules !== "object" || Array.isArray(modules)) {
-        throw new Error(`Module configuration '${configUrl}' must contain a modules object with exactly one local module definition.`);
-    }
-
+    if (!modules || typeof modules !== "object" || Array.isArray(modules)) throw new Error(`Module configuration '${configUrl}' must contain a modules object with exactly one local module definition.`);
     for (const moduleId of Object.keys(modules)) {
         validateModuleId(moduleId, configUrl);
     }
-
     const entries = Object.entries(modules).filter(([, module]) =>
         module &&
         typeof module === "object" &&
         !Array.isArray(module) &&
         !Object.hasOwn(module, "configUrl")
     );
-
     if (entries.length !== 1) {
         const ids = entries.map(([id]) => `'${id}'`);
-        throw new Error(
-            `Module configuration '${configUrl}' must contain exactly one local module definition, ` +
-            `but found ${entries.length}${ids.length ? `: ${ids.join(", ")}.` : "."}`
-        );
+        throw new Error(`Module configuration '${configUrl}' must contain exactly one local module definition, ` + `but found ${entries.length}${ids.length ? `: ${ids.join(", ")}.` : "."}`);
     }
-
     return { id: entries[0][0], definition: entries[0][1] };
 }
-
 function prepareModuleConfig(config, configUrl, assetsBasePath, environment) {
     const localModule = getLocalModule(config, configUrl);
     const assetsPath = getAssetsPath(assetsBasePath, localModule.id, localModule.definition.version, localModule.definition.hash, environment);
-
     let assetsUrl = relativizePaths(localModule.definition.assetsUrl || "url:./", assetsPath, "/module.jsonc", configUrl);
-
-    if (!/^[a-z][a-z0-9+.-]*:/i.test(assetsUrl)) {
-        throw new Error(`assetsUrl must resolve to an absolute HTTP(S) URL: '${assetsUrl}'.`);
-    }
-
+    if (!/^[a-z][a-z0-9+.-]*:/i.test(assetsUrl)) throw new Error(`assetsUrl must resolve to an absolute HTTP(S) URL: '${assetsUrl}'.`);
     const assetsUrlObject = new URL(assetsUrl);
-
-    if (assetsUrlObject.protocol !== "http:" && assetsUrlObject.protocol !== "https:") {
-        throw new Error(`assetsUrl must resolve to an absolute HTTP(S) URL: '${assetsUrl}'.`);
-    }
-
+    if (assetsUrlObject.protocol !== "http:" && assetsUrlObject.protocol !== "https:") throw new Error(`assetsUrl must resolve to an absolute HTTP(S) URL: '${assetsUrl}'.`);
     localModule.definition.assetsUrl = assetsUrlObject.href;
-
     const source = new URL(configUrl);
     const assetsDirectory = assetsUrlObject.pathname.endsWith("/") ? assetsUrlObject.pathname : assetsUrlObject.pathname + "/";
-
-    const declaringPath = source.origin === assetsUrlObject.origin && source.pathname.startsWith(assetsDirectory)
-        ? "/" + source.pathname.substring(assetsDirectory.length)
-        : "/" + source.pathname.substring(source.pathname.lastIndexOf("/") + 1);
-
+    const declaringPath = source.origin === assetsUrlObject.origin && source.pathname.startsWith(assetsDirectory) ? "/" + source.pathname.substring(assetsDirectory.length) : "/" + source.pathname.substring(source.pathname.lastIndexOf("/") + 1);
     const references = [];
-
     for (const [moduleId, reference] of Object.entries(config.modules)) {
         if (moduleId === localModule.id) continue;
-
-        if (!reference || typeof reference !== "object" || Array.isArray(reference)) {
-            throw new Error(`Module reference '${moduleId}' in '${configUrl}' must be an object that declares configUrl.`);
-        }
-
-        if (Object.hasOwn(reference, "assetsUrl")) {
-            throw new Error(`Module reference '${moduleId}' in '${configUrl}' cannot override assetsUrl; it is owned by the local definition.`);
-        }
-
+        if (!reference || typeof reference !== "object" || Array.isArray(reference)) throw new Error(`Module reference '${moduleId}' in '${configUrl}' must be an object that declares configUrl.`);
+        if (Object.hasOwn(reference, "assetsUrl")) throw new Error(`Module reference '${moduleId}' in '${configUrl}' cannot override assetsUrl; it is owned by the local definition.`);
         const authoredConfigUrl = reference.configUrl;
-
-        if (typeof authoredConfigUrl !== "string" || !authoredConfigUrl.trim()) {
-            throw new Error(`Module reference '${moduleId}' in '${configUrl}' must declare a non-empty configUrl.`);
-        }
-
+        if (typeof authoredConfigUrl !== "string" || !authoredConfigUrl.trim()) throw new Error(`Module reference '${moduleId}' in '${configUrl}' must declare a non-empty configUrl.`);
         const effectiveUrl = relativizePaths(authoredConfigUrl, assetsPath, declaringPath, configUrl);
-
         if (effectiveUrl === authoredConfigUrl && !/^[a-z][a-z0-9+.-]*:/i.test(authoredConfigUrl)) {
-            throw new Error(
-                `Module reference '${moduleId}' in '${configUrl}' has an unsupported configUrl '${authoredConfigUrl}'. ` +
-                "Use /, ./, ../, app:, url:, or an absolute URL."
-            );
+            throw new Error(`Module reference '${moduleId}' in '${configUrl}' has an unsupported configUrl '${authoredConfigUrl}'. ` + "Use /, ./, ../, app:, url:, or an absolute URL.");
         }
-
-        const loadUrl = effectiveUrl.startsWith(assetsPath + "/")
-            ? new URL(effectiveUrl.substring(assetsPath.length + 1), localModule.definition.assetsUrl).href
-            : effectiveUrl;
-
+        const loadUrl = effectiveUrl.startsWith(assetsPath + "/") ? new URL(effectiveUrl.substring(assetsPath.length + 1), localModule.definition.assetsUrl).href : effectiveUrl;
         delete reference.configUrl;
         references.push({ id: moduleId, configUrl: effectiveUrl, loadUrl });
     }
-
     localModule.definition.configUrl = configUrl;
-
     relativizePaths(config, assetsPath, declaringPath, configUrl);
-
     return { id: localModule.id, config, configUrl, assetsPath, references };
 }
-
 async function discoverModuleConfigs(rootConfig, rootConfigUrl, loadConfig, assetsBasePath, environment) {
     const nodesById = new Map();
     const nodesByUrl = new Map();
-
     const registerNode = (node, expectedIds) => {
         for (const expectedId of expectedIds) {
-            if (expectedId !== node.id) {
-                throw new Error(`Module reference '${expectedId}' points to '${node.configUrl}', but that configuration defines local module '${node.id}'.`);
-            }
+            if (expectedId !== node.id) throw new Error(`Module reference '${expectedId}' points to '${node.configUrl}', but that configuration defines local module '${node.id}'.`);
         }
-
         const existing = nodesById.get(node.id);
-
-        if (existing && existing.configUrl !== node.configUrl) {
-            throw new Error(`Module '${node.id}' is referenced with conflicting configUrl values: '${existing.configUrl}' and '${node.configUrl}'.`);
-        }
-
+        if (existing && existing.configUrl !== node.configUrl) throw new Error(`Module '${node.id}' is referenced with conflicting configUrl values: '${existing.configUrl}' and '${node.configUrl}'.`);
         nodesById.set(node.id, node);
         nodesByUrl.set(node.configUrl, node);
     };
-
     const rootNode = prepareModuleConfig(rootConfig, rootConfigUrl, assetsBasePath, environment);
-
     registerNode(rootNode, new Set([rootNode.id]));
-
     let currentNodes = [rootNode];
-
     while (currentNodes.length) {
         const pendingByUrl = new Map();
-
         for (const node of currentNodes) {
             for (const reference of node.references) {
                 const existing = nodesById.get(reference.id);
-
-                if (existing && existing.configUrl !== reference.loadUrl) {
-                    throw new Error(`Module '${reference.id}' is referenced with conflicting configUrl values: '${existing.configUrl}' and '${reference.loadUrl}'.`);
-                }
-
+                if (existing && existing.configUrl !== reference.loadUrl) throw new Error(`Module '${reference.id}' is referenced with conflicting configUrl values: '${existing.configUrl}' and '${reference.loadUrl}'.`);
                 const loadedNode = nodesByUrl.get(reference.loadUrl);
-
                 if (loadedNode) {
                     if (loadedNode.id !== reference.id) {
-                        throw new Error(
-                            `Module reference '${reference.id}' points to '${reference.loadUrl}', ` +
-                            `but that configuration defines local module '${loadedNode.id}'.`
-                        );
+                        throw new Error(`Module reference '${reference.id}' points to '${reference.loadUrl}', ` + `but that configuration defines local module '${loadedNode.id}'.`);
                     }
                     continue;
                 }
-
                 const pending = pendingByUrl.get(reference.loadUrl) || { expectedIds: new Set() };
                 pending.expectedIds.add(reference.id);
                 pendingByUrl.set(reference.loadUrl, pending);
             }
         }
-
         if (!pendingByUrl.size) break;
-
         const urls = [...pendingByUrl.keys()];
         const loadedConfigs = await Promise.all(urls.map(url => loadConfig(url)));
-
         currentNodes = [];
-
         for (let i = 0; i < urls.length; i++) {
             const url = urls[i];
             const node = prepareModuleConfig(loadedConfigs[i], url, assetsBasePath, environment);
-
             registerNode(node, pendingByUrl.get(url).expectedIds);
             currentNodes.push(node);
         }
     }
-
     const mergeOrder = [];
     const states = new Map();
     const path = [];
 
     const visit = node => {
         const state = states.get(node.id);
-
         if (state === "visited") return;
-
         if (state === "visiting") {
             const cycleStart = path.indexOf(node.id);
             const cycle = [...path.slice(cycleStart), node.id].map(id => `'${id}'`).join(" -> ");
             throw new Error(`Module dependency cycle detected: ${cycle}.`);
         }
-
         states.set(node.id, "visiting");
         path.push(node.id);
-
         for (const reference of node.references) {
             visit(nodesById.get(reference.id));
         }
-
         path.pop();
         states.set(node.id, "visited");
         mergeOrder.push(node);
     };
-
     visit(rootNode);
-
     return { rootNode, nodesById, mergeOrder };
 }
-
 function mergeConfigs(configs) {
     const isObject = value => value !== null && typeof value === "object" && !Array.isArray(value);
-
     const merge = (target, source) => {
         for (const [key, value] of Object.entries(source)) {
             if (Array.isArray(value)) {
@@ -312,7 +219,6 @@ function mergeConfigs(configs) {
         }
         return target;
     };
-
     return configs.reduce((result, config) => merge(result, config), {});
 }
 
