@@ -42,6 +42,7 @@ function successfulPack(source, output) {
     const result = pack(source, output);
     assert.equal(result.status, 0, result.stdout + result.stderr);
     assert.equal(result.stdout.trim().split(/\r?\n/).at(-1), join(output, "release.json"));
+    assert.equal(existsSync(join(output, ".pack.lock")), false);
     return JSON.parse(readFileSync(join(output, "release.json"), "utf8"));
 }
 
@@ -334,6 +335,7 @@ test("concurrent publication attempts preserve a complete release", async () => 
         assert.deepEqual(release.packages, [release.root]);
         assert.equal(existsSync(join(output, release.root)), true);
         assert.equal(existsSync(join(output, dirname(release.root), "module.zip")), true);
+        assert.equal(existsSync(join(output, ".pack.lock")), false);
     } finally {
         rmSync(root, { recursive: true, force: true });
     }

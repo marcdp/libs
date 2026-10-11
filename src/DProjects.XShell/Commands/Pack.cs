@@ -244,35 +244,41 @@ namespace DProjects.XShell.Commands {
             Directory.CreateDirectory(outputPath);
             var lockPath = Path.Combine(outputPath, ".pack.lock");
             using var publicationLock = AcquirePublicationLock(lockPath);
-            foreach (var package in packages) {
-                cancellationToken.ThrowIfCancellationRequested();
-                var source = Path.Combine(stagingPath, "packages", package.RelativeDirectory.Replace('/', Path.DirectorySeparatorChar));
-                var target = Path.Combine(outputPath, package.RelativeDirectory.Replace('/', Path.DirectorySeparatorChar));
-                if (Directory.Exists(target)) {
-                    await ValidateExistingPackageAsync(target, source, package, cancellationToken);
-                    continue;
-                }
-                var zipName = package.Id == "xshell" ? "xshell.zip" : "module.zip";
-                if (!File.Exists(Path.Combine(source, zipName))) {
-                    throw new IOException($"Previously published package '{target}' disappeared before commit; no staged ZIP is available.");
-                }
-                Directory.CreateDirectory(Path.GetDirectoryName(target)!);
-                Directory.Move(source, target);
-            }
-            var manifest = new JsonObject {
-                ["root"] = $"{root.RelativeDirectory}/{root.DescriptorName}",
-                ["packages"] = new JsonArray(packages.Select(package => (JsonNode?)JsonValue.Create($"{package.RelativeDirectory}/{package.DescriptorName}")).ToArray())
-            };
-            var temporaryManifest = Path.Combine(outputPath, $".release-{Guid.NewGuid():N}.tmp");
             try {
-                await File.WriteAllTextAsync(temporaryManifest, manifest.ToJsonString(JsonOptions), cancellationToken);
-                var publishedManifest = Path.Combine(outputPath, ReleaseFileName);
-                if (File.Exists(publishedManifest)) File.Replace(temporaryManifest, publishedManifest, null);
-                else File.Move(temporaryManifest, publishedManifest);
-            } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) {
-                throw new IOException($"Failed to commit XShell distribution in '{outputPath}'. The previous release remains selected.", exception);
+                foreach (var package in packages) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var source = Path.Combine(stagingPath, "packages", package.RelativeDirectory.Replace('/', Path.DirectorySeparatorChar));
+                    var target = Path.Combine(outputPath, package.RelativeDirectory.Replace('/', Path.DirectorySeparatorChar));
+                    if (Directory.Exists(target)) {
+                        await ValidateExistingPackageAsync(target, source, package, cancellationToken);
+                        continue;
+                    }
+                    var zipName = package.Id == "xshell" ? "xshell.zip" : "module.zip";
+                    if (!File.Exists(Path.Combine(source, zipName))) {
+                        throw new IOException($"Previously published package '{target}' disappeared before commit; no staged ZIP is available.");
+                    }
+                    Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+                    Directory.Move(source, target);
+                }
+
+                var manifest = new JsonObject {
+                    ["root"] = $"{root.RelativeDirectory}/{root.DescriptorName}",
+                    ["packages"] = new JsonArray(packages.Select(package => (JsonNode?)JsonValue.Create($"{package.RelativeDirectory}/{package.DescriptorName}")).ToArray())
+                };
+                var temporaryManifest = Path.Combine(outputPath, $".release-{Guid.NewGuid():N}.tmp");
+                try {
+                    await File.WriteAllTextAsync(temporaryManifest, manifest.ToJsonString(JsonOptions), cancellationToken);
+                    var publishedManifest = Path.Combine(outputPath, ReleaseFileName);
+                    if (File.Exists(publishedManifest)) File.Replace(temporaryManifest, publishedManifest, null);
+                    else File.Move(temporaryManifest, publishedManifest);
+                } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) {
+                    throw new IOException($"Failed to commit XShell distribution in '{outputPath}'. The previous release remains selected.", exception);
+                } finally {
+                    if (File.Exists(temporaryManifest)) File.Delete(temporaryManifest);
+                }
             } finally {
-                if (File.Exists(temporaryManifest)) File.Delete(temporaryManifest);
+                // remove the name while the exclusive handle is held; a new writer can start only after all publication work is done
+                if (File.Exists(lockPath)) File.Delete(lockPath);
             }
         }
         private static async Task ValidateExistingPackageAsync(string target, string source, BuiltPackage package, CancellationToken cancellationToken) {
@@ -290,7 +296,7 @@ namespace DProjects.XShell.Commands {
         }
         private static FileStream AcquirePublicationLock(string lockPath) {
             try {
-                return new FileStream(lockPath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
+                return new FileStream(lockPath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.Delete);
             } catch (IOException exception) {
                 throw new IOException($"Cannot acquire XShell distribution publication lock '{lockPath}'; another pack may be committing.", exception);
             }

@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 
 using DProjects.Commands;
@@ -16,148 +17,112 @@ namespace DProjects.XShell.Test {
 
         // methods
         [Fact]
-        public async Task ModuleExpanded_PublishesNormalizedCompiledTreeAndInventory() {
+        public async Task Module_PublishesImmutableZipAndInventory() {
             using var workspace = new TemporaryDirectory();
             var source = CreateModuleSource(workspace.PathFor("source"));
-            var output = workspace.PathFor("expanded");
+            var output = workspace.PathFor("dist");
 
-            var package = await PackAsync(source, output, zip: false);
-
-            AssertPackagePath(package, output, ModuleId, ModuleVersion);
-            Assert.False(File.Exists(Path.Combine(package, "module.jsonc")));
-            Assert.False(File.Exists(Path.Combine(package, "page.html")));
-            Assert.Contains("templateRenderer:", File.ReadAllText(Path.Combine(package, "page.js")));
-            Assert.Equal("value", File.ReadAllText(Path.Combine(package, "data", "value.txt")));
-            var publishedDescriptor = File.ReadAllText(Path.Combine(package, "module.json"));
-            Assert.DoesNotContain("// authored module metadata", publishedDescriptor);
-            using (var descriptor = JsonDocument.Parse(publishedDescriptor)) {
-                var module = descriptor.RootElement.GetProperty("modules").GetProperty(ModuleId);
-                Assert.Equal(ModuleVersion, module.GetProperty("version").GetString());
-                Assert.Equal("Tiny module", module.GetProperty("label").GetString());
-            }
-            var files = ReadExpandedFiles(package);
-            AssertInventoryMatchesFiles(File.ReadAllText(Path.Combine(package, "module.files.json")), files);
-        }
-        [Fact]
-        public async Task ModuleZip_PublishesDescriptorAndCompiledArchiveWithEmbeddedInventory() {
-            using var workspace = new TemporaryDirectory();
-            var source = CreateModuleSource(workspace.PathFor("source"));
-            var output = workspace.PathFor("zip");
-
-            var package = await PackAsync(source, output, zip: true);
+            var package = await PackAsync(source, output);
 
             AssertPackagePath(package, output, ModuleId, ModuleVersion);
             Assert.Equal(["module.json", "module.zip"], Directory.GetFiles(package).Select(Path.GetFileName).Order(StringComparer.Ordinal).ToArray());
+            Assert.True(File.Exists(Path.Combine(output, "release.json")));
             Assert.False(File.Exists(Path.Combine(package, "module.files.json")));
+            Assert.False(File.Exists(Path.Combine(source, "module.json")));
+            Assert.True(File.Exists(Path.Combine(source, "module.jsonc")));
+            Assert.True(File.Exists(Path.Combine(source, "page.html")));
             var files = ReadZipFiles(Path.Combine(package, "module.zip"));
             Assert.Contains("module.json", files.Keys);
             Assert.DoesNotContain("module.jsonc", files.Keys);
             Assert.Contains("page.js", files.Keys);
             Assert.DoesNotContain("page.html", files.Keys);
-            Assert.Contains("templateRenderer:", System.Text.Encoding.UTF8.GetString(files["page.js"]));
-            Assert.Equal("value", System.Text.Encoding.UTF8.GetString(files["data/value.txt"]));
+            Assert.Contains("templateRenderer:", Encoding.UTF8.GetString(files["page.js"]));
+            Assert.Equal("value", Encoding.UTF8.GetString(files["data/value.txt"]));
             Assert.Contains("module.files.json", files.Keys);
             using var descriptor = JsonDocument.Parse(File.ReadAllText(Path.Combine(package, "module.json")));
             var module = descriptor.RootElement.GetProperty("modules").GetProperty(ModuleId);
+            Assert.Equal(ModuleVersion, module.GetProperty("version").GetString());
             Assert.Equal("Tiny module", module.GetProperty("label").GetString());
             Assert.Equal("url:./module.zip", module.GetProperty("assetsUrl").GetString());
-            var embedded = ReadInventory(module.GetProperty("files"));
-            var archived = ReadInventory(System.Text.Encoding.UTF8.GetString(files["module.files.json"]));
-            Assert.Equal(archived, embedded);
-            AssertInventoryMatchesFiles(archived, files);
+            AssertInventoryMatchesFiles(ReadInventory(module.GetProperty("files")), files);
         }
         [Fact]
-        public async Task XShellExpanded_PublishesDescriptorResourcesAndInventory() {
+        public async Task Pack_RecursivelyPublishesDependenciesAndRewritesReferences() {
             using var workspace = new TemporaryDirectory();
-            var source = CreateXShellSource(workspace.PathFor("source"));
-            var output = workspace.PathFor("expanded");
+            var sourceRoot = workspace.PathFor("sources");
+            var appSource = Path.Combine(sourceRoot, "app");
+            var middleSource = Path.Combine(sourceRoot, "middle");
+            var leafSource = Path.Combine(sourceRoot, "leaf");
+            CreateModuleSource(leafSource, moduleId: "leaf");
+            CreateModuleSource(middleSource, moduleId: "middle", references: """
+                "leaf": { "configUrl": "url:../leaf/module.jsonc" }
+                """);
+            CreateModuleSource(appSource, references: """
+                "middle": { "configUrl": "url:../middle/module.jsonc" }
+                """);
+            var output = workspace.PathFor("dist");
 
-            var package = await PackAsync(source, output, zip: false);
+            var rootPackage = await PackAsync(appSource, output);
 
-            AssertPackagePath(package, output, "xshell", XShellVersion);
-            Assert.True(File.Exists(Path.Combine(package, "xshell.jsonc")));
-            Assert.Equal("runtime", File.ReadAllText(Path.Combine(package, "assets", "runtime.txt")));
-            AssertInventoryMatchesFiles(File.ReadAllText(Path.Combine(package, "module.files.json")), ReadExpandedFiles(package));
+            AssertPackagePath(rootPackage, output, ModuleId, ModuleVersion);
+            using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(output, "release.json")));
+            Assert.Equal(Path.GetRelativePath(output, Path.Combine(rootPackage, "module.json")).Replace('\\', '/'),
+                manifest.RootElement.GetProperty("root").GetString());
+            Assert.Equal(3, manifest.RootElement.GetProperty("packages").GetArrayLength());
+            var app = ReadModuleDescriptor(rootPackage);
+            var middleReference = app.GetProperty("modules").GetProperty("middle");
+            Assert.StartsWith("url:../../middle/", middleReference.GetProperty("configUrl").GetString());
+            var middleDescriptorPath = Path.GetFullPath(Path.Combine(rootPackage, middleReference.GetProperty("configUrl").GetString()![4..]));
+            Assert.True(File.Exists(middleDescriptorPath));
+            using var middleDocument = JsonDocument.Parse(File.ReadAllText(middleDescriptorPath));
+            var leafReference = middleDocument.RootElement.GetProperty("modules").GetProperty("leaf");
+            Assert.StartsWith("url:../../leaf/", leafReference.GetProperty("configUrl").GetString());
+            Assert.True(File.Exists(Path.GetFullPath(Path.Combine(Path.GetDirectoryName(middleDescriptorPath)!, leafReference.GetProperty("configUrl").GetString()![4..]))));
+            Assert.Single(Directory.GetDirectories(Path.Combine(output, "leaf")));
         }
         [Fact]
-        public async Task XShellZip_PublishesDescriptorAndArchiveWithEmbeddedInventory() {
+        public async Task XShell_PublishesItsDistinctImmutableZipPackage() {
             using var workspace = new TemporaryDirectory();
             var source = CreateXShellSource(workspace.PathFor("source"));
-            var output = workspace.PathFor("zip");
+            var output = workspace.PathFor("dist");
 
-            var package = await PackAsync(source, output, zip: true);
+            var package = await PackAsync(source, output);
 
             AssertPackagePath(package, output, "xshell", XShellVersion);
-            Assert.Equal(["xshell.jsonc", "xshell.zip"], Directory.GetFiles(package).Select(Path.GetFileName).Order(StringComparer.Ordinal).ToArray());
+            Assert.Equal(["xshell.json", "xshell.zip"], Directory.GetFiles(package).Select(Path.GetFileName).Order(StringComparer.Ordinal).ToArray());
             Assert.False(File.Exists(Path.Combine(package, "module.files.json")));
             var files = ReadZipFiles(Path.Combine(package, "xshell.zip"));
-            Assert.Equal("runtime", System.Text.Encoding.UTF8.GetString(files["assets/runtime.txt"]));
+            Assert.Equal("runtime", Encoding.UTF8.GetString(files["assets/runtime.txt"]));
             Assert.Contains("module.files.json", files.Keys);
-            using var descriptor = JsonDocument.Parse(File.ReadAllText(Path.Combine(package, "xshell.jsonc")));
+            using var descriptor = JsonDocument.Parse(File.ReadAllText(Path.Combine(package, "xshell.json")));
             var xshell = descriptor.RootElement.GetProperty("xshell");
             Assert.Equal("url:./xshell.zip", xshell.GetProperty("assetsUrl").GetString());
-            var embedded = ReadInventory(xshell.GetProperty("files"));
-            var archived = ReadInventory(System.Text.Encoding.UTF8.GetString(files["module.files.json"]));
-            Assert.Equal(archived, embedded);
-            AssertInventoryMatchesFiles(archived, files);
+            AssertInventoryMatchesFiles(ReadInventory(xshell.GetProperty("files")), files);
         }
-        [Theory]
-        [InlineData(false)]
-        [InlineData(true)]
-        public async Task SameRepresentation_ReusesImmutableIdentity(bool zip) {
+        [Fact]
+        public async Task RepeatedPack_ReusesImmutableIdentityAndRemovesLockFile() {
             using var workspace = new TemporaryDirectory();
             var source = CreateModuleSource(workspace.PathFor("source"));
-            var output = workspace.PathFor("output");
+            var output = workspace.PathFor("dist");
 
-            var first = await PackAsync(source, output, zip);
-            var second = await PackAsync(source, output, zip);
+            var first = await PackAsync(source, output);
+            var second = await PackAsync(source, output);
 
             Assert.Equal(first, second);
             Assert.Single(Directory.GetDirectories(Path.Combine(output, ModuleId)));
-        }
-        [Theory]
-        [InlineData(false)]
-        [InlineData(true)]
-        public async Task DifferentRepresentation_RejectsImmutableIdentityCollision(bool firstZip) {
-            using var workspace = new TemporaryDirectory();
-            var source = CreateModuleSource(workspace.PathFor("source"));
-            var output = workspace.PathFor("output");
-            var first = await PackAsync(source, output, firstZip);
-
-            var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => PackAsync(source, output, !firstZip));
-
-            Assert.Contains("already exists using another representation", exception.Message);
-            Assert.Single(Directory.GetDirectories(Path.Combine(output, ModuleId)));
-            Assert.True(Directory.Exists(first));
+            Assert.False(File.Exists(Path.Combine(output, ".pack.lock")));
         }
         [Fact]
-        public async Task Identity_DependsOnLogicalContentsAcrossCreationOrderAndRepresentation() {
+        public async Task Identity_IsStableAcrossFileCreationOrderAndOutputDirectories() {
             using var workspace = new TemporaryDirectory();
             var firstSource = CreateModuleSource(workspace.PathFor("source-a"));
             var secondSource = CreateModuleSource(workspace.PathFor("source-b"), reverseCreationOrder: true);
 
-            var first = await PackAsync(firstSource, workspace.PathFor("expanded-a"), zip: false);
-            var second = await PackAsync(secondSource, workspace.PathFor("expanded-b"), zip: false);
-            var zipped = await PackAsync(firstSource, workspace.PathFor("zip"), zip: true);
+            var first = await PackAsync(firstSource, workspace.PathFor("dist-a"));
+            var second = await PackAsync(secondSource, workspace.PathFor("dist-b"));
 
             Assert.Equal(Path.GetFileName(first), Path.GetFileName(second));
-            Assert.Equal(Path.GetFileName(first), Path.GetFileName(zipped));
-        }
-        [Theory]
-        [InlineData("x")]
-        [InlineData("app")]
-        [InlineData("orders")]
-        [InlineData("x-demo")]
-        [InlineData("orders-v2")]
-        [InlineData("xshell-docs")]
-        public async Task Module_PacksWithCanonicalId(string moduleId) {
-            using var workspace = new TemporaryDirectory();
-            var source = CreateModuleSource(workspace.PathFor("source"), moduleId: moduleId);
-            var output = workspace.PathFor("output");
-
-            var package = await PackAsync(source, output, zip: false, moduleId: moduleId);
-
-            AssertPackagePath(package, output, moduleId, ModuleVersion);
+            Assert.Equal(File.ReadAllBytes(Path.Combine(first, "module.zip")), File.ReadAllBytes(Path.Combine(second, "module.zip")));
         }
         [Theory]
         [InlineData("")]
@@ -176,36 +141,28 @@ namespace DProjects.XShell.Test {
             using var workspace = new TemporaryDirectory();
             var source = CreateModuleSource(workspace.PathFor("source"), moduleId: moduleId);
 
-            var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => PackAsync(source, workspace.PathFor("output"), zip: false, moduleId: moduleId));
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => PackAsync(source, workspace.PathFor("dist"), moduleId: moduleId));
 
-            Assert.Equal($"Invalid module id '{moduleId}'.", exception.Message);
-        }
-        [Fact]
-        public async Task Module_PackRejectsReservedModuleId() {
-            using var workspace = new TemporaryDirectory();
-            var source = CreateModuleSource(workspace.PathFor("source"), moduleId: "xshell");
-
-            var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => PackAsync(source, workspace.PathFor("output"), zip: false, moduleId: "xshell"));
-
-            Assert.Equal("Module id 'xshell' is reserved.", exception.Message);
+            Assert.Contains("Invalid or reserved module id", exception.Message);
         }
 
         // methods (private)
-        private static string CreateModuleSource(string path, bool reverseCreationOrder = false, string moduleId = ModuleId) {
+        private static string CreateModuleSource(string path, bool reverseCreationOrder = false, string moduleId = ModuleId, string references = "") {
             Directory.CreateDirectory(path);
+            var referenceJson = string.IsNullOrWhiteSpace(references) ? "" : "," + references;
             var files = new (string Name, string Content)[] {
-                ("module.jsonc", """
+                ("module.jsonc", $$"""
                     {
                         // authored module metadata
                         "modules": {
-                            "sample": {
-                                "version": "1.2.3",
+                            "{{moduleId}}": {
+                                "version": "{{ModuleVersion}}",
                                 "label": "Tiny module",
                                 "defaults": { "page": { "renderEngine": "x" }, },
-                            },
+                            }{{referenceJson}}
                         },
                     }
-                    """.Replace("\"sample\"", JsonSerializer.Serialize(moduleId), StringComparison.Ordinal)),
+                    """),
                 ("page.html", "<template><p>pack</p></template>"),
                 ("data/value.txt", "value")
             };
@@ -218,17 +175,21 @@ namespace DProjects.XShell.Test {
         }
         private static string CreateXShellSource(string path) {
             Directory.CreateDirectory(Path.Combine(path, "assets"));
-            File.WriteAllText(Path.Combine(path, "xshell.jsonc"), """
-                { "xshell": { "version": "2.3.4" } }
+            File.WriteAllText(Path.Combine(path, "xshell.jsonc"), $$"""
+                { "xshell": { "version": "{{XShellVersion}}" } }
                 """);
             File.WriteAllText(Path.Combine(path, "assets", "runtime.txt"), "runtime");
             return path;
         }
-        private static async Task<string> PackAsync(string source, string output, bool zip, string moduleId = ModuleId) {
-            var command = new Pack(new TestEnvironment()) { Source = source, Output = output, Zip = zip };
+        private static async Task<string> PackAsync(string source, string output, string moduleId = ModuleId) {
+            var command = new Pack(new TestEnvironment()) { Source = source, Output = output };
             Assert.Equal(0, await command.ExecuteAsync(TestContext.Current.CancellationToken));
-            var id = File.Exists(Path.Combine(source, "module.jsonc")) ? moduleId : "xshell";
-            return Assert.Single(Directory.GetDirectories(Path.Combine(output, id)));
+            var id = File.Exists(Path.Combine(source, "module.jsonc")) || File.Exists(Path.Combine(source, "module.json")) ? moduleId : "xshell";
+            return Path.Combine(output, Assert.Single(Directory.GetDirectories(Path.Combine(output, id))));
+        }
+        private static JsonElement ReadModuleDescriptor(string package) {
+            using var document = JsonDocument.Parse(File.ReadAllText(Path.Combine(package, "module.json")));
+            return document.RootElement.Clone();
         }
         private static void AssertPackagePath(string package, string output, string id, string version) {
             Assert.Equal(Path.Combine(output, id), Path.GetDirectoryName(package));
@@ -236,10 +197,6 @@ namespace DProjects.XShell.Test {
             Assert.StartsWith(version + ".", identity);
             var hash = identity[(version.Length + 1)..];
             Assert.Matches("^[0-9a-f]{16}$", hash);
-        }
-        private static Dictionary<string, byte[]> ReadExpandedFiles(string package) {
-            return Directory.GetFiles(package, "*", SearchOption.AllDirectories)
-                .ToDictionary(file => Path.GetRelativePath(package, file).Replace('\\', '/'), File.ReadAllBytes, StringComparer.Ordinal);
         }
         private static Dictionary<string, byte[]> ReadZipFiles(string archivePath) {
             using var archive = ZipFile.OpenRead(archivePath);
@@ -252,10 +209,6 @@ namespace DProjects.XShell.Test {
             }
             return files;
         }
-        private static FileEntry[] ReadInventory(string json) {
-            using var document = JsonDocument.Parse(json);
-            return ReadInventory(document.RootElement);
-        }
         private static FileEntry[] ReadInventory(JsonElement json) {
             return json.EnumerateArray().Select(item => new FileEntry(
                 item.GetProperty("path").GetString()!,
@@ -263,11 +216,9 @@ namespace DProjects.XShell.Test {
                 item.GetProperty("hash").GetString()!
             )).ToArray();
         }
-        private static void AssertInventoryMatchesFiles(string inventory, Dictionary<string, byte[]> files) {
-            AssertInventoryMatchesFiles(ReadInventory(inventory), files);
-        }
         private static void AssertInventoryMatchesFiles(FileEntry[] inventory, Dictionary<string, byte[]> files) {
-            var expectedPaths = files.Keys.Where(path => path != "module.files.json").Order(StringComparer.Ordinal).Select(path => "/" + path).ToArray();
+            var expectedPaths = files.Keys.Where(path => path is not ("module.files.json" or "module.json" or "xshell.json"))
+                .Order(StringComparer.Ordinal).Select(path => "/" + path).ToArray();
             Assert.Equal(expectedPaths, inventory.Select(item => item.Path));
             foreach (var item in inventory) {
                 Assert.Matches("^/[A-Za-z0-9._/-]+$", item.Path);

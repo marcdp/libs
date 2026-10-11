@@ -64,11 +64,12 @@ dist/
 `packages` array lists every descriptor in the complete release. Consumers should read `release.json` to select a distribution, then resolve
 its paths within the same output directory. Package directories outside the manifest are uncommitted and may be left by an interrupted publish.
 
-The build has three phases: full graph discovery and validation, private staging of all ZIP packages, then publication. A short exclusive lock
-serializes concurrent commits. The command moves immutable packages to their final paths, verifies any existing identities, writes a complete
-temporary release manifest, then atomically installs the manifest. A failed build or publication before that final operation leaves the previous
-`release.json` selecting the previous complete release. Temporary staging and manifest files are removed after ordinary failures. Previously
-published and newly moved immutable packages are left intact.
+The build has three phases: full graph discovery and validation, private staging of all ZIP packages, then publication. An exclusive
+`.pack.lock` file serializes concurrent commits and is removed as the final publication operation while its exclusive handle is still held.
+The command moves immutable packages to their final paths, verifies any existing identities, writes a complete temporary release manifest, then
+atomically installs the manifest. A failed build or publication before that final operation leaves the previous `release.json` selecting the
+previous complete release. Temporary staging and manifest files are removed after ordinary failures. Previously published and newly moved
+immutable packages are left intact.
 
 The atomic boundary is one file rename or replacement on the output filesystem. This requires a filesystem with atomic same-volume file rename
 and replacement semantics and readers that use `release.json` as the release selector. It does not rely on atomic directory replacement across
