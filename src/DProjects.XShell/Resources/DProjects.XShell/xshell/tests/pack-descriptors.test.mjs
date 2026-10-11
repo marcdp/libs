@@ -84,12 +84,17 @@ function descriptor(output, packagePath) {
     return JSON.parse(readFileSync(join(output, packagePath), "utf8"));
 }
 
+function assertUtcTimestamp(value) {
+    assert.match(value, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/);
+    assert.equal(Number.isNaN(Date.parse(value)), false);
+}
+
 test("pack discovers a dependency graph, rewrites references, and commits one complete release", () => {
     const root = fixture();
     try {
         const sources = join(root, "sources");
         const output = join(root, "dist");
-        module(join(sources, "customers"), "customers");
+        module(join(sources, "customers"), "customers", {}, { builtAt: "2000-01-01T00:00:00Z" });
         module(join(sources, "x"), "x");
         module(join(sources, "orders"), "orders", {
             customers: { configUrl: "url:../customers/module.jsonc", params: { theme: "blue" } },
@@ -102,6 +107,7 @@ test("pack discovers a dependency graph, rewrites references, and commits one co
         });
 
         const release = successfulPack(join(sources, "app"), output);
+        assertUtcTimestamp(release.createdAt);
         assert.equal(release.packages.length, 5);
         assert.equal(release.root, release.packages.find(path => path.startsWith("app/")));
         assert.equal(release.packages.filter(path => path.startsWith("x/")).length, 1);
@@ -113,8 +119,11 @@ test("pack discovers a dependency graph, rewrites references, and commits one co
             assert.equal(archive.has("module.jsonc"), false);
             assert.equal(archive.has("module.files.json"), true);
             assert.equal(contentHash(archive), dirname(path).split(".").at(-1));
-            assert.equal(JSON.parse(archive.get("module.json")).modules[path.split("/")[0]].hash, "");
+            const canonical = JSON.parse(archive.get("module.json")).modules[path.split("/")[0]];
+            assert.equal(canonical.hash, "");
+            assert.equal(Object.hasOwn(canonical, "builtAt"), false);
             const published = descriptor(output, path);
+            assertUtcTimestamp(published.modules[path.split("/")[0]].builtAt);
             assert.equal(published.modules[path.split("/")[0]].hash, dirname(path).split(".").at(-1));
             assert.equal(published.modules[path.split("/")[0]].assetsUrl, "url:./module.zip");
             assert.deepEqual(published.modules[path.split("/")[0]].files.map(file => file.path), ["/resource.txt"]);
@@ -134,11 +143,24 @@ test("pack discovers a dependency graph, rewrites references, and commits one co
         assert.deepEqual(orders.modules.customers.params, { theme: "blue" });
         assert.equal(readFileSync(join(sources, "app", "module.jsonc"), "utf8"), "// authored configuration\n" + authored);
 
-        const prior = readFileSync(join(output, "release.json"), "utf8");
-        assert.deepEqual(successfulPack(join(sources, "app"), output), release);
-        assert.equal(readFileSync(join(output, "release.json"), "utf8"), prior);
+        const priorPackages = new Map(release.packages.map(path => [path, {
+            descriptor: readFileSync(join(output, path)), zip: readFileSync(join(output, dirname(path), "module.zip"))
+        }]));
+        writeFileSync(join(output, "release.json"), JSON.stringify({ ...release, createdAt: "2000-01-01T00:00:00Z" }));
+        module(join(sources, "customers"), "customers", {}, { builtAt: "2030-01-01T00:00:00Z" });
+        const repeated = successfulPack(join(sources, "app"), output);
+        assert.deepEqual(repeated.packages, release.packages);
+        assert.equal(repeated.root, release.root);
+        assertUtcTimestamp(repeated.createdAt);
+        assert.notEqual(repeated.createdAt, "2000-01-01T00:00:00Z");
+        for (const path of release.packages) {
+            assert.deepEqual(readFileSync(join(output, path)), priorPackages.get(path).descriptor);
+            assert.deepEqual(readFileSync(join(output, dirname(path), "module.zip")), priorPackages.get(path).zip);
+        }
         const otherOutput = join(root, "another-dist");
-        assert.deepEqual(successfulPack(join(sources, "app"), otherOutput), release);
+        const otherRelease = successfulPack(join(sources, "app"), otherOutput);
+        assert.deepEqual(otherRelease.packages, release.packages);
+        assert.equal(otherRelease.root, release.root);
         for (const path of release.packages) {
             assert.deepEqual(readFileSync(join(output, dirname(path), "module.zip")), readFileSync(join(otherOutput, dirname(path), "module.zip")));
         }
@@ -160,11 +182,15 @@ test("dependency identity changes propagate to consumers while unrelated package
             other: { configUrl: "url:../other/module.jsonc" }
         });
         const before = successfulPack(join(sources, "app"), output);
+        const originalOther = descriptor(output, before.packages.find(path => path.startsWith("other/"))).modules.other.builtAt;
         writeFileSync(join(sources, "child", "resource.txt"), "changed");
         const after = successfulPack(join(sources, "app"), output);
+        assertUtcTimestamp(after.createdAt);
         assert.notEqual(after.root, before.root);
         assert.notEqual(after.packages.find(path => path.startsWith("child/")), before.packages.find(path => path.startsWith("child/")));
         assert.equal(after.packages.find(path => path.startsWith("other/")), before.packages.find(path => path.startsWith("other/")));
+        assert.equal(descriptor(output, after.packages.find(path => path.startsWith("other/"))).modules.other.builtAt, originalOther);
+        assertUtcTimestamp(descriptor(output, after.packages.find(path => path.startsWith("child/"))).modules.child.builtAt);
     } finally {
         rmSync(root, { recursive: true, force: true });
     }
@@ -206,12 +232,22 @@ test("framework packaging retains its distinct descriptor and ZIP format", () =>
         writeFileSync(join(source, "xshell.js"), "console.log('x');");
         const output = join(root, "dist");
         const release = successfulPack(source, output);
+        assertUtcTimestamp(release.createdAt);
         assert.equal(release.root.startsWith("xshell/2.0.0."), true);
         const published = descriptor(output, release.root);
+        assertUtcTimestamp(published.xshell.builtAt);
         assert.equal(published.xshell.assetsUrl, "url:./xshell.zip");
         const archive = entries(join(output, dirname(release.root), "xshell.zip"));
         assert.equal(archive.has("xshell.json"), true);
         assert.equal(contentHash(archive), published.xshell.hash);
+        assert.equal(Object.hasOwn(JSON.parse(archive.get("xshell.json")).xshell, "builtAt"), false);
+        const originalDescriptor = readFileSync(join(output, release.root));
+        const originalZip = readFileSync(join(output, dirname(release.root), "xshell.zip"));
+        writeFileSync(join(source, "xshell.jsonc"), '{"xshell":{"version":"2.0.0","builtAt":"2000-01-01T00:00:00Z"}}');
+        const repeated = successfulPack(source, output);
+        assert.equal(repeated.root, release.root);
+        assert.deepEqual(readFileSync(join(output, release.root)), originalDescriptor);
+        assert.deepEqual(readFileSync(join(output, dirname(release.root), "xshell.zip")), originalZip);
     } finally {
         rmSync(root, { recursive: true, force: true });
     }
@@ -228,7 +264,8 @@ test("equivalent JSON and JSONC property orders produce the same package identit
         writeFileSync(join(second, "resource.txt"), "app");
         const a = successfulPack(first, join(root, "output-a"));
         const b = successfulPack(second, join(root, "output-b"));
-        assert.deepEqual(a, b);
+        assert.equal(a.root, b.root);
+        assert.deepEqual(a.packages, b.packages);
     } finally {
         rmSync(root, { recursive: true, force: true });
     }
@@ -287,6 +324,69 @@ test("an immutable package collision cannot replace the committed release", () =
         const child = release.packages.find(path => path.startsWith("child/"));
         writeFileSync(join(output, child), '{"modules":{"child":{"hash":"corrupt"}}}');
         assert.match(pack(join(sources, "app"), output).stderr, /collides with different or damaged content/);
+        assert.equal(readFileSync(join(output, "release.json"), "utf8"), committed);
+    } finally {
+        rmSync(root, { recursive: true, force: true });
+    }
+});
+
+test("reuse rejects invalid build times and changed external metadata without changing the release", () => {
+    const root = fixture();
+    try {
+        const source = join(root, "app");
+        const output = join(root, "dist");
+        module(source, "app");
+        const release = successfulPack(source, output);
+        const committed = readFileSync(join(output, "release.json"), "utf8");
+        const original = readFileSync(join(output, release.root), "utf8");
+        const published = JSON.parse(original);
+
+        published.modules.app.builtAt = "not-utc";
+        writeFileSync(join(output, release.root), JSON.stringify(published));
+        assert.match(pack(source, output).stderr, /invalid builtAt timestamp/);
+        assert.equal(readFileSync(join(output, "release.json"), "utf8"), committed);
+
+        published.modules.app.builtAt = JSON.parse(original).modules.app.builtAt;
+        published.modules.app.assetsUrl = "url:./other.zip";
+        writeFileSync(join(output, release.root), JSON.stringify(published));
+        assert.match(pack(source, output).stderr, /collides with different or damaged content/);
+        assert.equal(readFileSync(join(output, "release.json"), "utf8"), committed);
+    } finally {
+        rmSync(root, { recursive: true, force: true });
+    }
+});
+
+test("legacy immutable packages without builtAt remain reusable and unchanged", () => {
+    const root = fixture();
+    try {
+        const source = join(root, "app");
+        const output = join(root, "dist");
+        module(source, "app");
+        const release = successfulPack(source, output);
+        const published = descriptor(output, release.root);
+        delete published.modules.app.builtAt;
+        writeFileSync(join(output, release.root), JSON.stringify(published));
+        const legacyDescriptor = readFileSync(join(output, release.root));
+        const repeated = successfulPack(source, output);
+        assert.equal(repeated.root, release.root);
+        assert.deepEqual(readFileSync(join(output, release.root)), legacyDescriptor);
+    } finally {
+        rmSync(root, { recursive: true, force: true });
+    }
+});
+
+test("reuse rejects a damaged ZIP even when the external descriptor is unchanged", () => {
+    const root = fixture();
+    try {
+        const source = join(root, "app");
+        const output = join(root, "dist");
+        module(source, "app");
+        const release = successfulPack(source, output);
+        const committed = readFileSync(join(output, "release.json"), "utf8");
+        const archivePath = join(output, dirname(release.root), "module.zip");
+        const archive = readFileSync(archivePath);
+        writeFileSync(archivePath, archive.subarray(0, archive.length - 1));
+        assert.notEqual(pack(source, output).status, 0);
         assert.equal(readFileSync(join(output, "release.json"), "utf8"), committed);
     } finally {
         rmSync(root, { recursive: true, force: true });

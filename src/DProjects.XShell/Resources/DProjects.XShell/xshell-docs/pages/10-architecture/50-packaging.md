@@ -36,14 +36,44 @@ and standalone CSS through `ModuleFileCompiler`, then generates `module.files.js
 HTML and JavaScript runtime paths fail. Framework resources remain uncompiled under the existing framework convention.
 
 Each canonical archive contains the compiled tree, `module.files.json`, and a descriptor whose own generated `hash` is empty. The external
-descriptor beside the ZIP has the calculated hash, `assetsUrl = "url:./module.zip"` (or `xshell.zip`), and the physical file inventory. Both
-descriptors contain the same rewritten dependency references. The archive is created before external publication metadata is added.
+descriptor beside the ZIP has the calculated hash, `assetsUrl = "url:./module.zip"` (or `xshell.zip`), the physical file inventory, and `builtAt`.
+Both descriptors contain the same rewritten dependency references. The archive is created before external publication metadata is added. Any
+authored `builtAt` is removed from canonical module or framework definitions before hashing.
 
 The package hash is the first 16 lowercase hexadecimal characters of SHA-256 over sorted canonical relative paths, lengths, and file bytes.
 It includes the canonical descriptor, inventory, and final rewritten references. It excludes ZIP timestamps and external publication metadata.
 ZIP entries are written in sorted order with a fixed timestamp, so the archive bytes are also reproducible for the same canonical tree.
 Changing a dependency identity can change its consumers' hashes. Unchanged packages keep their identities and are reused after the existing
 archive and external descriptor pass integrity checks. Existing immutable packages are never overwritten.
+
+| Property | Location | Meaning |
+| --- | --- | --- |
+| `version` | Module or framework descriptor | Authored semantic version. |
+| `hash` | Published descriptor | Immutable canonical content identity. |
+| `builtAt` | Published module or framework descriptor | UTC time when that immutable package was originally built. |
+| `createdAt` | `release.json` | UTC time when the application distribution was committed. |
+
+`pack` generates `builtAt` only in the external published local definition, never in the canonical descriptor inside the ZIP. It is excluded from
+package hashing and retained when an existing package is reused. Identical content therefore keeps the same package identity across builds. A
+framework package uses `xshell.builtAt` in its published `xshell.json` under the same rules. Both timestamps use `yyyy-MM-ddTHH:mm:ssZ`.
+Packages published before `builtAt` was introduced remain reusable without it; their immutable descriptors are not retroactively rewritten.
+
+For example, a published `customers/1.2.0.a83f92c1d4567890/module.json` may contain:
+
+```json
+{
+  "modules": {
+    "customers": {
+      "version": "1.2.0",
+      "hash": "a83f92c1d4567890",
+      "builtAt": "2026-10-11T15:30:00Z",
+      "assetsUrl": "url:./module.zip"
+    }
+  }
+}
+```
+
+The actual published descriptor also retains its other configuration and file inventory fields.
 
 ## Distribution and transaction boundary
 
@@ -61,7 +91,18 @@ dist/
 ```
 
 `release.json` is the authoritative commit record. Its `root` field gives the packaged root descriptor relative to `dist/`; its sorted
-`packages` array lists every descriptor in the complete release. Consumers should read `release.json` to select a distribution, then resolve
+`packages` array lists every descriptor in the complete release. `createdAt` records the successful distribution commit, independently of package
+build times. A new release may reuse packages built months earlier. For example:
+
+```json
+{
+  "root": "app/1.0.0.1234567890abcdef/module.json",
+  "createdAt": "2026-10-11T15:35:00Z",
+  "packages": ["app/1.0.0.1234567890abcdef/module.json", "customers/1.2.0.a83f92c1d4567890/module.json"]
+}
+```
+
+Consumers should read `release.json` to select a distribution, then resolve
 its paths within the same output directory. Package directories outside the manifest are uncommitted and may be left by an interrupted publish.
 
 The build has three phases: full graph discovery and validation, private staging of all ZIP packages, then publication. An exclusive

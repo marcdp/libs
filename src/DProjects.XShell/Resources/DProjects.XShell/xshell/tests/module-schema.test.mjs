@@ -68,6 +68,19 @@ test("module schema keeps routes optional", () => {
     assertValid(moduleDefinition());
 });
 
+test("effective schema accepts optional UTC package build times for modules and XShell", () => {
+    const config = configuration(moduleDefinition());
+    assert.equal(validator.validate(config).valid, true);
+    config.modules.test.builtAt = "2026-10-11T15:30:00Z";
+    config.xshell.builtAt = "2026-10-11T15:31:00Z";
+    assert.equal(validator.validate(config).valid, true);
+    config.modules.test.builtAt = "2026-10-11T15:30:00+02:00";
+    assert.equal(validator.validate(config).valid, false);
+    config.modules.test.builtAt = "2026-10-11T15:30:00Z";
+    config.xshell.builtAt = "invalid";
+    assert.equal(validator.validate(config).valid, false);
+});
+
 test("effective schema enforces the lexical module ID grammar", () => {
     for (const moduleId of ["x", "app", "orders", "x-demo", "orders-v2", "xshell-docs"]) {
         const config = configuration(moduleDefinition());

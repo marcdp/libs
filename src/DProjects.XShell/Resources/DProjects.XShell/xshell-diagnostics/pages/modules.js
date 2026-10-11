@@ -23,6 +23,9 @@ export default {
             <div slot="column" style="width:8em">
                 Assets path
             </div>
+            <div slot="column" style="width:8em">
+                Build at
+            </div>
             <div slot="column" style="width:6em; text-align:right">
                 Size
             </div>
@@ -58,6 +61,7 @@ export default {
                 <div>{{ module.label }}</div>
                 <div>{{ module.version }}</div>
                 <div>{{ module.assetsPath }}</div>
+                <div>{{ module.builtAt }}</div>
                 <x-file-size x-prop:value="module.size" style="text-align:right"></x-file-size>
                 <div style="text-align:right">{{ module.files.all }}</div>
                 <div style="text-align:right">{{ module.files.pages }}</div>

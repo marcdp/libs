@@ -1,5 +1,6 @@
 using System.Buffers.Binary;
 using System.IO.Compression;
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -164,6 +165,7 @@ namespace DProjects.XShell.Commands {
                 var dependency = dependencies[reference.Id];
                 ((JsonObject)modules[reference.Id]!)["configUrl"] = $"url:../../{dependency.RelativeDirectory.Replace('\\', '/')}/module.json";
             }
+            foreach (var item in modules) (item.Value as JsonObject)?.Remove("builtAt");
             ((JsonObject)modules[node.Id]!)["hash"] = "";
             await File.WriteAllTextAsync(stagedDescriptor, root.ToJsonString(JsonOptions), cancellationToken);
             var jsoncPath = Path.Combine(workPath, "module.jsonc");
@@ -185,6 +187,7 @@ namespace DProjects.XShell.Commands {
             ((JsonObject)modules[node.Id]!)["hash"] = hash;
             ((JsonObject)modules[node.Id]!)["assetsUrl"] = "url:./module.zip";
             ((JsonObject)modules[node.Id]!)["files"] = JsonNode.Parse(inventory);
+            ((JsonObject)modules[node.Id]!)["builtAt"] = UtcTimestamp();
             await File.WriteAllTextAsync(Path.Combine(packagePath, "module.json"), root.ToJsonString(JsonOptions), cancellationToken);
             return new BuiltPackage(node.Id, node.Version, hash, relativeDirectory, "module.json");
         }
@@ -195,6 +198,7 @@ namespace DProjects.XShell.Commands {
             var version = framework["version"]?.GetValue<string>() ?? "";
             if (string.IsNullOrWhiteSpace(version)) throw new InvalidOperationException("XShell configuration must contain xshell.version.");
             ValidatePackageNamePart(version, "XShell version");
+            framework.Remove("builtAt");
             var workPath = Path.Combine(stagingPath, "work", "xshell");
             CopyDirectory(Path.GetDirectoryName(descriptorPath)!, workPath, cancellationToken);
             framework["hash"] = "";
@@ -217,6 +221,7 @@ namespace DProjects.XShell.Commands {
             framework["hash"] = hash;
             framework["assetsUrl"] = "url:./xshell.zip";
             framework["files"] = JsonNode.Parse(inventory);
+            framework["builtAt"] = UtcTimestamp();
             await File.WriteAllTextAsync(Path.Combine(packagePath, "xshell.json"), root.ToJsonString(JsonOptions), cancellationToken);
             return new BuiltPackage("xshell", version, hash, relativeDirectory, "xshell.json");
         }
@@ -263,6 +268,7 @@ namespace DProjects.XShell.Commands {
 
                 var manifest = new JsonObject {
                     ["root"] = $"{root.RelativeDirectory}/{root.DescriptorName}",
+                    ["createdAt"] = UtcTimestamp(),
                     ["packages"] = new JsonArray(packages.Select(package => (JsonNode?)JsonValue.Create($"{package.RelativeDirectory}/{package.DescriptorName}")).ToArray())
                 };
                 var temporaryManifest = Path.Combine(outputPath, $".release-{Guid.NewGuid():N}.tmp");
@@ -282,18 +288,35 @@ namespace DProjects.XShell.Commands {
             }
         }
         private static async Task ValidateExistingPackageAsync(string target, string source, BuiltPackage package, CancellationToken cancellationToken) {
-            // compare canonical archive contents and external metadata, never overwrite an immutable identity
+            // compare canonical archive contents and all external metadata except the original package build time
             var descriptor = Path.Combine(target, package.DescriptorName);
             var archive = Path.Combine(target, package.Id == "xshell" ? "xshell.zip" : "module.zip");
             if (Directory.EnumerateFileSystemEntries(target).Count() != 2 || !File.Exists(descriptor) || !File.Exists(archive)) {
                 throw new InvalidOperationException($"Existing immutable package has an incomplete or unrecognized representation: {target}");
             }
-            if (!string.Equals(await File.ReadAllTextAsync(descriptor, cancellationToken),
-                await File.ReadAllTextAsync(Path.Combine(source, package.DescriptorName), cancellationToken), StringComparison.Ordinal) ||
-                await ComputeZipHashAsync(archive, cancellationToken) != package.Hash) {
+            JsonObject existing;
+            try {
+                existing = await ReadJsonObjectAsync(descriptor, cancellationToken);
+            } catch (JsonException exception) {
+                throw new InvalidOperationException($"Existing immutable package identity collides with different or damaged content: {target}", exception);
+            }
+            var expected = await ReadJsonObjectAsync(Path.Combine(source, package.DescriptorName), cancellationToken);
+            var existingLocal = package.Id == "xshell" ? existing["xshell"] as JsonObject : (existing["modules"] as JsonObject)?[package.Id] as JsonObject;
+            if (existingLocal == null) throw new InvalidOperationException($"Existing immutable package has no local definition: {target}");
+            if (existingLocal.TryGetPropertyValue("builtAt", out var builtAt) &&
+                (builtAt is not JsonValue value || !value.TryGetValue<string>(out var timestamp) ||
+                !DateTimeOffset.TryParseExact(timestamp, "yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture,
+                    DateTimeStyles.AssumeUniversal, out _))) {
+                throw new InvalidOperationException($"Existing immutable package has an invalid builtAt timestamp: {target}");
+            }
+            existingLocal.Remove("builtAt");
+            var expectedLocal = package.Id == "xshell" ? (JsonObject)expected["xshell"]! : (JsonObject)((JsonObject)expected["modules"]!)[package.Id]!;
+            expectedLocal.Remove("builtAt");
+            if (!JsonNode.DeepEquals(existing, expected) || await ComputeZipHashAsync(archive, cancellationToken) != package.Hash) {
                 throw new InvalidOperationException($"Existing immutable package identity collides with different or damaged content: {target}");
             }
         }
+        private static string UtcTimestamp() => DateTimeOffset.UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture);
         private static FileStream AcquirePublicationLock(string lockPath) {
             try {
                 return new FileStream(lockPath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.Delete);
