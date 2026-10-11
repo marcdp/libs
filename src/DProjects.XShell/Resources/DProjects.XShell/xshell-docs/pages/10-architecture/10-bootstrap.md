@@ -69,7 +69,15 @@ composition independent of network completion order. The final
 
 ## Runtime handoff
 
-Bootstrap installs and initializes the Service Worker before requesting inventories. It concurrently requests `module.files.json` for every canonical
+After resolving effective XShell and module definitions, bootstrap finalizes their `assetsPath`, `assetsUrl`, and `configUrl` values. It then generates
+`config.xshell.serviceWorker.mappings`: one mapping for XShell and one per effective module. Each `src` is an absolute browser URL under
+`config.app.baseUrl` for that generation's virtual asset path; each `dst` is the normalized physical `assetsUrl`. Mapping metadata retains the
+package `version`, module `name`, and `configUrl` in `exceptions`. This is generated effective runtime configuration, not an authored setting.
+
+Bootstrap registers the application Service Worker at `app.basePath + "/sw.js"`, waits for control, and sends these mappings directly in a
+`registerMappings` message. The worker validates the batch and adds it to its durable registry before acknowledging. The effective mappings describe
+what this bootstrap generation requested; the IndexedDB registry may also contain mappings from other generations or tabs. After acknowledgement,
+bootstrap concurrently requests `module.files.json` for every canonical
 module through `/_assets/<module-id>/<generation>/module.files.json` and for the framework through
 `/_assets/xshell/<generation>/module.files.json`. Any missing or failed
 inventory aborts bootstrap with the package id, requested URL, HTTP status, and status text.
@@ -89,7 +97,8 @@ Bootstrap converts only the effective-config copy into the virtual application r
 The same conversion produces Paths such as `/_assets/xshell/0.9.0.dev/xshell.js` in `config.xshell.files`. These are application-root-relative
 virtual Paths,
 not absolute browser URLs; `size` and `hash` are unchanged. Bootstrap then loads the
-XShell runtime, validates the complete enriched configuration, deeply freezes it, and calls `xshell.init(config)`. `xshell.init` validates again,
+XShell runtime, validates the complete enriched configuration, deeply freezes it, and calls `xshell.init(config)`. The generated mappings are frozen
+with the rest of `xshell.config`. `xshell.init` validates again,
 constructs runtime services, awaits i18n and Contracts initialization, registers core instances, and finalizes
 configured Services. Modules checks requirements before loading any controller and then initializes one instance per canonical id.
 Areas composes menus, ordered routes, and homes after module startup; Navigation starts last.

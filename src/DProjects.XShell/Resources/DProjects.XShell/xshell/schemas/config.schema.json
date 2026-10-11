@@ -173,7 +173,7 @@
     },
     "xshell": {
       "type": "object",
-      "required": ["version", "environment", "assetsBasePath", "assetsPath", "areas", "navigation", "resolver", "ui", "i18n", "configUrl", "assetsUrl", "files"],
+      "required": ["version", "environment", "assetsBasePath", "assetsPath", "areas", "navigation", "resolver", "ui", "i18n", "configUrl", "assetsUrl", "serviceWorker", "files"],
       "properties": {
         "version": {"type": "string", "description": "XShell runtime version."},
         "environment": {"type": "string", "description": "Runtime environment name."},
@@ -181,6 +181,7 @@
         "assetsBasePath": {"type": "string", "pattern": "^/", "description": "Normalized application-relative base path for the virtual asset namespace. (e.g. /_assets)"},
         "assetsPath": {"type": "string", "pattern": "^/", "description": "Application-root-relative virtual base path for the XShell framework assets. (e.g. /_assets/xshell)"},
         "assetsUrl": {"type": "string", "format": "uri", "description": "Fully qualified absolute URL of the directory or package containing the XShell assets."},
+        "serviceWorker": {"$ref": "#/$defs/xshellServiceWorker", "description": "Generated mappings requested by this effective application generation; not the worker's complete persisted registry."},
         "hash": {"type": "string", "minLength": 1, "description": "Generated immutable package-generation hash when published."},
         "builtAt": {"type": "string", "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$", "description": "Optional UTC time when the immutable XShell package was originally built by pack; excluded from canonical hashing."},
         "ui": {"$ref": "#/$defs/xshellUi", "description": "Global ui settings."},
@@ -194,6 +195,26 @@
       },
       "additionalProperties": false,
       "description": "Core XShell runtime configuration."
+    },
+    "xshellServiceWorker": {
+      "type": "object",
+      "required": ["mappings"],
+      "properties": {
+        "mappings": {"type": "array", "items": {"$ref": "#/$defs/xshellServiceWorkerMapping"}, "description": "Mappings requested by this effective application generation."}
+      },
+      "additionalProperties": false
+    },
+    "xshellServiceWorkerMapping": {
+      "type": "object",
+      "required": ["src", "dst", "version", "name", "exceptions"],
+      "properties": {
+        "src": {"type": "string", "format": "uri", "minLength": 1, "description": "Absolute browser URL of a virtual generation path."},
+        "dst": {"type": "string", "format": "uri", "minLength": 1, "description": "Normalized physical assets URL."},
+        "version": {"type": "string", "description": "Version of the XShell framework or module."},
+        "name": {"type": "string", "description": "XShell framework or module identifier."},
+        "exceptions": {"type": "array", "items": {"type": "string", "format": "uri"}, "description": "Configuration document URLs retained as mapping metadata."}
+      },
+      "additionalProperties": false
     },
     "xshellI18n": {
       "type": "object",

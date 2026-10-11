@@ -54,6 +54,12 @@ function configuration(module) {
             },
             configUrl: "https://example.test/xshell/xshell.json",
             assetsUrl: "https://example.test/xshell/",
+            serviceWorker: { mappings: [
+                { src: "https://example.test/_assets/xshell", dst: "https://example.test/xshell/", version: "1.0.0", name: "xshell",
+                    exceptions: ["https://example.test/xshell/xshell.json"] },
+                { src: "https://example.test/_assets/test", dst: "https://example.test/test/", version: "1.0.0", name: "test",
+                    exceptions: ["https://example.test/test/module.jsonc"] }
+            ] },
             files: [{ path: "/_assets/xshell/xshell.js", size: 456, hash: "xshell-hash" }]
         }
     };
@@ -272,6 +278,26 @@ test("effective schema requires XShell files", () => {
     delete config.xshell.files;
 
     assert.equal(validator.validate(config).valid, false);
+});
+
+test("effective schema requires generated serviceWorker mappings and validates their retained metadata", () => {
+    const config = configuration(moduleDefinition());
+    delete config.xshell.serviceWorker;
+    assert.equal(validator.validate(config).valid, false);
+
+    config.xshell.serviceWorker = { mappings: [{}] };
+    assert.equal(validator.validate(config).valid, false);
+
+    config.xshell.serviceWorker = configuration(moduleDefinition()).xshell.serviceWorker;
+    config.xshell.serviceWorker.mappings[0].exceptions = [123];
+    assert.equal(validator.validate(config).valid, false);
+
+    config.xshell.serviceWorker = configuration(moduleDefinition()).xshell.serviceWorker;
+    config.xshell.serviceWorker.mappings[0].unexpected = true;
+    assert.equal(validator.validate(config).valid, false);
+
+    config.xshell.serviceWorker = configuration(moduleDefinition()).xshell.serviceWorker;
+    assert.equal(validator.validate(config).valid, true, JSON.stringify(validator.validate(config).errors));
 });
 
 test("effective schema requires generated module and XShell assetsPath values", () => {

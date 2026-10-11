@@ -108,6 +108,7 @@ function getLocalModule(config, configUrl) {
     return { id: entries[0][0], definition: entries[0][1] };
 }
 function prepareModuleConfig(config, configUrl, assetsBasePath, environment) {
+    if (Object.hasOwn(config?.xshell ?? {}, "serviceWorker")) throw new Error(`Authored module configuration '${configUrl}' must not define xshell.serviceWorker.`);
     const localModule = getLocalModule(config, configUrl);
     const assetsPath = getAssetsPath(assetsBasePath, localModule.id, localModule.definition.version, localModule.definition.hash, environment);
     let assetsUrl = relativizePaths(localModule.definition.assetsUrl || "url:./", assetsPath, "/module.jsonc", configUrl);
@@ -235,6 +236,7 @@ async function loadConfig() {
         loadJsonWithComments(rootModuleUrl)
     ]);
     if (Object.hasOwn(xshellConfig, "app")) throw new Error(`Authored XShell configuration '${xshellConfigUrl}' must not define top-level app.`);
+    if (Object.hasOwn(xshellConfig.xshell, "serviceWorker")) throw new Error(`Authored XShell configuration '${xshellConfigUrl}' must not define xshell.serviceWorker.`);
 
     const assetsBasePath = normalizeAssetsBasePath(
         rootModuleConfig.xshell?.assetsBasePath ?? xshellConfig.xshell.assetsBasePath
@@ -305,6 +307,23 @@ async function loadConfig() {
         module.contract.events ??= {};
     }
 
+    // generate the mappings requested by this effective application generation after all asset locations are finalized
+    config.xshell.serviceWorker = {
+        mappings: [{
+            src: new URL(config.xshell.assetsPath.substring(1), appBaseUrl).href,
+            dst: config.xshell.assetsUrl,
+            version: config.xshell.version,
+            name: "xshell",
+            exceptions: [config.xshell.configUrl]
+        }, ...Object.entries(config.modules).map(([moduleId, module]) => ({
+            src: new URL(module.assetsPath.substring(1), appBaseUrl).href,
+            dst: module.assetsUrl,
+            version: module.version,
+            name: moduleId,
+            exceptions: [module.configUrl]
+        }))]
+    };
+
     console.log("bootstrap: config:", config);
 
     return config;
@@ -318,25 +337,7 @@ async function installServiceWorker(config) {
         scope: appBasePath + "/"
     });
 
-    const rules = [{
-        src: new URL(config.xshell.assetsPath.substring(1), appBaseUrl).href,
-        dst: config.xshell.assetsUrl,
-        version: config.xshell.version,
-        name: "xshell",
-        exceptions: [config.xshell.configUrl]
-    }];
-
-    for (const [moduleId, module] of Object.entries(config.modules)) {
-        rules.push({
-            src: new URL(module.assetsPath.substring(1), appBaseUrl).href,
-            dst: module.assetsUrl,
-            version: module.version,
-            name: moduleId,
-            exceptions: [module.configUrl]
-        });
-    }
-
-    console.log("bootstrap: sw rules: ", rules);
+    console.log("bootstrap: sw rules: ", config.xshell.serviceWorker.mappings);
     console.log("bootstrap: waiting for ready ...");
 
     await navigator.serviceWorker.ready;
@@ -369,7 +370,7 @@ async function installServiceWorker(config) {
             channel.port1.close();
         }, 5000);
 
-        reg.active.postMessage({ type: "registerMappings", payload: { rules } }, [channel.port2]);
+        reg.active.postMessage({ type: "registerMappings", payload: { rules: config.xshell.serviceWorker.mappings } }, [channel.port2]);
     });
 
     console.log("bootstrap: service worker ready to receive requests");

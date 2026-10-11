@@ -88,10 +88,10 @@ function createWorker(storage = new Map()) {
             await waiting;
             return reply;
         },
-        async fetch(url) {
+        async fetch(url, method = "GET") {
             let responsePromise;
             listeners.get("fetch")({
-                request: new Request(url),
+                request: new Request(url, { method }),
                 respondWith(promise) { responsePromise = promise; }
             });
             return responsePromise;
@@ -157,6 +157,19 @@ test("framework and multiple module generations coexist and remain independently
     assert.equal(persistedRules(worker).length, 4);
 });
 
+test("each registration retains its requested mappings while the worker stores their union", async () => {
+    const worker = createWorker();
+    const generationA = [rule("/_assets/app/1.0.0.aaa", "https://cdn.test/app/a/")];
+    const generationB = [rule("/_assets/app/2.0.0.bbb", "https://cdn.test/app/b/")];
+
+    await worker.register(generationA);
+    await worker.register(generationB);
+
+    assert.deepEqual(generationA.map(item => item.src), ["https://example.test/app/_assets/app/1.0.0.aaa"]);
+    assert.deepEqual(generationB.map(item => item.src), ["https://example.test/app/_assets/app/2.0.0.bbb"]);
+    assert.deepEqual(persistedRules(worker).map(item => item.src), [generationA[0].src, generationB[0].src]);
+});
+
 test("a restarted worker restores the complete persisted registry", async () => {
     const storage = new Map();
     const firstWorker = createWorker(storage);
@@ -195,4 +208,16 @@ test("routing selects the longest complete-boundary match independently of regis
     const unrelated = "https://example.test/app/_assets/orders/1.4.0.aaa-extra/pages/index.js";
     await boundaryWorker.fetch(unrelated);
     assert.deepEqual(boundaryWorker.fetches, [unrelated]);
+});
+
+test("GET and HEAD requests route through mappings while other methods remain untouched", async () => {
+    const worker = createWorker();
+    const source = "https://example.test/app/_assets/app/1.0.0.aaa/file.js";
+    await worker.register([rule("/_assets/app/1.0.0.aaa", "https://cdn.test/app/")]);
+
+    await worker.fetch(source, "GET");
+    await worker.fetch(source, "HEAD");
+    assert.deepEqual(worker.fetches, ["https://cdn.test/app/file.js", "https://cdn.test/app/file.js"]);
+    assert.equal(await worker.fetch(source, "POST"), undefined);
+    assert.equal(worker.fetches.length, 2);
 });

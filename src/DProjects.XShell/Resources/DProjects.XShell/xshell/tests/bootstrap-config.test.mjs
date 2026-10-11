@@ -25,6 +25,7 @@ const bootstrapSource = readFileSync(bootstrapPath, "utf8").replace(
             environment
         ),
         mergeConfigs,
+        deepFreeze,
         loadConfig,
         loadFilesIndexes,
         fillResolverRules,
@@ -379,8 +380,7 @@ test("assetsUrl requires an explicit physical or application URL", async () => {
     await assert.rejects(() => discover({ modules: { x: definition("x", { assetsUrl: "/physical-looking-path" }) } }), /assetsUrl must use app:, url:, or an absolute URL/);
 });
 
-test("Service Worker rules consume normalized framework and module paths", async () => {
-    let rules;
+test("Service Worker registration sends the effective configuration mappings unchanged", async () => {
     let registrationMessage;
     context.navigator = { serviceWorker: {
         controller: {}, ready: Promise.resolve(),
@@ -389,7 +389,6 @@ test("Service Worker rules consume normalized framework and module paths", async
             assert.equal(options.scope, "/app/");
             return { active: { postMessage(message, ports) {
                 registrationMessage = message;
-                rules = message.payload.rules;
                 ports[0].reply({ type: "registered" });
             } } };
         }
@@ -402,22 +401,22 @@ test("Service Worker rules consume normalized framework and module paths", async
     };
     context.setTimeout = () => 0;
     context.clearTimeout = () => {};
-    const config = {
-        xshell: { assetsBasePath: "/runtime", assetsPath: "/runtime/xshell/1.dev", assetsUrl: "https://example.test/framework/", configUrl: "https://example.test/xshell/xshell.json", version: "1" },
-        modules: { x: { assetsPath: "/runtime/x/2.dev", assetsUrl: "https://example.test/modules/x/", configUrl: rootUrl, version: "2" } }
-    };
+    fetchedResources.set("https://example.test/xshell/xshell.json", {
+        modules: {}, xshell: { assetsBasePath: "app:/runtime", environment: "Development", version: "0.9.0", assetsUrl: "url:./",
+            temp: { url: "url:./" }, resolver: {} }
+    });
+    fetchedResources.set(rootUrl, { modules: { app: definition("app") } });
+    const config = await api.loadConfig();
 
     assert.equal(await api.installServiceWorker(config), true);
     assert.equal(registrationMessage.type, "registerMappings");
-    assert.deepEqual(plain(rules.map(({ src, dst }) => ({ src, dst }))), [
-        { src: "https://example.test/app/runtime/xshell/1.dev", dst: "https://example.test/framework/" },
-        { src: "https://example.test/app/runtime/x/2.dev", dst: "https://example.test/modules/x/" }
-    ]);
+    assert.equal(registrationMessage.payload.rules, config.xshell.serviceWorker.mappings);
+    assert.deepEqual(plain(registrationMessage.payload.rules), plain(config.xshell.serviceWorker.mappings));
 });
 
 test("Service Worker mapping registration rejects explicit errors and unexpected replies", async () => {
     const config = {
-        xshell: { assetsPath: "/_assets/xshell/1.dev", assetsUrl: "https://example.test/framework/", configUrl: "https://example.test/xshell/xshell.json", version: "1" },
+        xshell: { serviceWorker: { mappings: [] } },
         modules: {}
     };
     context.MessageChannel = class {
@@ -443,7 +442,7 @@ test("Service Worker mapping registration rejects explicit errors and unexpected
 
 test("Service Worker mapping registration keeps the no-response timeout", async () => {
     const config = {
-        xshell: { assetsPath: "/_assets/xshell/1.dev", assetsUrl: "https://example.test/framework/", configUrl: "https://example.test/xshell/xshell.json", version: "1" },
+        xshell: { serviceWorker: { mappings: [] } },
         modules: {}
     };
     context.navigator = { serviceWorker: {
@@ -639,6 +638,12 @@ test("loadConfig derives effective app metadata from the selected root module", 
     assert.equal(config.xshell.configUrl, xshellUrl);
     assert.equal(config.xshell.assetsBasePath, "/_assets");
     assert.equal(config.xshell.assetsPath, "/_assets/xshell/0.9.0.31d04ab8e220a581");
+    assert.deepEqual(config.xshell.serviceWorker.mappings, [
+        { src: "https://example.test/app/_assets/xshell/0.9.0.31d04ab8e220a581", dst: "https://example.test/xshell/",
+            version: "0.9.0", name: "xshell", exceptions: [xshellUrl] },
+        { src: "https://example.test/app/_assets/app/1.0.0.a82c31f943e01abc", dst: "https://example.test/modules/app/",
+            version: "1.0.0", name: "app", exceptions: [rootUrl] }
+    ]);
     config.modules.app.files = [];
     api.fillResolverRules(config);
     assert.equal(config.xshell.resolver.page["/_assets/app/1.0.0.a82c31f943e01abc/{path}.js"].modulePath,
@@ -658,6 +663,24 @@ test("authored top-level app is rejected in root, dependency, and XShell configu
     await assert.rejects(api.loadConfig(), /must not define top-level app/);
     await assert.rejects(() => discover({ modules: { app: definition("app"), child: reference("url:../child/module.jsonc") } },
         { "https://example.test/modules/child/module.jsonc": { app: {}, modules: { child: definition("child") } } }), /must not define top-level app/);
+});
+
+test("authored xshell.serviceWorker mappings are rejected before configuration merging", async () => {
+    const xshellUrl = "https://example.test/xshell/xshell.json";
+    const framework = { modules: {}, xshell: { assetsBasePath: "app:/_assets", environment: "Development", version: "0.9.0",
+        assetsUrl: "url:./", temp: { url: "url:./" }, resolver: {} } };
+    fetchedResources.set(xshellUrl, { ...framework, xshell: { ...framework.xshell, serviceWorker: { mappings: [] } } });
+    fetchedResources.set(rootUrl, { modules: { app: definition("app") } });
+    await assert.rejects(api.loadConfig(), /Authored XShell configuration.*must not define xshell.serviceWorker/);
+
+    fetchedResources.set(xshellUrl, framework);
+    fetchedResources.set(rootUrl, { modules: { app: definition("app") }, xshell: { serviceWorker: { mappings: [] } } });
+    await assert.rejects(api.loadConfig(), /Authored module configuration.*must not define xshell.serviceWorker/);
+
+    const childUrl = "https://example.test/modules/child/module.jsonc";
+    fetchedResources.set(rootUrl, { modules: { app: definition("app"), child: reference(childUrl) } });
+    fetchedResources.set(childUrl, { modules: { child: definition("child") }, xshell: { serviceWorker: { mappings: [] } } });
+    await assert.rejects(api.loadConfig(), /Authored module configuration.*must not define xshell.serviceWorker/);
 });
 
 test("loadConfig derives every assetsPath from a custom assetsBasePath", async () => {
@@ -680,6 +703,17 @@ test("loadConfig derives every assetsPath from a custom assetsBasePath", async (
     assert.deepEqual(config.modules.x.contract, { events: {} });
     assert.equal(config.xshell.assetsBasePath, "/runtime");
     assert.equal(config.xshell.assetsPath, "/runtime/xshell/0.9.0.31d04ab8e220a581");
+    assert.deepEqual(config.xshell.serviceWorker.mappings, [
+        { src: "https://example.test/app/runtime/xshell/0.9.0.31d04ab8e220a581", dst: "https://example.test/xshell/",
+            version: "0.9.0", name: "xshell", exceptions: [xshellUrl] },
+        { src: "https://example.test/app/runtime/x/1.0.0.x-hash", dst: "https://example.test/modules/x/",
+            version: "1.0.0", name: "x", exceptions: [xUrl] },
+        { src: "https://example.test/app/runtime/app/1.0.0.app-hash", dst: "https://example.test/modules/app/",
+            version: "1.0.0", name: "app", exceptions: [rootUrl] }
+    ]);
+    api.deepFreeze(config);
+    assert.equal(Object.isFrozen(config.xshell.serviceWorker.mappings), true);
+    assert.equal(Object.isFrozen(config.xshell.serviceWorker.mappings[0]), true);
 });
 
 test("root assetsBasePath override is normalized before module discovery", async () => {
@@ -730,6 +764,9 @@ test("host Development override selects mutable generations without package hash
     assert.equal(config.xshell.environment, "dEvElOpMeNt");
     assert.equal(config.xshell.assetsPath, "/_assets/xshell/0.9.0.dev");
     assert.equal(config.modules.app.assetsPath, "/_assets/app/1.0.0.dev");
+    assert.deepEqual(config.xshell.serviceWorker.mappings.map(rule => rule.src), [
+        "https://example.test/app/_assets/xshell/0.9.0.dev", "https://example.test/app/_assets/app/1.0.0.dev"
+    ]);
 });
 
 test("non-Development XShell without a package hash fails clearly", async () => {

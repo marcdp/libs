@@ -21,6 +21,13 @@ configuration discovery still fetches the original document URL before worker se
 resource. Repeated
 references to a definition share one mapping; they do not create additional live module instances.
 
+Bootstrap generates the mappings in `config.xshell.serviceWorker.mappings` after resolving the effective XShell and module configuration and
+finalizing each `assetsPath`, `assetsUrl`, and `configUrl`. The array contains one XShell rule followed by one rule per effective module. Each rule has
+an absolute virtual `src` URL under the application base URL, a normalized physical `dst` URL, and `version`, `name`, and `exceptions` metadata.
+Bootstrap then registers the application-level `/sw.js` and sends this array directly in `registerMappings`. The worker runs its own `normalizeRule`
+validation at the message boundary and merges the batch into IndexedDB. After inventory loading, bootstrap validates and freezes the effective
+configuration. `xshell.serviceWorker` is generated runtime state; authored XShell and module documents cannot supply mappings.
+
 ```text
 client: /_assets/<module-id>/<generation>/<resource>
     → Service Worker mapping
@@ -41,6 +48,11 @@ inventory from
 `/_assets/<module-id>/<generation>/module.files.json` and the framework inventory from `/_assets/xshell/<generation>/module.files.json`. The worker
 only virtualizes those
 requests; inventory discovery, path normalization, and attachment to the effective configuration remain bootstrap responsibilities.
+
+`config.xshell.serviceWorker.mappings` records only the mappings requested by this application bootstrap generation. The worker's IndexedDB registry
+is the durable additive union of registrations from active and historical generations. For example, two tabs can have different effective mapping
+arrays while the worker retains both generations. The worker does not read from IndexedDB into effective config or mutate that config after
+registration.
 
 Every physical inventory uses the filename `module.files.json` and package-relative paths such as `/pages/home.js`. Bootstrap exposes those entries
 as virtual application resource paths such as `/_assets/x/1.4.0.dev/pages/home.js` in `config.modules.x.files` or
