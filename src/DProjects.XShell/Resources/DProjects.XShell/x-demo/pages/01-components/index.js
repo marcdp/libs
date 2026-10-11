@@ -21,8 +21,6 @@ export default {
 
         <x-anchor href="01-basics.js?a=123&b=312">Basics x.anchor</x-anchor>
 
-        <x-button command="loadTest" label="Click me"></x-button>
-
         <br/>
     `,    
     controller({ state, loader }) {
@@ -30,11 +28,6 @@ export default {
             load(params) {
                // load
             },
-            async loadTest() {
-                // load test
-                const result = await loader.load("http://localhost:5000/prefix/_assets/x/1.0.0.dev/icons/x-check.svg");
-                debugger
-            }
         };
     }
 }
