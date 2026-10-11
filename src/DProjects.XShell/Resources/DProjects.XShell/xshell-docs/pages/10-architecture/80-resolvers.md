@@ -28,6 +28,11 @@ literal text; malformed, adjacent, or duplicate placeholders are invalid.
 `resolver.js` reads nested `config.xshell.resolver` rule objects. Bootstrap adds defaults for each canonical module id after merging. Resolver
 matching and loader dispatch still require the usual resource location and loader metadata.
 
+Absolute HTTP(S) URLs are a built-in Resolver case and do not require an authored rule. The built-in `http:` and `https:` rules map these resources
+to their absolute URL and the `response-http` loader. Resolver still determines the resource location and loader metadata; Loader coordinates the
+load, and the resource-specific loader obtains the `Response`. See [Absolute HTTP(S) resources](90-loaders.md#absolute-https-resources) for the
+return value, caching, and browser security behavior.
+
 Resolver rule `src` may be an application Path or an absolute URL. `Resolver.resolve()` returns `path` as the resolved application Path (or `null`
 for an absolute URL source) and `url` as the resolved absolute URL.
 

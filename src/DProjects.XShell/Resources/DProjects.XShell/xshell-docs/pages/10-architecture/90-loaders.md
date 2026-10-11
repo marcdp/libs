@@ -33,6 +33,38 @@ page-js
     → load or build a Page component
 ```
 
+## Absolute HTTP(S) resources
+
+`Loader.load()` accepts an absolute `http://` or `https://` URL directly. The built-in `http:` and `https:` Resolver rules treat it as a raw
+remote resource and select `response-http`, which returns the browser-native Fetch API `Response`:
+
+```js
+const response = await loader.load("https://server.example/data.json");
+const data = await response.json();
+```
+
+XShell does not infer a representation from the URL path, file extension, or response `Content-Type`. The caller chooses `response.text()`,
+`response.json()`, `response.arrayBuffer()`, `response.blob()`, or another `Response` API. Loading a bare URL does not execute JavaScript; a
+`.js` URL is not equivalent to a `module:` resource.
+
+The built-in HTTP(S) rules set `cache: false`, so bare URLs are not cached by the XShell Loader. Browser HTTP caching remains independent. The
+current Resolver removes query strings and fragments before matching rules, so they are not included in the URL passed to `fetch`; this is a
+current limitation of bare URL loading. The browser does not send URL fragments in HTTP requests in any case.
+
+Remote requests follow normal browser security rules. Cross-origin requests require the server to permit them through CORS, and the application's
+Content Security Policy must allow the destination in `connect-src`. XShell does not bypass either restriction; the checked-in default host policy
+allows same-origin connections only.
+
+```text
+loader.load("https://server.example/data")
+    → raw HTTP(S) resource
+    → Response
+
+loader.load("module:...")
+    → typed XShell resource
+    → ES module export
+```
+
 ## Timing
 
 Each Loader registry item's `time`, and the matching `xshell:loader:resource:loaded` or `xshell:loader:resource:error` Bus event's `time`, is the
