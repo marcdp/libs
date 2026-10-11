@@ -32,24 +32,24 @@
           "required": false,
           "default": {},
           "description": "Toast presentation, lifetime, and ownership options.",
-          "properties": {
-            "type": {
-              "type": "string",
-              "required": false,
-              "default": "info",
-              "enum": [ "info", "success", "warning", "error" ],
-              "description": "Notice type used to present the toast."
-            },
-            "duration": {
-              "type": "number",
-              "required": false,
-              "default": 4000,
-              "description": "Duration in milliseconds before automatic dismissal. Zero or a negative value disables automatic dismissal."
-            },
-            "page": {
-              "type": "object",
-              "required": false,
-              "description": "Owning Page. When supplied, the toast is rendered in that Page's visual surface; when omitted, the toast is application-scoped."
+          "schema": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "default": "info",
+                "enum": [ "info", "success", "warning", "error" ],
+                "description": "Notice type used to present the toast."
+              },
+              "duration": {
+                "type": "number",
+                "default": 4000,
+                "description": "Duration in milliseconds before automatic dismissal. Zero or a negative value disables automatic dismissal."
+              },
+              "page": {
+                "type": "object",
+                "description": "Owning Page. When supplied, the toast is rendered in that Page's visual surface; when omitted, the toast is application-scoped."
+              }
             }
           }
         }

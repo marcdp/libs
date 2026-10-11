@@ -20,30 +20,9 @@
       "description": "Declares an XShell value type.",
       "enum": [ "string", "number", "integer", "boolean", "object", "array", "function", "date", "any" ]
     },
-    "objectProperties": {
-      "type": "object",
-      "description": "Structure of an object value.",
-      "additionalProperties": { "$ref": "#/$defs/objectProperty" }
-    },
-    "objectProperty": {
-      "type": "object",
-      "description": "Describes one member of an object value.",
-      "additionalProperties": false,
-      "properties": {
-        "description": { "type": "string", "description": "Human-readable description of the member." },
-        "type": { "$ref": "#/$defs/valueType", "description": "Value type of the member." },
-        "required": { "type": "boolean", "description": "Whether the member is required." },
-        "default": { "description": "Default value of the member." },
-        "enum": { "type": "array", "description": "Optional set of allowed string values for the member.", "items": { "type": "string" }, "uniqueItems": true },
-        "properties": { "$ref": "#/$defs/objectProperties" }
-      },
-      "required": [ "type" ],
-      "allOf": [
-        {
-          "if": { "required": [ "properties" ] },
-          "then": { "properties": { "type": { "const": "object" } } }
-        }
-      ]
+    "jsonSchema": {
+      "type": [ "object", "boolean" ],
+      "description": "Optional JSON Schema Draft 2020-12 constraints for the value."
     },
     "property": {
       "type": "object",
@@ -52,18 +31,12 @@
       "properties": {
         "description": { "type": "string", "description": "Human-readable description of the property." },
         "type": { "$ref": "#/$defs/valueType", "description": "Value type accepted by the property." },
+        "schema": { "$ref": "#/$defs/jsonSchema" },
         "default": { "description": "Default value of the property." },
         "readonly": { "type": "boolean", "description": "Whether consumers should treat the property as read-only." },
-        "enum": { "type": "array", "description": "Optional set of allowed string values for the property.", "items": { "type": "string" }, "uniqueItems": true },
-        "properties": { "$ref": "#/$defs/objectProperties" }
+        "enum": { "type": "array", "description": "Optional set of allowed string values for the property.", "items": { "type": "string" }, "uniqueItems": true }
       },
-      "required": [ "type" ],
-      "allOf": [
-        {
-          "if": { "required": [ "properties" ] },
-          "then": { "properties": { "type": { "const": "object" } } }
-        }
-      ]
+      "required": [ "type" ]
     },
     "event": {
       "type": "object",
@@ -81,16 +54,10 @@
       "properties": {
         "description": { "type": "string", "description": "Human-readable description of the detail field." },
         "type": { "$ref": "#/$defs/valueType", "description": "Value type of the detail field." },
-        "required": { "type": "boolean", "description": "Whether the detail field is always present." },
-        "properties": { "$ref": "#/$defs/objectProperties" }
+        "schema": { "$ref": "#/$defs/jsonSchema" },
+        "required": { "type": "boolean", "description": "Whether the detail field is always present." }
       },
-      "required": [ "type" ],
-      "allOf": [
-        {
-          "if": { "required": [ "properties" ] },
-          "then": { "properties": { "type": { "const": "object" } } }
-        }
-      ]
+      "required": [ "type" ]
     },
     "method": {
       "type": "object",
@@ -108,18 +75,12 @@
         "name": { "type": "string", "minLength": 1 },
         "description": { "type": "string" },
         "type": { "$ref": "#/$defs/valueType" },
+        "schema": { "$ref": "#/$defs/jsonSchema" },
         "required": { "type": "boolean" },
         "enum": { "type": "array", "description": "Optional set of allowed string values for the parameter.", "items": { "type": "string" }, "uniqueItems": true },
-        "default": {},
-        "properties": { "$ref": "#/$defs/objectProperties" }
+        "default": {}
       },
-      "required": [ "name", "type" ],
-      "allOf": [
-        {
-          "if": { "required": [ "properties" ] },
-          "then": { "properties": { "type": { "const": "object" } } }
-        }
-      ]
+      "required": [ "name", "type" ]
     },
     "returnValue": {
       "type": "object",
@@ -127,15 +88,9 @@
       "properties": {
         "description": { "type": "string" },
         "type": { "$ref": "#/$defs/valueType" },
-        "properties": { "$ref": "#/$defs/objectProperties" }
+        "schema": { "$ref": "#/$defs/jsonSchema" }
       },
-      "required": [ "type" ],
-      "allOf": [
-        {
-          "if": { "required": [ "properties" ] },
-          "then": { "properties": { "type": { "const": "object" } } }
-        }
-      ]
+      "required": [ "type" ]
     }
   }
 }

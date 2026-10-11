@@ -54,6 +54,57 @@ function createServices(definitions, implementations, contractItems) {
     return { loads, services, emitted };
 }
 
+// build each value descriptor in its contract location
+const valueDescriptorContracts = {
+    property: descriptor => ({ label: "Example", properties: { value: descriptor } }),
+    eventDetailProperty: descriptor => ({ label: "Example", events: { changed: { detail: { value: descriptor } } } }),
+    methodParameter: descriptor => ({ label: "Example", methods: { update: { parameters: [{ name: "value", ...descriptor }] } } }),
+    returnValue: descriptor => ({ label: "Example", methods: { read: { returns: descriptor } } })
+};
+
+test("service value descriptors retain required type and accept optional JSON Schema constraints", async () => {
+    const nestedSchema = {
+        type: "object",
+        properties: {
+            items: {
+                type: "array",
+                items: { type: "object", properties: { id: { type: "string" } }, required: ["id"] }
+            }
+        }
+    };
+
+    for (const [name, createContract] of Object.entries(valueDescriptorContracts)) {
+        await validateContract(`${name}-compact.json`, createContract({ type: "string" }));
+        await validateContract(`${name}-structured.json`, createContract({ type: "object", schema: nestedSchema }));
+    }
+
+    await validateContract("boolean-true.json", valueDescriptorContracts.property({ type: "any", schema: true }));
+    await validateContract("boolean-false.json", valueDescriptorContracts.returnValue({ type: "any", schema: false }));
+});
+
+test("service value descriptors reject schema without type and removed recursive properties", async () => {
+    for (const [name, createContract] of Object.entries(valueDescriptorContracts)) {
+        await assert.rejects(validateContract(`${name}-missing-type.json`, createContract({ schema: { type: "object" } })), /Invalid contract/);
+        await assert.rejects(validateContract(`${name}-old-properties.json`, createContract({ type: "object", properties: { id: { type: "string" } } })), /Invalid contract/);
+    }
+
+    await assert.rejects(validateContract("invalid-schema.json", valueDescriptorContracts.methodParameter({ type: "object", schema: "object" })), /Invalid contract/);
+});
+
+test("service value descriptors preserve compact API metadata", async () => {
+    await validateContract("metadata.json", {
+        label: "Example",
+        properties: { mode: { type: "string", description: "Operation mode", default: "safe", readonly: true, enum: ["safe", "fast"] } },
+        events: { changed: { detail: { mode: { type: "string", description: "Current mode", required: true } } } },
+        methods: {
+            setMode: {
+                parameters: [{ name: "mode", type: "string", description: "New mode", required: true, default: "safe", enum: ["safe", "fast"] }],
+                returns: { type: "boolean", description: "Whether the mode changed" }
+            }
+        }
+    });
+});
+
 test("configured services load eagerly but instantiate lazily as singletons", async () => {
     let constructions = 0;
     class ExampleService {
@@ -496,7 +547,7 @@ test("toast emits shown and closed events with the toast ID", () => {
         }
     };
     try {
-        const toast = new Toast();
+        const toast = new Toast({ loader: { load: async () => {} } });
         const events = [];
         toast.addEventListener("shown", event => events.push({ type: event.type, detail: event.detail, visible: containerChildren.length === 1 }));
         toast.addEventListener("closed", event => events.push({ type: event.type, detail: event.detail }));
@@ -516,7 +567,7 @@ test("toast emits shown and closed events with the toast ID", () => {
 
 test("toast contract is structurally valid and its implementation exposes every declared method", async () => {
     await validateContract("toast.json", ToastContract);
-    const toast = new Toast();
+    const toast = new Toast({ loader: { load: async () => {} } });
 
     for (const methodName of Object.keys(ToastContract.methods)) {
         assert.equal(typeof toast[methodName], "function", methodName);

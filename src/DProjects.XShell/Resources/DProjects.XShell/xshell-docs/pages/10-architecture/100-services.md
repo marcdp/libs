@@ -96,7 +96,31 @@ Additional fields are rejected. Type labels are `string`, `number`, `integer`, `
 - Methods accept `description`, `parameters`, and `returns`. Parameters require `name`/`type` and may set `description`, `required`, `enum`, `default`.
   Returns require `type` and may set `description`.
 
-There are no generics, inheritance, unions, nested object/array schemas, parameter checks, version negotiation, scopes, or selectable lifetimes.
+For every value descriptor above, `type` is required and declares the XShell value category. Optional `schema` contains additional JSON Schema
+Draft 2020-12 constraints. It may be a JSON Schema object or boolean. Existing compact metadata such as `required`, `default`, `readonly`, and
+`enum` remains outside `schema`.
+
+```json
+{ "type": "string", "enum": [ "safe", "fast" ] }
+```
+
+Nested objects and arrays use standard JSON Schema under `schema`, not a custom XShell recursive property syntax:
+
+```json
+{
+    "type": "object",
+    "schema": {
+        "type": "object",
+        "properties": {
+            "items": { "type": "array", "items": { "type": "object", "properties": { "id": { "type": "string" } } } }
+        }
+    }
+}
+```
+
+The contract validator checks the outer descriptor shape, including `type` and the object/boolean form of `schema`. It does not validate runtime
+property values, method arguments or returns, or event payloads against these constraints. There are no generics, inheritance, parameter checks,
+version negotiation, scopes, or selectable lifetimes.
 
 ## Resolution validation and core services
 
