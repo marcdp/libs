@@ -1,7 +1,7 @@
 # Packaging
 
 `pack` builds a complete application distribution from its root module. It follows every `modules.<id>.configUrl` reference recursively, packages
-each canonical module once, and publishes independent immutable ZIP packages. Recursion and ZIP output are mandatory.
+each canonical module once, and adds the XShell framework as its own immutable ZIP package. Recursion and ZIP output are mandatory.
 
 ## Command
 
@@ -11,6 +11,8 @@ DProjects.XShell pack --source ./app --output ./dist
 
 `--source` is the root application module directory. It contains `module.json` or `module.jsonc` with exactly one local module definition.
 `--output` is the distribution directory. The command rejects an output directory containing the source or contained by the source.
+Application packs automatically use the XShell resources shipped beside the running DProjects.XShell assembly. No `--xshell` argument exists, and
+applications do not declare a framework filesystem path or a `modules.xshell` reference.
 The former `--zip` flag and expanded output mode have been removed.
 
 For compatibility with framework packaging, a source containing `xshell.json` or `xshell.jsonc` can still produce a standalone XShell framework
@@ -26,7 +28,8 @@ Only local filesystem source definitions are supported. A `url:../other/module.j
 Remote HTTP(S), `app:`, and deployment-root references fail clearly because the packer has no authenticated remote package fetch and integrity
 verification mechanism. It does not recompile remote immutable packages or omit unsupported dependencies.
 
-Modules are built in topological order, with dependencies before consumers. Each package retains its own local definition and its own dependency
+Modules are built in topological order, with dependencies before consumers. The framework is built separately from the bundled resources and is not
+merged into the application module. Each module package retains its own local definition and its own dependency
 references and reference contributions. The packer changes only each dependency's `configUrl` to the definitive packaged descriptor, such as
 `url:../../customers/1.2.0.<hash>/module.json`. The relative URL works regardless of where the distribution is deployed. Original source
 descriptors are never edited.
@@ -82,6 +85,10 @@ A committed output has this structure:
 ```text
 dist/
   release.json
+  xshell/0.9.0.<hash>/xshell.json
+  xshell/0.9.0.<hash>/bootstrap.js
+  xshell/0.9.0.<hash>/sw.js
+  xshell/0.9.0.<hash>/xshell.zip
   app/1.0.0.<hash>/module.json
   app/1.0.0.<hash>/module.zip
   orders/2.0.0.<hash>/module.json
@@ -90,15 +97,26 @@ dist/
   customers/1.2.0.<hash>/module.zip
 ```
 
-`release.json` is the authoritative commit record. Its `root` field gives the packaged root descriptor relative to `dist/`; its sorted
-`packages` array lists every descriptor in the complete release. `createdAt` records the successful distribution commit, independently of package
+`xshell.zip` remains the complete canonical framework package, including `xshell.json`, `bootstrap.js`, and `sw.js`. The latter two files are also
+published beside the ZIP as exact byte copies of their canonical versions because bootstrap and Service Worker startup must address them directly.
+The loose copies introduce no separate package identity or inventory entries: the canonical tree determines the one XShell hash. `release.xshell`
+identifies this four-file package through its published `xshell.json` descriptor.
+
+`release.json` is the authoritative commit record. Its `root` field identifies the application module; `xshell` identifies the exact framework
+descriptor; and its package-id-sorted `packages` array lists the complete immutable package set. A standalone XShell pack sets `root` and `xshell`
+to the same descriptor and lists it once. `createdAt` records the successful distribution commit, independently of package
 build times. A new release may reuse packages built months earlier. For example:
 
 ```json
 {
   "root": "app/1.0.0.1234567890abcdef/module.json",
+  "xshell": "xshell/0.9.0.0123456789abcdef/xshell.json",
   "createdAt": "2026-10-11T15:35:00Z",
-  "packages": ["app/1.0.0.1234567890abcdef/module.json", "customers/1.2.0.a83f92c1d4567890/module.json"]
+  "packages": [
+    "app/1.0.0.1234567890abcdef/module.json",
+    "customers/1.2.0.a83f92c1d4567890/module.json",
+    "xshell/0.9.0.0123456789abcdef/xshell.json"
+  ]
 }
 ```
 

@@ -104,9 +104,15 @@ my-module/
 The V0 browser runtime maps expanded module directories through its Service Worker into the application resource namespace, using Paths such as `/_assets/my-module/...`.
 JavaScript, CSS, Pages, and icons are served from those expanded resources.
 
-The `pack` command publishes immutable expanded or ZIP packages under `<output>/<id>/<version>.<hash>/` for normal modules and the XShell framework.
-Module ZIPs contain `module.json` and `module.zip`, with `modules.<id>.assetsUrl = "url:./module.zip"` and `modules.<id>.files = [...]` in the descriptor.
-XShell ZIPs contain `xshell.json` and `xshell.zip`, with `xshell.assetsUrl = "url:./xshell.zip"` and `xshell.files = [...]` in the descriptor.
+`DProjects.XShell pack --source ./app --output ./dist` publishes the application, its recursive module dependencies, and the XShell framework as
+independent immutable ZIP packages under `<output>/<id>/<version>.<hash>/`. The framework source comes from the resources shipped with the running
+DProjects.XShell tool; there is no `--xshell` argument or `modules.xshell` reference.
+Module package directories contain `module.json` and `module.zip`, with `modules.<id>.assetsUrl = "url:./module.zip"` and
+`modules.<id>.files = [...]` in the descriptor. The `xshell/<version>.<hash>/` directory contains `xshell.json`, `bootstrap.js`, `sw.js`, and
+`xshell.zip`. Its published descriptor has `xshell.assetsUrl = "url:./xshell.zip"` and `xshell.files = [...]`.
+`bootstrap.js` and `sw.js` are exact canonical copies also retained inside the complete framework ZIP, allowing direct startup requests without
+creating separate package identities.
+The release manifest uses `root` for the application module, `xshell` for the framework, and `packages` for the complete immutable package set.
 Both `files` arrays use the generated physical inventory. An existing package path is reused for the same representation and cannot be replaced
 by the other representation. ZIP packaging is implemented, but runtime ZIP-backed browser loading is not; deploy expanded resources for the current
 Service Worker.

@@ -84,6 +84,9 @@ SPA fallback has no method filter. Path navigation needs this fallback for frien
 Generated `sw.js` imports the configured worker source. Bootstrap registers it with the application base-path scope
 `App.BasePath + "/"` (root scope only when `App.BasePath` is empty).
 
+A deployed immutable framework generation directory, such as `/xshell/<version>.<hash>`, can serve as `XShell.BasePath`. Its published directory
+directly exposes `bootstrap.js`, `xshell.json`, and `sw.js` for startup requests. The same scripts also remain inside the complete `xshell.zip`.
+
 ## Browser platform requirement
 
 XShell V0 requires a secure context because the browser runtime uses platform

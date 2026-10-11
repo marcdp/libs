@@ -51,6 +51,7 @@ namespace DProjects.XShell.Commands {
             var hasFramework = File.Exists(Path.Combine(sourcePath, "xshell.json")) || File.Exists(Path.Combine(sourcePath, "xshell.jsonc"));
             if (hasModule && hasFramework) throw new InvalidOperationException("Source cannot contain both a module and an XShell descriptor.");
             var rootDescriptor = FindDescriptor(sourcePath, hasFramework ? "xshell" : "module");
+            var frameworkDescriptor = hasFramework ? rootDescriptor : FindBundledFrameworkDescriptor();
             var order = hasFramework ? [] : await DiscoverAsync(rootDescriptor, cancellationToken);
 
             // build every canonical package in private staging on the output filesystem
@@ -63,9 +64,10 @@ namespace DProjects.XShell.Commands {
                     packages.Add(node.Id, await BuildModuleAsync(node, packages, stagingPath, outputPath, cancellationToken));
                 }
                 await ValidateBuiltReferencesAsync(order, packages, stagingPath, cancellationToken);
-                var root = hasFramework ? await BuildFrameworkAsync(rootDescriptor, stagingPath, outputPath, cancellationToken) : packages[order[^1].Id];
-                if (hasFramework) packages.Add(root.Id, root);
-                await PublishAsync(outputPath, stagingPath, root,
+                var framework = await BuildFrameworkAsync(frameworkDescriptor, stagingPath, outputPath, cancellationToken);
+                packages.Add(framework.Id, framework);
+                var root = hasFramework ? framework : packages[order[^1].Id];
+                await PublishAsync(outputPath, stagingPath, root, framework,
                     packages.Values.OrderBy(p => p.Id, StringComparer.Ordinal).ToArray(), cancellationToken);
                 await environment.Out.WriteLineAsync(Path.Combine(outputPath, ReleaseFileName));
             } finally {
@@ -201,6 +203,9 @@ namespace DProjects.XShell.Commands {
             framework.Remove("builtAt");
             var workPath = Path.Combine(stagingPath, "work", "xshell");
             CopyDirectory(Path.GetDirectoryName(descriptorPath)!, workPath, cancellationToken);
+            foreach (var name in new[] { "bootstrap.js", "sw.js" }) {
+                if (!File.Exists(Path.Combine(workPath, name))) throw new FileNotFoundException($"XShell framework source is missing required {name}.");
+            }
             framework["hash"] = "";
             await File.WriteAllTextAsync(Path.Combine(workPath, "xshell.json"), root.ToJsonString(JsonOptions), cancellationToken);
             var jsonc = Path.Combine(workPath, "xshell.jsonc");
@@ -213,6 +218,9 @@ namespace DProjects.XShell.Commands {
             var relativeDirectory = $"xshell/{version}.{hash}";
             var packagePath = Path.Combine(stagingPath, "packages", "xshell", $"{version}.{hash}");
             Directory.CreateDirectory(packagePath);
+            // expose exact canonical bootstrap files without changing the package hash or ZIP contents
+            File.Copy(Path.Combine(workPath, "bootstrap.js"), Path.Combine(packagePath, "bootstrap.js"));
+            File.Copy(Path.Combine(workPath, "sw.js"), Path.Combine(packagePath, "sw.js"));
             if (!Directory.Exists(Path.Combine(outputPath, relativeDirectory.Replace('/', Path.DirectorySeparatorChar)))) {
                 var zipPath = Path.Combine(packagePath, "xshell.zip");
                 await CreateZipAsync(workPath, zipPath, cancellationToken);
@@ -243,7 +251,7 @@ namespace DProjects.XShell.Commands {
                 }
             }
         }
-        private static async Task PublishAsync(string outputPath, string stagingPath, BuiltPackage root, BuiltPackage[] packages,
+        private static async Task PublishAsync(string outputPath, string stagingPath, BuiltPackage root, BuiltPackage framework, BuiltPackage[] packages,
             CancellationToken cancellationToken) {
             // the release manifest is the only visibility boundary; published packages are immutable
             Directory.CreateDirectory(outputPath);
@@ -268,6 +276,7 @@ namespace DProjects.XShell.Commands {
 
                 var manifest = new JsonObject {
                     ["root"] = $"{root.RelativeDirectory}/{root.DescriptorName}",
+                    ["xshell"] = $"{framework.RelativeDirectory}/{framework.DescriptorName}",
                     ["createdAt"] = UtcTimestamp(),
                     ["packages"] = new JsonArray(packages.Select(package => (JsonNode?)JsonValue.Create($"{package.RelativeDirectory}/{package.DescriptorName}")).ToArray())
                 };
@@ -291,7 +300,9 @@ namespace DProjects.XShell.Commands {
             // compare canonical archive contents and all external metadata except the original package build time
             var descriptor = Path.Combine(target, package.DescriptorName);
             var archive = Path.Combine(target, package.Id == "xshell" ? "xshell.zip" : "module.zip");
-            if (Directory.EnumerateFileSystemEntries(target).Count() != 2 || !File.Exists(descriptor) || !File.Exists(archive)) {
+            var isFramework = package.Id == "xshell";
+            if (Directory.EnumerateFileSystemEntries(target).Count() != (isFramework ? 4 : 2) || !File.Exists(descriptor) || !File.Exists(archive) ||
+                (isFramework && (!File.Exists(Path.Combine(target, "bootstrap.js")) || !File.Exists(Path.Combine(target, "sw.js"))))) {
                 throw new InvalidOperationException($"Existing immutable package has an incomplete or unrecognized representation: {target}");
             }
             JsonObject existing;
@@ -314,6 +325,15 @@ namespace DProjects.XShell.Commands {
             expectedLocal.Remove("builtAt");
             if (!JsonNode.DeepEquals(existing, expected) || await ComputeZipHashAsync(archive, cancellationToken) != package.Hash) {
                 throw new InvalidOperationException($"Existing immutable package identity collides with different or damaged content: {target}");
+            }
+            if (isFramework) {
+                foreach (var name in new[] { "bootstrap.js", "sw.js" }) {
+                    var existingBytes = await File.ReadAllBytesAsync(Path.Combine(target, name), cancellationToken);
+                    var expectedBytes = await File.ReadAllBytesAsync(Path.Combine(source, name), cancellationToken);
+                    if (!existingBytes.AsSpan().SequenceEqual(expectedBytes)) {
+                        throw new InvalidOperationException($"Existing immutable package identity collides with different or damaged content: {target}");
+                    }
+                }
             }
         }
         private static string UtcTimestamp() => DateTimeOffset.UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture);
@@ -427,6 +447,16 @@ namespace DProjects.XShell.Commands {
             if (File.Exists(json) && File.Exists(jsonc)) throw new InvalidOperationException($"Source contains both {name}.json and {name}.jsonc.");
             return File.Exists(json) ? json : File.Exists(jsonc) ? jsonc :
                 throw new FileNotFoundException($"Source must contain {name}.json or {name}.jsonc.");
+        }
+        private static string FindBundledFrameworkDescriptor() {
+            // resolve shipped framework resources from the running assembly location
+            var assemblyDirectory = Path.GetDirectoryName(typeof(Pack).Assembly.Location)!;
+            var frameworkDirectory = Path.Combine(assemblyDirectory, "Resources", Extensions.ResourceName, "xshell");
+            if (!Directory.Exists(frameworkDirectory)) throw new DirectoryNotFoundException($"Bundled XShell resources directory not found: {frameworkDirectory}");
+            if (!File.Exists(Path.Combine(frameworkDirectory, "xshell.json")) && !File.Exists(Path.Combine(frameworkDirectory, "xshell.jsonc"))) {
+                throw new FileNotFoundException($"Bundled XShell descriptor xshell.json or xshell.jsonc not found in '{frameworkDirectory}'.");
+            }
+            return FindDescriptor(frameworkDirectory, "xshell");
         }
         private static void ValidateModuleId(string id) {
             if (!Regex.IsMatch(id, ModuleIdPattern, RegexOptions.CultureInvariant) || id == "xshell") {
