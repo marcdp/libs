@@ -860,6 +860,43 @@ test("Component contract accepts boolean attribute observation and rejects strin
     assert.equal(validator.validate({ properties: { item: { type: "string", attribute: "item-name" } } }).valid, false);
 });
 
+test("Component value descriptors keep type required and accept optional JSON Schema", () => {
+    const validator = new Validator(ComponentContractSchema, "2020-12");
+    const contracts = {
+        property: descriptor => ({ properties: { value: descriptor } }),
+        eventDetailProperty: descriptor => ({ events: { changed: { detail: { value: descriptor } } } }),
+        methodParameter: descriptor => ({ methods: { update: { parameters: [{ name: "value", ...descriptor }] } } }),
+        returnValue: descriptor => ({ methods: { update: { returns: descriptor } } })
+    };
+    const nestedSchema = {
+        type: "object",
+        properties: {
+            items: { type: "array", items: { type: "object", properties: { id: { type: "string" } }, required: ["id"] } }
+        }
+    };
+
+    // check compact, structured, and boolean schemas on every value descriptor
+    for (const [name, createContract] of Object.entries(contracts)) {
+        for (const descriptor of [{ type: "string" }, { type: "object", schema: nestedSchema }, { type: "array", schema: { items: { type: "object", properties: { name: { type: "string" } } } } }, { type: "any", schema: true }, { type: "any", schema: false }]) {
+            assert.equal(validator.validate(createContract(descriptor)).valid, true, `${name}: ${JSON.stringify(descriptor)}`);
+        }
+        for (const descriptor of [{ schema: true }, { type: "string", schema: null }, { type: "string", schema: [] }, { type: "string", schema: "object" }, { type: "string", schema: 123 }, { type: "object", properties: {} }, { type: "array", items: {} }]) {
+            assert.equal(validator.validate(createContract(descriptor)).valid, false, `${name}: ${JSON.stringify(descriptor)}`);
+        }
+    }
+
+    // keep void exclusive to method returns
+    for (const [name, createContract] of Object.entries(contracts)) {
+        assert.equal(validator.validate(createContract({ type: "void" })).valid, name === "returnValue", name);
+    }
+
+    // preserve component-specific metadata outside the optional schema
+    assert.equal(validator.validate({ properties: { value: {
+        type: "object", description: "Value", default: {}, state: true, query: false, context: true, reflect: true,
+        required: true, readonly: false, enum: ["one"], attribute: false, schema: { type: "object" }
+    } } }).valid, true);
+});
+
 test("Component public-method diagnostic uses its canonical name", async () => {
     configureDefinitionLoaders();
     const Component = await createComponentClassFromJsDefinition("missing-method.js", createContext(), {

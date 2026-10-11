@@ -36,16 +36,37 @@ property/state consistency. Class default exports bypass definition processing a
 | `slots` | Map of slot names with `description` and `required`; `""` is the default slot. |
 | `examples` | Array with required `name` and nonempty `template`, optional `description` and `state`. |
 
-Value types are `string`, `number`, `integer`, `boolean`, `object`, `array`, `function`, `any`, `date`, and `void`. These are small type labels,
-not nested structural types. Event `detail` maps field names to entries with required `type`, optional `description` and `required`.
-Method parameters require `name` and `type`, with optional `description`, `required`, and `default`. A `returns` entry requires `type` and may
-contain `description`. Example names start with a letter and then use letters, digits, `_`, or `-`.
+Value types are `string`, `number`, `integer`, `boolean`, `object`, `array`, `function`, `any`, and `date`. Method return types allow all value
+types plus `void`; `void` is not valid for properties, event detail fields, or method parameters. Every value descriptor requires `type` and may
+include `schema` for additional JSON Schema Draft 2020-12 constraints. `type` remains the XShell runtime category. Nested objects and arrays are
+described inside `schema` using standard JSON Schema keywords, and boolean schemas (`true` and `false`) are accepted.
+
+Compact scalar descriptors need only the type: `{ type: "string" }`. A structured property can add a schema:
+
+```js
+{
+    type: "object",
+    schema: {
+        type: "object",
+        properties: { items: { type: "array", items: { type: "string" } } }
+    }
+}
+```
+
+`schema` is descriptive metadata in V0. It does not validate property assignments, state values, method arguments or returns, or event payloads
+at runtime. It does not change attribute or Page query conversion, apply JSON Schema defaults, or change state initialization. Component-specific
+metadata such as `default`, `state`, `query`, and `attribute` remains on the descriptor outside `schema`.
+
+Event `detail` maps field names to entries with required `type`, optional `description`, `required`, and `schema`.
+Method parameters require `name` and `type`, with optional `description`, `required`, `default`, and `schema`. A `returns` entry requires `type`
+and may contain `description` and `schema`. Example names start with a letter and then use letters, digits, `_`, or `-`.
 
 ## Property metadata and runtime behavior
 
 | Field | V0 behavior |
 | --- | --- |
 | `type` | Required type label; used for attribute/Page query conversion, without general assignment validation. |
+| `schema` | Optional JSON Schema Draft 2020-12 constraints for documentation and tooling; no V0 runtime value validation. |
 | `default` | Canonical public-property default. State-backed defaults enter the state skeleton. |
 | `state` | `true` connects a Component accessor to state and includes the property in Page state. |
 | `attribute` | Boolean only; `true` observes the derived kebab-case HTML attribute for incoming changes. |

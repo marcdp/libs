@@ -146,9 +146,10 @@ test("Page query conversion rejects malformed scalar values", async () => {
 
 test("Page query metadata requires state-backed supported scalar properties", async () => {
     await assert.rejects(() => createPage({ value: { type: "string", default: "", query: true } }, "/page.js?value=query"), /Page property 'value'.*not state-backed/);
-    for (const type of ["object", "array", "function", "any", "void"]) {
-        await assert.rejects(() => createPage({ value: { type, default: type === "array" ? [] : null, state: true, query: true } }, "/page.js?value=query"), new RegExp(`Page property 'value'.*unsupported type '${type}'`));
+    for (const type of ["object", "array", "function", "any", "date"]) {
+        await assert.rejects(() => createPage({ value: { type, default: type === "array" ? [] : null, state: true, query: true, schema: { type: "string" } } }, "/page.js?value=query"), new RegExp(`Page property 'value'.*unsupported type '${type}'`));
     }
+    await assert.rejects(() => createPage({ value: { type: "void", default: null, state: true, query: true } }, "/page.js?value=query"), /Invalid component contract/);
 });
 
 test("The controller and load lifecycle see query-derived state", async () => {
