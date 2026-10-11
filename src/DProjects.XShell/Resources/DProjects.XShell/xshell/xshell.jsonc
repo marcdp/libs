@@ -1,15 +1,4 @@
 {
-    // app
-    "app": {
-        "id": "",
-        "label": "",
-        "copyright": "",
-        "icon": "",
-        "version": "0.1.0",
-        "basePath": "",
-        "baseUrl": ""
-    },
-
     // modules
     "modules": {},
 

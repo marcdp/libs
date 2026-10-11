@@ -20,6 +20,7 @@ namespace DProjects.XShell {
         }
         public class ResourcesConfig {
             public string BasePath { get; init; } = "";
+            public string ResourceName { get; init; } = "DProjects.XShell";
         }
         public class XShellConfig {
             public string BasePath { get; init; } = "";
@@ -43,10 +44,6 @@ namespace DProjects.XShell {
         }
 
 
-        // constants
-        public const string ResourceName = "DProjects.XShell";
-
-
         // methods
         public static void UseXShell(this WebApplication app, Configuration config) {
 
@@ -65,10 +62,10 @@ namespace DProjects.XShell {
                 if (string.IsNullOrEmpty(projectDirectory)) {
                     throw new InvalidOperationException("Unable to determine the DProjects.XShell project directory.");
                 }
-                resourcePath = Path.Combine(projectDirectory, "Resources", ResourceName);
+                resourcePath = Path.Combine(projectDirectory, "Resources", config.Resources.ResourceName);
             } else {
                 var assemblyPath = Path.GetDirectoryName(assembly.Location)!;
-                resourcePath = Path.Combine(assemblyPath, "Resources", ResourceName);
+                resourcePath = Path.Combine(assemblyPath, "Resources", config.Resources.ResourceName);
             }
             if (!Directory.Exists(resourcePath)) throw new DirectoryNotFoundException($"XShell resources directory not found: {resourcePath}");
 

@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Text.RegularExpressions;
+using DProjects.XShell.Services;
 using DProjects.XShell.Services.XTemplate;
 
 namespace DProjects.XShell.Test {
@@ -8,15 +9,18 @@ namespace DProjects.XShell.Test {
 
         // methods 
         [Fact]
-        public void StaticResourceTemplatesCompile() {
+        public async Task StaticResourceTemplatesCompile() {
             var resourceDirectory = GetResourceDirectory();
             var errors = new List<string>();
 
             foreach (var path in Directory.EnumerateFiles(resourceDirectory, "*.html", SearchOption.AllDirectories)) {
-                var template = File.ReadAllText(path);
-                if (!template.Contains("x-", StringComparison.Ordinal) && !template.Contains("{{", StringComparison.Ordinal)) continue;
+                // compile authored HTML modules through the same SFC path used by pack and development hosting
+                var moduleDirectory = Path.Combine(resourceDirectory, Path.GetRelativePath(resourceDirectory, path).Split(Path.DirectorySeparatorChar)[0]);
+                var descriptor = File.Exists(Path.Combine(moduleDirectory, "module.json")) ? Path.Combine(moduleDirectory, "module.json") :
+                    Path.Combine(moduleDirectory, "module.jsonc");
+                if (!File.Exists(descriptor)) continue;
                 try {
-                    _ = new XTemplateCompiler().Compile(template);
+                    _ = await new ModuleFileCompiler().CompileAsync(descriptor, path, TestContext.Current.CancellationToken);
                 } catch (Exception exception) {
                     errors.Add($"{Path.GetRelativePath(resourceDirectory, path)}: {exception.Message}");
                 }
@@ -106,7 +110,7 @@ namespace DProjects.XShell.Test {
         // methods (private)
         private static string GetResourceDirectory() {
             var projectDirectory = typeof(Extensions).Assembly.GetCustomAttributes<AssemblyMetadataAttribute>().Single(attribute => attribute.Key == "ProjectDirectory").Value;
-            return Path.Combine(projectDirectory!, "Resources", Extensions.ResourceName);
+            return Path.Combine(projectDirectory!, "Resources", new Extensions.ResourcesConfig().ResourceName);
         }
 
         private static bool IsVendorPath(string path) => path.Contains("\\vendor\\", StringComparison.OrdinalIgnoreCase) || path.Contains("/vendor/", StringComparison.OrdinalIgnoreCase);

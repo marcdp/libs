@@ -4,7 +4,7 @@ import test from "node:test";
 import vm from "node:vm";
 
 const bootstrapSource = readFileSync(new URL("../bootstrap.js", import.meta.url), "utf8").replace(
-    /\/\/ exec bootstrap\s*bootstrap\(\);\s*$/,
+    /\/\/ exec bootstrap[\s\S]*$/,
     "globalThis.__configUrls = { relativizePaths, prepareModuleConfig };"
 );
 const context = vm.createContext({
@@ -37,11 +37,11 @@ test("configuration url: references use the physical declaring document", () => 
 test("configuration configUrl and assetsUrl retain physical url: semantics", () => {
     const config = {
         modules: {
-            app: { assetsUrl: "url:./assets/" },
+            app: { version: "1.0.0", assetsUrl: "url:./assets/" },
             other: { configUrl: "url:../other/module.jsonc" }
         }
     };
-    const prepared = prepareModuleConfig(config, "https://cdn.test/config/app/module.jsonc", "/_assets");
+    const prepared = prepareModuleConfig(config, "https://cdn.test/config/app/module.jsonc", "/_assets", "Development");
 
     assert.equal(prepared.config.modules.app.assetsUrl, "https://cdn.test/config/app/assets/");
     assert.equal(prepared.references[0].configUrl, "https://cdn.test/config/other/module.jsonc");

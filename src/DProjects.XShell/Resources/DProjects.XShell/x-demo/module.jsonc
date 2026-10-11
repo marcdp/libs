@@ -1,17 +1,8 @@
 {
-    // app
-    "app": {
-        "id": "x-demo-app",
-        "label": "x-demo app",
-        "version": "0.1.0",
-        "copyright": "",
-        "icon": ""
-    },
-
     // module
     "modules": {
         "x-demo": {
-            "label": "Demo",
+            "label": "x-demo app",
             "version": "1.0.0",
             "icon": "",
             "copyright": "",

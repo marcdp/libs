@@ -1,7 +1,7 @@
 # Bootstrap
 
-The ASP.NET host writes `xshell:` meta values and loads `xshell/bootstrap.js`. The important application input is
-`xshell:app.configPath`, which points to the root module configuration document.
+The ASP.NET host or packed `index.html` writes `xshell:` meta values and loads the selected XShell generation's `bootstrap.js`.
+`xshell:app.configPath` points to the root module configuration document. The application is that root module for this release.
 
 ```text
 host HTML
@@ -13,6 +13,7 @@ host HTML
     -> resolve xshell.assetsBasePath and the effective environment
     -> normalize configUrl, assetsUrl, and resource paths using each generation's assetsPath
     -> merge defaults, dependencies, dependents, and root
+    -> derive effective config.app from the canonical root module and bootstrap deployment values
     -> retain the generated assetsPath for every effective module and XShell
     -> install and initialize Service Worker mappings
     -> load every module.files.json through the virtual resource namespace
@@ -27,8 +28,10 @@ host HTML
 The root is the document selected by `app.configPath`. Within it, as in every module document, bootstrap finds the one `modules.<id>` entry without
 `configUrl`. It never uses the first property. Zero or multiple local definitions are configuration errors.
 
-The optional host `xshell:app.params` value becomes both the root definition's params and `app.params`. References in both root and non-root
-documents may contribute params or other configuration to a dependency.
+The optional `xshell:app.params` value becomes both the root definition's params and effective `config.app.params`. Effective `config.app` takes
+id, label, version, copyright, and icon from the canonical root module, and basePath and baseUrl from bootstrap. Neither module nor framework source
+documents may author a top-level `app` object. References in both root and non-root documents may contribute params or other configuration to a
+dependency.
 
 ## Recursive discovery
 

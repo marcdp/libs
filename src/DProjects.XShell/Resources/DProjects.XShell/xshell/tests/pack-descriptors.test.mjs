@@ -34,12 +34,12 @@ function module(directory, id, references = {}, extra = {}) {
     return content;
 }
 
-function pack(source, output) {
-    return spawnSync("dotnet", [assemblyPath, "pack", "--source", source, "--output", output], { encoding: "utf8", cwd: source });
+function pack(source, output, args = []) {
+    return spawnSync("dotnet", [assemblyPath, "pack", "--source", source, "--output", output, ...args], { encoding: "utf8", cwd: source });
 }
 
-function successfulPack(source, output) {
-    const result = pack(source, output);
+function successfulPack(source, output, args = []) {
+    const result = pack(source, output, args);
     assert.equal(result.status, 0, result.stdout + result.stderr);
     assert.equal(result.stdout.trim().split(/\r?\n/).at(-1), join(output, "release.json"));
     assert.equal(existsSync(join(output, ".pack.lock")), false);
@@ -118,6 +118,16 @@ test("pack discovers a dependency graph, rewrites references, and commits one co
         assert.equal(release.packages.filter(path => path === release.xshell).length, 1);
         assert.deepEqual(release.packages, [...release.packages].sort((a, b) => a < b ? -1 : a > b ? 1 : 0));
         assert.equal(release.packages.filter(path => path.startsWith("x/")).length, 1);
+        assert.deepEqual(readdirSync(output).filter(name => ["index.html", "sw.js", "release.json"].includes(name)).sort(), ["index.html", "release.json", "sw.js"]);
+        const index = readFileSync(join(output, "index.html"), "utf8");
+        const worker = readFileSync(join(output, "sw.js"), "utf8");
+        assert.match(index, new RegExp(`content="/${release.root}"`));
+        assert.match(index, new RegExp(`src="/${dirname(release.xshell)}/bootstrap\\.js"`));
+        assert.match(index, /xshell:xshell.environment"\s+content="Production"/);
+        assert.match(index, /xshell:xshell.temp.url"\s+content="\/temp"/);
+        assert.match(worker, new RegExp(`importScripts\\("/${dirname(release.xshell)}/sw\\.js"\\)`));
+        assert.equal(release.packages.some(path => path === "index.html" || path === "sw.js"), false);
+        for (const name of ["main", "isRoot", "moduleType"]) assert.equal(Object.hasOwn(descriptor(output, release.root).modules.app, name), false);
         for (const path of release.packages.filter(path => path !== release.xshell)) {
             const directory = join(output, dirname(path));
             const archive = entries(join(directory, "module.zip"));
@@ -283,6 +293,8 @@ test("framework packaging retains its distinct descriptor and ZIP format", () =>
         assert.equal(release.root.startsWith("xshell/2.0.0."), true);
         assert.equal(release.xshell, release.root);
         assert.deepEqual(release.packages, [release.xshell]);
+        assert.equal(existsSync(join(output, "index.html")), false);
+        assert.equal(existsSync(join(output, "sw.js")), false);
         const published = descriptor(output, release.root);
         assertUtcTimestamp(published.xshell.builtAt);
         assert.equal(published.xshell.assetsUrl, "url:./xshell.zip");
@@ -304,6 +316,9 @@ test("framework packaging retains its distinct descriptor and ZIP format", () =>
         assert.deepEqual(readFileSync(join(output, release.root)), originalDescriptor);
         assert.deepEqual(readFileSync(join(output, dirname(release.root), "xshell.zip")), originalZip);
         for (const [name, bytes] of originalFiles) assert.deepEqual(readFileSync(join(output, dirname(release.root), name)), bytes);
+        writeFileSync(join(source, "xshell.jsonc"), '{"app":{},"xshell":{"version":"2.0.0"}}');
+        assert.match(pack(source, output).stderr, /must not define top-level app/);
+        assert.equal(existsSync(join(output, "index.html")), false);
     } finally {
         rmSync(root, { recursive: true, force: true });
     }
@@ -557,6 +572,68 @@ test("concurrent publication attempts preserve a complete release", async () => 
         assert.equal(existsSync(join(output, release.xshell)), true);
         assert.equal(existsSync(archivePath(output, release.xshell)), true);
         assert.equal(existsSync(join(output, ".pack.lock")), false);
+    } finally {
+        rmSync(root, { recursive: true, force: true });
+    }
+});
+
+test("deployment bootstrap options change entry files without changing package identities", () => {
+    const root = fixture();
+    try {
+        const source = join(root, "app");
+        const output = join(root, "dist");
+        module(source, "app");
+        const original = successfulPack(source, output);
+        const packed = successfulPack(source, output, ["--app-base-path", "/demo", "--environment", "Staging",
+            "--param", "tenant=acme & co", "--param", "mode=a=b", "--temp-base-path", "/uploads"]);
+        assert.equal(packed.root, original.root);
+        assert.equal(packed.xshell, original.xshell);
+        assert.deepEqual(packed.packages, original.packages);
+        const index = readFileSync(join(output, "index.html"), "utf8");
+        const worker = readFileSync(join(output, "sw.js"), "utf8");
+        assert.ok(index.includes(`content="/demo/${packed.root}"`));
+        assert.ok(index.includes(`src="/demo/${dirname(packed.xshell)}/bootstrap.js"`));
+        assert.match(index, /xshell:app.basePath"\s+content="\/demo"/);
+        assert.match(index, /xshell:xshell.environment"\s+content="Staging"/);
+        assert.match(index, /xshell:xshell.temp.url"\s+content="\/uploads"/);
+        assert.match(index, /tenant=acme%20%26%20co&amp;mode=a%3Db/);
+        assert.ok(worker.includes(`importScripts("/demo/${dirname(packed.xshell)}/sw.js")`));
+        const defaultTemp = successfulPack(source, output, ["--app-base-path", "/demo"]);
+        assert.equal(defaultTemp.root, original.root);
+        assert.match(readFileSync(join(output, "index.html"), "utf8"), /xshell:xshell.temp.url"\s+content="\/demo\/temp"/);
+    } finally {
+        rmSync(root, { recursive: true, force: true });
+    }
+});
+
+test("authored app metadata and failed entry-file publication do not commit a release", () => {
+    const root = fixture();
+    try {
+        const source = join(root, "app");
+        const output = join(root, "dist");
+        module(source, "app");
+        const original = successfulPack(source, output);
+        const committed = readFileSync(join(output, "release.json"), "utf8");
+        const index = readFileSync(join(output, "index.html"), "utf8");
+        const worker = readFileSync(join(output, "sw.js"), "utf8");
+        writeFileSync(join(source, "module.jsonc"), JSON.stringify({ app: { label: "obsolete" }, modules: { app: { version: "1.0.0" } } }));
+        assert.match(pack(source, output).stderr, /must not define top-level app/);
+        assert.equal(readFileSync(join(output, "release.json"), "utf8"), committed);
+        assert.equal(readFileSync(join(output, "index.html"), "utf8"), index);
+        assert.equal(readFileSync(join(output, "sw.js"), "utf8"), worker);
+        for (const args of [["--app-base-path", "//wrong"], ["--temp-base-path", "relative"], ["--param", "missing-equals"]]) {
+            assert.notEqual(pack(source, output, args).status, 0);
+            assert.equal(readFileSync(join(output, "release.json"), "utf8"), committed);
+        }
+
+        module(source, "app");
+        const blockedOutput = join(root, "blocked-dist");
+        mkdirSync(blockedOutput);
+        mkdirSync(join(blockedOutput, "sw.js"));
+        assert.match(pack(source, blockedOutput).stderr, /Failed to commit XShell distribution/);
+        assert.equal(existsSync(join(blockedOutput, "release.json")), false);
+        assert.equal(existsSync(join(blockedOutput, "index.html")), false);
+        assert.equal(original.root.startsWith("app/"), true);
     } finally {
         rmSync(root, { recursive: true, force: true });
     }

@@ -6,17 +6,21 @@ each canonical module once, and adds the XShell framework as its own immutable Z
 ## Command
 
 ```text
-DProjects.XShell pack --source ./app --output ./dist
+DProjects.XShell pack --source ./app --output ./dist --app-base-path /demo --environment Production --param tenant=acme
 ```
 
 `--source` is the root application module directory. It contains `module.json` or `module.jsonc` with exactly one local module definition.
 `--output` is the distribution directory. The command rejects an output directory containing the source or contained by the source.
+`-a` / `--app-base-path` defaults to `""`; `-e` / `--environment` defaults to `Production`; repeatable `-p` / `--param key=value` supplies
+bootstrap parameters to the root module; and optional `--temp-base-path` defaults to `<app-base-path>/temp` (`/temp` at the deployment root).
+The application is the root module selected by `release.root`. No authored `app` block, `main` flag, or separate application package exists.
 Application packs automatically use the XShell resources shipped beside the running DProjects.XShell assembly. No `--xshell` argument exists, and
 applications do not declare a framework filesystem path or a `modules.xshell` reference.
 The former `--zip` flag and expanded output mode have been removed.
 
 For compatibility with framework packaging, a source containing `xshell.json` or `xshell.jsonc` can still produce a standalone XShell framework
 ZIP distribution. It has no module dependency graph. A source cannot contain both descriptor kinds.
+Standalone XShell packaging creates no application `index.html` or root `sw.js` because it selects no root module application.
 
 ## Discovery and build
 
@@ -84,6 +88,8 @@ A committed output has this structure:
 
 ```text
 dist/
+  index.html
+  sw.js
   release.json
   xshell/0.9.0.<hash>/xshell.json
   xshell/0.9.0.<hash>/bootstrap.js
@@ -120,19 +126,24 @@ build times. A new release may reuse packages built months earlier. For example:
 }
 ```
 
+The stable `index.html` points `xshell:app.configPath` to `/demo/app/1.0.0.<hash>/module.json` and loads
+`/demo/xshell/0.9.0.<hash>/bootstrap.js`. The stable root `sw.js` imports `/demo/xshell/0.9.0.<hash>/sw.js`; bootstrap registers the root worker
+with `/demo/` scope. These URLs come from the definitive package identities and the application base path. The entry files are neither packages
+nor members of `release.packages`, and deployment settings do not change root module or XShell hashes.
+
 Consumers should read `release.json` to select a distribution, then resolve
 its paths within the same output directory. Package directories outside the manifest are uncommitted and may be left by an interrupted publish.
 
-The build has three phases: full graph discovery and validation, private staging of all ZIP packages, then publication. An exclusive
-`.pack.lock` file serializes concurrent commits and is removed as the final publication operation while its exclusive handle is still held.
-The command moves immutable packages to their final paths, verifies any existing identities, writes a complete temporary release manifest, then
-atomically installs the manifest. A failed build or publication before that final operation leaves the previous `release.json` selecting the
-previous complete release. Temporary staging and manifest files are removed after ordinary failures. Previously published and newly moved
+The build has three phases: full graph discovery and validation, private staging of all ZIP packages and application entry files, then publication.
+An exclusive `.pack.lock` file serializes concurrent commits and is removed as the final publication operation while its exclusive handle is held.
+The command moves immutable packages to their final paths, verifies any existing identities, and prepares a complete temporary release manifest.
+It then replaces the generated entry files from complete temporary files, with backups used to restore previous files if replacement fails, and
+finally installs `release.json`. A failed build or entry-file publication does not select a new release. Previously published and newly moved
 immutable packages are left intact.
 
-The atomic boundary is one file rename or replacement on the output filesystem. This requires a filesystem with atomic same-volume file rename
-and replacement semantics and readers that use `release.json` as the release selector. It does not rely on atomic directory replacement across
-filesystems. The staging directory is created beside `--output` to keep package moves on the same filesystem.
+Each entry-file replacement and the final manifest replacement is atomic individually on a filesystem with same-volume rename and replacement
+semantics. The three files are not a single atomic transaction; readers may briefly observe mixed entry files during publication. The staging
+directory is created beside `--output` to keep package moves on the same filesystem.
 
 ## Module file inventory
 

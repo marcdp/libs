@@ -19,6 +19,8 @@ namespace DProjects.XShell.Commands {
         public string Environment { get; init; } = "";
         [Flag('p', "Parameter", "")]
         public string[] Param { get; init; } = [];
+        [Flag('r', "Resources base path", "")]
+        public string ResourcesName { get; init; } = "DProjects.XShell";
 
 
         //methods
@@ -38,15 +40,16 @@ namespace DProjects.XShell.Commands {
                     Params = Param.ToDictionary(p => p.Split('=')[0], p => p.Split('=')[1])
                 },
                 Temp = new Extensions.TempConfig {
-                    Path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), Extensions.ResourceName, "temp"),
+                    Path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), ResourcesName, "temp"),
                     BasePath = AppBasePath + "/temp",
                     ExpirationTime = TimeSpan.FromHours(1)
                 },
                 Resources = new Extensions.ResourcesConfig {
-                    BasePath = AppBasePath + "/_resources/" + Extensions.ResourceName
+                    BasePath = AppBasePath + "/_resources/" + ResourcesName,
+                    ResourceName = ResourcesName
                 },
                 XShell = new Extensions.XShellConfig {
-                    BasePath = AppBasePath + "/_resources/" + Extensions.ResourceName + "/xshell"
+                    BasePath = AppBasePath + "/_resources/" + ResourcesName + "/xshell"
                 },
                 Server = new Extensions.ServerConfig {
                     Environment = Environment

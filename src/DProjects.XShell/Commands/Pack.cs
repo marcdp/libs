@@ -33,12 +33,31 @@ namespace DProjects.XShell.Commands {
         public string Source { get; init; } = "";
         [Flag('o', "Distribution output directory", "")]
         public string Output { get; init; } = "";
+        [Flag('a', "Application request base path", "")]
+        public string AppBasePath { get; init; } = "";
+        [Flag('e', "Bootstrap environment", "")]
+        public string Environment { get; init; } = "";
+        [Flag('p', "Root module parameter", "")]
+        public string[] Param { get; init; } = [];
+        [Flag('t', "Temporary file public base path", "")]
+        public string TempBasePath { get; init; } = "";
 
         // methods
         public async Task<int> ExecuteAsync(CancellationToken cancellationToken) {
             // validate paths before touching the destination
             if (string.IsNullOrWhiteSpace(Source)) throw new ArgumentException("Source directory is required.");
             if (string.IsNullOrWhiteSpace(Output)) throw new ArgumentException("Output directory is required.");
+            if (!IsRequestBasePath(AppBasePath, true)) throw new ArgumentException("App base path must be empty or a rooted request path starting with '/'.");
+            var bootstrapEnvironment = string.IsNullOrEmpty(Environment) ? "Production" : Environment;
+            if (string.IsNullOrWhiteSpace(bootstrapEnvironment)) throw new ArgumentException("Environment must be non-empty.");
+            var tempBasePath = string.IsNullOrEmpty(TempBasePath) ? AppBasePath + "/temp" : TempBasePath;
+            if (!IsRequestBasePath(tempBasePath, false)) throw new ArgumentException("Temp base path must be a non-empty rooted request path starting with '/'.");
+            var parameters = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (var parameter in Param) {
+                var separator = parameter.IndexOf('=');
+                if (separator <= 0) throw new ArgumentException($"Parameter '{parameter}' must use key=value.");
+                if (!parameters.TryAdd(parameter[..separator], parameter[(separator + 1)..])) throw new ArgumentException($"Duplicate parameter '{parameter[..separator]}'.");
+            }
             var sourcePath = Path.GetFullPath(Source);
             var outputPath = Path.GetFullPath(Output);
             if (!Directory.Exists(sourcePath)) throw new DirectoryNotFoundException($"Application directory not found: {sourcePath}");
@@ -67,8 +86,17 @@ namespace DProjects.XShell.Commands {
                 var framework = await BuildFrameworkAsync(frameworkDescriptor, stagingPath, outputPath, cancellationToken);
                 packages.Add(framework.Id, framework);
                 var root = hasFramework ? framework : packages[order[^1].Id];
+                if (!hasFramework) {
+                    var config = new Extensions.Configuration {
+                        App = new Extensions.AppConfig { BasePath = AppBasePath, ConfigPath = AppBasePath + "/" + root.RelativeDirectory + "/module.json", Params = parameters },
+                        XShell = new Extensions.XShellConfig { BasePath = AppBasePath + "/" + framework.RelativeDirectory },
+                        Temp = new Extensions.TempConfig { BasePath = tempBasePath }
+                    };
+                    var initialFiles = new BootstrapFilesBuilder().Build(config, bootstrapEnvironment);
+                    foreach (var file in initialFiles) await File.WriteAllTextAsync(Path.Combine(stagingPath, file.Key.TrimStart('/')), file.Value, cancellationToken);
+                }
                 await PublishAsync(outputPath, stagingPath, root, framework,
-                    packages.Values.OrderBy(p => p.Id, StringComparer.Ordinal).ToArray(), cancellationToken);
+                    packages.Values.OrderBy(p => p.Id, StringComparer.Ordinal).ToArray(), !hasFramework, cancellationToken);
                 await environment.Out.WriteLineAsync(Path.Combine(outputPath, ReleaseFileName));
             } finally {
                 if (Directory.Exists(stagingPath)) Directory.Delete(stagingPath, recursive: true);
@@ -98,6 +126,7 @@ namespace DProjects.XShell.Commands {
                 }
                 if (!byPath.TryGetValue(descriptorPath, out var node)) {
                     var root = await ReadJsonObjectAsync(descriptorPath, cancellationToken);
+                    RejectAuthoredApp(root, descriptorPath);
                     var modules = root["modules"] as JsonObject ?? throw new InvalidOperationException($"Module configuration '{descriptorPath}' must contain a modules object.");
                     var locals = modules.Where(item => item.Value is JsonObject value && !value.ContainsKey("configUrl")).ToArray();
                     if (locals.Length != 1) throw new InvalidOperationException($"Module configuration '{descriptorPath}' must contain exactly one local module definition.");
@@ -196,6 +225,7 @@ namespace DProjects.XShell.Commands {
         private static async Task<BuiltPackage> BuildFrameworkAsync(string descriptorPath, string stagingPath, string outputPath, CancellationToken cancellationToken) {
             // retain the framework's separate descriptor and resource compilation rules
             var root = (JsonObject)Canonicalize(await ReadJsonObjectAsync(descriptorPath, cancellationToken))!;
+            RejectAuthoredApp(root, descriptorPath);
             var framework = root["xshell"] as JsonObject ?? throw new InvalidOperationException("XShell configuration must contain xshell.");
             var version = framework["version"]?.GetValue<string>() ?? "";
             if (string.IsNullOrWhiteSpace(version)) throw new InvalidOperationException("XShell configuration must contain xshell.version.");
@@ -251,9 +281,9 @@ namespace DProjects.XShell.Commands {
                 }
             }
         }
-        private static async Task PublishAsync(string outputPath, string stagingPath, BuiltPackage root, BuiltPackage framework, BuiltPackage[] packages,
+        private static async Task PublishAsync(string outputPath, string stagingPath, BuiltPackage root, BuiltPackage framework, BuiltPackage[] packages, bool publishInitialFiles,
             CancellationToken cancellationToken) {
-            // the release manifest is the only visibility boundary; published packages are immutable
+            // publish immutable packages and prepared entry files before selecting the release
             Directory.CreateDirectory(outputPath);
             var lockPath = Path.Combine(outputPath, ".pack.lock");
             using var publicationLock = AcquirePublicationLock(lockPath);
@@ -281,15 +311,39 @@ namespace DProjects.XShell.Commands {
                     ["packages"] = new JsonArray(packages.Select(package => (JsonNode?)JsonValue.Create($"{package.RelativeDirectory}/{package.DescriptorName}")).ToArray())
                 };
                 var temporaryManifest = Path.Combine(outputPath, $".release-{Guid.NewGuid():N}.tmp");
+                var backups = new Dictionary<string, string?>(StringComparer.Ordinal);
                 try {
                     await File.WriteAllTextAsync(temporaryManifest, manifest.ToJsonString(JsonOptions), cancellationToken);
+                    if (publishInitialFiles) {
+                        foreach (var name in new[] { "index.html", "sw.js" }) {
+                            var staged = Path.Combine(stagingPath, name);
+                            var target = Path.Combine(outputPath, name);
+                            var temporary = Path.Combine(outputPath, $".{name}-{Guid.NewGuid():N}.tmp");
+                            var backup = File.Exists(target) ? Path.Combine(outputPath, $".{name}-{Guid.NewGuid():N}.bak") : null;
+                            try {
+                                File.Copy(staged, temporary);
+                                if (backup != null) File.Copy(target, backup);
+                                if (backup != null) File.Replace(temporary, target, null);
+                                else File.Move(temporary, target);
+                                backups.Add(target, backup);
+                            } finally {
+                                if (File.Exists(temporary)) File.Delete(temporary);
+                                if (backup != null && !backups.ContainsKey(target) && File.Exists(backup)) File.Delete(backup);
+                            }
+                        }
+                    }
                     var publishedManifest = Path.Combine(outputPath, ReleaseFileName);
                     if (File.Exists(publishedManifest)) File.Replace(temporaryManifest, publishedManifest, null);
                     else File.Move(temporaryManifest, publishedManifest);
                 } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) {
+                    foreach (var (target, backup) in backups.Reverse()) {
+                        if (backup != null) File.Replace(backup, target, null);
+                        else File.Delete(target);
+                    }
                     throw new IOException($"Failed to commit XShell distribution in '{outputPath}'. The previous release remains selected.", exception);
                 } finally {
                     if (File.Exists(temporaryManifest)) File.Delete(temporaryManifest);
+                    foreach (var backup in backups.Values) if (backup != null && File.Exists(backup)) File.Delete(backup);
                 }
             } finally {
                 // remove the name while the exclusive handle is held; a new writer can start only after all publication work is done
@@ -337,6 +391,14 @@ namespace DProjects.XShell.Commands {
             }
         }
         private static string UtcTimestamp() => DateTimeOffset.UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture);
+        private static void RejectAuthoredApp(JsonObject config, string path) {
+            if (config.ContainsKey("app")) throw new InvalidOperationException($"Authored configuration '{path}' must not define top-level app; application metadata comes from the root module.");
+        }
+        private static bool IsRequestBasePath(string? path, bool allowEmpty) {
+            if (path == "" && allowEmpty) return true;
+            return !string.IsNullOrEmpty(path) && path.StartsWith('/') && !path.StartsWith("//", StringComparison.Ordinal) && !path.EndsWith('/') &&
+                path.IndexOfAny(['?', '#', '\\']) < 0 && !path.Any(char.IsWhiteSpace);
+        }
         private static FileStream AcquirePublicationLock(string lockPath) {
             try {
                 return new FileStream(lockPath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.Delete);
@@ -451,7 +513,7 @@ namespace DProjects.XShell.Commands {
         private static string FindBundledFrameworkDescriptor() {
             // resolve shipped framework resources from the running assembly location
             var assemblyDirectory = Path.GetDirectoryName(typeof(Pack).Assembly.Location)!;
-            var frameworkDirectory = Path.Combine(assemblyDirectory, "Resources", Extensions.ResourceName, "xshell");
+            var frameworkDirectory = Path.Combine(assemblyDirectory, "Resources", "DProjects.XShell", "xshell");
             if (!Directory.Exists(frameworkDirectory)) throw new DirectoryNotFoundException($"Bundled XShell resources directory not found: {frameworkDirectory}");
             if (!File.Exists(Path.Combine(frameworkDirectory, "xshell.json")) && !File.Exists(Path.Combine(frameworkDirectory, "xshell.jsonc"))) {
                 throw new FileNotFoundException($"Bundled XShell descriptor xshell.json or xshell.jsonc not found in '{frameworkDirectory}'.");

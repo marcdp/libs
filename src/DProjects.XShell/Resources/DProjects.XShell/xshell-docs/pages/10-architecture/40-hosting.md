@@ -83,6 +83,8 @@ SPA fallback has no method filter. Path navigation needs this fallback for frien
 `BootstrapFilesBuilder` emits HTML, CSP meta, `xshell:` startup meta, and the bootstrap script.
 Generated `sw.js` imports the configured worker source. Bootstrap registers it with the application base-path scope
 `App.BasePath + "/"` (root scope only when `App.BasePath` is empty).
+These `App` settings are host inputs, not authored application metadata. Bootstrap derives effective `config.app` from the selected root module
+and the host values. `pack` uses the same builder to write stable `index.html` and root `sw.js` for a release.
 
 A deployed immutable framework generation directory, such as `/xshell/<version>.<hash>`, can serve as `XShell.BasePath`. Its published directory
 directly exposes `bootstrap.js`, `xshell.json`, and `sw.js` for startup requests. The same scripts also remain inside the complete `xshell.zip`.

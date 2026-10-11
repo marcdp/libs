@@ -5,7 +5,7 @@
   "type": "object",
   "required": ["app", "modules", "xshell"],
   "properties": {
-    "app": {"$ref": "#/$defs/app", "description": "Application metadata and runtime parameters."},
+    "app": {"$ref": "#/$defs/app", "description": "Effective application view constructed by bootstrap from the selected root module and deployment values; never an authored top-level object."},
     "modules": {
       "type": "object",
       "propertyNames": {
@@ -21,18 +21,18 @@
     "app": {
       "type": "object",
       "properties": {
-        "id": {"type": "string", "description": "Application identifier."},
-        "label": {"type": "string", "description": "Human-readable application label."},
-        "version": {"type": "string", "description": "Application version."},
-        "copyright": {"type": "string", "description": "Application copyright notice."},
-        "icon": {"type": "string", "description": "Application icon resource."},
+        "id": {"type": "string", "description": "Selected root module identifier."},
+        "label": {"type": "string", "description": "Selected root module label."},
+        "version": {"type": "string", "description": "Selected root module version."},
+        "copyright": {"type": "string", "description": "Selected root module copyright notice."},
+        "icon": {"type": "string", "description": "Selected root module icon resource."},
         "basePath": {"type": "string", "description": "Application-root-relative Path prefix under which the application is hosted; no trailing slash is required."},
         "baseUrl": {"type": "string", "description": "Fully qualified absolute application base-directory URL; ends with / for normal URL resolution."},
         "params": {"type": "object", "additionalProperties": true, "description": "Application-specific parameters."}
       },
       "required": ["id", "label", "version", "copyright", "icon", "basePath", "baseUrl", "params"],
       "additionalProperties": false,
-      "description": "Application metadata, base path, and application parameters."
+      "description": "Runtime projection of the selected root module metadata and bootstrap deployment values."
     },
     "module": {
       "type": "object",

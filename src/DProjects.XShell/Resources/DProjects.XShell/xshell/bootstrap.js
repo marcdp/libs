@@ -94,6 +94,9 @@ function validateModuleId(moduleId, configUrl) {
     }
 }
 function getLocalModule(config, configUrl) {
+    if (config && typeof config === "object" && Object.hasOwn(config, "app")) {
+        throw new Error(`Authored module configuration '${configUrl}' must not define top-level app; application metadata comes from the root module.`);
+    }
     const modules = config?.modules;
 
     if (!modules || typeof modules !== "object" || Array.isArray(modules)) {
@@ -325,6 +328,7 @@ async function loadConfig() {
         loadJsonWithComments(xshellConfigUrl),
         loadJsonWithComments(rootModuleUrl)
     ]);
+    if (Object.hasOwn(xshellConfig, "app")) throw new Error(`Authored XShell configuration '${xshellConfigUrl}' must not define top-level app.`);
 
     const assetsBasePath = normalizeAssetsBasePath(
         rootModuleConfig.xshell?.assetsBasePath ?? xshellConfig.xshell.assetsBasePath
@@ -333,12 +337,7 @@ async function loadConfig() {
     const environment = xshellEnvironment || rootModuleConfig.xshell?.environment || xshellConfig.xshell.environment;
     const xshellAssetsPath = getAssetsPath(assetsBasePath, "xshell", xshellConfig.xshell.version, xshellConfig.xshell.hash, environment);
 
-    let xshellAssetsUrl = relativizePaths(
-        xshellConfig.xshell.assetsUrl || "url:./",
-        xshellAssetsPath,
-        "/xshell.json",
-        xshellConfigUrl
-    );
+    let xshellAssetsUrl = relativizePaths(xshellConfig.xshell.assetsUrl || "url:./", xshellAssetsPath, "/xshell.json", xshellConfigUrl);
 
     if (!/^[a-z][a-z0-9+.-]*:/i.test(xshellAssetsUrl)) {
         throw new Error(`xshell.assetsUrl must resolve to an absolute HTTP(S) URL: '${xshellAssetsUrl}'.`);
@@ -355,8 +354,6 @@ async function loadConfig() {
     relativizePaths(xshellConfig, xshellAssetsPath, "/xshell.json", xshellConfigUrl);
 
     // Host/runtime values are added after normalization so they are not reinterpreted as authored configuration.
-    xshellConfig.app.basePath = appBasePath;
-    xshellConfig.app.baseUrl = appBaseUrl;
     xshellConfig.xshell.environment = environment;
     xshellConfig.xshell.configUrl = xshellConfigUrl;
     xshellConfig.xshell.temp.url = new URL(xshellTempUrl, document.baseURI).href;
@@ -365,10 +362,20 @@ async function loadConfig() {
 
     const rootModule = getLocalModule(rootModuleConfig, rootModuleUrl);
     rootModule.definition.params = Object.fromEntries(new URLSearchParams(appParams));
-    xshellConfig.app.params = rootModule.definition.params;
 
     const graph = await discoverModuleConfigs(rootModuleConfig, rootModuleUrl, loadJsonWithComments, assetsBasePath, environment);
     const config = mergeConfigs([xshellConfig, ...graph.mergeOrder.map(node => node.config)]);
+    const effectiveRoot = config.modules[graph.rootNode.id];
+    config.app = {
+        id: graph.rootNode.id,
+        label: effectiveRoot.label ?? "",
+        version: effectiveRoot.version,
+        copyright: effectiveRoot.copyright ?? "",
+        icon: effectiveRoot.icon ?? "",
+        basePath: appBasePath,
+        baseUrl: appBaseUrl,
+        params: effectiveRoot.params
+    };
 
     if (!/^[a-z][a-z0-9+.-]*:/i.test(config.xshell.assetsUrl)) {
         throw new Error(`xshell.assetsUrl must resolve to an absolute HTTP(S) URL: '${config.xshell.assetsUrl}'.`);

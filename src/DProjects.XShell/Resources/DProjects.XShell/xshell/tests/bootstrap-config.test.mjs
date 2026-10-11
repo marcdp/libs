@@ -258,7 +258,9 @@ test("bootstrap loads the authored XShell JSONC source through the canonical run
     fetchedResources.set(xshellUrl, api.parseJsonc(readFileSync(new URL("../xshell.jsonc", import.meta.url), "utf8")));
     fetchedResources.set(rootUrl, { modules: { app: definition("app") } });
 
-    const config = plain(await api.loadConfig());
+    const effective = await api.loadConfig();
+    assert.equal(effective.app.params, effective.modules.app.params);
+    const config = plain(effective);
     const resolver = new Resolver({ config });
     assert.equal(config.xshell.configUrl, xshellUrl);
     assert.equal(config.xshell.resolver["state-engine"]["{name}"].src, "/_assets/xshell/0.9.0.dev/state-engines/{name}.js");
@@ -610,22 +612,27 @@ test("initializeXShell imports an absolute XShell module URL unchanged", async (
     assert.equal(importedUrl, "https://cdn.example.test/xshell.js");
 });
 
-test("loadConfig keeps xshellConfig as the base and applies root configuration last", async () => {
+test("loadConfig derives effective app metadata from the selected root module", async () => {
     directFetchCalls.length = 0;
     const xshellUrl = "https://example.test/xshell/xshell.json";
     fetchedResources.set(xshellUrl, {
-        app: { source: "xshell" },
         modules: {},
         xshell: { assetsBasePath: "app:/_assets", environment: "Production", version: "0.9.0", hash: "31d04ab8e220a581", assetsUrl: "url:./", temp: { url: "url:./" }, resolver: {} }
     });
     fetchedResources.set(rootUrl, {
-        app: { source: "root" },
-        modules: { app: definition("app", { hash: "a82c31f943e01abc" }) }
+        modules: { app: definition("app", { hash: "a82c31f943e01abc", label: "Root application", copyright: "Owner", icon: "logo" }) }
     });
-    const config = plain(await api.loadConfig());
+    const effective = await api.loadConfig();
+    assert.equal(effective.app.params, effective.modules.app.params);
+    const config = plain(effective);
 
-    assert.equal(config.app.source, "root");
+    assert.equal(config.app.id, "app");
+    assert.equal(config.app.label, "Root application");
+    assert.equal(config.app.version, "1.0.0");
+    assert.equal(config.app.copyright, "Owner");
+    assert.equal(config.app.icon, "logo");
     assert.equal(config.app.basePath, "/app");
+    assert.equal(config.app.baseUrl, "https://example.test/app/");
     assert.deepEqual(config.app.params, { mode: "host" });
     assert.deepEqual(config.modules.app.params, { mode: "host" });
     assert.equal(config.modules.app.assetsPath, "/_assets/app/1.0.0.a82c31f943e01abc");
@@ -639,11 +646,24 @@ test("loadConfig keeps xshellConfig as the base and applies root configuration l
     assert.deepEqual(directFetchCalls, [xshellUrl, rootUrl]);
 });
 
+test("authored top-level app is rejected in root, dependency, and XShell configurations", async () => {
+    const xshellUrl = "https://example.test/xshell/xshell.json";
+    const framework = { modules: {}, xshell: { assetsBasePath: "app:/_assets", environment: "Development", version: "0.9.0",
+        assetsUrl: "url:./", temp: { url: "url:./" }, resolver: {} } };
+    fetchedResources.set(xshellUrl, framework);
+    fetchedResources.set(rootUrl, { app: {}, modules: { app: definition("app") } });
+    await assert.rejects(api.loadConfig(), /must not define top-level app/);
+    fetchedResources.set(rootUrl, { modules: { app: definition("app") } });
+    fetchedResources.set(xshellUrl, { ...framework, app: {} });
+    await assert.rejects(api.loadConfig(), /must not define top-level app/);
+    await assert.rejects(() => discover({ modules: { app: definition("app"), child: reference("url:../child/module.jsonc") } },
+        { "https://example.test/modules/child/module.jsonc": { app: {}, modules: { child: definition("child") } } }), /must not define top-level app/);
+});
+
 test("loadConfig derives every assetsPath from a custom assetsBasePath", async () => {
     const xshellUrl = "https://example.test/xshell/xshell.json";
     const xUrl = "https://example.test/modules/x/module.jsonc";
     fetchedResources.set(xshellUrl, {
-        app: {},
         modules: {},
         xshell: { assetsBasePath: "app:/runtime", assetsPath: "/authored-xshell", environment: "Production", version: "0.9.0", hash: "31d04ab8e220a581", assetsUrl: "url:./", temp: { url: "url:./" }, resolver: {} }
     });
@@ -665,7 +685,7 @@ test("loadConfig derives every assetsPath from a custom assetsBasePath", async (
 test("root assetsBasePath override is normalized before module discovery", async () => {
     const xshellUrl = "https://example.test/xshell/xshell.json";
     fetchedResources.set(xshellUrl, {
-        app: {}, modules: {},
+        modules: {},
         xshell: { assetsBasePath: "app:/_assets", environment: "Development", version: "0.9.0", assetsUrl: "url:./", temp: { url: "url:./" }, resolver: {} }
     });
     fetchedResources.set(rootUrl, {
@@ -682,7 +702,7 @@ test("root assetsBasePath override is normalized before module discovery", async
 
 test("loadConfig resolves XShell assetsUrl from the application base", async () => {
     fetchedResources.set("https://example.test/xshell/xshell.json", {
-        app: {}, modules: {},
+        modules: {},
         xshell: { assetsBasePath: "app:/_assets", environment: "Development", version: "0.9.0", assetsUrl: "app:/framework/", temp: { url: "url:./" }, resolver: {} }
     });
     fetchedResources.set(rootUrl, { modules: { app: definition("app") } });
@@ -696,7 +716,7 @@ test("loadConfig resolves XShell assetsUrl from the application base", async () 
 
 test("host Development override selects mutable generations without package hashes", async () => {
     fetchedResources.set("https://example.test/xshell/xshell.json", {
-        app: {}, modules: {},
+        modules: {},
         xshell: { assetsBasePath: "app:/_assets", environment: "Production", version: "0.9.0", assetsUrl: "url:./", temp: { url: "url:./" }, resolver: {} }
     });
     fetchedResources.set(rootUrl, { modules: { app: definition("app") } });
@@ -714,7 +734,7 @@ test("host Development override selects mutable generations without package hash
 
 test("non-Development XShell without a package hash fails clearly", async () => {
     fetchedResources.set("https://example.test/xshell/xshell.json", {
-        app: {}, modules: {},
+        modules: {},
         xshell: { assetsBasePath: "app:/_assets", environment: "Production", version: "0.9.0", assetsUrl: "url:./", temp: { url: "url:./" }, resolver: {} }
     });
     fetchedResources.set(rootUrl, { modules: { app: definition("app", { hash: "app-hash" }) } });

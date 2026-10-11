@@ -65,7 +65,8 @@ Any reference may contribute configuration in addition to its canonical id and `
 }
 ```
 
-The root requires no `root`, `isRoot`, or module-type flag. Its status comes only from `app.configPath`.
+The root requires no `main`, `root`, `isRoot`, or module-type flag. Its role comes from `release.root` in a packed distribution or
+`xshell:app.configPath` in development hosting. The root module is the application for that release.
 
 ## Discovery and canonical identity
 

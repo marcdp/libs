@@ -107,12 +107,17 @@ JavaScript, CSS, Pages, and icons are served from those expanded resources.
 `DProjects.XShell pack --source ./app --output ./dist` publishes the application, its recursive module dependencies, and the XShell framework as
 independent immutable ZIP packages under `<output>/<id>/<version>.<hash>/`. The framework source comes from the resources shipped with the running
 DProjects.XShell tool; there is no `--xshell` argument or `modules.xshell` reference.
+The application is the root module selected by `release.root`; no authored `app` block, `main` flag, or separate application package is used.
+Pack also writes stable `dist/index.html` and `dist/sw.js` deployment entry files. `--app-base-path` defaults to empty, `--environment` defaults
+to `Production`, repeatable `--param key=value` supplies root parameters, and `--temp-base-path` defaults to `<app-base-path>/temp`.
 Module package directories contain `module.json` and `module.zip`, with `modules.<id>.assetsUrl = "url:./module.zip"` and
 `modules.<id>.files = [...]` in the descriptor. The `xshell/<version>.<hash>/` directory contains `xshell.json`, `bootstrap.js`, `sw.js`, and
 `xshell.zip`. Its published descriptor has `xshell.assetsUrl = "url:./xshell.zip"` and `xshell.files = [...]`.
 `bootstrap.js` and `sw.js` are exact canonical copies also retained inside the complete framework ZIP, allowing direct startup requests without
 creating separate package identities.
 The release manifest uses `root` for the application module, `xshell` for the framework, and `packages` for the complete immutable package set.
+The two entry files are outside `release.packages` and do not affect immutable package hashes. Bootstrap derives effective `config.app` from the root
+module metadata and deployment values.
 Both `files` arrays use the generated physical inventory. An existing package path is reused for the same representation and cannot be replaced
 by the other representation. ZIP packaging is implemented, but runtime ZIP-backed browser loading is not; deploy expanded resources for the current
 Service Worker.

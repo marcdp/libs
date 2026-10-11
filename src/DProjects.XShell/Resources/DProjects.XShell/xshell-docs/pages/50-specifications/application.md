@@ -1,21 +1,15 @@
 # Root Module and Application Metadata
 
-The application **is** the root module. The host's `xshell:app.configPath` points to its `module.jsonc`; no flag inside the file marks it as root.
-Bootstrap applies the same exactly-one-local-definition rule used for every module document.
+The application is the root module selected by a release. `release.root` names its packaged `module.json`; development hosting selects the same
+role through `xshell:app.configPath`. Any module can be selected as the root of a release. No `main`, `isRoot`, or `moduleType` field marks a module,
+and there is no separate authored application descriptor or application package.
 
 ```jsonc
 {
-    "app": {
-        "id": "example",
-        "label": "Example",
-        "copyright": "",
-        "icon": "",
-        "version": "0.1.0"
-    },
     "modules": {
         "app": {
-            "label": "Application module",
-            "version": "0.1.0",
+            "label": "Example",
+            "version": "1.0.0",
             "copyright": "",
             "icon": "",
             "defaults": {
@@ -41,20 +35,16 @@ Bootstrap applies the same exactly-one-local-definition rule used for every modu
 }
 ```
 
-`modules.app` is local because it has no `configUrl`. The other entries are dependency references. The root has the additional responsibility of
-application composition, and its references may contribute configuration just like child references. Every reference requires `configUrl`; no
-reference may override `assetsUrl`, though other configuration properties are allowed.
+`modules.app` is local because it has no `configUrl`. The other entries are dependency references. The root composes the application and its
+references may contribute configuration just like child references. Every reference requires `configUrl`; no reference may override `assetsUrl`.
+Dependencies merge first and the root merges last. The effective `modules` object contains full canonical definitions.
 
-The optional host `xshell:app.params` meta value becomes the local root definition's `params` and effective `app.params`. Bootstrap also supplies
-`app.basePath`. No `root`, `isRoot`, `moduleType`, separate root id, or separate application file format is required.
+Bootstrap constructs effective `config.app` from the selected root module's id, label, version, copyright, and icon, plus the bootstrap deployment
+basePath, baseUrl, and parameters. The optional `xshell:app.params` meta value becomes the root module's `params` and the same effective
+`config.app.params` value. The effective schema requires `app`, `modules`, and `xshell`; that requirement does not permit an authored top-level
+`app` object. Authored module and XShell descriptors containing one are rejected.
 
-Dependencies merge first and the root merges last. Root composition therefore has final authority. The effective `modules` object contains full
-canonical definitions, and `xshell.modules` creates one runtime instance per id.
+`xshell:app.configPath` is a bootstrap input, not an effective `app` field. Pack derives it from `release.root` when generating `index.html`.
+Pack also generates root `sw.js`; both are stable deployment entry files outside immutable packages and `release.packages`.
 
-See [Module Specification](module.md), [Bootstrap](../architecture/10-bootstrap.md), and [Areas](../subsystems/10-areas.md).
-
-## Application fields
-
-The effective `app` schema requires `id`, `label`, `copyright`, `icon`, `version`, `basePath`, and `params`. The example above is authored
-composition: host/bootstrap supply `basePath` and `params`. `app.configPath` is a bootstrap input, not an accepted effective `app` field.
-An application id is metadata independent of the local module key. Extra fields are rejected by the effective schema.
+See [Module Specification](module.md), [Bootstrap](../architecture/10-bootstrap.md), and [Packaging](../architecture/50-packaging.md).

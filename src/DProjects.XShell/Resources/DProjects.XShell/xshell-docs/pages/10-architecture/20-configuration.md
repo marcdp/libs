@@ -84,6 +84,8 @@ Every module configuration has exactly one local definition and zero or more ext
 
 `app` is local because it has no `configUrl`. `x` is a reference. Both root and child references may contribute `params` or other configuration
 to the canonical effective module.
+Authored module and framework descriptors do not contain a top-level `app` object. Bootstrap creates effective `config.app` from the root module
+selected by `release.root` or the development host, together with deployment base paths and root parameters.
 
 ## Effective configuration
 
