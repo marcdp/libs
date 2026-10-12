@@ -108,16 +108,20 @@ JavaScript, CSS, Pages, and icons are served from those expanded resources.
 independent immutable ZIP packages under `<output>/<id>/<version>.<hash>/`. The framework source comes from the resources shipped with the running
 DProjects.XShell tool; there is no `--xshell` argument or `modules.xshell` reference.
 The application is the root module selected by `release.root`; no authored `app` block, `main` flag, or separate application package is used.
-Pack also writes stable `dist/index.html` and `dist/sw.js` deployment entry files. `--app-base-path` defaults to empty, `--environment` defaults
+Pack puts `index.html` and application `sw.js` in the immutable root module generation. `--app-base-path` defaults to empty, `--environment` defaults
 to `Production`, repeatable `--param key=value` supplies root parameters, and `--temp-base-path` defaults to `<app-base-path>/temp`.
-Module package directories contain `module.json` and `module.zip`, with `modules.<id>.assetsUrl = "url:./module.zip"` and
+Dependency module directories contain `module.json` and `module.zip`; the root also contains `index.html` and `sw.js`. Each module has
+`modules.<id>.assetsUrl = "url:./module.zip"` and
 `modules.<id>.files = [...]` in the descriptor. The `xshell/<version>.<hash>/` directory contains `xshell.json`, `bootstrap.js`, `sw.js`, and
 `xshell.zip`. Its published descriptor has `xshell.assetsUrl = "url:./xshell.zip"` and `xshell.files = [...]`.
 `bootstrap.js` and `sw.js` are exact canonical copies also retained inside the complete framework ZIP, allowing direct startup requests without
 creating separate package identities.
 The release manifest uses `root` for the application module, `xshell` for the framework, and `packages` for the complete immutable package set.
-The two entry files are outside `release.packages` and do not affect immutable package hashes. Bootstrap derives effective `config.app` from the root
-module metadata and deployment values.
+The root startup files participate in the root hash and ZIP but are excluded from its `module.files.json`; they have no separate `release.packages`
+entries. Bootstrap derives effective `config.app` from the root module metadata and deployment values. Pack hashes a canonical root index with
+`__XSHELL_ROOT_HASH__` in its self-reference and publishes a loose index with the real hash. Startup settings and selected XShell generation can
+change the root hash while leaving dependency and XShell identities unchanged. Deployment may alias stable `/` and `/sw.js` public URLs to the
+generation selected by `release.root`.
 Both `files` arrays use the generated physical inventory. An existing package path is reused for the same representation and cannot be replaced
 by the other representation. ZIP packaging is implemented, but runtime ZIP-backed browser loading is not; deploy expanded resources for the current
 Service Worker.

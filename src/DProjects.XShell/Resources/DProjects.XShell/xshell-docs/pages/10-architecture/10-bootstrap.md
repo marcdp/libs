@@ -2,6 +2,8 @@
 
 The ASP.NET host or packed `index.html` writes `xshell:` meta values and loads the selected XShell generation's `bootstrap.js`.
 `xshell:app.configPath` points to the root module configuration document. The application is that root module for this release.
+For a packed release, `release.root` selects the immutable root generation containing `module.json`, `index.html`, and application `sw.js`.
+Deployment can map stable public application and worker URLs to the selected generation while retaining the versioned physical files.
 
 ```text
 host HTML

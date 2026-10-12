@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import test from "node:test";
@@ -118,9 +118,11 @@ test("pack discovers a dependency graph, rewrites references, and commits one co
         assert.equal(release.packages.filter(path => path === release.xshell).length, 1);
         assert.deepEqual(release.packages, [...release.packages].sort((a, b) => a < b ? -1 : a > b ? 1 : 0));
         assert.equal(release.packages.filter(path => path.startsWith("x/")).length, 1);
-        assert.deepEqual(readdirSync(output).filter(name => ["index.html", "sw.js", "release.json"].includes(name)).sort(), ["index.html", "release.json", "sw.js"]);
-        const index = readFileSync(join(output, "index.html"), "utf8");
-        const worker = readFileSync(join(output, "sw.js"), "utf8");
+        assert.equal(existsSync(join(output, "index.html")), false);
+        assert.equal(existsSync(join(output, "sw.js")), false);
+        const rootDirectory = join(output, dirname(release.root));
+        const index = readFileSync(join(rootDirectory, "index.html"), "utf8");
+        const worker = readFileSync(join(rootDirectory, "sw.js"), "utf8");
         assert.match(index, new RegExp(`content="/${release.root}"`));
         assert.match(index, new RegExp(`src="/${dirname(release.xshell)}/bootstrap\\.js"`));
         assert.match(index, /xshell:xshell.environment"\s+content="Production"/);
@@ -131,10 +133,22 @@ test("pack discovers a dependency graph, rewrites references, and commits one co
         for (const path of release.packages.filter(path => path !== release.xshell)) {
             const directory = join(output, dirname(path));
             const archive = entries(join(directory, "module.zip"));
-            assert.deepEqual(readdirSync(directory).sort(), ["module.json", "module.zip"]);
+            assert.deepEqual(readdirSync(directory).sort(), path === release.root ? ["index.html", "module.json", "module.zip", "sw.js"] : ["module.json", "module.zip"]);
             assert.equal(archive.has("module.json"), true);
             assert.equal(archive.has("module.jsonc"), false);
             assert.equal(archive.has("module.files.json"), true);
+            if (path === release.root) {
+                const canonicalIndex = archive.get("index.html").toString("utf8");
+                const hash = dirname(path).split(".").at(-1);
+                assert.equal(canonicalIndex.includes("__XSHELL_ROOT_HASH__"), true);
+                assert.equal(index, canonicalIndex.replaceAll("__XSHELL_ROOT_HASH__", hash));
+                assert.equal(index.includes("__XSHELL_ROOT_HASH__"), false);
+                assert.deepEqual(readFileSync(join(directory, "sw.js")), archive.get("sw.js"));
+                assert.equal(JSON.parse(archive.get("module.files.json")).some(file => ["/index.html", "/sw.js"].includes(file.path)), false);
+            } else {
+                assert.equal(archive.has("index.html"), false);
+                assert.equal(archive.has("sw.js"), false);
+            }
             assert.equal(contentHash(archive), dirname(path).split(".").at(-1));
             const canonical = JSON.parse(archive.get("module.json")).modules[path.split("/")[0]];
             assert.equal(canonical.hash, "");
@@ -163,6 +177,7 @@ test("pack discovers a dependency graph, rewrites references, and commits one co
         assert.equal(frameworkArchive.has("module.files.json"), true);
         assert.equal(frameworkArchive.has("bootstrap.js"), true);
         assert.equal(frameworkArchive.has("sw.js"), true);
+        assert.equal(JSON.parse(frameworkArchive.get("module.files.json")).some(file => file.path === "/sw.js"), true);
         assert.equal(frameworkArchive.has("xshell.js"), true);
         assert.equal(frameworkArchive.has("xshell.jsonc"), false);
         for (const name of ["bootstrap.js", "sw.js"]) {
@@ -187,6 +202,7 @@ test("pack discovers a dependency graph, rewrites references, and commits one co
         const priorPackages = new Map(release.packages.map(path => [path, {
             descriptor: readFileSync(join(output, path)), zip: readFileSync(archivePath(output, path))
         }]));
+        const priorRootStartup = ["index.html", "sw.js"].map(name => [name, readFileSync(join(rootDirectory, name))]);
         const originalFrameworkFiles = ["bootstrap.js", "sw.js"].map(name => [name, readFileSync(join(frameworkDirectory, name))]);
         writeFileSync(join(output, "release.json"), JSON.stringify({ ...release, createdAt: "2000-01-01T00:00:00Z" }));
         module(join(sources, "customers"), "customers", {}, { builtAt: "2030-01-01T00:00:00Z" });
@@ -201,6 +217,7 @@ test("pack discovers a dependency graph, rewrites references, and commits one co
             assert.deepEqual(readFileSync(archivePath(output, path)), priorPackages.get(path).zip);
         }
         for (const [name, bytes] of originalFrameworkFiles) assert.deepEqual(readFileSync(join(frameworkDirectory, name)), bytes);
+        for (const [name, bytes] of priorRootStartup) assert.deepEqual(readFileSync(join(rootDirectory, name)), bytes);
         const otherOutput = join(root, "another-dist");
         const otherRelease = successfulPack(join(sources, "app"), otherOutput);
         assert.deepEqual(otherRelease.packages, release.packages);
@@ -209,6 +226,7 @@ test("pack discovers a dependency graph, rewrites references, and commits one co
         for (const path of release.packages) {
             assert.deepEqual(readFileSync(archivePath(output, path)), readFileSync(archivePath(otherOutput, path)));
         }
+        for (const [name, bytes] of priorRootStartup) assert.deepEqual(readFileSync(join(otherOutput, dirname(release.root), name)), bytes);
         for (const [name, bytes] of originalFrameworkFiles) {
             assert.deepEqual(readFileSync(join(otherOutput, dirname(release.xshell), name)), bytes);
         }
@@ -464,6 +482,35 @@ test("XShell bootstrap copies must remain complete and unchanged on reuse", () =
     }
 });
 
+test("root startup copies and exact package representation are required for immutable reuse", () => {
+    const root = fixture();
+    try {
+        const source = join(root, "app");
+        const output = join(root, "dist");
+        module(source, "app");
+        const release = successfulPack(source, output);
+        const committed = readFileSync(join(output, "release.json"), "utf8");
+        const directory = join(output, dirname(release.root));
+        for (const name of ["index.html", "sw.js"]) {
+            const path = join(directory, name);
+            const original = readFileSync(path);
+            writeFileSync(path, "modified");
+            assert.match(pack(source, output).stderr, /collides with different or damaged content/);
+            assert.equal(readFileSync(join(output, "release.json"), "utf8"), committed);
+            writeFileSync(path, original);
+            rmSync(path);
+            assert.match(pack(source, output).stderr, /incomplete or unrecognized representation/);
+            assert.equal(readFileSync(join(output, "release.json"), "utf8"), committed);
+            writeFileSync(path, original);
+        }
+        writeFileSync(join(directory, "extra.txt"), "unexpected");
+        assert.match(pack(source, output).stderr, /incomplete or unrecognized representation/);
+        assert.equal(readFileSync(join(output, "release.json"), "utf8"), committed);
+    } finally {
+        rmSync(root, { recursive: true, force: true });
+    }
+});
+
 test("reuse rejects invalid build times and changed external metadata without changing the release", () => {
     const root = fixture();
     try {
@@ -577,20 +624,28 @@ test("concurrent publication attempts preserve a complete release", async () => 
     }
 });
 
-test("deployment bootstrap options change entry files without changing package identities", () => {
+test("deployment bootstrap options create distinct root generations without changing dependency or XShell identities", () => {
     const root = fixture();
     try {
         const source = join(root, "app");
         const output = join(root, "dist");
-        module(source, "app");
+        const child = join(root, "child");
+        module(child, "child");
+        module(source, "app", { child: { configUrl: "url:../child/module.jsonc" } });
         const original = successfulPack(source, output);
-        const packed = successfulPack(source, output, ["--app-base-path", "/demo", "--environment", "Staging",
+        const originalDependency = original.packages.find(path => path.startsWith("child/"));
+        const check = args => {
+            const release = successfulPack(source, output, args);
+            assert.notEqual(release.root, original.root);
+            assert.equal(release.xshell, original.xshell);
+            assert.equal(release.packages.find(path => path.startsWith("child/")), originalDependency);
+            return release;
+        };
+        const packed = check(["--app-base-path", "/demo", "--environment", "Staging",
             "--param", "tenant=acme & co", "--param", "mode=a=b", "--temp-base-path", "/uploads"]);
-        assert.equal(packed.root, original.root);
-        assert.equal(packed.xshell, original.xshell);
-        assert.deepEqual(packed.packages, original.packages);
-        const index = readFileSync(join(output, "index.html"), "utf8");
-        const worker = readFileSync(join(output, "sw.js"), "utf8");
+        const rootDirectory = join(output, dirname(packed.root));
+        const index = readFileSync(join(rootDirectory, "index.html"), "utf8");
+        const worker = readFileSync(join(rootDirectory, "sw.js"), "utf8");
         assert.ok(index.includes(`content="/demo/${packed.root}"`));
         assert.ok(index.includes(`src="/demo/${dirname(packed.xshell)}/bootstrap.js"`));
         assert.match(index, /xshell:app.basePath"\s+content="\/demo"/);
@@ -598,15 +653,67 @@ test("deployment bootstrap options change entry files without changing package i
         assert.match(index, /xshell:xshell.temp.url"\s+content="\/uploads"/);
         assert.match(index, /tenant=acme%20%26%20co&amp;mode=a%3Db/);
         assert.ok(worker.includes(`importScripts("/demo/${dirname(packed.xshell)}/sw.js")`));
-        const defaultTemp = successfulPack(source, output, ["--app-base-path", "/demo"]);
-        assert.equal(defaultTemp.root, original.root);
-        assert.match(readFileSync(join(output, "index.html"), "utf8"), /xshell:xshell.temp.url"\s+content="\/demo\/temp"/);
+        const defaultTemp = check(["--app-base-path", "/demo"]);
+        assert.match(readFileSync(join(output, dirname(defaultTemp.root), "index.html"), "utf8"), /xshell:xshell.temp.url"\s+content="\/demo\/temp"/);
+        for (const args of [["--environment", "Staging"], ["--param", "tenant=other"], ["--temp-base-path", "/uploads"]]) check(args);
+        const canonical = entries(archivePath(output, packed.root));
+        const canonicalIndex = canonical.get("index.html").toString("utf8");
+        assert.equal(canonicalIndex.includes("/demo/app/1.0.0.__XSHELL_ROOT_HASH__/module.json"), true);
+        assert.equal(index.includes(`/demo/app/1.0.0.${dirname(packed.root).split(".").at(-1)}/module.json`), true);
+        assert.equal(contentHash(canonical), dirname(packed.root).split(".").at(-1));
+        assert.equal(index, canonicalIndex.replaceAll("__XSHELL_ROOT_HASH__", dirname(packed.root).split(".").at(-1)));
+        const before = {
+            descriptor: readFileSync(join(output, packed.root)), index: readFileSync(join(rootDirectory, "index.html")),
+            worker: readFileSync(join(rootDirectory, "sw.js")), zip: readFileSync(archivePath(output, packed.root))
+        };
+        const repeated = successfulPack(source, output, ["--app-base-path", "/demo", "--environment", "Staging",
+            "--param", "tenant=acme & co", "--param", "mode=a=b", "--temp-base-path", "/uploads"]);
+        assert.equal(repeated.root, packed.root);
+        assert.deepEqual(readFileSync(join(output, packed.root)), before.descriptor);
+        assert.deepEqual(readFileSync(join(rootDirectory, "index.html")), before.index);
+        assert.deepEqual(readFileSync(join(rootDirectory, "sw.js")), before.worker);
+        assert.deepEqual(readFileSync(archivePath(output, packed.root)), before.zip);
+        const otherOutput = join(root, "another-dist");
+        const elsewhere = successfulPack(source, otherOutput, ["--app-base-path", "/demo", "--environment", "Staging",
+            "--param", "tenant=acme & co", "--param", "mode=a=b", "--temp-base-path", "/uploads"]);
+        assert.equal(elsewhere.root, packed.root);
+        assert.equal(elsewhere.xshell, packed.xshell);
+        assert.deepEqual(readFileSync(archivePath(otherOutput, elsewhere.root)), before.zip);
+        for (const name of ["index.html", "sw.js"]) assert.deepEqual(readFileSync(join(otherOutput, dirname(elsewhere.root), name)), before[name === "index.html" ? "index" : "worker"]);
+        assert.equal(existsSync(join(output, "index.html")), false);
+        assert.equal(existsSync(join(output, "sw.js")), false);
     } finally {
         rmSync(root, { recursive: true, force: true });
     }
 });
 
-test("authored app metadata and failed entry-file publication do not commit a release", () => {
+test("a new bundled XShell generation changes the root while preserving dependencies", () => {
+    const root = fixture();
+    try {
+        const source = join(root, "app");
+        const child = join(root, "child");
+        const output = join(root, "dist");
+        module(child, "child");
+        module(source, "app", { child: { configUrl: "url:../child/module.jsonc" } });
+        const before = successfulPack(source, output);
+        const copy = join(root, "tool-copy");
+        cpSync(dirname(assemblyPath), copy, { recursive: true });
+        const worker = join(copy, "Resources", "DProjects.XShell", "xshell", "sw.js");
+        writeFileSync(worker, readFileSync(worker, "utf8") + "\n// changed generation\n");
+        const result = spawnSync("dotnet", [join(copy, "DProjects.XShell.dll"), "pack", "--source", source, "--output", output],
+            { encoding: "utf8", cwd: source });
+        assert.equal(result.status, 0, result.stdout + result.stderr);
+        const after = JSON.parse(readFileSync(join(output, "release.json"), "utf8"));
+        assert.notEqual(after.xshell, before.xshell);
+        assert.notEqual(after.root, before.root);
+        assert.equal(after.packages.find(path => path.startsWith("child/")), before.packages.find(path => path.startsWith("child/")));
+        assert.match(readFileSync(join(output, dirname(after.root), "sw.js"), "utf8"), new RegExp(dirname(after.xshell).replaceAll(".", "\\.") + "/sw\\.js"));
+    } finally {
+        rmSync(root, { recursive: true, force: true });
+    }
+});
+
+test("authored app metadata and invalid options do not commit a release", () => {
     const root = fixture();
     try {
         const source = join(root, "app");
@@ -614,25 +721,18 @@ test("authored app metadata and failed entry-file publication do not commit a re
         module(source, "app");
         const original = successfulPack(source, output);
         const committed = readFileSync(join(output, "release.json"), "utf8");
-        const index = readFileSync(join(output, "index.html"), "utf8");
-        const worker = readFileSync(join(output, "sw.js"), "utf8");
+        const index = readFileSync(join(output, dirname(original.root), "index.html"), "utf8");
+        const worker = readFileSync(join(output, dirname(original.root), "sw.js"), "utf8");
         writeFileSync(join(source, "module.jsonc"), JSON.stringify({ app: { label: "obsolete" }, modules: { app: { version: "1.0.0" } } }));
         assert.match(pack(source, output).stderr, /must not define top-level app/);
         assert.equal(readFileSync(join(output, "release.json"), "utf8"), committed);
-        assert.equal(readFileSync(join(output, "index.html"), "utf8"), index);
-        assert.equal(readFileSync(join(output, "sw.js"), "utf8"), worker);
+        assert.equal(readFileSync(join(output, dirname(original.root), "index.html"), "utf8"), index);
+        assert.equal(readFileSync(join(output, dirname(original.root), "sw.js"), "utf8"), worker);
         for (const args of [["--app-base-path", "//wrong"], ["--temp-base-path", "relative"], ["--param", "missing-equals"]]) {
             assert.notEqual(pack(source, output, args).status, 0);
             assert.equal(readFileSync(join(output, "release.json"), "utf8"), committed);
         }
 
-        module(source, "app");
-        const blockedOutput = join(root, "blocked-dist");
-        mkdirSync(blockedOutput);
-        mkdirSync(join(blockedOutput, "sw.js"));
-        assert.match(pack(source, blockedOutput).stderr, /Failed to commit XShell distribution/);
-        assert.equal(existsSync(join(blockedOutput, "release.json")), false);
-        assert.equal(existsSync(join(blockedOutput, "index.html")), false);
         assert.equal(original.root.startsWith("app/"), true);
     } finally {
         rmSync(root, { recursive: true, force: true });

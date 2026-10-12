@@ -16,13 +16,17 @@ namespace DProjects.XShell.Services {
         public Task<string> CreateJsonAsync(string path) {
             return CreateJsonAsync(path, CancellationToken.None);
         }
-        public async Task<string> CreateJsonAsync(string path, CancellationToken cancellationToken) {
+        public Task<string> CreateJsonAsync(string path, CancellationToken cancellationToken) {
+            return CreateJsonAsync(path, cancellationToken, null);
+        }
+        public async Task<string> CreateJsonAsync(string path, CancellationToken cancellationToken, IReadOnlySet<string>? excludedPaths) {
             // scan
             var files = new List<FileIndexItem>();
             foreach (var file in Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories)) {
                 cancellationToken.ThrowIfCancellationRequested();
                 var relativePath = Path.GetRelativePath(path, file);
-                if (relativePath.Equals(ModuleFilesJson, StringComparison.OrdinalIgnoreCase) ||
+                if ((excludedPaths?.Contains("/" + relativePath.Replace('\\', '/')) ?? false) ||
+                    relativePath.Equals(ModuleFilesJson, StringComparison.OrdinalIgnoreCase) ||
                     relativePath.Equals("module.json", StringComparison.OrdinalIgnoreCase) ||
                     relativePath.Equals("xshell.json", StringComparison.OrdinalIgnoreCase)) {
                     continue;

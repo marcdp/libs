@@ -44,7 +44,11 @@ basePath, baseUrl, and parameters. The optional `xshell:app.params` meta value b
 `config.app.params` value. The effective schema requires `app`, `modules`, and `xshell`; that requirement does not permit an authored top-level
 `app` object. Authored module and XShell descriptors containing one are rejected.
 
-`xshell:app.configPath` is a bootstrap input, not an effective `app` field. Pack derives it from `release.root` when generating `index.html`.
-Pack also generates root `sw.js`; both are stable deployment entry files outside immutable packages and `release.packages`.
+`xshell:app.configPath` is a bootstrap input, not an effective `app` field. Pack derives it from `release.root` when generating the root package's
+`index.html`. The containing root generation also owns the application `sw.js`, so `release.root` selects the module descriptor and complete
+immutable startup generation. Both files participate in the root hash and ZIP, but are excluded from its module resource inventory and from
+`release.packages` as separate entries. The canonical index uses `__XSHELL_ROOT_HASH__` for its own config path during hashing; the published
+loose index substitutes the real hash. Startup settings and selected XShell generation can change the root identity without changing dependencies.
+Stable public application and worker URLs, when required, are deployment aliases to the selected root generation.
 
 See [Module Specification](module.md), [Bootstrap](../architecture/10-bootstrap.md), and [Packaging](../architecture/50-packaging.md).

@@ -32,8 +32,8 @@ Only local filesystem source definitions are supported. A `url:../other/module.j
 Remote HTTP(S), `app:`, and deployment-root references fail clearly because the packer has no authenticated remote package fetch and integrity
 verification mechanism. It does not recompile remote immutable packages or omit unsupported dependencies.
 
-Modules are built in topological order, with dependencies before consumers. The framework is built separately from the bundled resources and is not
-merged into the application module. Each module package retains its own local definition and its own dependency
+Dependency modules are built in topological order, followed by the bundled XShell framework and finally the selected root module. The framework
+is not merged into the application module. Each module package retains its own local definition and its own dependency
 references and reference contributions. The packer changes only each dependency's `configUrl` to the definitive packaged descriptor, such as
 `url:../../customers/1.2.0.<hash>/module.json`. The relative URL works regardless of where the distribution is deployed. Original source
 descriptors are never edited.
@@ -52,6 +52,13 @@ It includes the canonical descriptor, inventory, and final rewritten references.
 ZIP entries are written in sorted order with a fixed timestamp, so the archive bytes are also reproducible for the same canonical tree.
 Changing a dependency identity can change its consumers' hashes. Unchanged packages keep their identities and are reused after the existing
 archive and external descriptor pass integrity checks. Existing immutable packages are never overwritten.
+
+The root role is assigned only for this pack operation. A module built as a dependency has `module.json` and `module.zip`; the same source selected
+as the root also receives generated `index.html` and `sw.js` in its canonical tree and published directory. The generated startup files, selected
+XShell generation, application base path, environment, parameters, and temp base path therefore affect the root hash. Dependency and XShell hashes
+remain independent of root startup settings. The canonical root index uses `__XSHELL_ROOT_HASH__` in its own config path during hashing; only the
+published loose index substitutes the resulting root hash. The canonical index inside `module.zip` retains the placeholder. The canonical and
+published root `sw.js` are byte-identical and import the selected XShell worker.
 
 | Property | Location | Meaning |
 | --- | --- | --- |
@@ -88,14 +95,14 @@ A committed output has this structure:
 
 ```text
 dist/
-  index.html
-  sw.js
   release.json
   xshell/0.9.0.<hash>/xshell.json
   xshell/0.9.0.<hash>/bootstrap.js
   xshell/0.9.0.<hash>/sw.js
   xshell/0.9.0.<hash>/xshell.zip
   app/1.0.0.<hash>/module.json
+  app/1.0.0.<hash>/index.html
+  app/1.0.0.<hash>/sw.js
   app/1.0.0.<hash>/module.zip
   orders/2.0.0.<hash>/module.json
   orders/2.0.0.<hash>/module.zip
@@ -108,7 +115,8 @@ published beside the ZIP as exact byte copies of their canonical versions becaus
 The loose copies introduce no separate package identity or inventory entries: the canonical tree determines the one XShell hash. `release.xshell`
 identifies this four-file package through its published `xshell.json` descriptor.
 
-`release.json` is the authoritative commit record. Its `root` field identifies the application module; `xshell` identifies the exact framework
+`release.json` is the authoritative commit record. Its `root` field identifies both the application module descriptor and its complete startup
+generation in the containing directory; `xshell` identifies the exact framework
 descriptor; and its package-id-sorted `packages` array lists the complete immutable package set. A standalone XShell pack sets `root` and `xshell`
 to the same descriptor and lists it once. `createdAt` records the successful distribution commit, independently of package
 build times. A new release may reuse packages built months earlier. For example:
@@ -126,30 +134,28 @@ build times. A new release may reuse packages built months earlier. For example:
 }
 ```
 
-The stable `index.html` points `xshell:app.configPath` to `/demo/app/1.0.0.<hash>/module.json` and loads
-`/demo/xshell/0.9.0.<hash>/bootstrap.js`. The stable root `sw.js` imports `/demo/xshell/0.9.0.<hash>/sw.js`; bootstrap registers the root worker
-with `/demo/` scope. These URLs come from the definitive package identities and the application base path. The entry files are neither packages
-nor members of `release.packages`, and deployment settings do not change root module or XShell hashes.
+The published root `index.html` points `xshell:app.configPath` to `/demo/app/1.0.0.<hash>/module.json` and loads
+`/demo/xshell/0.9.0.<hash>/bootstrap.js`. Its `sw.js` imports `/demo/xshell/0.9.0.<hash>/sw.js`; bootstrap registers the application worker
+at `/demo/sw.js` for `/demo/` scope. A deployment host can read `release.root`, take its directory, and serve stable public `/demo/` and
+`/demo/sw.js` URLs as aliases to that generation's `index.html` and `sw.js`. Pack only creates the immutable physical files. The startup files
+are part of the root package rather than separate entries in `release.packages`.
 
 Consumers should read `release.json` to select a distribution, then resolve
 its paths within the same output directory. Package directories outside the manifest are uncommitted and may be left by an interrupted publish.
 
-The build has three phases: full graph discovery and validation, private staging of all ZIP packages and application entry files, then publication.
+The build has three phases: full graph discovery and validation, private staging of dependency, XShell, and root ZIP packages, then publication.
 An exclusive `.pack.lock` file serializes concurrent commits and is removed as the final publication operation while its exclusive handle is held.
-The command moves immutable packages to their final paths, verifies any existing identities, and prepares a complete temporary release manifest.
-It then replaces the generated entry files from complete temporary files, with backups used to restore previous files if replacement fails, and
-finally installs `release.json`. A failed build or entry-file publication does not select a new release. Previously published and newly moved
-immutable packages are left intact.
-
-Each entry-file replacement and the final manifest replacement is atomic individually on a filesystem with same-volume rename and replacement
-semantics. The three files are not a single atomic transaction; readers may briefly observe mixed entry files during publication. The staging
-directory is created beside `--output` to keep package moves on the same filesystem.
+The command moves immutable packages to their final paths, verifies any existing identities, and installs `release.json` last. A failed build or
+package validation does not select a new release. Previously published and newly moved immutable packages are left intact. The staging directory
+is created beside `--output` to keep package moves on the same filesystem.
 
 ## Module file inventory
 
 `FilesIndexer` records compiled runtime resources, excluding `module.files.json`, `module.json`, and `xshell.json`. Each entry contains a
 package-relative path, byte size, and lowercase SHA-256 hash. Paths start with `/`, use forward slashes, and are sorted ordinally.
 Bootstrap loads this physical inventory through the virtual resource namespace after Service Worker initialization.
+For the root module only, the inventory also excludes `/index.html` and `/sw.js`: these startup files remain in the hash and ZIP, but are served
+as application startup resources rather than virtual `/_assets/...` module resources. XShell's own `sw.js` remains in its inventory.
 
 Packaging creates distribution artifacts; deployment and browser runtime loading are separate concerns. The current Service Worker supports
 expanded physical resources and does not load ZIP archives directly. The packer does not upload artifacts or implement deployment.
