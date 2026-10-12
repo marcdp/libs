@@ -12,8 +12,7 @@ export default {
         title: "Debug"
     },
     style: `
-        x-tabs {width: 80em; max-width:90vw; }
-        _:scope {max-height:60vh; overflow-y:auto;}
+        x-tabs {width: 85em; max-width:90vw; }
     `,
     template: `
         <x-tabs use-hash="true">

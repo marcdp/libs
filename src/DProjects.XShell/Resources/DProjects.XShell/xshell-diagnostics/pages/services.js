@@ -78,7 +78,7 @@ export default {
                     const description = item.description || (item.url
                         ? `Configured service (${item.implementationName || "implementation"}).`
                         : "Runtime service.");
-                    const moduleId = item.moduleId || (item.url ? "-" : "runtime");
+                    const moduleId = item.moduleId || (item.url ? "-" : "xshell");
                     let valid = true;
                     if (state.id && !item.id.includes(state.id)) {
                         valid = false;
@@ -97,7 +97,7 @@ export default {
                             serviceId: item.id,
                             icon: item.icon || "x-service",
                             contractUrl: item.contractUrl,
-                            contractId: contractId || "-",
+                            contractId: contractId || "",
                             description: description,
                             moduleId: moduleId,
                             url: item.url,
