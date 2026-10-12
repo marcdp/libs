@@ -1,4 +1,4 @@
-import { probablyPhone } from "../utils/dom.js";
+import { probablyPhone, getScrollbarWidth } from "../utils/dom.js";
 import { findObjectsPath } from "../utils/object.js";
 
 // contract
@@ -133,9 +133,8 @@ export default {
                 align-self: flex-start;
                 z-index:1;
                 background:var(--x-layout-main-drawer-background);
-                __border-right: var(--x-layout-main-border);
             }
-            .body .menu {overflow: auto;scrollbar-width: none;}
+            .body .menu {overflow:auto; scrollbar-width: none;}
             .body .menu::-webkit-scrollbar {width: 0;height: 0;}
             .body .menu:hover {scrollbar-width: thin;}
             .body .menu:hover::-webkit-scrollbar {width: 8px;height: 8px;}
@@ -305,7 +304,7 @@ export default {
     controller({ state, events, areas, bus, getPage, host }) {
         return {
             async load(params) {
-                //load
+                // toggled
                 state.toggled = false; //xshell.settings.getItem("x-layout-main.toggled", false);
                 // auto close menu on navigation start (mobile)
                 events.on(bus, "xshell:navigation:start", (e) => {
@@ -323,6 +322,10 @@ export default {
             },
 
             async mount(params) {
+
+                // refresh css variables
+                this.refreshCssVariables();
+
                 // refresh
                 this.refresh();
 
@@ -340,6 +343,12 @@ export default {
                 updateMenuHeight();
             },
 
+            async refreshCssVariables() {
+                // refresh CSS variables related to the layout, such as scrollbar width
+                const scrollbarWidth = getScrollbarWidth();
+                document.documentElement.style.setProperty('--x-scrollbar-width-pixels', `${Math.max(0,scrollbarWidth)}px`);
+            },
+            
             async refresh(params) {
                 //refresh
                 const page  = getPage();

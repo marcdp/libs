@@ -359,11 +359,15 @@ class XPage extends HTMLElement {
         this.dispatchEvent(new CustomEvent("close", { composed: true }));
     }
     async removePage() {
+        // try to close the layout if it exists
+        let layoutElement = this.shadowRoot.firstChild;
+        if (layoutElement && layoutElement.controller.close) {
+            await layoutElement.controller.close();
+        }
         // destroy current page before the host is removed permanently
         await this.unmount();
         await this.unload();
         //remove dom element
-        let layoutElement = this.shadowRoot.firstChild;
         let removeHandler = ()=> {
             this.remove();
         };

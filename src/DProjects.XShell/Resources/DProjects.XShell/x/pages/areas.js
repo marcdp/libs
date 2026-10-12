@@ -34,14 +34,14 @@ export default {
     },
     controller({ state, events, bus, areas }) {
         return {
-            load(params) {
+            load() {
                 // load
                 events.on(bus, "xshell:area:change", "refresh");
                 state.areas = areas.getAreas();
                 this.refresh();
             },
 
-            refresh(params) {
+            refresh() {
                 // refresh selected area
                 let currentArea = areas.getCurrentArea();
                 if (currentArea) {

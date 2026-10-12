@@ -236,6 +236,9 @@ export async function createComponentClassFromJsDefinition(src, context, impleme
         static get contract() { 
             return contract;
         }
+        get controller() {
+            return this._controller;
+        }
         // ctor
         constructor() {
             super();

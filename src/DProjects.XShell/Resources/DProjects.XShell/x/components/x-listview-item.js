@@ -88,7 +88,7 @@ export default {
 
     `,
     template: `
-        <x-anchor x-attr:href="state.href" x-attr:target="state.target" x-attr:class="'plain block ' + state.view" x-attr:title="state.description" x-prop:breadcrumb="state.breadcrumb" x-attr:open="state.open" x-attr:category="state.category">
+        <x-anchor x-attr:href="state.href" x-attr:target="state.target" x-attr:class="'plain block ' + state.view" x-prop:breadcrumb="state.breadcrumb" x-attr:open="state.open" x-attr:category="state.category">
             <x-icon x-attr:icon="state.icon || 'x-file'"></x-icon>
             <span class="label" x-text="state.label"></span>
             <span class="description" x-text="state.description"></span>

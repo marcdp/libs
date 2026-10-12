@@ -107,5 +107,26 @@ export function findFocusableElement(element) {
     return null;
 }    
 export function probablyPhone() {
-    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    // Determine if the current device is likely a phone
+    return /Android|webOS|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}
+
+export function getScrollbarWidth() {
+    // Calculate the width of the scrollbar for the current document
+    const root = document.documentElement;
+    const scrollbarWidth = getComputedStyle(root).scrollbarWidth;
+    const element = document.createElement("div");
+    Object.assign(element.style, {
+        position: "absolute",
+        top: "-9999px",
+        width: "100px",
+        height: "100px",
+        overflow: "scroll",
+        scrollbarWidth: scrollbarWidth,
+        visibility: "hidden"
+    });
+    document.body.appendChild(element);
+    const width = element.offsetWidth - element.clientWidth;
+    element.remove();
+    return width;
 }

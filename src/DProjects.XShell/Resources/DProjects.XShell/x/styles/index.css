@@ -17,7 +17,7 @@
 
     /* general */
     --x-transition-duration:250ms;
-
+    
     /* x-colors */
     --x-color-primary:#006CE0;
     --x-color-primary-dark:#005CD0;
@@ -88,11 +88,24 @@
     --x-markdown-code-color:#C7254E;
     --x-markdown-code-background:#F9F2F4;
     --x-markdown-pre-background:#F8F8F8;
+
+    /* x-scrollbar */
+    --x-scrollbar-width: thin;
+    --x-scrollbar-width-pixels: 0px;
+    --x-scrollbar-gutter: stable;
+
+
 }  
 :root[data-theme="dark"] {
     color-scheme: dark;
 }
 
+@media only screen and (min-width: 764px) {
+    :root {
+        scrollbar-width: var(--x-scrollbar-width);
+        scrollbar-gutter: var(--x-scrollbar-gutter);
+    }
+}
 @media only screen and (max-width: 768px) {
     :root {
         --x-page-padding-left:1.5em;
@@ -112,20 +125,17 @@ html {
     font-family:var(--x-font-family);
     font-size:var(--x-font-size);
     color:var(--x-color-text);   
-    scrollbar-width: var(--x-scrollbar-width);
-    scrollbar-gutter: var(--x-scrollbar-gutter);
+    scrollbar-gutter: stable;
 }
 html:has(body > x-page[layout='stack']) {
     scrollbar-gutter: auto;
-    overflow-y: hidden;
+    overflow-y: hidden;    
+    padding-right: var(--x-scrollbar-width-pixels);
 }
 html:has(body > x-page > x-fill) {
     scrollbar-gutter: auto;
     overflow: hidden;
 }
-
-
-
 :not(:defined) {
     visibility: hidden;
 }
@@ -164,19 +174,10 @@ x-markdown blockquote > p {margin:1em 0;}
 x-markdown code {padding:.5em .75em; font-size:90%; color:var(--x-markdown-code-color); background-color:var(--x-markdown-code-background); border-radius:4px;}
 x-markdown a {color:var(--x-color-primary); text-decoration:none;}
 x-markdown a:hover {text-decoration:underline;}
-x-markdown pre code {
-    display:block;
-    font-size:inherit;
-    color:inherit;
-    white-space:pre-wrap;
-    background-color:var(--x-markdown-pre-background);
-    border-radius:var(--x-datafield-border-radius);
-    border:var(--x-datafield-border);
-    padding:1em;
-}
+x-markdown pre code {display:block;font-size:inherit;color:inherit;white-space:pre-wrap;background-color:var(--x-markdown-pre-background);border-radius:var(--x-datafield-border-radius);border:var(--x-datafield-border);padding:1em;}
 x-markdown table {width:100%; border-collapse:collapse; margin:1em 0; }
 x-markdown table th, x-markdown table td {border:1px solid var(--x-color-gray); padding:.5em; text-align:left;}
-x-page[layout='main'] > x-markdown:first-child > h1:first-child {display:none;}
+___x-page[layout='main'] > x-markdown:first-child > h1:first-child {display:none;}
 
 .x-toast-container {position: absolute; top: 1em; right: 1em; width: min(30em, calc(100vw - 2em)); z-index: 1000; pointer-events: none;}
 .x-toast-container > x-notice { pointer-events: auto;}
@@ -355,10 +356,6 @@ x-page[layout='main'] > x-markdown:first-child > h1:first-child {display:none;}
     --x-progress-height: var(--x-loading-height);
     --x-progress-color: var(--x-loading-color);
     --x-progress-background: #cccccc;
-
-    /* x-scrollbar */
-    --x-scrollbar-width: thin;
-    --x-scrollbar-gutter: stable;
 
     /* x-skeleton */
     --x-skeleton-background: var(--x-color-xxxx-gray);

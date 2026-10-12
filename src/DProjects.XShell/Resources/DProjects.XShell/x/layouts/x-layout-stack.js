@@ -51,6 +51,8 @@ export default {
             right: 0;
             width:80vw;
             overflow:auto;
+            scrollbar-width: var(--x-scrollbar-width);
+            scrollbar-gutter: var(--x-scrollbar-gutter);
             width:var(--x-layout-stack-width);
             height: unset;
             margin-right:0;
@@ -85,7 +87,7 @@ export default {
         @media (max-width: 768px) {
             :host {
                 --x-layout-stack-width:100vw;
-                --x-layout-stack-border-radius: none;
+                --x-layout-stack-border-radius: 0;
                 --x-layout-stack-shadow: none;
                 --x-layout-stack-border: none;
             }
@@ -110,14 +112,12 @@ export default {
             </div>
         </div>
     `,
-    controller({ state, events, bus, getPage, runtime, host }) {
+    controller({ state, runtime, host }) {
+        let resolveClose = null;
         return {
             load() {
                 //load
-                //this.render();
-                host.shadowRoot.addEventListener("transitionend", () => this.transitionEnd());
-                const msSinceLoad = runtime.uptimeMs;
-                if (msSinceLoad < 500) {
+                if (runtime.uptimeMs < 500) {
                     state.expanded = true;
                 } else {
                     setTimeout(() => {
@@ -126,25 +126,29 @@ export default {
                 }
             },
 
-            transitionEnd() {
+            transitionEnd({ event }) {
                 //transition end
-                if (!state.expanded) {
-                    let page = getPage();
-                    page.close();
+                if (!state.expanded && event.target === event.currentTarget && event.propertyName === "transform") {
+                    resolveClose?.();
+                    resolveClose = null;
                 }
             },
 
             queryClose() {
-                //query close
+                //query close (send event to host, informing the a page close has been requested)
                 host.dispatchEvent(new CustomEvent("queryClose", { composed: true }));
             },
+            async close() {
+                // Create the Promise before triggering the transition
+                const transitionCompleted = new Promise(resolve => {
+                    resolveClose = resolve;
+                });
 
-            unload() {
-                //unload
-                return () => {
-                    state.expanded = false;
-                };
-            }
+                state.expanded = false;
+
+                // Wait until transitionEnd resolves the Promise
+                await transitionCompleted;
+            },            
         }
     }
 }
