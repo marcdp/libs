@@ -46,7 +46,7 @@ and standalone CSS through `ModuleFileCompiler`, then generates `module.files.js
 HTML and JavaScript runtime paths fail. Framework resources remain uncompiled under the existing framework convention.
 
 Each canonical archive contains the compiled tree, `module.files.json`, and a descriptor whose own generated `hash` is empty. The external
-descriptor beside the ZIP has the calculated hash, `assetsUrl = "url:./module.zip"` (or `xshell.zip`), the physical file inventory, and `builtAt`.
+descriptor beside the ZIP has the calculated hash, `assets.url = "url:./module.zip"` (or `xshell.zip`), the physical file inventory, and `builtAt`.
 Both descriptors contain the same rewritten dependency references. The archive is created before external publication metadata is added. Any
 authored `builtAt` is removed from canonical module or framework definitions before hashing.
 
@@ -84,7 +84,7 @@ For example, a published `customers/1.2.0.a83f92c1d4567890/module.json` may cont
       "version": "1.2.0",
       "hash": "a83f92c1d4567890",
       "builtAt": "2026-10-11T15:30:00Z",
-      "assetsUrl": "url:./module.zip"
+      "assets": { "url": "url:./module.zip" }
     }
   }
 }

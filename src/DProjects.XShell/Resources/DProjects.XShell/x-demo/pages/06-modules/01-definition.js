@@ -36,18 +36,18 @@ export default {
 }</code></pre>
 
         <p>
-            Bootstrap adds the normalized <code>configUrl</code> and <code>assetsUrl</code> values to every effective module definition. They have
+            Bootstrap adds the normalized <code>configUrl</code> and <code>assets.url</code> values to every effective module definition. They have
             different roles:
         </p>
 
         <ul>
             <li><code>configUrl</code> identifies the location of the module's <code>module.jsonc</code>.</li>
-            <li><code>assetsUrl</code> identifies the physical directory or package that contains module resources.</li>
+            <li><code>assets.url</code> identifies the physical directory or package that contains module resources.</li>
         </ul>
 
         <p>
             Runtime clients normally use <code>/_assets/&lt;module-id&gt;/...</code>. They should not couple themselves to the physical
-            <code>assetsUrl</code> layout.
+            <code>assets.url</code> layout.
         </p>
 
         <h3>Current x-demo definition</h3>
@@ -57,7 +57,7 @@ export default {
             <x-datafield label="Label"><span>{{ state.current.label }}</span></x-datafield>
             <x-datafield label="Version"><span>{{ state.current.version }}</span></x-datafield>
             <x-datafield label="configUrl"><code>{{ state.current.configUrl }}</code></x-datafield>
-            <x-datafield label="assetsUrl"><code>{{ state.current.assetsUrl }}</code></x-datafield>
+            <x-datafield label="assets.url"><code>{{ state.current.assets.url }}</code></x-datafield>
         </x-datafields>
 
         <p>These values are read from the frozen effective configuration; this page does not modify it.</p>
@@ -69,7 +69,7 @@ export default {
             label: "",
             version: "",
             configUrl: "",
-            assetsUrl: ""
+            assets: { url: "" }
         }
     },
 
@@ -83,7 +83,7 @@ export default {
                     label: moduleConfig.label || "",
                     version: moduleConfig.version || "",
                     configUrl: moduleConfig.configUrl || "",
-                    assetsUrl: moduleConfig.assetsUrl || ""
+                    assets: { url: moduleConfig.assets.url || "" }
                 };
             }
         };

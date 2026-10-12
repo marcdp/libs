@@ -5,14 +5,14 @@ import Areas from "../areas.js";
 import Navigation from "../navigation.js";
 
 test("Areas.init rejects an unknown configured module", () => {
-    const config = { xshell: { assetsBasePath: "/_assets", areas: { default: "admin", global: [], definitions: { admin: { modules: ["missing"] } } } } };
+    const config = { xshell: { assets: { basePath: "/_assets" }, areas: { default: "admin", global: [], definitions: { admin: { modules: ["missing"] } } } } };
     const areas = new Areas({ config, bus: { addEventListener() {} } });
 
     assert.throws(() => areas.init({ modules: { getModuleById() { return null; } } }), /Area 'admin' references unknown module 'missing'/);
 });
 
 test("documentation inventory menus keep Markdown page and index destinations", () => {
-    const areas = new Areas({ config: { xshell: { areas: { definitions: {}, global: [] } } }, bus: { addEventListener() {} } });
+    const areas = new Areas({ config: { xshell: { assets: { basePath: "/_assets" }, areas: { definitions: {}, global: [] } } }, bus: { addEventListener() {} } });
     const root = "/_assets/xshell-docs/pages";
     const files = ["index.md", "10-architecture/index.md", "10-architecture/100-services.md"].map(path => ({ path: `${root}/${path}` }));
     const menu = areas._createMenuFromModuleFiles(files, root, "Docs", [".js", ".html", ".md"], true);
@@ -21,8 +21,8 @@ test("documentation inventory menus keep Markdown page and index destinations", 
     assert.equal(menu[0].children[0].children[0].href, `${root}/10-architecture/100-services.md`);
 });
 
-test("Areas identifies modules under a normalized multi-segment assetsBasePath", () => {
-    const config = { xshell: { assetsBasePath: "/virtual/assets", areas: { definitions: {}, global: [] } } };
+test("Areas identifies modules under a normalized multi-segment assets.basePath", () => {
+    const config = { xshell: { assets: { basePath: "/virtual/assets" }, areas: { definitions: {}, global: [] } } };
     const areas = new Areas({ config, bus: { addEventListener() {} } });
     assert.equal(areas.getModuleId("/demo/virtual/assets/x/pages/index.js"), "x");
     assert.equal(areas.getModuleId("/demo/virtual/assets/orders/1.4.0.a82c31f943e01abc/pages/index.js"), "orders");
@@ -41,7 +41,7 @@ test("Areas preserve tooltip and embedded across effective menu projections", ()
     const config = {
         modules: { menu: { menus: { shortcuts: [globalItem] } } },
         xshell: {
-            assetsBasePath: "/_assets",
+            assets: { basePath: "/_assets" },
             areas: { default: "main", global: ["shortcuts"], definitions: { main: { prefix: "/main", modules: ["menu"] } } }
         }
     };
@@ -93,7 +93,7 @@ function createAreas() {
     };
     const config = {
         xshell: {
-            assetsBasePath: "/_assets",
+            assets: { basePath: "/_assets" },
             areas: {
                 default: "sales",
                 global: [],
@@ -208,7 +208,7 @@ test("Navigation.init preserves path-mode fragments on load and popstate without
 function createSharedRouteContext({ definitions, defaultArea, mode = "path", basePath = "", baseUrl = "https://example.test/" }) {
     const config = {
         xshell: {
-            assetsBasePath: "/_assets",
+            assets: { basePath: "/_assets" },
             areas: { default: defaultArea, global: [], definitions }
         }
     };
@@ -225,7 +225,7 @@ function createSharedRouteContext({ definitions, defaultArea, mode = "path", bas
 function createNoRouteContext() {
     const config = {
         xshell: {
-            assetsBasePath: "/_assets",
+            assets: { basePath: "/_assets" },
             areas: {
                 default: "empty",
                 global: [],
@@ -335,7 +335,7 @@ function createRouteAreas() {
     };
     const config = {
         xshell: {
-            assetsBasePath: "/_assets",
+            assets: { basePath: "/_assets" },
             areas: {
                 default: "combined",
                 global: [],

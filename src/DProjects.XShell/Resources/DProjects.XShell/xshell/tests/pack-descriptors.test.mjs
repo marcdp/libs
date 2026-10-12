@@ -165,7 +165,8 @@ test("pack discovers a dependency graph, rewrites references, and commits one co
             const published = descriptor(output, path);
             assertUtcTimestamp(published.modules[path.split("/")[0]].builtAt);
             assert.equal(published.modules[path.split("/")[0]].hash, dirname(path).split(".").at(-1));
-            assert.equal(published.modules[path.split("/")[0]].assetsUrl, "url:./module.zip");
+            assert.equal(published.modules[path.split("/")[0]].assets.url, "url:./module.zip");
+            assert.equal(Object.hasOwn(published.modules[path.split("/")[0]].assets, "path"), false);
             assert.deepEqual(published.modules[path.split("/")[0]].files.map(file => file.path), ["/resource.txt"]);
             assert.equal(published.modules[path.split("/")[0]].files[0].hash, createHash("sha256").update(path.split("/")[0]).digest("hex"));
             assert.equal(published.modules[path.split("/")[0]].files[0].size, Buffer.byteLength(path.split("/")[0]));
@@ -200,7 +201,9 @@ test("pack discovers a dependency graph, rewrites references, and commits one co
         assert.equal(frameworkCanonical.hash, "");
         assert.equal(Object.hasOwn(frameworkCanonical, "builtAt"), false);
         assert.equal(frameworkPublished.hash, frameworkHash);
-        assert.equal(frameworkPublished.assetsUrl, "url:./xshell.zip");
+        assert.equal(frameworkPublished.assets.url, "url:./xshell.zip");
+        assert.equal(frameworkPublished.assets.basePath, "app:/_assets");
+        assert.equal(Object.hasOwn(frameworkPublished.assets, "path"), false);
         assert.deepEqual(frameworkPublished.files, JSON.parse(frameworkArchive.get("module.files.json")));
         assertUtcTimestamp(frameworkPublished.builtAt);
         assert.equal(contentHash(frameworkArchive), frameworkHash);
@@ -325,7 +328,7 @@ test("framework packaging retains its distinct descriptor and ZIP format", () =>
         assert.equal(existsSync(join(output, "sw.js")), false);
         const published = descriptor(output, release.root);
         assertUtcTimestamp(published.xshell.builtAt);
-        assert.equal(published.xshell.assetsUrl, "url:./xshell.zip");
+        assert.equal(published.xshell.assets.url, "url:./xshell.zip");
         const archive = entries(join(output, dirname(release.root), "xshell.zip"));
         assert.equal(archive.has("xshell.json"), true);
         assert.deepEqual(readdirSync(join(output, dirname(release.root))).sort(), ["bootstrap.js", "sw.js", "xshell.json", "xshell.zip"]);
@@ -410,6 +413,22 @@ test("conflicting identities and unsupported dependency URLs fail before publica
     }
 });
 
+test("pack keeps asset ownership with local definitions", () => {
+    const root = fixture();
+    try {
+        const sources = join(root, "sources");
+        const output = join(root, "dist");
+        module(join(sources, "child"), "child", {}, { assets: { url: "url:./assets/" } });
+        module(join(sources, "app"), "app", { child: { configUrl: "url:../child/module.jsonc", assets: { url: "url:./override/" } } });
+        assert.match(pack(join(sources, "app"), output).stderr, /cannot override assets/);
+        module(join(sources, "app"), "app", { child: { configUrl: "url:../child/module.jsonc", assetsUrl: "url:.\/override\/" } });
+        assert.match(pack(join(sources, "app"), output).stderr, /obsolete assetsUrl/);
+        assert.equal(existsSync(join(output, "release.json")), false);
+    } finally {
+        rmSync(root, { recursive: true, force: true });
+    }
+});
+
 test("already packaged immutable dependencies are rejected instead of recompiled", () => {
     const root = fixture();
     try {
@@ -454,7 +473,7 @@ test("a damaged XShell package leaves the committed application release selected
         const release = successfulPack(source, output);
         const committed = readFileSync(join(output, "release.json"), "utf8");
         const framework = descriptor(output, release.xshell);
-        framework.xshell.assetsUrl = "url:./other.zip";
+        framework.xshell.assets.url = "url:./other.zip";
         writeFileSync(join(output, release.xshell), JSON.stringify(framework));
         assert.match(pack(source, output).stderr, /collides with different or damaged content/);
         assert.equal(readFileSync(join(output, "release.json"), "utf8"), committed);
@@ -538,7 +557,7 @@ test("reuse rejects invalid build times and changed external metadata without ch
         assert.equal(readFileSync(join(output, "release.json"), "utf8"), committed);
 
         published.modules.app.builtAt = JSON.parse(original).modules.app.builtAt;
-        published.modules.app.assetsUrl = "url:./other.zip";
+        published.modules.app.assets.url = "url:./other.zip";
         writeFileSync(join(output, release.root), JSON.stringify(published));
         assert.match(pack(source, output).stderr, /collides with different or damaged content/);
         assert.equal(readFileSync(join(output, "release.json"), "utf8"), committed);

@@ -79,7 +79,7 @@ export default {
                 }
                 for(let moduleId of Object.keys(config.modules)) {
                     const moduleConfig = config.modules[moduleId];
-                    let moduleIconsPath = moduleConfig.assetsPath + "/icons";
+                    let moduleIconsPath = moduleConfig.assets.path + "/icons";
                     for(const file of Object.values(moduleConfig.files)) {
                         if (file.path.startsWith(moduleIconsPath)) {
                             const id = (file.path.split("/").pop() || "").split(".")[0];    

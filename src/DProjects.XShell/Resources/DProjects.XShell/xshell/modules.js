@@ -30,8 +30,10 @@ export default class Modules {
             label: module.label,
             path: module.path,
             version: module.config.version || "",
-            assetsPath: module.config.assetsPath,
-            assetsUrl: module.config.assetsUrl || "",
+            assets: Object.freeze({
+                path: module.config.assets.path,
+                url: module.config.assets.url || ""
+            }),
             builtAt: module.config.builtAt || "",
             configUrl: module.config.configUrl || "",
             icon: module.config.icon || null,
@@ -59,7 +61,7 @@ export default class Modules {
                 id: moduleId,
                 config: moduleConfig,
                 label: moduleConfig.label || moduleId,
-                path: moduleConfig.assetsPath,
+                path: moduleConfig.assets.path,
                 params: moduleConfig.params,
                 routes: moduleConfig.routes || Object.freeze({}),
                 styles: [],
@@ -68,7 +70,7 @@ export default class Modules {
                 }
             };
             // styles
-            const moduleIndexCss = moduleConfig.assetsPath + "/styles/index.css";
+            const moduleIndexCss = moduleConfig.assets.path + "/styles/index.css";
             if (moduleConfig.files.some(file => file.path == moduleIndexCss)) {
                 tasks.push((async() => {
                     let styleSheet = await this._loader.load("style:" + moduleIndexCss);
@@ -76,7 +78,7 @@ export default class Modules {
                 })());
             }
             // controller
-            const moduleControllerJs = moduleConfig.assetsPath + "/module.js";
+            const moduleControllerJs = moduleConfig.assets.path + "/module.js";
             for (const file of moduleConfig.files) {
                 if (file.path == moduleControllerJs) {
                     const moduleClass = await this._loader.load("module:" + moduleControllerJs);
@@ -84,7 +86,7 @@ export default class Modules {
                         get: (obj, prop) => {
                             if (prop == "moduleAssetsPath") {
                                 // module assets path
-                                 return moduleConfig.assetsPath;
+                                 return moduleConfig.assets.path;
                             } else if (prop == "moduleConfig") {
                                 // module config
                                 return { id: moduleId, ...moduleConfig };

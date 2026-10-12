@@ -166,7 +166,7 @@ async function handleRequest(request) {
         return fetch(request);
     }
 
-    // resolve the configured virtual asset path against the physical assetsUrl
+    // resolve the configured virtual asset path against the physical assets URL
     const relativePath = requestUrl.pathname.substring(ruleSrcUrl.pathname.length).replace(/^\/+/, "");
     const baseUrl = rule.dst.endsWith("/") ? rule.dst : rule.dst + "/";
     const url = new URL(relativePath, baseUrl);

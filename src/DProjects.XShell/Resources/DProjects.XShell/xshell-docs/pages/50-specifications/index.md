@@ -10,7 +10,7 @@ resolver generation. Bootstrap imports XShell and awaits `xshell.validateConfig(
 freeze and `xshell.init(config)`. Init validates again before runtime service construction. Failure aborts startup in every environment.
 The X module has no module controller; XShell validates configuration during bootstrap and initialization.
 
-The schema defines `app`, `modules`, and `xshell`, including module `configUrl`, `assetsUrl`, defaults, menus, optional service `requires`, optional
+The schema defines `app`, `modules`, and `xshell`, including module `configUrl`, nested `assets`, defaults, menus, optional service `requires`, optional
 declarative routes, descriptive module `contract.events`, named `xshell.services`, and the required `xshell.i18n` language, formatting,
 and translation configuration.
 

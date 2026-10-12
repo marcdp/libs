@@ -36,7 +36,7 @@ and there is no separate authored application descriptor or application package.
 ```
 
 `modules.app` is local because it has no `configUrl`. The other entries are dependency references. The root composes the application and its
-references may contribute configuration just like child references. Every reference requires `configUrl`; no reference may override `assetsUrl`.
+references may contribute configuration just like child references. Every reference requires `configUrl`; no reference may define or override `assets`.
 Dependencies merge first and the root merges last. The effective `modules` object contains full canonical definitions.
 
 Bootstrap constructs effective `config.app` from the selected root module's id, label, version, copyright, and icon, plus the bootstrap deployment

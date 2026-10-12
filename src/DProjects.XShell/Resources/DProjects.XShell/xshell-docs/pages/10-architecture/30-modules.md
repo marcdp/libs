@@ -78,9 +78,9 @@ Dependencies are merged before their dependents, with the root last. A reference
 before its owner module's own configuration. Sibling traversal follows declaration/discovery order, so fetch completion timing cannot select
 precedence. Dependency cycles are rejected because they make this precedence ambiguous.
 
-The normalized `configUrl` records the definition document. `assetsUrl` identifies its physical resource container and defaults to that document's
-directory. References cannot override `assetsUrl`; physical resource ownership stays with the local definition. Runtime resources use
-`/_assets/<module-id>/<generation>/...`; the Service Worker maps that generation-qualified namespace to `assetsUrl`.
+The normalized `configUrl` records the definition document. `assets.url` identifies its physical resource container and defaults to that document's
+directory. References cannot define or override `assets`; physical resource ownership stays with the local definition. Runtime resources use
+`/_assets/<module-id>/<generation>/...`; the Service Worker maps that generation-qualified namespace to `assets.url`.
 
 The build-time `pack` command follows the same local-definition and reference ownership rules. It recursively packages the root application and
 all local source dependencies into independent ZIPs, preserving each descriptor's reference contributions. It replaces each reference's

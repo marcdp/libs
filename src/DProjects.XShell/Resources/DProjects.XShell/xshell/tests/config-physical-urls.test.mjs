@@ -34,16 +34,16 @@ test("configuration url: references use the physical declaring document", () => 
         "https://example.test/console/images/logo.png");
 });
 
-test("configuration configUrl and assetsUrl retain physical url: semantics", () => {
+test("configuration configUrl and assets.url retain physical url: semantics", () => {
     const config = {
         modules: {
-            app: { version: "1.0.0", assetsUrl: "url:./assets/" },
+            app: { version: "1.0.0", assets: { url: "url:./assets/" } },
             other: { configUrl: "url:../other/module.jsonc" }
         }
     };
     const prepared = prepareModuleConfig(config, "https://cdn.test/config/app/module.jsonc", "/_assets", "Development");
 
-    assert.equal(prepared.config.modules.app.assetsUrl, "https://cdn.test/config/app/assets/");
+    assert.equal(prepared.config.modules.app.assets.url, "https://cdn.test/config/app/assets/");
     assert.equal(prepared.references[0].configUrl, "https://cdn.test/config/other/module.jsonc");
     assert.equal(prepared.references[0].loadUrl, "https://cdn.test/config/other/module.jsonc");
 });

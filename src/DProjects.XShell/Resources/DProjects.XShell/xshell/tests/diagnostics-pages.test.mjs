@@ -16,16 +16,16 @@ function createEvents(getController) {
 }
 
 test("Modules diagnostics filters on the canonical configured assets path", () => {
-    const state = { id: "", version: "", label: "", assetsPath: "/_assets/orders", configUrl: "", modules: [] };
+    const state = { id: "", version: "", label: "", assetPath: "/_assets/orders", configUrl: "", modules: [] };
     const modules = { registry: [{
-        id: "orders", label: "Orders", version: "", assetsPath: "/_assets/orders", configUrl: "/orders/module.jsonc", files: []
+        id: "orders", label: "Orders", version: "", assets: { path: "/_assets/orders", url: "https://example.test/orders/" }, configUrl: "/orders/module.jsonc", files: []
     }] };
     const controller = ModulesPage.controller({ state, modules });
 
     controller.refresh();
     assert.equal(state.modules.length, 1);
-    assert.equal(state.modules[0].assetsPath, "/_assets/orders");
-    state.assetsPath = "/_assets/other";
+    assert.equal(state.modules[0].assets.path, "/_assets/orders");
+    state.assetPath = "/_assets/other";
     controller.refresh();
     assert.deepEqual(state.modules, []);
 });

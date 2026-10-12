@@ -25,12 +25,12 @@ export default {
     ↓
 Service Worker mapping
     ↓
-module assetsUrl
+module assets.url
     ↓
 physical resource</code></pre>
 
         <p>
-            The Service Worker maps the client-facing prefix to the module's physical <code>assetsUrl</code>. Application code should depend on the
+            The Service Worker maps the client-facing prefix to the module's physical <code>assets.url</code>. Application code should depend on the
             stable <code>/_assets/&lt;module-id&gt;/...</code> URL, not on the storage layout.
         </p>
 
@@ -42,14 +42,14 @@ physical resource</code></pre>
 
         <x-datafields>
             <x-datafield label="configUrl"><code>{{ state.configUrl }}</code></x-datafield>
-            <x-datafield label="assetsUrl"><code>{{ state.assetsUrl }}</code></x-datafield>
+            <x-datafield label="assets.url"><code>{{ state.assetUrl }}</code></x-datafield>
             <x-datafield label="logical asset prefix"><code>{{ state.logicalPrefix }}</code></x-datafield>
         </x-datafields>
     `,
 
     state: {
         configUrl: "",
-        assetsUrl: "",
+        assetUrl: "",
         logicalPrefix: "/_assets/x-demo/"
     },
 
@@ -59,7 +59,7 @@ physical resource</code></pre>
                 // inspect the physical mapping recorded by bootstrap
                 const moduleConfig = config.modules["x-demo"] || {};
                 state.configUrl = moduleConfig.configUrl || "";
-                state.assetsUrl = moduleConfig.assetsUrl || "";
+                state.assetUrl = moduleConfig.assets.url || "";
             }
         };
     }

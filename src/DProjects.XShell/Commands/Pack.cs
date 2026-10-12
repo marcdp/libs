@@ -136,6 +136,14 @@ namespace DProjects.XShell.Commands {
                     foreach (var item in modules) ValidateModuleId(item.Key);
                     var id = locals[0].Key;
                     var local = (JsonObject)locals[0].Value!;
+                    if (local.ContainsKey("assetsUrl")) throw new InvalidOperationException($"Module '{id}' uses obsolete assetsUrl; use assets.url.");
+                    if (local.ContainsKey("assetsPath")) throw new InvalidOperationException($"Module '{id}' uses obsolete generated assetsPath; assets.path is generated.");
+                    if (local["assets"] is JsonObject localAssets) {
+                        if (localAssets.ContainsKey("path")) throw new InvalidOperationException($"Module '{id}' cannot author assets.path; it is generated.");
+                        if (localAssets.ContainsKey("basePath")) throw new InvalidOperationException($"Module '{id}' cannot author assets.basePath.");
+                    } else if (local.ContainsKey("assets")) {
+                        throw new InvalidOperationException($"Module '{id}' assets must be an object.");
+                    }
                     var version = local["version"]?.GetValue<string>() ?? "";
                     if (string.IsNullOrWhiteSpace(version)) throw new InvalidOperationException($"Module '{id}' must declare a non-empty version.");
                     ValidatePackageNamePart(version, "Module version");
@@ -143,7 +151,9 @@ namespace DProjects.XShell.Commands {
                     foreach (var item in modules.OrderBy(item => item.Key, StringComparer.Ordinal)) {
                         if (item.Key == id) continue;
                         var reference = item.Value as JsonObject ?? throw new InvalidOperationException($"Module reference '{item.Key}' in '{descriptorPath}' must be an object.");
-                        if (reference.ContainsKey("assetsUrl")) throw new InvalidOperationException($"Module reference '{item.Key}' cannot override assetsUrl.");
+                        if (reference.ContainsKey("assets")) throw new InvalidOperationException($"Module reference '{item.Key}' cannot override assets; it is owned by the local definition.");
+                        if (reference.ContainsKey("assetsUrl")) throw new InvalidOperationException($"Module reference '{item.Key}' uses obsolete assetsUrl; references cannot override assets.");
+                        if (reference.ContainsKey("assetsPath")) throw new InvalidOperationException($"Module reference '{item.Key}' uses obsolete generated assetsPath; references cannot override assets.");
                         var configUrl = reference["configUrl"]?.GetValue<string>();
                         if (string.IsNullOrWhiteSpace(configUrl)) throw new InvalidOperationException($"Module reference '{item.Key}' in '{descriptorPath}' must declare configUrl.");
                         references.Add(new Reference(item.Key, ResolveConfigUrl(descriptorPath, configUrl)));
@@ -233,7 +243,9 @@ namespace DProjects.XShell.Commands {
                 if (await ComputeZipHashAsync(zipPath, cancellationToken) != hash) throw new InvalidOperationException($"Generated ZIP for '{node.Id}' does not match its package hash.");
             }
             ((JsonObject)modules[node.Id]!)["hash"] = hash;
-            ((JsonObject)modules[node.Id]!)["assetsUrl"] = "url:./module.zip";
+            var assets = ((JsonObject)modules[node.Id]!)["assets"] as JsonObject ?? new JsonObject();
+            assets["url"] = "url:./module.zip";
+            ((JsonObject)modules[node.Id]!)["assets"] = assets;
             ((JsonObject)modules[node.Id]!)["files"] = JsonNode.Parse(inventory);
             ((JsonObject)modules[node.Id]!)["builtAt"] = UtcTimestamp();
             await File.WriteAllTextAsync(Path.Combine(packagePath, "module.json"), root.ToJsonString(JsonOptions), cancellationToken);
@@ -256,6 +268,14 @@ namespace DProjects.XShell.Commands {
             var root = (JsonObject)Canonicalize(await ReadJsonObjectAsync(descriptorPath, cancellationToken))!;
             RejectAuthoredApp(root, descriptorPath);
             var framework = root["xshell"] as JsonObject ?? throw new InvalidOperationException("XShell configuration must contain xshell.");
+            if (framework.ContainsKey("assetsBasePath")) throw new InvalidOperationException("XShell configuration uses obsolete xshell.assetsBasePath; use xshell.assets.basePath.");
+            if (framework.ContainsKey("assetsPath")) throw new InvalidOperationException("XShell configuration uses obsolete generated xshell.assetsPath; xshell.assets.path is generated.");
+            if (framework.ContainsKey("assetsUrl")) throw new InvalidOperationException("XShell configuration uses obsolete xshell.assetsUrl; use xshell.assets.url.");
+            if (framework["assets"] is JsonObject frameworkAssets) {
+                if (frameworkAssets.ContainsKey("path")) throw new InvalidOperationException("XShell configuration cannot author xshell.assets.path; it is generated.");
+            } else if (framework.ContainsKey("assets")) {
+                throw new InvalidOperationException("XShell configuration xshell.assets must be an object.");
+            }
             var version = framework["version"]?.GetValue<string>() ?? "";
             if (string.IsNullOrWhiteSpace(version)) throw new InvalidOperationException("XShell configuration must contain xshell.version.");
             ValidatePackageNamePart(version, "XShell version");
@@ -286,7 +306,9 @@ namespace DProjects.XShell.Commands {
                 if (await ComputeZipHashAsync(zipPath, cancellationToken) != hash) throw new InvalidOperationException("Generated XShell ZIP does not match its package hash.");
             }
             framework["hash"] = hash;
-            framework["assetsUrl"] = "url:./xshell.zip";
+            var assets = framework["assets"] as JsonObject ?? new JsonObject();
+            assets["url"] = "url:./xshell.zip";
+            framework["assets"] = assets;
             framework["files"] = JsonNode.Parse(inventory);
             framework["builtAt"] = UtcTimestamp();
             await File.WriteAllTextAsync(Path.Combine(packagePath, "xshell.json"), root.ToJsonString(JsonOptions), cancellationToken);

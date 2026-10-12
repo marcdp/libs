@@ -44,10 +44,9 @@
         "configUrl": {"type": "string", "format": "uri", "description": "Fully qualified absolute URL of the normalized module configuration document."},
         "params": {"type": "object", "additionalProperties": true, "description": "Parameters supplied to the canonical module by root application composition."},
         "requires": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true, "description": "Names of services that must be registered before the module is initialized."},
-        "assetsUrl": {"type": "string", "format": "uri", "description": "Fully qualified absolute URL of the directory or package containing the module assets."},
+        "assets": {"$ref": "#/$defs/moduleAssets", "description": "Virtual and physical addressing for module assets."},
         "hash": {"type": "string", "minLength": 1, "description": "Generated immutable package-generation hash when published."},
         "builtAt": {"type": "string", "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$", "description": "Optional UTC time when the immutable module package was originally built by pack; excluded from canonical hashing."},
-        "assetsPath": {"type": "string", "pattern": "^/", "description": "Application-root-relative virtual base path for the module assets."},
         "menus": {"$ref": "#/$defs/menus", "description": "Menu contributions exposed by the module."},
         "routes": {
           "type": "object",
@@ -58,9 +57,19 @@
         "contract": {"$ref": "#/$defs/moduleContract", "description": "Public contract exposed by the module."},
         "files": {"type": "array", "items": {"$ref": "#/$defs/file"}, "description": "Normalized virtual resource inventory for the module."}
       },
-      "required": ["label", "version", "copyright", "icon", "configUrl", "assetsUrl", "defaults", "files", "assetsPath"],
+      "required": ["label", "version", "copyright", "icon", "configUrl", "assets", "defaults", "files"],
       "additionalProperties": false,
       "description": "Effective configuration of a resolved XShell module."
+    },
+    "moduleAssets": {
+      "type": "object",
+      "required": ["path", "url"],
+      "properties": {
+        "path": {"type": "string", "pattern": "^/", "description": "Application-root-relative generation-qualified virtual path for the module assets."},
+        "url": {"type": "string", "format": "uri", "description": "Fully qualified absolute physical URL of the directory or package containing the module assets."}
+      },
+      "additionalProperties": false,
+      "description": "Effective module asset addressing."
     },
     "file": {
       "type": "object",
@@ -173,14 +182,12 @@
     },
     "xshell": {
       "type": "object",
-      "required": ["version", "environment", "assetsBasePath", "assetsPath", "areas", "navigation", "resolver", "ui", "i18n", "configUrl", "assetsUrl", "serviceWorker", "files"],
+      "required": ["version", "environment", "assets", "areas", "navigation", "resolver", "ui", "i18n", "configUrl", "serviceWorker", "files"],
       "properties": {
         "version": {"type": "string", "description": "XShell runtime version."},
         "environment": {"type": "string", "description": "Runtime environment name."},
         "configUrl": {"type": "string", "format": "uri", "description": "Fully qualified absolute URL of the normalized XShell configuration document."},
-        "assetsBasePath": {"type": "string", "pattern": "^/", "description": "Normalized application-relative base path for the virtual asset namespace. (e.g. /_assets)"},
-        "assetsPath": {"type": "string", "pattern": "^/", "description": "Application-root-relative virtual base path for the XShell framework assets. (e.g. /_assets/xshell)"},
-        "assetsUrl": {"type": "string", "format": "uri", "description": "Fully qualified absolute URL of the directory or package containing the XShell assets."},
+        "assets": {"$ref": "#/$defs/xshellAssets", "description": "Virtual namespace and physical addressing for XShell assets."},
         "serviceWorker": {"$ref": "#/$defs/xshellServiceWorker", "description": "Generated mappings requested by this effective application generation; not the worker's complete persisted registry."},
         "hash": {"type": "string", "minLength": 1, "description": "Generated immutable package-generation hash when published."},
         "builtAt": {"type": "string", "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$", "description": "Optional UTC time when the immutable XShell package was originally built by pack; excluded from canonical hashing."},
@@ -195,6 +202,17 @@
       },
       "additionalProperties": false,
       "description": "Core XShell runtime configuration."
+    },
+    "xshellAssets": {
+      "type": "object",
+      "required": ["basePath", "path", "url"],
+      "properties": {
+        "basePath": {"type": "string", "pattern": "^/", "description": "Normalized application-relative root of the virtual asset namespace. (e.g. /_assets)"},
+        "path": {"type": "string", "pattern": "^/", "description": "Application-root-relative generation-qualified virtual path for XShell assets."},
+        "url": {"type": "string", "format": "uri", "description": "Fully qualified absolute physical URL of the directory or package containing XShell assets."}
+      },
+      "additionalProperties": false,
+      "description": "Effective XShell asset addressing."
     },
     "xshellServiceWorker": {
       "type": "object",

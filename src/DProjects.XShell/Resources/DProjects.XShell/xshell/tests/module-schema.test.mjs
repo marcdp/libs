@@ -14,8 +14,7 @@ const moduleDefinition = routes => ({
     copyright: "",
     icon: "",
     configUrl: "https://example.test/test/module.jsonc",
-    assetsUrl: "https://example.test/test/",
-    assetsPath: "/_assets/test",
+    assets: { path: "/_assets/test", url: "https://example.test/test/" },
     files: [{ path: "/_assets/test/pages/index.js", size: 123, hash: "test-hash" }],
     ...(routes === undefined ? {} : { routes }),
     defaults: {
@@ -40,8 +39,7 @@ function configuration(module) {
         xshell: {
             version: "1.0.0",
             environment: "test",
-            assetsBasePath: "/_assets",
-            assetsPath: "/_assets/xshell",
+            assets: { basePath: "/_assets", path: "/_assets/xshell", url: "https://example.test/xshell/" },
             areas: { default: null, global: [], definitions: {} },
             navigation: { mode: "path" },
             resolver: {},
@@ -53,7 +51,6 @@ function configuration(module) {
                 strings: {}
             },
             configUrl: "https://example.test/xshell/xshell.json",
-            assetsUrl: "https://example.test/xshell/",
             serviceWorker: { mappings: [
                 { src: "https://example.test/_assets/xshell", dst: "https://example.test/xshell/", version: "1.0.0", name: "xshell",
                     exceptions: ["https://example.test/xshell/xshell.json"] },
@@ -218,13 +215,13 @@ test("effective schema rejects the removed xshell.identity configuration", () =>
     assert.equal(validator.validate(config).valid, false);
 });
 
-test("effective schema requires normalized assetsBasePath and rejects the removed prefix", () => {
+test("effective schema requires normalized assets.basePath and rejects obsolete flat fields", () => {
     const config = configuration(moduleDefinition());
-    delete config.xshell.assetsBasePath;
+    delete config.xshell.assets.basePath;
     assert.equal(validator.validate(config).valid, false);
-    config.xshell.assetsBasePath = "app:/_assets";
+    config.xshell.assets.basePath = "app:/_assets";
     assert.equal(validator.validate(config).valid, false);
-    config.xshell.assetsBasePath = "/_assets";
+    config.xshell.assets.basePath = "/_assets";
     config.xshell.assetsPrefix = "_assets";
     assert.equal(validator.validate(config).valid, false);
 });
@@ -300,14 +297,33 @@ test("effective schema requires generated serviceWorker mappings and validates t
     assert.equal(validator.validate(config).valid, true, JSON.stringify(validator.validate(config).errors));
 });
 
-test("effective schema requires generated module and XShell assetsPath values", () => {
+test("effective schema requires complete nested module and XShell assets objects", () => {
     const module = moduleDefinition();
-    delete module.assetsPath;
+    delete module.assets.path;
+    assert.equal(validator.validate(configuration(module)).valid, false);
+    module.assets.path = "/_assets/test";
+    delete module.assets.url;
     assert.equal(validator.validate(configuration(module)).valid, false);
 
     const config = configuration(moduleDefinition());
-    delete config.xshell.assetsPath;
+    delete config.xshell.assets.path;
     assert.equal(validator.validate(config).valid, false);
+    config.xshell.assets.path = "/_assets/xshell";
+    delete config.xshell.assets.url;
+    assert.equal(validator.validate(config).valid, false);
+});
+
+test("effective schema rejects obsolete flat asset fields", () => {
+    for (const field of ["assetsPath", "assetsUrl"]) {
+        const config = configuration(moduleDefinition());
+        config.modules.test[field] = field === "assetsPath" ? "/_assets/test" : "https://example.test/test/";
+        assert.equal(validator.validate(config).valid, false);
+    }
+    for (const field of ["assetsBasePath", "assetsPath", "assetsUrl"]) {
+        const config = configuration(moduleDefinition());
+        config.xshell[field] = field === "assetsUrl" ? "https://example.test/xshell/" : "/_assets";
+        assert.equal(validator.validate(config).valid, false);
+    }
 });
 
 test("effective schema accepts optional published package hashes but rejects empty values", () => {

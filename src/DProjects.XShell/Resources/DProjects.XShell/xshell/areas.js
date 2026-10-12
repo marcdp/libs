@@ -18,7 +18,7 @@ export default class Areas {
     constructor({ config, bus }) {
         this._config = config;
         this._bus = bus;
-        this._assetsBasePath = config.xshell.assetsBasePath;
+        this._assetsBasePath = config.xshell.assets.basePath;
         const areasConfig = config.xshell.areas || {};
         const definitions = areasConfig.definitions || {};
         const defaultAreaId = areasConfig.default;

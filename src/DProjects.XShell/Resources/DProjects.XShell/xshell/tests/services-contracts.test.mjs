@@ -427,8 +427,8 @@ test("Contracts.init rejects duplicate global IDs defensively", async () => {
         config: {
             app: { basePath: "/app", baseUrl: "https://example.test/app/" },
             modules: {
-                x: { assetsPath: "/_assets/x", files: [{ path: "/_assets/x/contracts/identity.json", size: 1 }] },
-                auth: { assetsPath: "/_assets/auth", files: [{ path: "/_assets/auth/contracts/identity.json", size: 2 }] }
+                x: { assets: { path: "/_assets/x" }, files: [{ path: "/_assets/x/contracts/identity.json", size: 1 }] },
+                auth: { assets: { path: "/_assets/auth" }, files: [{ path: "/_assets/auth/contracts/identity.json", size: 2 }] }
             }
         },
         loader: { async load() { return contract; } }
@@ -447,7 +447,7 @@ test("Contracts.init ignores lookalike directories and non-JSON files", async ()
             app: { basePath: "/app", baseUrl: "https://example.test/app/" },
             modules: {
                 x: {
-                    assetsPath: "/_assets/x",
+                    assets: { path: "/_assets/x" },
                     files: [
                         { path: "/_assets/x/contracts/toast.json", size: 1 },
                         { path: "/_assets/x/contracts/readme.txt", size: 2 },
@@ -494,7 +494,7 @@ test("Contracts.init deeply freezes validated contract documents", async () => {
         config: {
             app: { basePath: "/app", baseUrl: "https://example.test/app/" },
             modules: {
-                x: { assetsPath: "/_assets/x", files: [{ path: "/_assets/x/contracts/executor.json", size: 1 }] }
+                x: { assets: { path: "/_assets/x" }, files: [{ path: "/_assets/x/contracts/executor.json", size: 1 }] }
             }
         },
         loader: { async load() { return contract; } }

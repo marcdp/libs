@@ -104,7 +104,7 @@ test("browser JSONC accepts comments and trailing commas without changing string
 test("generated Markdown Page rules preserve document URLs and cache classes by path", () => {
     const config = {
         app: { basePath: "/app", baseUrl: "https://example.test/app/" },
-        modules: { "xshell-docs": { assetsPath: "/_assets/xshell-docs", files: [] }, sample: { assetsPath: "/_assets/sample", files: [] } },
+        modules: { "xshell-docs": { assets: { path: "/_assets/xshell-docs" }, files: [] }, sample: { assets: { path: "/_assets/sample" }, files: [] } },
         xshell: { resolver: {} }
     };
     api.fillResolverRules(config);
@@ -124,7 +124,7 @@ test("generated Markdown Page rules preserve document URLs and cache classes by 
 test("generated style rules route module CSS through the standard cached style-css loader", () => {
     const config = {
         app: { basePath: "/app", baseUrl: "https://example.test/app/" },
-        modules: { sample: { assetsPath: "/_assets/sample", files: [{ path: "/_assets/sample/styles/index.css" }] } },
+        modules: { sample: { assets: { path: "/_assets/sample" }, files: [{ path: "/_assets/sample/styles/index.css" }] } },
         xshell: { resolver: {} }
     };
     api.fillResolverRules(config);
@@ -156,11 +156,11 @@ test("module discovery accepts canonical module ids", async () => {
 
 test("module discovery rejects malformed and reserved local module ids before path construction", async () => {
     for (const moduleId of ["", "XDemo", "123", "x_demo", "x.demo", "x/demo", "x demo", "-x-demo", "x-demo-", "x--demo", "café", "foo%20bar"]) {
-        await assert.rejects(discover({ modules: { [moduleId]: definition(moduleId, { assetsUrl: "/not-used" }) } }),
+        await assert.rejects(discover({ modules: { [moduleId]: definition(moduleId) } }),
             error => error.message === `Invalid module id '${moduleId}' in module configuration '${rootUrl}'.`);
     }
 
-    await assert.rejects(discover({ modules: { xshell: definition("xshell", { assetsUrl: "/not-used" }) } }), /Module id 'xshell' is reserved/);
+    await assert.rejects(discover({ modules: { xshell: definition("xshell") } }), /Module id 'xshell' is reserved/);
 });
 
 test("module discovery rejects malformed and reserved external reference ids before loading them", async () => {
@@ -172,9 +172,10 @@ test("module discovery rejects malformed and reserved external reference ids bef
     }
 });
 
-test("checked-in assetsBasePath resolves for root and subpath hosting", () => {
+test("checked-in assets.basePath resolves for root and subpath hosting", () => {
     const defaults = api.parseJsonc(readFileSync(new URL("../xshell.jsonc", import.meta.url), "utf8"));
-    assert.equal(defaults.xshell.assetsBasePath, "app:/_assets");
+    assert.deepEqual(plain(defaults.xshell.assets), { basePath: "app:/_assets", url: "url:./" });
+    for (const field of ["assetsBasePath", "assetsPath", "assetsUrl"]) assert.equal(Object.hasOwn(defaults.xshell, field), false);
     for (const [basePath, effectiveUrl] of [["", "https://example.test/_assets"], ["/myapp", "https://example.test/myapp/_assets"]]) {
         const isolated = vm.createContext({
             URL, URLSearchParams,
@@ -185,7 +186,7 @@ test("checked-in assetsBasePath resolves for root and subpath hosting", () => {
             }
         });
         new vm.Script(bootstrapSource).runInContext(isolated);
-        const base = isolated.__bootstrapTests.normalizeAssetsBase(defaults.xshell.assetsBasePath, "https://example.test/xshell/xshell.json");
+        const base = isolated.__bootstrapTests.normalizeAssetsBase(defaults.xshell.assets.basePath, "https://example.test/xshell/xshell.json");
         assert.equal(base, "/_assets");
         assert.equal(new URL(base.substring(1), `https://example.test${basePath}/`).href, effectiveUrl);
         const generated = api.getAssetsPath(base, "orders", "1.4.0", undefined, "Development");
@@ -195,7 +196,7 @@ test("checked-in assetsBasePath resolves for root and subpath hosting", () => {
     }
 });
 
-test("assetsBasePath rejects missing, application-root, and out-of-scope locations", () => {
+test("assets.basePath rejects missing, application-root, and out-of-scope locations", () => {
     const configUrl = "https://example.test/xshell/xshell.json";
     assert.throws(() => api.normalizeAssetsBase(undefined, configUrl), /non-empty/);
     assert.throws(() => api.normalizeAssetsBase("app:/", configUrl), /namespace below/);
@@ -209,6 +210,7 @@ test("development and published generations use descriptor version and package h
     assert.equal(api.getAssetsPath("/_assets", "xshell", "0.9.0", undefined, "development"), "/_assets/xshell/0.9.0.dev");
     assert.equal(api.getAssetsPath("/_assets", "orders", "1.4.0", "ignored", "DEVELOPMENT"), "/_assets/orders/1.4.0.dev");
     assert.equal(api.getAssetsPath("/_assets", "orders", "1.4.0", "a82c31f943e01abc", "Production"), "/_assets/orders/1.4.0.a82c31f943e01abc");
+    assert.equal(api.getAssetsPath("/_assets", "orders", "1.0.0", "0123456789abcdef", "Production"), "/_assets/orders/1.0.0.0123456789abcdef");
     assert.equal(api.getAssetsPath("/_assets", "xshell", "0.9.0", "31d04ab8e220a581", "Staging"), "/_assets/xshell/0.9.0.31d04ab8e220a581");
     assert.throws(() => api.getAssetsPath("/_assets", "xshell", "0.9.0", "", "Production"), /Published module 'xshell'.*hash/);
     assert.throws(() => api.getAssetsPath("/_assets", "orders", "1.4.0", "  ", "Production"), /Published module 'orders'.*hash/);
@@ -298,12 +300,12 @@ test("module discovery keeps logical configUrl separate from its pre-Service-Wor
     await assert.rejects(() => discover({ modules: { app: definition("app"), x: reference("module.jsonc") } }), /unsupported configUrl/);
 });
 
-test("module configuration URLs use the file's logical path when assetsUrl names its source root", async () => {
+test("module configuration URLs use the file's logical path when assets.url names its source root", async () => {
     const sourceUrl = "https://cdn.example.test/orders/pages/orders/details.jsonc";
-    const config = { modules: { orders: definition("orders", { assetsUrl: "url:../../", controller: "./edit.js", routes: { "/shared": "../shared.js" } }) } };
+    const config = { modules: { orders: definition("orders", { assets: { url: "url:../../" }, controller: "./edit.js", routes: { "/shared": "../shared.js" } }) } };
     const graph = await api.discover(config, sourceUrl, {}, []);
 
-    assert.equal(graph.rootNode.config.modules.orders.assetsUrl, "https://cdn.example.test/orders/");
+    assert.equal(graph.rootNode.config.modules.orders.assets.url, "https://cdn.example.test/orders/");
     assert.equal(graph.rootNode.config.modules.orders.controller, "/_assets/orders/1.0.0.dev/pages/orders/edit.js");
     assert.equal(graph.rootNode.config.modules.orders.routes["/shared"], "/_assets/orders/1.0.0.dev/pages/shared.js");
 });
@@ -376,8 +378,20 @@ test("resolver, service, UI, and Area resources normalize within their owning st
     assert.equal(xshell.areas.definitions.main.label, "/literal-label");
 });
 
-test("assetsUrl requires an explicit physical or application URL", async () => {
-    await assert.rejects(() => discover({ modules: { x: definition("x", { assetsUrl: "/physical-looking-path" }) } }), /assetsUrl must use app:, url:, or an absolute URL/);
+test("assets.url requires an explicit physical or application URL", async () => {
+    await assert.rejects(() => discover({ modules: { x: definition("x", { assets: { url: "/physical-looking-path" } }) } }), /assets\.url must resolve to an absolute HTTP\(S\) URL/);
+});
+
+test("authored generated asset fields and obsolete flat fields are rejected", async () => {
+    await assert.rejects(() => discover({ modules: { x: definition("x", { assets: { path: "/authored" } }) } }), /must not define assets\.path/);
+    await assert.rejects(() => discover({ modules: { x: definition("x", { assetsPath: "/authored" }) } }), /obsolete generated assetsPath/);
+    await assert.rejects(() => discover({ modules: { x: definition("x", { assetsUrl: "url:.\/" }) } }), /obsolete assetsUrl/);
+
+    const xshellUrl = "https://example.test/xshell/xshell.json";
+    fetchedResources.set(rootUrl, { modules: { app: definition("app") } });
+    fetchedResources.set(xshellUrl, { modules: {}, xshell: { assets: { basePath: "app:/_assets", path: "/authored", url: "url:./" }, environment: "Development",
+        version: "0.9.0", temp: { url: "url:./" }, resolver: {} } });
+    await assert.rejects(api.loadConfig(), /must not define xshell\.assets\.path/);
 });
 
 test("Service Worker registration sends the effective configuration mappings unchanged", async () => {
@@ -402,7 +416,7 @@ test("Service Worker registration sends the effective configuration mappings unc
     context.setTimeout = () => 0;
     context.clearTimeout = () => {};
     fetchedResources.set("https://example.test/xshell/xshell.json", {
-        modules: {}, xshell: { assetsBasePath: "app:/runtime", environment: "Development", version: "0.9.0", assetsUrl: "url:./",
+        modules: {}, xshell: { assets: { basePath: "app:/runtime", url: "url:./" }, environment: "Development", version: "0.9.0",
             temp: { url: "url:./" }, resolver: {} }
     });
     fetchedResources.set(rootUrl, { modules: { app: definition("app") } });
@@ -476,8 +490,8 @@ test("loadFilesIndexes concurrently loads module and XShell inventories through 
         fetchOverrides.set(url, () => new Promise(resolve => pending.set(url, resolve)));
     }
     const config = {
-        modules: { x: { assetsPath: "/_assets/x/1.0.0.dev" }, reports: { assetsPath: "/_assets/reports/2.0.0.abc123" } },
-        xshell: { assetsBasePath: "/_assets", assetsPath: "/_assets/xshell/0.9.0.dev" }
+        modules: { x: { assets: { path: "/_assets/x/1.0.0.dev" } }, reports: { assets: { path: "/_assets/reports/2.0.0.abc123" } } },
+        xshell: { assets: { basePath: "/_assets", path: "/_assets/xshell/0.9.0.dev" } }
     };
 
     const loading = api.loadFilesIndexes(config);
@@ -500,7 +514,7 @@ test("loadFilesIndexes reports the inventory id, URL, and HTTP failure", async (
     const xshellInventoryUrl = "https://example.test/app/_assets/xshell/module.files.json";
     fetchOverrides.set(inventoryUrl, async () => ({ ok: false, status: 503, statusText: "Service Unavailable" }));
     fetchedResources.set(xshellInventoryUrl, []);
-    const config = { modules: { x: { assetsPath: "/_assets/x" } }, xshell: { assetsBasePath: "/_assets", assetsPath: "/_assets/xshell" } };
+    const config = { modules: { x: { assets: { path: "/_assets/x" } } }, xshell: { assets: { basePath: "/_assets", path: "/_assets/xshell" } } };
 
     await assert.rejects(
         () => api.loadFilesIndexes(config),
@@ -512,7 +526,7 @@ test("loadFilesIndexes reports the inventory id, URL, and HTTP failure", async (
 
 test("loadFilesIndexes fails clearly when the XShell inventory is missing", async () => {
     const inventoryUrl = "https://example.test/app/_assets/xshell/module.files.json";
-    const config = { modules: {}, xshell: { assetsBasePath: "/_assets", assetsPath: "/_assets/xshell" } };
+    const config = { modules: {}, xshell: { assets: { basePath: "/_assets", path: "/_assets/xshell" } } };
 
     await assert.rejects(
         () => api.loadFilesIndexes(config),
@@ -524,7 +538,7 @@ test("fillResolverRules discovers only JSON files inside the contracts directory
     const config = {
         modules: {
             x: {
-                assetsPath: "/_assets/x",
+                assets: { path: "/_assets/x" },
                 files: [
                     { path: "/_assets/x/contracts/toast.json" },
                     { path: "/_assets/x/contracts/readme.txt" },
@@ -551,8 +565,8 @@ test("fillResolverRules discovers only JSON files inside the contracts directory
 test("fillResolverRules rejects duplicate global contract IDs with both declarations", () => {
     const config = {
         modules: {
-            x: { assetsPath: "/_assets/x", files: [{ path: "/_assets/x/contracts/identity.json" }] },
-            auth: { assetsPath: "/_assets/auth", files: [{ path: "/_assets/auth/contracts/identity.json" }] }
+            x: { assets: { path: "/_assets/x" }, files: [{ path: "/_assets/x/contracts/identity.json" }] },
+            auth: { assets: { path: "/_assets/auth" }, files: [{ path: "/_assets/auth/contracts/identity.json" }] }
         },
         xshell: { resolver: {} }
     };
@@ -568,9 +582,9 @@ test("fillResolverRules rejects duplicate global contract IDs with both declarat
 test("effective inventories exist before validation and configuration is frozen before init", async () => {
     const events = [];
     const config = {
-        modules: { x: { assetsPath: "/_assets/x", files: [{ path: "/_assets/x/file.js", size: 1, hash: "x" }] } },
+        modules: { x: { assets: { path: "/_assets/x" }, files: [{ path: "/_assets/x/file.js", size: 1, hash: "x" }] } },
         xshell: {
-            assetsPath: "/_assets/xshell",
+            assets: { path: "/_assets/xshell" },
             files: [{ path: "/_assets/xshell/xshell.js", size: 2, hash: "xshell" }],
             resolver: { module: { xshell: { src: "/_assets/xshell/xshell.js" } } }
         }
@@ -578,16 +592,16 @@ test("effective inventories exist before validation and configuration is frozen 
     const runtime = {
         async validateConfig(value) {
             events.push("validate");
-            assert.equal(value.modules.x.assetsPath, "/_assets/x");
-            assert.equal(value.xshell.assetsPath, "/_assets/xshell");
+            assert.equal(value.modules.x.assets.path, "/_assets/x");
+            assert.equal(value.xshell.assets.path, "/_assets/xshell");
             assert.equal(value.modules.x.files[0].path, "/_assets/x/file.js");
             assert.equal(value.xshell.files[0].path, "/_assets/xshell/xshell.js");
             assert.equal(Object.isFrozen(value), false);
         },
         async init(value) {
             events.push("init");
-            assert.equal(value.modules.x.assetsPath, "/_assets/x");
-            assert.equal(value.xshell.assetsPath, "/_assets/xshell");
+            assert.equal(value.modules.x.assets.path, "/_assets/x");
+            assert.equal(value.xshell.assets.path, "/_assets/xshell");
             assert.equal(Object.isFrozen(value), true);
             assert.equal(Object.isFrozen(value.modules.x.files[0]), true);
         }
@@ -616,7 +630,7 @@ test("loadConfig derives effective app metadata from the selected root module", 
     const xshellUrl = "https://example.test/xshell/xshell.json";
     fetchedResources.set(xshellUrl, {
         modules: {},
-        xshell: { assetsBasePath: "app:/_assets", environment: "Production", version: "0.9.0", hash: "31d04ab8e220a581", assetsUrl: "url:./", temp: { url: "url:./" }, resolver: {} }
+        xshell: { assets: { basePath: "app:/_assets", url: "url:./" }, environment: "Production", version: "0.9.0", hash: "31d04ab8e220a581", temp: { url: "url:./" }, resolver: {} }
     });
     fetchedResources.set(rootUrl, {
         modules: { app: definition("app", { hash: "a82c31f943e01abc", label: "Root application", copyright: "Owner", icon: "logo" }) }
@@ -634,16 +648,19 @@ test("loadConfig derives effective app metadata from the selected root module", 
     assert.equal(config.app.baseUrl, "https://example.test/app/");
     assert.deepEqual(config.app.params, { mode: "host" });
     assert.deepEqual(config.modules.app.params, { mode: "host" });
-    assert.equal(config.modules.app.assetsPath, "/_assets/app/1.0.0.a82c31f943e01abc");
+    assert.deepEqual(config.modules.app.assets, { path: "/_assets/app/1.0.0.a82c31f943e01abc", url: "https://example.test/modules/app/" });
     assert.equal(config.xshell.configUrl, xshellUrl);
-    assert.equal(config.xshell.assetsBasePath, "/_assets");
-    assert.equal(config.xshell.assetsPath, "/_assets/xshell/0.9.0.31d04ab8e220a581");
+    assert.deepEqual(config.xshell.assets, { basePath: "/_assets", path: "/_assets/xshell/0.9.0.31d04ab8e220a581", url: "https://example.test/xshell/" });
     assert.deepEqual(config.xshell.serviceWorker.mappings, [
         { src: "https://example.test/app/_assets/xshell/0.9.0.31d04ab8e220a581", dst: "https://example.test/xshell/",
             version: "0.9.0", name: "xshell", exceptions: [xshellUrl] },
         { src: "https://example.test/app/_assets/app/1.0.0.a82c31f943e01abc", dst: "https://example.test/modules/app/",
             version: "1.0.0", name: "app", exceptions: [rootUrl] }
     ]);
+    assert.equal(config.xshell.serviceWorker.mappings[0].dst, config.xshell.assets.url);
+    assert.equal(config.xshell.serviceWorker.mappings[1].dst, config.modules.app.assets.url);
+    assert.equal(config.xshell.serviceWorker.mappings[0].src, new URL(config.xshell.assets.path.substring(1), config.app.baseUrl).href);
+    assert.equal(config.xshell.serviceWorker.mappings[1].src, new URL(config.modules.app.assets.path.substring(1), config.app.baseUrl).href);
     config.modules.app.files = [];
     api.fillResolverRules(config);
     assert.equal(config.xshell.resolver.page["/_assets/app/1.0.0.a82c31f943e01abc/{path}.js"].modulePath,
@@ -653,8 +670,8 @@ test("loadConfig derives effective app metadata from the selected root module", 
 
 test("authored top-level app is rejected in root, dependency, and XShell configurations", async () => {
     const xshellUrl = "https://example.test/xshell/xshell.json";
-    const framework = { modules: {}, xshell: { assetsBasePath: "app:/_assets", environment: "Development", version: "0.9.0",
-        assetsUrl: "url:./", temp: { url: "url:./" }, resolver: {} } };
+    const framework = { modules: {}, xshell: { assets: { basePath: "app:/_assets", url: "url:./" }, environment: "Development", version: "0.9.0",
+        temp: { url: "url:./" }, resolver: {} } };
     fetchedResources.set(xshellUrl, framework);
     fetchedResources.set(rootUrl, { app: {}, modules: { app: definition("app") } });
     await assert.rejects(api.loadConfig(), /must not define top-level app/);
@@ -667,8 +684,8 @@ test("authored top-level app is rejected in root, dependency, and XShell configu
 
 test("authored xshell.serviceWorker mappings are rejected before configuration merging", async () => {
     const xshellUrl = "https://example.test/xshell/xshell.json";
-    const framework = { modules: {}, xshell: { assetsBasePath: "app:/_assets", environment: "Development", version: "0.9.0",
-        assetsUrl: "url:./", temp: { url: "url:./" }, resolver: {} } };
+    const framework = { modules: {}, xshell: { assets: { basePath: "app:/_assets", url: "url:./" }, environment: "Development", version: "0.9.0",
+        temp: { url: "url:./" }, resolver: {} } };
     fetchedResources.set(xshellUrl, { ...framework, xshell: { ...framework.xshell, serviceWorker: { mappings: [] } } });
     fetchedResources.set(rootUrl, { modules: { app: definition("app") } });
     await assert.rejects(api.loadConfig(), /Authored XShell configuration.*must not define xshell.serviceWorker/);
@@ -683,26 +700,26 @@ test("authored xshell.serviceWorker mappings are rejected before configuration m
     await assert.rejects(api.loadConfig(), /Authored module configuration.*must not define xshell.serviceWorker/);
 });
 
-test("loadConfig derives every assetsPath from a custom assetsBasePath", async () => {
+test("loadConfig derives every assets.path from a custom assets.basePath", async () => {
     const xshellUrl = "https://example.test/xshell/xshell.json";
     const xUrl = "https://example.test/modules/x/module.jsonc";
     fetchedResources.set(xshellUrl, {
         modules: {},
-        xshell: { assetsBasePath: "app:/runtime", assetsPath: "/authored-xshell", environment: "Production", version: "0.9.0", hash: "31d04ab8e220a581", assetsUrl: "url:./", temp: { url: "url:./" }, resolver: {} }
+        xshell: { assets: { basePath: "app:/runtime", url: "url:./" }, environment: "Production", version: "0.9.0", hash: "31d04ab8e220a581", temp: { url: "url:./" }, resolver: {} }
     });
     fetchedResources.set(rootUrl, {
-        modules: { app: definition("app", { assetsPath: "/authored-app", hash: "app-hash" }), x: reference(xUrl) }
+        modules: { app: definition("app", { hash: "app-hash" }), x: reference(xUrl) }
     });
-    fetchedResources.set(xUrl, { modules: { x: definition("x", { assetsPath: "/authored-x", hash: "x-hash" }) } });
+    fetchedResources.set(xUrl, { modules: { x: definition("x", { hash: "x-hash" }) } });
 
     const config = plain(await api.loadConfig());
 
-    assert.equal(config.modules.app.assetsPath, "/runtime/app/1.0.0.app-hash");
-    assert.equal(config.modules.x.assetsPath, "/runtime/x/1.0.0.x-hash");
+    assert.equal(config.modules.app.assets.path, "/runtime/app/1.0.0.app-hash");
+    assert.equal(config.modules.x.assets.path, "/runtime/x/1.0.0.x-hash");
     assert.deepEqual(config.modules.app.contract, { events: {} });
     assert.deepEqual(config.modules.x.contract, { events: {} });
-    assert.equal(config.xshell.assetsBasePath, "/runtime");
-    assert.equal(config.xshell.assetsPath, "/runtime/xshell/0.9.0.31d04ab8e220a581");
+    assert.equal(config.xshell.assets.basePath, "/runtime");
+    assert.equal(config.xshell.assets.path, "/runtime/xshell/0.9.0.31d04ab8e220a581");
     assert.deepEqual(config.xshell.serviceWorker.mappings, [
         { src: "https://example.test/app/runtime/xshell/0.9.0.31d04ab8e220a581", dst: "https://example.test/xshell/",
             version: "0.9.0", name: "xshell", exceptions: [xshellUrl] },
@@ -716,42 +733,42 @@ test("loadConfig derives every assetsPath from a custom assetsBasePath", async (
     assert.equal(Object.isFrozen(config.xshell.serviceWorker.mappings[0]), true);
 });
 
-test("root assetsBasePath override is normalized before module discovery", async () => {
+test("root assets.basePath override is normalized before module discovery", async () => {
     const xshellUrl = "https://example.test/xshell/xshell.json";
     fetchedResources.set(xshellUrl, {
         modules: {},
-        xshell: { assetsBasePath: "app:/_assets", environment: "Development", version: "0.9.0", assetsUrl: "url:./", temp: { url: "url:./" }, resolver: {} }
+        xshell: { assets: { basePath: "app:/_assets", url: "url:./" }, environment: "Development", version: "0.9.0", temp: { url: "url:./" }, resolver: {} }
     });
     fetchedResources.set(rootUrl, {
         modules: { app: definition("app") },
-        xshell: { assetsBasePath: "app:/custom-assets" }
+        xshell: { assets: { basePath: "app:/custom-assets" } }
     });
 
     const config = plain(await api.loadConfig());
-    assert.equal(config.xshell.assetsBasePath, "/custom-assets");
-    assert.equal(config.xshell.assetsPath, "/custom-assets/xshell/0.9.0.dev");
-    assert.equal(config.modules.app.assetsPath, "/custom-assets/app/1.0.0.dev");
-    assert.equal(config.xshell.assetsUrl, "https://example.test/xshell/");
+    assert.equal(config.xshell.assets.basePath, "/custom-assets");
+    assert.equal(config.xshell.assets.path, "/custom-assets/xshell/0.9.0.dev");
+    assert.equal(config.modules.app.assets.path, "/custom-assets/app/1.0.0.dev");
+    assert.equal(config.xshell.assets.url, "https://example.test/xshell/");
 });
 
-test("loadConfig resolves XShell assetsUrl from the application base", async () => {
+test("loadConfig resolves XShell assets.url from the application base", async () => {
     fetchedResources.set("https://example.test/xshell/xshell.json", {
         modules: {},
-        xshell: { assetsBasePath: "app:/_assets", environment: "Development", version: "0.9.0", assetsUrl: "app:/framework/", temp: { url: "url:./" }, resolver: {} }
+        xshell: { assets: { basePath: "app:/_assets", url: "app:/framework/" }, environment: "Development", version: "0.9.0", temp: { url: "url:./" }, resolver: {} }
     });
     fetchedResources.set(rootUrl, { modules: { app: definition("app") } });
 
     const config = plain(await api.loadConfig());
 
-    assert.equal(config.xshell.assetsUrl, "https://example.test/app/framework/");
-    assert.equal(config.xshell.assetsBasePath, "/_assets");
-    assert.equal(config.xshell.assetsPath, "/_assets/xshell/0.9.0.dev");
+    assert.equal(config.xshell.assets.url, "https://example.test/app/framework/");
+    assert.equal(config.xshell.assets.basePath, "/_assets");
+    assert.equal(config.xshell.assets.path, "/_assets/xshell/0.9.0.dev");
 });
 
 test("host Development override selects mutable generations without package hashes", async () => {
     fetchedResources.set("https://example.test/xshell/xshell.json", {
         modules: {},
-        xshell: { assetsBasePath: "app:/_assets", environment: "Production", version: "0.9.0", assetsUrl: "url:./", temp: { url: "url:./" }, resolver: {} }
+        xshell: { assets: { basePath: "app:/_assets", url: "url:./" }, environment: "Production", version: "0.9.0", temp: { url: "url:./" }, resolver: {} }
     });
     fetchedResources.set(rootUrl, { modules: { app: definition("app") } });
     const hostedDocument = {
@@ -762,8 +779,8 @@ test("host Development override selects mutable generations without package hash
     new vm.Script(bootstrapSource, { filename: bootstrapPath.pathname }).runInContext(hostedContext);
     const config = plain(await hostedContext.__bootstrapTests.loadConfig());
     assert.equal(config.xshell.environment, "dEvElOpMeNt");
-    assert.equal(config.xshell.assetsPath, "/_assets/xshell/0.9.0.dev");
-    assert.equal(config.modules.app.assetsPath, "/_assets/app/1.0.0.dev");
+    assert.equal(config.xshell.assets.path, "/_assets/xshell/0.9.0.dev");
+    assert.equal(config.modules.app.assets.path, "/_assets/app/1.0.0.dev");
     assert.deepEqual(config.xshell.serviceWorker.mappings.map(rule => rule.src), [
         "https://example.test/app/_assets/xshell/0.9.0.dev", "https://example.test/app/_assets/app/1.0.0.dev"
     ]);
@@ -772,7 +789,7 @@ test("host Development override selects mutable generations without package hash
 test("non-Development XShell without a package hash fails clearly", async () => {
     fetchedResources.set("https://example.test/xshell/xshell.json", {
         modules: {},
-        xshell: { assetsBasePath: "app:/_assets", environment: "Production", version: "0.9.0", assetsUrl: "url:./", temp: { url: "url:./" }, resolver: {} }
+        xshell: { assets: { basePath: "app:/_assets", url: "url:./" }, environment: "Production", version: "0.9.0", temp: { url: "url:./" }, resolver: {} }
     });
     fetchedResources.set(rootUrl, { modules: { app: definition("app", { hash: "app-hash" }) } });
     await assert.rejects(api.loadConfig(), /Published module 'xshell'.*hash/);
@@ -786,7 +803,7 @@ test("root config accepts exactly one local module regardless of module key orde
     assert.equal(graph.rootNode.id, "app");
     assert.deepEqual(orderOf(graph), ["x", "app"]);
     assert.equal(graph.rootNode.references[0].configUrl, xUrl);
-    assert.equal(graph.rootNode.config.modules.app.assetsUrl, "https://example.test/modules/app/");    
+    assert.equal(graph.rootNode.config.modules.app.assets.url, "https://example.test/modules/app/");
 });
 
 test("app URLs use the fixed host application base across configuration documents and navigation", async () => {
@@ -804,21 +821,21 @@ test("app URLs use the fixed host application base across configuration document
     const yUrl = "https://example.test/myapp/modules/y/module.jsonc";
     const sourceUrl = "https://example.test/config/source/module.jsonc";
     const root = { modules: {
-        app: definition("app", { assetsUrl: "app:foo" }),
+        app: definition("app", { assets: { url: "app:foo" } }),
         x: reference("app:modules/x/module.jsonc"),
         source: reference("url:../source/module.jsonc")
     } };
     const configs = {
-        [xUrl]: { modules: { x: definition("x", { assetsUrl: "app:/foo" }), y: reference("app:/modules/y/module.jsonc") } },
-        [yUrl]: { modules: { y: definition("y", { assetsUrl: "https://cdn.example.test/y/" }) } },
-        [sourceUrl]: { modules: { source: definition("source", { assetsUrl: "url:./assets/" }) } }
+        [xUrl]: { modules: { x: definition("x", { assets: { url: "app:/foo" } }), y: reference("app:/modules/y/module.jsonc") } },
+        [yUrl]: { modules: { y: definition("y", { assets: { url: "https://cdn.example.test/y/" } }) } },
+        [sourceUrl]: { modules: { source: definition("source", { assets: { url: "url:./assets/" } }) } }
     };
     const check = async () => {
         const graph = await nestedApi.discover(root, ownerUrl, configs, []);
-        assert.equal(graph.rootNode.config.modules.app.assetsUrl, "https://example.test/myapp/foo");
-        assert.equal(graph.nodesById.get("x").config.modules.x.assetsUrl, "https://example.test/myapp/foo");
-        assert.equal(graph.nodesById.get("y").config.modules.y.assetsUrl, "https://cdn.example.test/y/");
-        assert.equal(graph.nodesById.get("source").config.modules.source.assetsUrl, "https://example.test/config/source/assets/");
+        assert.equal(graph.rootNode.config.modules.app.assets.url, "https://example.test/myapp/foo");
+        assert.equal(graph.nodesById.get("x").config.modules.x.assets.url, "https://example.test/myapp/foo");
+        assert.equal(graph.nodesById.get("y").config.modules.y.assets.url, "https://cdn.example.test/y/");
+        assert.equal(graph.nodesById.get("source").config.modules.source.assets.url, "https://example.test/config/source/assets/");
         assert.deepEqual(Array.from(graph.rootNode.references, reference => reference.configUrl), [xUrl, sourceUrl]);
         assert.equal(graph.nodesById.get("x").references[0].configUrl, yUrl);
     };
@@ -901,7 +918,7 @@ test("a shared dependency with the same URL is fetched and registered once", asy
     for (const module of Object.values(effective.modules)) module.files = [];
     const modules = new Modules({
         bus: {},
-        config: { xshell: { assetsBasePath: "/_assets" }, modules: effective.modules },
+        config: { xshell: { assets: { basePath: "/_assets" } }, modules: effective.modules },
         loader: { load() { throw new Error("No resources should be loaded by this fixture."); } },
         resolver: {},
         document: { adoptedStyleSheets: [] },
@@ -977,13 +994,15 @@ test("child references retain params and arbitrary configuration contributions",
     assert.equal(effective.modules.x.someFeature, true);
 });
 
-test("references reject assetsUrl but require configUrl", async () => {
+test("references reject assets ownership and obsolete assetsUrl but require configUrl", async () => {
     const aUrl = "https://example.test/modules/a/module.jsonc";
     const xUrl = "https://example.test/modules/x/module.jsonc";
     const root = { modules: { app: definition("app"), a: reference(aUrl) } };
-    const configs = { [aUrl]: { modules: { a: definition("a"), x: { configUrl: xUrl, assetsUrl: "url:./assets" } } } };
+    const configs = { [aUrl]: { modules: { a: definition("a"), x: { configUrl: xUrl, assets: { url: "url:./assets" } } } } };
 
-    await assert.rejects(() => discover(root, configs), /cannot override assetsUrl/);
+    await assert.rejects(() => discover(root, configs), /cannot override assets/);
+    configs[aUrl].modules.x = { configUrl: xUrl, assetsUrl: "url:./assets" };
+    await assert.rejects(() => discover(root, configs), /obsolete assetsUrl/);
     await assert.rejects(() => discover({ modules: { app: definition("app"), x: { configUrl: "" } } }), /must declare a non-empty configUrl/);
 });
 
@@ -1052,14 +1071,14 @@ test("modules without routes remain without a routes property", async () => {
     assert.equal(Object.hasOwn(graph.rootNode.config.modules.app, "routes"), false);
 });
 
-test("root references reject assetsUrl but accept arbitrary composition properties", async () => {
+test("root references reject assets but accept arbitrary composition properties", async () => {
     const xUrl = "https://example.test/modules/x/module.jsonc";
     const root = { modules: { app: definition("app"), x: { configUrl: xUrl, version: "override" } } };
     const graph = await discover(root, { [xUrl]: { modules: { x: definition("x", { version: "dependency" }) } } });
     const effective = plain(api.mergeConfigs(Array.from(graph.mergeOrder, node => node.config)));
 
     assert.equal(effective.modules.x.version, "override");
-    await assert.rejects(() => discover({ modules: { app: definition("app"), x: { configUrl: xUrl, assetsUrl: "url:./assets" } } }), /cannot override assetsUrl/);
+    await assert.rejects(() => discover({ modules: { app: definition("app"), x: { configUrl: xUrl, assets: { url: "url:./assets" } } } }), /cannot override assets/);
 });
 
 test("sibling contributions to a shared dependency follow declaration order", async () => {

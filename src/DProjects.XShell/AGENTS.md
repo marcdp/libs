@@ -105,7 +105,7 @@ module defaults    ≠ global XShell UI configuration
 module             ≠ Area
 Page               ≠ Navigation
 configuration      ≠ runtime state
-configUrl          ≠ assetsUrl
+configUrl          ≠ assets.url
 packaging          ≠ runtime ZIP loading
 ```
 
@@ -140,7 +140,7 @@ Repeated references to the same canonical module do not imply multiple live runt
 
 Each `module.jsonc` contains exactly one local module definition: the `modules.<id>` entry without `configUrl`. Every other entry is an external
 reference whose key must match the referenced document's local module id. References may contribute `params` and other mergeable configuration;
-`configUrl` identifies the referenced definition, whose local definition owns `assetsUrl`. Merge order is dependency-first, owner-later, root-last.
+`configUrl` identifies the referenced definition, whose local definition owns `assets.url`. Merge order is dependency-first, owner-later, root-last.
 
 Keep these concepts separate:
 
@@ -203,7 +203,7 @@ plus relevant module definitions and ADRs.
 The current virtual asset namespace is configured through:
 
 ```text
-xshell.assetsBasePath
+xshell.assets.basePath
 ```
 
 The checked-in configured value is:
@@ -233,7 +233,7 @@ configUrl
 and:
 
 ```text
-assetsUrl
+assets.url
 ```
 
 conceptually separate.

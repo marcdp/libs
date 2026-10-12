@@ -113,9 +113,9 @@ The application is the root module selected by `release.root`; no authored `app`
 Pack puts `index.html` and application `sw.js` in the immutable root module generation. `--app-base-path` defaults to empty, `--environment` defaults
 to `Production`, repeatable `--param key=value` supplies root parameters, and `--temp-base-path` defaults to `<app-base-path>/temp`.
 Dependency module directories contain `module.json` and `module.zip`; the root also contains `index.html` and `sw.js`. Each module has
-`modules.<id>.assetsUrl = "url:./module.zip"` and
+`modules.<id>.assets.url = "url:./module.zip"` and
 `modules.<id>.files = [...]` in the descriptor. The `xshell/<version>.<hash>/` directory contains `xshell.json`, `bootstrap.js`, `sw.js`, and
-`xshell.zip`. Its published descriptor has `xshell.assetsUrl = "url:./xshell.zip"` and `xshell.files = [...]`.
+`xshell.zip`. Its published descriptor has `xshell.assets.url = "url:./xshell.zip"` and `xshell.files = [...]`.
 `bootstrap.js` and `sw.js` are exact canonical copies also retained inside the complete framework ZIP, allowing direct startup requests without
 creating separate package identities.
 The release manifest uses `root` for the application module, `xshell` for the framework, and `packages` for the complete immutable package set.

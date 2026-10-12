@@ -39,7 +39,7 @@ export default class Contracts {
         let tasks = [];
         for (const moduleId of Object.keys(this._config.modules)) {
             const module = this._config.modules[moduleId];
-            const moduleContractsPath = module.assetsPath + "/contracts";
+            const moduleContractsPath = module.assets.path + "/contracts";
             for (const file of Object.values(module.files)) {
                 if (file.path.startsWith(moduleContractsPath + "/") && file.path.endsWith(".json")) {
                     const contractId = file.path.substring(moduleContractsPath.length + 1, file.path.length - ".json".length);

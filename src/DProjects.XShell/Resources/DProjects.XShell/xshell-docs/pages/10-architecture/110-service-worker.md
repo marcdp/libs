@@ -7,22 +7,22 @@ The checked-in value is normalized as follows:
 
 ```text
 authored:
-    xshell.assetsBasePath = "app:/_assets"
+    xshell.assets.basePath = "app:/_assets"
 
 effective:
-    xshell.assetsBasePath = "/_assets"
+    xshell.assets.basePath = "/_assets"
 ```
 
 Bootstrap normalizes the authored value against the application base URL, producing effective application Paths such as
 `/_assets/x/1.4.0.dev/components/x-button.js` (served under `/myapp/_assets/...` when the application base is `/myapp/`). It sends a mapping for each
-canonical module definition and the XShell framework files. Each rule maps the virtual prefix to `assetsUrl` and carries `configUrl` in an
+canonical module definition and the XShell framework files. Each rule maps the virtual prefix to `assets.url` and carries `configUrl` in an
 `exceptions` field. The current worker does not apply that field;
 configuration discovery still fetches the original document URL before worker setup. The worker rewrites matching requests and fetches the physical
 resource. Repeated
 references to a definition share one mapping; they do not create additional live module instances.
 
 Bootstrap generates the mappings in `config.xshell.serviceWorker.mappings` after resolving the effective XShell and module configuration and
-finalizing each `assetsPath`, `assetsUrl`, and `configUrl`. The array contains one XShell rule followed by one rule per effective module. Each rule has
+finalizing each `assets.path`, `assets.url`, and `configUrl`. The array contains one XShell rule followed by one rule per effective module. Each rule has
 an absolute virtual `src` URL under the application base URL, a normalized physical `dst` URL, and `version`, `name`, and `exceptions` metadata.
 Bootstrap then registers the application-level `/sw.js` and sends this array directly in `registerMappings`. The worker runs its own `normalizeRule`
 validation at the message boundary and merges the batch into IndexedDB. After inventory loading, bootstrap validates and freezes the effective
@@ -31,11 +31,11 @@ configuration. `xshell.serviceWorker` is generated runtime state; authored XShel
 ```text
 client: /_assets/<module-id>/<generation>/<resource>
     → Service Worker mapping
-    → assetsUrl (currently an expanded directory)
+    → assets.url (currently an expanded directory)
     → resource response
 ```
 
-`configUrl` identifies a module configuration document. `assetsUrl` identifies the physical directory or package holding its assets. Normal clients
+`configUrl` identifies a module configuration document. `assets.url` identifies the physical directory or package holding its assets. Normal clients
 must use `/_assets/<module-id>/<generation>/...` and remain independent of whether storage is expanded or packaged. Current mapping and fetch
 behavior supports
 expanded directories. Runtime ZIP loading is not implemented. The mapped fetch has no explicit `mode` option; the source's `same-origin` option

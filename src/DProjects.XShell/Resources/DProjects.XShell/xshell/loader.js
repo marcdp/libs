@@ -47,7 +47,7 @@ export default class Loader {
         this._bus = bus;
         this._resolver = resolver;
         this._appBasePath = config.app.basePath;
-        this._xshellAssetsPath = config.xshell.assetsPath;
+        this._xshellAssetsPath = config.xshell.assets.path;
         this._navigationMode = config.xshell.navigation.mode;
         this._componentLazy = config.xshell.ui.component.lazy;
     }

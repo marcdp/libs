@@ -39,7 +39,7 @@ one module instance per module id</code></pre>
     ↓
 Service Worker
     ↓
-assetsUrl</code></pre>
+assets.url</code></pre>
 
         <p>
             The Service Worker hides the physical asset container. Components, Pages, icons, styles, and module controllers can therefore use the

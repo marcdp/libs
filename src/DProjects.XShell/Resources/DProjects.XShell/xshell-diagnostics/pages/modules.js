@@ -60,7 +60,7 @@ export default {
             >
                 <div>{{ module.label }}</div>
                 <div>{{ module.version }}</div>
-                <div><x-anchor x-attr:href="module.assetsUrl" target="_blank" class="plain">{{ module.assetsPath }}</x-anchor></div>
+                <div><x-anchor x-attr:href="module.assets.url" target="_blank" class="plain">{{ module.assets.path }}</x-anchor></div>
                 <div>{{ module.builtAt }}</div>
                 <x-file-size x-prop:value="module.size" style="text-align:right"></x-file-size>
                 <div style="text-align:right">{{ module.files.all }}</div>
@@ -77,7 +77,7 @@ export default {
         id: "",
         version: "",
         label: "",
-        assetsPath: "",
+        assetPath: "",
         configUrl: "",
         configUrlName: "",
         size: "",
@@ -92,7 +92,7 @@ export default {
                events.on(state, "change:id", "refresh");
                events.on(state, "change:version", "refresh");
                events.on(state, "change:label", "refresh");
-               events.on(state, "change:assetsPath", "refresh");
+               events.on(state, "change:assetPath", "refresh");
                events.on(state, "change:configUrl", "refresh");
             },
             refresh() {
@@ -103,7 +103,7 @@ export default {
                     if (state.id && target.id.indexOf(state.id) == -1 ) valid = false;
                     if (state.version && target.version.indexOf(state.version) == -1 ) valid = false;
                     if (state.label && (target.label || "").indexOf(state.label) == -1 ) valid = false;
-                    if (state.assetsPath && target.assetsPath.indexOf(state.assetsPath) == -1 ) valid = false;
+                    if (state.assetPath && target.assets.path.indexOf(state.assetPath) == -1 ) valid = false;
                     if (state.configUrl && target.configUrl.indexOf(state.configUrl) == -1 ) valid = false;
                     let size = 0;
                     let files = {
@@ -117,27 +117,28 @@ export default {
                     for(const file of target.files) {
                         size += file.size || 0;
                         files.all++;
-                        if (file.path.startsWith(target.assetsPath + "/pages")) {
+                        if (file.path.startsWith(target.assets.path + "/pages")) {
                             files.pages++;
-                        } else if (file.path.startsWith(target.assetsPath + "/components")) {
+                        } else if (file.path.startsWith(target.assets.path + "/components")) {
                             files.components++;
-                        } else if (file.path.startsWith(target.assetsPath + "/services")) {
+                        } else if (file.path.startsWith(target.assets.path + "/services")) {
                             files.services++;
-                        } else if (file.path.startsWith(target.assetsPath + "/contracts")) {
+                        } else if (file.path.startsWith(target.assets.path + "/contracts")) {
                             files.contracts++;
                         } else {
                             files.others++;
                         }
                     }
                     if (valid) {
-                        debugger
                         list.push({
                             id: target.id,
                             version: target.version,
                             label: target.label || "",
                             icon: target.icon || "x-module",
-                            assetsPath: target.assetsPath,
-                            assetsUrl: target.assetsUrl || "",
+                            assets: {
+                                path: target.assets.path,
+                                url: target.assets.url || ""
+                            },
                             builtAt: target.builtAt || "",
                             configUrl: target.configUrl,
                             configUrlName: target.configUrl.split("/").pop() || "",

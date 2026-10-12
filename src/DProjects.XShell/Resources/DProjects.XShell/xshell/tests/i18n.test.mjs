@@ -26,22 +26,21 @@ function configuration(i18n) {
             copyright: "",
             icon: "",
             basePath: "/",
+            baseUrl: "https://example.test/",
             params: {}
         },
         modules: {},
         xshell: {
-            build: "test"
             version: "1.0.0",
             environment: "test",
-            assetsBasePath: "/_assets",
-            assetsPath: "/_assets/xshell",
+            assets: { basePath: "/_assets", path: "/_assets/xshell", url: "https://example.test/xshell/" },
             areas: { default: null, global: [], definitions: {} },
             navigation: { mode: "path" },
             resolver: {},
             ui: { layout: {}, component: {}, dialog: {} },
             i18n,
             configUrl: "https://example.test/xshell/xshell.json",
-            assetsUrl: "https://example.test/xshell/",
+            serviceWorker: { mappings: [] },
             files: []
         }
     };

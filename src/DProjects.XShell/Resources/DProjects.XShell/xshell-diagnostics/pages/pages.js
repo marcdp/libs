@@ -74,7 +74,7 @@ export default {
                 }
                 for(let moduleId of Object.keys(config.modules)) {
                     const moduleConfig = config.modules[moduleId];
-                    let modulePagesPath = moduleConfig.assetsPath + "/pages";
+                    let modulePagesPath = moduleConfig.assets.path + "/pages";
                     for(const file of Object.values(moduleConfig.files)) {
                         if (file.path.startsWith(modulePagesPath)) {
                             const id = file.path;

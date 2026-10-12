@@ -34,7 +34,7 @@ xshell.init(config)</code></pre>
         <ul>
             <li><code>config.app</code> — application-level bootstrap values such as <code>name</code>, <code>basePath</code>, and <code>params</code>.</li>
             <li><code>config.modules</code> — canonical module definitions keyed by module id, including normalized URLs and contributions.</li>
-            <li><code>config.xshell</code> — framework/runtime configuration such as <code>environment</code>, <code>assetsBasePath</code>, navigation, Areas, and resolver settings.</li>
+            <li><code>config.xshell</code> — framework/runtime configuration such as <code>environment</code>, <code>assets.basePath</code>, navigation, Areas, and resolver settings.</li>
         </ul>
 
         <h3>Root module</h3>
@@ -66,7 +66,7 @@ xshell.init(config)</code></pre>
 
         <p>
             Discovery finds the root and referenced configuration documents recursively. Normalization resolves <code>url:</code> references,
-            records each module's <code>configUrl</code>, derives <code>assetsUrl</code> when needed, and maps module-relative resources into the
+            records each module's <code>configUrl</code>, derives <code>assets.url</code> when needed, and maps module-relative resources into the
             runtime namespace <code>/_assets/&lt;module-id&gt;/...</code>. Merge combines the resulting fragments using the current Bootstrap
             registration and merge behavior.
         </p>
@@ -109,7 +109,7 @@ xshell.init(config)</code></pre>
                 state.moduleIds = JSON.stringify(Object.keys(config.modules || {}));
                 state.xshell = JSON.stringify({
                     environment: config.xshell?.environment || "",
-                    assetsBasePath: config.xshell?.assetsBasePath || "",
+                    assets: config.xshell?.assets || {},
                     navigation: config.xshell?.navigation || {}
                 });
             }

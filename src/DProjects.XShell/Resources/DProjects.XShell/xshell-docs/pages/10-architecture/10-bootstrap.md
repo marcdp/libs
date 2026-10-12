@@ -12,11 +12,11 @@ host HTML
     -> discover modules.<id>.configUrl references recursively
     -> validate reference ids and canonical URLs
     -> reject dependency cycles
-    -> resolve xshell.assetsBasePath and the effective environment
-    -> normalize configUrl, assetsUrl, and resource paths using each generation's assetsPath
+    -> resolve xshell.assets.basePath and the effective environment
+    -> normalize configUrl, assets.url, and resource paths using each generation's assets.path
     -> merge defaults, dependencies, dependents, and root
     -> derive effective config.app from the canonical root module and bootstrap deployment values
-    -> retain the generated assetsPath for every effective module and XShell
+    -> retain the generated assets.path for every effective module and XShell
     -> install and initialize Service Worker mappings
     -> load every module.files.json through the virtual resource namespace
     -> normalize and attach module and XShell file inventories
@@ -52,17 +52,17 @@ dependencies therefore load once.
 
 ## Normalization and merge
 
-Each local definition receives its configuration document URL as `configUrl`. Its `assetsUrl` defaults to the same document's directory unless the
+Each local definition receives its configuration document URL as `configUrl`. Its `assets.url` defaults to the same document's directory unless the
 definition owns an explicit value. Plain module-relative reference URLs use the owner's virtual asset namespace; `url:` explicitly selects the
 physical source document. Bootstrap uses the physical source URL to load a referenced configuration before the Service Worker is available.
 This `url:` form is limited to configuration/bootstrap; runtime stylesheet and template resource references reject it.
 
-Bootstrap normalizes the configured `xshell.assetsBasePath` once. The checked-in `app:/_assets` resolves relative to the application base URL and is
-stored as the application-relative virtual path `/_assets`. Bootstrap derives generation-qualified `assetsPath` before normalizing resources:
+Bootstrap normalizes the configured `xshell.assets.basePath` once. The checked-in `app:/_assets` resolves relative to the application base URL and is
+stored as the application-relative virtual path `/_assets`. Bootstrap derives generation-qualified `assets.path` before normalizing resources:
 `/_assets/x/1.4.0.dev` for a Development module and `/_assets/xshell/0.9.0.<hash>` for a published framework. Development uses
 `<version>.dev` regardless of any descriptor hash; other environments require the generated package hash and use `<version>.<hash>`.
 With an application hosted under `/myapp/`, these are served under `/myapp/_assets/...`.
-`assetsPath` is generated runtime metadata; `assetsUrl` remains the separate physical backing location.
+`assets.path` is generated runtime metadata; `assets.url` remains the separate physical backing location.
 
 The dependency graph supplies a post-order merge sequence. Dependencies precede dependents, reference contributions merge after the referenced
 local definition, sibling references retain declaration/discovery order, and the root is last. This produces deterministic root-authoritative
@@ -71,9 +71,9 @@ composition independent of network completion order. The final
 
 ## Runtime handoff
 
-After resolving effective XShell and module definitions, bootstrap finalizes their `assetsPath`, `assetsUrl`, and `configUrl` values. It then generates
+After resolving effective XShell and module definitions, bootstrap finalizes their `assets.path`, `assets.url`, and `configUrl` values. It then generates
 `config.xshell.serviceWorker.mappings`: one mapping for XShell and one per effective module. Each `src` is an absolute browser URL under
-`config.app.baseUrl` for that generation's virtual asset path; each `dst` is the normalized physical `assetsUrl`. Mapping metadata retains the
+`config.app.baseUrl` for that generation's virtual asset path; each `dst` is the normalized physical `assets.url`. Mapping metadata retains the
 package `version`, module `name`, and `configUrl` in `exceptions`. This is generated effective runtime configuration, not an authored setting.
 
 Bootstrap registers the application Service Worker at `app.basePath + "/sw.js"`, waits for control, and sends these mappings directly in a

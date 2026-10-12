@@ -4,7 +4,7 @@ async function loadJsonWithComments(url){const response=await fetch(url);if(!res
 function meta(name){return document.head.querySelector(`meta[name="${name}"]`)?.content;}
 function deepFreeze(obj){if(obj===null||typeof obj!=="object")return obj;Object.freeze(obj);for(const value of Object.values(obj))deepFreeze(value);return obj;}
 function resolveAppUrl(value){const root="/__xshell_app_root__/";const logicalUrl=new URL(value.substring(4).trim().replace(/^\/+/,""),"https://app.invalid"+root);if(logicalUrl.origin!=="https://app.invalid"||!logicalUrl.pathname.startsWith(root))throw new Error(`Application URL '${value}' escapes the application root.`);return new URL(logicalUrl.pathname.substring(root.length)+logicalUrl.search+logicalUrl.hash,appBaseUrl).href;}
-function normalizeAssetsBasePath(value){if(typeof value!=="string"||!value.trim())throw new Error("xshell.assetsBasePath must be a non-empty URL or path.");let resolved;if(value.startsWith("app:"))resolved=resolveAppUrl(value);else if(/^https?:\/\//i.test(value))resolved=value;else throw new Error(`xshell.assetsBasePath must use app: or an absolute HTTP(S) URL: '${value}'.`);const url=new URL(resolved),appPath=new URL(appBaseUrl).pathname.replace(/\/+$/,"");if(url.origin!==document.location.origin||(appPath&&url.pathname!==appPath&&!url.pathname.startsWith(appPath+"/"))||url.search||url.hash)throw new Error(`xshell.assetsBasePath must resolve within the application base URL: '${value}'.`);const assetsBasePath=url.pathname.substring(appPath.length).replace(/\/+$/,"");if(!assetsBasePath)throw new Error("xshell.assetsBasePath must identify a namespace below the application base URL.");return assetsBasePath;}
+function normalizeAssetsBasePath(value){if(typeof value!=="string"||!value.trim())throw new Error("xshell.assets.basePath must be a non-empty URL or path.");let resolved;if(value.startsWith("app:"))resolved=resolveAppUrl(value);else if(/^https?:\/\//i.test(value))resolved=value;else throw new Error(`xshell.assets.basePath must use app: or an absolute HTTP(S) URL: '${value}'.`);const url=new URL(resolved),appPath=new URL(appBaseUrl).pathname.replace(/\/+$/,"");if(url.origin!==document.location.origin||(appPath&&url.pathname!==appPath&&!url.pathname.startsWith(appPath+"/"))||url.search||url.hash)throw new Error(`xshell.assets.basePath must resolve within the application base URL: '${value}'.`);const assetsBasePath=url.pathname.substring(appPath.length).replace(/\/+$/,"");if(!assetsBasePath)throw new Error("xshell.assets.basePath must identify a namespace below the application base URL.");return assetsBasePath;}
 function getAssetsPath(assetsBasePath, moduleId, version, hash, environment) {
     if (typeof version !== "string" || !version.trim()) throw new Error(`Module '${moduleId}' requires a non-empty version for its asset generation.`);
     let generation;
@@ -107,15 +107,35 @@ function getLocalModule(config, configUrl) {
     }
     return { id: entries[0][0], definition: entries[0][1] };
 }
+function validateAuthoredXShellAssets(xshell, configUrl) {
+    if (!xshell || typeof xshell !== "object" || Array.isArray(xshell)) return;
+    if (Object.hasOwn(xshell, "assetsBasePath")) throw new Error(`Authored configuration '${configUrl}' uses obsolete xshell.assetsBasePath; use xshell.assets.basePath.`);
+    if (Object.hasOwn(xshell, "assetsPath")) throw new Error(`Authored configuration '${configUrl}' uses obsolete generated xshell.assetsPath; xshell.assets.path is generated.`);
+    if (Object.hasOwn(xshell, "assetsUrl")) throw new Error(`Authored configuration '${configUrl}' uses obsolete xshell.assetsUrl; use xshell.assets.url.`);
+    if (!Object.hasOwn(xshell, "assets")) return;
+    if (!xshell.assets || typeof xshell.assets !== "object" || Array.isArray(xshell.assets)) throw new Error(`Authored xshell.assets in '${configUrl}' must be an object.`);
+    if (Object.hasOwn(xshell.assets, "path")) throw new Error(`Authored configuration '${configUrl}' must not define xshell.assets.path; it is generated.`);
+}
+function validateAuthoredModuleAssets(module, moduleId, configUrl) {
+    if (Object.hasOwn(module, "assetsUrl")) throw new Error(`Module '${moduleId}' in '${configUrl}' uses obsolete assetsUrl; use assets.url.`);
+    if (Object.hasOwn(module, "assetsPath")) throw new Error(`Module '${moduleId}' in '${configUrl}' uses obsolete generated assetsPath; assets.path is generated.`);
+    if (!Object.hasOwn(module, "assets")) return;
+    if (!module.assets || typeof module.assets !== "object" || Array.isArray(module.assets)) throw new Error(`Module '${moduleId}' assets in '${configUrl}' must be an object.`);
+    if (Object.hasOwn(module.assets, "path")) throw new Error(`Module '${moduleId}' in '${configUrl}' must not define assets.path; it is generated.`);
+    if (Object.hasOwn(module.assets, "basePath")) throw new Error(`Module '${moduleId}' in '${configUrl}' must not define assets.basePath.`);
+}
 function prepareModuleConfig(config, configUrl, assetsBasePath, environment) {
     if (Object.hasOwn(config?.xshell ?? {}, "serviceWorker")) throw new Error(`Authored module configuration '${configUrl}' must not define xshell.serviceWorker.`);
+    validateAuthoredXShellAssets(config?.xshell, configUrl);
     const localModule = getLocalModule(config, configUrl);
+    validateAuthoredModuleAssets(localModule.definition, localModule.id, configUrl);
     const assetsPath = getAssetsPath(assetsBasePath, localModule.id, localModule.definition.version, localModule.definition.hash, environment);
-    let assetsUrl = relativizePaths(localModule.definition.assetsUrl || "url:./", assetsPath, "/module.jsonc", configUrl);
-    if (!/^[a-z][a-z0-9+.-]*:/i.test(assetsUrl)) throw new Error(`assetsUrl must resolve to an absolute HTTP(S) URL: '${assetsUrl}'.`);
+    let assetsUrl = relativizePaths(localModule.definition.assets?.url || "url:./", assetsPath, "/module.jsonc", configUrl);
+    if (!/^[a-z][a-z0-9+.-]*:/i.test(assetsUrl)) throw new Error(`assets.url must resolve to an absolute HTTP(S) URL: '${assetsUrl}'.`);
     const assetsUrlObject = new URL(assetsUrl);
-    if (assetsUrlObject.protocol !== "http:" && assetsUrlObject.protocol !== "https:") throw new Error(`assetsUrl must resolve to an absolute HTTP(S) URL: '${assetsUrl}'.`);
-    localModule.definition.assetsUrl = assetsUrlObject.href;
+    if (assetsUrlObject.protocol !== "http:" && assetsUrlObject.protocol !== "https:") throw new Error(`assets.url must resolve to an absolute HTTP(S) URL: '${assetsUrl}'.`);
+    localModule.definition.assets ??= {};
+    localModule.definition.assets.url = assetsUrlObject.href;
     const source = new URL(configUrl);
     const assetsDirectory = assetsUrlObject.pathname.endsWith("/") ? assetsUrlObject.pathname : assetsUrlObject.pathname + "/";
     const declaringPath = source.origin === assetsUrlObject.origin && source.pathname.startsWith(assetsDirectory) ? "/" + source.pathname.substring(assetsDirectory.length) : "/" + source.pathname.substring(source.pathname.lastIndexOf("/") + 1);
@@ -123,14 +143,16 @@ function prepareModuleConfig(config, configUrl, assetsBasePath, environment) {
     for (const [moduleId, reference] of Object.entries(config.modules)) {
         if (moduleId === localModule.id) continue;
         if (!reference || typeof reference !== "object" || Array.isArray(reference)) throw new Error(`Module reference '${moduleId}' in '${configUrl}' must be an object that declares configUrl.`);
-        if (Object.hasOwn(reference, "assetsUrl")) throw new Error(`Module reference '${moduleId}' in '${configUrl}' cannot override assetsUrl; it is owned by the local definition.`);
+        if (Object.hasOwn(reference, "assets")) throw new Error(`Module reference '${moduleId}' cannot override assets; it is owned by the local definition.`);
+        if (Object.hasOwn(reference, "assetsUrl")) throw new Error(`Module reference '${moduleId}' in '${configUrl}' uses obsolete assetsUrl; references cannot override assets.`);
+        if (Object.hasOwn(reference, "assetsPath")) throw new Error(`Module reference '${moduleId}' in '${configUrl}' uses obsolete generated assetsPath; references cannot override assets.`);
         const authoredConfigUrl = reference.configUrl;
         if (typeof authoredConfigUrl !== "string" || !authoredConfigUrl.trim()) throw new Error(`Module reference '${moduleId}' in '${configUrl}' must declare a non-empty configUrl.`);
         const effectiveUrl = relativizePaths(authoredConfigUrl, assetsPath, declaringPath, configUrl);
         if (effectiveUrl === authoredConfigUrl && !/^[a-z][a-z0-9+.-]*:/i.test(authoredConfigUrl)) {
             throw new Error(`Module reference '${moduleId}' in '${configUrl}' has an unsupported configUrl '${authoredConfigUrl}'. ` + "Use /, ./, ../, app:, url:, or an absolute URL.");
         }
-        const loadUrl = effectiveUrl.startsWith(assetsPath + "/") ? new URL(effectiveUrl.substring(assetsPath.length + 1), localModule.definition.assetsUrl).href : effectiveUrl;
+        const loadUrl = effectiveUrl.startsWith(assetsPath + "/") ? new URL(effectiveUrl.substring(assetsPath.length + 1), localModule.definition.assets.url).href : effectiveUrl;
         delete reference.configUrl;
         references.push({ id: moduleId, configUrl: effectiveUrl, loadUrl });
     }
@@ -237,27 +259,29 @@ async function loadConfig() {
     ]);
     if (Object.hasOwn(xshellConfig, "app")) throw new Error(`Authored XShell configuration '${xshellConfigUrl}' must not define top-level app.`);
     if (Object.hasOwn(xshellConfig.xshell, "serviceWorker")) throw new Error(`Authored XShell configuration '${xshellConfigUrl}' must not define xshell.serviceWorker.`);
+    validateAuthoredXShellAssets(xshellConfig.xshell, xshellConfigUrl);
 
     const assetsBasePath = normalizeAssetsBasePath(
-        rootModuleConfig.xshell?.assetsBasePath ?? xshellConfig.xshell.assetsBasePath
+        rootModuleConfig.xshell?.assets?.basePath ?? xshellConfig.xshell.assets?.basePath
     );
 
     const environment = xshellEnvironment || rootModuleConfig.xshell?.environment || xshellConfig.xshell.environment;
     const xshellAssetsPath = getAssetsPath(assetsBasePath, "xshell", xshellConfig.xshell.version, xshellConfig.xshell.hash, environment);
 
-    let xshellAssetsUrl = relativizePaths(xshellConfig.xshell.assetsUrl || "url:./", xshellAssetsPath, "/xshell.json", xshellConfigUrl);
+    let xshellAssetsUrl = relativizePaths(xshellConfig.xshell.assets?.url || "url:./", xshellAssetsPath, "/xshell.json", xshellConfigUrl);
 
     if (!/^[a-z][a-z0-9+.-]*:/i.test(xshellAssetsUrl)) {
-        throw new Error(`xshell.assetsUrl must resolve to an absolute HTTP(S) URL: '${xshellAssetsUrl}'.`);
+        throw new Error(`xshell.assets.url must resolve to an absolute HTTP(S) URL: '${xshellAssetsUrl}'.`);
     }
 
     const xshellAssetsUrlObject = new URL(xshellAssetsUrl);
 
     if (xshellAssetsUrlObject.protocol !== "http:" && xshellAssetsUrlObject.protocol !== "https:") {
-        throw new Error(`xshell.assetsUrl must resolve to an absolute HTTP(S) URL: '${xshellAssetsUrl}'.`);
+        throw new Error(`xshell.assets.url must resolve to an absolute HTTP(S) URL: '${xshellAssetsUrl}'.`);
     }
 
-    xshellConfig.xshell.assetsUrl = xshellAssetsUrlObject.href;
+    xshellConfig.xshell.assets ??= {};
+    xshellConfig.xshell.assets.url = xshellAssetsUrlObject.href;
 
     relativizePaths(xshellConfig, xshellAssetsPath, "/xshell.json", xshellConfigUrl);
 
@@ -265,7 +289,7 @@ async function loadConfig() {
     xshellConfig.xshell.environment = environment;
     xshellConfig.xshell.configUrl = xshellConfigUrl;
     xshellConfig.xshell.temp.url = new URL(xshellTempUrl, document.baseURI).href;
-    xshellConfig.xshell.assetsBasePath = assetsBasePath;
+    xshellConfig.xshell.assets.basePath = assetsBasePath;
     xshellConfig.xshell.hash = xshellConfig.xshell.hash || "dev";
 
     const rootModule = getLocalModule(rootModuleConfig, rootModuleUrl);
@@ -285,23 +309,23 @@ async function loadConfig() {
         params: effectiveRoot.params
     };
 
-    if (!/^[a-z][a-z0-9+.-]*:/i.test(config.xshell.assetsUrl)) {
-        throw new Error(`xshell.assetsUrl must resolve to an absolute HTTP(S) URL: '${config.xshell.assetsUrl}'.`);
+    if (!/^[a-z][a-z0-9+.-]*:/i.test(config.xshell.assets.url)) {
+        throw new Error(`xshell.assets.url must resolve to an absolute HTTP(S) URL: '${config.xshell.assets.url}'.`);
     }
 
-    const finalAssetsUrl = new URL(config.xshell.assetsUrl);
+    const finalAssetsUrl = new URL(config.xshell.assets.url);
 
     if (finalAssetsUrl.protocol !== "http:" && finalAssetsUrl.protocol !== "https:") {
-        throw new Error(`xshell.assetsUrl must resolve to an absolute HTTP(S) URL: '${config.xshell.assetsUrl}'.`);
+        throw new Error(`xshell.assets.url must resolve to an absolute HTTP(S) URL: '${config.xshell.assets.url}'.`);
     }
 
-    config.xshell.assetsUrl = finalAssetsUrl.href;
+    config.xshell.assets.url = finalAssetsUrl.href;
     config.xshell.environment = environment;
-    config.xshell.assetsBasePath = assetsBasePath;
-    config.xshell.assetsPath = xshellAssetsPath;
+    config.xshell.assets.basePath = assetsBasePath;
+    config.xshell.assets.path = xshellAssetsPath;
 
     for (const [moduleId, module] of Object.entries(config.modules)) {
-        module.assetsPath = graph.nodesById.get(moduleId).assetsPath;
+        module.assets.path = graph.nodesById.get(moduleId).assetsPath;
         module.hash ??= "dev";
         module.contract ??= {};
         module.contract.events ??= {};
@@ -310,14 +334,14 @@ async function loadConfig() {
     // generate the mappings requested by this effective application generation after all asset locations are finalized
     config.xshell.serviceWorker = {
         mappings: [{
-            src: new URL(config.xshell.assetsPath.substring(1), appBaseUrl).href,
-            dst: config.xshell.assetsUrl,
+            src: new URL(config.xshell.assets.path.substring(1), appBaseUrl).href,
+            dst: config.xshell.assets.url,
             version: config.xshell.version,
             name: "xshell",
             exceptions: [config.xshell.configUrl]
         }, ...Object.entries(config.modules).map(([moduleId, module]) => ({
-            src: new URL(module.assetsPath.substring(1), appBaseUrl).href,
-            dst: module.assetsUrl,
+            src: new URL(module.assets.path.substring(1), appBaseUrl).href,
+            dst: module.assets.url,
             version: module.version,
             name: moduleId,
             exceptions: [module.configUrl]
@@ -385,7 +409,7 @@ async function loadFilesIndexes(config) {
     const tasks = [];
 
     const loadFilesIndex = async (id, target) => {
-        const moduleFilesUrl = new URL(`${target.assetsPath.substring(1)}/module.files.json`, appBaseUrl).href;
+        const moduleFilesUrl = new URL(`${target.assets.path.substring(1)}/module.files.json`, appBaseUrl).href;
         const response = await fetch(moduleFilesUrl);
 
         if (!response.ok) {
@@ -395,7 +419,7 @@ async function loadFilesIndexes(config) {
         const files = await response.json();
 
         for (const file of files) {
-            file.path = relativizePaths(file.path, target.assetsPath);
+            file.path = relativizePaths(file.path, target.assets.path);
         }
 
         target.files = files;
@@ -422,7 +446,7 @@ function fillResolverRules(config) {
     const contractDeclarations = new Map();
 
     for (const [moduleId, module] of Object.entries(config.modules)) {
-        const moduleAssetsPath = module.assetsPath;
+        const moduleAssetsPath = module.assets.path;
         const moduleAssetsPathContracts = moduleAssetsPath + "/contracts";
 
         resolver.icon ??= {};
