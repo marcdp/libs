@@ -211,6 +211,12 @@ ___x-page[layout='main'] > x-markdown:first-child > h1:first-child {display:none
     --x-card-shadow: none;
     --x-card-padding: 1.15em;
 
+    /* x-chat */
+    --x-chat-user-background: var(--x-color-background-alt);
+    --x-chat-message-border-radius: var(--x-datafield-border-radius);
+    --x-chat-assistant-background: transparent;
+    --x-chat-composer-background: transparent;
+
     /* x-clock */
     --x-clock-border-color:#000000;
     
@@ -364,7 +370,6 @@ ___x-page[layout='main'] > x-markdown:first-child > h1:first-child {display:none
 
     /* x-splitter */
     --x-splitter-background: #dddddd;
-
     
     /* x-tooltip */
     --x-tooltip-background: #303030;
