@@ -35,7 +35,11 @@ function module(directory, id, references = {}, extra = {}) {
 }
 
 function pack(source, output, args = []) {
-    return spawnSync("dotnet", [assemblyPath, "pack", "--source", source, "--output", output, ...args], { encoding: "utf8", cwd: source });
+    return packWithAssembly(assemblyPath, source, output, args);
+}
+
+function packWithAssembly(toolAssembly, source, output, args = []) {
+    return spawnSync("dotnet", [toolAssembly, "pack", source, output, ...args], { encoding: "utf8", cwd: source });
 }
 
 function successfulPack(source, output, args = []) {
@@ -82,6 +86,12 @@ function contentHash(archive) {
 
 function descriptor(output, packagePath) {
     return JSON.parse(readFileSync(join(output, packagePath), "utf8"));
+}
+
+function metaContent(index, name) {
+    const match = index.match(new RegExp(`<meta\\s+name="${name}"\\s+content="([^"]*)"`));
+    assert.notEqual(match, null, `Missing ${name} meta value`);
+    return match[1];
 }
 
 function archivePath(output, packagePath) {
@@ -140,9 +150,8 @@ test("pack discovers a dependency graph, rewrites references, and commits one co
             if (path === release.root) {
                 const canonicalIndex = archive.get("index.html").toString("utf8");
                 const hash = dirname(path).split(".").at(-1);
-                assert.equal(canonicalIndex.includes("__XSHELL_ROOT_HASH__"), true);
-                assert.equal(index, canonicalIndex.replaceAll("__XSHELL_ROOT_HASH__", hash));
-                assert.equal(index.includes("__XSHELL_ROOT_HASH__"), false);
+                assert.equal(metaContent(canonicalIndex, "xshell:app.configPath"), "/app/1.0.0.__XSHELL_ROOT_HASH__/module.json");
+                assert.equal(metaContent(index, "xshell:app.configPath"), `/app/1.0.0.${hash}/module.json`);
                 assert.deepEqual(readFileSync(join(directory, "sw.js")), archive.get("sw.js"));
                 assert.equal(JSON.parse(archive.get("module.files.json")).some(file => ["/index.html", "/sw.js"].includes(file.path)), false);
             } else {
@@ -177,6 +186,7 @@ test("pack discovers a dependency graph, rewrites references, and commits one co
         assert.equal(frameworkArchive.has("module.files.json"), true);
         assert.equal(frameworkArchive.has("bootstrap.js"), true);
         assert.equal(frameworkArchive.has("sw.js"), true);
+        assert.deepEqual(frameworkArchive.get("sw.js"), readFileSync(join(dirname(assemblyPath), "Resources", "DProjects.XShell", "xshell", "sw.js")));
         assert.equal(JSON.parse(frameworkArchive.get("module.files.json")).some(file => file.path === "/sw.js"), true);
         assert.equal(frameworkArchive.has("xshell.js"), true);
         assert.equal(frameworkArchive.has("xshell.jsonc"), false);
@@ -604,7 +614,7 @@ test("concurrent publication attempts preserve a complete release", async () => 
         const output = join(root, "dist");
         module(source, "app");
         const run = () => new Promise(resolve => {
-            const child = spawn("dotnet", [assemblyPath, "pack", "--source", source, "--output", output]);
+            const child = spawn("dotnet", [assemblyPath, "pack", source, output]);
             let stderr = "";
             child.stderr.on("data", chunk => { stderr += chunk; });
             child.on("close", status => resolve({ status, stderr }));
@@ -661,7 +671,6 @@ test("deployment bootstrap options create distinct root generations without chan
         assert.equal(canonicalIndex.includes("/demo/app/1.0.0.__XSHELL_ROOT_HASH__/module.json"), true);
         assert.equal(index.includes(`/demo/app/1.0.0.${dirname(packed.root).split(".").at(-1)}/module.json`), true);
         assert.equal(contentHash(canonical), dirname(packed.root).split(".").at(-1));
-        assert.equal(index, canonicalIndex.replaceAll("__XSHELL_ROOT_HASH__", dirname(packed.root).split(".").at(-1)));
         const before = {
             descriptor: readFileSync(join(output, packed.root)), index: readFileSync(join(rootDirectory, "index.html")),
             worker: readFileSync(join(rootDirectory, "sw.js")), zip: readFileSync(archivePath(output, packed.root))
@@ -687,27 +696,107 @@ test("deployment bootstrap options create distinct root generations without chan
     }
 });
 
-test("a new bundled XShell generation changes the root while preserving dependencies", () => {
+test("root self-hash publication preserves placeholder text in user bootstrap values", () => {
+    const root = fixture();
+    try {
+        const source = join(root, "app");
+        const output = join(root, "dist");
+        module(source, "app");
+        const args = ["--app-base-path", "/demo", "--environment", "__XSHELL_ROOT_HASH__", "--param", "token=__XSHELL_ROOT_HASH__",
+            "--temp-base-path", "/__XSHELL_ROOT_HASH__"];
+        const release = successfulPack(source, output, args);
+        const hash = dirname(release.root).split(".").at(-1);
+        const directory = join(output, dirname(release.root));
+        const archive = entries(archivePath(output, release.root));
+        const canonicalIndex = archive.get("index.html").toString("utf8");
+        const publishedIndex = readFileSync(join(directory, "index.html"), "utf8");
+        assert.equal(metaContent(canonicalIndex, "xshell:app.configPath"), "/demo/app/1.0.0.__XSHELL_ROOT_HASH__/module.json");
+        assert.equal(metaContent(publishedIndex, "xshell:app.configPath"), `/demo/app/1.0.0.${hash}/module.json`);
+        for (const index of [canonicalIndex, publishedIndex]) {
+            assert.equal(metaContent(index, "xshell:app.params"), "token=__XSHELL_ROOT_HASH__");
+            assert.equal(metaContent(index, "xshell:xshell.environment"), "__XSHELL_ROOT_HASH__");
+            assert.equal(metaContent(index, "xshell:xshell.temp.url"), "/__XSHELL_ROOT_HASH__");
+        }
+        assert.equal(contentHash(archive), hash);
+        assert.deepEqual(readFileSync(join(directory, "sw.js")), archive.get("sw.js"));
+        const before = {
+            descriptor: readFileSync(join(output, release.root)), index: readFileSync(join(directory, "index.html")),
+            worker: readFileSync(join(directory, "sw.js")), zip: readFileSync(archivePath(output, release.root))
+        };
+        const repeated = successfulPack(source, output, args);
+        assert.equal(repeated.root, release.root);
+        assert.deepEqual(readFileSync(join(output, release.root)), before.descriptor);
+        assert.deepEqual(readFileSync(join(directory, "index.html")), before.index);
+        assert.deepEqual(readFileSync(join(directory, "sw.js")), before.worker);
+        assert.deepEqual(readFileSync(archivePath(output, release.root)), before.zip);
+    } finally {
+        rmSync(root, { recursive: true, force: true });
+    }
+});
+
+test("pack selects bundled XShell resource sets without changing package or release paths", () => {
     const root = fixture();
     try {
         const source = join(root, "app");
         const child = join(root, "child");
-        const output = join(root, "dist");
         module(child, "child");
         module(source, "app", { child: { configUrl: "url:../child/module.jsonc" } });
-        const before = successfulPack(source, output);
         const copy = join(root, "tool-copy");
         cpSync(dirname(assemblyPath), copy, { recursive: true });
-        const worker = join(copy, "Resources", "DProjects.XShell", "xshell", "sw.js");
-        writeFileSync(worker, readFileSync(worker, "utf8") + "\n// changed generation\n");
-        const result = spawnSync("dotnet", [join(copy, "DProjects.XShell.dll"), "pack", "--source", source, "--output", output],
-            { encoding: "utf8", cwd: source });
-        assert.equal(result.status, 0, result.stdout + result.stderr);
-        const after = JSON.parse(readFileSync(join(output, "release.json"), "utf8"));
-        assert.notEqual(after.xshell, before.xshell);
-        assert.notEqual(after.root, before.root);
-        assert.equal(after.packages.find(path => path.startsWith("child/")), before.packages.find(path => path.startsWith("child/")));
-        assert.match(readFileSync(join(output, dirname(after.root), "sw.js"), "utf8"), new RegExp(dirname(after.xshell).replaceAll(".", "\\.") + "/sw\\.js"));
+        const defaultResources = join(copy, "Resources", "DProjects.XShell");
+        for (const name of ["A", "B"]) {
+            const selected = join(copy, "Resources", name);
+            cpSync(defaultResources, selected, { recursive: true });
+            const worker = join(selected, "xshell", "sw.js");
+            writeFileSync(worker, readFileSync(worker, "utf8") + `\n// resource set ${name}\n`);
+        }
+        const selected = [];
+        for (const name of ["A", "B"]) {
+            const output = join(root, `dist-${name}`);
+            const result = packWithAssembly(join(copy, "DProjects.XShell.dll"), source, output, ["--resources-name", name]);
+            assert.equal(result.status, 0, result.stdout + result.stderr);
+            const release = JSON.parse(readFileSync(join(output, "release.json"), "utf8"));
+            assert.match(release.xshell, /^xshell\/[^/]+\.[0-9a-f]{16}\/xshell\.json$/);
+            assert.equal(release.packages.some(path => path.startsWith(name + "/")), false);
+            assert.equal(existsSync(join(output, name)), false);
+            assert.match(readFileSync(join(output, dirname(release.root), "sw.js"), "utf8"),
+                new RegExp(dirname(release.xshell).replaceAll(".", "\\.") + "/sw\\.js"));
+            selected.push(release);
+        }
+        assert.notEqual(selected[0].xshell, selected[1].xshell);
+        assert.notEqual(selected[0].root, selected[1].root);
+        assert.equal(selected[0].packages.find(path => path.startsWith("child/")), selected[1].packages.find(path => path.startsWith("child/")));
+        mkdirSync(join(copy, "Resources", "NoXShell"));
+        const noXShell = packWithAssembly(join(copy, "DProjects.XShell.dll"), source, join(root, "no-xshell"), ["--resources-name", "NoXShell"]);
+        assert.notEqual(noXShell.status, 0);
+        assert.match(noXShell.stderr, /Bundled XShell resources directory not found/);
+        mkdirSync(join(copy, "Resources", "NoDescriptor", "xshell"), { recursive: true });
+        const noDescriptor = packWithAssembly(join(copy, "DProjects.XShell.dll"), source, join(root, "no-descriptor"), ["--resources-name", "NoDescriptor"]);
+        assert.notEqual(noDescriptor.status, 0);
+        assert.match(noDescriptor.stderr, /Bundled XShell descriptor.*not found/);
+    } finally {
+        rmSync(root, { recursive: true, force: true });
+    }
+});
+
+test("pack rejects invalid and missing resource-set names before changing the selected release", () => {
+    const root = fixture();
+    try {
+        const source = join(root, "app");
+        const output = join(root, "dist");
+        module(source, "app");
+        successfulPack(source, output);
+        const committed = readFileSync(join(output, "release.json"), "utf8");
+        for (const name of ["", ".", "..", "../other", "a/b", "a\\b"]) {
+            const result = pack(source, output, ["--resources-name", name]);
+            assert.notEqual(result.status, 0);
+            assert.match(result.stderr, /Resources name.*single valid directory name/);
+            assert.equal(readFileSync(join(output, "release.json"), "utf8"), committed);
+        }
+        const missing = pack(source, output, ["--resources-name", "Missing"]);
+        assert.notEqual(missing.status, 0);
+        assert.match(missing.stderr, /Bundled resource set directory not found/);
+        assert.equal(readFileSync(join(output, "release.json"), "utf8"), committed);
     } finally {
         rmSync(root, { recursive: true, force: true });
     }

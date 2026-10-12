@@ -10,7 +10,7 @@
         },
         "DProjects.XShell pack": {
             "commandName": "Project",
-            "commandLineArgs": "pack --source ./Resources/DProjects.XShell/x-demo --output a"
+            "commandLineArgs": "pack ./Resources/DProjects.XShell/x-demo ./Resources/DProjects.XShell.Dist"
         }
     }
 }

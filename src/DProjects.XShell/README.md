@@ -104,9 +104,11 @@ my-module/
 The V0 browser runtime maps expanded module directories through its Service Worker into the application resource namespace, using Paths such as `/_assets/my-module/...`.
 JavaScript, CSS, Pages, and icons are served from those expanded resources.
 
-`DProjects.XShell pack --source ./app --output ./dist` publishes the application, its recursive module dependencies, and the XShell framework as
+`DProjects.XShell pack ./app ./dist` publishes the application, its recursive module dependencies, and the XShell framework as
 independent immutable ZIP packages under `<output>/<id>/<version>.<hash>/`. The framework source comes from the resources shipped with the running
-DProjects.XShell tool; there is no `--xshell` argument or `modules.xshell` reference.
+DProjects.XShell tool. `--resources-name` selects the directory under `Resources/` and defaults to `DProjects.XShell`; pack reads its framework
+from `Resources/<name>/xshell/`. The name selects source content only and does not appear in package IDs, output paths, or runtime URLs. There is
+no `--xshell` argument or `modules.xshell` reference.
 The application is the root module selected by `release.root`; no authored `app` block, `main` flag, or separate application package is used.
 Pack puts `index.html` and application `sw.js` in the immutable root module generation. `--app-base-path` defaults to empty, `--environment` defaults
 to `Production`, repeatable `--param key=value` supplies root parameters, and `--temp-base-path` defaults to `<app-base-path>/temp`.

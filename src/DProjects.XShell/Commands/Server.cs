@@ -1,5 +1,6 @@
 using DProjects.Commands;
 using DProjects.Commands.Attributes;
+using DProjects.XShell.Services;
 using Microsoft.AspNetCore.Builder;
 
 
@@ -19,12 +20,15 @@ namespace DProjects.XShell.Commands {
         public string Environment { get; init; } = "";
         [Flag('p', "Parameter", "")]
         public string[] Param { get; init; } = [];
-        [Flag('r', "Resources base path", "")]
+        [Flag('r', "Resources name", "DProjects.XShell")]
         public string ResourcesName { get; init; } = "DProjects.XShell";
 
 
         //methods
         public async Task<int> ExecuteAsync(CancellationToken cancellationToken) {
+
+            // validate selected bundled resources before starting the host
+            ResourceNameValidator.Validate(ResourcesName);
 
             // builder
             var builder = WebApplication.CreateBuilder();
@@ -33,10 +37,21 @@ namespace DProjects.XShell.Commands {
             var app = builder.Build();
 
             // use XShell
-            app.UseXShell(new Extensions.Configuration {
+            app.UseXShell(BuildConfiguration());
+
+            // run app
+            await app.RunAsync();
+
+            // return
+            return 0;
+        }
+        internal Extensions.Configuration BuildConfiguration() {
+
+            // derive every resource route from the same selected resource-set name
+            return new Extensions.Configuration {
                 App = new Extensions.AppConfig {
                     BasePath = AppBasePath,
-                    ConfigPath = (string.IsNullOrEmpty(AppConfigPath) ? AppBasePath + "/_resources/DProjects.XShell/x-demo/module.jsonc" : AppConfigPath),
+                    ConfigPath = string.IsNullOrEmpty(AppConfigPath) ? AppBasePath + "/_resources/" + ResourcesName + "/x-demo/module.jsonc" : AppConfigPath,
                     Params = Param.ToDictionary(p => p.Split('=')[0], p => p.Split('=')[1])
                 },
                 Temp = new Extensions.TempConfig {
@@ -54,13 +69,7 @@ namespace DProjects.XShell.Commands {
                 Server = new Extensions.ServerConfig {
                     Environment = Environment
                 }
-            });
-
-            // run app
-            await app.RunAsync();
-
-            // return
-            return 0;
+            };
         }
 
     }

@@ -6,16 +6,19 @@ each canonical module once, and adds the XShell framework as its own immutable Z
 ## Command
 
 ```text
-DProjects.XShell pack --source ./app --output ./dist --app-base-path /demo --environment Production --param tenant=acme
+DProjects.XShell pack ./app ./dist --resources-name DProjects.XShell --app-base-path /demo --environment Production --param tenant=acme
 ```
 
-`--source` is the root application module directory. It contains `module.json` or `module.jsonc` with exactly one local module definition.
-`--output` is the distribution directory. The command rejects an output directory containing the source or contained by the source.
+First argument is the root application module directory. It contains `module.json` or `module.jsonc` with exactly one local module definition.
+Second argument is the distribution directory. The command rejects an output directory containing the source or contained by the source.
 `-a` / `--app-base-path` defaults to `""`; `-e` / `--environment` defaults to `Production`; repeatable `-p` / `--param key=value` supplies
 bootstrap parameters to the root module; and optional `--temp-base-path` defaults to `<app-base-path>/temp` (`/temp` at the deployment root).
+`-r` / `--resources-name` selects the logical bundled resource-set directory under `Resources/` and defaults to `DProjects.XShell`. Application
+packs read the framework from `Resources/<name>/xshell/`. The selected name is a source selector, not a module or package id, runtime assets
+namespace, release path, or output-layout segment.
 The application is the root module selected by `release.root`. No authored `app` block, `main` flag, or separate application package exists.
-Application packs automatically use the XShell resources shipped beside the running DProjects.XShell assembly. No `--xshell` argument exists, and
-applications do not declare a framework filesystem path or a `modules.xshell` reference.
+Application packs automatically use the selected XShell resources shipped beside the running DProjects.XShell assembly. No `--xshell` argument
+exists, and applications do not declare a framework filesystem path or a `modules.xshell` reference.
 The former `--zip` flag and expanded output mode have been removed.
 
 For compatibility with framework packaging, a source containing `xshell.json` or `xshell.jsonc` can still produce a standalone XShell framework

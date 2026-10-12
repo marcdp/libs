@@ -115,7 +115,11 @@ Debugger presence does not select this behavior.
 ## Server command
 
 The bundled `server` command hosts resources and the demo. Options include `-a` (app base path), `-c` (app config file path),
-`-e` / `--environment` (XShell environment), and repeatable `-p` (params). Its default application is x-demo; it supplies no application
-authentication pipeline. Select `Development` for on-demand compilation.
+`-e` / `--environment` (XShell environment), repeatable `-p` (params), and `-r` / `--resources-name`. The resource name defaults to
+`DProjects.XShell` and selects the logical directory `Resources/<name>/`. For `ResourcesName = "Custom"` and `AppBasePath = "/demo"`, server uses
+`Resources.ResourceName = "Custom"`, `Resources.BasePath = "/demo/_resources/Custom"`, `XShell.BasePath = "/demo/_resources/Custom/xshell"`, and
+the default `App.ConfigPath = "/demo/_resources/Custom/x-demo/module.jsonc"`. An explicit `--app-config-path` is preserved unchanged.
+`ResourcesName` selects bundled source content; it is not a module id, package id, published path, or runtime assets namespace. The default
+application is x-demo; server supplies no application authentication pipeline. Select `Development` for on-demand compilation.
 
 See [Bootstrap](10-bootstrap.md), [Navigation](120-navigation.md), [Packaging](50-packaging.md), [Service Worker](110-service-worker.md), and [Temp](../subsystems/50-temp.md).

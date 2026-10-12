@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using System.IO.Compression;
 using System.Globalization;
+using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -15,7 +16,7 @@ using DProjects.XShell.Services;
 namespace DProjects.XShell.Commands {
 
     [Description("Build and publish a complete XShell application distribution")]
-    [Example("DProjects.XShell pack --source ./app --output ./dist", "Package an application and all its dependencies")]
+    [Example("DProjects.XShell pack ./app ./dist", "Package an application and all its dependencies")]
     public class Pack(IEnvironment environment) : ICommand {
 
         // consts
@@ -31,9 +32,9 @@ namespace DProjects.XShell.Commands {
         private sealed record BuiltPackage(string Id, string Version, string Hash, string RelativeDirectory, string DescriptorName, PackageKind Kind);
 
         // props
-        [Flag('s', "Root application module directory", "")]
+        [Argument(0, "Root application module directory", "")]
         public string Source { get; init; } = "";
-        [Flag('o', "Distribution output directory", "")]
+        [Argument(1, "Distribution output directory", "")]
         public string Output { get; init; } = "";
         [Flag('a', "Application request base path", "")]
         public string AppBasePath { get; init; } = "";
@@ -41,6 +42,8 @@ namespace DProjects.XShell.Commands {
         public string Environment { get; init; } = "";
         [Flag('p', "Root module parameter", "")]
         public string[] Param { get; init; } = [];
+        [Flag('r', "Resources name", "DProjects.XShell")]
+        public string ResourcesName { get; init; } = "DProjects.XShell";
         [Flag('t', "Temporary file public base path", "")]
         public string TempBasePath { get; init; } = "";
 
@@ -49,6 +52,7 @@ namespace DProjects.XShell.Commands {
             // validate paths before touching the destination
             if (string.IsNullOrWhiteSpace(Source)) throw new ArgumentException("Source directory is required.");
             if (string.IsNullOrWhiteSpace(Output)) throw new ArgumentException("Output directory is required.");
+            ResourceNameValidator.Validate(ResourcesName);
             if (!IsRequestBasePath(AppBasePath, true)) throw new ArgumentException("App base path must be empty or a rooted request path starting with '/'.");
             var bootstrapEnvironment = string.IsNullOrEmpty(Environment) ? "Production" : Environment;
             if (string.IsNullOrWhiteSpace(bootstrapEnvironment)) throw new ArgumentException("Environment must be non-empty.");
@@ -72,7 +76,7 @@ namespace DProjects.XShell.Commands {
             var hasFramework = File.Exists(Path.Combine(sourcePath, "xshell.json")) || File.Exists(Path.Combine(sourcePath, "xshell.jsonc"));
             if (hasModule && hasFramework) throw new InvalidOperationException("Source cannot contain both a module and an XShell descriptor.");
             var rootDescriptor = FindDescriptor(sourcePath, hasFramework ? "xshell" : "module");
-            var frameworkDescriptor = hasFramework ? rootDescriptor : FindBundledFrameworkDescriptor();
+            var frameworkDescriptor = hasFramework ? rootDescriptor : FindBundledFrameworkDescriptor(ResourcesName);
             var order = hasFramework ? [] : await DiscoverAsync(rootDescriptor, cancellationToken);
 
             // build every canonical package in private staging on the output filesystem
@@ -89,14 +93,8 @@ namespace DProjects.XShell.Commands {
                 var root = framework;
                 if (!hasFramework) {
                     var rootNode = order[^1];
-                    var config = new Extensions.Configuration {
-                        App = new Extensions.AppConfig { BasePath = AppBasePath,
-                            ConfigPath = AppBasePath + "/" + rootNode.Id + "/" + rootNode.Version + "." + RootHashPlaceholder + "/module.json", Params = parameters },
-                        XShell = new Extensions.XShellConfig { BasePath = AppBasePath + "/" + framework.RelativeDirectory },
-                        Temp = new Extensions.TempConfig { BasePath = tempBasePath }
-                    };
                     root = await BuildModuleAsync(rootNode, packages, stagingPath, outputPath, cancellationToken,
-                        new BootstrapFilesBuilder().Build(config, bootstrapEnvironment));
+                        rootHash => BuildRootStartupFiles(rootNode, framework, rootHash, AppBasePath, bootstrapEnvironment, parameters, tempBasePath));
                     packages.Add(root.Id, root);
                 }
                 await ValidateBuiltReferencesAsync(order, packages, stagingPath, cancellationToken);
@@ -190,7 +188,7 @@ namespace DProjects.XShell.Commands {
             return Path.GetFullPath(Path.IsPathFullyQualified(path) ? path : Path.Combine(Path.GetDirectoryName(ownerDescriptor)!, path));
         }
         private static async Task<BuiltPackage> BuildModuleAsync(ModuleNode node, Dictionary<string, BuiltPackage> dependencies, string stagingPath, string outputPath,
-            CancellationToken cancellationToken, Dictionary<string, string>? startupFiles = null) {
+            CancellationToken cancellationToken, Func<string, Dictionary<string, string>>? buildStartupFiles = null) {
             // retain the owner's local definition and reference contributions while changing only dependency URLs
             var workPath = Path.Combine(stagingPath, "work", node.Id);
             CopyDirectory(Path.GetDirectoryName(node.DescriptorPath)!, workPath, cancellationToken);
@@ -210,21 +208,24 @@ namespace DProjects.XShell.Commands {
             if (File.Exists(indexPath)) File.Delete(indexPath);
             await CompileResourcesAsync(workPath, stagedDescriptor, cancellationToken);
             // generate root startup resources in the canonical tree before inventory and hashing
-            if (startupFiles != null) {
-                foreach (var file in startupFiles) await File.WriteAllTextAsync(Path.Combine(workPath, file.Key.TrimStart('/')), file.Value, cancellationToken);
+            var canonicalStartupFiles = buildStartupFiles?.Invoke(RootHashPlaceholder);
+            if (canonicalStartupFiles != null) {
+                foreach (var file in canonicalStartupFiles) await File.WriteAllTextAsync(Path.Combine(workPath, file.Key.TrimStart('/')), file.Value, cancellationToken);
             }
             var inventory = await new FilesIndexer().CreateJsonAsync(workPath, cancellationToken,
-                startupFiles == null ? null : new HashSet<string>(StringComparer.Ordinal) { "/index.html", "/sw.js" });
+                canonicalStartupFiles == null ? null : new HashSet<string>(StringComparer.Ordinal) { "/index.html", "/sw.js" });
             await File.WriteAllTextAsync(indexPath, inventory, cancellationToken);
             var hash = await ComputeHashAsync(workPath, cancellationToken);
             var relativeDirectory = $"{node.Id}/{node.Version}.{hash}";
             var packagePath = Path.Combine(stagingPath, "packages", node.Id, $"{node.Version}.{hash}");
             Directory.CreateDirectory(packagePath);
-            if (startupFiles != null) {
-                var canonicalIndex = await File.ReadAllTextAsync(Path.Combine(workPath, "index.html"), cancellationToken);
-                await File.WriteAllTextAsync(Path.Combine(packagePath, "index.html"),
-                    canonicalIndex.Replace(RootHashPlaceholder, hash, StringComparison.Ordinal), cancellationToken);
-                File.Copy(Path.Combine(workPath, "sw.js"), Path.Combine(packagePath, "sw.js"));
+            if (canonicalStartupFiles != null) {
+                var publishedStartupFiles = buildStartupFiles!(hash);
+                if (canonicalStartupFiles["/sw.js"] != publishedStartupFiles["/sw.js"]) {
+                    throw new InvalidOperationException("Canonical and published root service workers must be identical.");
+                }
+                await File.WriteAllTextAsync(Path.Combine(packagePath, "index.html"), publishedStartupFiles["/index.html"], cancellationToken);
+                await File.WriteAllTextAsync(Path.Combine(packagePath, "sw.js"), canonicalStartupFiles["/sw.js"], cancellationToken);
             }
             if (!Directory.Exists(Path.Combine(outputPath, relativeDirectory.Replace('/', Path.DirectorySeparatorChar)))) {
                 var zipPath = Path.Combine(packagePath, "module.zip");
@@ -237,7 +238,18 @@ namespace DProjects.XShell.Commands {
             ((JsonObject)modules[node.Id]!)["builtAt"] = UtcTimestamp();
             await File.WriteAllTextAsync(Path.Combine(packagePath, "module.json"), root.ToJsonString(JsonOptions), cancellationToken);
             return new BuiltPackage(node.Id, node.Version, hash, relativeDirectory, "module.json",
-                startupFiles == null ? PackageKind.Module : PackageKind.RootModule);
+                canonicalStartupFiles == null ? PackageKind.Module : PackageKind.RootModule);
+        }
+        private static Dictionary<string, string> BuildRootStartupFiles(ModuleNode root, BuiltPackage framework, string rootHash, string appBasePath,
+            string environment, Dictionary<string, string> parameters, string tempBasePath) {
+            // generate startup resources from structured bootstrap values for canonical and published root representations
+            var config = new Extensions.Configuration {
+                App = new Extensions.AppConfig { BasePath = appBasePath,
+                    ConfigPath = $"{appBasePath}/{root.Id}/{root.Version}.{rootHash}/module.json", Params = parameters },
+                XShell = new Extensions.XShellConfig { BasePath = appBasePath + "/" + framework.RelativeDirectory },
+                Temp = new Extensions.TempConfig { BasePath = tempBasePath }
+            };
+            return new BootstrapFilesBuilder().Build(config, environment);
         }
         private static async Task<BuiltPackage> BuildFrameworkAsync(string descriptorPath, string stagingPath, string outputPath, CancellationToken cancellationToken) {
             // retain the framework's separate descriptor and resource compilation rules
@@ -400,13 +412,15 @@ namespace DProjects.XShell.Commands {
             var local = (JsonNode.Parse(canonicalDescriptor)?["modules"] as JsonObject)?[package.Id] as JsonObject;
             if (local?["hash"]?.GetValue<string>() != "") throw new InvalidOperationException($"Existing immutable package has an invalid canonical descriptor: {target}");
             var canonicalIndex = await ReadArchiveTextAsync(archive.GetEntry("index.html")!, cancellationToken);
-            if (!canonicalIndex.Contains(RootHashPlaceholder, StringComparison.Ordinal)) {
+            var publishedIndex = await File.ReadAllTextAsync(Path.Combine(source, "index.html"), cancellationToken);
+            var canonicalConfigPath = ReadMetaContent(canonicalIndex, "xshell:app.configPath");
+            var publishedConfigPath = ReadMetaContent(publishedIndex, "xshell:app.configPath");
+            var canonicalSuffix = $"/{package.Id}/{package.Version}.{RootHashPlaceholder}/module.json";
+            var publishedSuffix = $"/{package.Id}/{package.Version}.{package.Hash}/module.json";
+            if (!canonicalConfigPath.EndsWith(canonicalSuffix, StringComparison.Ordinal) ||
+                !publishedConfigPath.EndsWith(publishedSuffix, StringComparison.Ordinal) ||
+                canonicalConfigPath[..^canonicalSuffix.Length] != publishedConfigPath[..^publishedSuffix.Length]) {
                 throw new InvalidOperationException($"Existing immutable package has an invalid canonical index: {target}");
-            }
-            var expectedIndex = canonicalIndex.Replace(RootHashPlaceholder, package.Hash, StringComparison.Ordinal);
-            if (await File.ReadAllTextAsync(Path.Combine(target, "index.html"), cancellationToken) != expectedIndex ||
-                await File.ReadAllTextAsync(Path.Combine(source, "index.html"), cancellationToken) != expectedIndex) {
-                throw new InvalidOperationException($"Existing immutable package identity collides with different or damaged content: {target}");
             }
             using var workerStream = archive.GetEntry("sw.js")!.Open();
             using var workerBytes = new MemoryStream();
@@ -420,6 +434,12 @@ namespace DProjects.XShell.Commands {
             using var stream = entry.Open();
             using var reader = new StreamReader(stream, Encoding.UTF8);
             return await reader.ReadToEndAsync(cancellationToken);
+        }
+        private static string ReadMetaContent(string html, string name) {
+            // read one generated bootstrap meta value without treating other placeholder text as a self-reference
+            var match = Regex.Match(html, $"<meta\\s+name=\"{Regex.Escape(name)}\"\\s+content=\"([^\"]*)\"", RegexOptions.CultureInvariant);
+            if (!match.Success) throw new InvalidOperationException($"Generated root index has no '{name}' meta value.");
+            return WebUtility.HtmlDecode(match.Groups[1].Value);
         }
         private static string UtcTimestamp() => DateTimeOffset.UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture);
         private static void RejectAuthoredApp(JsonObject config, string path) {
@@ -541,10 +561,12 @@ namespace DProjects.XShell.Commands {
             return File.Exists(json) ? json : File.Exists(jsonc) ? jsonc :
                 throw new FileNotFoundException($"Source must contain {name}.json or {name}.jsonc.");
         }
-        private static string FindBundledFrameworkDescriptor() {
+        private static string FindBundledFrameworkDescriptor(string resourcesName) {
             // resolve shipped framework resources from the running assembly location
             var assemblyDirectory = Path.GetDirectoryName(typeof(Pack).Assembly.Location)!;
-            var frameworkDirectory = Path.Combine(assemblyDirectory, "Resources", "DProjects.XShell", "xshell");
+            var resourcesDirectory = Path.Combine(assemblyDirectory, "Resources", resourcesName);
+            if (!Directory.Exists(resourcesDirectory)) throw new DirectoryNotFoundException($"Bundled resource set directory not found: {resourcesDirectory}");
+            var frameworkDirectory = Path.Combine(resourcesDirectory, "xshell");
             if (!Directory.Exists(frameworkDirectory)) throw new DirectoryNotFoundException($"Bundled XShell resources directory not found: {frameworkDirectory}");
             if (!File.Exists(Path.Combine(frameworkDirectory, "xshell.json")) && !File.Exists(Path.Combine(frameworkDirectory, "xshell.jsonc"))) {
                 throw new FileNotFoundException($"Bundled XShell descriptor xshell.json or xshell.jsonc not found in '{frameworkDirectory}'.");
