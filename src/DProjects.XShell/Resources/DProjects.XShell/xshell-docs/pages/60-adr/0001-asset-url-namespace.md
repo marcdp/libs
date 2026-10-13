@@ -42,8 +42,9 @@ breaking.
 ## Implementation boundaries
 
 App base paths and generated worker mappings are implemented. Bootstrap does not create an import map.
-Prefix validation/collision policy and resource cache versioning are not established V0 guarantees.
-The worker serves expanded directories; immutable ZIP packaging does not provide runtime ZIP loading.
+Prefix validation/collision policy and inventory-hash-based cache versioning are not established V0 guarantees. The worker serves expanded
+directories and ZIP-backed destinations. A destination pathname ending in `.zip` selects runtime ZIP loading; the complete immutable package is
+cached by physical package URL and parsed under the documented ZIP format and integrity restrictions.
 
 ## Related documentation
 

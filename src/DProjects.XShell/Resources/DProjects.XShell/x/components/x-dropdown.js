@@ -58,7 +58,7 @@ export default {
             margin-top:1em;
             margin-left:-.5em;
             max-width:90vw;
-            min-width: clamp(22em, 100%, 200%);            
+            min-width: clamp(22em, 100%, 200%);                        
         }
         :host(.popover) .body .helper {
             display: inline-block;
@@ -86,7 +86,7 @@ export default {
         }      
 
         /* popover left */
-        :host(.popover.left) .body {transform:translateX(calc(-100% + 3.75em));}
+        :host(.left) .body {transform:translateX(calc(-100% + 3em));}
         :host(.popover.left) .body .helper {left:unset; right:1em;}
         :host(.popover.left) .body .helper2 {left:unset; right:1em;}
             
@@ -99,6 +99,11 @@ export default {
             border-radius:  0 0 var(--x-datafield-border-radius) var(--x-datafield-border-radius);
             border-top:none;
             background:var(--x-datafield-background);
+        }
+
+        /* menu */
+        :host(.menu) .body > div {
+            padding:.25em;;
         }
 
         .expanded ::slotted(x-button) {
@@ -128,13 +133,13 @@ export default {
                 host.shadowRoot.addEventListener("focusout", (event) => {
                     if (!state.collapseOnClick) {
                         //if new focused element is a descendant of this element, does nothing
-                        let relatedTarget = event.relatedTarget;
+                        let relatedTarget = event.relatedTarget ?? document.activeElement;
                         if (isDescendantOfElement(host, relatedTarget)) return;
                         //if last mousedown was less than 10ms ago, does nothing
                         let diff = performance.now() - this._mousedownBodyAt;
                         if (isNaN(diff) || diff > 10) this.collapse();
                     }
-                });
+                }, false);
                 events.on(bus, "xshell:navigation:start", () => {
                     //if navigation occurred, collapse
                     if (state.expanded) {

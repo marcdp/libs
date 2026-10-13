@@ -19,8 +19,8 @@ export default {
             position:absolute;
             z-index:10;
             display:flex; 
-            width:var(--x-contextmenu-width); 
             flex-direction:column; 
+            width:var(--x-contextmenu-width); 
             border-radius:var(--x-contextmenu-border-radius); 
             padding: var(--x-contextmenu-padding); 
             box-shadow:var(--x-contextmenu-shadow); 

@@ -25,9 +25,8 @@ namespace DProjects.XShell.Test {
             var package = await PackAsync(source, output);
 
             AssertPackagePath(package, output, ModuleId, ModuleVersion);
-            Assert.Equal(["module.json", "module.zip"], Directory.GetFiles(package).Select(Path.GetFileName).Order(StringComparer.Ordinal).ToArray());
+            Assert.Equal(["index.html", "module.json", "module.zip", "sw.js"], Directory.GetFiles(package).Select(Path.GetFileName).Order(StringComparer.Ordinal).ToArray());
             Assert.True(File.Exists(Path.Combine(output, "release.json")));
-            Assert.False(File.Exists(Path.Combine(package, "module.files.json")));
             Assert.False(File.Exists(Path.Combine(source, "module.json")));
             Assert.True(File.Exists(Path.Combine(source, "module.jsonc")));
             Assert.True(File.Exists(Path.Combine(source, "page.html")));
@@ -38,13 +37,12 @@ namespace DProjects.XShell.Test {
             Assert.DoesNotContain("page.html", files.Keys);
             Assert.Contains("templateRenderer:", Encoding.UTF8.GetString(files["page.js"]));
             Assert.Equal("value", Encoding.UTF8.GetString(files["data/value.txt"]));
-            Assert.Contains("module.files.json", files.Keys);
             using var descriptor = JsonDocument.Parse(File.ReadAllText(Path.Combine(package, "module.json")));
             var module = descriptor.RootElement.GetProperty("modules").GetProperty(ModuleId);
             Assert.Equal(ModuleVersion, module.GetProperty("version").GetString());
             Assert.Equal("Tiny module", module.GetProperty("label").GetString());
-            Assert.Equal("url:./module.zip", module.GetProperty("assetsUrl").GetString());
-            AssertInventoryMatchesFiles(ReadInventory(module.GetProperty("files")), files);
+            Assert.Equal("url:./module.zip", module.GetProperty("assets").GetProperty("url").GetString());
+            AssertInventoryMatchesFiles(ReadInventory(module.GetProperty("files")), files, "index.html", "sw.js");
         }
         [Fact]
         public async Task Pack_RecursivelyPublishesDependenciesAndRewritesReferences() {
@@ -68,7 +66,7 @@ namespace DProjects.XShell.Test {
             using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(output, "release.json")));
             Assert.Equal(Path.GetRelativePath(output, Path.Combine(rootPackage, "module.json")).Replace('\\', '/'),
                 manifest.RootElement.GetProperty("root").GetString());
-            Assert.Equal(3, manifest.RootElement.GetProperty("packages").GetArrayLength());
+            Assert.Equal(4, manifest.RootElement.GetProperty("packages").GetArrayLength());
             var app = ReadModuleDescriptor(rootPackage);
             var middleReference = app.GetProperty("modules").GetProperty("middle");
             Assert.StartsWith("url:../../middle/", middleReference.GetProperty("configUrl").GetString());
@@ -89,14 +87,12 @@ namespace DProjects.XShell.Test {
             var package = await PackAsync(source, output);
 
             AssertPackagePath(package, output, "xshell", XShellVersion);
-            Assert.Equal(["xshell.json", "xshell.zip"], Directory.GetFiles(package).Select(Path.GetFileName).Order(StringComparer.Ordinal).ToArray());
-            Assert.False(File.Exists(Path.Combine(package, "module.files.json")));
+            Assert.Equal(["bootstrap.js", "sw.js", "xshell.json", "xshell.zip"], Directory.GetFiles(package).Select(Path.GetFileName).Order(StringComparer.Ordinal).ToArray());
             var files = ReadZipFiles(Path.Combine(package, "xshell.zip"));
             Assert.Equal("runtime", Encoding.UTF8.GetString(files["assets/runtime.txt"]));
-            Assert.Contains("module.files.json", files.Keys);
             using var descriptor = JsonDocument.Parse(File.ReadAllText(Path.Combine(package, "xshell.json")));
             var xshell = descriptor.RootElement.GetProperty("xshell");
-            Assert.Equal("url:./xshell.zip", xshell.GetProperty("assetsUrl").GetString());
+            Assert.Equal("url:./xshell.zip", xshell.GetProperty("assets").GetProperty("url").GetString());
             AssertInventoryMatchesFiles(ReadInventory(xshell.GetProperty("files")), files);
         }
         [Fact]
@@ -179,6 +175,8 @@ namespace DProjects.XShell.Test {
                 { "xshell": { "version": "{{XShellVersion}}" } }
                 """);
             File.WriteAllText(Path.Combine(path, "assets", "runtime.txt"), "runtime");
+            File.WriteAllText(Path.Combine(path, "bootstrap.js"), "bootstrap");
+            File.WriteAllText(Path.Combine(path, "sw.js"), "worker");
             return path;
         }
         private static async Task<string> PackAsync(string source, string output, string moduleId = ModuleId) {
@@ -216,8 +214,8 @@ namespace DProjects.XShell.Test {
                 item.GetProperty("hash").GetString()!
             )).ToArray();
         }
-        private static void AssertInventoryMatchesFiles(FileEntry[] inventory, Dictionary<string, byte[]> files) {
-            var expectedPaths = files.Keys.Where(path => path is not ("module.files.json" or "module.json" or "xshell.json"))
+        private static void AssertInventoryMatchesFiles(FileEntry[] inventory, Dictionary<string, byte[]> files, params string[] additionalExclusions) {
+            var expectedPaths = files.Keys.Where(path => path is not ("module.json" or "xshell.json") && !additionalExclusions.Contains(path, StringComparer.Ordinal))
                 .Order(StringComparer.Ordinal).Select(path => "/" + path).ToArray();
             Assert.Equal(expectedPaths, inventory.Select(item => item.Path));
             foreach (var item in inventory) {

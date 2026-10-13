@@ -26,24 +26,25 @@ export const contract = {
 // implementation
 export default {
     style: `
-        :host {display:flex; position:relative; box-sizing:border-box; flex-direction:column}
+        :host {display:flex; position:relative; box-sizing:border-box; flex-direction:column; margin-bottom:.15em;}
         
         /* default */
         :host x-anchor {display:flex; flex:1; flex-direction:row; align-items:center; cursor:pointer; border-radius:var(--x-menuitem-border-radius); user-select: none; }
-        :host x-anchor:hover {background:var(--x-color-background-gray); outline:var(--x-menuitem-border); }
+        :host x-anchor:hover {background:var(--x-color-background-x-gray); z-index:1;}
         :host x-anchor x-icon {color:var(--x-color-text)!important; text-align:center;}
-        :host x-anchor span.label {color:var(--x-color-text)!important; flex:1;  display:block; padding-top:.4em; padding-bottom:.4em; white-space:nowrap; }
+        :host x-anchor span.label {color:var(--x-color-text)!important; flex:1;  display:block; padding-top:.4em; padding-bottom:.4em; white-space:nowrap; padding-right:1.5em;}
         :host x-anchor span.suffix {color:var(--x-color-text-gray)!important; padding-left:1em;}
         :host x-anchor x-icon.has-childs {width:unset; margin-left:.25em;}
         :host x-anchor x-icon:first-child {}
         :host x-anchor x-icon:first-child:last-child {align-self:flex-end;}
         :host x-anchor x-icon + .label {padding-left:.35em;}
         :host x-anchor.selected {font-weight: 600;}
-        :host x-anchor[expanded] {outline:var(--x-menuitem-border)}
+        :host x-anchor[expanded] {}
         :host x-anchor[disabled] {pointer-events:none; cursor:default;}
         :host x-anchor[disabled] x-icon {color:var(--x-color-text-disabled)!important;}
         :host x-anchor[disabled] span.label {color:var(--x-color-text-disabled)!important; padding-left:0!important;}
         :host(.selected) x-anchor {background:var(--x-color-background-x-gray);}
+
         :host HR {border-top:var(--x-layout-main-border);; margin-top:.5em; margin-bottom:.5em; display:block; box-sizing: border-box; width:100%;}
         
         /* dropdown */
@@ -51,8 +52,7 @@ export default {
             width: var(--x-contextmenu-width);
             position:absolute; 
             left:100%;
-            box-sizing:border-box;
-            
+            box-sizing:border-box;            
             margin-left:0em;
             margin-top:-.2em;
         }

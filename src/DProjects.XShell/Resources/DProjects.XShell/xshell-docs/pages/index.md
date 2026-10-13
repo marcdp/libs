@@ -13,7 +13,7 @@ virtualizes assets, initializes services/modules, and activates Pages through Ar
 - [Services and service Contracts](10-architecture/100-services.md) — Fixed registry, eager class loading, lazy singletons.
 - [Areas](30-subsystems/10-areas.md) and [Navigation](10-architecture/120-navigation.md) — Menus, routes, homes, browser URLs, and Page stacks.
 - [State](20-components/30-state.md) and [Rendering Engines](20-components/70-rendering.md) — Separate engines coordinated by loaders.
-- [Service Worker](10-architecture/110-service-worker.md) — `/_assets` and expanded resource mapping.
+- [Service Worker](10-architecture/110-service-worker.md) — `/_assets`, expanded-directory mapping, and immutable ZIP-backed loading.
 - [X Templates](40-extensions/x-templates/index.md) — Optional compiled rendering.
 - [Hosting](10-architecture/40-hosting.md) and [Packaging](10-architecture/50-packaging.md) — ASP.NET, compilation, and inventories.
 - [Subsystems](30-subsystems/index.md) — Bus, dialogs, i18n, Temp.
@@ -23,5 +23,5 @@ virtualizes assets, initializes services/modules, and activates Pages through Ar
 [Architecture](10-architecture/index.md), [Specifications](50-specifications/index.md), [Extensions](40-extensions/index.md), and [ADRs](60-adr/index.md)
 provide detailed reference and decision context.
 
-Authentication/Identity, navigation intents, and runtime ZIP loading are outside V0.
-Packaging ZIPs does not make them browser-loadable; descriptive contracts do not enforce every type or emit events.
+Authentication/Identity and navigation intents are outside V0. Runtime ZIP loading is implemented for Service Worker destinations whose pathname
+ends in `.zip`; it is separate from Pack's responsibility for creating the archives. Descriptive contracts do not enforce every type or emit events.

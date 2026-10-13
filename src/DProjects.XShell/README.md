@@ -101,8 +101,9 @@ my-module/
 
 ### Packaging and current deployment
 
-The V0 browser runtime maps expanded module directories through its Service Worker into the application resource namespace, using Paths such as `/_assets/my-module/...`.
-JavaScript, CSS, Pages, and icons are served from those expanded resources.
+The V0 browser runtime maps module resources through its Service Worker into the application resource namespace, using Paths such as
+`/_assets/my-module/...`. Development destinations are normally expanded directories. Published `assets.url` values can point to immutable ZIP
+packages, which the Service Worker fetches and reads to serve JavaScript, CSS, Pages, icons, and other package entries.
 
 `DProjects.XShell pack ./app ./dist` publishes the application, its recursive module dependencies, and the XShell framework as
 independent immutable ZIP packages under `<output>/<id>/<version>.<hash>/`. The framework source comes from the resources shipped with the running
@@ -125,8 +126,9 @@ entries. Bootstrap derives effective `config.app` from the root module metadata 
 change the root hash while leaving dependency and XShell identities unchanged. Deployment may alias stable `/` and `/sw.js` public URLs to the
 generation selected by `release.root`.
 Both canonical and published descriptors contain the generated physical inventory. An existing package path is reused for the same representation
-and cannot be replaced by the other representation. ZIP packaging is implemented, but runtime ZIP-backed browser loading is not; deploy expanded
-resources for the current Service Worker.
+and cannot be replaced by the other representation. At runtime, a Service Worker mapping whose destination pathname ends in `.zip` loads the
+complete immutable package and serves its entries; other destinations use expanded-directory URL rewriting. ZIP deployment remains subject to the
+documented same-origin/CORS/CSP constraints and supported ZIP format limits.
 
 In Development, resource middleware serves generated `module.json`/`module.jsonc` and `xshell.json`/`xshell.jsonc` responses whose local
 `modules.<id>.files` or `xshell.files` value reflects the current physical directory. Authored descriptors are not modified, and authors should not

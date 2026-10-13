@@ -146,7 +146,6 @@ test("pack discovers a dependency graph, rewrites references, and commits one co
             assert.deepEqual(readdirSync(directory).sort(), path === release.root ? ["index.html", "module.json", "module.zip", "sw.js"] : ["module.json", "module.zip"]);
             assert.equal(archive.has("module.json"), true);
             assert.equal(archive.has("module.jsonc"), false);
-            assert.equal(archive.has("module.files.json"), false);
             const canonical = JSON.parse(archive.get("module.json")).modules[path.split("/")[0]];
             if (path === release.root) {
                 const canonicalIndex = archive.get("index.html").toString("utf8");
@@ -186,7 +185,6 @@ test("pack discovers a dependency graph, rewrites references, and commits one co
         assert.deepEqual(readdirSync(frameworkDirectory).sort(), ["bootstrap.js", "sw.js", "xshell.json", "xshell.zip"]);
         const frameworkArchive = entries(archivePath(output, release.xshell));
         assert.equal(frameworkArchive.has("xshell.json"), true);
-        assert.equal(frameworkArchive.has("module.files.json"), false);
         assert.equal(frameworkArchive.has("bootstrap.js"), true);
         assert.equal(frameworkArchive.has("sw.js"), true);
         assert.deepEqual(frameworkArchive.get("sw.js"), readFileSync(join(dirname(assemblyPath), "Resources", "DProjects.XShell", "xshell", "sw.js")));
@@ -342,7 +340,6 @@ test("framework packaging retains its distinct descriptor and ZIP format", () =>
         assert.equal(published.xshell.assets.url, "url:./xshell.zip");
         const archive = entries(join(output, dirname(release.root), "xshell.zip"));
         assert.equal(archive.has("xshell.json"), true);
-        assert.equal(archive.has("module.files.json"), false);
         assert.deepEqual(readdirSync(join(output, dirname(release.root))).sort(), ["bootstrap.js", "sw.js", "xshell.json", "xshell.zip"]);
         for (const name of ["bootstrap.js", "sw.js"]) assert.deepEqual(readFileSync(join(output, dirname(release.root), name)), archive.get(name));
         assert.notDeepEqual(readFileSync(join(output, release.root)), archive.get("xshell.json"));
@@ -438,6 +435,23 @@ test("pack keeps asset ownership with local definitions", () => {
         assert.match(pack(join(sources, "app"), output).stderr, /cannot override assets/);
         module(join(sources, "app"), "app", { child: { configUrl: "url:../child/module.jsonc", assetsUrl: "url:.\/override\/" } });
         assert.match(pack(join(sources, "app"), output).stderr, /obsolete assetsUrl/);
+        module(join(sources, "app"), "app", { child: { configUrl: "url:../child/module.jsonc", files: [] } });
+        assert.match(pack(join(sources, "app"), output).stderr, /cannot define files/);
+        assert.equal(existsSync(join(output, "release.json")), false);
+    } finally {
+        rmSync(root, { recursive: true, force: true });
+    }
+});
+
+test("module packaging rejects xshell.files contributions", () => {
+    const root = fixture();
+    try {
+        const source = join(root, "app");
+        const output = join(root, "dist");
+        module(source, "app");
+        writeFileSync(join(source, "module.jsonc"), JSON.stringify({ modules: { app: { version: "1.0.0" } }, xshell: { files: [] } }));
+
+        assert.match(pack(source, output).stderr, /cannot define xshell\.files/);
         assert.equal(existsSync(join(output, "release.json")), false);
     } finally {
         rmSync(root, { recursive: true, force: true });

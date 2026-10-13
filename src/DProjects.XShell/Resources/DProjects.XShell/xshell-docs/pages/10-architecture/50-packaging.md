@@ -30,6 +30,9 @@ Standalone XShell packaging creates no application `index.html` or root `sw.js` 
 The command parses the full graph before changing published output. Each reference key must equal the local module id in the referenced document.
 References are resolved relative to the document that contains them. Repeated references to one canonical document are deduplicated. Missing
 documents, id conflicts, cycles, invalid ids, and references without `configUrl` fail the build.
+References cannot define `files`, because inventory belongs to the referenced local definition. A module or root descriptor cannot contribute
+`xshell.files`; only the XShell framework descriptor owns that inventory. Stale authored `files` on the owning local module or framework definition
+are replaced with generated metadata.
 
 Only local filesystem source definitions are supported. A `url:../other/module.jsonc` reference and a `file:` URL resolve to local files.
 Remote HTTP(S), `app:`, and deployment-root references fail clearly because the packer has no authenticated remote package fetch and integrity
@@ -161,7 +164,7 @@ is created beside `--output` to keep package moves on the same filesystem.
 Each entry contains a package-relative path, byte size, and lowercase SHA-256 hash. Paths start with `/`, use forward slashes, and are sorted
 ordinally. Pack replaces any authored stale inventory and embeds the generated array in the canonical descriptor before computing the package hash,
 so inventory metadata participates in the immutable identity without descriptor self-recursion. The published descriptor receives the same array.
-Canonical ZIPs contain no inventory sidecar.
+The generated inventory exists only in the canonical and published descriptors.
 For the root module only, the inventory also excludes `/index.html` and `/sw.js`: these startup files remain in the hash and ZIP, but are served
 as application startup resources rather than virtual `/_assets/...` module resources. XShell's own `sw.js` remains in its inventory.
 
@@ -169,7 +172,10 @@ Development uses the same representation: `ResourcesMiddleware` generates a desc
 Authors should not manually maintain `files`. Bootstrap consumes the self-contained descriptor and normalizes those package-relative Paths into the
 generation-qualified application namespace without a separate inventory fetch.
 
-Packaging creates distribution artifacts; deployment and browser runtime loading are separate concerns. The current Service Worker supports
-expanded physical resources and does not load ZIP archives directly. The packer does not upload artifacts or implement deployment.
+Packaging creates and validates distribution artifacts; deployment and browser runtime loading are separate concerns. The current Service Worker
+does load a complete immutable ZIP when a mapping destination pathname ends in `.zip`, indexes its central directory, and serves matched entries.
+Other destinations use expanded-directory URL rewriting. The ZIP reader supports Pack's stored and DEFLATE entries and rejects malformed,
+encrypted, ZIP64, duplicate-name, unsupported-compression, size-invalid, and CRC-invalid content. Fetch/CORS and the host CSP still constrain remote
+destinations. The packer does not upload artifacts or implement deployment.
 
 See [Modules](30-modules.md), [Service Worker](110-service-worker.md), and [Hosting](40-hosting.md).

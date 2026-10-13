@@ -28,8 +28,7 @@ export default {
                 x-attr:selected="menuitem.selected" 
                 x-attr:class="menuitem.class"
                 x-attr:tooltip="menuitem.tooltip" 
-                >
-                
+                >                
             </x-menuitem>
         </nav>        
     `

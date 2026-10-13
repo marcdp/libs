@@ -310,10 +310,7 @@ ___x-page[layout='main'] > x-markdown:first-child > h1:first-child {display:none
     --x-contextmenu-border: .1em #B4B4BB solid;
     --x-contextmenu-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
     --x-contextmenu-padding: .25em;
-
     --x-contextmenu-border-radius: .75em;
-
-    --x-menuitem-border: .1em #B4B4BB solid;
     --x-menuitem-border-radius: .5em;
     
     /* x-notice */

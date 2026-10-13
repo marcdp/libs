@@ -12,7 +12,6 @@ export default {
         title: "Debug"
     },
     style: `
-        x-tabs {width: 85em; max-width:90vw; }
     `,
     template: `
         <p>Provides access to the available XShell diagnostic views.</p>
@@ -25,7 +24,7 @@ export default {
     state: {
         menuitems: []
     },
-    controller({ state, config, areas }) {
+    controller({ state, areas }) {
         return {
             load() {
                // load

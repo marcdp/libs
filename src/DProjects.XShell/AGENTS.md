@@ -106,7 +106,7 @@ module             ≠ Area
 Page               ≠ Navigation
 configuration      ≠ runtime state
 configUrl          ≠ assets.url
-packaging          ≠ runtime ZIP loading
+package production ≠ Service Worker package consumption
 ```
 
 Do not collapse these concepts merely to reduce code.
@@ -239,7 +239,8 @@ assets.url
 conceptually separate.
 
 Bootstrap consumes physical file inventories embedded in module and XShell descriptors and normalizes their package-relative paths into the virtual
-namespace. Do not assume ZIP-backed loading or arbitrary remote/CDN sources unless the current implementation supports them.
+namespace. The Service Worker supports ZIP-backed destinations whose URL pathname ends in `.zip`, plus expanded-directory destinations. Do not
+assume arbitrary remote/CDN sources: fetch/CORS and the host CSP still apply, and only the documented ZIP subset is supported.
 
 ---
 
@@ -567,11 +568,13 @@ lives at `xshell.files`. Bootstrap consumes those self-contained descriptors and
 namespace. A committed distribution is selected through `release.json`; its `root` names the root descriptor and its `packages` list names the
 complete package set.
 
-Do not infer from packaging support that the browser runtime can load modules directly from ZIP files.
-
 Do not manually maintain generated `files` metadata in `module.jsonc` or `xshell.jsonc`.
 
-Packaging support still does not imply that the browser runtime loads ZIP files directly.
+Module references must not define `files`, and module/root descriptors must not contribute `xshell.files`. Development middleware and Pack replace
+stale inventory on the owning local module or framework definition.
+
+Keep responsibilities distinct: Pack creates and validates immutable ZIP artifacts, while the Service Worker consumes ZIP-backed mappings at
+runtime. The worker fetches the complete package, supports stored and DEFLATE entries, and rejects malformed or unsupported archives.
 
 ---
 
@@ -709,7 +712,7 @@ Do not:
 - casually rename `/_assets`;
 - treat Areas as module instances;
 - treat menus as module references;
-- treat ZIP packaging as ZIP runtime loading;
+- conflate Pack's artifact-production rules with the Service Worker's ZIP-consumption rules;
 - assume dynamically referenced files are dead code;
 - introduce unnecessary dependencies;
 - create documentation `README.md` indexes;

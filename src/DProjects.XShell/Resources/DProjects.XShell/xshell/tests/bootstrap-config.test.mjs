@@ -472,7 +472,7 @@ test("Service Worker mapping registration keeps the no-response timeout", async 
     await assert.rejects(api.installServiceWorker(config), /Service Worker did not reply in time/);
 });
 
-test("descriptor-provided module and XShell inventories normalize to generation-qualified Paths without sidecar requests", async () => {
+test("descriptor-provided module and XShell inventories normalize to generation-qualified Paths using only descriptor requests", async () => {
     directFetchCalls.length = 0;
     const xshellUrl = "https://example.test/xshell/xshell.json";
     fetchedResources.set(xshellUrl, {
@@ -973,9 +973,24 @@ test("references reject assets ownership and obsolete assetsUrl but require conf
     const configs = { [aUrl]: { modules: { a: definition("a"), x: { configUrl: xUrl, assets: { url: "url:./assets" } } } } };
 
     await assert.rejects(() => discover(root, configs), /cannot override assets/);
+    configs[aUrl].modules.x = { configUrl: xUrl, files: [{ path: "/forged.js", size: 1, hash: "forged" }] };
+    await assert.rejects(() => discover(root, configs), /cannot define files/);
     configs[aUrl].modules.x = { configUrl: xUrl, assetsUrl: "url:./assets" };
     await assert.rejects(() => discover(root, configs), /obsolete assetsUrl/);
     await assert.rejects(() => discover({ modules: { app: definition("app"), x: { configUrl: "" } } }), /must declare a non-empty configUrl/);
+});
+
+test("module configurations cannot contribute xshell.files", async () => {
+    const childUrl = "https://example.test/modules/child/module.jsonc";
+
+    await assert.rejects(() => discover({
+        modules: { app: definition("app") },
+        xshell: { files: [{ path: "/forged.js", size: 1, hash: "forged" }] }
+    }), /must not define xshell\.files/);
+    await assert.rejects(() => discover(
+        { modules: { app: definition("app"), child: reference(childUrl) } },
+        { [childUrl]: { modules: { child: definition("child") }, xshell: { files: [] } } }
+    ), /must not define xshell\.files/);
 });
 
 test("root dependency references accept params and merge them last", async () => {

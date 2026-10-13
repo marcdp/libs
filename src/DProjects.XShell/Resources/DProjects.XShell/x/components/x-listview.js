@@ -22,11 +22,11 @@ export const contract = {
 // implementation
 export default {
     style: `
-        :host {display:block;}
+        :host {display:block; position:relative;}
 
-        /* x-toolbar */
-        x-toolbar {background:var(--x-color-background-alt); padding:.25em; text-align:right;}
-
+        /* x-dropdown */
+        x-dropdown {position:absolute; right:0; z-index:2;}
+        
         /* views */
         .views {display:flex; justify-content:flex-end; gap:.2em; margin-bottom:.5em;}
         .views button {border:var(--x-datafield-border); border-radius:var(--x-datafield-border-radius); background:none; color:var(--x-color-gray); padding:.2em .6em; cursor:pointer; font:inherit;}
@@ -65,16 +65,20 @@ export default {
         }
     `,
     template: `
-        <x-toolbar x-if="state.availableViews.length > 1">
-            <x-button x-for="view in state.availableViews"
-                x-attr:data-view="view"
-                x-class:selected="view == state.view"
-                x-attr:icon="'x-listview-' + view"
-                x-attr:title="view"
-                class="plain"
-                x-on:click="changeView"
-                ></x-button>
-        </x-toolbar>
+        <x-dropdown x-if="state.availableViews.length > 1" class="menu left">
+            <x-button tabindex="1" x-attr:icon="'x-listview-' + state.view" class="size-x2 round light" tooltip="Change view"></x-button>
+            <div slot="dropdown">
+                <x-menuitem x-for="view in state.availableViews" 
+                    x-attr:data-view="view"
+                    x-class:selected="view == state.view"
+                    x-attr:icon="'x-listview-' + view"
+                    x-attr:label="view"
+                    x-attr:title="view"
+                    class="menuitem"
+                    x-on:click="changeView"
+                    ></x-menuitem>
+            </div>
+        </x-dropdown>
 
         <div x-attr:class="state.view">
             <div>

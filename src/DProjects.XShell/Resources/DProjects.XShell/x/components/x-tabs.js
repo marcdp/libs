@@ -27,6 +27,7 @@ export default {
             border-bottom:var(--x-accordion-border); 
             display:flex;
             overflow-x:auto;
+            flex-wrap:wrap;
         }
         
         nav a {padding-left:1em; padding-right:1em; cursor:pointer; position:relative; line-height:2.5em; display:block; flex:unset; font-size:var(--x-font-size-tab); font-weight:600; white-space:nowrap; }

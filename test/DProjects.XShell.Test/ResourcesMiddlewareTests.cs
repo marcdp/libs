@@ -3,7 +3,6 @@ using System.Text;
 using System.Text.Json;
 
 using DProjects.XShell.Middlewares;
-using DProjects.XShell.Services;
 
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -73,59 +72,81 @@ namespace DProjects.XShell.Test {
             Assert.False(production.Headers.ContainsKey("Expires"));
         }
         [Fact]
-        public async Task DevelopmentModuleFilesJson_IsGeneratedForContainingModule() {
+        public async Task DevelopmentModuleDescriptor_IsCanonicalJsonWithCurrentLocalInventory() {
             using var workspace = new TemporaryDirectory();
-            workspace.Write("resources/demo/module.jsonc", ModuleDescriptor);
+            workspace.Write("resources/demo/module.jsonc", """
+                // authored configuration
+                { "modules": {
+                    "dependency": { "configUrl": "url:../dependency/module.jsonc" },
+                    "demo": { "files": [{ "path": "/stale.js", "size": 1, "hash": "stale" }] }
+                } }
+                """);
             workspace.Write("resources/demo/a.txt", "alpha");
             workspace.Write("resources/demo/nested/b.txt", "beta");
-            var moduleDirectory = workspace.PathFor("resources/demo");
 
-            var response = await SendAsync(workspace.PathFor("resources"), "/_resources/demo/module.files.json", isDevelopment: true);
+            var response = await SendAsync(workspace.PathFor("resources"), "/_resources/demo/module.json", isDevelopment: true);
 
             Assert.Equal(StatusCodes.Status200OK, response.StatusCode);
             Assert.StartsWith("application/json", response.ContentType, StringComparison.OrdinalIgnoreCase);
             Assert.Equal(0, response.NextCalls);
             AssertNoCache(response);
-            var actual = ReadInventory(response.Text);
-            var expected = ReadInventory(await new DescriptorInventory().CreateJsonAsync(moduleDirectory, DescriptorKind.Module, TestContext.Current.CancellationToken));
-            Assert.Equal(expected, actual);
-            Assert.Equal(["/a.txt", "/module.jsonc", "/nested/b.txt"], actual.Select(file => file.Path));
-            Assert.DoesNotContain(actual, file => file.Path.EndsWith("/module.files.json", StringComparison.OrdinalIgnoreCase));
+            using var descriptor = JsonDocument.Parse(response.Text);
+            var actual = ReadInventory(descriptor.RootElement.GetProperty("modules").GetProperty("demo").GetProperty("files"));
+            Assert.Equal(["/a.txt", "/nested/b.txt"], actual.Select(file => file.Path));
+            Assert.False(descriptor.RootElement.GetProperty("modules").GetProperty("dependency").TryGetProperty("files", out _));
             var a = Assert.Single(actual, file => file.Path == "/a.txt");
             Assert.Equal(Encoding.UTF8.GetByteCount("alpha"), a.Size);
             Assert.Equal(Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes("alpha"))).ToLowerInvariant(), a.Hash);
         }
         [Fact]
-        public async Task VirtualInventory_RequiresDescriptor() {
-            using var workspace = new TemporaryDirectory();
-            workspace.Write("resources/demo/a.txt", "content");
-
-            var response = await SendAsync(workspace.PathFor("resources"), "/_resources/demo/module.files.json", isDevelopment: true);
-
-            Assert.Equal(StatusCodes.Status404NotFound, response.StatusCode);
-            Assert.Empty(response.Body);
-            Assert.Equal(0, response.NextCalls);
-        }
-        [Fact]
-        public async Task VirtualInventory_MissingDirectoryReturns404() {
-            using var workspace = new TemporaryDirectory();
-            Directory.CreateDirectory(workspace.PathFor("resources"));
-
-            var response = await SendAsync(workspace.PathFor("resources"), "/_resources/missing/module.files.json", isDevelopment: true);
-
-            Assert.Equal(StatusCodes.Status404NotFound, response.StatusCode);
-            Assert.Equal(0, response.NextCalls);
-        }
-        [Fact]
-        public async Task Production_DoesNotGenerateVirtualInventory() {
+        public async Task DevelopmentDescriptor_HeadHasGetHeadersWithoutBody() {
             using var workspace = new TemporaryDirectory();
             workspace.Write("resources/demo/module.jsonc", ModuleDescriptor);
+            workspace.Write("resources/demo/a.txt", "alpha");
 
-            var response = await SendAsync(workspace.PathFor("resources"), "/_resources/demo/module.files.json");
+            var get = await SendAsync(workspace.PathFor("resources"), "/_resources/demo/module.json", isDevelopment: true);
+            var head = await SendAsync(workspace.PathFor("resources"), "/_resources/demo/module.json", isDevelopment: true, method: HttpMethods.Head);
 
-            Assert.Equal(1, response.NextCalls);
-            Assert.Equal(StatusCodes.Status204NoContent, response.StatusCode);
-            Assert.Empty(response.Body);
+            Assert.Equal(StatusCodes.Status200OK, head.StatusCode);
+            Assert.Empty(head.Body);
+            Assert.Equal(get.Body.Length, head.Headers.ContentLength);
+            Assert.Equal(get.ContentType, head.ContentType);
+            AssertNoCache(head);
+            Assert.Equal(0, head.NextCalls);
+        }
+        [Fact]
+        public async Task DevelopmentXShellDescriptor_EmbedsFrameworkInventory() {
+            using var workspace = new TemporaryDirectory();
+            workspace.Write("resources/xshell/xshell.jsonc", "{ \"xshell\": { \"files\": [{ \"path\": \"/stale.js\" }] } }");
+            workspace.Write("resources/xshell/bootstrap.js", "bootstrap");
+            workspace.Write("resources/xshell/sw.js", "worker");
+
+            var response = await SendAsync(workspace.PathFor("resources"), "/_resources/xshell/xshell.jsonc", isDevelopment: true);
+
+            using var descriptor = JsonDocument.Parse(response.Text);
+            var files = ReadInventory(descriptor.RootElement.GetProperty("xshell").GetProperty("files"));
+            Assert.Equal(["/bootstrap.js", "/sw.js"], files.Select(file => file.Path));
+        }
+        [Fact]
+        public async Task DevelopmentDescriptor_AmbiguousSourceRepresentationsAreRejected() {
+            using var workspace = new TemporaryDirectory();
+            workspace.Write("resources/demo/module.json", ModuleDescriptor);
+            workspace.Write("resources/demo/module.jsonc", ModuleDescriptor);
+
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                SendAsync(workspace.PathFor("resources"), "/_resources/demo/module.json", isDevelopment: true));
+
+            Assert.Contains("both module.json and module.jsonc", exception.Message);
+        }
+        [Fact]
+        public async Task DevelopmentModuleDescriptor_RequiresExactlyOneLocalDefinition() {
+            using var workspace = new TemporaryDirectory();
+            workspace.Write("resources/demo/module.jsonc", "{ \"modules\": { \"a\": {}, \"b\": {} } }");
+
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                SendAsync(workspace.PathFor("resources"), "/_resources/demo/module.json", isDevelopment: true));
+
+            Assert.Contains("exactly one local module definition", exception.Message);
         }
         [Fact]
         public async Task DevelopmentHtmlSfc_IsCompiledAtJavaScriptPath() {
@@ -235,13 +256,13 @@ namespace DProjects.XShell.Test {
             Assert.DoesNotContain("outside secret", response.Text);
         }
         [Fact]
-        public async Task VirtualInventoryTraversal_DoesNotIndexDirectoryOutsideResourceRoot() {
+        public async Task DescriptorTraversal_DoesNotIndexDirectoryOutsideResourceRoot() {
             using var workspace = new TemporaryDirectory();
             workspace.Write("outside/module.jsonc", ModuleDescriptor);
             workspace.Write("outside/secret.txt", "outside secret");
             Directory.CreateDirectory(workspace.PathFor("resources"));
 
-            var response = await SendAsync(workspace.PathFor("resources"), "/_resources/../outside/module.files.json", isDevelopment: true);
+            var response = await SendAsync(workspace.PathFor("resources"), "/_resources/../outside/module.json", isDevelopment: true);
 
             Assert.Equal(StatusCodes.Status404NotFound, response.StatusCode);
             Assert.Empty(response.Body);
@@ -249,7 +270,7 @@ namespace DProjects.XShell.Test {
         }
 
         // methods (private)
-        private static async Task<MiddlewareResponse> SendAsync(string resourceRoot, string requestPath, bool isDevelopment = false) {
+        private static async Task<MiddlewareResponse> SendAsync(string resourceRoot, string requestPath, bool isDevelopment = false, string? method = null) {
             var serviceCollection = new ServiceCollection().AddLogging();
             serviceCollection.AddSingleton<IWebHostEnvironment>(new TestWebHostEnvironment(resourceRoot, isDevelopment));
             using var services = serviceCollection.BuildServiceProvider();
@@ -261,7 +282,7 @@ namespace DProjects.XShell.Test {
             };
             var middleware = new ResourcesMiddleware(next, services, resourceRoot, "/_resources", isDevelopment);
             var context = new DefaultHttpContext();
-            context.Request.Method = HttpMethods.Get;
+            context.Request.Method = method ?? HttpMethods.Get;
             context.Request.Path = requestPath;
             await using var body = new MemoryStream();
             context.Response.Body = body;
@@ -280,9 +301,8 @@ namespace DProjects.XShell.Test {
             Assert.Equal("no-cache", response.Headers.Pragma.ToString());
             Assert.Equal("0", response.Headers.Expires.ToString());
         }
-        private static InventoryEntry[] ReadInventory(string json) {
-            using var document = JsonDocument.Parse(json);
-            return document.RootElement.EnumerateArray().Select(item => new InventoryEntry(
+        private static InventoryEntry[] ReadInventory(JsonElement inventory) {
+            return inventory.EnumerateArray().Select(item => new InventoryEntry(
                 item.GetProperty("path").GetString()!, item.GetProperty("size").GetInt64(), item.GetProperty("hash").GetString()!
             )).ToArray();
         }
