@@ -79,7 +79,6 @@ namespace DProjects.XShell.Test {
             workspace.Write("resources/demo/a.txt", "alpha");
             workspace.Write("resources/demo/nested/b.txt", "beta");
             var moduleDirectory = workspace.PathFor("resources/demo");
-            Assert.False(File.Exists(Path.Combine(moduleDirectory, FilesIndexer.ModuleFilesJson)));
 
             var response = await SendAsync(workspace.PathFor("resources"), "/_resources/demo/module.files.json", isDevelopment: true);
 
@@ -88,7 +87,7 @@ namespace DProjects.XShell.Test {
             Assert.Equal(0, response.NextCalls);
             AssertNoCache(response);
             var actual = ReadInventory(response.Text);
-            var expected = ReadInventory(await new FilesIndexer().CreateJsonAsync(moduleDirectory, TestContext.Current.CancellationToken));
+            var expected = ReadInventory(await new DescriptorInventory().CreateJsonAsync(moduleDirectory, DescriptorKind.Module, TestContext.Current.CancellationToken));
             Assert.Equal(expected, actual);
             Assert.Equal(["/a.txt", "/module.jsonc", "/nested/b.txt"], actual.Select(file => file.Path));
             Assert.DoesNotContain(actual, file => file.Path.EndsWith("/module.files.json", StringComparison.OrdinalIgnoreCase));

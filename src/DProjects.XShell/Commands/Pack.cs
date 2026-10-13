@@ -216,15 +216,13 @@ namespace DProjects.XShell.Commands {
             await File.WriteAllTextAsync(stagedDescriptor, root.ToJsonString(JsonOptions), cancellationToken);
             var jsoncPath = Path.Combine(workPath, "module.jsonc");
             if (File.Exists(jsoncPath)) File.Delete(jsoncPath);
-            DeleteLegacyInventory(workPath);
             await CompileResourcesAsync(workPath, stagedDescriptor, cancellationToken);
             // generate root startup resources in the canonical tree before inventory and hashing
             var canonicalStartupFiles = buildStartupFiles?.Invoke(RootHashPlaceholder);
             if (canonicalStartupFiles != null) {
                 foreach (var file in canonicalStartupFiles) await File.WriteAllTextAsync(Path.Combine(workPath, file.Key.TrimStart('/')), file.Value, cancellationToken);
             }
-            var inventory = await new FilesIndexer().CreateAsync(workPath, cancellationToken,
-                canonicalStartupFiles == null ? null : new HashSet<string>(StringComparer.Ordinal) { "/index.html", "/sw.js" });
+            var inventory = await new FilesIndexer().CreateAsync(workPath, cancellationToken, canonicalStartupFiles == null ? null : new HashSet<string>(StringComparer.Ordinal) { "/index.html", "/sw.js" });
             localModule["files"] = DescriptorInventory.CreateJsonArray(inventory);
             await File.WriteAllTextAsync(stagedDescriptor, root.ToJsonString(JsonOptions), cancellationToken);
             var hash = await ComputeHashAsync(workPath, cancellationToken);
@@ -291,7 +289,6 @@ namespace DProjects.XShell.Commands {
             await File.WriteAllTextAsync(Path.Combine(workPath, "xshell.json"), root.ToJsonString(JsonOptions), cancellationToken);
             var jsonc = Path.Combine(workPath, "xshell.jsonc");
             if (File.Exists(jsonc)) File.Delete(jsonc);
-            DeleteLegacyInventory(workPath);
             var inventory = await new FilesIndexer().CreateAsync(workPath, cancellationToken);
             framework["files"] = DescriptorInventory.CreateJsonArray(inventory);
             await File.WriteAllTextAsync(Path.Combine(workPath, "xshell.json"), root.ToJsonString(JsonOptions), cancellationToken);
@@ -455,9 +452,6 @@ namespace DProjects.XShell.Commands {
             CancellationToken cancellationToken) {
             // validate descriptor-embedded inventory and canonical publication fields for every reused package
             using var archive = ZipFile.OpenRead(archivePath);
-            if (archive.GetEntry("module.files.json") != null) {
-                throw new InvalidOperationException($"Existing immutable package uses the obsolete inventory sidecar: {target}");
-            }
             var descriptorName = package.Kind == PackageKind.XShell ? "xshell.json" : "module.json";
             var descriptorEntry = archive.GetEntry(descriptorName) ??
                 throw new InvalidOperationException($"Existing immutable package has an incomplete canonical archive: {target}");
@@ -488,11 +482,6 @@ namespace DProjects.XShell.Commands {
             return WebUtility.HtmlDecode(match.Groups[1].Value);
         }
         private static string UtcTimestamp() => DateTimeOffset.UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture);
-        private static void DeleteLegacyInventory(string directory) {
-            // prevent a stale sidecar copied from an older source tree from entering a current package
-            var path = Path.Combine(directory, "module.files.json");
-            if (File.Exists(path)) File.Delete(path);
-        }
         private static void RejectAuthoredApp(JsonObject config, string path) {
             if (config.ContainsKey("app")) throw new InvalidOperationException($"Authored configuration '{path}' must not define top-level app; application metadata comes from the root module.");
         }

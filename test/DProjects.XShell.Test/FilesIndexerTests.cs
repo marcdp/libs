@@ -14,7 +14,7 @@ namespace DProjects.XShell.Test {
             WriteFile(root, "root.txt", [1]);
             WriteFile(root, "folder/nested.txt", [2]);
 
-            var files = ReadInventory(await new FilesIndexer().CreateJsonAsync(root, TestContext.Current.CancellationToken));
+            var files = ReadInventory(await new DescriptorInventory().CreateJsonAsync(root, DescriptorKind.Module, TestContext.Current.CancellationToken));
 
             Assert.Equal(["/folder/nested.txt", "/root.txt"], files.Select(file => file.Path));
             Assert.All(files, file => {
@@ -29,7 +29,7 @@ namespace DProjects.XShell.Test {
             byte[] contents = [0, 1, 127, 128, 255];
             WriteFile(root, "bytes.bin", contents);
 
-            var file = Assert.Single(ReadInventory(await new FilesIndexer().CreateJsonAsync(root, TestContext.Current.CancellationToken)));
+            var file = Assert.Single(ReadInventory(await new DescriptorInventory().CreateJsonAsync(root, DescriptorKind.Module, TestContext.Current.CancellationToken)));
 
             Assert.Equal("/bytes.bin", file.Path);
             Assert.Equal(contents.LongLength, file.Size);
@@ -46,7 +46,7 @@ namespace DProjects.XShell.Test {
             WriteFile(root, "file.txt", [4]);
             WriteFile(root, "nested/keep.txt", [5]);
 
-            var files = ReadInventory(await new FilesIndexer().CreateJsonAsync(root, TestContext.Current.CancellationToken));
+            var files = ReadInventory(await new DescriptorInventory().CreateJsonAsync(root, DescriptorKind.Module, TestContext.Current.CancellationToken));
 
             Assert.Equal(["/file.txt", "/nested/keep.txt"], files.Select(file => file.Path));
         }
@@ -60,7 +60,7 @@ namespace DProjects.XShell.Test {
             WriteFile(root, "folder/b.txt", [4]);
             WriteFile(root, "B.txt", [5]);
 
-            var files = ReadInventory(await new FilesIndexer().CreateJsonAsync(root, TestContext.Current.CancellationToken));
+            var files = ReadInventory(await new DescriptorInventory().CreateJsonAsync(root, DescriptorKind.Module, TestContext.Current.CancellationToken));
 
             Assert.Equal(["/B.txt", "/a.txt", "/folder/b.txt", "/folder/c.txt", "/z.txt"], files.Select(file => file.Path));
         }
@@ -77,9 +77,8 @@ namespace DProjects.XShell.Test {
             foreach (var file in files) WriteFile(firstRoot, file.Path, file.Contents);
             foreach (var file in files.Reverse()) WriteFile(secondRoot, file.Path, file.Contents);
 
-            var indexer = new FilesIndexer();
-            var firstJson = await indexer.CreateJsonAsync(firstRoot, TestContext.Current.CancellationToken);
-            var secondJson = await indexer.CreateJsonAsync(secondRoot, TestContext.Current.CancellationToken);
+            var firstJson = await new DescriptorInventory().CreateJsonAsync(firstRoot, DescriptorKind.Module, TestContext.Current.CancellationToken);
+            var secondJson = await new DescriptorInventory().CreateJsonAsync(secondRoot, DescriptorKind.Module, TestContext.Current.CancellationToken);
 
             Assert.NotEqual(firstRoot, secondRoot);
             Assert.Equal(firstJson, secondJson);
@@ -90,7 +89,7 @@ namespace DProjects.XShell.Test {
             var root = workspace.PathFor("empty");
             Directory.CreateDirectory(root);
 
-            var files = ReadInventory(await new FilesIndexer().CreateJsonAsync(root, TestContext.Current.CancellationToken));
+            var files = ReadInventory(await new DescriptorInventory().CreateJsonAsync(root, DescriptorKind.Module, TestContext.Current.CancellationToken));
 
             Assert.Empty(files);
         }
@@ -102,7 +101,7 @@ namespace DProjects.XShell.Test {
             using var cancellation = new CancellationTokenSource();
             cancellation.Cancel();
 
-            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => new FilesIndexer().CreateJsonAsync(root, cancellation.Token));
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => new DescriptorInventory().CreateJsonAsync(root, DescriptorKind.Module, cancellation.Token));
         }
 
         // methods (private)

@@ -20,8 +20,7 @@ namespace DProjects.XShell.Services {
             foreach (var file in Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories)) {
                 cancellationToken.ThrowIfCancellationRequested();
                 var relativePath = "/" + Path.GetRelativePath(path, file).Replace('\\', '/');
-                if ((excludedPaths?.Contains(relativePath) ?? false) || IsDescriptor(relativePath) ||
-                    relativePath.Equals("/module.files.json", StringComparison.OrdinalIgnoreCase)) {
+                if ((excludedPaths?.Contains(relativePath) ?? false) || IsDescriptor(relativePath)) {
                     continue;
                 }
                 await using var stream = File.OpenRead(file);

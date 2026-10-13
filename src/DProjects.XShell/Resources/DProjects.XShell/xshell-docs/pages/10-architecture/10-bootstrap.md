@@ -79,7 +79,7 @@ Bootstrap registers the application Service Worker at `app.basePath + "/sw.js"`,
 `registerMappings` message. The worker validates the batch and adds it to its durable registry before acknowledging. The effective mappings describe
 what this bootstrap generation requested; the IndexedDB registry may also contain mappings from other generations or tabs. Inventory loading does
 not depend on this mapping step: every runtime descriptor is self-contained and already provides `modules.<localId>.files` or `xshell.files`.
-Remote runtime descriptors are likewise responsible for containing their inventory. There is no `module.files.json` runtime protocol or fallback.
+Remote runtime descriptors are likewise responsible for containing their inventory. 
 
 The inventory in each served or canonical descriptor is package-relative:
 
