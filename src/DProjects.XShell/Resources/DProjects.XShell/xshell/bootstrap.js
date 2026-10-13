@@ -125,7 +125,6 @@ function validateAuthoredModuleAssets(module, moduleId, configUrl) {
     if (Object.hasOwn(module.assets, "basePath")) throw new Error(`Module '${moduleId}' in '${configUrl}' must not define assets.basePath.`);
 }
 function prepareModuleConfig(config, configUrl, assetsBasePath, environment) {
-    if (Object.hasOwn(config?.xshell ?? {}, "serviceWorker")) throw new Error(`Authored module configuration '${configUrl}' must not define xshell.serviceWorker.`);
     validateAuthoredXShellAssets(config?.xshell, configUrl);
     const localModule = getLocalModule(config, configUrl);
     validateAuthoredModuleAssets(localModule.definition, localModule.id, configUrl);
@@ -258,7 +257,6 @@ async function loadConfig() {
         loadJsonWithComments(rootModuleUrl)
     ]);
     if (Object.hasOwn(xshellConfig, "app")) throw new Error(`Authored XShell configuration '${xshellConfigUrl}' must not define top-level app.`);
-    if (Object.hasOwn(xshellConfig.xshell, "serviceWorker")) throw new Error(`Authored XShell configuration '${xshellConfigUrl}' must not define xshell.serviceWorker.`);
     validateAuthoredXShellAssets(xshellConfig.xshell, xshellConfigUrl);
 
     const assetsBasePath = normalizeAssetsBasePath(

@@ -31,7 +31,9 @@ export default function createStateEngineFactoryProxy(stateSkeleton, context) {
 				},
 				set(target, prop, newValue) {
 					// set value and notify handler
-					let oldValue = target[prop];
+					const oldValue = target[prop];
+					const changed = !Object.is(oldValue, newValue)|| (newValue !== null && typeof newValue === "object");
+					/*
 					let changed = (oldValue != newValue);
 					if (!changed && oldValue && newValue) {
 						if (Array.isArray(newValue)) { 
@@ -44,7 +46,7 @@ export default function createStateEngineFactoryProxy(stateSkeleton, context) {
 							//dirty check: check if keyslength  are the same
 							changed = (Object.keys(oldValue).length != Object.keys(newValue).length);
 						}
-					}
+					}*/
 					if (changed) {
 						target[prop] = newValue;
 						for (let listener of listeners) {

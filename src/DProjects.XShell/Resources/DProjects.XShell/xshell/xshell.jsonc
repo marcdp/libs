@@ -57,6 +57,10 @@
         "services": {
         },
 
+        // serviceWorker
+        "serviceWorker": {
+        },
+
         // temp
         "temp": {
             "url": "app:/temp"   
