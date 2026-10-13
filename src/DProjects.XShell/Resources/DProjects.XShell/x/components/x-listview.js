@@ -116,10 +116,10 @@ export default {
                     .map(view => view.trim().toLowerCase())
                     .filter(view => supportedViews.includes(view));
 
-                state.availableViews = [...new Set(configuredViews.length ? configuredViews : [])];
+                state.availableViews = [...new Set(configuredViews)];
 
                 // keep the current view inside the configured set
-                if (!state.availableViews.includes(state.view)) state.view = state.availableViews[0];
+                if (state.availableViews.length && !state.availableViews.includes(state.view)) state.view = state.availableViews[0];
 
                 this.refresh();
             },
