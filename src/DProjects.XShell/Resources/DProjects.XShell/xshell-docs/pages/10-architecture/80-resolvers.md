@@ -54,4 +54,4 @@ See [Configuration](20-configuration.md) and [Loaders](90-loaders.md).
 
 Bootstrap also generates exact `contract:<id>` rules from module inventory entries under `/contracts/`.
 These use `object-json` and preserve module ownership metadata; see [Services](100-services.md).
-Resolver generation happens after inventory loading, before effective schema validation.
+Resolver generation consumes the normalized inventories already supplied by the descriptors and happens before effective schema validation.

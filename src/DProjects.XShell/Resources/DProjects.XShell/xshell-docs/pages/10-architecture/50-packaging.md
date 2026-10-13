@@ -42,16 +42,19 @@ references and reference contributions. The packer changes only each dependency'
 descriptors are never edited.
 
 The command copies source files into private staging, normalizes JSONC descriptors to strict `module.json`, compiles JavaScript, HTML XShell SFC,
-and standalone CSS through `ModuleFileCompiler`, then generates `module.files.json`. An HTML SFC becomes a JavaScript file; conflicting authored
-HTML and JavaScript runtime paths fail. Framework resources remain uncompiled under the existing framework convention.
+and standalone CSS through `ModuleFileCompiler`, then generates the structured physical inventory and embeds it at
+`modules.<localId>.files`. An HTML SFC becomes a JavaScript file; conflicting authored HTML and JavaScript runtime paths fail. Framework resources
+remain uncompiled under the existing framework convention and receive their inventory at `xshell.files`.
 
-Each canonical archive contains the compiled tree, `module.files.json`, and a descriptor whose own generated `hash` is empty. The external
-descriptor beside the ZIP has the calculated hash, `assets.url = "url:./module.zip"` (or `xshell.zip`), the physical file inventory, and `builtAt`.
-Both descriptors contain the same rewritten dependency references. The archive is created before external publication metadata is added. Any
-authored `builtAt` is removed from canonical module or framework definitions before hashing.
+Each canonical archive contains the compiled tree and a self-contained descriptor whose own generated `hash` is empty and whose generated `files`
+array is complete. The external descriptor beside the ZIP has the calculated hash, `assets.url = "url:./module.zip"` (or `xshell.zip`), the same
+physical file inventory, and `builtAt`. Both descriptors contain the same rewritten dependency references. The inventory is embedded and the
+canonical descriptor is written before hashing; the archive is created before external publication metadata is added. Any authored `builtAt` is
+removed from canonical module or framework definitions before hashing.
 
 The package hash is the first 16 lowercase hexadecimal characters of SHA-256 over sorted canonical relative paths, lengths, and file bytes.
-It includes the canonical descriptor, inventory, and final rewritten references. It excludes ZIP timestamps and external publication metadata.
+It includes the canonical descriptor with its embedded inventory and final rewritten references. It excludes ZIP timestamps and external
+publication metadata.
 ZIP entries are written in sorted order with a fixed timestamp, so the archive bytes are also reproducible for the same canonical tree.
 Changing a dependency identity can change its consumers' hashes. Unchanged packages keep their identities and are reused after the existing
 archive and external descriptor pass integrity checks. Existing immutable packages are never overwritten.
@@ -152,13 +155,19 @@ The command moves immutable packages to their final paths, verifies any existing
 package validation does not select a new release. Previously published and newly moved immutable packages are left intact. The staging directory
 is created beside `--output` to keep package moves on the same filesystem.
 
-## Module file inventory
+## Descriptor-embedded file inventory
 
-`FilesIndexer` records compiled runtime resources, excluding `module.files.json`, `module.json`, and `xshell.json`. Each entry contains a
-package-relative path, byte size, and lowercase SHA-256 hash. Paths start with `/`, use forward slashes, and are sorted ordinally.
-Bootstrap loads this physical inventory through the virtual resource namespace after Service Worker initialization.
+`FilesIndexer` returns structured entries for compiled runtime resources, excluding `module.json`, `module.jsonc`, `xshell.json`, and `xshell.jsonc`.
+Each entry contains a package-relative path, byte size, and lowercase SHA-256 hash. Paths start with `/`, use forward slashes, and are sorted
+ordinally. Pack replaces any authored stale inventory and embeds the generated array in the canonical descriptor before computing the package hash,
+so inventory metadata participates in the immutable identity without descriptor self-recursion. The published descriptor receives the same array.
+Canonical ZIPs contain no inventory sidecar.
 For the root module only, the inventory also excludes `/index.html` and `/sw.js`: these startup files remain in the hash and ZIP, but are served
 as application startup resources rather than virtual `/_assets/...` module resources. XShell's own `sw.js` remains in its inventory.
+
+Development uses the same representation: `ResourcesMiddleware` generates a descriptor response with `modules.<localId>.files` or `xshell.files`.
+Authors should not manually maintain `files`. Bootstrap consumes the self-contained descriptor and normalizes those package-relative Paths into the
+generation-qualified application namespace without a separate inventory fetch.
 
 Packaging creates distribution artifacts; deployment and browser runtime loading are separate concerns. The current Service Worker supports
 expanded physical resources and does not load ZIP archives directly. The packer does not upload artifacts or implement deployment.

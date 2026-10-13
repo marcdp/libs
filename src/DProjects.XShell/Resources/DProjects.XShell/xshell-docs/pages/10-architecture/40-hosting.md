@@ -107,9 +107,13 @@ ASP.NET's own environment object.
 Development uses assembly ProjectDirectory metadata to locate `Resources/DProjects.XShell`; other environments use the assembly output directory.
 The resource directory must exist.
 
-Development middleware disables caching, generates inventories, and compiles normal-module JS/HTML/CSS on demand.
+Development middleware disables caching, serves generated module and XShell descriptor responses with current physical inventories embedded at
+`modules.<localId>.files` or `xshell.files`, and compiles normal-module JS/HTML/CSS on demand. It discovers exactly one JSON or JSONC source for
+either requested descriptor extension, emits strict `application/json`, and does not modify the authored descriptor. Generated `files` replaces
+any stale authored value.
 Logical `.js` requests may compile an HTML SFC; direct source `.html` requests return 404. Same-basename HTML/JS conflicts fail compilation.
-Development inventories contain physical source paths, possibly authored `.html`; packed inventories contain generated `.js`.
+Development inventories contain physical source paths, possibly authored `.html`, while excluding descriptor files; packed inventories contain
+generated `.js`. Inventory paths remain package-relative until bootstrap normalizes the descriptor.
 Debugger presence does not select this behavior.
 
 ## Server command

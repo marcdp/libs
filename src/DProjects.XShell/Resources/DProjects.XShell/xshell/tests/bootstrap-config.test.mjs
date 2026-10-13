@@ -27,7 +27,6 @@ const bootstrapSource = readFileSync(bootstrapPath, "utf8").replace(
         mergeConfigs,
         deepFreeze,
         loadConfig,
-        loadFilesIndexes,
         fillResolverRules,
         initializeXShell,
         installServiceWorker,
@@ -37,7 +36,6 @@ const bootstrapSource = readFileSync(bootstrapPath, "utf8").replace(
     };`
 );
 const fetchedResources = new Map();
-const fetchOverrides = new Map();
 const directFetchCalls = [];
 const metaValues = {
     "xshell:app.configPath": "/modules/app/module.jsonc",
@@ -63,7 +61,6 @@ const context = vm.createContext({
     },
     async fetch(url) {
         directFetchCalls.push(url);
-        if (fetchOverrides.has(url)) return fetchOverrides.get(url)();
         const value = fetchedResources.get(url);
         return value === undefined ? {
             ok: false,
@@ -475,63 +472,38 @@ test("Service Worker mapping registration keeps the no-response timeout", async 
     await assert.rejects(api.installServiceWorker(config), /Service Worker did not reply in time/);
 });
 
-test("loadFilesIndexes concurrently loads module and XShell inventories through the virtual namespace", async () => {
-    const xUrl = "https://example.test/app/_assets/x/1.0.0.dev/module.files.json";
-    const reportsUrl = "https://example.test/app/_assets/reports/2.0.0.abc123/module.files.json";
-    const xshellUrl = "https://example.test/app/_assets/xshell/0.9.0.dev/module.files.json";
-    const pending = new Map();
-    const response = value => ({
-        ok: true,
-        status: 200,
-        statusText: "OK",
-        async json() { return JSON.parse(JSON.stringify(value)); }
+test("descriptor-provided module and XShell inventories normalize to generation-qualified Paths without sidecar requests", async () => {
+    directFetchCalls.length = 0;
+    const xshellUrl = "https://example.test/xshell/xshell.json";
+    fetchedResources.set(xshellUrl, {
+        modules: {},
+        xshell: {
+            assets: { basePath: "app:/_assets", url: "url:./" }, environment: "Development", version: "0.9.0", temp: { url: "url:./" }, resolver: {},
+            files: [{ path: "/bootstrap.js", size: 11, hash: "xshell-hash" }]
+        }
     });
-    for (const url of [xUrl, reportsUrl, xshellUrl]) {
-        fetchOverrides.set(url, () => new Promise(resolve => pending.set(url, resolve)));
-    }
-    const config = {
-        modules: { x: { assets: { path: "/_assets/x/1.0.0.dev" } }, reports: { assets: { path: "/_assets/reports/2.0.0.abc123" } } },
-        xshell: { assets: { basePath: "/_assets", path: "/_assets/xshell/0.9.0.dev" } }
-    };
+    fetchedResources.set(rootUrl, {
+        modules: { app: definition("app", { files: [{ path: "/contracts/toast.json", size: 7, hash: "module-hash" }] }) }
+    });
 
-    const loading = api.loadFilesIndexes(config);
-    await Promise.resolve();
+    const config = plain(await api.loadConfig());
 
-    assert.deepEqual([...pending.keys()], [xUrl, reportsUrl, xshellUrl]);
-    pending.get(xUrl)(response([{ path: "/components/x-button.js", size: 1234, hash: "x-hash" }]));
-    pending.get(reportsUrl)(response([{ path: "/pages/home.js", size: 25, hash: "reports-hash" }]));
-    pending.get(xshellUrl)(response([{ path: "/xshell.js", size: 5678, hash: "xshell-hash" }]));
-    await loading;
-
-    assert.deepEqual(plain(config.modules.x.files), [{ path: "/_assets/x/1.0.0.dev/components/x-button.js", size: 1234, hash: "x-hash" }]);
-    assert.deepEqual(plain(config.modules.reports.files), [{ path: "/_assets/reports/2.0.0.abc123/pages/home.js", size: 25, hash: "reports-hash" }]);
-    assert.deepEqual(plain(config.xshell.files), [{ path: "/_assets/xshell/0.9.0.dev/xshell.js", size: 5678, hash: "xshell-hash" }]);
-    for (const url of [xUrl, reportsUrl, xshellUrl]) fetchOverrides.delete(url);
+    assert.deepEqual(config.modules.app.files, [{ path: "/_assets/app/1.0.0.dev/contracts/toast.json", size: 7, hash: "module-hash" }]);
+    assert.deepEqual(config.xshell.files, [{ path: "/_assets/xshell/0.9.0.dev/bootstrap.js", size: 11, hash: "xshell-hash" }]);
+    assert.deepEqual(directFetchCalls, [xshellUrl, rootUrl]);
+    api.fillResolverRules(config);
+    assert.equal(config.xshell.resolver.contract.toast.src, "/_assets/app/1.0.0.dev/contracts/toast.json");
 });
 
-test("loadFilesIndexes reports the inventory id, URL, and HTTP failure", async () => {
-    const inventoryUrl = "https://example.test/app/_assets/x/module.files.json";
-    const xshellInventoryUrl = "https://example.test/app/_assets/xshell/module.files.json";
-    fetchOverrides.set(inventoryUrl, async () => ({ ok: false, status: 503, statusText: "Service Unavailable" }));
-    fetchedResources.set(xshellInventoryUrl, []);
-    const config = { modules: { x: { assets: { path: "/_assets/x" } } }, xshell: { assets: { basePath: "/_assets", path: "/_assets/xshell" } } };
+test("missing descriptor inventories remain missing for effective schema validation without a fallback request", () => {
+    directFetchCalls.length = 0;
+    const config = { modules: { x: { assets: { path: "/_assets/x" } } }, xshell: { resolver: {} } };
 
-    await assert.rejects(
-        () => api.loadFilesIndexes(config),
-        error => error.message.includes("'x'") && error.message.includes(inventoryUrl) && error.message.includes("503 Service Unavailable")
-    );
-    fetchOverrides.delete(inventoryUrl);
-    fetchedResources.delete(xshellInventoryUrl);
-});
+    api.fillResolverRules(config);
 
-test("loadFilesIndexes fails clearly when the XShell inventory is missing", async () => {
-    const inventoryUrl = "https://example.test/app/_assets/xshell/module.files.json";
-    const config = { modules: {}, xshell: { assets: { basePath: "/_assets", path: "/_assets/xshell" } } };
-
-    await assert.rejects(
-        () => api.loadFilesIndexes(config),
-        error => error.message.includes("'xshell'") && error.message.includes(inventoryUrl) && error.message.includes("404 Not Found")
-    );
+    assert.equal(Object.hasOwn(config.modules.x, "files"), false);
+    assert.equal(Object.hasOwn(config.xshell, "files"), false);
+    assert.deepEqual(directFetchCalls, []);
 });
 
 test("fillResolverRules discovers only JSON files inside the contracts directory", () => {

@@ -1,40 +1,33 @@
-using System.Text.Json;
 using System.Security.Cryptography;
 
 namespace DProjects.XShell.Services {
 
+    internal sealed record FileIndexItem(string Path, long Size, string Hash);
+
     internal sealed class FilesIndexer {
 
-        // consts
-        public const string ModuleFilesJson = "module.files.json";
-
-        // inner classes
-        private sealed record FileIndexItem(string Path, long Size, string Hash);
-        
-        
         // methods
-        public Task<string> CreateJsonAsync(string path) {
-            return CreateJsonAsync(path, CancellationToken.None);
+        public Task<IReadOnlyList<FileIndexItem>> CreateAsync(string path) {
+            return CreateAsync(path, CancellationToken.None);
         }
-        public Task<string> CreateJsonAsync(string path, CancellationToken cancellationToken) {
-            return CreateJsonAsync(path, cancellationToken, null);
+        public Task<IReadOnlyList<FileIndexItem>> CreateAsync(string path, CancellationToken cancellationToken) {
+            return CreateAsync(path, cancellationToken, null);
         }
-        public async Task<string> CreateJsonAsync(string path, CancellationToken cancellationToken, IReadOnlySet<string>? excludedPaths) {
+        public async Task<IReadOnlyList<FileIndexItem>> CreateAsync(string path, CancellationToken cancellationToken,
+            IReadOnlySet<string>? excludedPaths) {
             // scan
             var files = new List<FileIndexItem>();
             foreach (var file in Directory.EnumerateFiles(path, "*", SearchOption.AllDirectories)) {
                 cancellationToken.ThrowIfCancellationRequested();
-                var relativePath = Path.GetRelativePath(path, file);
-                if ((excludedPaths?.Contains("/" + relativePath.Replace('\\', '/')) ?? false) ||
-                    relativePath.Equals(ModuleFilesJson, StringComparison.OrdinalIgnoreCase) ||
-                    relativePath.Equals("module.json", StringComparison.OrdinalIgnoreCase) ||
-                    relativePath.Equals("xshell.json", StringComparison.OrdinalIgnoreCase)) {
+                var relativePath = "/" + Path.GetRelativePath(path, file).Replace('\\', '/');
+                if ((excludedPaths?.Contains(relativePath) ?? false) || IsDescriptor(relativePath) ||
+                    relativePath.Equals("/module.files.json", StringComparison.OrdinalIgnoreCase)) {
                     continue;
                 }
                 await using var stream = File.OpenRead(file);
                 var hash = await SHA256.HashDataAsync(stream, cancellationToken);
                 files.Add(new FileIndexItem(
-                    "/" + relativePath.Replace('\\', '/'),
+                    relativePath,
                     new FileInfo(file).Length,
                     Convert.ToHexString(hash).ToLowerInvariant()
                 ));
@@ -42,11 +35,15 @@ namespace DProjects.XShell.Services {
             // sort
             files.Sort((a, b) => StringComparer.Ordinal.Compare(a.Path, b.Path));
             // return
-            return JsonSerializer.Serialize(files, new JsonSerializerOptions {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                WriteIndented = true 
-            });
+            return files;
         }
 
+        // methods (private)
+        private static bool IsDescriptor(string path) {
+            return path.Equals("/module.json", StringComparison.OrdinalIgnoreCase) ||
+                path.Equals("/module.jsonc", StringComparison.OrdinalIgnoreCase) ||
+                path.Equals("/xshell.json", StringComparison.OrdinalIgnoreCase) ||
+                path.Equals("/xshell.jsonc", StringComparison.OrdinalIgnoreCase);
+        }
     }
 }

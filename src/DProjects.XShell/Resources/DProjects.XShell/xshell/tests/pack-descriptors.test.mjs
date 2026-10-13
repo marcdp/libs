@@ -118,7 +118,7 @@ test("pack discovers a dependency graph, rewrites references, and commits one co
         const authored = module(join(sources, "app"), "app", {
             orders: { configUrl: "url:../orders/module.jsonc" },
             reports: { configUrl: "url:../reports/module.jsonc" }
-        });
+        }, { files: [{ path: "/stale.js", size: 1, hash: "stale" }] });
 
         const release = successfulPack(join(sources, "app"), output);
         assertUtcTimestamp(release.createdAt);
@@ -146,20 +146,20 @@ test("pack discovers a dependency graph, rewrites references, and commits one co
             assert.deepEqual(readdirSync(directory).sort(), path === release.root ? ["index.html", "module.json", "module.zip", "sw.js"] : ["module.json", "module.zip"]);
             assert.equal(archive.has("module.json"), true);
             assert.equal(archive.has("module.jsonc"), false);
-            assert.equal(archive.has("module.files.json"), true);
+            assert.equal(archive.has("module.files.json"), false);
+            const canonical = JSON.parse(archive.get("module.json")).modules[path.split("/")[0]];
             if (path === release.root) {
                 const canonicalIndex = archive.get("index.html").toString("utf8");
                 const hash = dirname(path).split(".").at(-1);
                 assert.equal(metaContent(canonicalIndex, "xshell:app.configPath"), "/app/1.0.0.__XSHELL_ROOT_HASH__/module.json");
                 assert.equal(metaContent(index, "xshell:app.configPath"), `/app/1.0.0.${hash}/module.json`);
                 assert.deepEqual(readFileSync(join(directory, "sw.js")), archive.get("sw.js"));
-                assert.equal(JSON.parse(archive.get("module.files.json")).some(file => ["/index.html", "/sw.js"].includes(file.path)), false);
+                assert.equal(canonical.files.some(file => ["/index.html", "/sw.js"].includes(file.path)), false);
             } else {
                 assert.equal(archive.has("index.html"), false);
                 assert.equal(archive.has("sw.js"), false);
             }
             assert.equal(contentHash(archive), dirname(path).split(".").at(-1));
-            const canonical = JSON.parse(archive.get("module.json")).modules[path.split("/")[0]];
             assert.equal(canonical.hash, "");
             assert.equal(Object.hasOwn(canonical, "builtAt"), false);
             const published = descriptor(output, path);
@@ -168,6 +168,8 @@ test("pack discovers a dependency graph, rewrites references, and commits one co
             assert.equal(published.modules[path.split("/")[0]].assets.url, "url:./module.zip");
             assert.equal(Object.hasOwn(published.modules[path.split("/")[0]].assets, "path"), false);
             assert.deepEqual(published.modules[path.split("/")[0]].files.map(file => file.path), ["/resource.txt"]);
+            assert.deepEqual(published.modules[path.split("/")[0]].files, canonical.files);
+            assert.equal(canonical.files.some(file => ["/module.json", "/module.jsonc", "/xshell.json", "/xshell.jsonc"].includes(file.path)), false);
             assert.equal(published.modules[path.split("/")[0]].files[0].hash, createHash("sha256").update(path.split("/")[0]).digest("hex"));
             assert.equal(published.modules[path.split("/")[0]].files[0].size, Buffer.byteLength(path.split("/")[0]));
             const archived = JSON.parse(archive.get("module.json"));
@@ -184,11 +186,10 @@ test("pack discovers a dependency graph, rewrites references, and commits one co
         assert.deepEqual(readdirSync(frameworkDirectory).sort(), ["bootstrap.js", "sw.js", "xshell.json", "xshell.zip"]);
         const frameworkArchive = entries(archivePath(output, release.xshell));
         assert.equal(frameworkArchive.has("xshell.json"), true);
-        assert.equal(frameworkArchive.has("module.files.json"), true);
+        assert.equal(frameworkArchive.has("module.files.json"), false);
         assert.equal(frameworkArchive.has("bootstrap.js"), true);
         assert.equal(frameworkArchive.has("sw.js"), true);
         assert.deepEqual(frameworkArchive.get("sw.js"), readFileSync(join(dirname(assemblyPath), "Resources", "DProjects.XShell", "xshell", "sw.js")));
-        assert.equal(JSON.parse(frameworkArchive.get("module.files.json")).some(file => file.path === "/sw.js"), true);
         assert.equal(frameworkArchive.has("xshell.js"), true);
         assert.equal(frameworkArchive.has("xshell.jsonc"), false);
         for (const name of ["bootstrap.js", "sw.js"]) {
@@ -200,11 +201,15 @@ test("pack discovers a dependency graph, rewrites references, and commits one co
         const frameworkHash = dirname(release.xshell).split(".").at(-1);
         assert.equal(frameworkCanonical.hash, "");
         assert.equal(Object.hasOwn(frameworkCanonical, "builtAt"), false);
+        assert.equal(frameworkCanonical.files.some(file => file.path === "/bootstrap.js"), true);
+        assert.equal(frameworkCanonical.files.some(file => file.path === "/sw.js"), true);
+        assert.equal(frameworkCanonical.files.some(file =>
+            ["/module.json", "/module.jsonc", "/xshell.json", "/xshell.jsonc"].includes(file.path)), false);
         assert.equal(frameworkPublished.hash, frameworkHash);
         assert.equal(frameworkPublished.assets.url, "url:./xshell.zip");
         assert.equal(frameworkPublished.assets.basePath, "app:/_assets");
         assert.equal(Object.hasOwn(frameworkPublished.assets, "path"), false);
-        assert.deepEqual(frameworkPublished.files, JSON.parse(frameworkArchive.get("module.files.json")));
+        assert.deepEqual(frameworkPublished.files, frameworkCanonical.files);
         assertUtcTimestamp(frameworkPublished.builtAt);
         assert.equal(contentHash(frameworkArchive), frameworkHash);
         assert.equal(Object.hasOwn(descriptor(output, release.root).modules, "xshell"), false);
@@ -261,12 +266,16 @@ test("dependency identity changes propagate to consumers while unrelated package
             other: { configUrl: "url:../other/module.jsonc" }
         });
         const before = successfulPack(join(sources, "app"), output);
+        const beforeChildPath = before.packages.find(path => path.startsWith("child/"));
+        const beforeInventory = descriptor(output, beforeChildPath).modules.child.files;
         const originalOther = descriptor(output, before.packages.find(path => path.startsWith("other/"))).modules.other.builtAt;
         const originalFrameworkDescriptor = readFileSync(join(output, before.xshell));
         const originalFrameworkZip = readFileSync(archivePath(output, before.xshell));
         const originalFrameworkFiles = ["bootstrap.js", "sw.js"].map(name => [name, readFileSync(join(output, dirname(before.xshell), name))]);
         writeFileSync(join(sources, "child", "resource.txt"), "changed");
         const after = successfulPack(join(sources, "app"), output);
+        const afterChildPath = after.packages.find(path => path.startsWith("child/"));
+        const afterInventory = descriptor(output, afterChildPath).modules.child.files;
         assertUtcTimestamp(after.createdAt);
         assert.notEqual(after.root, before.root);
         assert.equal(after.xshell, before.xshell);
@@ -274,6 +283,8 @@ test("dependency identity changes propagate to consumers while unrelated package
         assert.deepEqual(readFileSync(archivePath(output, after.xshell)), originalFrameworkZip);
         for (const [name, bytes] of originalFrameworkFiles) assert.deepEqual(readFileSync(join(output, dirname(after.xshell), name)), bytes);
         assert.notEqual(after.packages.find(path => path.startsWith("child/")), before.packages.find(path => path.startsWith("child/")));
+        assert.notDeepEqual(afterInventory, beforeInventory);
+        assert.notEqual(afterInventory[0].hash, beforeInventory[0].hash);
         assert.equal(after.packages.find(path => path.startsWith("other/")), before.packages.find(path => path.startsWith("other/")));
         assert.equal(descriptor(output, after.packages.find(path => path.startsWith("other/"))).modules.other.builtAt, originalOther);
         assertUtcTimestamp(descriptor(output, after.packages.find(path => path.startsWith("child/"))).modules.child.builtAt);
@@ -314,7 +325,7 @@ test("framework packaging retains its distinct descriptor and ZIP format", () =>
     try {
         const source = join(root, "xshell");
         mkdirSync(source);
-        writeFileSync(join(source, "xshell.jsonc"), '// comment\n{"xshell":{"version":"2.0.0"}}');
+        writeFileSync(join(source, "xshell.jsonc"), '// comment\n{"xshell":{"version":"2.0.0","files":[{"path":"/stale.js"}]}}');
         writeFileSync(join(source, "bootstrap.js"), "console.log('bootstrap');");
         writeFileSync(join(source, "sw.js"), "console.log('worker');");
         writeFileSync(join(source, "xshell.js"), "console.log('x');");
@@ -331,12 +342,16 @@ test("framework packaging retains its distinct descriptor and ZIP format", () =>
         assert.equal(published.xshell.assets.url, "url:./xshell.zip");
         const archive = entries(join(output, dirname(release.root), "xshell.zip"));
         assert.equal(archive.has("xshell.json"), true);
+        assert.equal(archive.has("module.files.json"), false);
         assert.deepEqual(readdirSync(join(output, dirname(release.root))).sort(), ["bootstrap.js", "sw.js", "xshell.json", "xshell.zip"]);
         for (const name of ["bootstrap.js", "sw.js"]) assert.deepEqual(readFileSync(join(output, dirname(release.root), name)), archive.get(name));
         assert.notDeepEqual(readFileSync(join(output, release.root)), archive.get("xshell.json"));
         assert.equal(contentHash(archive), published.xshell.hash);
-        assert.equal(JSON.parse(archive.get("xshell.json")).xshell.hash, "");
-        assert.equal(Object.hasOwn(JSON.parse(archive.get("xshell.json")).xshell, "builtAt"), false);
+        const canonical = JSON.parse(archive.get("xshell.json")).xshell;
+        assert.equal(canonical.hash, "");
+        assert.equal(Object.hasOwn(canonical, "builtAt"), false);
+        assert.deepEqual(canonical.files, published.xshell.files);
+        assert.deepEqual(canonical.files.map(file => file.path), ["/bootstrap.js", "/sw.js", "/xshell.js"]);
         const originalDescriptor = readFileSync(join(output, release.root));
         const originalZip = readFileSync(join(output, dirname(release.root), "xshell.zip"));
         const originalFiles = ["bootstrap.js", "sw.js"].map(name => [name, readFileSync(join(output, dirname(release.root), name))]);

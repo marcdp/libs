@@ -168,8 +168,9 @@ module `assets.path` values are derived from that one base. For example, module 
 Bootstrap gives each local definition its document URL as `configUrl` and defaults `assets.url` to the document directory. It maps module-relative
 runtime paths into the normalized virtual namespace.
 
-The canonical schema describes the final merged object, not partial authored references. Bootstrap generates resolver rules after Service Worker
-initialization and inventory loading, including exact contract rules from inventory.
+The canonical schema describes the final merged object, not partial authored references. Development middleware and Pack supply the required
+descriptor-embedded inventories before bootstrap. Bootstrap normalizes them with their owning descriptors and generates exact contract resolver
+rules from the effective inventory after Service Worker initialization.
 It imports XShell, awaits `xshell.validateConfig(config)` for the complete enriched object, and then deeply freezes it.
 `xshell.init(config)` validates again before constructing runtime services. Validation errors abort startup; there is no environment gate.
 The X module currently has no module controller; configuration validation occurs during bootstrap and initialization.

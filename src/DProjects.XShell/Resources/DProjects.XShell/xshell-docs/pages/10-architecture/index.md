@@ -4,8 +4,8 @@ XShell starts from the application's root module definition and recursively disc
 
 ```text
 HTML/bootstrap inputs → root module → recursive module references → canonical module definitions
-    → URL normalization → nested effective configuration (app, modules, xshell)
-    → Service Worker mappings → file inventories → resolver rules (including service contracts)
+    → URL and embedded-inventory normalization → nested effective configuration (app, modules, xshell)
+    → Service Worker mappings → resolver rules from file inventories (including service contracts)
     → import XShell → validate effective config → deep freeze → init (validate again)
     → initialize i18n and Contracts → register core services → finalize service registry → validate module service requirements → one live module instance per module id
     → controllers register runtime sources → Areas compose menus, routes, and homes → Navigation starts

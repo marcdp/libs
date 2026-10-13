@@ -210,21 +210,23 @@ namespace DProjects.XShell.Commands {
                 ((JsonObject)modules[reference.Id]!)["configUrl"] = $"url:../../{dependency.RelativeDirectory.Replace('\\', '/')}/module.json";
             }
             foreach (var item in modules) (item.Value as JsonObject)?.Remove("builtAt");
-            ((JsonObject)modules[node.Id]!)["hash"] = "";
+            var localModule = (JsonObject)modules[node.Id]!;
+            localModule.Remove("files");
+            localModule["hash"] = "";
             await File.WriteAllTextAsync(stagedDescriptor, root.ToJsonString(JsonOptions), cancellationToken);
             var jsoncPath = Path.Combine(workPath, "module.jsonc");
             if (File.Exists(jsoncPath)) File.Delete(jsoncPath);
-            var indexPath = Path.Combine(workPath, FilesIndexer.ModuleFilesJson);
-            if (File.Exists(indexPath)) File.Delete(indexPath);
+            DeleteLegacyInventory(workPath);
             await CompileResourcesAsync(workPath, stagedDescriptor, cancellationToken);
             // generate root startup resources in the canonical tree before inventory and hashing
             var canonicalStartupFiles = buildStartupFiles?.Invoke(RootHashPlaceholder);
             if (canonicalStartupFiles != null) {
                 foreach (var file in canonicalStartupFiles) await File.WriteAllTextAsync(Path.Combine(workPath, file.Key.TrimStart('/')), file.Value, cancellationToken);
             }
-            var inventory = await new FilesIndexer().CreateJsonAsync(workPath, cancellationToken,
+            var inventory = await new FilesIndexer().CreateAsync(workPath, cancellationToken,
                 canonicalStartupFiles == null ? null : new HashSet<string>(StringComparer.Ordinal) { "/index.html", "/sw.js" });
-            await File.WriteAllTextAsync(indexPath, inventory, cancellationToken);
+            localModule["files"] = DescriptorInventory.CreateJsonArray(inventory);
+            await File.WriteAllTextAsync(stagedDescriptor, root.ToJsonString(JsonOptions), cancellationToken);
             var hash = await ComputeHashAsync(workPath, cancellationToken);
             var relativeDirectory = $"{node.Id}/{node.Version}.{hash}";
             var packagePath = Path.Combine(stagingPath, "packages", node.Id, $"{node.Version}.{hash}");
@@ -242,12 +244,11 @@ namespace DProjects.XShell.Commands {
                 await CreateZipAsync(workPath, zipPath, cancellationToken);
                 if (await ComputeZipHashAsync(zipPath, cancellationToken) != hash) throw new InvalidOperationException($"Generated ZIP for '{node.Id}' does not match its package hash.");
             }
-            ((JsonObject)modules[node.Id]!)["hash"] = hash;
-            var assets = ((JsonObject)modules[node.Id]!)["assets"] as JsonObject ?? new JsonObject();
+            localModule["hash"] = hash;
+            var assets = localModule["assets"] as JsonObject ?? new JsonObject();
             assets["url"] = "url:./module.zip";
-            ((JsonObject)modules[node.Id]!)["assets"] = assets;
-            ((JsonObject)modules[node.Id]!)["files"] = JsonNode.Parse(inventory);
-            ((JsonObject)modules[node.Id]!)["builtAt"] = UtcTimestamp();
+            localModule["assets"] = assets;
+            localModule["builtAt"] = UtcTimestamp();
             await File.WriteAllTextAsync(Path.Combine(packagePath, "module.json"), root.ToJsonString(JsonOptions), cancellationToken);
             return new BuiltPackage(node.Id, node.Version, hash, relativeDirectory, "module.json",
                 canonicalStartupFiles == null ? PackageKind.Module : PackageKind.RootModule);
@@ -280,6 +281,7 @@ namespace DProjects.XShell.Commands {
             if (string.IsNullOrWhiteSpace(version)) throw new InvalidOperationException("XShell configuration must contain xshell.version.");
             ValidatePackageNamePart(version, "XShell version");
             framework.Remove("builtAt");
+            framework.Remove("files");
             var workPath = Path.Combine(stagingPath, "work", "xshell");
             CopyDirectory(Path.GetDirectoryName(descriptorPath)!, workPath, cancellationToken);
             foreach (var name in new[] { "bootstrap.js", "sw.js" }) {
@@ -289,10 +291,10 @@ namespace DProjects.XShell.Commands {
             await File.WriteAllTextAsync(Path.Combine(workPath, "xshell.json"), root.ToJsonString(JsonOptions), cancellationToken);
             var jsonc = Path.Combine(workPath, "xshell.jsonc");
             if (File.Exists(jsonc)) File.Delete(jsonc);
-            var indexPath = Path.Combine(workPath, FilesIndexer.ModuleFilesJson);
-            if (File.Exists(indexPath)) File.Delete(indexPath);
-            var inventory = await new FilesIndexer().CreateJsonAsync(workPath, cancellationToken);
-            await File.WriteAllTextAsync(indexPath, inventory, cancellationToken);
+            DeleteLegacyInventory(workPath);
+            var inventory = await new FilesIndexer().CreateAsync(workPath, cancellationToken);
+            framework["files"] = DescriptorInventory.CreateJsonArray(inventory);
+            await File.WriteAllTextAsync(Path.Combine(workPath, "xshell.json"), root.ToJsonString(JsonOptions), cancellationToken);
             var hash = await ComputeHashAsync(workPath, cancellationToken);
             var relativeDirectory = $"xshell/{version}.{hash}";
             var packagePath = Path.Combine(stagingPath, "packages", "xshell", $"{version}.{hash}");
@@ -309,7 +311,6 @@ namespace DProjects.XShell.Commands {
             var assets = framework["assets"] as JsonObject ?? new JsonObject();
             assets["url"] = "url:./xshell.zip";
             framework["assets"] = assets;
-            framework["files"] = JsonNode.Parse(inventory);
             framework["builtAt"] = UtcTimestamp();
             await File.WriteAllTextAsync(Path.Combine(packagePath, "xshell.json"), root.ToJsonString(JsonOptions), cancellationToken);
             return new BuiltPackage("xshell", version, hash, relativeDirectory, "xshell.json", PackageKind.XShell);
@@ -412,6 +413,7 @@ namespace DProjects.XShell.Commands {
             if (!JsonNode.DeepEquals(existing, expected) || await ComputeZipHashAsync(archive, cancellationToken) != package.Hash) {
                 throw new InvalidOperationException($"Existing immutable package identity collides with different or damaged content: {target}");
             }
+            await ValidateCanonicalDescriptorAsync(archive, existingLocal, target, package, cancellationToken);
             if (package.Kind != PackageKind.Module) {
                 foreach (var name in package.Kind == PackageKind.XShell ? new[] { "bootstrap.js", "sw.js" } : ["index.html", "sw.js"]) {
                     var existingBytes = await File.ReadAllBytesAsync(Path.Combine(target, name), cancellationToken);
@@ -427,12 +429,9 @@ namespace DProjects.XShell.Commands {
             CancellationToken cancellationToken) {
             // compare the archived canonical startup generation with the staged canonical tree and published copies
             using var archive = ZipFile.OpenRead(archivePath);
-            foreach (var name in new[] { "module.json", "index.html", "sw.js", FilesIndexer.ModuleFilesJson }) {
+            foreach (var name in new[] { "module.json", "index.html", "sw.js" }) {
                 if (archive.GetEntry(name) == null) throw new InvalidOperationException($"Existing immutable package has an incomplete canonical archive: {target}");
             }
-            var canonicalDescriptor = await ReadArchiveTextAsync(archive.GetEntry("module.json")!, cancellationToken);
-            var local = (JsonNode.Parse(canonicalDescriptor)?["modules"] as JsonObject)?[package.Id] as JsonObject;
-            if (local?["hash"]?.GetValue<string>() != "") throw new InvalidOperationException($"Existing immutable package has an invalid canonical descriptor: {target}");
             var canonicalIndex = await ReadArchiveTextAsync(archive.GetEntry("index.html")!, cancellationToken);
             var publishedIndex = await File.ReadAllTextAsync(Path.Combine(source, "index.html"), cancellationToken);
             var canonicalConfigPath = ReadMetaContent(canonicalIndex, "xshell:app.configPath");
@@ -452,6 +451,31 @@ namespace DProjects.XShell.Commands {
                 throw new InvalidOperationException($"Existing immutable package identity collides with different or damaged content: {target}");
             }
         }
+        private static async Task ValidateCanonicalDescriptorAsync(string archivePath, JsonObject publishedLocal, string target, BuiltPackage package,
+            CancellationToken cancellationToken) {
+            // validate descriptor-embedded inventory and canonical publication fields for every reused package
+            using var archive = ZipFile.OpenRead(archivePath);
+            if (archive.GetEntry("module.files.json") != null) {
+                throw new InvalidOperationException($"Existing immutable package uses the obsolete inventory sidecar: {target}");
+            }
+            var descriptorName = package.Kind == PackageKind.XShell ? "xshell.json" : "module.json";
+            var descriptorEntry = archive.GetEntry(descriptorName) ??
+                throw new InvalidOperationException($"Existing immutable package has an incomplete canonical archive: {target}");
+            JsonObject canonical;
+            try {
+                canonical = JsonNode.Parse(await ReadArchiveTextAsync(descriptorEntry, cancellationToken)) as JsonObject ??
+                    throw new JsonException("Canonical descriptor root must be an object.");
+            } catch (JsonException exception) {
+                throw new InvalidOperationException($"Existing immutable package has an invalid canonical descriptor: {target}", exception);
+            }
+            var canonicalLocal = package.Kind == PackageKind.XShell ? canonical["xshell"] as JsonObject :
+                (canonical["modules"] as JsonObject)?[package.Id] as JsonObject;
+            if (canonicalLocal == null || canonicalLocal["hash"]?.GetValue<string>() != "" || canonicalLocal.ContainsKey("builtAt") ||
+                canonicalLocal["files"] is not JsonArray canonicalFiles || publishedLocal["files"] is not JsonArray publishedFiles ||
+                !JsonNode.DeepEquals(canonicalFiles, publishedFiles)) {
+                throw new InvalidOperationException($"Existing immutable package has an invalid canonical descriptor: {target}");
+            }
+        }
         private static async Task<string> ReadArchiveTextAsync(ZipArchiveEntry entry, CancellationToken cancellationToken) {
             using var stream = entry.Open();
             using var reader = new StreamReader(stream, Encoding.UTF8);
@@ -464,6 +488,11 @@ namespace DProjects.XShell.Commands {
             return WebUtility.HtmlDecode(match.Groups[1].Value);
         }
         private static string UtcTimestamp() => DateTimeOffset.UtcNow.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture);
+        private static void DeleteLegacyInventory(string directory) {
+            // prevent a stale sidecar copied from an older source tree from entering a current package
+            var path = Path.Combine(directory, "module.files.json");
+            if (File.Exists(path)) File.Delete(path);
+        }
         private static void RejectAuthoredApp(JsonObject config, string path) {
             if (config.ContainsKey("app")) throw new InvalidOperationException($"Authored configuration '{path}' must not define top-level app; application metadata comes from the root module.");
         }

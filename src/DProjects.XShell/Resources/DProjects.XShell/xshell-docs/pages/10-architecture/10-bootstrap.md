@@ -17,9 +17,8 @@ host HTML
     -> merge defaults, dependencies, dependents, and root
     -> derive effective config.app from the canonical root module and bootstrap deployment values
     -> retain the generated assets.path for every effective module and XShell
+    -> retain and normalize the descriptor-embedded module and XShell file inventories
     -> install and initialize Service Worker mappings
-    -> load every module.files.json through the virtual resource namespace
-    -> normalize and attach module and XShell file inventories
     -> generate resolver rules, including exact contract:<id> inventory entries
     -> load and validate the XShell runtime
     -> deep-freeze the effective config and initialize XShell
@@ -78,26 +77,24 @@ package `version`, module `name`, and `configUrl` in `exceptions`. This is gener
 
 Bootstrap registers the application Service Worker at `app.basePath + "/sw.js"`, waits for control, and sends these mappings directly in a
 `registerMappings` message. The worker validates the batch and adds it to its durable registry before acknowledging. The effective mappings describe
-what this bootstrap generation requested; the IndexedDB registry may also contain mappings from other generations or tabs. After acknowledgement,
-bootstrap concurrently requests `module.files.json` for every canonical
-module through `/_assets/<module-id>/<generation>/module.files.json` and for the framework through
-`/_assets/xshell/<generation>/module.files.json`. Any missing or failed
-inventory aborts bootstrap with the package id, requested URL, HTTP status, and status text.
+what this bootstrap generation requested; the IndexedDB registry may also contain mappings from other generations or tabs. Inventory loading does
+not depend on this mapping step: every runtime descriptor is self-contained and already provides `modules.<localId>.files` or `xshell.files`.
+Remote runtime descriptors are likewise responsible for containing their inventory. There is no `module.files.json` runtime protocol or fallback.
 
-The physical inventory remains package-relative:
+The inventory in each served or canonical descriptor is package-relative:
 
 ```json
 { "path": "/components/x-button.js", "size": 1234, "hash": "..." }
 ```
 
-Bootstrap converts only the effective-config copy into the virtual application resource namespace:
+The existing descriptor normalization converts only the effective-config copy into the virtual application resource namespace:
 
 ```json
 { "path": "/_assets/x/1.4.0.dev/components/x-button.js", "size": 1234, "hash": "..." }
 ```
 
-The same conversion produces Paths such as `/_assets/xshell/0.9.0.dev/xshell.js` in `config.xshell.files`. These are application-root-relative
-virtual Paths,
+The same single normalization pass produces Paths such as `/_assets/xshell/0.9.0.dev/xshell.js` in `config.xshell.files`. These are
+application-root-relative virtual Paths,
 not absolute browser URLs; `size` and `hash` are unchanged. Bootstrap then loads the
 XShell runtime, validates the complete enriched configuration, deeply freezes it, and calls `xshell.init(config)`. The generated mappings are frozen
 with the rest of `xshell.config`. `xshell.init` validates again,
@@ -105,8 +102,11 @@ constructs runtime services, awaits i18n and Contracts initialization, registers
 configured Services. Modules checks requirements before loading any controller and then initializes one instance per canonical id.
 Areas composes menus, ordered routes, and homes after module startup; Navigation starts last.
 
-In Development, this effective configuration and its inventories are bootstrap-time values. File changes do not mutate an already initialized
-application; reloading runs bootstrap again and can load the current development configuration, inventory, and resources. See
+In Development, `ResourcesMiddleware` parses the one authored JSON or JSONC descriptor, generates the current physical inventory, replaces any
+authored stale `files` value in the generated response, and leaves the source file unchanged. Requests for either extension use the same discovery
+rule, so canonical `module.json` and `xshell.json` URLs can be served from authored JSONC. This effective configuration and its inventories are
+bootstrap-time values. File changes do not mutate an already initialized application; reloading runs bootstrap again and receives the current
+development descriptor, inventory, and resources. See
 [Service Worker](110-service-worker.md#development-generations).
 
 See [Configuration](20-configuration.md), [Services](100-services.md), [Modules](30-modules.md), and [Service Worker](110-service-worker.md).
@@ -115,7 +115,8 @@ See [Configuration](20-configuration.md), [Services](100-services.md), [Modules]
 
 Browser bootstrap accepts JSONC comments and trailing commas in framework, root, and dependency configuration documents. Its scanner preserves
 quoted content while removing comments and commas before closing object or array delimiters. Server/build descriptor parsing accepts the same dialect.
-The framework request always uses the canonical runtime URL `xshell.json`; development middleware maps it to the checked-in `xshell.jsonc` source
-when no physical `xshell.json` exists.
+The framework request always uses the canonical runtime URL `xshell.json`; development middleware discovers exactly one `xshell.json` or
+`xshell.jsonc` source and serves generated strict JSON containing `xshell.files`. Module descriptor requests use the same rule and contain the local
+definition's generated `files`, where local ownership means the only `modules.<id>` entry without `configUrl`.
 
 See [Hosting](40-hosting.md) for meta inputs and generated worker files.

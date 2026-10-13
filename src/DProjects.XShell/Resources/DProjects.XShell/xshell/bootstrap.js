@@ -400,44 +400,6 @@ async function installServiceWorker(config) {
     return true;
 }
 
-// file index functions
-async function loadFilesIndexes(config) {
-    console.log("bootstrap: loading file indexes ...");
-
-    const tasks = [];
-
-    const loadFilesIndex = async (id, target) => {
-        const moduleFilesUrl = new URL(`${target.assets.path.substring(1)}/module.files.json`, appBaseUrl).href;
-        const response = await fetch(moduleFilesUrl);
-
-        if (!response.ok) {
-            throw new Error(`Failed to load file inventory for '${id}' from '${moduleFilesUrl}': ${response.status} ${response.statusText}`);
-        }
-
-        const files = await response.json();
-
-        for (const file of files) {
-            file.path = relativizePaths(file.path, target.assets.path);
-        }
-
-        target.files = files;
-    };
-
-    for (const [moduleId, module] of Object.entries(config.modules)) {
-        if (!module.files) {
-            tasks.push(loadFilesIndex(moduleId, module));
-        }
-    }
-
-    if (!config.xshell.files) {
-        tasks.push(loadFilesIndex("xshell", config.xshell));
-    }
-
-    await Promise.all(tasks);
-
-    return config;
-}
-
 // resolver functions
 function fillResolverRules(config) {
     const resolver = config.xshell.resolver;
@@ -556,7 +518,7 @@ function fillResolverRules(config) {
 
         resolver.contract ??= {};
 
-        for (const file of module.files) {
+        for (const file of module.files ?? []) {
             if (!file.path.startsWith(moduleAssetsPathContracts + "/") || !file.path.endsWith(".json")) continue;
 
             const id = file.path.substring(moduleAssetsPathContracts.length + 1).replace(/\.json$/, "");
@@ -616,7 +578,6 @@ async function bootstrap() {
 
     if (!await installServiceWorker(config)) return;
 
-    config = await loadFilesIndexes(config);
     config = fillResolverRules(config);
 
     await initializeXShell(config);

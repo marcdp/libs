@@ -119,14 +119,19 @@ Dependency module directories contain `module.json` and `module.zip`; the root a
 `bootstrap.js` and `sw.js` are exact canonical copies also retained inside the complete framework ZIP, allowing direct startup requests without
 creating separate package identities.
 The release manifest uses `root` for the application module, `xshell` for the framework, and `packages` for the complete immutable package set.
-The root startup files participate in the root hash and ZIP but are excluded from its `module.files.json`; they have no separate `release.packages`
+The root startup files participate in the root hash and ZIP but are excluded from `modules.<root-id>.files`; they have no separate `release.packages`
 entries. Bootstrap derives effective `config.app` from the root module metadata and deployment values. Pack hashes a canonical root index with
 `__XSHELL_ROOT_HASH__` in its self-reference and publishes a loose index with the real hash. Startup settings and selected XShell generation can
 change the root hash while leaving dependency and XShell identities unchanged. Deployment may alias stable `/` and `/sw.js` public URLs to the
 generation selected by `release.root`.
-Both `files` arrays use the generated physical inventory. An existing package path is reused for the same representation and cannot be replaced
-by the other representation. ZIP packaging is implemented, but runtime ZIP-backed browser loading is not; deploy expanded resources for the current
-Service Worker.
+Both canonical and published descriptors contain the generated physical inventory. An existing package path is reused for the same representation
+and cannot be replaced by the other representation. ZIP packaging is implemented, but runtime ZIP-backed browser loading is not; deploy expanded
+resources for the current Service Worker.
+
+In Development, resource middleware serves generated `module.json`/`module.jsonc` and `xshell.json`/`xshell.jsonc` responses whose local
+`modules.<id>.files` or `xshell.files` value reflects the current physical directory. Authored descriptors are not modified, and authors should not
+maintain this generated metadata. Bootstrap consumes the self-contained descriptor and normalizes package-relative inventory paths into the
+generation-qualified `/_assets/...` namespace; there is no separate inventory request.
 
 Module and XShell descriptors may be authored as JSON or JSONC during development. Packaging parses either form and publishes normalized strict JSON
 using the canonical filenames `module.json` and `xshell.json`. Production packages therefore do not contain `module.jsonc` or `xshell.jsonc`.

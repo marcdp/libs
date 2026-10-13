@@ -5,9 +5,10 @@ application file format. See [Root Module](application.md) for the application-s
 external reference contributions, asset locations, and the declarative public contract.
 The root also composes [Areas](../subsystems/10-areas.md) from module ids. Module menu contributions remain independent of that placement.
 
-The validation boundary is the complete effective configuration after discovery, normalization, merge, worker mapping, inventory loading, and
-resolver generation. Bootstrap imports XShell and awaits `xshell.validateConfig(config)` against `xshell/schemas/config.schema.json` before deep
-freeze and `xshell.init(config)`. Init validates again before runtime service construction. Failure aborts startup in every environment.
+The validation boundary is the complete effective configuration after discovery, descriptor and embedded-inventory normalization, merge, worker
+mapping, and resolver generation. Bootstrap imports XShell and awaits `xshell.validateConfig(config)` against
+`xshell/schemas/config.schema.json` before deep freeze and `xshell.init(config)`. Init validates again before runtime service construction. Failure
+aborts startup in every environment.
 The X module has no module controller; XShell validates configuration during bootstrap and initialization.
 
 The schema defines `app`, `modules`, and `xshell`, including module `configUrl`, nested `assets`, defaults, menus, optional service `requires`, optional

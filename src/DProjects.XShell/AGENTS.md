@@ -238,8 +238,8 @@ assets.url
 
 conceptually separate.
 
-Bootstrap automatically loads physical file inventories through the virtual namespace after Service Worker initialization. Do not assume ZIP-backed
-loading or arbitrary remote/CDN sources unless the current implementation supports them.
+Bootstrap consumes physical file inventories embedded in module and XShell descriptors and normalizes their package-relative paths into the virtual
+namespace. Do not assume ZIP-backed loading or arbitrary remote/CDN sources unless the current implementation supports them.
 
 ---
 
@@ -560,23 +560,18 @@ Services/FilesIndexer.cs
 Services/ModuleFileCompiler.cs
 ```
 
-Packaging recursively builds complete application distributions as immutable ZIP packages and physical file inventories. Both normal module and
-XShell framework packages use:
-
-```text
-module.files.json
-```
-
-The physical inventory contains package-relative paths. A committed distribution is selected through `release.json`; its `root` names the root
-descriptor and its `packages` list names the complete package set. Bootstrap loads the inventory after Service Worker initialization and attaches
-a normalized copy to
-`config.modules.<id>.files` or `config.xshell.files`, where paths use the virtual application resource namespace.
+Packaging recursively builds complete application distributions as immutable ZIP packages with descriptor-embedded physical file inventories.
+`FilesIndexer` generates package-relative paths, sizes, and hashes. Development middleware injects them into generated descriptor responses; Pack
+injects them into canonical and published descriptors before hashing. Module inventory lives at `modules.<localId>.files`, and framework inventory
+lives at `xshell.files`. Bootstrap consumes those self-contained descriptors and normalizes the embedded paths into the virtual application resource
+namespace. A committed distribution is selected through `release.json`; its `root` names the root descriptor and its `packages` list names the
+complete package set.
 
 Do not infer from packaging support that the browser runtime can load modules directly from ZIP files.
 
-Do not manually list every module file in `module.jsonc` merely to support packaging inventory.
+Do not manually maintain generated `files` metadata in `module.jsonc` or `xshell.jsonc`.
 
-Use `module.files.json` as the canonical inventory filename everywhere.
+Packaging support still does not imply that the browser runtime loads ZIP files directly.
 
 ---
 

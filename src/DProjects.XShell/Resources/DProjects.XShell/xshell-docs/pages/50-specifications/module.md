@@ -176,8 +176,10 @@ See [Root Module](application.md), [Modules](../architecture/30-modules.md), and
 
 ## Inventories and module styles
 
-Bootstrap supplies `assets.path` and loads `module.files.json` into `files`, whose entries have `path`, `size`, and `hash`.
-Inventories describe resources; do not hand-author them as menu or contract declarations.
+Development middleware and Pack generate `files`, whose entries have `path`, `size`, and `hash`, directly in `modules.<localId>` or `xshell`.
+The physical descriptor paths are package-relative; bootstrap normalizes them to generation-qualified application Paths together with the rest of
+the descriptor. Runtime descriptors are self-contained, including remote descriptors. Inventories describe resources; do not hand-author or
+manually maintain them as menu or contract declarations.
 The optional module-wide `/styles/index.css` is loaded only when its path occurs in the inventory. `Modules` loads it as a `style:` resource through
 the standard Resolver → Loader → `style-css` pipeline. Relative CSS imports and URLs resolve against the stylesheet containing them. There is no
 accepted effective module `styles` field.

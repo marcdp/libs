@@ -1,4 +1,6 @@
 
+using System.Text;
+
 using DProjects.Utils;
 
 using Microsoft.AspNetCore.Builder;
@@ -31,57 +33,7 @@ namespace DProjects.XShell.Middlewares {
             // create inner middleware pipeline
             var app = new ApplicationBuilder(services);
 
-            // virtual module.files.json
-            if (isDevelopment) {
-                app.Use(async (context, nextMiddleware) => {
-
-                    // validate request path
-                    if (!context.Request.Path.StartsWithSegments(requestPath, out var remaining)) {
-                        await nextMiddleware();
-                        return;
-                    }
-                    var relativePath = remaining.Value ?? "";
-                    if (!relativePath.EndsWith("/" + Services.FilesIndexer.ModuleFilesJson, StringComparison.OrdinalIgnoreCase)) {
-                        await nextMiddleware();
-                        return;
-                    }
-
-                    // module.files.json represents its containing directory
-                    var relativeDirectory = relativePath[..^("/" + Services.FilesIndexer.ModuleFilesJson).Length].TrimStart('/');
-                    var directory = Path.GetFullPath(Path.Combine(physicalPath, relativeDirectory.Replace('/', Path.DirectorySeparatorChar)));
-
-                    // prevent path traversal
-                    if (!IsInside(directory, physicalPath)) {
-                        context.Response.StatusCode = StatusCodes.Status404NotFound;
-                        return;
-                    }
-
-                    if (!Directory.Exists(directory)) {
-                        context.Response.StatusCode = StatusCodes.Status404NotFound;
-                        return;
-                    }
-
-                    // only module and XShell package directories expose module.files.json
-                    var moduleJson = Path.Combine(directory, "module.json");
-                    var moduleJsonc = Path.Combine(directory, "module.jsonc");
-                    var xshellJson = Path.Combine(directory, "xshell.json");
-                    var xshellJsonc = Path.Combine(directory, "xshell.jsonc");
-                    if (!File.Exists(moduleJson) && !File.Exists(moduleJsonc) && !File.Exists(xshellJson) && !File.Exists(xshellJsonc)) {
-                        context.Response.StatusCode = StatusCodes.Status404NotFound;
-                        return;
-                    }
-
-                    // create index json
-                    var json = await new Services.FilesIndexer().CreateJsonAsync(directory, context.RequestAborted);
-
-                    // return response
-                    context.Response.ContentType = "application/json";
-                    if (isDevelopment) SetNoCacheHeaders(context.Response);
-                    await context.Response.WriteAsync(json, context.RequestAborted);
-                });
-            }
-
-            // expose an authored XShell JSONC descriptor through its canonical runtime URL during development
+            // serve self-contained generated descriptors during development
             if (isDevelopment) {
                 app.Use(async (context, nextMiddleware) => {
                     if (!HttpMethods.IsGet(context.Request.Method) && !HttpMethods.IsHead(context.Request.Method)) {
@@ -93,24 +45,38 @@ namespace DProjects.XShell.Middlewares {
                         return;
                     }
                     var relativePath = remaining.Value ?? "";
-                    if (!relativePath.EndsWith("/xshell.json", StringComparison.OrdinalIgnoreCase)) {
+                    if (!TryGetDescriptorKind(relativePath, out var descriptorName, out var descriptorKind)) {
                         await nextMiddleware();
                         return;
                     }
+
+                    // resolve the requested descriptor directory without allowing traversal outside the resource root
                     var relativeFile = relativePath.TrimStart('/');
-                    var xshellJson = Path.GetFullPath(Path.Combine(physicalPath, relativeFile.Replace('/', Path.DirectorySeparatorChar)));
-                    if (!IsInside(xshellJson, physicalPath) || File.Exists(xshellJson)) {
+                    var requestedFile = Path.GetFullPath(Path.Combine(physicalPath, relativeFile.Replace('/', Path.DirectorySeparatorChar)));
+                    var directory = Path.GetDirectoryName(requestedFile) ?? "";
+                    if (!IsInside(directory, physicalPath)) {
+                        context.Response.StatusCode = StatusCodes.Status404NotFound;
+                        return;
+                    }
+                    if (!Directory.Exists(directory)) {
+                        context.Response.StatusCode = StatusCodes.Status404NotFound;
+                        return;
+                    }
+
+                    // use exactly one authored JSON or JSONC representation for either request extension
+                    var descriptorPath = FindDescriptor(directory, descriptorName);
+                    if (descriptorPath == null) {
                         await nextMiddleware();
                         return;
                     }
-                    var xshellJsonc = Path.ChangeExtension(xshellJson, ".jsonc");
-                    if (!File.Exists(xshellJsonc)) {
-                        await nextMiddleware();
-                        return;
-                    }
+                    var json = await new Services.DescriptorInventory().CreateJsonAsync(descriptorPath, descriptorKind, context.RequestAborted);
+                    var bytes = Encoding.UTF8.GetBytes(json);
+
+                    // return strict generated JSON for both JSON and JSONC request URLs
                     SetNoCacheHeaders(context.Response);
                     context.Response.ContentType = "application/json";
-                    await context.Response.SendFileAsync(xshellJsonc, context.RequestAborted);
+                    context.Response.ContentLength = bytes.Length;
+                    if (!HttpMethods.IsHead(context.Request.Method)) await context.Response.Body.WriteAsync(bytes, context.RequestAborted);
                 });
             }
 
@@ -163,7 +129,9 @@ namespace DProjects.XShell.Middlewares {
                     while (!string.IsNullOrEmpty(directory) && IsInside(directory, physicalPath)) {
                         var moduleJsonPath = Path.Combine(directory, "module.json");
                         var moduleJsoncPath = Path.Combine(directory, "module.jsonc");
-                        if (File.Exists(moduleJsonPath)) {
+                        if (File.Exists(moduleJsonPath) && File.Exists(moduleJsoncPath)) {
+                            throw new InvalidOperationException($"Source '{directory}' contains both module.json and module.jsonc.");
+                        } else if (File.Exists(moduleJsonPath)) {
                             moduleJson = moduleJsonPath;
                             break;
                         } else if (File.Exists(moduleJsoncPath)) {
@@ -177,7 +145,7 @@ namespace DProjects.XShell.Middlewares {
                         return;
                     }
                     // compile to js
-                    var fileContent = await new Services.ModuleFileCompiler().CompileAsync(moduleJson, file);
+                    var fileContent = await new Services.ModuleFileCompiler().CompileAsync(moduleJson, file, context.RequestAborted);
                     // return response
                     SetNoCacheHeaders(context.Response);
                     context.Response.ContentType = fileContent.ContentType;
@@ -215,10 +183,38 @@ namespace DProjects.XShell.Middlewares {
         public Task InvokeAsync(HttpContext context) {
             return mPipeline(context);
         }
+        private static string? FindDescriptor(string directory, string name) {
+            // reject ambiguous authored descriptors consistently with Pack
+            var json = Path.Combine(directory, name + ".json");
+            var jsonc = Path.Combine(directory, name + ".jsonc");
+            if (File.Exists(json) && File.Exists(jsonc)) {
+                throw new InvalidOperationException($"Source '{directory}' contains both {name}.json and {name}.jsonc.");
+            }
+            return File.Exists(json) ? json : File.Exists(jsonc) ? jsonc : null;
+        }
         private static void SetNoCacheHeaders(HttpResponse response) {
             response.Headers.CacheControl = "no-cache, no-store, must-revalidate";
             response.Headers.Pragma = "no-cache";
             response.Headers.Expires = "0";
+        }
+        private static bool TryGetDescriptorKind(string relativePath, out string name, out Services.DescriptorKind kind) {
+            // route all descriptor extensions through one enrichment path
+            var fileName = relativePath[(relativePath.LastIndexOf('/') + 1)..];
+            if (fileName.Equals("module.json", StringComparison.OrdinalIgnoreCase) ||
+                fileName.Equals("module.jsonc", StringComparison.OrdinalIgnoreCase)) {
+                name = "module";
+                kind = Services.DescriptorKind.Module;
+                return true;
+            }
+            if (fileName.Equals("xshell.json", StringComparison.OrdinalIgnoreCase) ||
+                fileName.Equals("xshell.jsonc", StringComparison.OrdinalIgnoreCase)) {
+                name = "xshell";
+                kind = Services.DescriptorKind.XShell;
+                return true;
+            }
+            name = "";
+            kind = default;
+            return false;
         }
         private static bool IsInside(string path, string root) {
             var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
