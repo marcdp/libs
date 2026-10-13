@@ -31,16 +31,19 @@ configuration. `xshell.serviceWorker` is generated runtime state; authored XShel
 ```text
 client: /_assets/<module-id>/<generation>/<resource>
     → Service Worker mapping
-    → assets.url (currently an expanded directory)
+    → assets.url (expanded directory or immutable ZIP package)
     → resource response
 ```
 
 `configUrl` identifies a module configuration document. `assets.url` identifies the physical directory or package holding its assets. Normal clients
-must use `/_assets/<module-id>/<generation>/...` and remain independent of whether storage is expanded or packaged. Current mapping and fetch
-behavior supports
-expanded directories. Runtime ZIP loading is not implemented. The mapped fetch has no explicit `mode` option; the source's `same-origin` option
-is commented out. Cross-origin destinations remain subject to fetch/CORS and the host CSP, whose default connect policy is same-origin.
-Arbitrary CDN backing is not a supported deployment guarantee.
+must use `/_assets/<module-id>/<generation>/...` and remain independent of whether storage is expanded or packaged. A destination whose URL pathname
+ends in `.zip` is ZIP-backed; the worker loads the complete immutable package, indexes its central directory, and serves the matched package-relative
+entry. Other destinations retain expanded-directory URL rewriting. ZIP bytes are cached by physical package URL in deployment-specific Cache Storage,
+while parsed indexes and concurrent loads are shared in memory for the worker lifetime. The ZIP reader supports stored and DEFLATE entries produced by
+Pack and rejects malformed, encrypted, ZIP64, duplicate-name, unsupported-compression, size-invalid, and CRC-invalid content.
+
+The mapped fetch has no explicit `mode` option; the source's `same-origin` option is commented out. Cross-origin destinations remain subject to
+fetch/CORS and the host CSP, whose default connect policy is same-origin. Arbitrary CDN backing is not a supported deployment guarantee.
 
 The worker owns one application-scope mapping registry and persists it in IndexedDB. Bootstrap sends `registerMappings`; the worker durably merges
 the complete registration batch before replying with `registered`. After acknowledgement, bootstrap concurrently loads every normal module
@@ -116,7 +119,8 @@ For requests matching multiple persisted rules, the worker selects the longest `
 namespace boundary. The worker preserves the incoming query, method, and headers, fetches the rewritten destination, and removes
 Location/Content-Location from the returned response.
 
-IndexedDB stores mappings, not a resource cache. Rule version/name/exceptions and inventory hashes are not used for cache versioning, exclusion,
-or fetched-byte verification. This does not provide offline packaging.
+IndexedDB stores mappings, not resource bytes. ZIP-backed destinations use Cache Storage for the fetched immutable package; expanded-directory
+responses are not cached by this worker. Rule version/name/exceptions and inventory hashes are not used for cache versioning or exclusion. ZIP entry
+size and CRC are verified against the package central directory when an entry is served.
 
 See [Hosting](40-hosting.md) and [Packaging](50-packaging.md).

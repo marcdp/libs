@@ -700,6 +700,77 @@ namespace DProjects.Fs.Aws {
                 }
             }
         }
+        public async Task<string?> ChangeBucketPublicAccessAsync(bool publicAccess, CancellationToken cancellationToken) {
+            // set bucket public access
+            cancellationToken.ThrowIfCancellationRequested();
+            if (IsReadonly) throw new InvalidOperationException("Unable to modify filesystem: filesystem is readonly");
+            // helper for signed S3 configuration requests.
+            async Task SendAsync(HttpMethod method, string query, string? body = null, string? contentType = null) {
+                using var httpRequest = CreateHttpRequest(method, "/", query);
+                // prepare request
+                if (body != null) {
+                    var bytes = Encoding.UTF8.GetBytes(body);
+                    httpRequest.Content = new ByteArrayContent(bytes);
+                    httpRequest.Content.Headers.ContentType = new MediaTypeHeaderValue(contentType ?? MimeTypeUtils.TEXT_XML);
+                    using (var md5 = MD5.Create()) {
+                        httpRequest.Content.Headers.ContentMD5 = md5.ComputeHash(bytes);
+                    }
+                    string hash;
+                    using (var sha256 = SHA256.Create()) {
+                        hash = ConvertUtils.ToHexString(sha256.ComputeHash(bytes)).ToLowerInvariant();
+                    }
+                    SignRequest(httpRequest, "/", query, hash);
+                } else {
+                    SignRequest(httpRequest, "/", query);
+                }
+                try {
+                    using (var httpResponse = await mHttpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseContentRead, cancellationToken)) {
+                        var xml = await httpResponse.Content.ReadAsStringAsync();
+                        if (!httpResponse.IsSuccessStatusCode) {
+                            var error = await httpResponse.Content.ReadAsStringAsync();
+                            throw new Exception($"Unable to set bucket public access: {httpResponse.StatusCode}: {error}");
+                        }
+                    }
+                } catch (Exception ex) {
+                    throw new Exception($"Unable to send S3 request. " + $"Method: {method}, " + $"Query: {query}, " + $"URI: {new Uri(mHttpClient.BaseAddress!, httpRequest.RequestUri!)}, " + $"Details: {ex}", ex);
+                }
+            }
+            // bucket-level Block Public Access configuration.
+            string blockConfig =
+                "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
+                "<PublicAccessBlockConfiguration xmlns=\"http://s3.amazonaws.com/doc/2006-03-01/\">" +
+                $"<BlockPublicAcls>{(!publicAccess).ToString().ToLowerInvariant()}</BlockPublicAcls>" +
+                $"<IgnorePublicAcls>{(!publicAccess).ToString().ToLowerInvariant()}</IgnorePublicAcls>" +
+                $"<BlockPublicPolicy>{(!publicAccess).ToString().ToLowerInvariant()}</BlockPublicPolicy>" +
+                $"<RestrictPublicBuckets>{(!publicAccess).ToString().ToLowerInvariant()}</RestrictPublicBuckets>" +
+                "</PublicAccessBlockConfiguration>";
+
+            if (publicAccess) {
+                // first allow public policies.
+                await SendAsync(HttpMethod.Put, "?publicAccessBlock", blockConfig);
+                // grant anonymous read access to objects.
+                var policy = System.Text.Json.JsonSerializer.Serialize(new {
+                    Version = "2012-10-17",
+                    Statement = new[] {
+                        new {
+                            Sid = "PublicReadGetObject",
+                            Effect = "Allow",
+                            Principal = "*",
+                            Action = "s3:GetObject",
+                            Resource = $"arn:aws:s3:::{mBucket}/*"
+                        }
+                    }
+                });
+                await SendAsync(HttpMethod.Put, "?policy", policy, "application/json");
+            } else {
+                // first prevent public access immediately.
+                await SendAsync(HttpMethod.Put, "?publicAccessBlock", blockConfig);
+                // remove the bucket policy.
+                await SendAsync(HttpMethod.Delete, "?policy");
+            }
+            // return url in the region of the bucket.
+            return (publicAccess ? mHttpClient.BaseAddress.ToString() : null);
+        }
         public async Task SetBucketTagsAsync(IDictionary<string, string> tags, CancellationToken cancellationToken) {
             cancellationToken.ThrowIfCancellationRequested();
             var sb = new StringBuilder();
