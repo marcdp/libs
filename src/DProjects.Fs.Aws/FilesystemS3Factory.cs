@@ -24,8 +24,8 @@ namespace DProjects.Fs.Aws {
             var isReadonly = UrlUtils.GetQueryValue<bool>(url.Query, "isReadonly");
             var autoGzip = false;
             var autoCache = false;
-            autoGzip = UrlUtils.GetQueryValue<bool>(url.Query, "autoGzip", true);
-            autoCache = UrlUtils.GetQueryValue<bool>(url.Query, "autoCache", true);
+            autoGzip = UrlUtils.GetQueryValue<bool>(url.Query, "autoGzip", false);
+            autoCache = UrlUtils.GetQueryValue<bool>(url.Query, "autoCache", false);
             return new FilesystemS3(bucket, region, accessKeyId, secretAccesKey, basePath, autoGzip, autoCache, isReadonly);
         }
 

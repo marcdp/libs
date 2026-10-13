@@ -604,25 +604,64 @@ namespace DProjects.Fs.Aws {
             await SetMetadataRawAsync(path, metadata, cancellationToken);
         }
         private async Task SetMetadataRawAsync(string path, IDictionary<string, string> metadata, CancellationToken cancellationToken) {
-            var httpRequest = CreateHttpRequest(HttpMethod.Put, mBasePath + path, "");
-            httpRequest.Headers.Add("x-amz-copy-source", "/" + mBucket + Utils.UriEncode(path, false));
+            var objectPath = mBasePath + path;
+
+            //get existing system metadata
+            using var headRequest = CreateHttpRequest(HttpMethod.Head, objectPath, "");
+            SignRequest(headRequest, objectPath, "");
+
+            using var headResponse = await mHttpClient.SendAsync(headRequest, HttpCompletionOption.ResponseHeadersRead);
+
+            if (headResponse.StatusCode == System.Net.HttpStatusCode.NotFound && !path.EndsWith("/")) {
+                await SetMetadataRawAsync(path + "/", metadata, cancellationToken);
+                return;
+            }
+            if (headResponse.StatusCode != System.Net.HttpStatusCode.OK) {
+                throw new Exception("Unable to get existing metadata: " + headResponse.StatusCode);
+            }
+
+            //create copy request
+            using var httpRequest = CreateHttpRequest(HttpMethod.Put, objectPath, "");
+            httpRequest.Headers.Add("x-amz-copy-source", "/" + mBucket + Utils.UriEncode(objectPath, false));
             httpRequest.Headers.Add("x-amz-metadata-directive", "REPLACE");
-            var keysAdded = new List<string>();
+
+            //preserve system metadata
+            httpRequest.Content = new ByteArrayContent(Array.Empty<byte>());
+
+            var contentHeaders = headResponse.Content.Headers;
+            if (contentHeaders.ContentType != null)
+                httpRequest.Content.Headers.ContentType = contentHeaders.ContentType;
+            if (contentHeaders.ContentDisposition != null)
+                httpRequest.Content.Headers.ContentDisposition = contentHeaders.ContentDisposition;
+            if (contentHeaders.ContentEncoding.Count > 0)
+                httpRequest.Content.Headers.ContentEncoding.Add(string.Join(", ", contentHeaders.ContentEncoding));
+            if (contentHeaders.ContentLanguage.Count > 0)
+                httpRequest.Content.Headers.ContentLanguage.Add(string.Join(", ", contentHeaders.ContentLanguage));
+            if (contentHeaders.Expires.HasValue)
+                httpRequest.Content.Headers.Expires = contentHeaders.Expires;
+
+            if (headResponse.Headers.CacheControl != null)
+                httpRequest.Headers.CacheControl = headResponse.Headers.CacheControl;
+
+            if (headResponse.Headers.TryGetValues("x-amz-website-redirect-location", out var redirect))
+                httpRequest.Headers.TryAddWithoutValidation("x-amz-website-redirect-location", redirect);
+
+            //replace custom metadata
+            var keysAdded = new HashSet<string>();
             foreach (var key in metadata.Keys) {
-                var keyToUse = key.ToLower().Trim();
-                if (!keysAdded.Contains(keyToUse)) {
+                var keyToUse = key.ToLowerInvariant().Trim();
+                if (keysAdded.Add(keyToUse)) {
                     httpRequest.Headers.Add("x-amz-meta-" + keyToUse, UrlUtils.UrlEncode(metadata[key]));
-                    keysAdded.Add(keyToUse);
                 }
             }
-            SignRequest(httpRequest, mBasePath + path, "");
-            using (var httpResponse = await mHttpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken)) {
-                var aux = await ReadAsStringAsync(httpResponse.Content, cancellationToken);
-                if (httpResponse.StatusCode == System.Net.HttpStatusCode.NotFound && !path.EndsWith("/")) {
-                    await SetMetadataRawAsync(path + "/", metadata, cancellationToken);
-                } else if (httpResponse.StatusCode != System.Net.HttpStatusCode.OK) {
-                    throw new Exception("Unable to set metadata: " + httpResponse.StatusCode);
-                }
+
+            //sign and execute
+            SignRequest(httpRequest, objectPath, "");
+            using var httpResponse = await mHttpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead);
+            var responseBody = await httpResponse.Content.ReadAsStringAsync();
+
+            if (httpResponse.StatusCode != System.Net.HttpStatusCode.OK) {
+                throw new Exception("Unable to set metadata: " + httpResponse.StatusCode + ": " + responseBody);
             }
         }
         public override Task<bool> SupportsAsync(string path, Features feature, CancellationToken cancellationToken) {
@@ -769,7 +808,10 @@ namespace DProjects.Fs.Aws {
                 await SendAsync(HttpMethod.Delete, "?policy");
             }
             // return url in the region of the bucket.
-            return (publicAccess ? mHttpClient.BaseAddress.ToString() : null);
+            if (!publicAccess) return null;
+            var publicUrl = mHttpClient.BaseAddress.ToString();
+            if (publicUrl.EndsWith("/")) publicUrl = publicUrl.Substring(0, publicUrl.Length - 1);
+            return publicUrl;
         }
         public async Task SetBucketTagsAsync(IDictionary<string, string> tags, CancellationToken cancellationToken) {
             cancellationToken.ThrowIfCancellationRequested();
