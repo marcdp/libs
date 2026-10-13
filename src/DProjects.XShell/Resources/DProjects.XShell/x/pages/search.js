@@ -15,12 +15,12 @@ export default {
         <x-datafields>
 
             <div x-if="state.results.length > 0">
-                <x-listview x-if="state.results.length > 0" view="list" title="Search results">
+                <x-listview x-if="state.results.length > 0" view="tiles" title="Search results">
                     <x-listview-item 
                         x-for="result in state.results"
                         x-attr:label="result.label"
-                        x-attr:description="result.description"
-                        x-attr:icon="result.logo"
+                        x-attr:description="result.description || result.path"
+                        x-attr:icon="result.icon"
                         x-attr:href="result.path || result.href"
                         x-attr:target="result.target"
                         x-attr:category="result.category"                    
@@ -49,7 +49,7 @@ export default {
         keyword: "",
         results: []
     },
-    controller({ state, events, bus, areas }) {
+    controller({ state, events, bus, areas, config }) {
         return {
             load() {
                 // load
@@ -66,7 +66,10 @@ export default {
                 if (keyword.length > 2) {
                     const searchRecursive = function(menuitem, category) {
                         if (menuitem.label.toLowerCase().indexOf(keyword) >= 0 && menuitem.href) {
-                            results.push({ ...menuitem, category: category });
+                            results.push({ 
+                                ...menuitem, 
+                                icon: menuitem.icon || config.modules[menuitem.module].icon,
+                                category: category });
                         }
                         if (menuitem.children) {
                             for (let child of menuitem.children) {

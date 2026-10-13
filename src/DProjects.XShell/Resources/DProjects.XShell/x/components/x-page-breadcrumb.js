@@ -12,6 +12,7 @@ export const contract = {
 // implementation
 export default {
     style: `
+        :host {display:block;}
         ul {margin:0; padding:0; display: flex; align-items:center; box-sizing: border-box;}
         ul li {list-style:none; margin-right:.5em; display:flex; }
         ul li.empty {display:none;}

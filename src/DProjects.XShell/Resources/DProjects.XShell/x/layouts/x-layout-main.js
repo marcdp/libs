@@ -111,7 +111,7 @@ export default {
             line-height:125%;
             font-weight:700;
         }
-        h1 + x-page-description {
+        h1 ~ x-page-description {
             font-size:var(--x-font-size-small);
             transform:translateY(-1em);
             display:block;
@@ -162,7 +162,7 @@ export default {
                 flex:1;                
             }
             .body main > div {
-                max-width:75em;
+                max-width:var(--x-layout-main-page-max-width);
                 margin-left:auto; 
                 margin-right:auto;
             }
@@ -275,9 +275,6 @@ export default {
         <div class="body" x-class:toggled="state.toggled">
             <nav class="menu">
                 <div>
-                    <!--
-                        <x-button class="anchor" icon="x-keyboard-arrow-left" x-on:click="toggle-menu"></x-button>
-                    -->
                     <x-button class="anchor" icon="x-close" x-on:click="toggle-menu"></x-button>
                     <x-page-menu></x-page-menu>
                 </div>

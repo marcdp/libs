@@ -83,7 +83,7 @@ export default {
         x-anchor.tiles .description {color:var(--x-color-text-gray); display:block; max-width: 100%; text-overflow:ellipsis; white-space:nowrap; overflow:hidden; padding-bottom:.4em; height:1.4em;}
         x-anchor.tiles:hover {background:var(--x-color-background-x-gray);}
         x-anchor.tiles[category]::before {display:none;}
-        :host(.selected) x-anchor.tiles {font-weight:600; background:var(--x-color-background-x-gray);}
+        :host(.selected) x-anchor.tiles {background:var(--x-color-background-x-gray);}
     `,
     template: `
         <x-anchor x-attr:href="state.href" x-attr:target="state.target" x-attr:class="'plain block ' + state.view" x-prop:breadcrumb="state.breadcrumb" x-attr:open="state.open" x-attr:category="state.category">
