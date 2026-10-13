@@ -15,7 +15,7 @@ export const contract = {
 // implementation
 export default {
     style: `
-        :host {display:flex; align-items:center; gap:.2em; position:relative; flex-wrap:wrap;}
+        :host {display:flex; align-items:center; gap:.2em; position:relative; flex-wrap:wrap; }
     `,
     template: `
         <slot></slot>

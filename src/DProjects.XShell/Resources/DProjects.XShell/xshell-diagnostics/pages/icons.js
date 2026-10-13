@@ -13,14 +13,7 @@ export default {
     },
     template: `
         <p>Shows available icons by module together with their size, load time, and status.</p>
-        <x-toolbar>
-            <x-button class="" label="list" command="changeView" data-view="list"></x-button>
-            <x-button class="" label="details" command="changeView" data-view="details"></x-button>
-            <x-button class="" label="icons" command="changeView" data-view="icons"></x-button>
-            <x-button class="" label="tiles" command="changeView" data-view="tiles"></x-button>
-        </x-toolbar>
-
-        <x-listview x-attr:view="state.view">
+        <x-listview view="tiles" views="list,details,tiles,icons">
             <x-datafield type="search" x-model="state.id" placeholder="Icon" slot="column" style="width:12em"></x-datafield>
             <div slot="column" >
                 <x-datafield type="search" x-model="state.moduleId" placeholder="Module"></x-datafield>
@@ -51,7 +44,6 @@ export default {
     `,    
     state:{
         id: "",
-        view: "tiles",
         moduleId: "",
         items: null
     },
@@ -67,9 +59,6 @@ export default {
                         this.refresh();
                     }
                 });
-            },
-            changeView({view}) {
-                state.view = view;
             },
             async refresh() {
                 // refresh

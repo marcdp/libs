@@ -582,6 +582,7 @@ namespace DProjects.Fs.Aws {
             using (var httpResponse = await mHttpClient.SendAsync(httpRequest, HttpCompletionOption.ResponseHeadersRead, cancellationToken)) {
                 var res = await ReadAsStringAsync(httpResponse.Content, cancellationToken);
                 if (httpResponse.StatusCode == System.Net.HttpStatusCode.NotFound) {
+                    if (path.EndsWith("/")) throw new Exception("Unable to get metadata: " + httpResponse.StatusCode);
                     return await GetMetadataRawAsync(path + "/", cancellationToken);
                 } else if (httpResponse.StatusCode != System.Net.HttpStatusCode.OK) {
                     throw new Exception("Unable to get metadata: " + httpResponse.StatusCode);
