@@ -13,6 +13,7 @@ export default {
     },
 
     template: `
+        <p>Shows the Service Worker mappings registered for virtual XShell and module asset paths.</p>
         <x-listview view="details">
             <x-datafield
                 slot="column"

@@ -12,6 +12,7 @@ export default {
         title: "Pages"
     },
     template: `
+        <p>Shows discovered pages, their owning modules, size, load time, and load status.</p>
         <x-listview view="details">
             <x-datafield slot="column" type="search" x-model="state.id" placeholder="Page"></x-datafield>
             <div slot="column" style="width:12em">

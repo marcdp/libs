@@ -12,6 +12,7 @@ export default {
         title: "Modules"
     },
     template: `
+        <p>Shows loaded modules, their asset locations, build metadata, resource counts, and status.</p>
         <x-listview view="details">
             <x-datafield type="search" x-model="state.id" placeholder="Module" slot="column" style="width:12em"></x-datafield>
             <div slot="column">

@@ -15,6 +15,7 @@ export default {
         x-tabs {width: 85em; max-width:90vw; }
     `,
     template: `
+        <p>Provides access to the available XShell diagnostic views.</p>
         <x-tabs use-hash="true">
             <x-tab x-for="menuitem in state.menuitems" x-attr:label="menuitem.label" x-attr:hash="menuitem.label | slug" >
                 <x-page x-attr:src="menuitem.href" loading="lazy"></x-page>

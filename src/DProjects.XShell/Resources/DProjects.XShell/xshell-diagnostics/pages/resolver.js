@@ -17,6 +17,7 @@ export default {
         .test x-datafield {width:40em; max-width:70vw;}
     `,
     template: `
+        <p>Shows configured resolver rules and lets you test how a logical resource is resolved.</p>
         <div class="test">
             <x-toolbar>
                 <x-datafield type="text" x-model="state.test_resource" placeholder="Resource, e.g. component:x-button"></x-datafield>

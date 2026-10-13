@@ -12,6 +12,7 @@ export default {
         title: "Components"
     },
     template: `
+        <p>Shows discovered components, their owning modules, load status, size, and load time.</p>
         <x-listview view="details">
             <x-datafield type="search" x-model="state.id" placeholder="Component" slot="column" style="width:12em"></x-datafield>
             <div slot="column" style="width:12em">

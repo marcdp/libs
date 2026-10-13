@@ -12,6 +12,7 @@ export default {
         title: "Loader"
     },
     template: `
+        <p>Shows resources processed by the XShell loader together with their module, size, load time, and status.</p>
         <x-listview view="details" auto-scroll>
             <x-datafield slot="column" type="search" x-model="state.query_resource" placeholder="Resource"></x-datafield>
             <x-datafield type="search" x-model="state.query_module" placeholder="Module" slot="column" style="width:6em;"></x-datafield>

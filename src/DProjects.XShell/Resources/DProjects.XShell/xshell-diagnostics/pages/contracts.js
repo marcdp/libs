@@ -12,6 +12,7 @@ export default {
         title: "Contracts"
     },
     template: `
+        <p>Shows discovered contracts, their owning modules, metadata, size, load time, and status.</p>
         <x-listview view="details">
             <x-datafield type="search" x-model="state.id" placeholder="Contract" slot="column" style="width:12em"></x-datafield>
             <div slot="column" style="width:12em">

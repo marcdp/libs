@@ -14,6 +14,7 @@ export default {
         title: "Bus"
     },
     template: `
+        <p>Shows recent XShell bus events and their timestamps and detail payloads.</p>
         <x-listview ref="listview" view="details" auto-scroll="true">
            <x-datafield slot="column" type="search" x-model="state.query_type" placeholder="Type"></x-datafield>
            <x-datafield slot="column" type="search" x-model="state.query_ts" placeholder="Time" style="width:13em"></x-datafield>

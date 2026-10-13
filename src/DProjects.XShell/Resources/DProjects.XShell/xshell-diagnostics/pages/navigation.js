@@ -12,6 +12,7 @@ export default {
         title: "Navigation"
     },
     template: `
+        <p>Shows the current Areas, menus, and page hierarchy used by XShell navigation.</p>
         <h2>Areas</h2>
         <x-listview view="details">
             <div slot="column" style="width:10em">

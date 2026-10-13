@@ -12,6 +12,7 @@ export default {
         title: "Icons"
     },
     template: `
+        <p>Shows available icons by module together with their size, load time, and status.</p>
         <x-toolbar>
             <x-button class="" label="list" command="changeView" data-view="list"></x-button>
             <x-button class="" label="details" command="changeView" data-view="details"></x-button>

@@ -12,6 +12,7 @@ export default {
         title: "Services"
     },
     template: `
+        <p>Shows registered services, their modules and contracts, resource metadata, and load status.</p>
         <x-listview view="details">
             <x-datafield type="search" x-model="state.id" placeholder="Service" slot="column" style="width:12em"></x-datafield>
             <div slot="column" style="width:12em">
