@@ -6,6 +6,7 @@
       <LangVersion>preview</LangVersion>
       <AssemblyName>DProjects.Utils</AssemblyName>
       <Company>DProjects</Company>
+      <PackageId>DProjects.Utils</PackageId>
       <Description>DProjects.Utils</Description>
       <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
       <Version>3.0.0</Version>
