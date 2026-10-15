@@ -69,6 +69,7 @@ namespace DProjects.Commands.Schema {
                     sb.Append(" # ");
                     if (flag.Description.Length > 0) sb.Append(flag.Description + ". ");
                     sb.Append(flag.Type + ". ");
+                    if (flag.Type == typeof(System.Collections.Specialized.StringDictionary)) sb.Append("Entries use key=value syntax. ");
                     if (!flag.Required) sb.Append("Optional. Default '" + flag.Default + "'. ");
                     if (flag.Domain?.Length > 0) sb.Append("(" + String.Join(", ", flag.Domain) + ") ");
                     if (useAnsiCodes) sb.Append(ConsoleUtils.COLOR_WHITE);
@@ -95,6 +96,7 @@ namespace DProjects.Commands.Schema {
                     result.Append(" # ");
                     if (argument.Description.Length > 0) result.Append(argument.Description + ". ");
                     result.Append(argument.Type + ". ");
+                    if (argument.Type == typeof(System.Collections.Specialized.StringDictionary)) result.Append("Entries use key=value syntax. ");
                     if (!argument.Required) result.Append("Optional. Default '" + argument.Default + "'. ");
                     if (argument.Domain?.Length > 0) result.Append("(" + String.Join(", ", argument.Domain) + ") ");
                     if (useAnsiCodes) result.Append(ConsoleUtils.COLOR_WHITE);
