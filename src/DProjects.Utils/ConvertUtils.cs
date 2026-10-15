@@ -137,8 +137,8 @@ namespace DProjects.Utils {
                 return typeof(decimal);
             } else if (typeName.Equals("decimal[]", StringComparison.OrdinalIgnoreCase)) {
                 return typeof(decimal[]);
-            } else if (typeName.Equals("StringDictionary", StringComparison.OrdinalIgnoreCase)) {
-                return typeof(System.Collections.Specialized.StringDictionary);
+            } else if (typeName.Equals("Dictionary<string,string>", StringComparison.OrdinalIgnoreCase)) {
+                return typeof(Dictionary<string, string>);
             }
             return null;
         }
@@ -195,8 +195,8 @@ namespace DProjects.Utils {
                 return "guid";
             } else if (aType == typeof(Guid[])) {
                 return "guid[]";
-            } else if (aType == typeof(System.Collections.Specialized.StringDictionary)) {
-                return "StringDictionary";
+            } else if (aType == typeof(Dictionary<string, string>)) {
+                return "Dictionary<string,string>";
             } else {
                 return aType.FullName + ", " + aType.GetTypeInfo().Assembly.GetName().Name;
             }

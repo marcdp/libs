@@ -75,6 +75,7 @@ namespace DProjects.Utils.Tests {
         [InlineData("guid[]", typeof(Guid[]))]
         [InlineData("byte[]", typeof(byte[]))]
         [InlineData("char[]", typeof(char[]))]
+        [InlineData("Dictionary<string,string>", typeof(Dictionary<string, string>))]
         public void ToSimpleTypeTest(string name, Type result) {
             Assert.Equal(result, ConvertUtils.ToSimpleType(name));
             if (name == "date") name = "datetime";

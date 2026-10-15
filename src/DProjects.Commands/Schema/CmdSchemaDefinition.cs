@@ -5,7 +5,6 @@ using System.Text;
 using System.Text.Json.Serialization;
 using System.Xml;
 using System;
-using System.Collections.Specialized;
 using System.Collections.Generic;
 using DProjects.Commands.Attributes;
 using System.Threading.Tasks;
@@ -141,9 +140,9 @@ namespace DProjects.Commands.Schema {
             });
             for (var i = 0; i < cmdSchemaArguments.Count - 1; i++) {
                 // prevent a variadic dictionary from consuming later positional arguments
-                if (cmdSchemaArguments[i].Type == typeof(StringDictionary)) {
+                if (cmdSchemaArguments[i].Type == typeof(Dictionary<string, string>)) {
                     throw new ArgumentException(
-                        "StringDictionary argument '" + cmdSchemaArguments[i].Name + "' must be the final positional argument.");
+                        "Dictionary<string, string> argument '" + cmdSchemaArguments[i].Name + "' must be the final positional argument.");
                 }
             }
             result.Arguments = cmdSchemaArguments.ToArray();
@@ -285,13 +284,13 @@ namespace DProjects.Commands.Schema {
                             }                            
                         }
                     }
-                    if (flag.Type == typeof(StringDictionary) && value != null) {
+                    if (flag.Type == typeof(Dictionary<string, string>) && value != null) {
                         try {
                             // copy mutable defaults before adding command-line entries
-                            value = CreateStringDictionary(value);
+                            value = CreateDictionary(value);
                         } catch (Exception e) {
                             errors.Add(Name + ": flag --" + flagName + " invalid: " + e.Message);
-                            value = new StringDictionary();
+                            value = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
                         }
                     }
                     for (var i = 0; i < arguments.Count; i++) {
@@ -313,15 +312,15 @@ namespace DProjects.Commands.Schema {
                             }
                         } else if (argument.StartsWith("-" + flag.Char + "=") || argument.StartsWith("--" + flagName + "=")) {
                             var subValue = argument.Substring(argument.IndexOf("=") + 1);                            
-                            if (flag.Type == typeof(StringDictionary)) {
+                            if (flag.Type == typeof(Dictionary<string, string>)) {
                                 // accumulate dictionary entries from repeated inline flags
-                                var stringDictionary = value as StringDictionary ?? new StringDictionary();
+                                var valueDictionary = value as Dictionary<string, string> ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
                                 try {
-                                    AddStringDictionaryEntry(stringDictionary, subValue);
+                                    AddDictionaryEntry(valueDictionary, subValue);
                                 } catch (Exception e) {
                                     errors.Add(Name + ": flag --" + flagName + " invalid: " + e.Message);
                                 }
-                                value = stringDictionary;
+                                value = valueDictionary;
                                 arguments.RemoveAt(i);
                                 i--;
                                 continue;
@@ -358,17 +357,17 @@ namespace DProjects.Commands.Schema {
                             }
                         } else if ((argument.Equals("-" + flag.Char) || argument.Equals("--" + flagName))) {
                             if (i < arguments.Count - 1) {
-                                if (flag.Type == typeof(StringDictionary)) {
+                                if (flag.Type == typeof(Dictionary<string, string>)) {
                                     // accumulate dictionary entries from repeated separated flags
-                                    var stringDictionary = value as StringDictionary ?? new StringDictionary();
+                                    var valueDictionary = value as Dictionary<string, string> ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
                                     var aux = arguments[i + 1];
                                     if (aux.StartsWith(HYPHEN_PREFIX)) aux = aux.Substring(HYPHEN_PREFIX.Length);
                                     try {
-                                        AddStringDictionaryEntry(stringDictionary, aux);
+                                        AddDictionaryEntry(valueDictionary, aux);
                                     } catch (Exception e) {
                                         errors.Add(Name + ": flag --" + flagName + " invalid: " + e.Message);
                                     }
-                                    value = stringDictionary;
+                                    value = valueDictionary;
                                     arguments.RemoveAt(i + 1);
                                     arguments.RemoveAt(i);
                                     i--;
@@ -450,7 +449,7 @@ namespace DProjects.Commands.Schema {
                     } else {
                         try {
                             // dictionaries are already parsed and must not be routed through service resolution
-                            var valueOfType = flag.Type == typeof(StringDictionary) ? value : ConvertUtils.To(value, flag.Type, true, getService);
+                            var valueOfType = flag.Type == typeof(Dictionary<string, string>) ? value : ConvertUtils.To(value, flag.Type, true, getService);
                             flag.PropertyInfo?.SetValue(instance, valueOfType);
                             dictionary?.Add(flag.Alias ?? flag.Name, value);
                         } catch (Exception e) {
@@ -485,31 +484,31 @@ namespace DProjects.Commands.Schema {
                                     }
                                 }
                             }
-                            if (argument.Type == typeof(StringDictionary)) {
-                                StringDictionary? stringDictionary = null;
+                            if (argument.Type == typeof(Dictionary<string, string>)) {
+                                Dictionary<string, string>? valueDictionary = null;
                                 if (value != null) {
                                     try {
                                         // copy mutable defaults before adding command-line entries
-                                        stringDictionary = CreateStringDictionary(value);
+                                        valueDictionary = CreateDictionary(value);
                                     } catch (Exception e) {
                                         errors.Add(Name + ": argument '" + argument.Name.ToLower() + "' invalid: " + e.Message);
-                                        stringDictionary = new StringDictionary();
+                                        valueDictionary = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
                                     }
                                 }
                                 if (arguments.Count > 0) {
-                                    stringDictionary ??= new StringDictionary();
+                                    valueDictionary ??= new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
                                     for (var j = 0; j < arguments.Count; j++) {
                                         var arg = arguments[j];
                                         if (arg.StartsWith(HYPHEN_PREFIX)) arg = arg.Substring(HYPHEN_PREFIX.Length);
                                         try {
-                                            AddStringDictionaryEntry(stringDictionary, arg);
+                                            AddDictionaryEntry(valueDictionary, arg);
                                         } catch (Exception e) {
                                             errors.Add(Name + ": argument '" + argument.Name.ToLower() + "' invalid: " + e.Message);
                                         }
                                     }
                                     arguments.Clear();
                                 }
-                                value = stringDictionary;
+                                value = valueDictionary;
                             } else if (argument.Type == typeof(string[])) {
                                 if (arguments.Count == 0) {
                                     if (value != null) {
@@ -577,7 +576,7 @@ namespace DProjects.Commands.Schema {
                             } else {
                                 try {
                                     // dictionaries are already parsed and must not be routed through service resolution
-                                    var valueOfType = argument.Type == typeof(StringDictionary)
+                                    var valueOfType = argument.Type == typeof(Dictionary<string, string>)
                                         ? value
                                         : ConvertUtils.To(value, argument.Type, true, getService);
                                     argument.PropertyInfo?.SetValue(instance, valueOfType);
@@ -633,21 +632,21 @@ namespace DProjects.Commands.Schema {
         }
 
         // methods (private)
-        private static StringDictionary CreateStringDictionary(object value) {
+        private static Dictionary<string, string> CreateDictionary(object value) {
             // create a fresh dictionary for every command execution
-            var result = new StringDictionary();
-            if (value is StringDictionary source) {
-                foreach (string key in source.Keys) {
-                    result[key] = source[key] ?? "";
+            var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            if (value is Dictionary<string, string> source) {
+                foreach (var entry in source) {
+                    result[entry.Key] = entry.Value;
                 }
             } else if (value is string entry) {
-                if (entry.Length > 0) AddStringDictionaryEntry(result, entry);
+                if (entry.Length > 0) AddDictionaryEntry(result, entry);
             } else {
-                throw new ArgumentException("Unable to create StringDictionary from type '" + value.GetType().Name + "'.");
+                throw new ArgumentException("Unable to create Dictionary<string, string> from type '" + value.GetType().Name + "'.");
             }
             return result;
         }
-        private static void AddStringDictionaryEntry(StringDictionary dictionary, string entry) {
+        private static void AddDictionaryEntry(Dictionary<string, string> dictionary, string entry) {
             // split once so values can contain additional equals characters
             var separatorIndex = entry.IndexOf('=');
             if (separatorIndex < 0) throw new ArgumentException("Dictionary entry '" + entry + "' must use key=value syntax.");

@@ -7,7 +7,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
-using System.Collections.Specialized;
 using System.Text.Json;
 
 namespace DProjects.Commands.Tests {
@@ -45,37 +44,37 @@ namespace DProjects.Commands.Tests {
         }
         [Theory]
         [InlineData("-P", "name=John")]
-        [InlineData("--param2", "name=John")]
-        [InlineData("--param2=name=John", null)]
+        [InlineData("--parameters", "name=John")]
+        [InlineData("--parameters=name=John", null)]
         [InlineData("-P=name=John", null)]
-        public void Schema_ParsesStringDictionaryFlagSyntax(string option, string? value) {
-            var command = new StringDictionaryFlagCommand();
-            var schema = CmdSchemaDefinition.Create(typeof(StringDictionaryFlagCommand), "tests", "command", false, null);
+        public void Schema_ParsesDictionaryFlagSyntax(string option, string? value) {
+            var command = new DictionaryFlagCommand();
+            var schema = CmdSchemaDefinition.Create(typeof(DictionaryFlagCommand), "tests", "command", false, null);
             var args = value == null ? new[] { option } : new[] { option, value };
 
             var errors = Parse(schema, command, args);
 
             Assert.Empty(errors);
-            Assert.Equal("John", command.Param2["name"]);
+            Assert.Equal("John", command.Parameters["name"]);
         }
         [Theory]
         [InlineData("-P")]
-        [InlineData("--param2")]
-        public void Schema_AccumulatesRepeatedStringDictionaryFlags(string option) {
-            var command = new StringDictionaryFlagCommand();
-            var schema = CmdSchemaDefinition.Create(typeof(StringDictionaryFlagCommand), "tests", "command", false, null);
+        [InlineData("--parameters")]
+        public void Schema_AccumulatesRepeatedDictionaryFlags(string option) {
+            var command = new DictionaryFlagCommand();
+            var schema = CmdSchemaDefinition.Create(typeof(DictionaryFlagCommand), "tests", "command", false, null);
 
             var errors = Parse(schema, command, [option, "name=John", option, "age=30", option, "city=Barcelona"]);
 
             Assert.Empty(errors);
-            Assert.Equal("John", command.Param2["name"]);
-            Assert.Equal("30", command.Param2["age"]);
-            Assert.Equal("Barcelona", command.Param2["city"]);
+            Assert.Equal("John", command.Parameters["name"]);
+            Assert.Equal("30", command.Parameters["age"]);
+            Assert.Equal("Barcelona", command.Parameters["city"]);
         }
         [Fact]
-        public void Schema_ParsesStringDictionaryFlagAliases() {
-            var command = new AliasedStringDictionaryFlagCommand();
-            var schema = CmdSchemaDefinition.Create(typeof(AliasedStringDictionaryFlagCommand), "tests", "command", false, null);
+        public void Schema_ParsesDictionaryFlagAliases() {
+            var command = new AliasedDictionaryFlagCommand();
+            var schema = CmdSchemaDefinition.Create(typeof(AliasedDictionaryFlagCommand), "tests", "command", false, null);
 
             var errors = Parse(schema, command, ["--parameters", "name=John"]);
 
@@ -83,75 +82,78 @@ namespace DProjects.Commands.Tests {
             Assert.Equal("John", command.Values["name"]);
         }
         [Fact]
-        public void Schema_PreservesStringDictionaryEntrySemantics() {
-            var command = new StringDictionaryFlagCommand();
-            var schema = CmdSchemaDefinition.Create(typeof(StringDictionaryFlagCommand), "tests", "command", false, null);
+        public void Schema_PreservesDictionaryEntrySemantics() {
+            var command = new DictionaryFlagCommand();
+            var schema = CmdSchemaDefinition.Create(typeof(DictionaryFlagCommand), "tests", "command", false, null);
 
             var errors = Parse(schema, command, ["-P", "name=", "-P", "token=first=second", "-P", "NAME=updated"]);
 
             Assert.Empty(errors);
-            Assert.Equal(2, command.Param2.Count);
-            Assert.Equal("updated", command.Param2["name"]);
-            Assert.Equal("updated", command.Param2["NaMe"]);
-            Assert.Equal("first=second", command.Param2["token"]);
+            Assert.Equal(2, command.Parameters.Count);
+            Assert.Equal("updated", command.Parameters["name"]);
+            Assert.Equal("updated", command.Parameters["NaMe"]);
+            Assert.Equal("first=second", command.Parameters["token"]);
+            Assert.Contains(command.Parameters.Keys, key => key == "name");
+            Assert.DoesNotContain(command.Parameters.Keys, key => key == "NAME");
         }
         [Theory]
         [InlineData("malformed")]
         [InlineData("=value")]
-        public void Schema_ReportsInvalidStringDictionaryFlagEntries(string entry) {
-            var command = new StringDictionaryFlagCommand();
-            var schema = CmdSchemaDefinition.Create(typeof(StringDictionaryFlagCommand), "tests", "command", false, null);
+        public void Schema_ReportsInvalidDictionaryFlagEntries(string entry) {
+            var command = new DictionaryFlagCommand();
+            var schema = CmdSchemaDefinition.Create(typeof(DictionaryFlagCommand), "tests", "command", false, null);
 
             var errors = Parse(schema, command, ["-P", entry]);
 
-            Assert.Contains(errors, error => error.Contains("flag --param2 invalid", StringComparison.Ordinal));
+            Assert.Contains(errors, error => error.Contains("flag --parameters invalid", StringComparison.Ordinal));
         }
         [Fact]
-        public void Schema_HandlesOptionalAndRequiredStringDictionaryValues() {
-            var optionalFlag = new StringDictionaryFlagCommand();
-            var optionalArgument = new StringDictionaryArgumentCommand();
-            var flagErrors = Parse(CmdSchemaDefinition.Create(typeof(StringDictionaryFlagCommand), "tests", "command", false, null),
+        public void Schema_HandlesOptionalAndRequiredDictionaryValues() {
+            var optionalFlag = new DictionaryFlagCommand();
+            var optionalArgument = new DictionaryArgumentCommand();
+            var flagErrors = Parse(CmdSchemaDefinition.Create(typeof(DictionaryFlagCommand), "tests", "command", false, null),
                 optionalFlag, []);
-            var argumentErrors = Parse(CmdSchemaDefinition.Create(typeof(StringDictionaryArgumentCommand), "tests", "command", false, null),
+            var argumentErrors = Parse(CmdSchemaDefinition.Create(typeof(DictionaryArgumentCommand), "tests", "command", false, null),
                 optionalArgument, []);
-            var requiredFlagErrors = Parse(CmdSchemaDefinition.Create(typeof(RequiredStringDictionaryFlagCommand), "tests", "command", false, null),
-                new RequiredStringDictionaryFlagCommand(), []);
-            var requiredArgumentErrors = Parse(CmdSchemaDefinition.Create(typeof(RequiredStringDictionaryArgumentCommand), "tests", "command", false, null),
-                new RequiredStringDictionaryArgumentCommand(), []);
+            var requiredFlagErrors = Parse(CmdSchemaDefinition.Create(typeof(RequiredDictionaryFlagCommand), "tests", "command", false, null),
+                new RequiredDictionaryFlagCommand(), []);
+            var requiredArgumentErrors = Parse(CmdSchemaDefinition.Create(typeof(RequiredDictionaryArgumentCommand), "tests", "command", false, null),
+                new RequiredDictionaryArgumentCommand(), []);
 
             Assert.Empty(flagErrors);
             Assert.Empty(argumentErrors);
-            Assert.Empty(optionalFlag.Param2);
+            Assert.Empty(optionalFlag.Parameters);
             Assert.Empty(optionalArgument.Parameters);
             Assert.Contains(requiredFlagErrors, error => error.Contains("required", StringComparison.Ordinal));
             Assert.Contains(requiredArgumentErrors, error => error.Contains("required", StringComparison.Ordinal));
         }
         [Fact]
-        public void Schema_CopiesStringDictionaryDefaultsForEachExecution() {
-            var original = new StringDictionary { ["initial"] = "value" };
-            var schema = CmdSchemaDefinition.Create(typeof(StringDictionaryFlagCommand), "tests", "command", false, null);
+        public void Schema_CopiesDictionaryDefaultsForEachExecution() {
+            var original = new Dictionary<string, string> { ["Initial"] = "value" };
+            var schema = CmdSchemaDefinition.Create(typeof(DictionaryFlagCommand), "tests", "command", false, null);
             schema.Flags[0].Default = original;
             schema.Flags[0].Required = false;
-            var first = new StringDictionaryFlagCommand();
-            var second = new StringDictionaryFlagCommand();
+            var first = new DictionaryFlagCommand();
+            var second = new DictionaryFlagCommand();
 
             var firstErrors = Parse(schema, first, ["-P", "added=first"]);
             var secondErrors = Parse(schema, second, []);
 
             Assert.Empty(firstErrors);
             Assert.Empty(secondErrors);
-            Assert.Equal(1, original.Count);
-            Assert.Null(original["added"]);
-            Assert.Equal("first", first.Param2["added"]);
-            Assert.Equal("value", second.Param2["initial"]);
-            Assert.NotSame(original, first.Param2);
-            Assert.NotSame(original, second.Param2);
-            Assert.NotSame(first.Param2, second.Param2);
+            Assert.Single(original);
+            Assert.False(original.ContainsKey("added"));
+            Assert.Equal("first", first.Parameters["added"]);
+            Assert.Equal("value", second.Parameters["initial"]);
+            Assert.Contains(second.Parameters.Keys, key => key == "Initial");
+            Assert.NotSame(original, first.Parameters);
+            Assert.NotSame(original, second.Parameters);
+            Assert.NotSame(first.Parameters, second.Parameters);
         }
         [Fact]
-        public void Schema_ParsesPositionalStringDictionaryEntries() {
-            var command = new StringDictionaryArgumentCommand();
-            var schema = CmdSchemaDefinition.Create(typeof(StringDictionaryArgumentCommand), "tests", "command", false, null);
+        public void Schema_ParsesPositionalDictionaryEntries() {
+            var command = new DictionaryArgumentCommand();
+            var schema = CmdSchemaDefinition.Create(typeof(DictionaryArgumentCommand), "tests", "command", false, null);
 
             var errors = Parse(schema, command, ["name=John", "age=30", "city=Barcelona", "empty=", "token=first=second", "NAME=updated"]);
 
@@ -164,9 +166,9 @@ namespace DProjects.Commands.Tests {
             Assert.Equal("first=second", command.Parameters["token"]);
         }
         [Fact]
-        public void Schema_ConsumesEarlierPositionalArgumentsBeforeStringDictionaryEntries() {
-            var command = new PrefixedStringDictionaryArgumentCommand();
-            var schema = CmdSchemaDefinition.Create(typeof(PrefixedStringDictionaryArgumentCommand), "tests", "command", false, null);
+        public void Schema_ConsumesEarlierPositionalArgumentsBeforeDictionaryEntries() {
+            var command = new PrefixedDictionaryArgumentCommand();
+            var schema = CmdSchemaDefinition.Create(typeof(PrefixedDictionaryArgumentCommand), "tests", "command", false, null);
 
             var errors = Parse(schema, command, ["prefix", "name=John", "age=30"]);
 
@@ -178,34 +180,72 @@ namespace DProjects.Commands.Tests {
         [Theory]
         [InlineData("malformed")]
         [InlineData("=value")]
-        public void Schema_ReportsInvalidPositionalStringDictionaryEntries(string entry) {
-            var command = new StringDictionaryArgumentCommand();
-            var schema = CmdSchemaDefinition.Create(typeof(StringDictionaryArgumentCommand), "tests", "command", false, null);
+        public void Schema_ReportsInvalidPositionalDictionaryEntries(string entry) {
+            var command = new DictionaryArgumentCommand();
+            var schema = CmdSchemaDefinition.Create(typeof(DictionaryArgumentCommand), "tests", "command", false, null);
 
             var errors = Parse(schema, command, [entry]);
 
             Assert.Contains(errors, error => error.Contains("argument 'parameters' invalid", StringComparison.Ordinal));
         }
         [Fact]
-        public void Schema_RequiresStringDictionaryToBeTheFinalPositionalArgument() {
+        public void Schema_RequiresDictionaryToBeTheFinalPositionalArgument() {
             var exception = Assert.Throws<ArgumentException>(() =>
-                CmdSchemaDefinition.Create(typeof(InvalidStringDictionaryOrderingCommand), "tests", "command", false, null));
+                CmdSchemaDefinition.Create(typeof(InvalidDictionaryOrderingCommand), "tests", "command", false, null));
 
             Assert.Contains("final positional argument", exception.Message, StringComparison.Ordinal);
         }
         [Fact]
-        public void Schema_SerializesStringDictionaryTypeNamesAndDocumentsEntrySyntax() {
-            var flag = new CmdSchemaFlag { Type = typeof(StringDictionary) };
-            var json = JsonSerializer.Serialize(flag);
-            var restored = JsonSerializer.Deserialize<CmdSchemaFlag>(json);
-            var schema = CmdSchemaDefinition.Create(typeof(StringDictionaryHelpCommand), "tests", "command", false, null);
+        public void Schema_SerializesDictionaryTypeNamesAndDocumentsEntrySyntax() {
+            var flagJson = JsonSerializer.Serialize(new CmdSchemaFlag { Type = typeof(Dictionary<string, string>) });
+            var argumentJson = JsonSerializer.Serialize(new CmdSchemaArgument { Type = typeof(Dictionary<string, string>) });
+            var restoredFlag = JsonSerializer.Deserialize<CmdSchemaFlag>(flagJson);
+            var restoredArgument = JsonSerializer.Deserialize<CmdSchemaArgument>(argumentJson);
+            var schema = CmdSchemaDefinition.Create(typeof(DictionaryHelpCommand), "tests", "command", false, null);
 
-            Assert.Contains("\"Type\":\"StringDictionary\"", json, StringComparison.Ordinal);
-            Assert.NotNull(restored);
-            Assert.Equal(typeof(StringDictionary), restored.Type);
-            Assert.Equal(typeof(StringDictionary), ConvertUtils.ToSimpleType("StringDictionary"));
-            Assert.Equal("StringDictionary", ConvertUtils.FromSimpleType(typeof(StringDictionary)));
+            Assert.Equal("Dictionary<string,string>", JsonDocument.Parse(flagJson).RootElement.GetProperty("Type").GetString());
+            Assert.Equal("Dictionary<string,string>", JsonDocument.Parse(argumentJson).RootElement.GetProperty("Type").GetString());
+            Assert.NotNull(restoredFlag);
+            Assert.NotNull(restoredArgument);
+            Assert.Equal(typeof(Dictionary<string, string>), restoredFlag.Type);
+            Assert.Equal(typeof(Dictionary<string, string>), restoredArgument.Type);
+            Assert.Equal(typeof(Dictionary<string, string>), ConvertUtils.ToSimpleType("Dictionary<string,string>"));
+            Assert.Equal("Dictionary<string,string>", ConvertUtils.FromSimpleType(typeof(Dictionary<string, string>)));
             Assert.Equal(2, DefinitionToHelp.GetHelpText(schema, false).Split("Entries use key=value syntax.").Length - 1);
+        }
+        [Fact]
+        public void Schema_PreservesDictionaryResolutionWithRemainingAndRawArguments() {
+            var remainingCommand = new DictionaryWithRemainingCommand();
+            var rawCommand = new DictionaryWithRawCommand();
+
+            var remainingErrors = Parse(CmdSchemaDefinition.Create(typeof(DictionaryWithRemainingCommand), "tests", "command", false, null),
+                remainingCommand, ["name=John", "age=30"]);
+            var rawErrors = Parse(CmdSchemaDefinition.Create(typeof(DictionaryWithRawCommand), "tests", "command", false, null),
+                rawCommand, ["-P", "name=John", "literal"]);
+
+            Assert.Empty(remainingErrors);
+            Assert.Equal("John", remainingCommand.Parameters["name"]);
+            Assert.Equal("30", remainingCommand.Parameters["age"]);
+            Assert.Empty(remainingCommand.Remaining);
+            Assert.Empty(rawErrors);
+            Assert.Empty(rawCommand.Parameters);
+            Assert.Equal(["-P", "name=John", "literal"], rawCommand.Raw);
+        }
+        [Fact]
+        public async Task Manager_ExecutesCommandWithInitDictionaryProperty() {
+            var recorder = new ExecutionRecorder();
+            await using var provider = CreateProvider(recorder);
+            var manager = provider.GetRequiredService<CommandsManager>();
+
+            var result = await manager.ExecuteAsync(["dictionary", "-P", "Name=John", "--parameters=age=30", "-P=NAME=Jane"],
+                TestContext.Current.CancellationToken);
+
+            Assert.Equal(43, result);
+            var parameters = Assert.IsType<Dictionary<string, string>>(recorder.Parameters);
+            Assert.Equal(2, parameters.Count);
+            Assert.Equal("Jane", parameters["name"]);
+            Assert.Equal("30", parameters["AGE"]);
+            Assert.Contains(parameters.Keys, key => key == "Name");
         }
         [Fact]
         public async Task Manager_SelectsCommandInjectsArgumentsAndReturnsExecutionResult() {
@@ -354,55 +394,83 @@ namespace DProjects.Commands.Tests {
         public Task<int> ExecuteAsync(CancellationToken cancellationToken) => Task.FromResult(0);
     }
 
-    public sealed class StringDictionaryFlagCommand {
+    public sealed class DictionaryFlagCommand {
 
         // props
-        [Flag('P', "parameters", "")] public StringDictionary Param2 { get; set; } = new();
+        [Flag('P', "parameters", "")] public Dictionary<string, string> Parameters { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     }
 
-    public sealed class AliasedStringDictionaryFlagCommand {
+    public sealed class AliasedDictionaryFlagCommand {
 
         // props
-        [Flag('P', "parameters", "", "parameters")] public StringDictionary Values { get; set; } = new();
+        [Flag('P', "parameters", "", "parameters")] public Dictionary<string, string> Values { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     }
 
-    public sealed class RequiredStringDictionaryFlagCommand {
+    public sealed class RequiredDictionaryFlagCommand {
 
         // props
-        [Flag('P', "parameters", null)] public StringDictionary Parameters { get; set; } = new();
+        [Flag('P', "parameters", null)] public Dictionary<string, string> Parameters { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     }
 
-    public sealed class StringDictionaryArgumentCommand {
+    public sealed class DictionaryArgumentCommand {
 
         // props
-        [Argument(0, "parameters", "")] public StringDictionary Parameters { get; set; } = new();
+        [Argument(0, "parameters", "")] public Dictionary<string, string> Parameters { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     }
 
-    public sealed class RequiredStringDictionaryArgumentCommand {
+    public sealed class RequiredDictionaryArgumentCommand {
 
         // props
-        [Argument(0, "parameters", null)] public StringDictionary Parameters { get; set; } = new();
+        [Argument(0, "parameters", null)] public Dictionary<string, string> Parameters { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     }
 
-    public sealed class PrefixedStringDictionaryArgumentCommand {
+    public sealed class PrefixedDictionaryArgumentCommand {
 
         // props
         [Argument(0, "prefix", null)] public string Prefix { get; set; } = "";
-        [Argument(1, "parameters", "")] public StringDictionary Parameters { get; set; } = new();
+        [Argument(1, "parameters", "")] public Dictionary<string, string> Parameters { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     }
 
-    public sealed class InvalidStringDictionaryOrderingCommand {
+    public sealed class InvalidDictionaryOrderingCommand {
 
         // props
-        [Argument(0, "parameters", "")] public StringDictionary Parameters { get; set; } = new();
+        [Argument(0, "parameters", "")] public Dictionary<string, string> Parameters { get; set; } = new(StringComparer.OrdinalIgnoreCase);
         [Argument(1, "tail", "")] public string Tail { get; set; } = "";
     }
 
-    public sealed class StringDictionaryHelpCommand {
+    public sealed class DictionaryHelpCommand {
 
         // props
-        [Flag('P', "parameters", "")] public StringDictionary Options { get; set; } = new();
-        [Argument(0, "parameters", "")] public StringDictionary Parameters { get; set; } = new();
+        [Flag('P', "parameters", "")] public Dictionary<string, string> Options { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+        [Argument(0, "parameters", "")] public Dictionary<string, string> Parameters { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+    }
+
+    public sealed class DictionaryWithRemainingCommand {
+
+        // props
+        [Argument(0, "parameters", "")] public Dictionary<string, string> Parameters { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+        [Remaining("remaining", "", false)] public string[] Remaining { get; set; } = [];
+    }
+
+    public sealed class DictionaryWithRawCommand {
+
+        // props
+        [Flag('P', "parameters", "")] public Dictionary<string, string> Parameters { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+        [Raw("raw", "", false)] public string[] Raw { get; set; } = [];
+    }
+
+    [Name("dictionary")]
+    public sealed class DictionaryCommand(ExecutionRecorder recorder) : ICommand {
+
+        // props
+        [Flag('P', "parameters", "", "parameters")]
+        public Dictionary<string, string> Parameters { get; init; } = new(StringComparer.OrdinalIgnoreCase);
+
+        // methods
+        public Task<int> ExecuteAsync(CancellationToken cancellationToken) {
+            recorder.Parameters = Parameters;
+            return Task.FromResult(43);
+        }
     }
 
     public sealed class ExecutionRecorder {
@@ -411,5 +479,6 @@ namespace DProjects.Commands.Tests {
         public string? Value { get; set; }
         public bool Enabled { get; set; }
         public CancellationToken CancellationToken { get; set; }
+        public Dictionary<string, string>? Parameters { get; set; }
     }
 }

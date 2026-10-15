@@ -16,7 +16,7 @@ namespace DProjects.Commands.Schema {
         [JsonPropertyName("Type")]
         public string TypeName {
             get {
-                return Type.Name;
+                return Type == typeof(System.Collections.Generic.Dictionary<string, string>) ? ConvertUtils.FromSimpleType(Type) : Type.Name;
             }
             set {
                 var type = ConvertUtils.ToSimpleType(value);
