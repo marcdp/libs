@@ -16,7 +16,7 @@ namespace DProjects.Fs.Http {
 
 
     //handler
-    public class FilesystemHttpMiddleware {
+    public class FilesystemHttpMiddleware : IDisposable {
 
         //configuration
         public enum Modes {
@@ -25,13 +25,14 @@ namespace DProjects.Fs.Http {
             WriteOnly
         }
         public class Options {
-            public string Url { get; set; }
+            public string Url { get; init; }
             public string Path { get; set; }
-            public string Prefix { get; set; }
-            public Modes Mode { get; set; }
-            public bool AllowAnonymous { get; set; }
-            public bool AllowIfNotModifiedHeader { get; set; }
-            public bool AllowDefaultDocument { get; set; }
+            public string Prefix { get; init; }
+            public Modes Mode { get; init; }
+            public string AuthorizationPolicy { get; init; } = "";
+            public bool AllowAnonymous { get; init; }
+            public bool AllowIfNotModifiedHeader { get; init; }
+            public bool AllowDefaultDocument { get; init; }
             public Options(string path, string url) {
                 Path = path;
                 Url = url;
@@ -55,6 +56,9 @@ namespace DProjects.Fs.Http {
             mNext = next;
             mOptions = options;
             mFilesystem = fsFactory.Create(options.Url);
+        }
+        public void Dispose() {
+            mFilesystem.Dispose();
         }
 
 
