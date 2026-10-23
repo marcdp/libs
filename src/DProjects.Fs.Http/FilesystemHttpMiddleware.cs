@@ -8,6 +8,7 @@ using DProjects.Utils;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Http;
 using System.Net;
@@ -63,7 +64,7 @@ namespace DProjects.Fs.Http {
 
 
         //handle
-        public async Task Invoke(HttpContext context, ILogger<IFilesystem> logger) {
+        public async Task Invoke(HttpContext context, ILogger<IFilesystem> logger, IAuthorizationService authorizationService) {
             //check path
             if (!context.Request.Path.Value!.StartsWith(mOptions.Prefix)) {
                 await mNext.Invoke(context);
@@ -75,6 +76,14 @@ namespace DProjects.Fs.Http {
                     context.Response.StatusCode = HttpUtils.HTTP_UNAUTHORIZED;
                     await context.Response.WriteAsync("");
                     return;
+                }
+                if (!string.IsNullOrWhiteSpace(mOptions.AuthorizationPolicy)) {
+                    var result = await authorizationService.AuthorizeAsync(context.User, context, mOptions.AuthorizationPolicy);
+                    if (!result.Succeeded) {
+                        context.Response.StatusCode = HttpUtils.HTTP_FORBIDDEN;
+                        await context.Response.WriteAsync("");
+                        return;
+                    }
                 }
             }
             //action

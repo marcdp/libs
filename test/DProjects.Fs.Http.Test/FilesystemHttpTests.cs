@@ -27,6 +27,7 @@ namespace DProjects.Fs.Http.Test {
                     options.AllowSynchronousIO = true;
                 });
                 webBuilder.ConfigureServices(services => {
+                    services.AddAuthorization();
                     services.AddSingleton<IFactoryByUrl<IFilesystem>>(services => {
                         return new DProjects.Fs.FilesystemMemFactory();
                     });
@@ -47,5 +48,4 @@ namespace DProjects.Fs.Http.Test {
         }
 
     }
-} 
- 
+}
