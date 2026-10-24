@@ -24,59 +24,7 @@ namespace DProjects.Utils {
             return string.Compare(a, b, StringComparison.CurrentCultureIgnoreCase);
         }
 
-        ////connectionString
-        //public static NameValueCollection GetConnectionStringNameValueCollection(string connectionString) {
-        //    var result = new NameValueCollection();
-        //    var insideQuotes = false;
-        //    for (int i = 0; i< connectionString.Length; i++) {
-        //        char c = connectionString[i];
-        //        if (c == '"') {
-        //            insideQuotes = !insideQuotes;
-        //        } else { 
-        //            if (!insideQuotes) { 
-        //                if (c == ';') {
-        //                    var keyValue = connectionString.Substring(0, i).Trim();
-        //                    if (keyValue.Length > 0) {
-        //                        var index = keyValue.IndexOf('=');
-        //                        if (index > 0 && index < keyValue.Length - 1) {
-        //                            var key = keyValue.Substring(0, index).Trim();
-        //                            var value = keyValue.Substring(index + 1).Trim();
-        //                            result[key] = value;
-        //                        }
-        //                    }
-        //                    connectionString = connectionString.Substring(i + 1);
-        //                    i = -1; // Reset index to start parsing the next pair
-        //                }
-        //            }
-        //        }
-        //    }
-        //    return result;
-        //}
-        //public static NameValueCollection GetConnectionStringNameValueCollectionOld(string connectionString) {
-        //    var result = new NameValueCollection();
-
-        //    if (string.IsNullOrWhiteSpace(connectionString))
-        //        return result;
-
-        //    var pairs = connectionString.Split(';');
-
-        //    foreach (var pair in pairs) {
-        //        if (string.IsNullOrWhiteSpace(pair))
-        //            continue;
-
-        //        var index = pair.IndexOf('=');
-        //        if (index <= 0 || index == pair.Length - 1)
-        //            continue; // Skip invalid pairs
-
-        //        var key = pair.Substring(0, index).Trim();
-        //        var value = pair.Substring(index + 1).Trim();
-
-        //        result[key] = value;
-        //    }
-
-        //    return result;
-        //}
-
+        // connectionString
         public static T DeserializeConnectionString<T>(string text) {
             if (text == null) throw new ArgumentNullException(nameof(text));
             var result = Activator.CreateInstance<T>();
@@ -87,8 +35,7 @@ namespace DProjects.Utils {
                 var value = values[key] ?? "";
                 var property = type.GetProperty(key, flags);
                 if (property != null) {
-                    if (property.GetIndexParameters().Length > 0 || property.SetMethod == null || !property.SetMethod.IsPublic)
-                        throw new ArgumentException($"Property '{key}' is not writable.");
+                    if (property.GetIndexParameters().Length > 0 || property.SetMethod == null || !property.SetMethod.IsPublic) throw new ArgumentException($"Property '{key}' is not writable.");
                     property.SetValue(result, ConvertUtils.To(value, property.PropertyType, true));
                     continue;
                 }
