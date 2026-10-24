@@ -286,8 +286,7 @@ namespace DProjects.Fs.Http.Test {
             context.Response.Body = new MemoryStream();
 
             // invoke and capture the response body
-            var authorizationService = serviceProvider.GetRequiredService<IAuthorizationService>();
-            await middleware.Invoke(context, NullLogger<IFilesystem>.Instance, authorizationService);
+            await middleware.Invoke(context, NullLogger<IFilesystem>.Instance);
             context.Response.Body.Position = 0;
             using var reader = new StreamReader(context.Response.Body, Encoding.UTF8, leaveOpen: true);
             string responseBody = await reader.ReadToEndAsync();

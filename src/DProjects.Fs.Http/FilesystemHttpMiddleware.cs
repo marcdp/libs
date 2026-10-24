@@ -6,6 +6,7 @@ using DProjects.Fs.Extensions;
 using DProjects.Utils;
 
 using System.Threading;
+using Microsoft.Extensions.DependencyInjection;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Authorization;
@@ -74,7 +75,7 @@ namespace DProjects.Fs.Http {
 
 
         //handle
-        public async Task Invoke(HttpContext context, ILogger<IFilesystem> logger, IAuthorizationService authorizationService) {
+        public async Task Invoke(HttpContext context, ILogger<IFilesystem> logger) {
             //check path
             if (!TryGetRelativePath(context.Request.Path, out var relativePath)) {
                 await mNext.Invoke(context);
@@ -88,6 +89,7 @@ namespace DProjects.Fs.Http {
                     return;
                 }
                 if (!string.IsNullOrWhiteSpace(mOptions.AuthorizationPolicy)) {
+                    var authorizationService = context.RequestServices.GetRequiredService<IAuthorizationService>();
                     var result = await authorizationService.AuthorizeAsync(context.User, context, mOptions.AuthorizationPolicy);
                     if (!result.Succeeded) {
                         context.Response.StatusCode = HttpUtils.HTTP_FORBIDDEN;

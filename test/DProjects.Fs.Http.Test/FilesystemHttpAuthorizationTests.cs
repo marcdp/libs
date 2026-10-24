@@ -99,8 +99,7 @@ namespace DProjects.Fs.Http.Test {
             context.Request.ContentType = contentType;
 
             // invoke using services resolved from the standard dependency injection container
-            var authorizationService = serviceProvider.GetRequiredService<IAuthorizationService>();
-            await middleware.Invoke(context, NullLogger<IFilesystem>.Instance, authorizationService);
+            await middleware.Invoke(context, NullLogger<IFilesystem>.Instance);
             return (context.Response.StatusCode, filesystem.OperationCalls, nextCalls);
         }
         private static ServiceProvider CreateServiceProvider() {
