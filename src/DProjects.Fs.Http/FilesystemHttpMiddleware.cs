@@ -26,27 +26,24 @@ namespace DProjects.Fs.Http {
             WriteOnly
         }
         public class Options {
-            public string Url { get; init; }
-            public string Path { get; set; }
-            public string Prefix { get; init; }
+            public string FilesystemUrl { get; init; }
+            public string FilesystemPath { get; init; } = "/";
+            public string UrlPath { get; init; } = "";
             public Modes Mode { get; init; }
             public string AuthorizationPolicy { get; init; } = "";
             public bool AllowAnonymous { get; init; }
             public bool AllowIfNotModifiedHeader { get; init; }
             public bool AllowDefaultDocument { get; init; }
             public Options() {
-                Path = "/";
-                Url = "";
-                Prefix = "";
+                FilesystemUrl = "";
                 Mode = Modes.ReadOnly;
                 AllowAnonymous = false;
                 AllowDefaultDocument = false;
                 AllowIfNotModifiedHeader = true;
             }
             public Options(string path, string url) {
-                Path = path;
-                Url = url;
-                Prefix = "";
+                FilesystemPath = path;
+                FilesystemUrl = url;
                 Mode = Modes.ReadOnly;
                 AllowAnonymous = false;
                 AllowDefaultDocument = false;
@@ -59,13 +56,17 @@ namespace DProjects.Fs.Http {
         private Options mOptions;
         private IFilesystem mFilesystem;
         private readonly RequestDelegate mNext;
+        private readonly string mFilesystemPath;
+        private readonly PathString mUrlPath;
 
 
         //constructor
         public FilesystemHttpMiddleware(RequestDelegate next, IFactoryByUrl<IFilesystem> fsFactory, Options options) {
             mNext = next;
             mOptions = options;
-            mFilesystem = fsFactory.Create(options.Url);
+            mFilesystemPath = PathUtils.NormalizeStrict(options.FilesystemPath);
+            mUrlPath = BuildUrlPath(options.UrlPath);
+            mFilesystem = fsFactory.Create(options.FilesystemUrl);
         }
         public void Dispose() {
             mFilesystem.Dispose();
@@ -75,7 +76,7 @@ namespace DProjects.Fs.Http {
         //handle
         public async Task Invoke(HttpContext context, ILogger<IFilesystem> logger, IAuthorizationService authorizationService) {
             //check path
-            if (!context.Request.Path.Value!.StartsWith(mOptions.Prefix)) {
+            if (!TryGetRelativePath(context.Request.Path, out var relativePath)) {
                 await mNext.Invoke(context);
                 return;
             }
@@ -99,9 +100,8 @@ namespace DProjects.Fs.Http {
             try {
                 var cancellationToken = context.RequestAborted;
                 var method = context.Request.Method;
-                var p = context.Request.Path.Value.Substring(mOptions.Prefix.Length);
-                var path = BuildPath(p);
-                context.Response.Headers.Append(FilesystemHttp.HEADER_FS_PATH_PREFIX, mOptions.Prefix);
+                var path = BuildPath(relativePath);
+                context.Response.Headers.Append(FilesystemHttp.HEADER_FS_PATH_PREFIX, mUrlPath.Value ?? "");
                 var accept = context.Request.Headers[HttpUtils.HEADER_ACCEPT];
                 var ranges = context.Request.Headers[HttpUtils.HEADER_RANGE];
                 if (method.Equals("GET")) {
@@ -111,7 +111,7 @@ namespace DProjects.Fs.Http {
                         foreach (var defaultDocument in new string[] { "index.html" }) {
                             entry = await mFilesystem.GetEntryAsync(PathUtils.Combine(path, defaultDocument), cancellationToken);
                             if (entry != null) {
-                                if (context.Request.Path.Value.Length > 0 && !context.Request.Path.Value.EndsWith("/")) {
+                                if (context.Request.Path.HasValue && !context.Request.Path.Value!.EndsWith("/")) {
                                     context.Response.Redirect(context.Request.Path.Value + "/");
                                     return;
                                 }
@@ -259,13 +259,14 @@ namespace DProjects.Fs.Http {
                     } else if (contentType != null && contentType.StartsWith(FilesystemHttp.MIMETYPE_FS_COPY)) {
                         //Copy
                         var copyRequest = await context.Request.ReadFromJsonAsync<DProjects.Fs.Http.FilesystemHttp.CopyRequest>(cancellationToken);
-                        if (copyRequest != null && await mFilesystem.ExistsAsync(copyRequest.Source, cancellationToken)) {
+                        var sourcePath = copyRequest == null ? null : BuildHttpPath(copyRequest.Source);
+                        if (copyRequest != null && sourcePath != null && await mFilesystem.ExistsAsync(sourcePath, cancellationToken)) {
                             var settings = new CopySettings();
                             settings.IgnoreErrors = copyRequest.IgnoreErrors;
                             settings.Overwrite = copyRequest.Overwrite;
                             settings.Recursive = copyRequest.Recursive;
                             settings.Tries = copyRequest.Tries;
-                            await mFilesystem.CopyAsync(copyRequest.Source, path, settings, logger, cancellationToken);
+                            await mFilesystem.CopyAsync(sourcePath, path, settings, logger, cancellationToken);
                             if (entry == null) {
                                 context.Response.StatusCode = HttpUtils.HTTP_CREATED;
                             } else {
@@ -278,10 +279,11 @@ namespace DProjects.Fs.Http {
                     } else if (contentType != null && contentType.StartsWith(FilesystemHttp.MIMETYPE_FS_MOVE)) {
                         //Move
                         var moveRequest = await context.Request.ReadFromJsonAsync<DProjects.Fs.Http.FilesystemHttp.MoveRequest>(cancellationToken);
-                        if (moveRequest != null && await mFilesystem.ExistsAsync(moveRequest.Source, cancellationToken)) {
+                        var sourcePath = moveRequest == null ? null : BuildHttpPath(moveRequest.Source);
+                        if (moveRequest != null && sourcePath != null && await mFilesystem.ExistsAsync(sourcePath, cancellationToken)) {
                             var settings = new MoveSettings();
                             settings.IgnoreErrors = moveRequest.IgnoreErrors;
-                            await mFilesystem.MoveAsync(moveRequest.Source, path, settings, logger, cancellationToken);
+                            await mFilesystem.MoveAsync(sourcePath, path, settings, logger, cancellationToken);
                             if (entry == null) {
                                 context.Response.StatusCode = HttpUtils.HTTP_CREATED;
                             } else {
@@ -294,14 +296,15 @@ namespace DProjects.Fs.Http {
                     } else if (contentType != null && contentType.StartsWith(FilesystemHttp.MIMETYPE_FS_SYNC)) {
                         //Sync
                         var syncRequest = await context.Request.ReadFromJsonAsync<DProjects.Fs.Http.FilesystemHttp.SyncRequest>(cancellationToken);
-                        if (syncRequest != null && await mFilesystem.ExistsAsync(syncRequest.Source, cancellationToken)) {
+                        var sourcePath = syncRequest == null ? null : BuildHttpPath(syncRequest.Source);
+                        if (syncRequest != null && sourcePath != null && await mFilesystem.ExistsAsync(sourcePath, cancellationToken)) {
                             var syncSettings = new SyncSettings();
                             syncSettings.DestinationExcludes = syncRequest.DestinationExcludes;
                             syncSettings.SourceExcludes = syncRequest.SourceExcludes;
                             syncSettings.IgnoreErrors = syncRequest.IgnoreErrors;
                             syncSettings.Mode = syncRequest.Mode;
                             syncSettings.Tries = syncRequest.Tries;
-                            await mFilesystem.SyncAsync(syncRequest.Source, path, syncSettings, logger, cancellationToken);
+                            await mFilesystem.SyncAsync(sourcePath, path, syncSettings, logger, cancellationToken);
                             if (entry == null) {
                                 context.Response.StatusCode = HttpUtils.HTTP_CREATED;
                             } else {
@@ -399,6 +402,9 @@ namespace DProjects.Fs.Http {
                     context.Response.StatusCode = HttpUtils.HTTP_NOT_ACCEPTABLE;
                     await context.Response.WriteAsync(HttpUtils.GetHttpCodeDescription(context.Response.StatusCode));
                 }
+            } catch (BadHttpRequestException e) {
+                context.Response.StatusCode = e.StatusCode;
+                await context.Response.WriteAsync(HttpUtils.GetHttpCodeDescription(context.Response.StatusCode));
             } catch (UnauthorizedAccessException e) {
                 logger.LogError("DshListenerHttpShareMiddleware: UnauthorizedAccessException: " + e.Message + " " + e.StackTrace);
                 context.Response.StatusCode = HttpUtils.HTTP_UNAUTHORIZED;
@@ -410,16 +416,69 @@ namespace DProjects.Fs.Http {
             }
         }
         private string BuildPath(string path) {
-            var aux = path;
-            if (aux.Length == 0) aux = "/";
-            //aux = PathUtils.Combine(mOptions.Path, aux);
-            aux = PathUtils.Uncombine(mOptions.Path, aux);
-            return aux;
+            //validate decoded traversal without changing literal percent-encoded filesystem names
+            string requestPath = path.Length == 0 ? "/" : path;
+            try {
+                PathUtils.NormalizeStrict(DecodePath(requestPath));
+            } catch (ArgumentException e) {
+                throw new BadHttpRequestException("Invalid filesystem request path.", HttpUtils.HTTP_BAD_REQUEST, e);
+            }
+            string relativePath = PathUtils.NormalizeStrict(requestPath);
+            string filesystemPath = PathUtils.Combine(mFilesystemPath, relativePath);
+            if (!PathUtils.IsWithin(filesystemPath, mFilesystemPath)) {
+                throw new BadHttpRequestException("The request path is outside the configured filesystem path.", HttpUtils.HTTP_BAD_REQUEST);
+            }
+            return filesystemPath;
         }
         private string UnbuildPath(string path) {
-            //var aux = mOptions.Path;
-            //return PathUtils.Uncombine(aux, path);
-            return path;
+            //return only paths contained by the configured filesystem root
+            string filesystemPath = PathUtils.NormalizeStrict(path);
+            if (!PathUtils.IsWithin(filesystemPath, mFilesystemPath)) {
+                throw new InvalidOperationException("The filesystem returned a path outside the configured filesystem path.");
+            }
+            return PathUtils.Uncombine(mFilesystemPath, filesystemPath, StringComparison.Ordinal);
+        }
+        private static PathString BuildUrlPath(string path) {
+            //normalize root URL paths to the empty prefix used to handle all requests
+            if (path.Length == 0) return PathString.Empty;
+            string normalizedPath = PathUtils.NormalizeStrict(path);
+            return normalizedPath == "/" ? PathString.Empty : new PathString(normalizedPath);
+        }
+        private bool TryGetRelativePath(PathString path, out string relativePath) {
+            //match the configured URL path by complete path segments
+            if (!mUrlPath.HasValue) {
+                relativePath = path.Value ?? "";
+                return true;
+            }
+            if (path.StartsWithSegments(mUrlPath, out PathString remainingPath)) {
+                relativePath = remainingPath.Value ?? "";
+                return true;
+            }
+            relativePath = "";
+            return false;
+        }
+        private string BuildHttpPath(string path) {
+            //apply the same URL-prefix mapping to source paths supplied in request bodies
+            if (string.IsNullOrEmpty(path) || !path.StartsWith("/", StringComparison.Ordinal)) {
+                throw new BadHttpRequestException("The source path must be an absolute HTTP path.", HttpUtils.HTTP_BAD_REQUEST);
+            }
+            if (!TryGetRelativePath(new PathString(path), out string relativePath)) {
+                throw new BadHttpRequestException("The source path is outside the configured URL path.", HttpUtils.HTTP_BAD_REQUEST);
+            }
+            return BuildPath(relativePath);
+        }
+        private static string DecodePath(string path) {
+            //decode nested escaping so encoded traversal segments cannot reach a filesystem provider
+            string decodedPath = path;
+            for (int i = 0; i < 4; i++) {
+                string unescapedPath = Uri.UnescapeDataString(decodedPath);
+                if (unescapedPath == decodedPath) return decodedPath;
+                decodedPath = unescapedPath;
+            }
+            if (Uri.UnescapeDataString(decodedPath) != decodedPath) {
+                throw new BadHttpRequestException("The request path contains excessive URL encoding.", HttpUtils.HTTP_BAD_REQUEST);
+            }
+            return decodedPath;
         }
          
 

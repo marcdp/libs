@@ -84,7 +84,7 @@ namespace DProjects.Fs.Http.Test {
                 AllowAnonymous = allowAnonymous,
                 AuthorizationPolicy = authorizationPolicy,
                 Mode = FilesystemHttpMiddleware.Modes.ReadWrite,
-                Prefix = PREFIX
+                UrlPath = PREFIX
             };
             using var middleware = new FilesystemHttpMiddleware(next, factory, options);
 
