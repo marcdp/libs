@@ -7,7 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Web;
+using System.Reflection;
 
 
 namespace DProjects.Utils {
@@ -76,6 +76,32 @@ namespace DProjects.Utils {
 
         //    return result;
         //}
+
+        public static T DeserializeConnectionString<T>(string text) {
+            if (text == null) throw new ArgumentNullException(nameof(text));
+            var result = Activator.CreateInstance<T>();
+            var values = GetConnectionStringNameValueCollection(text);
+            var type = typeof(T);
+            const BindingFlags flags = BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase;
+            foreach (string key in values.AllKeys) {
+                var value = values[key] ?? "";
+                var property = type.GetProperty(key, flags);
+                if (property != null) {
+                    if (property.GetIndexParameters().Length > 0 || property.SetMethod == null || !property.SetMethod.IsPublic)
+                        throw new ArgumentException($"Property '{key}' is not writable.");
+                    property.SetValue(result, ConvertUtils.To(value, property.PropertyType, true));
+                    continue;
+                }
+                var field = type.GetField(key, flags);
+                if (field != null) {
+                    if (field.IsInitOnly || field.IsLiteral) throw new ArgumentException($"Field '{key}' is not writable.");
+                    field.SetValue(result, ConvertUtils.To(value, field.FieldType, true));
+                    continue;
+                }
+                throw new ArgumentException($"Parameter '{key}' was not found in type '{type.Name}'.", nameof(text));
+            }
+            return result;
+        }
         public static NameValueCollection GetConnectionStringNameValueCollection(string text) {
             var result = new NameValueCollection();
             if (string.IsNullOrEmpty(text))

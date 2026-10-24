@@ -34,6 +34,15 @@ namespace DProjects.Fs.Http {
             public bool AllowAnonymous { get; init; }
             public bool AllowIfNotModifiedHeader { get; init; }
             public bool AllowDefaultDocument { get; init; }
+            public Options() {
+                Path = "/";
+                Url = "";
+                Prefix = "";
+                Mode = Modes.ReadOnly;
+                AllowAnonymous = false;
+                AllowDefaultDocument = false;
+                AllowIfNotModifiedHeader = true;
+            }
             public Options(string path, string url) {
                 Path = path;
                 Url = url;
