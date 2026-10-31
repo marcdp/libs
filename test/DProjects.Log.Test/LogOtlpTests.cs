@@ -78,9 +78,9 @@ namespace DProjects.Log.Tests {
 
             var record = Assert.Single(exporter.Records);
             Assert.Equal(Microsoft.Extensions.Logging.LogLevel.Information, record.LogLevel);
-            Assert.StartsWith("Order accepted", record.Body?.ToString());
+            Assert.StartsWith("Order accepted", record.Body);
             Assert.Equal("test.scope", record.CategoryName);
-            var attributes = Assert.IsAssignableFrom<IReadOnlyList<KeyValuePair<string, object?>>>(record.Attributes);
+            var attributes = record.Attributes;
             Assert.Contains(attributes, item => item.Key == "orderId" && Equals(item.Value, 42));
             Assert.Contains(attributes, item => item.Key == "source" && Equals(item.Value, "orders"));
             Assert.Contains(attributes, item => item.Key == "user" && Equals(item.Value, "user-1"));
@@ -103,14 +103,40 @@ namespace DProjects.Log.Tests {
 
         private sealed class CollectingExporter : BaseExporter<global::OpenTelemetry.Logs.LogRecord> {
 
-            public ConcurrentQueue<global::OpenTelemetry.Logs.LogRecord> Records { get; } = new();
+            public ConcurrentQueue<LogRecordSnapshot> Records { get; } = new();
 
             public override ExportResult Export(in Batch<global::OpenTelemetry.Logs.LogRecord> batch) {
                 foreach (var record in batch) {
-                    Records.Enqueue(record);
+                    var attributes = new List<KeyValuePair<string, object?>>();
+                    if (record.Attributes != null) {
+                        foreach (var attribute in record.Attributes) {
+                            attributes.Add(attribute);
+                        }
+                    }
+                    Records.Enqueue(new LogRecordSnapshot(record.LogLevel, record.Body?.ToString(), record.CategoryName, attributes));
                 }
                 return ExportResult.Success;
             }
+        }
+
+        private sealed class LogRecordSnapshot {
+
+            public LogRecordSnapshot(
+                Microsoft.Extensions.Logging.LogLevel logLevel,
+                string? body,
+                string? categoryName,
+                IReadOnlyList<KeyValuePair<string, object?>> attributes
+            ) {
+                LogLevel = logLevel;
+                Body = body;
+                CategoryName = categoryName;
+                Attributes = attributes;
+            }
+
+            public Microsoft.Extensions.Logging.LogLevel LogLevel { get; }
+            public string? Body { get; }
+            public string? CategoryName { get; }
+            public IReadOnlyList<KeyValuePair<string, object?>> Attributes { get; }
         }
 
         private sealed class RecordingLoggerProvider : ILoggerProvider {

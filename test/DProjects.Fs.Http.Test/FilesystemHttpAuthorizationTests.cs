@@ -94,6 +94,7 @@ namespace DProjects.Fs.Http.Test {
             var context = new DefaultHttpContext {
                 User = new ClaimsPrincipal(identity)
             };
+            context.RequestServices = serviceProvider;
             context.Request.Path = path;
             context.Request.Method = method;
             context.Request.ContentType = contentType;
