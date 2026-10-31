@@ -22,6 +22,7 @@
     <Nullable>enable</Nullable>
     <PackageProjectUrl>https://www.dprojects.com/</PackageProjectUrl>
     <PackageIcon></PackageIcon>
+      <CleanProjectReferences>false</CleanProjectReferences>
   </PropertyGroup>
 
   <ItemGroup>

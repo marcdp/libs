@@ -23,6 +23,7 @@
         <PackageProjectUrl>https://www.dprojects.com/</PackageProjectUrl>
         <PackageIcon></PackageIcon>
         <CLSCompliant>true</CLSCompliant>
+        <CleanProjectReferences>false</CleanProjectReferences>
     </PropertyGroup>
     
     <ItemGroup>
