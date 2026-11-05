@@ -37,19 +37,39 @@ Unsupported registration calls fail with `NotSupportedException`. The reader doe
 
 ## Cryptographic compatibility
 
-The verified XVault crypto format is `crypto_version = 1`: Argon2id derives a 256-bit key from the password and metadata salt, and AES-256-GCM
-authenticates and decrypts each token. This protocol implementation exists only for XVault v1 compatibility; it is not a general cryptography API.
-Unknown crypto versions fail explicitly. Wrong passwords, malformed metadata or token encoding, truncated tokens, and modified ciphertext or tags
-are rejected.
+The reader supports `crypto_version = 1` and `crypto_version = 2`. Both versions use Argon2id version 19 with a 16-byte salt, time cost 5, memory cost
+131072 KiB, parallelism 4, and a 32-byte output. CryptoV1 uses that derived key directly to decrypt secret values and validates the historical `check`
+token when present.
+
+CryptoV2 uses the derived key as a key-encryption key (KEK). Metadata stores `encrypted_key` as URL-safe base64 of a 12-byte nonce, encrypted
+32-byte data-encryption key (DEK), and 16-byte AES-GCM tag. The reader authenticates and unwraps this 60-byte envelope with AES-256-GCM and the exact
+UTF-8 AAD `xvault:v2:dek`. It then uses the authenticated DEK for secret tokens. Secret values in both versions use a 12-byte nonce, ciphertext, and
+16-byte tag with no AAD.
+
+Unknown versions, malformed metadata, invalid key sizes or encodings, wrong passwords, truncated values, and modified ciphertext, nonces, or tags
+fail explicitly. A failed v2 unwrap never creates or substitutes a DEK.
+
+## Key resolution
+
+Supplying a password works on every supported platform. When the password is omitted on Windows, the reader can retrieve the canonical Python keyring
+credential from Windows Credential Manager. CryptoV1 uses `xvault:<absolute-file-uri>` and caches its direct encryption key; CryptoV2 uses
+`xvault:v2:<absolute-file-uri>` and caches the KEK, never the DEK. A cached value must decode to exactly 32 bytes, and a cached v2 KEK must still
+authenticate the file's current wrapped DEK.
+
+Cached-key lookup remains Windows-specific. Other platforms require a password, and the deterministic test suite verifies identity selection rather
+than reading or modifying a user's real credential store.
 
 ## Verification
 
-Sanitized fixtures for JSON, JSONC, YAML, ENV, and Markdown were produced by the canonical `marcdp/xvault` implementation at commit `39f760c`
-(XVault `0.0.45`). Tests consume those committed files from .NET and compare the decrypted document or configuration values. Fixed synthetic
-randomness makes fixture regeneration reproducible; no real secrets are present.
+Sanitized CryptoV1 and CryptoV2 fixtures for JSON, JSONC, YAML, ENV, and Markdown were produced by the canonical `marcdp/xvault` implementation at
+commit `b18412d` (XVault `0.0.45`). Tests consume those committed files from .NET and compare the decrypted document or configuration values. The
+canonical fixed `tests/fixtures/v2.env` Argon2 vector is copied byte-for-byte. Separate before/after canonical password-rotation fixtures verify that
+a new KEK and wrapped DEK can decrypt unchanged secret ciphertext. Fixed synthetic randomness makes fixture regeneration reproducible; no real
+secrets are present.
 
-The XML test uses canonical v1 ciphertext and metadata inside the envelope supported by this reader. Canonical XVault recognizes `.xml` at the
-inspected revision, but its XML handler has no parse/stringify implementation, so end-to-end canonical XML authoring is not yet verified.
+The XML test uses canonical v1 ciphertext and metadata inside the envelope supported by this .NET reader. The current canonical Python format
+registry does not support XML, so end-to-end canonical XML authoring is not claimed. Canonical Python also supports OpenVPN, which this .NET reader
+deliberately does not add.
 
 ## Explicit non-goals
 
@@ -61,9 +81,9 @@ inspected revision, but its XML handler has no parse/stringify implementation, s
 
 ## Limitations
 
-Compatibility is tied to the known XVault schema and crypto-v1 format. Future crypto versions require separate compatibility work. Windows keyring
-lookup is platform state and is not exercised by the normal deterministic suite; password-based derivation is the portable verified path. ENV, XML,
-and Markdown cannot be registered as .NET configuration. Canonical end-to-end XML generation and the `.markdown` alias are not currently evidenced
-by the inspected Python implementation. Canonical XVault's `.ovpn` format is not supported by this .NET reader.
+Compatibility is tied to the known XVault schema and CryptoV1/CryptoV2 formats. Future crypto versions require separate compatibility work. Windows
+keyring state is not exercised by the normal deterministic suite; password-based derivation is the portable verified path. ENV, XML, and Markdown
+cannot be registered as .NET configuration. Canonical end-to-end XML generation and the `.markdown` alias are not evidenced by the inspected Python
+implementation. Canonical XVault's `.ovpn` format is not supported by this .NET reader.
 
 Return to the [documentation index](../index.md) or see [Verification](../verification.md) and [Support and status](../support.md).

@@ -1,0 +1,8 @@
+# xvault metadata. To view/edit secrets in this file use: pip install -e xvault; xvault edit <file>;
+_xvault: xvault:eyJjcnlwdG9fdmVyc2lvbiI6IDIsICJzYWx0IjogIjAwMTEyMjMzNDQ1NTY2Nzc4ODk5YWFiYmNjZGRlZWZmIiwgImVuY3J5cHRlZF9rZXkiOiAiYUdscWEyeHRibTl3Y1hKelBKeEdHb1QtaXVXSDRlOTZ5aG8xNDdpY3BHc3RzaGp0MGlDSmVxQ0lLRHRYcFZTeWwwYmJwX3hNVHRSWGdpX20ifQ==
+
+# retained v2 application comment
+username: public-user
+password: enc:gIGCg4SFhoeIiYqLz02EztWkn4kvW7iK9_DgPkSd0pq1lHK11jC0J0Hi
+nested:
+  api_key: ${enc:dHV2d3h5ent8fX5_uhP9_A30eAkPrKZQO0SxHf_hbViVOpna2A2OUikT5g==}

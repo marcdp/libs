@@ -1,0 +1,8 @@
+{
+  // retained v2 application comment
+  "username": "public-user",
+  "password": "jsonc-v2-secret",
+  "nested": {
+    "api_key": "jsonc-v2-api-key"
+  }
+}

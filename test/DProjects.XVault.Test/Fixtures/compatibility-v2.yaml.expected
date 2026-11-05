@@ -1,0 +1,5 @@
+# retained v2 application comment
+username: public-user
+password: yaml-v2-secret
+nested:
+  api_key: yaml-v2-api-key

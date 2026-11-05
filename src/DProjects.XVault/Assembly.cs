@@ -1,4 +1,7 @@
 using DProjects.Factories;
+using System.Runtime.CompilerServices;
+
+[assembly: InternalsVisibleTo("DProjects.XVault.Test")]
 
 namespace DProjects.XVault {
 

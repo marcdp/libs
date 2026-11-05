@@ -1,0 +1,10 @@
+{
+  "_xvault": "xvault:eyJjcnlwdG9fdmVyc2lvbiI6IDIsICJzYWx0IjogIjAwMTEyMjMzNDQ1NTY2Nzc4ODk5YWFiYmNjZGRlZWZmIiwgImVuY3J5cHRlZF9rZXkiOiAiMU5YVzE5aloydHZjM2Q3ZjJ6dl9OWXBOaHBzaGxqUXo0M2l4WlZXTjRsa0R1Zlk3Z29PUndQS0x2aXhMTEgxeGdSN2dfbHlPNVRMczlkTEEifQ==",
+  
+  "username": "public-user",
+  "password": "enc:7O3u7_Dx8vP09fb3-OGO0gFp_IrVGvgrcTXmuefZ8OEeam3hEdbV3EsE",
+  "nested": {
+    "api_key": "${enc:4OHi4-Tl5ufo6errDWuQ816RIldmyACRFC96Th2mmf1kJLEmVxP5ZNp7DQ==}",
+    "unicode": "enc:-Pn6-_z9_v8AAQIDqEWaLMLYO5boJTEbGW9Uh4or9fWMOZse8NIX4LptcFE8LA=="
+  }
+}

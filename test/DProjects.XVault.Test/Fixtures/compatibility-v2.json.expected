@@ -1,0 +1,8 @@
+{
+  "username": "public-user",
+  "password": "json-v2-secret",
+  "nested": {
+    "api_key": "json-v2-api-key",
+    "unicode": "Héllo 密码 🔐"
+  }
+}
